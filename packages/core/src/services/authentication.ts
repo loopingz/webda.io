@@ -1,4 +1,4 @@
-import * as bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { EventWithContext } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";

@@ -4,8 +4,10 @@ import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
 import { join } from "path";
-import { Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
+import { Constructor, Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
+import { getCommonJS } from "./utils/esm";
 import { FileUtils } from "./utils/serializers";
+const { __dirname } = getCommonJS(import.meta.url);
 
 export type PackageDescriptorAuthor =
   | string
@@ -617,14 +619,14 @@ export class Application {
    *
    * @param name model to retrieve
    */
-  getModel(name: string): Context | CoreModelDefinition {
+  getModel<T extends CoreModelDefinition | Constructor<any> = CoreModelDefinition>(name: string): T {
     return this.getWebdaObject("models", name);
   }
 
   /**
    * Get all models definitions
    */
-  getModels(): { [key: string]: Context | CoreModelDefinition } {
+  getModels(): { [key: string]: Constructor<Context> | CoreModelDefinition } {
     return this.models;
   }
 

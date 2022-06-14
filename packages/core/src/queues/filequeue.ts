@@ -146,6 +146,6 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   async __clean() {
     // Use require on purpose to avoid adding fs-extra as runtime dep
     // The __clean method is only used by unit test
-    require("fs-extra").emptyDirSync(this.parameters.folder);
+    (await import("fs-extra")).emptyDirSync(this.parameters.folder);
   }
 }

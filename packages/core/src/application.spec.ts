@@ -1,9 +1,10 @@
-import * as assert from "assert";
-import * as fs from "fs-extra";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import * as path from "path";
 import { Application, UnpackedApplication } from "./index";
 import { TestApplication, WebdaTest } from "./test";
+import { getCommonJS } from "./utils/esm";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class ApplicationTest extends WebdaTest {

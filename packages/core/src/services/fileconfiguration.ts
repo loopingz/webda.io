@@ -1,6 +1,6 @@
 import * as fs from "fs";
-import { JSONUtils } from "..";
 import { WebdaError } from "../core";
+import { JSONUtils } from "../index";
 import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
 
 /**

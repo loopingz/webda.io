@@ -5,17 +5,16 @@ import ValidationError from "ajv/dist/runtime/validation_error";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
 import { JSONSchema7 } from "json-schema";
-import * as jsonpath from "jsonpath";
-import pkg from 'node-machine-id';
-const { machineIdSync } = pkg;
+import jsonpath from "jsonpath";
+import pkg from "node-machine-id";
 import { OpenAPIV3 } from "openapi-types";
 import { v4 as uuidv4 } from "uuid";
-import * as vm from "vm";
 import { Application, Configuration } from "./application";
 import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
-import { CoreModel, CoreModelDefinition } from "./models/coremodel";
+import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";
+const { machineIdSync } = pkg;
 
 /**
  *
@@ -497,24 +496,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   *
-   * @param {Object} executor The executor to expose as executor
-   * @param {String} code to execute
-   */
-  sandbox(code, context?: vm.Context) {
-    context ??= {
-      require: () => {
-        throw Error("not allowed");
-      }
-    };
-    context.module = {
-      exports: {}
-    };
-    vm.runInNewContext(code, context);
-    return context.module.exports();
-  }
-
-  /**
    * Validate the object with schema
    *
    * @param schema path to use
@@ -665,7 +646,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @param {String} name The model name to retrieve
    */
-  getModel(name): any {
+  getModel<T = any>(name): Constructor<T> | CoreModelDefinition {
     return this.application.getModel(name);
   }
 

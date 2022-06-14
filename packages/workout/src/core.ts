@@ -21,7 +21,7 @@ export class WorkerProgress {
   current: number = 0;
   running: boolean = true;
 
-  constructor(uid: string, total: number, groups: string[], title: string = undefined) {
+  constructor(uid: string, total: number, groups: string[], title?: string) {
     this.uid = uid;
     this.total = total;
     this.groups = [...groups];
@@ -63,7 +63,7 @@ export class WorkerInput {
   validators: RegExp[];
   type: WorkerInputType;
   uuid: string;
-  value: string;
+  value?: string;
 
   constructor(
     uuid: string,

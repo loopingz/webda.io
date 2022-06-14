@@ -1,13 +1,15 @@
 import { suite, test } from "@testdeck/mocha";
 import { WorkerInputType } from "@webda/workout";
 import * as assert from "assert";
+import chalk from "chalk";
+import { stdin } from "mock-stdin";
 import { nextTick } from "process";
 import * as sinon from "sinon";
 import { WorkerLogLevelEnum, WorkerOutput } from "..";
 import { WorkerProgress } from "../core";
 import { Terminal } from "./terminal";
 
-var stdin = require("mock-stdin").stdin();
+const mockStdin = stdin();
 
 @suite
 class TerminalTest {
@@ -130,7 +132,7 @@ class TerminalTest {
   testDisplayString() {
     let test = this.terminal.displayString("Test" + "plop" + " " + "yep", 50);
     assert.strictEqual(test.length, 50);
-    test = this.terminal.displayString("Test" + "plop".yellow + " " + "yep".blue, 50);
+    test = this.terminal.displayString("Test" + chalk.yellow("plop") + " " + chalk.blue("yep"), 50);
     assert.strictEqual(test.length, 70);
   }
 
@@ -196,7 +198,7 @@ class TerminalTest {
     this.terminal.setLogo(undefined);
     assert.deepStrictEqual(this.terminal.getLogo(), []);
     assert.strictEqual(this.terminal.logoWidth, 0);
-    this.terminal.setLogo(["ADB".yellow, "B"]);
+    this.terminal.setLogo([chalk.yellow("ADB"), "B"]);
     assert.strictEqual(this.terminal.logoWidth, 3);
   }
 

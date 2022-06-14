@@ -1,13 +1,15 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { mkdirSync, unlinkSync } from "fs";
-import pkg from 'fs-extra';
-const { emptyDirSync, ensureSymlinkSync, outputFileSync } = pkg;
+import pkg from "fs-extra";
 import * as path from "path";
 import { stub } from "sinon";
 import * as yaml from "yaml";
 import { KubernetesConfigurationService } from "..";
 import { WebdaTest } from "../test";
+import { getCommonJS } from "../utils/esm";
+const { emptyDirSync, ensureSymlinkSync, outputFileSync } = pkg;
+const { __dirname } = getCommonJS(import.meta.url);
 
 class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
   folder: string = __dirname + "/../../test/kube";

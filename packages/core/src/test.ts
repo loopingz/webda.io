@@ -125,11 +125,11 @@ class WebdaTest {
    * @param app
    */
   async tweakApp(app: TestApplication) {
-    app.addService("webdatest/voidstore", await import("../test/moddas/voidstore"));
-    app.addService("webdatest/fakeservice", await import("../test/moddas/fakeservice"));
-    app.addService("webdatest/mailer", await import("../test/moddas/debugmailer"));
-    app.addModel("webdatest/task", await import("../test/models/task"));
-    app.addModel("webdatest/ident", await import("../test/models/ident"));
+    app.addService("webdatest/voidstore", (await import("../test/moddas/voidstore")).VoidStore);
+    app.addService("webdatest/fakeservice", (await import("../test/moddas/fakeservice")).FakeService);
+    app.addService("webdatest/mailer", (await import("../test/moddas/debugmailer")).DebugMailer);
+    app.addModel("webdatest/task", (await import("../test/models/task")).Task);
+    app.addModel("webdatest/ident", (await import("../test/models/ident")).Ident);
   }
 
   /**

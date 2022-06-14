@@ -1,8 +1,8 @@
-import * as colors from "colors";
+import chalk from "chalk";
 import { sprintf } from "sprintf-js";
 import * as util from "util";
-import { Logger } from ".";
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
+import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
+import { Logger } from "./index";
 
 interface WorkerLogMessage {
   m: string;
@@ -13,7 +13,7 @@ interface WorkerLogMessage {
 /**
  * ConsoleLogger
  */
-export class ConsoleLogger extends Logger {
+class ConsoleLogger extends Logger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
   format: string;
   level: WorkerLogLevel;
@@ -38,11 +38,11 @@ export class ConsoleLogger extends Logger {
    */
   static getColor(level: WorkerLogLevel): (s: string) => string {
     if (level === "ERROR") {
-      return colors.red;
+      return s => chalk.red(s);
     } else if (level === "WARN") {
-      return colors.yellow;
+      return s => chalk.yellow(s);
     } else if (level === "DEBUG" || level === "TRACE") {
-      return colors.grey;
+      return s => chalk.grey(s);
     }
     return s => s;
   }
@@ -78,7 +78,7 @@ export class ConsoleLogger extends Logger {
    * @param format
    */
   static display(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
-    console.log(ConsoleLogger.getColor(msg.log.level)(ConsoleLogger.format(msg, format)));
+    console.log(this.getColor(msg.log.level)(this.format(msg, format)));
   }
 
   /**
@@ -113,3 +113,5 @@ export class ConsoleLogger extends Logger {
     }
   }
 }
+
+export { ConsoleLogger };

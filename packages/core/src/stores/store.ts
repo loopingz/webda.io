@@ -538,7 +538,10 @@ abstract class Store<
   computeParameters(): void {
     super.computeParameters();
     const p = this.parameters;
-    this._model = this._webda.getModel(p.model);
+    this._model = <CoreModelDefinition>this._webda.getModel(p.model);
+    if (!this._model.getUuidField) {
+      console.error("CANNOT FIND getUuidField", this.parameters.model, this._model);
+    }
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();

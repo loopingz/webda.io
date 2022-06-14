@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
-import { WebdaError } from "..";
+import { WebdaError } from "../index";
 import { CoreModel, NotEnumerable } from "../models/coremodel";
 import { EventStoreDeleted, MappingService, Store } from "../stores/store";
 import { Context } from "../utils/context";

@@ -1,4 +1,4 @@
-import * as colors from "colors";
+import chalk from "chalk";
 import { constants } from "os";
 import * as readline from "readline";
 import * as util from "util";
@@ -10,7 +10,7 @@ import {
   WorkerMessage,
   WorkerOutput,
   WorkerProgress
-} from "..";
+} from "../index";
 import { ConsoleLogger } from "../loggers/console";
 
 export class Terminal {
@@ -33,7 +33,7 @@ export class Terminal {
   inputValid: boolean = true;
   progressChar: number = 0;
   progressChars = ["\u287F", "\u28BF", "\u28FB", "\u28FD", "\u28FE", "\u28F7", "\u28EF", "\u28DF"].map(c =>
-    colors.bold(colors.yellow(c))
+    chalk.bold(chalk.yellow(c))
   );
   logo: string[] = [];
   logoWidth: number = 0;
@@ -70,7 +70,7 @@ export class Terminal {
     process.stdout.write("\x1B[?12l\x1B[?47h\x1B[?25l");
 
     // Ensure we restore terminal on quit
-    /* istanbul ignore next  */
+    /* c8 ignore next  */
     process.on("beforeExit", () => this.resetTerm);
     this._refresh = setInterval(() => {
       this.progressChar++;
@@ -84,7 +84,7 @@ export class Terminal {
     process.stdout.on("resize", this.resize.bind(this));
 
     // Manage input if any stdin
-    /* istanbul ignore if  */
+    /* c8 ignore next 3 */
     if (!process.stdin || !process.stdin.setRawMode) {
       return;
     }
@@ -97,7 +97,7 @@ export class Terminal {
 
   onData(data) {
     let str = data.toString();
-    /* istanbul ignore if  */
+    /* c8 ignore next 3 */
     if (str.charCodeAt(0) === 3) {
       process.kill(process.pid, constants.signals.SIGINT);
       return;
@@ -233,18 +233,18 @@ export class Terminal {
     if (!LogFilter(level, this.level)) {
       return;
     }
-    let color = ConsoleLogger.getColor(level);
+    const getLevelColor: (lvl: string) => string = ConsoleLogger.getColor(level);
     let levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
-      groupsPart = `[${groups.map(g => color(g)).join(colors.grey(">"))}] `;
+      groupsPart = `[${groups.map(g => getLevelColor(g)).join(chalk.grey(">"))}] `;
     }
     args
       .map(a => (typeof a === "object" ? util.inspect(a) : a.toString()))
       .join(" ")
       .split("\n")
       .forEach(info => {
-        let line = `[${color(levelColor)}] ${groupsPart}${color(info)}`;
+        let line = `[${getLevelColor(levelColor)}] ${groupsPart}${getLevelColor(info)}`;
         this.pushHistory(line);
       });
     this.displayScreen();
@@ -317,9 +317,9 @@ export class Terminal {
 
   getBar(size: number, complete: boolean) {
     if (complete) {
-      return "[" + colors.green("=".repeat(size));
+      return "[" + chalk.green("=".repeat(size));
     } else {
-      return colors.grey("-".repeat(size)) + "]";
+      return chalk.grey("-".repeat(size)) + "]";
     }
   }
 
@@ -328,7 +328,7 @@ export class Terminal {
     if (pads < 0) {
       pads = 0;
     }
-    return `${" ".repeat(pads)}${colors.bold(this.title)}${" ".repeat(pads)}\n`;
+    return `${" ".repeat(pads)}${chalk.bold(this.title)}${" ".repeat(pads)}\n`;
   }
 
   displayProgress(p: WorkerProgress) {
@@ -422,7 +422,7 @@ export class Terminal {
       let i = 0;
       for (let y in this.logo) {
         i = parseInt(y) + this.getFooterSize();
-        /* istanbul ignore next  */
+        /* c8 ignore next 3  */
         if (!linesData[i]) {
           continue;
         }
@@ -451,7 +451,7 @@ export class Terminal {
     if (this.inputs.length) {
       process.stdout.write(
         "\x1B[?25h" +
-          colors.bold(this.inputs[0].title + ": ") +
+          chalk.bold(this.inputs[0].title + ": ") +
           (this.inputs[0].type === WorkerInputType.PASSWORD ? "*".repeat(this.inputValue.length) : this.inputValue)
       );
     }

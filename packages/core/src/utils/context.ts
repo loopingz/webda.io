@@ -1,9 +1,9 @@
 import { WorkerLogLevel } from "@webda/workout";
-import * as acceptLanguage from "accept-language";
+import acceptLanguage from "accept-language";
 import { EventEmitter } from "events";
 import * as http from "http";
-import * as sanitizeHtml from "sanitize-html";
-import { Writable } from "stream";
+import sanitizeHtml from "sanitize-html";
+import { Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
 import { Core } from "../core";
 import { User } from "../models/user";
@@ -400,9 +400,8 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @returns
    */
   getRequest(): http.IncomingMessage {
-    const s = require("stream");
-    var stream = s.Readable.from([JSON.stringify(this.getRequestBody())]);
-    return <http.IncomingMessage>{
+    const stream = Readable.from([JSON.stringify(this.getRequestBody())]);
+    return <http.IncomingMessage>(<unknown>{
       httpVersionMajor: 1,
       httpVersionMinor: 0,
       headers: this.headers,
@@ -419,7 +418,7 @@ export class Context<T = any, U = any> extends EventEmitter {
       url: this.getHttpContext().getUrl(),
       connection: undefined,
       ...stream
-    };
+    });
   }
 
   /**

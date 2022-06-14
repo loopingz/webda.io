@@ -4,7 +4,9 @@ import { stub } from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
+import { getCommonJS } from "../utils/esm";
 import { ConfigurationService } from "./configuration";
+const { __filename, __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class ConfigurationServiceTest extends WebdaTest {

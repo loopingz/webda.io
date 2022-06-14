@@ -7,7 +7,10 @@ import { Authentication, Bean, ConsoleLoggerService, Route, Service } from "./in
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
 import { Context } from "./utils/context";
+import { getCommonJS } from "./utils/esm";
 import { HttpContext } from "./utils/httpcontext";
+import { JSONUtils } from "./utils/serializers";
+const { __dirname } = getCommonJS(import.meta.url);
 
 class BadService {
   constructor() {
@@ -294,7 +297,7 @@ class CoreTest extends WebdaTest {
 
   @test
   getVersion() {
-    assert.strictEqual(this.webda.getVersion(), require("../package.json").version);
+    assert.strictEqual(this.webda.getVersion(), JSONUtils.loadFile("../package.json").version);
   }
 
   @test
@@ -528,31 +531,5 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(service._initException, undefined);
     // @ts-ignore
     await this.webda.reinitService("definedmailer");
-  }
-
-  @test
-  sandbox() {
-    const code = `let protected = false;
-    let json = require('jsonpath');
-    try { 
-      require('net'); 
-    } catch (err) { 
-      protected = err.message === "not allowed"
-    }
-    module.exports = function() { return protected }`;
-    assert.strictEqual(
-      this.webda.sandbox(code, {
-        require: function (mod) {
-          // We need to add more control here
-          if (mod === "net") {
-            throw Error("not allowed");
-          }
-          // if the module is okay to load, load it:
-          return require.apply(this, arguments);
-        }
-      }),
-      true
-    );
-    assert.throws(() => this.webda.sandbox(code), /not allowed/);
   }
 }

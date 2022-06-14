@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import * as sinon from "sinon";
 import { WebdaTest } from "../test";
 import { JSONUtils } from "../utils/serializers";

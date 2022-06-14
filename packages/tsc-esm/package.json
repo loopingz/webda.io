@@ -1,0 +1,44 @@
+{
+  "name": "@webda/tsc-esm",
+  "version": "0.0.0",
+  "description": "Compile with ES6 Module import correction",
+  "keywords": [
+    "webda"
+  ],
+  "bin": {
+    "tsc-esm": "./lib/index.js"
+  },
+  "type": "module",
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "homepage": "https://github.com/loopingz/webda.io/tree/master/packages/codemod#readme",
+  "license": "ISC",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "*.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git"
+  },
+  "scripts": {
+    "test": "exit 0"
+  },
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "jscodeshift-add-imports": "^1.0.3",
+    "typescript": "^4.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "14.0.0",
+    "openapi-types": "^12.0.0"
+  },
+  "private": false
+}

@@ -1,4 +1,3 @@
-"use strict";
 import { Context, ModelAction, Store, User } from "../index";
 import { CoreModel } from "./coremodel";
 

@@ -11,27 +11,29 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc-esm",
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
+    "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
-    "colors": "=1.4.0",
+    "chalk": "^5.0.1",
     "path": "^0.12.7",
     "sprintf-js": "^1.1.2",
     "uuid": "^8.3.2",
     "yaml": "^2.0.0"
   },
   "devDependencies": {
-    "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@testdeck/mocha": "^0.2.0",
     "@types/json-schema": "^7.0.8",
-    "@types/node": "14.6.0",
+    "@types/node": "=14.6.0",
+    "@types/sprintf-js": "^1.1.2",
+    "@types/uuid": "^8.3.4",
+    "@webda/tsc-esm": "0.0.0",
+    "c8": "^7.11.3",
     "mocha": "^10.0.0",
     "mock-stdin": "^1.0.0",
-    "nyc": "^15.1.0",
     "prettier": "^2.3.2",
     "sinon": "^14.0.0",
     "source-map-support": "^0.5.19",
@@ -41,8 +43,7 @@
   "files": [
     "lib"
   ],
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
+  "c8": {
     "report-dir": "./reports",
     "reporter": [
       "html",

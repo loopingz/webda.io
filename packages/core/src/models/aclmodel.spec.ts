@@ -2,6 +2,9 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { AclModel, Context, Core, HttpContext, Session, User } from "../index";
 import { TestApplication } from "../test";
+import { getCommonJS } from "../utils/esm";
+
+const { __filename, __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class AclPolicyTest {

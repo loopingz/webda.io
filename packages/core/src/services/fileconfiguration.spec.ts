@@ -2,8 +2,9 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync, unlinkSync, writeFileSync } from "fs";
 import { WebdaTest } from "../test";
+import { getCommonJS } from "../utils/esm";
 import { FileConfigurationService } from "./fileconfiguration";
-
+const { __dirname } = getCommonJS(import.meta.url);
 @suite
 class FileConfigurationServiceTest extends WebdaTest {
   getTestConfiguration() {

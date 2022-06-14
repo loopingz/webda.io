@@ -1,4 +1,4 @@
-import { Context, Service, ServiceParameters } from "..";
+import { Context, Service, ServiceParameters } from "../index";
 
 /**
  * Version parameters

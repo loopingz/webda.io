@@ -12,12 +12,12 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc-esm",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && yarn run lint:fix",
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "nyc mocha --recursive --exit --timeout=30000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts src/**/**/*.spec.ts"
+    "test": "c8 mocha --recursive --exit --timeout=30000 src/**/*.spec.ts src/*.spec.ts src/**/**/*.spec.ts"
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
@@ -54,15 +54,15 @@
     "yaml": "^2.0.0"
   },
   "devDependencies": {
-    "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@testdeck/mocha": "^0.2.0",
     "@types/node": "14.6.0",
     "@types/nodemailer": "^6.4.4",
+    "@webda/tsc-esm": "0.0.0",
     "antlr4ts-cli": "^0.5.0-alpha.4",
     "axios": "^0.27.2",
+    "c8": "^7.11.3",
     "fs-extra": "^10.0.0",
     "mocha": "^10.0.0",
-    "nyc": "^15.1.0",
     "prettier": "^2.3.2",
     "sinon": "^14.0.0",
     "source-map-support": "^0.5.19",
@@ -74,8 +74,7 @@
     "test",
     "webda.module.json"
   ],
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
+  "c8": {
     "report-dir": "./reports",
     "reporter": [
       "html",

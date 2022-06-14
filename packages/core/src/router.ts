@@ -1,6 +1,6 @@
 import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
-import * as uriTemplates from "uri-templates";
+import uriTemplates from "uri-templates";
 import { Core } from "./core";
 import { Context } from "./utils/context";
 import { HttpMethodType } from "./utils/httpcontext";

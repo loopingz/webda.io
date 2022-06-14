@@ -246,7 +246,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   async __clean(): Promise<void> {
     // This is only during test
-    require("fs-extra").emptyDirSync(this.parameters.folder);
+    (await import("fs-extra")).emptyDirSync(this.parameters.folder);
   }
 }
 

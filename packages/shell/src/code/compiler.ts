@@ -1,7 +1,8 @@
 //node.kind === ts.SyntaxKind.ClassDeclaration
 import { tsquery } from "@phenomnomnominal/tsquery";
 import { Application, FileUtils, JSONUtils, Logger, Module, Section } from "@webda/core";
-import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { writer } from "@webda/tsc-esm";
+import { existsSync } from "fs";
 import { JSONSchema7 } from "json-schema";
 import * as path from "path";
 import {
@@ -640,20 +641,7 @@ export class Compiler {
     this.createProgramFromApp();
 
     // Emit all code
-    const { diagnostics } = this.tsProgram.emit(
-      undefined,
-      (
-        fileName: string,
-        text: string,
-        writeByteOrderMark: boolean,
-        onError?: (message: string) => void,
-        sourceFiles?: readonly ts.SourceFile[]
-      ) => {
-        mkdirSync(path.dirname(fileName), { recursive: true });
-        // Add the ".js" -> if module
-        writeFileSync(fileName, text.replace(/^(import .* from "\..*)";$/gm, '$1.js";'));
-      }
-    );
+    const { diagnostics } = this.tsProgram.emit(undefined, writer);
 
     const allDiagnostics = ts.getPreEmitDiagnostics(this.tsProgram).concat(diagnostics, this.configParseResult.errors);
 

@@ -74,6 +74,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   getPermissionQuery(context?: Context): null | { partial: boolean; query: string };
 }
 
+export type Constructor<T> = new (...args: any[]) => T;
 /**
  * Sent if action required attached CoreModel is trigger
  */

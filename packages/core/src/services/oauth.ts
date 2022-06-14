@@ -1,5 +1,5 @@
-import { Context, EventWithContext, RequestFilter } from "../";
 import { Core } from "../core";
+import { Context, EventWithContext, RequestFilter } from "../index";
 import { Authentication } from "./authentication";
 import { Service, ServiceParameters } from "./service";
 

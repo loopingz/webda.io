@@ -2,6 +2,8 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { Context, Core, HttpContext, RoleModel, Session, User } from "../index";
 import { TestApplication } from "../test";
+import { getCommonJS } from "../utils/esm";
+const { __dirname } = getCommonJS(import.meta.url);
 
 class RolePolicyModel extends RoleModel {
   getRolesMap() {

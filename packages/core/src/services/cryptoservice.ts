@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, randomBytes } from "crypto";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import { Context, RegistryEntry, Store } from "..";
 import { JSONUtils } from "../utils/serializers";

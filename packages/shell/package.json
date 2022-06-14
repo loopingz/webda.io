@@ -60,8 +60,7 @@
     "yauzl": "^2.10.0",
     "yeoman-environment": "^3.5.1"
   },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
+  "c8": {
     "report-dir": "./reports",
     "reporter": [
       "html",

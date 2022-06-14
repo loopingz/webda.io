@@ -1,8 +1,8 @@
-import * as Email from "email-templates";
+import Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import * as path from "path";
-import { Ident, User } from "..";
+import { Ident, User } from "../index";
 import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";
 
@@ -178,17 +178,18 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   /**
    * Compute parameters
    */
-  computeParameters() {
+  async init(): Promise<this> {
     let config: any = {};
     Object.assign(config, this.parameters);
     if (config.transport === "ses" && !config.SES) {
-      let aws = require("aws-sdk");
+      let aws = await import("aws-sdk");
       aws.config.update(config);
       config.SES = new aws.SES({
         apiVersion: "2010-12-01"
       });
     }
     this._transporter = nodemailer.createTransport(config);
+    return this;
   }
 
   /**

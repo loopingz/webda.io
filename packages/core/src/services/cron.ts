@@ -1,5 +1,5 @@
 import * as crontab from "node-cron";
-import { CancelablePromise } from "..";
+import { CancelablePromise } from "../index";
 import { Service } from "./service";
 
 /**

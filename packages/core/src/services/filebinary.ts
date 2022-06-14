@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { join } from "path";
 import { Readable } from "stream";
-import { CloudBinary, CloudBinaryParameters, CoreModel } from "..";
+import { CloudBinary, CloudBinaryParameters, CoreModel } from "../index";
 import { Context } from "../utils/context";
 import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
 import CryptoService from "./cryptoservice";
@@ -392,6 +392,6 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * Clean all data
    */
   async ___cleanData(): Promise<void> {
-    require("fs-extra").emptyDirSync(this.parameters.folder);
+    (await import("fs-extra")).emptyDirSync(this.parameters.folder);
   }
 }

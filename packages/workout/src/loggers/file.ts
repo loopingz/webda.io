@@ -51,13 +51,30 @@ export class FileLogger extends Logger {
   }
 
   filter(msg: WorkerMessage) {
-    if (msg.type === "log" && !LogFilter(msg.log.level, this.level)) {
-      return false;
+    if (msg.type === "log") {
+      return LogFilter(msg.log.level, this.level);
+    } else if (msg.type === "title.set" && LogFilter("INFO", this.level)) {
+      return true;
     }
-    return true;
+    return false;
   }
 
   getLine(msg: WorkerMessage) {
+    if (msg.type === "title.set") {
+      return (
+        ConsoleLogger.format(
+          {
+            ...msg,
+            type: "log",
+            log: {
+              level: "INFO",
+              args: [msg.title]
+            }
+          },
+          this.format
+        ) + "\n"
+      );
+    }
     return ConsoleLogger.format(msg, this.format) + "\n";
   }
 

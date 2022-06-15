@@ -44,6 +44,7 @@ class ConsoleLoggerTest {
       ConsoleLogger.format(msg).match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z \[ INFO\] undefined \{\} plop/) !==
         null
     );
+    ConsoleLogger.format(new WorkerMessage("title.set", undefined, { title: "plop" }));
   }
 
   @test

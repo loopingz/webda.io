@@ -85,6 +85,9 @@ class ConsoleLogger extends Logger {
    * @param format
    */
   static format(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat): string {
+    if (!msg.log) {
+      return "";
+    }
     let info: WorkerLogMessage = {
       m: msg.log.args
         .map(a => {

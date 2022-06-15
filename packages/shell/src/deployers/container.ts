@@ -265,7 +265,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
         this.logger.log("INFO", "Updating @webda/shell version as development version is different");
         fs.emptyDirSync(".webda-shell");
         // Prevent to copy if in webda repo - only useful for test
-        /* istanbul ignore if */
+        /* c8 ignore next 3 */
         if (path.relative(path.resolve(path.join(__dirname, "../../../..")), process.cwd()) !== "packages/shell") {
           fs.copySync(path.join(__dirname, "../../../.."), ".webda-shell");
         }

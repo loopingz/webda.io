@@ -17,7 +17,7 @@ class WebdaConfigurationServerTest {
     WebdaSampleApplication.setCurrentDeployment(deployment);
     this.server = new WebdaConfiguration(WebdaSampleApplication);
     await this.server.init();
-    this.server.serve();
+    this.server.serve().catch(console.error);
     await this.server.waitForStatus(ServerStatus.Started);
   }
 

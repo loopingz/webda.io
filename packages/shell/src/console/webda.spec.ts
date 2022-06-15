@@ -146,7 +146,7 @@ class ConsoleTest {
     let app = new SampleApplicationTest(`http://localhost:28080`);
     await app.testApi();
     await WebdaConsole.webda.stop();
-    this.commandLine(`serve --port 28081`);
+    this.commandLine(`serve --devMode --port 28081`);
     await WebdaConsole.webda.stop();
     let p = WebdaConsole.serve({ port: Math.floor(Math.random() * 10000 + 10000) });
     await p.cancel();

@@ -292,14 +292,14 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
           return false;
         }
         if (prop.isRequired() && prop.getType() === undefined) {
-          /* c8 ignore next */
+          /* c8 ignore next 2 */
           hasRequiredNever = true;
         }
         return prop.getType() !== undefined;
       });
 
     if (hasRequiredNever) {
-      /* c8 ignore next */
+      /* c8 ignore next 2 */
       return undefined;
     }
 
@@ -595,9 +595,6 @@ export class Compiler {
                 "WARN",
                 `${importTarget} have a @Route or @Bean annotation but does not inherite from Service`
               );
-              return;
-            } // Skip explicit beans
-            if (moduleInfo.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()]) {
               return;
             }
             let name = `beans/${clazz.name.escapedText.toString().toLowerCase()}`;
@@ -927,13 +924,7 @@ export class Compiler {
       this.tsProgram = this.watchProgram.getProgram().getProgram();
 
       this.createSchemaGenerator(this.tsProgram);
-      try {
-        await this.app.generateModule();
-      } catch (err) {
-        this.app.log("ERROR", "Fail to create module", err);
-        callback("MODULE_ERROR");
-        return;
-      }
+      await this.app.generateModule();
       callback("MODULE_GENERATED");
     };
     const reportWatchStatusChanged = (diagnostic: ts.Diagnostic) => {
@@ -952,9 +943,9 @@ export class Compiler {
             }
           }
         }
+        /* c8 ignore next 4 */
       } else {
         // Haven't seen other code yet so display them but cannot reproduce
-        /* c8 ignore next */
         logger.log("INFO", diagnostic, ts.formatDiagnostic(diagnostic, formatHost));
       }
       callback(diagnostic);

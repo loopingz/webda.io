@@ -454,6 +454,8 @@ export class Terminal {
     }
   }
 
+  /* we do not want flickering on unit test */
+  /* c8 ignore next 4 */
   clearScreen() {
     readline.cursorTo(process.stdout, 0, 0);
     readline.clearScreenDown(process.stdout);

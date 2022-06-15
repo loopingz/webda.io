@@ -805,7 +805,8 @@ export default class WebdaConsole {
         return await this.executeShellExtension(extension, extension.relPath, argv);
       }
       // Would need to create a fake app with a throw exception in a module to generate this
-    } catch (err) /* c8 ignore next 3 */ {
+      /* c8 ignore next 4 */
+    } catch (err) {
       this.log("ERROR", err);
       throw err;
     } finally {

@@ -1,5 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import { WaitFor, WaitLinearDelay } from "@webda/core";
+import { WorkerLog } from "@webda/workout";
 import * as assert from "assert";
 import { readdirSync, unlinkSync, writeFileSync } from "fs";
 import { WorkerOutput } from "..";
@@ -44,6 +45,10 @@ class FileConsoleTest {
       undefined,
       WaitLinearDelay(200)
     );
+
+    logger.onMessage(new WorkerMessage("title.set", undefined, { title: "Title" }));
+    logger.onMessage(new WorkerMessage("log", undefined, { log: new WorkerLog("INFO", "test") }));
+    logger.onMessage(new WorkerMessage("group.open", undefined, {}));
     logger.outputStream.close();
     logger2.outputStream.close();
 

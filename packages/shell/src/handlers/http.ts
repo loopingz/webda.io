@@ -276,11 +276,11 @@ export class WebdaServer extends Webda {
       this.getGlobalParams().trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n.trim()}/32` : n.trim()))
     );
     if (this.getGlobalParams().website && this.getGlobalParams().website.path && !this.resourceService) {
-      this.resourceService = new ResourceService(this, "websiteResource", {
+      this.resourceService = await new ResourceService(this, "websiteResource", {
         folder: this.getAppPath(this.getGlobalParams().website.path)
-      });
-      this.resourceService.resolve();
-      await this.resourceService.init();
+      })
+        .resolve()
+        .init();
     }
   }
   /**
@@ -311,7 +311,7 @@ export class WebdaServer extends Webda {
       if (websockets) {
         // Activate websocket
         this.output("Activating socket.io");
-        this.io = require("socket.io")(this.http, {
+        this.io = new (await import("socket.io")).Server(this.http, {
           cors: {
             // Allow all origin as they should have been filtered by allowRequest
             origin: (origin, callback) => callback(null, origin),
@@ -328,7 +328,9 @@ export class WebdaServer extends Webda {
                 // Load session
                 await ctx.init();
                 // Set session on object
+                // @ts-ignore
                 req.session = ctx.getSession();
+                // @ts-ignore
                 req.webdaContext = ctx;
                 callback(null, true);
               }
@@ -339,7 +341,7 @@ export class WebdaServer extends Webda {
         });
         this.emit("Webda.Init.SocketIO", this.io);
       }
-      this.output(`Server running at http://0.0.0.0:${port}${websockets ? " with websockets" : ""}`);
+      this.logger.logTitle(`Server running at http://0.0.0.0:${port}${websockets ? " with websockets" : ""}`);
       this.serverStatus = ServerStatus.Started;
     } catch (err) {
       this.log("ERROR", err);
@@ -372,7 +374,7 @@ export class WebdaServer extends Webda {
    */
   async waitForStatus(status: ServerStatus.Stopped | ServerStatus.Started, timeout: number = 60000) {
     return WaitFor(
-      async resolve => {
+      async (resolve, reject) => {
         if (this.getServerStatus() === status) {
           resolve();
           return true;

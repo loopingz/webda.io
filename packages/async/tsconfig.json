@@ -3,7 +3,7 @@
     "target": "es2020",
     "module": "es2020",
     "outDir": "./lib",
-    "strict": true,
+    "strict": false,
     "strictPropertyInitialization": false,
     "declaration": true,
     "sourceMap": true,

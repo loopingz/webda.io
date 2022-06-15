@@ -13,6 +13,10 @@ import {
 } from "../index";
 import { ConsoleLogger } from "../loggers/console";
 
+/*
+We could use terminal-kit to simplify
+*/
+
 export class Terminal {
   tty: boolean;
   wo: WorkerOutput;
@@ -267,7 +271,7 @@ export class Terminal {
       match.groups.before ??= "";
       match.groups.cmd ??= "";
       if (limit > 0 && originalString.length + match.groups.before.length >= limit) {
-        fullString += match.groups.before.substr(0, limit - originalString.length - 3) + "...";
+        fullString += match.groups.before.substring(0, limit - originalString.length - 3) + "...";
         noMore = true;
         continue;
       }
@@ -337,7 +341,7 @@ export class Terminal {
       }`.padEnd(this.width - 2)
     );
     if (line.length > this.width - 2) {
-      line = line.substr(0, this.width - 2);
+      line = line.substring(0, this.width - 2);
     }
     return `${line}\n`;
   }
@@ -438,7 +442,7 @@ export class Terminal {
     if (this.hasProgress || this.title) {
       screen += this.displayFooter();
     }
-    this.clearScreen();
+    readline.cursorTo(process.stdout, 0, 0);
     process.stdout.write(screen);
     // Display input
     if (this.inputs.length) {

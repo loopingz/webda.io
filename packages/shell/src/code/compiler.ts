@@ -343,11 +343,9 @@ export class Compiler {
   }
 
   /**
-   * Generate a program from app
-   * @param app
-   * @returns
+   * Load the tsconfig.json
    */
-  createProgramFromApp(app: Application = this.app): void {
+  loadTsconfig(app: Application) {
     const configFileName = app.getAppPath("tsconfig.json");
     // basically a copy of https://github.com/Microsoft/TypeScript/blob/3663d400270ccae8b69cbeeded8ffdc8fa12d7ad/src/compiler/tsc.ts -> parseConfigFile
     this.configParseResult = ts.parseJsonConfigFileContent(
@@ -357,11 +355,19 @@ export class Compiler {
       {},
       path.basename(configFileName)
     );
+  }
+
+  /**
+   * Generate a program from app
+   * @param app
+   * @returns
+   */
+  createProgramFromApp(app: Application = this.app): void {
+    this.loadTsconfig(app);
     this.tsProgram = ts.createProgram({
       rootNames: this.configParseResult.fileNames,
       ...this.configParseResult
     });
-    this.typeChecker = this.tsProgram.getTypeChecker();
   }
 
   /**
@@ -663,6 +669,39 @@ export class Compiler {
     }
   }
 
+  createSchemaGenerator(program: ts.Program) {
+    this.typeChecker = this.tsProgram.getTypeChecker();
+    const config: Config = {
+      expose: "all",
+      encodeRefs: true,
+      jsDoc: "extended",
+      additionalProperties: true,
+      sortProps: true
+    };
+    const extraTags = new Set(["Modda", "Model"]);
+    const parser = createParser(program, config, (chainNodeParser: ChainNodeParser) => {
+      chainNodeParser.addNodeParser(new ConstructorNodeParser());
+      chainNodeParser.addNodeParser(new TypeofNodeParser(this.typeChecker, chainNodeParser));
+      chainNodeParser.addNodeParser(
+        new CircularReferenceNodeParser(
+          new AnnotatedNodeParser(
+            new WebdaModelNodeParser(
+              this.typeChecker,
+              new WebdaAnnotatedNodeParser(chainNodeParser, new ExtendedAnnotationsReader(this.typeChecker, extraTags)),
+              true
+            ),
+            new ExtendedAnnotationsReader(this.typeChecker, extraTags)
+          )
+        )
+      );
+    });
+    const formatter = createFormatter(config, (fmt, _circularReferenceTypeFormatter) => {
+      // If your formatter DOES NOT support children, e.g. getChildren() { return [] }:
+      fmt.addTypeFormatter(new FunctionTypeFormatter());
+    });
+    this.schemaGenerator = new SchemaGenerator(program, parser, formatter, config);
+  }
+
   /**
    * Compile typescript
    */
@@ -695,35 +734,7 @@ export class Compiler {
 
     this.app.log("INFO", "Analyzing...");
     // Generate schemas
-    const config: Config = {
-      expose: "all",
-      encodeRefs: true,
-      jsDoc: "extended",
-      additionalProperties: true,
-      sortProps: true
-    };
-    const extraTags = new Set(["Modda", "Model"]);
-    const parser = createParser(this.tsProgram, config, (chainNodeParser: ChainNodeParser) => {
-      chainNodeParser.addNodeParser(new ConstructorNodeParser());
-      chainNodeParser.addNodeParser(new TypeofNodeParser(this.typeChecker, chainNodeParser));
-      chainNodeParser.addNodeParser(
-        new CircularReferenceNodeParser(
-          new AnnotatedNodeParser(
-            new WebdaModelNodeParser(
-              this.typeChecker,
-              new WebdaAnnotatedNodeParser(chainNodeParser, new ExtendedAnnotationsReader(this.typeChecker, extraTags)),
-              true
-            ),
-            new ExtendedAnnotationsReader(this.typeChecker, extraTags)
-          )
-        )
-      );
-    });
-    const formatter = createFormatter(config, (fmt, _circularReferenceTypeFormatter) => {
-      // If your formatter DOES NOT support children, e.g. getChildren() { return [] }:
-      fmt.addTypeFormatter(new FunctionTypeFormatter());
-    });
-    this.schemaGenerator = new SchemaGenerator(this.tsProgram, parser, formatter, config);
+    this.createSchemaGenerator(this.tsProgram);
     this.compiled = result;
     return result;
   }
@@ -890,7 +901,10 @@ export class Compiler {
    * Launch compiler in watch mode
    * @param callback
    */
-  watch(callback: (diagnostic: ts.Diagnostic) => void, logger: Logger) {
+  watch(callback: (diagnostic: ts.Diagnostic | string) => void, logger: Logger) {
+    // Load tsconfig
+    this.loadTsconfig(this.app);
+
     const formatHost: ts.FormatDiagnosticsHost = {
       // This method is not easily reachable and is straightforward
       getCanonicalFileName: /* c8 ignore next */ p => p,
@@ -906,17 +920,36 @@ export class Compiler {
         ts.flattenDiagnosticMessageText(diagnostic.messageText, formatHost.getNewLine())
       );
     };
+    const generateModule = async () => {
+      callback("MODULE_GENERATION");
+      logger.logTitle("Generating module");
+      this.loadTsconfig(this.app);
+      this.tsProgram = this.watchProgram.getProgram().getProgram();
+
+      this.createSchemaGenerator(this.tsProgram);
+      try {
+        await this.app.generateModule();
+      } catch (err) {
+        this.app.log("ERROR", "Fail to create module", err);
+        callback("MODULE_ERROR");
+        return;
+      }
+      callback("MODULE_GENERATED");
+    };
     const reportWatchStatusChanged = (diagnostic: ts.Diagnostic) => {
       if ([6031, 6032, 6194, 6193].includes(diagnostic.code)) {
         logger.log("INFO", diagnostic.messageText);
         // Launching compile
         if (diagnostic.code === 6032 || diagnostic.code === 6031) {
-          logger.logTitle("Compiling");
+          logger.logTitle("Compiling...");
         } else {
+          // Compilation is successful, start schemas generation
           if (diagnostic.messageText.toString().startsWith("Found 0 errors")) {
-            logger.logTitle("Generating module");
-            this.compiled = false;
-            this.app.generateModule();
+            this.compiled = true;
+            logger.logTitle("Analyzing...");
+            if (this.watchProgram) {
+              generateModule();
+            }
           }
         }
       } else {
@@ -936,6 +969,9 @@ export class Compiler {
       Compiler.watchOptions
     );
     this.watchProgram = ts.createWatchProgram(host);
+    if (this.compiled) {
+      generateModule();
+    }
   }
 
   /**
@@ -944,6 +980,7 @@ export class Compiler {
   stopWatch() {
     this.watchProgram?.close();
     this.watchProgram = undefined;
+    this.compiled = false;
   }
 
   /**

@@ -54,7 +54,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
 
   spawn(command: string, args: string[], options?: SpawnOptions | undefined) {
     /* c8 ignore next 2 */
-    return spawn(command, args, <any>options);
+    return spawn(command, args, options);
   }
 
   /**

@@ -24,7 +24,7 @@ if (process.argv.includes("--watch")) {
     { ...ts.sys, writeFile: writer },
     ts.createSemanticDiagnosticsBuilderProgram
   );
-  const program = ts.createWatchProgram(host);
+  ts.createWatchProgram(host);
 
   // Should keep listening
 } else {

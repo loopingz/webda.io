@@ -189,8 +189,10 @@ class ConsoleTest {
   @test
   async debugCommandLine() {
     Compiler.watchOptions = {
-      watchDirectory: ts.WatchDirectoryKind.FixedPollingInterval
+      watchDirectory: ts.WatchDirectoryKind.FixedPollingInterval,
+      excludeDirectories: ["lib"]
     };
+
     //WebdaSampleApplication.clean();
     this.commandLine(
       `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`,
@@ -198,7 +200,9 @@ class ConsoleTest {
       undefined,
       "INFO"
     );
+    console.log("Waiting for Webda");
     await this.waitForWebda();
+    console.log("Waiting for Serving");
     await this.waitForStatus(DebuggerStatus.Serving);
     let app = new SampleApplicationTest(`http://localhost:28080`);
     // CSRF is disabled by default in debug mode
@@ -207,8 +211,8 @@ class ConsoleTest {
     // Add a new .ts
     fs.writeFileSync(
       this.dynamicFile,
-      `import { Context, Route, Service } from "@webda/core";
-
+      `import { Bean, Context, Route, Service } from "@webda/core";
+@Bean
 class DynamicService extends Service {
     @Route("/myNewRoute", ["GET"])
     test(ctx: Context) {

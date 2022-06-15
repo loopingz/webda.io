@@ -25,7 +25,8 @@
     "url": "git+https://github.com/loopingz/webda.io.git"
   },
   "scripts": {
-    "test": "exit 0"
+    "test": "exit 0",
+    "build": "tsc"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

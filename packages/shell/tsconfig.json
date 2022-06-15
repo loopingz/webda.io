@@ -11,6 +11,12 @@
     "esModuleInterop": true,
     "moduleResolution": "node"
   },
+  "ts-node": {
+    "emit": false,
+    "compilerOptions": {
+      "declaration": false
+    }
+  },
   "include": [
     "src/**/*"
   ],

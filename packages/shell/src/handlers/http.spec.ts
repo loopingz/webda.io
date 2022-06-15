@@ -63,10 +63,7 @@ class WebdaServerTest {
     }
     stub.restore();
     server.close();
-    assert.deepStrictEqual(logs, [
-      ["INFO", "Server running at http://0.0.0.0:28080"],
-      ["ERROR", "listen EADDRINUSE: address already in use :::28080"]
-    ]);
+    assert.deepStrictEqual(logs, [["ERROR", "listen EADDRINUSE: address already in use :::28080"]]);
   }
 
   @test

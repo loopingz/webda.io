@@ -7,6 +7,7 @@ import { createRequire } from "module";
 import * as path from "path";
 import semver from "semver";
 import { Transform } from "stream";
+import ts from "typescript";
 import yargs from "yargs";
 import { BuildSourceApplication, SourceApplication } from "../code/sourceapplication";
 import { DeploymentManager } from "../handlers/deploymentmanager";
@@ -168,20 +169,19 @@ export default class WebdaConsole {
    * @param argv
    */
   static async debug(argv: yargs.Arguments) {
-    let launchServe = diagnostic => {
-      if (diagnostic.code === 6032 || diagnostic.code === 6031) {
+    let launchServe = (diagnostic: ts.Diagnostic | string) => {
+      if (typeof diagnostic !== "string" && (diagnostic.code === 6032 || diagnostic.code === 6031)) {
         this.setDebuggerStatus(DebuggerStatus.Compiling);
+        return;
       }
       // Compilation succeed
-      if (
-        (diagnostic.code !== 6194 && diagnostic.code !== 6193) ||
-        !diagnostic.messageText.toString().startsWith("Found 0 errors")
-      ) {
+      if (diagnostic !== "MODULE_GENERATED") {
         return;
       }
       this.setDebuggerStatus(DebuggerStatus.Launching);
       if (this.serverProcess) {
         this.logger.logTitle("Refreshing Webda Server");
+        this.serverProcess.removeAllListeners();
         this.serverProcess.kill();
       } else {
         this.logger.logTitle("Launching Webda Server");
@@ -252,8 +252,10 @@ export default class WebdaConsole {
           callback();
         }
       });
-      this.serverProcess = spawn("webda", args);
+
+      this.serverProcess = spawn("webda", args, { cwd: this.app.getAppPath() });
       this.serverProcess.stdout.pipe(addTime);
+      this.serverProcess.stderr.pipe(addTime);
       this.serverProcess.on("exit", err => {
         this.logger.logTitle("Webda Server stopped");
         // Might want to auto restart
@@ -263,10 +265,7 @@ export default class WebdaConsole {
     this.app.getCompiler().watch(launchServe, this.logger);
     WebdaConsole.configurationWatch(() => {
       // Might want to validate against schemas before relaunch
-      launchServe({
-        code: 6193,
-        messageText: "Found 0 errors"
-      });
+      launchServe("MODULE_GENERATED");
     }, this.app.getCurrentDeployment());
     return new CancelablePromise(() => {
       // Never return

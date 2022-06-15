@@ -53,5 +53,6 @@ if (process.argv.includes("--watch")) {
     };
     const message = ts.formatDiagnostics(allDiagnostics, formatHost);
     console.log(message);
+    process.exit(1);
   }
 }

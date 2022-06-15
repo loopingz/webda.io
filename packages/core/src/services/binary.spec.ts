@@ -4,7 +4,7 @@ import axios from "axios";
 import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as sinon from "sinon";
-import { Binary, Context, Store, User } from "..";
+import { Binary, Context, Store, User } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import {

@@ -4,9 +4,9 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { BinaryFile, BinaryMap, BinaryParameters, CloudBinary, Context, CoreModel, WebdaError } from "@webda/core";
 import bluebird from "bluebird";
 import { Readable } from "stream";
-import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { AWSServiceParameters } from "./aws-mixin";
+import { CloudFormationContributor } from "./index";
 
 export class S3BinaryParameters extends AWSServiceParameters(BinaryParameters) {
   forcePathStyle?: boolean;

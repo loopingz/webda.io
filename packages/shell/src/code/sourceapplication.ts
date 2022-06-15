@@ -9,11 +9,11 @@ import {
   WebdaError
 } from "@webda/core";
 import { execSync } from "child_process";
-import * as dateFormat from "dateformat";
+import dateFormat from "dateformat";
 import * as fs from "fs";
 import * as merge from "merge";
 import * as path from "path";
-import * as semver from "semver";
+import semver from "semver";
 import { Compiler } from "./compiler";
 
 export class SourceApplication extends UnpackedApplication {

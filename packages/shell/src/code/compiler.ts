@@ -74,7 +74,7 @@ export function isStatic(node: ts.Node): boolean {
 /**
  * Temporary fix while waiting for https://github.com/vega/ts-json-schema-generator/pull/1182
  */
-/* istanbul ignore next */
+/* c8 ignore start */
 export class FunctionTypeFormatter implements SubTypeFormatter {
   public supportsType(type: FunctionType): boolean {
     return type instanceof FunctionType;
@@ -89,7 +89,7 @@ export class FunctionTypeFormatter implements SubTypeFormatter {
     return [];
   }
 }
-/* istanbul ignore next */
+
 export function hash(a: unknown): string | number {
   if (typeof a === "number") {
     return a;
@@ -117,7 +117,7 @@ export function hash(a: unknown): string | number {
 
   return h;
 }
-/* istanbul ignore next */
+
 function getKey(node: ts.Node, context: Context): string {
   const ids: (number | string)[] = [];
   while (node) {
@@ -139,7 +139,6 @@ function getKey(node: ts.Node, context: Context): string {
 /**
  * Temporary fix
  */
-/* istanbul ignore next */
 class ConstructorNodeParser implements SubNodeParser {
   public supportsNode(node: ts.ConstructorTypeNode): boolean {
     return node.kind === ts.SyntaxKind.ConstructorType;
@@ -153,7 +152,6 @@ class ConstructorNodeParser implements SubNodeParser {
 /**
  * Temporary fix while waiting for https://github.com/vega/ts-json-schema-generator/pull/1183
  */
-/* istanbul ignore next */
 export class TypeofNodeParser implements SubNodeParser {
   public constructor(protected typeChecker: ts.TypeChecker, protected childNodeParser: NodeParser) {}
 
@@ -216,7 +214,7 @@ export class TypeofNodeParser implements SubNodeParser {
     return new ObjectType(id, [], properties, false);
   }
 }
-
+/* c8 ignore stop */
 class WebdaAnnotatedNodeParser extends AnnotatedNodeParser {
   createType(node: ts.Node, context: Context, reference?: ReferenceType) {
     let type = super.createType(node, context, reference);

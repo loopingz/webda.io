@@ -175,8 +175,13 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     }
   }
 
+  /**
+   * Import the archiver
+   * @returns
+   */
   async getArchiver() {
-    return (await import("archiver"))("zip");
+    const { default: archiver } = await import("archiver");
+    return archiver("zip");
   }
 
   /**

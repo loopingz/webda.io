@@ -315,6 +315,7 @@ class DynamicService extend Service {
     assert.strictEqual(logs[ind].log.args.length, 1);
     assert.strictEqual(logs[ind].log.args[0], "Result: void");
     ind++;
+    console.log(logs);
     assert.strictEqual(logs[ind].log.args.length, 2);
     assert.strictEqual(logs[ind].log.args[0], "Took");
 

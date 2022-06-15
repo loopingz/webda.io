@@ -5,7 +5,8 @@ import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
 import { Storage } from "./storage";
-
+import { getCommonJS } from "@webda/core";
+const { __dirname } = getCommonJS(import.meta.url)
 class MockFile {
   constructor(path) {}
   async delete() {}

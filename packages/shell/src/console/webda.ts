@@ -831,6 +831,7 @@ export default class WebdaConsole {
   static async executeShellExtension(ext: WebdaShellExtension, relPath: string, argv: any) {
     ext.export ??= "default";
     const data = await import(path.join(relPath, ext.require));
+    console.log("Data for executeShellExt", data);
     return data[ext.export](this, argv);
   }
 

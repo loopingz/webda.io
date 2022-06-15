@@ -1,10 +1,11 @@
 "use strict";
 import { Bucket, GetSignedUrlConfig, Storage as GCS } from "@google-cloud/storage";
-import { BinaryFile, BinaryMap, BinaryParameters, CloudBinary, Context, CoreModel, DeepPartial } from "@webda/core";
+import { BinaryFile, BinaryMap, BinaryParameters, CloudBinary, Context, CoreModel, DeepPartial, getCommonJS } from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream } from "stream";
 
+const { __dirname } = getCommonJS(import.meta.url)
 export type StorageObject = {
   key: string;
 

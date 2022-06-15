@@ -15,7 +15,7 @@ class AMQPPubSubTest extends WebdaTest {
         type: "fanout2"
       }
     });
-    assert.strictEqual(p.exchange.type, "fanout2");
+    assert.strictEqual(p.exchange?.type, "fanout2");
   }
 
   @test
@@ -56,6 +56,7 @@ class AMQPPubSubTest extends WebdaTest {
     assert.strictEqual(counter, 2);
     await Promise.all(consumers.map(p => p.cancel()));
     // Hack our way to test close by server
+    // @ts-ignore
     let stub = sinon.stub(pubsub.channel, "consume").callsFake((ex, call) => {
       call(null);
     });

@@ -15,3 +15,6 @@ docker run --name webda-postgres -it -e POSTGRES_PASSWORD=testor
 echo "Launching GCP emulators"
 gcloud beta emulators firestore start --host-port=localhost:19090
 gcloud beta emulators pubsub start --host-port=localhost:19091
+
+echo "Launching RabbitMQ"
+docker run -d -p 5672:5672 --name webda-amqp rabbitmq:3

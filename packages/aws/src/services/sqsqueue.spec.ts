@@ -1,5 +1,6 @@
 import { GetQueueUrlCommandOutput, PurgeQueueCommand, SQS } from "@aws-sdk/client-sqs";
 import { suite, test, timeout } from "@testdeck/mocha";
+import { getCommonJS } from "@webda/core";
 import { QueueTest } from "@webda/core/lib/queues/queue.spec";
 import { TestApplication } from "@webda/core/lib/test";
 import * as assert from "assert";
@@ -7,6 +8,7 @@ import { mockClient } from "aws-sdk-client-mock";
 import * as path from "path";
 import { checkLocalStack, defaultCreds } from "../index.spec";
 import { SQSQueue } from "./sqsqueue";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class SQSQueueTest extends QueueTest {

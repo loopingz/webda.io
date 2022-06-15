@@ -1,6 +1,7 @@
+import { getCommonJS } from "@webda/core";
 import { Packager, PackagerResources } from "@webda/shell";
 import * as path from "path";
-
+const { __dirname } = getCommonJS(import.meta.url);
 /**
  * Lambda Packager options
  */

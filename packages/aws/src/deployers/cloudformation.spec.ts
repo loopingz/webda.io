@@ -181,7 +181,6 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     try {
       mock.on(PutRestApiCommand).resolves({});
 
-      console.log("Launch deploy", this.deployer.uploadStatics);
       this.deployer.resources.Docker = {
         tag: "plop",
         includeRepository: false
@@ -189,7 +188,6 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       this.deployer.resources.APIGatewayImportOpenApi = "yop";
       sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
       await this.deployer.deploy();
-      console.log("Launch deploy done");
       assert.strictEqual(sendCloudFormation.calledOnce, true);
       assert.strictEqual(generateLambdaPackage.calledOnce, true);
       await this.deployer.sleep(0.001);
@@ -374,14 +372,10 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   @test
   async generateLambdaPackage() {
     let run = sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
-    let unlink = sinon.stub(require("fs"), "unlinkSync").callsFake(async () => {});
     try {
-      this.deployer.resources.KeepPackage = false;
-      await this.deployer.generateLambdaPackage();
       this.deployer.resources.KeepPackage = true;
       await this.deployer.generateLambdaPackage();
     } finally {
-      unlink.restore();
       run.restore();
     }
   }

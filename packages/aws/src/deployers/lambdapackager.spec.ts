@@ -1,9 +1,11 @@
 import { suite, test } from "@testdeck/mocha";
+import { getCommonJS } from "@webda/core";
 import { DeploymentManager } from "@webda/shell";
 import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
 import * as assert from "assert";
 import * as path from "path";
 import { LambdaPackager } from "./lambdapackager";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class LambdaPackagerTest extends DeployerTest<LambdaPackager> {

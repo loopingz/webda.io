@@ -1,3 +1,4 @@
 {
-    "name": "@webda/testor"
+    "name": "@webda/testor",
+    "type": "module"
 }

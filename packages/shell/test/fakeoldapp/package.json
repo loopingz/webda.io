@@ -1,3 +1,4 @@
 {
-  "name": "fakeOldApp"
+  "name": "fakeOldApp",
+  "type": "module"
 }

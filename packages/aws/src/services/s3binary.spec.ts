@@ -1,6 +1,6 @@
 import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
 import { suite, test } from "@testdeck/mocha";
-import { Binary } from "@webda/core";
+import { Binary, getCommonJS } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import { TestApplication } from "@webda/core/lib/test";
 import * as assert from "assert";
@@ -11,13 +11,14 @@ import { checkLocalStack, defaultCreds } from "../index.spec";
 import { DynamoDBTest } from "./dynamodb.spec";
 import { S3Binary, S3BinaryParameters } from "./s3binary";
 
+const { __dirname } = getCommonJS(import.meta.url);
 @suite
 class S3BinaryTest extends BinaryTest<S3Binary> {
   async before() {
     process.env.AWS_ACCESS_KEY_ID = defaultCreds.accessKeyId;
     process.env.AWS_SECRET_ACCESS_KEY = defaultCreds.secretAccessKey;
     await checkLocalStack();
-    this.buildWebda();
+    await this.buildWebda();
     await this.install();
     await this.cleanData();
     await DynamoDBTest.install("webda-test-idents");
@@ -29,7 +30,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     super.tweakApp(app);
     app.addService(
       "test/awsevents",
-      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).default
+      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).AWSEventsHandler
     );
   }
 

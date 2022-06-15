@@ -6,7 +6,15 @@ import {
   ScanCommand
 } from "@aws-sdk/client-dynamodb";
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, Ident, Store, StoreEvents, StoreParameters, UpdateConditionFailError } from "@webda/core";
+import {
+  CoreModel,
+  getCommonJS,
+  Ident,
+  Store,
+  StoreEvents,
+  StoreParameters,
+  UpdateConditionFailError
+} from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import { TestApplication } from "@webda/core/lib/test";
 import { WorkerOutput } from "@webda/workout";
@@ -16,6 +24,7 @@ import path from "path";
 import * as sinon from "sinon";
 import { checkLocalStack, defaultCreds } from "../index.spec";
 import { DynamoStore, DynamoStoreParameters } from "./dynamodb";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 export class DynamoDBTest extends StoreTest {
@@ -34,7 +43,7 @@ export class DynamoDBTest extends StoreTest {
     super.tweakApp(app);
     app.addService(
       "test/awsevents",
-      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).default
+      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).AWSEventsHandler
     );
   }
 

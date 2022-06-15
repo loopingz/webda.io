@@ -292,14 +292,14 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
           return false;
         }
         if (prop.isRequired() && prop.getType() === undefined) {
-          /* istanbul ignore next */
+          /* c8 ignore next */
           hasRequiredNever = true;
         }
         return prop.getType() !== undefined;
       });
 
     if (hasRequiredNever) {
-      /* istanbul ignore next */
+      /* c8 ignore next */
       return undefined;
     }
 
@@ -893,7 +893,7 @@ export class Compiler {
   watch(callback: (diagnostic: ts.Diagnostic) => void, logger: Logger) {
     const formatHost: ts.FormatDiagnosticsHost = {
       // This method is not easily reachable and is straightforward
-      getCanonicalFileName: /* istanbul ignore next */ p => p,
+      getCanonicalFileName: /* c8 ignore next */ p => p,
       getCurrentDirectory: ts.sys.getCurrentDirectory,
       getNewLine: () => ts.sys.newLine
     };
@@ -921,7 +921,7 @@ export class Compiler {
         }
       } else {
         // Haven't seen other code yet so display them but cannot reproduce
-        /* istanbul ignore next */
+        /* c8 ignore next */
         logger.log("INFO", diagnostic, ts.formatDiagnostic(diagnostic, formatHost));
       }
       callback(diagnostic);

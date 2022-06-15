@@ -1,4 +1,4 @@
-import { Context, RequestFilter, Route, Service, ServiceParameters } from "@webda/core";
+import { Bean, Context, RequestFilter, Route, Service, ServiceParameters } from "@webda/core";
 
 interface CustomBody {
   /**
@@ -16,6 +16,7 @@ class CustomParameters extends ServiceParameters {
   introspection: Partial<ServiceParameters>;
 }
 
+@Bean
 class CustomService<T extends CustomParameters = CustomParameters> extends Service<T> implements RequestFilter {
   /**
    * @override

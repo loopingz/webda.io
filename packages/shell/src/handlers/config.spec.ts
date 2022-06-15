@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import { FileUtils } from "@webda/core";
 import * as assert from "assert";
-import * as fetch from "node-fetch";
+import fetch from "node-fetch";
 import { WebdaSampleApplication } from "../index.spec";
 import { WebdaConfiguration } from "./config";
 import { ServerStatus } from "./http";

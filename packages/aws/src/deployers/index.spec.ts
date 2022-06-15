@@ -17,13 +17,15 @@ import {
 } from "@aws-sdk/client-s3";
 import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
 import { suite, test } from "@testdeck/mocha";
-import { CacheService } from "@webda/core";
+import { CacheService, getCommonJS } from "@webda/core";
 import { DeploymentManager } from "@webda/shell";
 import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import * as sinon from "sinon";
-import { AWSDeployer, AWSDeployerResources } from ".";
+import { AWSDeployer, AWSDeployerResources } from "./index";
+const { __dirname, __filename } = getCommonJS(import.meta.url);
+
 class TestAWSDeployer extends AWSDeployer<AWSDeployerResources> {
   async deploy(): Promise<any> {}
 
@@ -83,7 +85,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       () => this.deployer.putFilesOnBucket("plop", [{ key: "/test" }]),
       /Should have src and key defined/
     );
-    let Contents = [{ Key: "awsevents.js", Size: 587, ETag: '"312d05552187d3fdfdda3860fbeef48f"' }];
+    let Contents = [{ Key: "awsevents.js", Size: 527, ETag: '"ea1db4bb1545c62c50e6f0893e9f0992"' }];
     let stub = sinon.stub().resolves({ Contents });
     // Fake any uploads
     let uploads = [];

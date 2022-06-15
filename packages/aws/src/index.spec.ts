@@ -1,6 +1,8 @@
+import { getCommonJS } from "@webda/core";
 import { TestApplication, WebdaTest } from "@webda/core/lib/test";
-import * as fetch from "node-fetch";
+import fetch from "node-fetch";
 import * as path from "path";
+const { __dirname } = getCommonJS(import.meta.url);
 
 var localStack = undefined;
 
@@ -26,10 +28,10 @@ export async function checkLocalStack() {
 
 export class WebdaAwsTest extends WebdaTest {
   async tweakApp(app: TestApplication) {
-    super.tweakApp(app);
+    await super.tweakApp(app);
     app.addService(
       "test/awsevents",
-      (await import(path.join(__dirname, ..."../test/moddas/awsevents.js".split("/")))).default
+      (await import(path.join(__dirname, ..."../test/moddas/awsevents.js".split("/")))).AWSEventsHandler
     );
   }
 

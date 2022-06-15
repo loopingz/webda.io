@@ -3,7 +3,7 @@ import { HttpContext, ResourceService } from "@webda/core";
 import * as assert from "assert";
 import * as http from "http";
 import { createChecker } from "is-in-subnet";
-import * as fetch from "node-fetch";
+import fetch from "node-fetch";
 import * as sinon from "sinon";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { ServerStatus, WebdaServer } from "./http";

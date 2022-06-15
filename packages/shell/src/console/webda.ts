@@ -3,6 +3,7 @@ import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOut
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
 import * as fs from "fs";
+import { createRequire } from "module";
 import * as path from "path";
 import semver from "semver";
 import { Transform } from "stream";
@@ -287,7 +288,7 @@ export default class WebdaConsole {
       }
     } catch (err) {
       // Cannot fake fs.watch error unless modifying code to allow test
-      /* istanbul ignore next */
+      /* c8 ignore next 2 */
       this.log("WARN", "Auto-reload for configuration cannot be setup", err);
     }
   }
@@ -337,6 +338,13 @@ export default class WebdaConsole {
     return manager.commandLine(argv);
   }
 
+  /***
+   * Get yeoman
+   */
+  static async getYeoman() {
+    return (await import("yeoman-environment")).default;
+  }
+
   /**
    * Generate a new Webda Application based on yeoman
    *
@@ -352,8 +360,9 @@ export default class WebdaConsole {
     if (generatorName.indexOf(":") > 0) {
       [generatorName, generatorAction] = generatorName.split(":");
     }
-    const yeoman = await import("yeoman-environment");
+    const yeoman = await this.getYeoman();
     const env = yeoman.createEnv();
+    const require = createRequire(import.meta.url);
     env.register(require.resolve(`generator-${generatorName}/generators/${generatorAction}/index.js`), generatorName);
     return env.run(generatorName);
   }
@@ -453,7 +462,7 @@ export default class WebdaConsole {
    * This is a non-supported method therefore no specific unit test
    * as there is no value in it
    */
-  /* istanbul ignore next */
+  /* c8 ignore start */
   static async fakeTerm() {
     let res;
     let i = 1;
@@ -480,6 +489,7 @@ export default class WebdaConsole {
       this.log("INFO", res);
     }
   }
+  /* c8 ignore stop */
 
   /**
    * Generate the webda.module.json
@@ -684,7 +694,7 @@ export default class WebdaConsole {
     } else {
       if (extension && extension.terminal) {
         // Allow override of terminal
-        this.terminal = new (await import(path.join(extension.relPath, extension.terminal)))(
+        this.terminal = new (await import(path.join(extension.relPath, extension.terminal))).default(
           output,
           versions,
           argv.logLevel,
@@ -796,7 +806,7 @@ export default class WebdaConsole {
         return await this.executeShellExtension(extension, extension.relPath, argv);
       }
       // Would need to create a fake app with a throw exception in a module to generate this
-    } catch (err) /* istanbul ignore next */ {
+    } catch (err) /* c8 ignore next 3 */ {
       this.log("ERROR", err);
       throw err;
     } finally {
@@ -830,9 +840,7 @@ export default class WebdaConsole {
    */
   static async executeShellExtension(ext: WebdaShellExtension, relPath: string, argv: any) {
     ext.export ??= "default";
-    const data = await import(path.join(relPath, ext.require));
-    console.log("Data for executeShellExt", data);
-    return data[ext.export](this, argv);
+    return (await import(path.join(relPath, ext.require)))[ext.export](this, argv);
   }
 
   /**

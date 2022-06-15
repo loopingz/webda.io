@@ -8,7 +8,7 @@ import { Deployer, DeploymentManager } from "@webda/shell";
 import bluebird from "bluebird";
 import * as crypto from "crypto";
 import * as fs from "fs";
-import * as glob from "glob";
+import glob from "glob";
 import IamPolicyOptimizer from "iam-policy-optimizer";
 import * as mime from "mime-types";
 import * as path from "path";
@@ -478,7 +478,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       Version: "2012-10-17",
       Statement: [...statements, ...additionalStatements]
     };
-    return IamPolicyOptimizer.reducePolicyObject(policyDocument);
+
+    // @ts-ignore
+    return IamPolicyOptimizer.default?.reducePolicyObject(policyDocument);
   }
 
   /**

@@ -1,14 +1,16 @@
 import { suite, test } from "@testdeck/mocha";
-import { Bean, HttpContext, Route, Service } from "@webda/core";
+import { Bean, getCommonJS, HttpContext, Route, Service } from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as fs from "fs";
 import { checkLocalStack, WebdaAwsTest } from "../index.spec";
 import { LambdaServer } from "./lambdaserver";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @Bean
 class ExceptionExecutor extends Service {
   initRoutes() {
+    super.initRoutes();
     this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
     this.addRoute("/route/string", ["GET"], this.onString);
   }
@@ -44,7 +46,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async before() {
     await checkLocalStack();
     let app = new TestApplication(this.getTestConfiguration());
-    app.addService("test/awsevents", (await import("../../test/moddas/awsevents.js")).default);
+    app.addService("test/awsevents", (await import("../../test/moddas/awsevents.js")).AWSEventsHandler);
     await app.load();
     this.webda = this.handler = new LambdaServer(app);
     await this.webda.init();
@@ -306,7 +308,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
       let event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
       await this.handler.handleRequest(event, this.context);
       if (file === "api-gateway-aws-proxy.json") {
-        assert.strictEqual(service.getEvents().length, 0, "API Gateway should go throught the normal request handling");
+        assert.strictEqual(service.getEvents().length, 0, "API Gateway should go through the normal request handling");
       } else {
         assert.notStrictEqual(service.getEvents().length, 0, "Should have get some events:" + JSON.stringify(event));
       }

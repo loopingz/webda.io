@@ -55,8 +55,8 @@ export class SourceTestApplication extends SourceApplication {
     this.addService("webdatest/voidstore", <Modda>(<unknown>await import("../../core/test/moddas/voidstore")));
     this.addService("webdatest/fakeservice", <Modda>(<unknown>await import("../../core/test/moddas/fakeservice")));
     this.addService("webdatest/mailer", <Modda>(<unknown>await import("../../core/test/moddas/debugmailer")));
-    this.addModel("webdatest/task", await import("../../core/test/models/task"));
-    this.addModel("webdatest/ident", await import("../../core/test/models/ident"));
+    this.addModel("webdatest/task", (await import("../../core/test/models/task")).Task);
+    this.addModel("webdatest/ident", (await import("../../core/test/models/ident")).Ident);
     return this;
   }
 }

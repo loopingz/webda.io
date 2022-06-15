@@ -1092,7 +1092,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         type: "object"
       };
       let modelDescription = this.getModel(i);
-      let modelName = (<CoreModelDefinition>model).name.split("/").pop();
+      let modelName = (<CoreModelDefinition>model).name || i.split("/").pop();
       // Only export CoreModel info
       if (!this.application.extends(modelDescription, CoreModel)) {
         continue;

@@ -5,10 +5,10 @@ import { MemoryLogger, WorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { execSync } from "child_process";
 import * as fs from "fs";
-import * as fetch from "node-fetch";
+import fetch from "node-fetch";
 import * as path from "path";
 import * as sinon from "sinon";
-import * as ts from "typescript";
+import ts from "typescript";
 import { Compiler } from "../code/compiler";
 import { SourceApplication } from "../code/sourceapplication";
 import { ServerStatus } from "../handlers/http";
@@ -294,10 +294,7 @@ class DynamicService extend Service {
     await this.commandLine("service-configuration CustomService");
     let logs = this.logger.getLogs();
     let ind = logs.length - 1;
-    assert.notStrictEqual(
-      logs[ind].log.args[0].match(/[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm),
-      null
-    );
+    assert.notStrictEqual(logs[ind].log.args[0].match(/[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm), null);
     await this.commandLine("service-configuration UnknownService");
     logs = this.logger.getLogs();
     ind = logs.length - 1;
@@ -315,7 +312,7 @@ class DynamicService extend Service {
     assert.strictEqual(logs[ind].log.args.length, 1);
     assert.strictEqual(logs[ind].log.args[0], "Result: void");
     ind++;
-    console.log(logs);
+
     assert.strictEqual(logs[ind].log.args.length, 2);
     assert.strictEqual(logs[ind].log.args[0], "Took");
 
@@ -501,24 +498,19 @@ class DynamicService extend Service {
       fs.mkdirSync(appPath, { recursive: true });
       fs.writeFileSync(
         jsPath,
-        `module.exports = {
-      default: (console, args) => {
-        return "plop_" + args._.join("_")
-      }
-    }`
+        `export default function (console, args) {
+          return "plop_" + args._.join("_")
+        }`
       );
       fs.writeFileSync(
         jsTerminalPath,
         `
-class FakeTerminal {
+export default class FakeTerminal {
   constructor(...args) {}
   close() {}
   setLogo() {}
   setDefaultLogo() {}
   getLogo() {return ["",""]}
-}
-module.exports = {
-  default: FakeTerminal
 }
       `
       );
@@ -603,15 +595,17 @@ module.exports = {
 
   @test
   async initYeoman() {
-    let yeoman = await import("yeoman-environment");
+    let yeoman = await WebdaConsole.getYeoman();
     let register = sinon.stub();
     let run = sinon.stub();
+    // @ts-ignore
     let stub = sinon.stub(yeoman, "createEnv").callsFake(() => {
       return {
         register,
         run
       };
     });
+    sinon.stub(WebdaConsole, "getYeoman").callsFake(async () => yeoman);
     try {
       await this.commandLine(`init`, false);
       assert.ok(register.getCall(0).args[0].endsWith("node_modules/generator-webda/generators/app/index.js"));

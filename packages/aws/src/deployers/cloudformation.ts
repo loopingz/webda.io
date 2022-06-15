@@ -1086,6 +1086,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         src: ZipPath
       }
     ]);
+    /* c8 ignore next 3 */
     if (!KeepPackage) {
       fs.unlinkSync(ZipPath);
     }

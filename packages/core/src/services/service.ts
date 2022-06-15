@@ -127,6 +127,7 @@ export class ServiceParameters {
   url?: string;
   /**
    * OpenAPI override
+   * @SchemaIgnore
    */
   openapi?: OpenAPIWebdaDefinition;
 

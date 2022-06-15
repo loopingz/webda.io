@@ -566,6 +566,13 @@ export class Compiler {
                     let definitionName = schema.$ref.split("/").pop();
                     moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
                     moduleInfo.schemas[name].$schema = schema.$schema;
+                    // Should avoid hard-coding by adding a SchemaTypeOverride JSDocs tag
+                    if (section === "beans" || section === "moddas") {
+                      moduleInfo.schemas[name].properties["openapi"] = {
+                        type: "object",
+                        additionalProperties: true
+                      };
+                    }
                     // Copy sub definition if needed
                     if (Object.keys(schema.definitions).length > 1) {
                       moduleInfo.schemas[name].definitions = schema.definitions;

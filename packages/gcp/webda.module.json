@@ -9,81 +9,6 @@
   "models": {},
   "deployers": {},
   "schemas": {
-    "webda/googlecloudstorage": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "map": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in"
-        },
-        "expose": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL to expose the service to"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "get": {
-                  "type": "boolean",
-                  "description": "Restrict GET"
-                },
-                "create": {
-                  "type": "boolean",
-                  "description": "Restrict POST"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Restrict DELETE"
-                },
-                "metadata": {
-                  "type": "boolean",
-                  "description": "Restrict update of metadata"
-                }
-              },
-              "description": "Restrict some APIs"
-            }
-          },
-          "required": [
-            "url"
-          ],
-          "description": "Expose the service to http"
-        },
-        "prefix": {
-          "type": "string"
-        },
-        "bucket": {
-          "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "bucket",
-        "map",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GoogleCloudStorage"
-    },
     "webda/googlecloudfirestore": {
       "type": "object",
       "properties": {
@@ -1055,6 +980,81 @@
       "description": "GCPQueue Parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GoogleCloudQueue"
+    },
+    "webda/googlecloudstorage": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in"
+        },
+        "expose": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to expose the service to"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "get": {
+                  "type": "boolean",
+                  "description": "Restrict GET"
+                },
+                "create": {
+                  "type": "boolean",
+                  "description": "Restrict POST"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Restrict DELETE"
+                },
+                "metadata": {
+                  "type": "boolean",
+                  "description": "Restrict update of metadata"
+                }
+              },
+              "description": "Restrict some APIs"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "description": "Expose the service to http"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "bucket": {
+          "type": "string"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "bucket",
+        "map",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GoogleCloudStorage"
     }
   }
 }

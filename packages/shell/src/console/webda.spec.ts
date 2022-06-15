@@ -189,11 +189,8 @@ class ConsoleTest {
   @test
   async debugCommandLine() {
     Compiler.watchOptions = {
-      watchDirectory: ts.WatchDirectoryKind.FixedPollingInterval,
-      excludeDirectories: ["lib"]
+      watchDirectory: ts.WatchDirectoryKind.FixedPollingInterval
     };
-
-    //WebdaSampleApplication.clean();
     this.commandLine(
       `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`,
       true,
@@ -208,6 +205,7 @@ class ConsoleTest {
     // CSRF is disabled by default in debug mode
     await app.testApi(200);
     let p = this.waitForStatus(DebuggerStatus.Launching);
+    console.log("Add new service");
     // Add a new .ts
     fs.writeFileSync(
       this.dynamicFile,
@@ -222,14 +220,10 @@ class DynamicService extends Service {
       
 `
     );
-    try {
-      console.log("Waiting for Launching");
-      await p;
-      console.log("Waiting for Serving");
-      await this.waitForStatus(DebuggerStatus.Serving);
-    } catch (err) {
-      // Skip error on timeout
-    }
+    console.log("Waiting for Launching");
+    await p;
+    console.log("Waiting for Serving");
+    await this.waitForStatus(DebuggerStatus.Serving);
     console.log("Test new route");
     // Keep until tested on GitHub
     // try {

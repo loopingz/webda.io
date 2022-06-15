@@ -374,7 +374,7 @@ export class WebdaServer extends Webda {
    */
   async waitForStatus(status: ServerStatus.Stopped | ServerStatus.Started, timeout: number = 60000) {
     return WaitFor(
-      async (resolve, reject) => {
+      async resolve => {
         if (this.getServerStatus() === status) {
           resolve();
           return true;

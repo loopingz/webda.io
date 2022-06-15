@@ -25,7 +25,8 @@
     "typescript": "~4.7.2"
   },
   "resolutions": {
-    "typescript": "~4.7.2"
+    "typescript": "~4.7.2",
+    "deepmerge-ts": "<4.2.0"
   },
   "author": "loopingz",
   "license": "MIT",

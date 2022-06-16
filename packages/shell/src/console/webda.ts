@@ -494,7 +494,7 @@ export default class WebdaConsole {
    * Generate the webda.module.json
    */
   static async build(argv) {
-    if (argv.watcher) {
+    if (argv.watch) {
       this.app.getCompiler().watch(() => {
         // Empty callback
       }, this.logger);
@@ -585,7 +585,7 @@ export default class WebdaConsole {
         handler: WebdaConsole.build,
         description: "Generate the module for the application",
         module: {
-          watcher: {
+          watch: {
             alias: "w"
           }
         }

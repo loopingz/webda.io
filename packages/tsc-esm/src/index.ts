@@ -1,19 +1,7 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import ts from "typescript";
-
-export function writer(fileName: string, text: string) {
-  mkdirSync(path.dirname(fileName), { recursive: true });
-  // Add the ".js" -> if module
-  writeFileSync(
-    fileName,
-    text
-      .replace(/^(import .* from "\..*?)(\.js)?";$/gm, '$1.js";')
-      .replace(/^(import .* from "(@[^\/]+\/)?[^@\/]+\/.*?)(\.js)?";$/gm, '$1.js";')
-      .replace(/^(export .* from "\..*?)(\.js)?";$/gm, '$1.js";')
-  );
-}
+import { writer } from "./lib.js";
 
 const configFileName = path.join(process.cwd(), "tsconfig.json");
 

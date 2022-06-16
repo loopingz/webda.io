@@ -775,6 +775,8 @@ export class Compiler {
       return serviceType => {
         const key = `${type}$${serviceType.replace(/\//g, "$")}`;
         const definition: JSONSchema7 = (res.definitions[key] = this.app.getSchema(serviceType));
+        /* should try to mock the getSchema */
+        /* c8 ignore next 3 */
         if (!definition) {
           return;
         }

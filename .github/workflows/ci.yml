@@ -95,7 +95,6 @@ jobs:
         run: |
           (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/core) || \
           (echo "===== Core Test Attempt: 2 ====" && yarn run test --scope @webda/core) || \
-          (echo "===== Core Test Attempt: 3 ====" && yarn run test --scope @webda/core) || \
           (echo "===== Core Test Failed ====" && exit 1)
 
       - name: Run Postgres tests
@@ -105,7 +104,6 @@ jobs:
         run: |
           (echo "===== Shell Test Attempt: 1 ====" && yarn run test --scope @webda/shell) || \
           (echo "===== Shell Test Attempt: 2 ====" && yarn run test --scope @webda/shell) || \
-          (echo "===== Shell Test Attempt: 3 ====" && yarn run test --scope @webda/shell) || \
           (echo "===== Shell Test Failed ====" && exit 1)
 
       - name: Run AWS tests
@@ -124,7 +122,6 @@ jobs:
         run: |
           (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/gcp) || \
           (echo "===== Core Test Attempt: 2 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== Core Test Attempt: 3 ====" && yarn run test --scope @webda/gcp) || \
           (echo "===== Core Test Failed ====" && exit 1)
 
       - name: Run other modules tests

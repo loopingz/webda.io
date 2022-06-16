@@ -38,7 +38,7 @@
           "readOnly": true
         },
         "_company": {
-          "$ref": "#/definitions/ModelParent%3Cclass-922587926-131-283-922587926-0-284%3E",
+          "$ref": "#/definitions/ModelParent%3Cclass-models_company.ts-131-283-models_company.ts-0-284%3E",
           "readOnly": true
         },
         "name": {
@@ -50,15 +50,15 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-922587926-131-283-922587926-0-284>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-922587926-131-283-922587926-0-284%2Cany%3E",
+        "ModelParent<class-models_company.ts-131-283-models_company.ts-0-284>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_company.ts-131-283-models_company.ts-0-284%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-922587926-131-283-922587926-0-284,any>": {
-          "$ref": "#/definitions/ModelLinker%3Cclass-922587926-131-283-922587926-0-284%3E",
+        "ModelLink<class-models_company.ts-131-283-models_company.ts-0-284,any>": {
+          "$ref": "#/definitions/ModelLinker%3Cclass-models_company.ts-131-283-models_company.ts-0-284%3E",
           "description": "Define a link to 1:n relation"
         },
-        "ModelLinker<class-922587926-131-283-922587926-0-284>": {
+        "ModelLinker<class-models_company.ts-131-283-models_company.ts-0-284>": {
           "type": "string"
         }
       },
@@ -183,7 +183,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -198,7 +198,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -224,7 +224,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -239,7 +239,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -288,7 +288,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -309,7 +309,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -393,7 +393,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-178760925-1119-1603-178760925-0-6841976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1119-1603-1131383939-0-6841976353190%3E"
         }
       },
       "required": [
@@ -402,7 +402,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-178760925-1119-1603-178760925-0-6841976353190>": {
+        "Partial<class-1131383939-1119-1603-1131383939-0-6841976353190>": {
           "type": "object",
           "properties": {
             "type": {

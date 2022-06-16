@@ -158,7 +158,7 @@ class ConsoleTest {
    * @param status to wait for
    * @param timeout max number of ms to wait for
    */
-  async waitForStatus(status: DebuggerStatus, timeout: number = 10000) {
+  async waitForStatus(status: DebuggerStatus, timeout: number = 20000) {
     let time = 0;
     do {
       let currentStatus = WebdaConsole.getDebuggerStatus();

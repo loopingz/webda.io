@@ -1107,6 +1107,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         desc = schema;
       }
       // Remove empty required as openapi does not like that
+      // Our compiler is not generating this anymore but it is additional protection
+      /* c8 ignore next 3 */
       if (desc.required && desc.required.length === 0) {
         delete desc.required;
       }

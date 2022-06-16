@@ -493,7 +493,13 @@ export default class WebdaConsole {
   /**
    * Generate the webda.module.json
    */
-  static async build() {
+  static async build(argv) {
+    if (argv.watcher) {
+      this.app.getCompiler().watch(() => {
+        // Empty callback
+      }, this.logger);
+      return new CancelablePromise();
+    }
     if (!(await this.app.generateModule())) {
       return -1;
     }
@@ -577,7 +583,12 @@ export default class WebdaConsole {
       },
       build: {
         handler: WebdaConsole.build,
-        description: "Generate the module for the application"
+        description: "Generate the module for the application",
+        module: {
+          watcher: {
+            alias: "w"
+          }
+        }
       },
       openapi: {
         command: "openapi [exportFile]",

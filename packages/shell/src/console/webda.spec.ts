@@ -354,8 +354,10 @@ class DynamicService extend Service {
       assert.deepStrictEqual(module.schemas["webdademo/customdeployer"].title, "CustomDeployer");
       assert.notStrictEqual(module.schemas["webdademo/customreusableservice"], undefined);
       assert.notStrictEqual(module.schemas["webdademo/contact"], undefined);
+      WebdaConsole.build({ watcher: true });
+      WebdaConsole.app.getCompiler().stopWatch();
       stub = sinon.stub(WebdaConsole.app, "generateModule").callsFake(async () => false);
-      assert.strictEqual(await WebdaConsole.build(), -1);
+      assert.strictEqual(await WebdaConsole.build({}), -1);
     } finally {
       stub?.restore();
       execSync(`git checkout ${WebdaSampleApplication.getAppPath("webda.module.json")}`);

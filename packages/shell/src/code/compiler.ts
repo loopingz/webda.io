@@ -933,6 +933,7 @@ export class Compiler {
       this.createSchemaGenerator(this.tsProgram);
       await this.app.generateModule();
       callback("MODULE_GENERATED");
+      logger.logTitle("Compilation done");
     };
     const reportWatchStatusChanged = (diagnostic: ts.Diagnostic) => {
       if ([6031, 6032, 6194, 6193].includes(diagnostic.code)) {
@@ -961,7 +962,7 @@ export class Compiler {
       this.app.getAppPath("tsconfig.json"),
       {},
       { ...ts.sys, writeFile: writer },
-      ts.createSemanticDiagnosticsBuilderProgram,
+      ts.createEmitAndSemanticDiagnosticsBuilderProgram,
       reportDiagnostic,
       reportWatchStatusChanged,
       Compiler.watchOptions

@@ -919,12 +919,15 @@ export class Compiler {
     };
     const reportDiagnostic = (diagnostic: ts.Diagnostic) => {
       callback(diagnostic);
-      const formatHost: ts.FormatDiagnosticsHost = {
-        getCanonicalFileName: p => p,
-        getCurrentDirectory: ts.sys.getCurrentDirectory,
-        getNewLine: () => ""
-      };
-      logger.log("WARN", ts.formatDiagnostics([diagnostic], formatHost).trim());
+      logger.log(
+        "WARN",
+        ts
+          .formatDiagnostics([diagnostic], {
+            ...formatHost,
+            getNewLine: () => ""
+          })
+          .trim()
+      );
     };
     const generateModule = async () => {
       callback("MODULE_GENERATION");

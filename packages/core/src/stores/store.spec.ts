@@ -856,12 +856,13 @@ abstract class StoreTest extends WebdaTest {
   @test
   async put() {
     const store = this.getIdentStore();
-    if (await store.exists("test")) {
-      await store.delete("test");
+    const uuid = store.getWebda().getUuid();
+    if (await store.exists(uuid)) {
+      await store.delete(uuid);
     }
-    await store.put("test", { test: true });
+    await store.put(uuid, { test: true });
     // Verify put acts like a upsert
-    await store.put("test", { test: false });
+    await store.put(uuid, { test: false });
   }
 }
 

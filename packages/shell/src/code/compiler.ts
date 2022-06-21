@@ -948,6 +948,7 @@ export class Compiler {
         } else {
           if ((<string>diagnostic.messageText).match(/Found [1-9]\d* error/)) {
             logger.log("ERROR", diagnostic.messageText);
+            /* c8 ignore next 3 */
           } else if (!diagnostic.messageText.toString().startsWith("Found 0 errors")) {
             logger.log("INFO", diagnostic.messageText);
           }

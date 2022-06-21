@@ -30,7 +30,6 @@
   "beans": {},
   "models": {
     "webda/aclmodel": "lib/models/aclmodel:default",
-    "webda/comment": "lib/models/comment:Comment",
     "webda/context": "lib/utils/context:Context",
     "webda/coremodel": "lib/models/coremodel:CoreModel",
     "webda/ident": "lib/models/ident:Ident",

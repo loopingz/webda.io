@@ -106,16 +106,17 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       } else {
         xff = ctx.getHttpContext().getClientIp();
       }
+      const protocol = ctx.getHttpContext().getProtocol();
       let req = this.createRequest(
         `${host}${subUrl}`,
         ctx.getHttpContext().getMethod(),
         {
           ...this.getRequestHeaders(ctx),
           "X-Rewrite-URL": ctx.getHttpContext().getRelativeUri(),
-          "X-Forwarded-Host": ctx
+          "X-Forwarded-Host": ctx.getHttpContext().getHeader("x-forwarded-host", `${ctx.getHttpContext().getHost()}`),
+          "X-Forwarded-Proto": ctx
             .getHttpContext()
-            .getHeader("x-forwarded-host", `${ctx.getHttpContext().getHost()}:${ctx.getHttpContext().getPort()}`),
-          "X-Forwarded-Proto": ctx.getHttpContext().getHeader("x-forwarded-proto", ctx.getHttpContext().getProtocol()),
+            .getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
           "X-Forwarded-For": xff
         },
         res => {

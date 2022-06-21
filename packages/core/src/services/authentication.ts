@@ -524,7 +524,7 @@ class Authentication<
     uuid: string | User,
     interval = this.parameters.email.delay
   ): Promise<PasswordRecoveryInfos> {
-    var expire = Date.now() + interval;
+    const expire = Date.now() + interval;
     let user;
     if (typeof uuid === "string") {
       user = await this._usersStore.get(uuid);
@@ -706,7 +706,7 @@ class Authentication<
       return;
     }
 
-    var uuid = ctx.parameter("email") + "_email";
+    const uuid = ctx.parameter("email") + "_email";
     let ident = await this._identsStore.get(uuid);
     // Would mean the ident got delete in the mean time... hyper low likely hood
     if (ident === undefined) {
@@ -734,7 +734,7 @@ class Authentication<
    */
   async sendRecoveryEmail(ctx: Context, user, email: string) {
     let infos = await this.getPasswordRecoveryInfos(user);
-    var mailer: Mailer = this.getMailMan();
+    const mailer: Mailer = this.getMailMan();
     let locale = user.locale || ctx.getLocale();
     let mailOptions = {
       to: email,
@@ -754,7 +754,7 @@ class Authentication<
    * @returns
    */
   async sendValidationEmail(ctx: Context, email: string) {
-    var mailer: Mailer = this.getMailMan();
+    const mailer: Mailer = this.getMailMan();
     let replacements = {
       ...this.parameters.email,
       context: ctx,
@@ -817,7 +817,7 @@ class Authentication<
    * @returns
    */
   async login(ctx: Context, user: User | string, ident: Ident) {
-    var event: EventAuthenticationLogin = {
+    const event: EventAuthenticationLogin = {
       context: ctx,
       userId: "",
       identId: ident.uuid,
@@ -903,8 +903,8 @@ class Authentication<
     if (body.login === undefined) {
       throw 400;
     }
-    var mailConfig = this.parameters.email;
-    var uuid = body.login.toLowerCase() + "_email";
+    const mailConfig = this.parameters.email;
+    const uuid = body.login.toLowerCase() + "_email";
     let ident: Ident = await this._identsStore.get(uuid);
     if (ident !== undefined && ident.getUser() !== undefined) {
       // Register on an known user
@@ -919,10 +919,10 @@ class Authentication<
     }
 
     // TODO Handle add of email on authenticated user
-    var email = body.login.toLowerCase();
+    const email = body.login.toLowerCase();
     // Read the form
     if (body.register) {
-      var validation = undefined;
+      let validation = undefined;
       // Need to check email before creation
       if (!mailConfig.postValidation) {
         if (body.token && (await this.cryptoService.hmacVerify(`${email}_${ctx.getCurrentUserId()}`, body.token))) {
@@ -950,7 +950,7 @@ class Authentication<
         context: ctx
       });
       user = await this._usersStore.save(user);
-      var newIdent: any = this._identsStore.initModel({
+      const newIdent: any = this._identsStore.initModel({
         uuid: uuid,
         _type: "email",
         email: email

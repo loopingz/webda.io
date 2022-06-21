@@ -262,7 +262,7 @@ class MemoryStore<
    * @override
    */
   async _incrementAttribute(uid, prop, value, updateDate: Date) {
-    var res = await this._get(uid, true);
+    const res = await this._get(uid, true);
     if (!res[prop]) {
       res[prop] = 0;
     }

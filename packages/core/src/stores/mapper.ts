@@ -127,7 +127,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    * @returns
    */
   getMapper(map: any[], uuid: string): number {
-    for (var i = 0; i < map.length; i++) {
+    for (let i = 0; i < map.length; i++) {
       if (map[i].uuid === uuid) {
         return i;
       }
@@ -144,7 +144,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    * @returns mapper object and found = true if updates will impact the mapper
    */
   createMapper(object: CoreModel, updates: any): [mapper: Mapper, found: boolean] {
-    var mapper: Mapper = {
+    let mapper: Mapper = {
       // TODO Move to getFullUuid
       uuid: object.getUuid()
     };

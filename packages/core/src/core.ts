@@ -655,7 +655,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   public updateContextWithRoute(ctx: Context): boolean {
     let http = ctx.getHttpContext();
     // Check mapping
-    var route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
+    let route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
     if (route === undefined) {
       return false;
     }
@@ -758,11 +758,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   protected createService(services: any, service: string) {
-    var type = services[service].type;
+    let type = services[service].type;
     if (type === undefined) {
       type = service;
     }
-    var serviceConstructor = undefined;
+    let serviceConstructor = undefined;
     try {
       serviceConstructor = this.application.getModda(type);
     } catch (ex) {
@@ -982,9 +982,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
   public emitSync<K extends keyof E>(eventType: K | symbol, event?: E[K], ...data: any[]): Promise<any[]> {
-    var result;
-    var promises = [];
-    var listeners = this.listeners(<string>eventType);
+    let result;
+    let promises = [];
+    let listeners = this.listeners(<string>eventType);
     for (let listener of listeners) {
       result = listener(event, ...data);
       if (result instanceof Promise) {

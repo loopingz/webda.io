@@ -372,10 +372,7 @@ class CoreModel {
     if (!this.__store) {
       throw new CoreModelUnattachedError();
     }
-    let obj = await this.__store.save(this);
-    for (var i in obj) {
-      this[i] = obj[i];
-    }
+    Object.assign(this, await this.__store.save(this));
     return this;
   }
 
@@ -389,10 +386,7 @@ class CoreModel {
       throw new CoreModelUnattachedError();
     }
     changes[this.__class.getUuidField()] = this[this.__class.getUuidField()];
-    let obj = await this.__store.patch(changes);
-    for (var i in obj) {
-      this[i] = obj[i];
-    }
+    Object.assign(this, await this.__store.patch(changes));
     return this;
   }
 

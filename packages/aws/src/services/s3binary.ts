@@ -77,8 +77,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let property = ctx.parameter("property");
     let targetStore = this._verifyMapAndStore(ctx);
     let object: any = await targetStore.get(uid);
-    var base64String = Buffer.from(body.hash, "hex").toString("base64");
-    var params = {
+    let base64String = Buffer.from(body.hash, "hex").toString("base64");
+    let params = {
       Bucket: this.parameters.bucket,
       Key: this._getKey(body.hash),
       ContentType: "application/octet-stream",
@@ -124,7 +124,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @inheritdoc
    */
   putMarker(hash, uuid, storeName) {
-    var s3obj = new S3(this.parameters);
+    let s3obj = new S3(this.parameters);
     return s3obj.putObject({
       Bucket: this.parameters.bucket,
       Key: this._getKey(hash, uuid),
@@ -159,7 +159,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @override
    */
   async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: Context) {
-    var params: any = {};
+    let params: any = {};
     params.Expires = expire; // A get should not take more than 30s
     params.ResponseContentDisposition = `attachment; filename=${binaryMap.name || binaryMap.originalname}`;
     params.ResponseContentType = binaryMap.mimetype;
@@ -227,7 +227,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async _cleanUsage(hash: string, uuid: string) {
     // Dont clean data for now
-    var params = {
+    let params = {
       Bucket: this.parameters.bucket,
       Key: this._getKey(hash, uuid)
     };
@@ -276,7 +276,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async getObject(key: string, bucket?: string): Promise<Readable> {
     bucket = bucket || this.parameters.bucket;
-    var s3obj = new S3(this.parameters);
+    let s3obj = new S3(this.parameters);
     return (
       await s3obj.getObject({
         Bucket: bucket,
@@ -300,7 +300,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   ) {
     let params: any = { Bucket, Prefix };
     let page = 0;
-    var s3 = new S3(this.parameters);
+    let s3 = new S3(this.parameters);
     do {
       await s3.listObjectsV2(params).then(async ({ Contents, NextContinuationToken }: any) => {
         params.ContinuationToken = NextContinuationToken;
@@ -330,7 +330,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     metadatas = {},
     bucket: string = this.parameters.bucket
   ) {
-    var s3obj = new S3(this.parameters);
+    let s3obj = new S3(this.parameters);
     await s3obj.putObject({
       Bucket: bucket,
       Key: key,
@@ -349,7 +349,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     if (data === undefined) {
       let s3metas: any = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
-      var s3obj = new S3(this.parameters);
+      let s3obj = new S3(this.parameters);
       await s3obj.putObject({
         Bucket: this.parameters.bucket,
         Key: this._getKey(file.hash),

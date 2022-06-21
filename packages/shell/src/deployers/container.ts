@@ -119,7 +119,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
    * @param command webda command to run
    */
   async buildContainer(tag, file) {
-    var args: any = {};
+    let args: any = {};
     let stdin;
     let cmd;
     if (tag) {
@@ -192,7 +192,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
       return;
     }
     this.logger.log("INFO", "Copying", pkg, "to linked modules");
-    var packageInfo = Packager.loadPackageInfo(pkg);
+    let packageInfo = Packager.loadPackageInfo(pkg);
     let includes = packageInfo.files || ["lib"];
     includes.push("package.json");
     if (includeModules) {
@@ -385,7 +385,7 @@ RUN rm -rf deployments\n\n`;
 
   copyPackageFilesTo(pkg: string, dst: string, addFiles: string[] = []) {
     let absPath = path.resolve(pkg);
-    var packageInfo = Packager.loadPackageInfo(absPath);
+    let packageInfo = Packager.loadPackageInfo(absPath);
     let includes = packageInfo.files || ["lib"];
     addFiles.forEach(f => {
       if (includes.indexOf(f) < 0) {
@@ -438,7 +438,7 @@ CMD webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
    * Generate a dynamic Dockerfile with webda application
    */
   getDockerfile(): string {
-    var dockerfile = this.getDockerfileHeader() + "RUN yarn install --production\n\n";
+    let dockerfile = this.getDockerfileHeader() + "RUN yarn install --production\n\n";
 
     dockerfile += this.copyPackageFilesTo(".", "/webda", ["webda.config.json"]);
     // Import webda-shell

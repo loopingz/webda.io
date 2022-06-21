@@ -852,6 +852,17 @@ abstract class StoreTest extends WebdaTest {
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
   }
+
+  @test
+  async put() {
+    const store = this.getIdentStore();
+    if (await store.exists("test")) {
+      await store.delete("test");
+    }
+    await store.put("test", { test: true });
+    // Verify put acts like a upsert
+    await store.put("test", { test: false });
+  }
 }
 
 export { StoreTest };

@@ -38,7 +38,7 @@ export default class LambdaServer extends Webda {
    * @ignore
    */
   flushHeaders(ctx: Context) {
-    var headers = ctx.getResponseHeaders() || {};
+    const headers = ctx.getResponseHeaders() || {};
 
     this._result = {
       headers,
@@ -88,8 +88,7 @@ export default class LambdaServer extends Webda {
    */
   async handleAWSEvents(events) {
     if (events.Records) {
-      let source = events.Records[0].eventSource;
-      await this.handleAWSEvent(source, <S3Event>events);
+      await this.handleAWSEvent(events.Records[0].eventSource, <S3Event>events);
       return true;
     } else if (events.invocationId && events.records) {
       await this.handleAWSEvent("aws:kinesis", events);
@@ -151,24 +150,24 @@ export default class LambdaServer extends Webda {
     context.callbackWaitsForEmptyEventLoop =
       (this.getConfiguration().parameters && this.getConfiguration().parameters.waitForEmptyEventLoop) || false;
     this._result = {};
-    var vhost: string;
-    var i: any;
+    let vhost: string;
+    let i: any;
 
-    var headers = event.headers || {};
+    let headers = event.headers || {};
     vhost = headers.Host;
-    var method = event.httpMethod || "GET";
-    var protocol = headers["CloudFront-Forwarded-Proto"] || "https";
-    var port = headers["X-Forwarded-Port"] || 443;
+    let method = event.httpMethod || "GET";
+    let protocol = headers["CloudFront-Forwarded-Proto"] || "https";
+    let port = headers["X-Forwarded-Port"] || 443;
     if (typeof port === "string") {
       port = Number(port);
       if (isNaN(port)) {
         port = 443;
       }
     }
-    var resourcePath = event.path;
+    let resourcePath = event.path;
     // Rebuild query string
     if (event.queryStringParameters) {
-      var sep = "?";
+      let sep = "?";
       for (i in event.queryStringParameters) {
         // If additional error code it will be contained so need to check for &
         // May need to add urlencode
@@ -189,7 +188,7 @@ export default class LambdaServer extends Webda {
       httpContext.setBody(event.body);
     }
     this.computePrefix(event, httpContext);
-    var ctx = await this.newContext(httpContext);
+    let ctx = await this.newContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
 

@@ -49,7 +49,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
   }
 
   async sendMessage(params) {
-    var uid = uuid.v4();
+    let uid = uuid.v4();
     // Avoid duplication
     while (this._queue[uid]) {
       uid = uuid.v4();
@@ -65,7 +65,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
    * @inheritdoc
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
-    for (var i in this._queue) {
+    for (let i in this._queue) {
       if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
         this._queue[i].Claimed = new Date().getTime();
         return [

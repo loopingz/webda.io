@@ -67,7 +67,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    * @inheritdoc
    */
   async sendMessage(params) {
-    var uid = uuid.v4();
+    let uid = uuid.v4();
     let file = this.getFile(uid);
     // Avoid duplication
     while (fs.existsSync(file)) {

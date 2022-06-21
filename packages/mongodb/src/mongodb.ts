@@ -188,7 +188,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
    */
   async _incrementAttribute(uid, prop, value, updateDate: Date) {
     await this._connect();
-    var params = {
+    let params = {
       $inc: {},
       $set: {}
     };
@@ -213,7 +213,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
     let filter = {
       _id: uid
     };
-    var params = {};
+    let params = {};
     if (index === undefined) {
       params = {
         $push: {},

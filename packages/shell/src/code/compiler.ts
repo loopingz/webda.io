@@ -919,16 +919,15 @@ export class Compiler {
     };
     const reportDiagnostic = (diagnostic: ts.Diagnostic) => {
       callback(diagnostic);
-      logger.log(
-        "WARN",
-        diagnostic.code,
-        ":",
-        ts.flattenDiagnosticMessageText(diagnostic.messageText, formatHost.getNewLine())
-      );
+      const formatHost: ts.FormatDiagnosticsHost = {
+        getCanonicalFileName: p => p,
+        getCurrentDirectory: ts.sys.getCurrentDirectory,
+        getNewLine: () => ""
+      };
+      logger.log("WARN", ts.formatDiagnostics([diagnostic], formatHost).trim());
     };
     const generateModule = async () => {
       callback("MODULE_GENERATION");
-      logger.logTitle("Generating module");
       this.loadTsconfig(this.app);
       this.tsProgram = this.watchProgram.getProgram().getProgram();
 
@@ -939,11 +938,16 @@ export class Compiler {
     };
     const reportWatchStatusChanged = (diagnostic: ts.Diagnostic) => {
       if ([6031, 6032, 6194, 6193].includes(diagnostic.code)) {
-        logger.log("INFO", diagnostic.messageText);
         // Launching compile
         if (diagnostic.code === 6032 || diagnostic.code === 6031) {
+          logger.log("INFO", diagnostic.messageText);
           logger.logTitle("Compiling...");
         } else {
+          if ((<string>diagnostic.messageText).match(/Found [1-9]\d* error/)) {
+            logger.log("ERROR", diagnostic.messageText);
+          } else if (!diagnostic.messageText.toString().startsWith("Found 0 errors")) {
+            logger.log("INFO", diagnostic.messageText);
+          }
           // Compilation is successful, start schemas generation
           if (diagnostic.messageText.toString().startsWith("Found 0 errors")) {
             this.compiled = true;

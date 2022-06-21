@@ -1406,11 +1406,14 @@ abstract class Store<
   }
 
   /**
-   * Alias for save
+   * Upsert the uuid object
    * @param uuid
    * @param data
    */
   async put(uuid: string, data: any): Promise<T> {
+    if (await this.exists(uuid)) {
+      return this.update({ ...data, uuid });
+    }
     return this.save({ ...data, uuid });
   }
 
@@ -1420,7 +1423,7 @@ abstract class Store<
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(uid: string, ctx: Context = undefined): Promise<T> {
+  async get(uid: string, ctx: Context = undefined, defaultValue: any = undefined): Promise<T> {
     /** @ignore */
     if (!uid) {
       return undefined;
@@ -1428,7 +1431,7 @@ abstract class Store<
     this.metrics.get++;
     let object = await this._getFromCache(uid);
     if (!object) {
-      return undefined;
+      return defaultValue ? this.initModel(defaultValue) : undefined;
     }
     if (object.__type !== this._model.name && this.parameters.strict) {
       this.log("WARN", `Object '${uid}' was not created by this store`);

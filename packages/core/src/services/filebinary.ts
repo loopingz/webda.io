@@ -144,7 +144,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @inheritdoc
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    var path = this._getPath(info.hash, "data");
+    let path = this._getPath(info.hash, "data");
     if (!fs.existsSync(path)) {
       throw new BinaryNotFoundError(info.hash, this.getName());
     }
@@ -261,7 +261,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    */
   async storeBinary(ctx: Context) {
     let body = await ctx.getHttpContext().getRawBody(this.parameters.maxSize);
-    var result = await new MemoryBinaryFile(body, {
+    let result = await new MemoryBinaryFile(body, {
       mimetype: (ctx.getHttpContext().getUniqueHeader("content-type") || "application/json").split(";")[0],
       name: "",
       size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length"))
@@ -298,11 +298,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @inheritdoc
    */
   async getUsageCount(hash: string) {
-    var path = this._getPath(hash);
+    let path = this._getPath(hash);
     if (!fs.existsSync(path)) {
       return 0;
     }
-    var files = fs.readdirSync(path);
+    let files = fs.readdirSync(path);
     return files.length - 2;
   }
 
@@ -316,7 +316,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
     try {
-      var files = fs.readdirSync(p);
+      let files = fs.readdirSync(p);
       files.forEach(file => fs.unlinkSync(join(p, file)));
       fs.rmdirSync(p);
     } catch (err) {}
@@ -328,7 +328,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async _cleanUsage(hash: string, uuid: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
-    var files = fs.readdirSync(p);
+    let files = fs.readdirSync(p);
     files.filter(f => f.endsWith(uuid)).forEach(f => fs.unlinkSync(this._getPath(hash, f)));
 
     if (files.length == 3) {
@@ -340,13 +340,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @inheritdoc
    */
   async delete(object: CoreModel, property: string, index: number): Promise<void> {
-    var hash = object[property][index].hash;
+    let hash = object[property][index].hash;
     await this.deleteSuccess(object, property, index);
     await this._cleanUsage(hash, object.getUuid());
   }
 
   challenge(hash, challenge) {
-    var path = this._getPath(hash);
+    let path = this._getPath(hash);
     return fs.existsSync(path) && fs.existsSync(`${path}/_${challenge}`);
   }
 

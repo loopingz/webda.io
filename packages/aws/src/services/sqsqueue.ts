@@ -88,7 +88,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * @inheritdoc
    */
   async sendMessage(params: T): Promise<void> {
-    var sqsParams: SendMessageCommandInput = {
+    const sqsParams: SendMessageCommandInput = {
       QueueUrl: this.parameters.queue,
       MessageBody: JSON.stringify(params)
     };

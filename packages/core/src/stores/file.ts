@@ -178,7 +178,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   async _patch(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     let stored = await this._get(uid, true);
     this.checkUpdateCondition(stored, writeConditionField, writeCondition);
-    for (var prop in object) {
+    for (let prop in object) {
       stored[prop] = object[prop];
     }
     return this._save(stored);
@@ -199,8 +199,8 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   async getAll(uids?: string[]): Promise<any> {
     if (!uids) {
       uids = [];
-      var files = fs.readdirSync(this.parameters.folder);
-      for (var file in files) {
+      let files = fs.readdirSync(this.parameters.folder);
+      for (let file in files) {
         uids.push(files[file].substring(0, files[file].length - FileStore.EXTENSION.length));
       }
     }

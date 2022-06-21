@@ -178,7 +178,7 @@ export class Router {
 
     // Order path desc
     this.pathMap = [];
-    for (var i in this.routes) {
+    for (let i in this.routes) {
       // Might need to trail the query string
       this.routes[i].forEach((config: RouteInfo) => {
         this.pathMap.push({
@@ -211,7 +211,7 @@ export class Router {
    */
   protected initURITemplates(config: any): void {
     // Prepare tbe URI parser
-    for (var map in config) {
+    for (let map in config) {
       if (map.indexOf("{") !== -1) {
         config[map].forEach((e: RouteInfo) => (e._uriTemplateParse = uriTemplates(map)));
       }
@@ -228,8 +228,8 @@ export class Router {
     const finalUrl = this.getFinalUrl(url);
     let methods = new Set<HttpMethodType>();
     for (let i in this.pathMap) {
-      var routeUrl = this.pathMap[i].url;
-      var map = this.pathMap[i].config;
+      const routeUrl = this.pathMap[i].url;
+      const map = this.pathMap[i].config;
 
       if (
         routeUrl !== finalUrl &&
@@ -250,8 +250,8 @@ export class Router {
     const finalUrl = this.getFinalUrl(url);
     let parameters = this.webda.getConfiguration().parameters;
     for (let i in this.pathMap) {
-      var routeUrl = this.pathMap[i].url;
-      var map = this.pathMap[i].config;
+      const routeUrl = this.pathMap[i].url;
+      const map = this.pathMap[i].config;
 
       // Check method
       if (map.methods.indexOf(method) === -1) {
@@ -266,7 +266,7 @@ export class Router {
       if (map._uriTemplateParse === undefined) {
         continue;
       }
-      var parse_result = map._uriTemplateParse.fromUri(finalUrl);
+      const parse_result = map._uriTemplateParse.fromUri(finalUrl);
       if (parse_result !== undefined) {
         ctx.setServiceParameters(parameters);
         ctx.setPathParameters(parse_result);

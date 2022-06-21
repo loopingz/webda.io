@@ -40,7 +40,7 @@ export class Ident extends OwnerModel {
     refreshToken: string = "",
     profile: object = {}
   ): Ident {
-    var obj = new Ident();
+    const obj = new Ident();
     obj._type = type.toLowerCase();
     obj.uid = uid.toLowerCase();
     if (obj._type === "email") {

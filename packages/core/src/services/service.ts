@@ -376,7 +376,7 @@ abstract class Service<
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
   emitSync<Key extends keyof E>(event: Key, data: E[Key]): Promise<any[]> {
-    var promises = [];
+    let promises = [];
     for (let listener of this.listeners(<string>event)) {
       let start = Date.now();
       let result = listener(data);

@@ -25,7 +25,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   _initRoutes(): void {
     super._initRoutes();
     // Will use getRedirectUrl so override the default route
-    var url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
+    let url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
     let name = this.getOperationName();
     if (!this.parameters.expose.restrict.get) {
       this.addRoute(

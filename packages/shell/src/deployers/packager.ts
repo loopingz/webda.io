@@ -204,7 +204,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     if (fs.existsSync(zipPath)) {
       fs.unlinkSync(zipPath);
     }
-    var ignores = [
+    let ignores = [
       "dist",
       "bin",
       "test",
@@ -217,9 +217,9 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       ...this.resources.package.ignores
     ];
     // Should load the ignore from a file
-    var toPacks = [];
+    let toPacks = [];
 
-    var files;
+    let files;
     let appPath = this.app.getAppPath();
     let packageFile = this.app.getAppPath("package.json");
     if (fs.existsSync(packageFile)) {
@@ -261,7 +261,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       }
     });
 
-    var output = fs.createWriteStream(zipPath);
+    let output = fs.createWriteStream(zipPath);
     const archive = await this.getArchiver();
     return new Promise<void>((resolve, reject) => {
       output.on("close", () => {
@@ -293,7 +293,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
       archive.pipe(output);
       for (let i in toPacks) {
-        var stat = fs.lstatSync(toPacks[i]);
+        let stat = fs.lstatSync(toPacks[i]);
         let dstPath = path.relative(appPath, toPacks[i]).replace(/\.\.\//g, "");
         if (stat.isSymbolicLink() && this.resources.includeLinkModules) {
           this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), dstPath);
@@ -347,7 +347,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     files ??= fs.readdirSync(fromPath);
     files.forEach(file => {
       if (file.startsWith(".") || file === "package.json") return;
-      var stat = fs.lstatSync(`${fromPath}/${file}`);
+      let stat = fs.lstatSync(`${fromPath}/${file}`);
       if (stat.isDirectory()) {
         archive.directory(`${fromPath}/${file}`, `${toPath}/${file}`);
       } else if (stat.isFile()) {

@@ -765,9 +765,9 @@ abstract class Store<
       object.setUuid(object.generateUid(object));
     }
     object.__store = this;
-    for (var i in this._reverseMap) {
+    for (let i in this._reverseMap) {
       object[this._reverseMap[i].property] ??= [];
-      for (var j in object[this._reverseMap[i].property]) {
+      for (let j in object[this._reverseMap[i].property]) {
         // Use Partial
         object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.initModel(
           object[this._reverseMap[i].property][j]
@@ -1171,8 +1171,8 @@ abstract class Store<
    */
   async update(object: any, reverseMap = true, partial = false): Promise<T | undefined> {
     /** @ignore */
-    var saved;
-    var loaded;
+    let saved;
+    let loaded;
     // Dont allow to update collections from map
     if (this._reverseMap != undefined && reverseMap) {
       for (let i in this._reverseMap) {
@@ -1227,6 +1227,7 @@ abstract class Store<
       for (let i in this._reverseMap) {
         object[this._reverseMap[i].property] = loaded[this._reverseMap[i].property];
       }
+      object = this.initModel(object);
       this.metrics.update++;
       res = await this._update(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
       await this._cacheStore?._update(

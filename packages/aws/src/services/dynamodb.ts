@@ -337,7 +337,7 @@ export default class DynamoStore<
     if (object instanceof CoreModel) {
       object = object.toStoredJSON();
     }
-    var res;
+    let res;
     if (object instanceof Array) {
       res = [];
     } else {
@@ -356,13 +356,13 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
-    var params: any = {
+    let params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid
       }
     };
-    var attrs = {};
+    let attrs = {};
     attrs["#attr"] = attribute;
     attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
@@ -395,13 +395,13 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
-    var params: any = {
+    let params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
     };
-    var attrs = {};
+    let attrs = {};
     attrs["#" + prop] = prop;
     attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
@@ -439,14 +439,14 @@ export default class DynamoStore<
     itemWriteConditionField: string | undefined,
     updateDate: Date
   ) {
-    var params: any = {
+    let params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid
       }
     };
-    var attrValues = {};
-    var attrs = {};
+    let attrValues = {};
+    let attrs = {};
     attrs["#" + prop] = prop;
     attrs["#lastUpdate"] = this._lastUpdateField;
 
@@ -512,7 +512,7 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string) {
-    var params: any = {
+    let params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
@@ -536,13 +536,13 @@ export default class DynamoStore<
    */
   async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
     object = this._cleanObject(object);
-    var expr = "SET ";
-    var sep = "";
-    var attrValues = {};
-    var attrs = {};
-    var skipUpdate = true;
-    var i = 1;
-    for (var attr in object) {
+    let expr = "SET ";
+    let sep = "";
+    let attrValues = {};
+    let attrs = {};
+    let skipUpdate = true;
+    let i = 1;
+    for (let attr in object) {
       if (attr === "uuid" || object[attr] === undefined) {
         continue;
       }
@@ -556,7 +556,7 @@ export default class DynamoStore<
     if (skipUpdate) {
       return;
     }
-    var params: any = {
+    let params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
@@ -585,7 +585,7 @@ export default class DynamoStore<
   async _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
     object = this._cleanObject(object);
     object.uuid = uid;
-    var params: any = {
+    let params: any = {
       TableName: this.parameters.table,
       Item: object
     };
@@ -629,7 +629,7 @@ export default class DynamoStore<
     if (!uids) {
       return this._scan([]);
     }
-    var params = {
+    let params = {
       RequestItems: {}
     };
     params["RequestItems"][this.parameters.table] = {
@@ -647,7 +647,7 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
-    var params = {
+    let params = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
@@ -667,7 +667,7 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _incrementAttribute(uid, prop, value, updateDate: Date) {
-    var params = {
+    let params = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
@@ -722,12 +722,12 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async __clean() {
-    var params = {
+    let params = {
       TableName: this.parameters.table
     };
     let result = await this._client.scan(params);
-    var promises = [];
-    for (var i in result.Items) {
+    let promises = [];
+    for (let i in result.Items) {
       promises.push(this._delete(result.Items[i].uuid));
     }
     await Promise.all(promises);

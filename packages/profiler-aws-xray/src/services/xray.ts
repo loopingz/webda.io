@@ -48,7 +48,7 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
             const name = `${services[service]._name}.${method}`;
             const originalMethod = services[service][method];
             services[service][method] = (...args) => {
-              var subsegment = {
+              let subsegment = {
                 close: () => {
                   // Do not do anything on close
                 }
@@ -78,11 +78,11 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
       }
     });
     this._webda.addListener("Webda.Request", async ctx => {
-      var segment = new AWSXRay.Segment(
+      let segment = new AWSXRay.Segment(
         this.parameters.name || this._webda.getApplication().getPackageDescription().name || "Webda.Request"
       );
 
-      var ns = AWSXRay.getNamespace();
+      let ns = AWSXRay.getNamespace();
       const exec = ctx.execute.bind(ctx);
       // Dynamic replace the execute function
       ctx.execute = async () => {

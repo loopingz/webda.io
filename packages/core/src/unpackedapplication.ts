@@ -1,6 +1,7 @@
 import { WorkerOutput } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as fs from "fs";
+import Finder from "fs-finder";
 import * as path from "path";
 import {
   Application,
@@ -11,7 +12,6 @@ import {
   SectionEnum
 } from "./application";
 import { FileUtils } from "./utils/serializers";
-import Finder from "fs-finder";
 
 /**
  * Empty git information
@@ -160,9 +160,8 @@ export class UnpackedApplication extends Application {
    * Load any imported webda.module.json
    */
   findModules(module: CachedModule): string[] {
-    
     // Modules should be cached on deploy
-    var files = [];
+    let files = [];
     let nodeModules = this.getAppPath("node_modules");
     if (fs.existsSync(nodeModules)) {
       files = Finder.from(nodeModules).findFiles("webda.module.json");

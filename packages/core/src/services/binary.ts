@@ -233,7 +233,7 @@ export class BinaryMap extends BinaryFile {
 
   constructor(service: Binary, obj: BinaryFileInfo) {
     super(obj);
-    for (var i in obj) {
+    for (let i in obj) {
       this[i] = obj[i];
     }
     this.__store = service;
@@ -437,8 +437,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       object: info,
       service: this
     });
-    var readStream: any = await this._get(info);
-    var writeStream = fs.createWriteStream(filename);
+    let readStream: any = await this._get(info);
+    let writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
       writeStream.on("finish", _src => {
         return resolve();
@@ -532,7 +532,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @param property
    */
   protected checkMap(name: string, property: string) {
-    var map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
+    let map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
     if (map === undefined) {
       throw Error("Unknown mapping");
     }
@@ -545,7 +545,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    */
   async uploadSuccess(object: CoreModel, property: string, file: BinaryFileInfo): Promise<void> {
-    var object_uid = object.getUuid();
+    let object_uid = object.getUuid();
     await this.emitSync("Binary.UploadSuccess", {
       object: file,
       service: this,
@@ -576,7 +576,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @returns
    */
   async deleteSuccess(object: CoreModel, property: string, index: number) {
-    var info: BinaryMap = object[property][index];
+    let info: BinaryMap = object[property][index];
     let update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
     await this.emitSync("Binary.Delete", {
       object: info,
@@ -765,14 +765,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   _verifyMapAndStore(ctx: Context): Store<CoreModel> {
     let store = ctx.parameter("store").toLowerCase();
     // To avoid any probleme lowercase everything
-    var map = this.parameters.map[this._lowercaseMaps[store]];
+    let map = this.parameters.map[this._lowercaseMaps[store]];
     if (map === undefined) {
       throw 404;
     }
     if (map.indexOf(ctx.parameter("property")) == -1) {
       throw 404;
     }
-    var targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(store);
+    let targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(store);
     if (targetStore === undefined) {
       throw 404;
     }
@@ -848,7 +848,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     // Now do the action
     if (ctx.getHttpContext().getMethod() === "GET") {
       // Most implementation override this to do a REDIRECT to a GET url
-      var file = object[property][index];
+      let file = object[property][index];
       ctx.writeHead(200, {
         "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
         "Content-Length": file.size

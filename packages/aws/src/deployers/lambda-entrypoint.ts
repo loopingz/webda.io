@@ -4,7 +4,7 @@ const aws = require("@webda/aws");
 import { Application } from "@webda/core";
 
 // Create thee LambdaServer
-var lambda = new aws.LambdaServer(new Application(process.cwd()));
+const lambda = new aws.LambdaServer(new Application(process.cwd()));
 
 // Export the handler
 exports.handler = async function (event, context) {

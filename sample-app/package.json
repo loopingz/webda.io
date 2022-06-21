@@ -1,6 +1,6 @@
 {
   "name": "@webda/sample-app",
-  "version": "2.0.0-beta.3",
+  "version": "2.0.0",
   "description": "Simple app used for deployment test",
   "keywords": [
     "aws",
@@ -26,8 +26,8 @@
     "@webda/aws": "link:../packages/aws/",
     "@webda/core": "link:../packages/core/",
     "@webda/shell": "link:../packages/shell/",
-    "@webda/workout": "link:../packages/workout/",
     "@webda/tsc-esm": "link:../packages/tsc-esm/",
+    "@webda/workout": "link:../packages/workout/",
     "deepmerge": "^4.2.2",
     "merge": "^2.1.1",
     "yaml": "^2.0.0"

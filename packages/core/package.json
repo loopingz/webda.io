@@ -1,6 +1,6 @@
 {
   "name": "@webda/core",
-  "version": "2.0.0-beta.3",
+  "version": "2.0.0",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
-    "@webda/workout": "^2.0.0-beta.3",
+    "@webda/workout": "^2.0.0",
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "ajv-formats": "^2.1.1",
@@ -58,7 +58,7 @@
     "@testdeck/mocha": "^0.2.0",
     "@types/node": "14.6.0",
     "@types/nodemailer": "^6.4.4",
-    "@webda/tsc-esm": "0.0.0",
+    "@webda/tsc-esm": "^1.0.0",
     "antlr4ts-cli": "^0.5.0-alpha.4",
     "axios": "^0.27.2",
     "c8": "^7.11.3",

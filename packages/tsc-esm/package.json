@@ -1,6 +1,6 @@
 {
   "name": "@webda/tsc-esm",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Compile with ES6 Module import correction",
   "keywords": [
     "webda"

@@ -274,8 +274,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    *
    * @param model
    */
-  protected async updateModel(model) {
-    await model.update({
+  protected async updateModel(model: CoreModel) {
+    await model.patch({
       [this.parameters.attribute]: model[this.parameters.attribute],
       [this.parameters.pendingAttribute]: model[this.parameters.pendingAttribute]
     });

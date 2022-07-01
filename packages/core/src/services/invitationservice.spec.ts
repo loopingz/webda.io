@@ -378,14 +378,14 @@ class InvitationTest extends WebdaTest {
         pending: true
       }
     ]);
-    await userCheck.update({
-      _companies: [
-        {
-          model: "Test"
-        },
-        ...userCheck["_companies"]
-      ]
-    });
+    userCheck["_companies"] = [
+      {
+        model: "Test"
+      },
+      ...userCheck["_companies"]
+    ];
+    // @ts-ignore
+    await userCheck.save("_companies");
 
     // Accepting the invite for user1
     let ctx2 = await this.newContext();

@@ -29,6 +29,10 @@ export interface Job {}
  */
 export default class AsyncAction extends CoreModel {
   /**
+   * Action uuid
+   */
+  public uuid: string;
+  /**
    * Current status
    */
   public status: "RUNNING" | "SUCCESS" | "ERROR" | "QUEUED" | "STARTING" | "TIMEOUT";

@@ -278,7 +278,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       JOB_HOOK: this.getWebda().getApiUrl(this.parameters.url), // How to find the absolute url
       JOB_ORCHESTRATOR: this.getName()
     };
-    await action.update({
+    await action.patch({
       job: await selectedRunner.launchAction(action, info)
     });
   }

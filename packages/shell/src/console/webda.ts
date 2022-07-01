@@ -503,9 +503,13 @@ export default class WebdaConsole {
     if (!(await this.app.generateModule())) {
       return -1;
     }
-    if (fs.existsSync(this.app.configurationFile)) {
-      // Generate config schema as well
-      this.app.getCompiler().generateConfigurationSchemas();
+    try {
+      if (fs.existsSync(this.app.configurationFile)) {
+        // Generate config schema as well
+        this.app.getCompiler().generateConfigurationSchemas();
+      }
+    } catch (err) {
+      this.log("ERROR", "Cannot generate configuration schema", err);
     }
   }
 

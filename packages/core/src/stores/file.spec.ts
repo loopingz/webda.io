@@ -92,7 +92,7 @@ class FileStoreTest extends StoreTest {
     existsSync(identStore.getParameters().folder);
 
     ident = new identStore._model();
-    identStore.initModel(ident);
+    identStore.newModel(ident);
     assert.notStrictEqual(ident.getUuid(), undefined);
 
     // Test guard-rails (seems hardly reachable so might be useless)
@@ -179,7 +179,8 @@ class FileStoreTest extends StoreTest {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
     let ident: CoreModel = await identStore.save({ uuid: "test" });
     await identStore._cacheStore.__clean();
-    await ident.update({ retest: true });
+    // @ts-ignore
+    await ident.patch({ retest: true });
   }
 
   @test

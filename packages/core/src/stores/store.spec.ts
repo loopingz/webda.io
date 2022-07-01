@@ -329,6 +329,10 @@ abstract class StoreTest extends WebdaTest {
       type: "google",
       _user: user.uuid
     });
+    // Ensure Date is returned
+    assert.ok(ident2._creationDate instanceof Date);
+    assert.ok(ident2._lastUpdate instanceof Date);
+
     // Add a second ident and check it is on the user aswell
     user = await userStore.get(user1);
     assert.strictEqual(user.idents.length, 2);
@@ -341,10 +345,14 @@ abstract class StoreTest extends WebdaTest {
 
     ident2.type = "google2";
     // Update ident2 to check mapper update
-    let res = await identStore.patch({
-      uuid: ident2.uuid,
-      type: "google2"
-    });
+    let res = await identStore.patch(
+      {
+        uuid: ident2.uuid,
+        type: "google2"
+      },
+      true,
+      null
+    );
     assert.strictEqual(res.type, "google2");
     assert.strictEqual(res._user, user1);
 
@@ -690,9 +698,8 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(model.status, "TESTED");
     await assert.rejects(() => store.setAttribute(uuidv4(), "counter", 4), StoreNotFoundError);
     store.on("Store.PatchUpdate", async () => {
-      model._lastUpdate = new Date();
+      model._lastUpdate = new Date(100);
       await store._update(model, model.getUuid());
-      await this.sleep(1);
     });
     await assert.rejects(() => store.setAttribute(model.getUuid(), "counter", 4), UpdateConditionFailError);
     store.removeAllListeners("Store.PatchUpdate");
@@ -804,9 +811,8 @@ abstract class StoreTest extends WebdaTest {
     let model = await store.save({ counter: 1 });
     let model2 = await store.get(model.getUuid());
     store.on("Store.Update", async () => {
-      model2._lastUpdate = new Date();
+      model2._lastUpdate = new Date(100);
       await store._update(model2, model2.getUuid());
-      await this.sleep(delay);
     });
     model.plop = "yop";
     // Delete with condition

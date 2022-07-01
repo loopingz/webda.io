@@ -2,6 +2,7 @@ import { DocumentReference, FieldValue, Firestore, OrderByDirection, Timestamp }
 import {
   CoreModel,
   DeepPartial,
+  JSONUtils,
   Store,
   StoreFindResult,
   StoreNotFoundError,
@@ -257,6 +258,49 @@ export default class FireStore<
     });
   }
 
+  storeDates(object: any) {
+    for (let i in Object.keys(object)) {
+      if (object[i] instanceof Date) {
+        object[i] = {
+          $timestamp: object[i].getTime(),
+          $type: "Date"
+        };
+      } else if (object[i] instanceof Object) {
+        object[i] = this.storeDates(object[i]);
+      }
+    }
+    return object;
+  }
+
+  readDates(object: any) {
+    for (let i in Object.keys(object)) {
+      if (object[i].$type === "Date" && object[i].$timestamp) {
+        object[i] = new Date(object[i].$timestamp);
+      } else if (object[i] instanceof Object) {
+        object[i] = this.storeDates(object[i]);
+      }
+    }
+    return object;
+  }
+  /**
+   * Recursively replace Timestamp by Date
+   * @param doc 
+   * @returns 
+   */
+  giveDatesBack(doc) {
+    if (doc instanceof Timestamp) {
+      return doc.toDate();
+    } else if (doc instanceof Object) {
+      let res = {};
+      Object.keys(doc).forEach(k => {
+        res[k] = this.giveDatesBack(doc[k]);
+      })
+      return res;
+    } else {
+      return doc;
+    }
+  }
+
   /**
    * @override
    */
@@ -268,7 +312,8 @@ export default class FireStore<
       }
       return undefined;
     }
-    return this.initModel(doc);
+
+    return this.initModel(this.giveDatesBack(doc));
   }
 
   /**
@@ -310,8 +355,11 @@ export default class FireStore<
     itemWriteConditionField?: string
   ) {
     let update = object;
-    if (object instanceof CoreModel) {
+    // Ensure we send pure prototype
+    if (object.toStoredJSON && typeof object.toStoredJSON === "function") {
       update = object.toStoredJSON();
+    } else {
+      update = JSONUtils.duplicate(object);
     }
     await this.firestore.runTransaction(async t => {
       const docRef = this.getDocumentRef(uid);

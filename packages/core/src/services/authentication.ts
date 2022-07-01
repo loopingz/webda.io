@@ -473,15 +473,15 @@ class Authentication<
     }
     if (profile.email && !ident) {
       // Save additional email
-      ident = this._identsStore.initModel({
+      ident = this._identsStore.newModel({
         uuid: `${profile.email}_email`,
         provider: "email"
       });
       ident.setUser(user.getUuid());
-      await ident.save();
+      await ident.save(true);
     }
     // Work directly on ident argument
-    ident = this._identsStore.initModel({
+    ident = this._identsStore.newModel({
       uuid: identId,
       profile,
       __tokens: tokens,
@@ -490,7 +490,7 @@ class Authentication<
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
     ident.setType(provider);
-    await ident.save();
+    await ident.save(true);
     ident.__new = true;
     await this.login(ctx, user, ident);
   }
@@ -508,7 +508,7 @@ class Authentication<
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
 
-  async registerUser(ctx: Context, data: any, identId: string, user: any = this._usersStore.initModel()): Promise<any> {
+  async registerUser(ctx: Context, data: any, identId: string, user: any = this._usersStore.newModel()): Promise<any> {
     user.email = data.email;
     user.locale = ctx.getLocale();
     await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
@@ -575,10 +575,14 @@ class Authentication<
     if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
       throw 429;
     }
-    await this._usersStore.patch({
-      _lastPasswordRecovery: Date.now(),
-      uuid: user.uuid
-    });
+    await this._usersStore.patch(
+      {
+        _lastPasswordRecovery: Date.now(),
+        uuid: user.uuid
+      },
+      true,
+      null
+    );
     await this.sendRecoveryEmail(ctx, user, email);
   }
 
@@ -653,10 +657,14 @@ class Authentication<
     }
     await this._verifyPassword(body.password, user);
     let password = this.hashPassword(body.password);
-    await this._usersStore.patch({
-      __password: password,
-      uuid: body.login.toLowerCase()
-    });
+    await this._usersStore.patch(
+      {
+        __password: password,
+        uuid: body.login.toLowerCase()
+      },
+      true,
+      null
+    );
     await this.emitSync("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
       user,
       password,
@@ -710,14 +718,14 @@ class Authentication<
     let ident = await this._identsStore.get(uuid);
     // Would mean the ident got delete in the mean time... hyper low likely hood
     if (ident === undefined) {
-      ident = this._identsStore.initModel({
+      ident = this._identsStore.newModel({
         uuid
       });
     }
     ident._type = "email";
     ident._validation = new Date();
     ident.setUser(ctx.parameter("user"));
-    await ident.save();
+    await ident.save(true);
     ctx.writeHead(302, {
       Location: this.parameters.successRedirect + "?validation=email",
       "X-Webda-Authentication": "success"
@@ -858,7 +866,7 @@ class Authentication<
       updates._failedLogin = 0;
       updates.uuid = ident.uuid;
 
-      await this._identsStore.patch(updates);
+      await this._identsStore.patch(updates, true, null);
       await this.login(ctx, ident.getUser(), ident);
       ctx.write(user);
     } else {
@@ -871,7 +879,7 @@ class Authentication<
       updates._lastFailedLogin = new Date();
       updates.uuid = ident.uuid;
       // Swalow exeception issue to double check !
-      await this._identsStore.patch(updates);
+      await this._identsStore.patch(updates, true, null);
       // Allows to auto redirect user to a oauth if needed
       if (!ctx.isEnded()) {
         throw 403;
@@ -950,7 +958,7 @@ class Authentication<
         context: ctx
       });
       user = await this._usersStore.save(user);
-      const newIdent: any = this._identsStore.initModel({
+      const newIdent: any = this._identsStore.newModel({
         uuid: uuid,
         _type: "email",
         email: email
@@ -961,7 +969,7 @@ class Authentication<
       } else if (!mailConfig.skipEmailValidation) {
         newIdent._lastValidationEmail = Date.now();
       }
-      ident = await newIdent.save();
+      ident = await newIdent.save(true);
       await this.login(ctx, user, ident);
       ctx.write(user);
       if (!validation && !mailConfig.skipEmailValidation) {

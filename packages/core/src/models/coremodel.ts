@@ -1,3 +1,4 @@
+import util from "util";
 import { v4 as uuidv4 } from "uuid";
 import { Core } from "../index";
 import { Service } from "../services/service";
@@ -130,7 +131,10 @@ class CoreModel {
    * @TJS-ignore
    */
   @NotEnumerable
-  __store: Store<CoreModel>;
+  __store: Store<this>;
+
+  @NotEnumerable
+  __dirty: Set<string | symbol> = new Set();
 
   /**
    * Creation date
@@ -151,6 +155,82 @@ class CoreModel {
   constructor() {
     this.__class = new.target;
   }
+
+  /**
+   * Return a proxy to the object to detect if dirty
+   * @returns
+   */
+  getProxy(): this {
+    const arrayProxier = prop => ({
+      deleteProperty: (t, property) => {
+        delete t[property];
+        this.__dirty.add(prop);
+        return true;
+      },
+      set: (t, property, value, receiver) => {
+        t[property] = value;
+        this.__dirty.add(prop);
+        return true;
+      }
+    });
+    const subProxier = prop => {
+      return {
+        set: (target: this, p: string | symbol, value) => {
+          this.__dirty.add(prop);
+          target[p] = value;
+          return true;
+        },
+        get: (target: this, p: string | symbol) => {
+          if (Array.isArray(target[p])) {
+            return new Proxy(target[p], arrayProxier(prop));
+          } else if (target[p] instanceof Object && target[p].prototype == Object.prototype) {
+            return new Proxy(target[p], subProxier(prop));
+          }
+          return target[p];
+        },
+        deleteProperty: (t, property) => {
+          delete t[property];
+          this.__dirty.add(prop);
+          return true;
+        }
+      };
+    };
+    const proxier = {
+      deleteProperty: (t, property) => {
+        delete t[property];
+        this.__dirty.add(property);
+        return true;
+      },
+      set: (target: this, p: string | symbol, value) => {
+        if (p !== "__dirty") {
+          target.__dirty.add(p);
+        }
+        target[p] = value;
+        return true;
+      },
+      get: (target: this, p: string | symbol) => {
+        if (typeof p === "string" && p.startsWith("__")) {
+          return target[p];
+        }
+        if (Array.isArray(target[p])) {
+          return new Proxy(target[p], arrayProxier(p));
+        } else if (typeof target[p] === "object" && target[p].constructor.prototype === Object.prototype) {
+          return new Proxy(target[p], subProxier(p));
+        }
+        return target[p];
+      }
+    };
+    return new Proxy(this, proxier);
+  }
+
+  /**
+   * Return true if needs a save
+   * @returns
+   */
+  isDirty(): boolean {
+    return this.__dirty.size > 0;
+  }
+
   /**
    *
    * @returns the uuid of the object
@@ -239,6 +319,17 @@ class CoreModel {
   }
 
   /**
+   * Detect what looks like a CoreModel but can be from different version
+   * @param object
+   * @returns
+   */
+  static instanceOf(object: any): boolean {
+    return (
+      typeof object.toStoredJSON === "function" && object.__class && object.__class.factory && object.__class.instanceOf
+    );
+  }
+
+  /**
    * Return if an object is attached to its store
    */
   isAttached(): boolean {
@@ -248,7 +339,7 @@ class CoreModel {
   /**
    * Attach an object to a store instance
    */
-  attach(store: Store<CoreModel>): this {
+  attach(store: Store<this>): this {
     this.__store = store;
     return this;
   }
@@ -277,7 +368,7 @@ class CoreModel {
     const [store, uuid] = fullUuid.split("$");
     let service = core.getService<Store<T>>(store);
     if (partials) {
-      return service.initModel(partials).setUuid(uuid);
+      return service.newModel(partials).setUuid(uuid);
     }
     return service.get(uuid);
   }
@@ -294,6 +385,12 @@ class CoreModel {
         continue;
       }
       this[prop] = raw[prop];
+    }
+    if (this._creationDate) {
+      this._creationDate = new Date(this._creationDate);
+    }
+    if (this._lastUpdate) {
+      this._lastUpdate = new Date(this._lastUpdate);
     }
     this.__type = this.__class.name;
 
@@ -323,7 +420,7 @@ class CoreModel {
   /**
    * Return the object registered store
    */
-  getStore() {
+  getStore(): Store<this> {
     return this.__store;
   }
 
@@ -338,13 +435,11 @@ class CoreModel {
     }
     let obj = await this.__store.get(this.getUuid());
     if (obj) {
-      for (let i in obj) {
-        this[i] = obj[i];
-      }
+      Object.assign(this, obj);
       for (let i in this) {
         // @ts-ignore
         if (obj[i] !== this[i]) {
-          this[i] = undefined;
+          delete this[i];
         }
       }
     }
@@ -364,29 +459,49 @@ class CoreModel {
   }
 
   /**
+   * Patch current object with this update
+   * @param obj
+   * @param conditionField
+   * @param conditionValue
+   */
+  async patch(obj: Partial<this>, conditionField?: string | null, conditionValue?: any) {
+    await this.__store.patch(
+      { [this.__class.getUuidField()]: this.getUuid(), ...obj },
+      true,
+      conditionField,
+      conditionValue
+    );
+    Object.assign(this, obj);
+  }
+
+  /**
    * Save this object
    *
    * @throws Error if the object is not coming from a store
    */
-  async save(): Promise<this> {
+  async save(full?: boolean | keyof this, ...args: (keyof this)[]): Promise<this> {
     if (!this.__store) {
       throw new CoreModelUnattachedError();
     }
-    Object.assign(this, await this.__store.save(this));
-    return this;
-  }
-
-  /**
-   * Update this object
-   *
-   * @throws Error if the object is not coming from a store
-   */
-  async update(changes): Promise<this> {
-    if (!this.__store) {
-      throw new CoreModelUnattachedError();
+    // If proxy is not used and not field specified call save
+    if ((!util.types.isProxy(this) && full === undefined) || full === true) {
+      await this.__store.save(this);
+      return this;
     }
-    changes[this.__class.getUuidField()] = this[this.__class.getUuidField()];
-    Object.assign(this, await this.__store.patch(changes));
+    const patch: any = {
+      [this.__class.getUuidField()]: this.getUuid()
+    };
+    if (typeof full === "string") {
+      [full, ...args].forEach(k => {
+        patch[k] = this[k];
+      });
+    } else {
+      for (let entry of this.__dirty.entries()) {
+        patch[entry[0]] = this[entry[0]];
+      }
+    }
+    await this.__store.patch(patch);
+    this.__dirty.clear();
     return this;
   }
 

@@ -19,7 +19,6 @@
     "package.json"
   ],
   "dependencies": {
-    "@types/node": "^16.4.14",
     "@webda/core": "^2.0.0",
     "axios": "^0.27.2"
   },

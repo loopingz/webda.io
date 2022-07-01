@@ -436,7 +436,7 @@ export type StoreEvents = {
  * Therefore they need to handle the cascadeDelete
  */
 export interface MappingService<T = any> {
-  initModel(object: any): T;
+  newModel(object: any): T;
 }
 
 /**
@@ -756,7 +756,7 @@ abstract class Store<
    * @param object
    * @returns
    */
-  initModel(object: any = {}): T {
+  protected initModel(object: any = {}): T {
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
       object = this._model.factory(this._model, object);
@@ -769,13 +769,24 @@ abstract class Store<
       object[this._reverseMap[i].property] ??= [];
       for (let j in object[this._reverseMap[i].property]) {
         // Use Partial
-        object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.initModel(
+        object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.newModel(
           object[this._reverseMap[i].property][j]
         );
         object[this._reverseMap[i].property][j].setContext(object.getContext());
       }
     }
     return object;
+  }
+
+  /**
+   * Get a new model with this data preloaded
+   * @param object
+   * @returns
+   */
+  newModel(object: any = {}) {
+    let result = this.initModel(object);
+    Object.keys(object).forEach(k => result.__dirty.add(k));
+    return result;
   }
 
   /**
@@ -1060,8 +1071,13 @@ abstract class Store<
    * @param reverseMap
    * @returns
    */
-  async patch(object: any, reverseMap = true): Promise<T | undefined> {
-    return this.update(object, reverseMap, true);
+  async patch(
+    object: Partial<T>,
+    reverseMap = true,
+    conditionField?: string | null,
+    conditionValue?: any
+  ): Promise<T | undefined> {
+    return this.update(object, reverseMap, true, conditionField, conditionValue);
   }
 
   /**
@@ -1073,7 +1089,8 @@ abstract class Store<
    */
   checkUpdateCondition(model: T, conditionField?: string, condition?: any, uid?: string) {
     if (conditionField) {
-      if (model[conditionField] !== condition) {
+      // Add toString to manage Date object
+      if (model[conditionField].toString() !== condition.toString()) {
         throw new UpdateConditionFailError(uid ? uid : model.getUuid(), conditionField, condition);
       }
     }
@@ -1169,7 +1186,13 @@ abstract class Store<
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(object: any, reverseMap = true, partial = false): Promise<T | undefined> {
+  async update(
+    object: any,
+    reverseMap = true,
+    partial = false,
+    conditionField?: string | null,
+    conditionValue?: any
+  ): Promise<T | undefined> {
     /** @ignore */
     let saved;
     let loaded;
@@ -1212,9 +1235,13 @@ abstract class Store<
 
     await loaded._onUpdate(object);
     let res: any;
+    if (conditionField !== null) {
+      conditionField ??= this._lastUpdateField;
+      conditionValue ??= load[conditionField];
+    }
     if (partial) {
       this.metrics.partialUpdate++;
-      await this._patch(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
+      await this._patch(object, object[this._uuidField], conditionValue, conditionField);
       await this._cacheStore?._patch(
         object,
         object[this._uuidField],
@@ -1229,7 +1256,7 @@ abstract class Store<
       }
       object = this.initModel(object);
       this.metrics.update++;
-      res = await this._update(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
+      res = await this._update(object, object[this._uuidField], conditionValue, conditionField);
       await this._cacheStore?._update(
         object,
         object[this._uuidField],

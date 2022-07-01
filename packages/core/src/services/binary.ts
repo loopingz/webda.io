@@ -505,7 +505,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @param obj
    * @returns
    */
-  initModel(obj: any): BinaryMap {
+  newModel(obj: any): BinaryMap {
     return new BinaryMap(this, obj);
   }
 

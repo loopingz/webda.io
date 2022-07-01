@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Store } from "../index";
+import { Ident, Store } from "../index";
 import { User } from "../models/user";
 import { WebdaTest } from "../test";
 import MapperService from "./mapper";
@@ -14,7 +14,7 @@ class MapperTest extends WebdaTest {
     await service.recompute();
     let identStore = this.getService<Store>("MemoryIdents");
     let ident = new identStore._model();
-    identStore.initModel(ident);
+    identStore.newModel(ident);
     assert.notStrictEqual(ident.getUuid(), undefined);
 
     // Test guard-rails (seems hardly reachable so might be useless)
@@ -57,7 +57,7 @@ class MapperTest extends WebdaTest {
       targetAttribute: "otherIdents",
       fields: ["email"]
     });
-    let identStore = this.getService<Store>("MemoryIdents");
+    let identStore = this.getService<Store<Ident>>("MemoryIdents");
     let userStore = this.getService<Store<User & { otherIdents: any[] }>>("MemoryUsers");
     this.registerService(mapper);
     mapper.resolve();
@@ -98,7 +98,7 @@ class MapperTest extends WebdaTest {
       ]
     );
     assert.deepStrictEqual(user3.otherIdents.length, 0);
-    await ident1.update({ email: "newtest@webda.io" });
+    await ident1.patch({ email: "newtest@webda.io" });
     await user1.refresh();
     await user2.refresh();
     await user3.refresh();
@@ -127,7 +127,9 @@ class MapperTest extends WebdaTest {
       ]
     );
     assert.deepStrictEqual(user3.otherIdents.length, 0);
-    await ident1.update({ test: generatorAttribute(["user1", "user3"]) });
+    ident1["test"] = generatorAttribute(["user1", "user3"]);
+    // @ts-ignore
+    await ident1.save("test");
     await user1.refresh();
     await user2.refresh();
     await user3.refresh();

@@ -11,24 +11,24 @@ export class User extends OwnerModel {
   /**
    * Password of the user if defined
    */
-  private __password?: string;
+  __password?: string;
   /**
    * Display name for this user
    * @optional
    */
-  protected displayName: string;
+  displayName: string;
   /**
    * Last time the password was recovered
    */
-  private _lastPasswordRecovery?: number = 0;
+  _lastPasswordRecovery?: number = 0;
   /**
    * Roles of the user
    */
-  private _roles: string[] = [];
+  _roles: string[] = [];
   /**
    * Groups for a user
    */
-  private _groups: string[] = [];
+  _groups: string[] = [];
   /**
    * Idents used by the user
    */
@@ -36,7 +36,7 @@ export class User extends OwnerModel {
   /**
    * Define the user avatar if exists
    */
-  private _avatar?: string;
+  _avatar?: string;
   /**
    * Contains the locale of the user if known
    */

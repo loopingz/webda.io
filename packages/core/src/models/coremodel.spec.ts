@@ -2,8 +2,8 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { CoreModel, Store } from "..";
-import { WebdaTest } from "../test";
 import { Task } from "../../test/models/task";
+import { WebdaTest } from "../test";
 
 @suite
 class CoreModelTest extends WebdaTest {
@@ -69,13 +69,19 @@ class CoreModelTest extends WebdaTest {
 
   @test async cov() {
     let task = new Task();
+    assert.ok(CoreModel.instanceOf(task));
     await assert.rejects(() => new CoreModel().canAct(undefined, "test"), /403/);
     assert.ok(!task.isAttached());
     const unattachedMsg = /No store linked to this object/;
     await assert.rejects(() => task.refresh(), unattachedMsg);
     await assert.rejects(() => task.save(), unattachedMsg);
     await assert.rejects(() => task.delete(), unattachedMsg);
-    await assert.rejects(() => task.update({ change: false }), unattachedMsg);
+    task.plop = 1;
+    assert.ok(!task.isDirty());
+    task = task.getProxy();
+    assert.ok(!task.isDirty());
+    task.plop = 2;
+    assert.ok(task.isDirty());
     assert.throws(() => task.getService("ResourceService"), unattachedMsg);
     let store = {
       getService: this.webda.getService.bind(this.webda),
@@ -96,7 +102,10 @@ class CoreModelTest extends WebdaTest {
       assert.strictEqual(task.bouzouf, "test");
       await task.delete();
       assert.strictEqual(deleteSpy.callCount, 1);
-      await task.update({ plop: "bouzouf" });
+      task.plop = "bouzouf";
+      assert.ok(task.isDirty());
+      await task.save();
+      assert.ok(!task.isDirty());
       assert.strictEqual(updateSpy.callCount, 1);
       assert.strictEqual(task.plop, "bouzouf");
     } finally {
@@ -132,5 +141,50 @@ class CoreModelTest extends WebdaTest {
     };
     await task.refresh();
     assert.strictEqual(task.plop, "bouzouf");
+  }
+
+  @test
+  async isDirty() {
+    let task = new Task().getProxy();
+    assert.ok(!task.isDirty());
+    task.plop = [];
+    // Adding a property
+    assert.ok(task.isDirty());
+    task.__dirty.clear();
+    // Array element
+    task.plop.push("plop");
+    assert.ok(task.isDirty());
+    task.__dirty.clear();
+    // Object element
+    task.plop2 = {
+      array: [],
+      test: true
+    };
+    assert.ok(task.isDirty());
+    task.__dirty.clear();
+    task.plop2.array.push("plop2");
+    assert.ok(task.isDirty());
+    task.__dirty.clear();
+    task.plop2.newProp = 1;
+    assert.ok(task.isDirty());
+    task.__dirty.clear();
+    delete task.plop2.newProp;
+    assert.ok(task.isDirty());
+    task.__dirty.clear();
+    task.plop2.array.push("plop5");
+    task.plop2.array.push("plop2");
+    task.__dirty.clear();
+    task.plop2.array.sort();
+    assert.ok(task.isDirty());
+    task.__dirty.clear();
+    delete task.plop2.array[1];
+    assert.ok(task.isDirty());
+    task.__store = {
+      patch: () => undefined
+    };
+    await task.save();
+    assert.ok(!task.isDirty());
+    delete task.plop2;
+    assert.ok(task.isDirty());
   }
 }

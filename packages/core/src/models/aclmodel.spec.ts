@@ -22,7 +22,7 @@ class AclPolicyTest {
     this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");
-    this.model = new AclModel();
+    this.model = new AclModel().getProxy();
     this._user = new User();
     this._user.uuid = "user-uid";
     this._user.addGroup("gip-123");
@@ -96,6 +96,7 @@ class AclPolicyTest {
     // @ts-ignore
     this.model.__store = {
       save: async () => this.model,
+      patch: async () => this.model,
       // @ts-ignore
       getService: () => {
         return {

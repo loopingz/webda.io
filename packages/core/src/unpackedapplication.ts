@@ -158,10 +158,17 @@ export class UnpackedApplication extends Application {
    * It will compile module
    * Generate the current module file
    * Load any imported webda.module.json
+   *
+   * Return current module as the first element
    */
   findModules(module: CachedModule): string[] {
     // Modules should be cached on deploy
     let files = [];
+    let currentModule = this.getAppPath("webda.module.json");
+    if (fs.existsSync(currentModule)) {
+      files.push(currentModule);
+    }
+
     let nodeModules = this.getAppPath("node_modules");
     if (fs.existsSync(nodeModules)) {
       files = Finder.from(nodeModules).findFiles("webda.module.json");
@@ -174,10 +181,7 @@ export class UnpackedApplication extends Application {
         files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
       }
     }
-    let currentModule = this.getAppPath("webda.module.json");
-    if (fs.existsSync(currentModule)) {
-      files.push(currentModule);
-    }
+
     // Ensure we are not adding many times the same modules
     return Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(f => this.filterModule(f));
   }
@@ -201,6 +205,10 @@ export class UnpackedApplication extends Application {
     Object.keys(SectionEnum)
       .filter(k => Number.isNaN(+k))
       .forEach(p => {
+        if (this.getAppPath("webda.module.json") !== moduleFile && SectionEnum[p] === "beans") {
+          delete module[SectionEnum[p]];
+          return;
+        }
         for (let key in module[SectionEnum[p]]) {
           module[SectionEnum[p]][key] = path.join(
             path.relative(this.getAppPath(), path.dirname(moduleFile)),
@@ -218,9 +226,21 @@ export class UnpackedApplication extends Application {
    */
   mergeModules(configuration: Configuration) {
     const module: CachedModule = configuration.cachedModules;
-    let files = new Set<string>(this.findModules(module).map(f => fs.realpathSync(f)));
-    let value = Array.from(files)
-      .map(f => this.loadWebdaModule(f))
+    let files = this.findModules(module);
+    let first = true;
+    let value = files
+      .map(f => {
+        let module = this.loadWebdaModule(f);
+        // We only take the Beans from current application
+        if (!first) {
+          this.log("INFO", "Delete beans from", f);
+          delete module.beans;
+        } else {
+          this.log("INFO", "Keep beans from", f);
+        }
+        first = false;
+        return module;
+      })
       .reduce((prev, val) => {
         return deepmerge(prev, val);
       }, module);

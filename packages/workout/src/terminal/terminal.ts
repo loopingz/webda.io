@@ -262,8 +262,7 @@ export class Terminal {
 
   stripColorString(str: string, limit: number = -1): string {
     let match;
-    let regexp =
-      /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
+    let regexp = /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
     let originalString = "";
     let fullString = "";
     let noMore = false;

@@ -508,6 +508,7 @@ export default class WebdaConsole {
         // Generate config schema as well
         this.app.getCompiler().generateConfigurationSchemas();
       }
+      /* c8 ignore next 3 */
     } catch (err) {
       this.log("ERROR", "Cannot generate configuration schema", err);
     }

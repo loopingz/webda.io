@@ -1,18 +1,19 @@
 import { suite, test } from "@testdeck/mocha";
-import { Store } from "@webda/core";
+import { CoreModel, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { ElasticSearchService } from "./elasticsearchservice";
 
+type TestCoreModel = CoreModel & { uuid: string; status: string };
 @suite
 class ElasticSearchTest extends WebdaTest {
   service: ElasticSearchService;
-  store: Store;
+  store: Store<TestCoreModel>;
 
   async before() {
     await super.before();
     this.service = this.getService<ElasticSearchService>("ESService");
-    this.store = this.getService<Store>("MemoryStore");
+    this.store = this.getService<Store<TestCoreModel>>("MemoryStore");
     try {
       await this.service.__clean();
     } catch (err) {

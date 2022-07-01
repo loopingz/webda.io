@@ -270,7 +270,7 @@ export default class ElasticSearchService<
       let hit = result.hits.hits[i];
       // Get the model from the Store linked to the index
       // Might want to replace null by undefined
-      objects.push(idx._store.initModel(hit._source));
+      objects.push(idx._store.newModel(hit._source));
     }
     return objects;
   }

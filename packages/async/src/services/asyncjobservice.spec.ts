@@ -395,7 +395,7 @@ class AsyncJobServiceTest extends WebdaTest {
       // Run without serviceName
       await this.store.patch({
         uuid: action.getUuid(),
-        status: "NONE",
+        status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();
@@ -413,7 +413,7 @@ class AsyncJobServiceTest extends WebdaTest {
       // Run with unknown service
       await this.store.patch({
         uuid: action.getUuid(),
-        status: "NONE",
+        status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();
@@ -432,7 +432,7 @@ class AsyncJobServiceTest extends WebdaTest {
       // Run with known service but incorrect method
       await this.store.patch({
         uuid: action.getUuid(),
-        status: "NONE",
+        status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();
@@ -454,7 +454,7 @@ class AsyncJobServiceTest extends WebdaTest {
       // Run with known service but incorrect method
       await this.store.patch({
         uuid: action.getUuid(),
-        status: "NONE",
+        status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();

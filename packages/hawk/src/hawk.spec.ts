@@ -24,7 +24,7 @@ class HawkServiceTest extends WebdaTest {
     assert.notStrictEqual(this.store, undefined);
     this.context = <Context>await this.newContext();
     this.context.getSession<UnknownSession>().userProfile = { login: "gabitbol" };
-    this.key = this.store.initModel({ __secret: "randomSecret", uuid: "mykey" });
+    this.key = this.store.newModel({ __secret: "randomSecret", uuid: "mykey" });
     await this.key.save();
     this.fakeCredentials = {
       id: "dh37fgj492je",

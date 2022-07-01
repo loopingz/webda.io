@@ -30,7 +30,6 @@
   "beans": {},
   "models": {
     "webda/aclmodel": "lib/models/aclmodel:default",
-    "webda/comment": "lib/models/comment:Comment",
     "webda/context": "lib/utils/context:Context",
     "webda/coremodel": "lib/models/coremodel:CoreModel",
     "webda/ident": "lib/models/ident:Ident",
@@ -1826,68 +1825,6 @@
         }
       },
       "title": "FileLogger"
-    },
-    "webda/comment": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "target": {
-          "$ref": "#/definitions/ModelParent%3Cclass-348499747-2598-11724-348499747-0-11748852964236%3E",
-          "description": "Can be linked to any object but cannot be a root object"
-        },
-        "author": {
-          "$ref": "#/definitions/ModelLink%3Cclass-src_models_user.ts-115-2686-src_models_user.ts-0-2687%3E",
-          "description": "User that posted the comment"
-        },
-        "title": {
-          "type": "string",
-          "description": "Title"
-        },
-        "description": {
-          "type": "string",
-          "description": "Comment content"
-        }
-      },
-      "required": [
-        "target",
-        "author",
-        "title",
-        "description"
-      ],
-      "description": "Generic comment class",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelParent<class-348499747-2598-11724-348499747-0-11748852964236>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-348499747-2598-11724-348499747-0-11748852964236%2Cany%3E",
-          "description": "Define the parent of the model"
-        },
-        "ModelLink<class-348499747-2598-11724-348499747-0-11748852964236,any>": {
-          "$ref": "#/definitions/ModelLinker%3Cclass-348499747-2598-11724-348499747-0-11748852964236%3E",
-          "description": "Define a link to 1:n relation"
-        },
-        "ModelLinker<class-348499747-2598-11724-348499747-0-11748852964236>": {
-          "type": "string"
-        },
-        "ModelLink<class-src_models_user.ts-115-2686-src_models_user.ts-0-2687>": {
-          "$ref": "#/definitions/ModelLinker%3Cclass-src_models_user.ts-115-2686-src_models_user.ts-0-2687%3E",
-          "description": "Define a link to 1:n relation"
-        },
-        "ModelLinker<class-src_models_user.ts-115-2686-src_models_user.ts-0-2687>": {
-          "type": "string"
-        }
-      },
-      "title": "Comment"
     }
   }
 }

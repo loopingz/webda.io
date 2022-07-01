@@ -164,10 +164,6 @@ export class DynamoDBTest extends StoreTest {
     // Run default query
     let store = await super.query();
     let res = await store.query('state = "CA" AND order < 100 ORDER BY team.id ASC, order DESC');
-    console.log(
-      "RES",
-      res.results.map(c => this.mapQueryModel(c))
-    );
     assert.strictEqual((<any>res.results.shift()).order, 96);
     let set = ["CA"];
     for (let i = 1; i < 150; i++) {

@@ -258,30 +258,6 @@ export default class FireStore<
     });
   }
 
-  storeDates(object: any) {
-    for (let i in Object.keys(object)) {
-      if (object[i] instanceof Date) {
-        object[i] = {
-          $timestamp: object[i].getTime(),
-          $type: "Date"
-        };
-      } else if (object[i] instanceof Object) {
-        object[i] = this.storeDates(object[i]);
-      }
-    }
-    return object;
-  }
-
-  readDates(object: any) {
-    for (let i in Object.keys(object)) {
-      if (object[i].$type === "Date" && object[i].$timestamp) {
-        object[i] = new Date(object[i].$timestamp);
-      } else if (object[i] instanceof Object) {
-        object[i] = this.storeDates(object[i]);
-      }
-    }
-    return object;
-  }
   /**
    * Recursively replace Timestamp by Date
    * @param doc 
@@ -290,6 +266,8 @@ export default class FireStore<
   giveDatesBack(doc) {
     if (doc instanceof Timestamp) {
       return doc.toDate();
+    } else if (Array.isArray(doc)) {
+      return doc.map(this.giveDatesBack, this);
     } else if (doc instanceof Object) {
       let res = {};
       Object.keys(doc).forEach(k => {
@@ -324,9 +302,10 @@ export default class FireStore<
     if (list) {
       res = (await this.firestore.collection(this.parameters.collection).where("uuid", "in", list).get()).docs;
     } else {
-      res = await this.firestore.collection(this.parameters.collection).listDocuments();
+      // Limit to 1M docs
+      res = (await this.firestore.collection(this.parameters.collection).limit(1000000).get()).docs;
     }
-    return res.map(this.initModel, this);
+    return res.map(doc => this.initModel(this.giveDatesBack(doc)));
   }
 
   /**
@@ -338,8 +317,11 @@ export default class FireStore<
 
   protected checkCondition(uid: string, data: any, field: string, condition: any): void {
     if (condition) {
-      let values = [data[field], condition].map(i => (i instanceof Timestamp ? i.toMillis() : i));
-      if (values[0] !== values[1]) {
+      let current = data[field] instanceof Timestamp ? data[field].toDate().toISOString() : data[field];
+      if (condition instanceof Date) {
+        condition = condition.toISOString();
+      }
+      if (current !== condition) {
         throw new UpdateConditionFailError(uid, field, condition);
       }
     }

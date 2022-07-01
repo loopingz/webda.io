@@ -129,7 +129,8 @@ export default class PostgresStore<
    * @override
    */
   getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string) {
-    return ` AND data->>'${itemWriteConditionField}'='${itemWriteCondition}'`;
+    let condition = itemWriteCondition instanceof Date ? itemWriteCondition.toISOString() : itemWriteCondition;
+    return ` AND data->>'${itemWriteConditionField}'='${condition}'`;
   }
 
   /**

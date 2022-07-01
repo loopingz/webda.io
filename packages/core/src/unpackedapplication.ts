@@ -158,8 +158,6 @@ export class UnpackedApplication extends Application {
    * It will compile module
    * Generate the current module file
    * Load any imported webda.module.json
-   *
-   * Return current module as the first element
    */
   findModules(module: CachedModule): string[] {
     // Modules should be cached on deploy
@@ -226,20 +224,16 @@ export class UnpackedApplication extends Application {
    */
   mergeModules(configuration: Configuration) {
     const module: CachedModule = configuration.cachedModules;
+    const appModule = this.getAppPath("webda.module.json");
     let files = this.findModules(module);
-    let first = true;
     let value = files
       .map(f => {
-        let module = this.loadWebdaModule(f);
+        let currentModule = this.loadWebdaModule(f);
         // We only take the Beans from current application
-        if (!first) {
-          this.log("INFO", "Delete beans from", f);
-          delete module.beans;
-        } else {
-          this.log("INFO", "Keep beans from", f);
+        if (appModule !== f) {
+          delete currentModule.beans;
         }
-        first = false;
-        return module;
+        return currentModule;
       })
       .reduce((prev, val) => {
         return deepmerge(prev, val);

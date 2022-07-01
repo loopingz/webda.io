@@ -831,11 +831,8 @@ abstract class Store<
     item: any,
     index: number = undefined,
     itemWriteCondition: any = undefined,
-    itemWriteConditionField: string = undefined
+    itemWriteConditionField: string = this._uuidField
   ) {
-    if (itemWriteConditionField === undefined) {
-      itemWriteConditionField = this._uuidField;
-    }
     let updateDate = new Date();
     this.metrics.collectionUpsert++;
     await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);

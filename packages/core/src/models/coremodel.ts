@@ -161,18 +161,6 @@ class CoreModel {
    * @returns
    */
   getProxy(): this {
-    const arrayProxier = prop => ({
-      deleteProperty: (t, property) => {
-        delete t[property];
-        this.__dirty.add(prop);
-        return true;
-      },
-      set: (t, property, value, receiver) => {
-        t[property] = value;
-        this.__dirty.add(prop);
-        return true;
-      }
-    });
     const subProxier = prop => {
       return {
         set: (target: this, p: string | symbol, value) => {
@@ -181,9 +169,7 @@ class CoreModel {
           return true;
         },
         get: (target: this, p: string | symbol) => {
-          if (Array.isArray(target[p])) {
-            return new Proxy(target[p], arrayProxier(prop));
-          } else if (target[p] instanceof Object && target[p].prototype == Object.prototype) {
+          if (Array.isArray(target[p]) || (target[p] instanceof Object && target[p].prototype == Object.prototype)) {
             return new Proxy(target[p], subProxier(prop));
           }
           return target[p];
@@ -212,9 +198,10 @@ class CoreModel {
         if (typeof p === "string" && p.startsWith("__")) {
           return target[p];
         }
-        if (Array.isArray(target[p])) {
-          return new Proxy(target[p], arrayProxier(p));
-        } else if (typeof target[p] === "object" && target[p].constructor.prototype === Object.prototype) {
+        if (
+          Array.isArray(target[p]) ||
+          (typeof target[p] === "object" && target[p].constructor.prototype === Object.prototype)
+        ) {
           return new Proxy(target[p], subProxier(p));
         }
         return target[p];

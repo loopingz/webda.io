@@ -288,7 +288,6 @@ export default class LambdaServer extends Webda {
   async handleLambdaReturn(context: Context) {
     await this.emitSync("Webda.Result", { context });
     await context.end();
-    // TODO Clean to use ...this._result
     return this._result;
   }
 }

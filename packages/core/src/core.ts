@@ -392,7 +392,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected async initService(service: string) {
     try {
-      // TODO Define parralel initialization
       this.log("TRACE", "Initializing service", service);
       this.services[service]._initTime = Date.now();
       await this.services[service].init();

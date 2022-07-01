@@ -135,7 +135,7 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
         error: "",
         output: ""
       };
-      var ls = spawn(command, { shell: true });
+      const ls = spawn(command, { shell: true });
 
       ls.stdout.on("data", data => {
         this.logger.log(logLevel, data.toString());

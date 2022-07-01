@@ -179,7 +179,7 @@ export class Terminal {
   }
 
   close(): void {
-    clearInterval(<NodeJS.Timeout>this._refresh);
+    clearInterval(this._refresh);
     this.resetTerm();
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(false);
@@ -212,7 +212,7 @@ export class Terminal {
         this.handleTitleMessage(msg);
         break;
       case "input.request":
-        this.inputs.push(<WorkerInput>msg.input);
+        this.inputs.push(msg.input);
         this.displayScreen();
         break;
       case "input.received":

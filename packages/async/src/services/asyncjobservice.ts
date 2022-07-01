@@ -378,7 +378,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       await axios.post(
         jobInfo.JOB_HOOK,
         {
-          errorMessage: <string | undefined>(<any>err)?.message,
+          errorMessage: <string | undefined>err?.message,
           status: "ERROR"
         },
         {

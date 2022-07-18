@@ -176,7 +176,7 @@ export default class FireStore<
 
     const res = await query.limit(parsedQuery.limit || 0).get();
     return {
-      results: res.docs.map(d => this.initModel(d.data())),
+      results: res.docs.map(d => this.initModel(this.giveDatesBack(d.data()))),
       filter: filter.children.length ? filter : true,
       continuationToken: res.docs.length >= parsedQuery.limit ? (offset + parsedQuery.limit).toString() : undefined,
     };

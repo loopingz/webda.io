@@ -499,15 +499,25 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param schema path to use
    * @param object to validate
    */
-  validateSchema(webdaObject: CoreModel | string, object: any): NoSchemaResult | SchemaValidResult {
+  validateSchema(
+    webdaObject: CoreModel | string,
+    object: any,
+    ignoreRequired?: boolean
+  ): NoSchemaResult | SchemaValidResult {
     let name =
       typeof webdaObject === "string"
         ? webdaObject
         : this.application.getFullNameFromPrototype(Object.getPrototypeOf(webdaObject));
+    if (ignoreRequired) {
+      name += "_noRequired";
+    }
     if (!this._ajvSchemas[name]) {
       let schema = this.application.getSchema(name);
       if (!schema) {
         return null;
+      }
+      if (ignoreRequired) {
+        schema.required = [];
       }
       this.log("TRACE", "Add schema for", name);
       this._ajv.addSchema(schema, name);

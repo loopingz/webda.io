@@ -497,7 +497,7 @@ export class Compiler {
           !sourceFile.fileName.endsWith(".spec.ts")
         ) {
           const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
-          for (let node of tsquery(sourceFile, "ClassDeclaration")) {
+          for (let node of tsquery(sourceFile, "ClassDeclaration, InterfaceDeclaration")) {
             let clazz: ts.ClassDeclaration = <any>node;
             let tags = {};
             ts.getAllJSDocTags(clazz, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
@@ -514,7 +514,8 @@ export class Compiler {
             if (
               Object.keys(tags).includes("WebdaModel") ||
               Object.keys(tags).includes("WebdaModda") ||
-              Object.keys(tags).includes("WebdaDeployer")
+              Object.keys(tags).includes("WebdaDeployer") ||
+              Object.keys(tags).includes("WebdaSchema")
             ) {
               let exportName = this.getExportedName(clazz);
               if (!exportName) {
@@ -527,8 +528,14 @@ export class Compiler {
               const jsFile = `${importTarget}:${exportName}`;
               let section: Section;
               let schemaNode: ts.Node;
+              let name: string;
+              let originName: string;
               const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
-              if (tags["WebdaModel"]) {
+              if (tags["WebdaSchema"]) {
+                schemaNode = clazz;
+                originName = tags["WebdaSchema"];
+                name = this.app.completeNamespace(originName);
+              } else if (tags["WebdaModel"]) {
                 section = "models";
                 // We do not generate schema for technical model like Context or SessionCookie
                 if (this.extends(classTree, "@webda/core", "CoreModel")) {
@@ -555,39 +562,40 @@ export class Compiler {
                 }
                 schemaNode = this.getSchemaNode(classTree, "DeployerResources");
               }
+              // Add to a section and guess name
               if (section) {
-                let originName =
+                originName =
                   tags[`Webda${section.substring(0, 1).toUpperCase()}${section.substring(1, section.length - 1)}`];
-                let name = this.app.completeNamespace(originName);
+                name = this.app.completeNamespace(originName);
                 moduleInfo[section][name] = jsFile;
-                if (!moduleInfo.schemas[name] && schemaNode) {
-                  try {
-                    let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
-                    let definitionName = schema.$ref.split("/").pop();
-                    moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
-                    moduleInfo.schemas[name].$schema = schema.$schema;
-                    // Should avoid hard-coding by adding a SchemaTypeOverride JSDocs tag
-                    if (section === "beans" || section === "moddas") {
-                      moduleInfo.schemas[name].properties["openapi"] = {
-                        type: "object",
-                        additionalProperties: true
-                      };
-                    }
-                    // Copy sub definition if needed
-                    if (Object.keys(schema.definitions).length > 1) {
-                      moduleInfo.schemas[name].definitions = schema.definitions;
-                      // Avoid cycle ref
-                      delete moduleInfo.schemas[name].definitions[definitionName];
-                    }
-                    moduleInfo.schemas[name].title = originName.split("/").pop();
-                    if (section === "models" && tags["SchemaAdditionalProperties"]) {
-                      moduleInfo.schemas[name].additionalProperties = {
-                        description: tags["SchemaAdditionalProperties"]
-                      };
-                    }
-                  } catch (err) {
-                    this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
+              }
+              if (!moduleInfo.schemas[name] && schemaNode) {
+                try {
+                  let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
+                  let definitionName = schema.$ref.split("/").pop();
+                  moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
+                  moduleInfo.schemas[name].$schema = schema.$schema;
+                  // Should avoid hard-coding by adding a SchemaTypeOverride JSDocs tag
+                  if (section === "beans" || section === "moddas") {
+                    moduleInfo.schemas[name].properties["openapi"] = {
+                      type: "object",
+                      additionalProperties: true
+                    };
                   }
+                  // Copy sub definition if needed
+                  if (Object.keys(schema.definitions).length > 1) {
+                    moduleInfo.schemas[name].definitions = schema.definitions;
+                    // Avoid cycle ref
+                    delete moduleInfo.schemas[name].definitions[definitionName];
+                  }
+                  moduleInfo.schemas[name].title = originName.split("/").pop();
+                  if ((section === "models" || tags["WebdaSchema"]) && tags["SchemaAdditionalProperties"]) {
+                    moduleInfo.schemas[name].additionalProperties = {
+                      description: tags["SchemaAdditionalProperties"]
+                    };
+                  }
+                } catch (err) {
+                  this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
                 }
               }
             }
@@ -627,6 +635,7 @@ export class Compiler {
           };
 
           tsquery(sourceFile, "Decorator [name=Bean]").forEach(beanExplorer);
+          //tsquery(sourceFile, "Decorator [name=Operation]").forEach(operationExplorer);
         }
       }
     });

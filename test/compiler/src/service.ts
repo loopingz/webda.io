@@ -47,3 +47,46 @@ class GoodBeanParameters extends ServiceParameters {
 export class GoodBean extends Service<GoodBeanParameters> {}
 
 export { LaterExportService };
+
+/**
+ * @WebdaSchema
+ */
+export interface SchemaTest {
+  /**
+   * Contact firstname
+   */
+  firstName: string;
+  /**
+   * Contact lastname
+   */
+  lastName: string;
+  /**
+   * Contact type
+   */
+  type: "PERSONAL" | "PROFESSIONAL";
+}
+
+/**
+ * @WebdaSchema AnotherSchema
+ * @SchemaAdditionalProperties You can add more properties
+ */
+export class SchemaTest2 {
+  /**
+   * Contact firstname
+   */
+  firstName: string;
+  /**
+   * Contact lastname
+   */
+  lastName: string;
+  /**
+   * Contact type
+   */
+  type: "PERSONAL" | "PROFESSIONAL";
+  /**
+   * Contact age
+   *
+   * @minimum 0
+   */
+  age: number;
+}

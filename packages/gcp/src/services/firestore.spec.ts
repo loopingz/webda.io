@@ -61,8 +61,8 @@ class FireStoreTest extends StoreTest {
       collection: "webda-query",
       compoundIndexes: [{ state: "asc", "team.id": "asc" }],
       expose: {
-        url: "/query",
-      },
+        url: "/query"
+      }
     });
     store.resolve();
     await store.init();
@@ -97,18 +97,18 @@ class FireStoreTest extends StoreTest {
     let items = ["CA", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
     res = await store.find({
       filter: new WebdaQL.QueryValidator(`state IN [${items.map(i => `"${i}"`).join(",")}]`).getExpression(),
-      limit: 1000,
+      limit: 1000
     });
     // Should be post filtered
     assert.strictEqual(res.results.length, 1000);
     res = await store.find({
       filter: new WebdaQL.QueryValidator(`state IN ["CA", "OR"] AND team.id IN [4,8]`).getExpression(),
-      limit: 1000,
+      limit: 1000
     });
     assert.strictEqual(res.results.length, 500);
     res = await store.find({
       filter: new WebdaQL.QueryValidator(`team.id < 5 AND state > "CA"`).getExpression(),
-      limit: 1000,
+      limit: 1000
     });
     assert.strictEqual(res.results.length, 250);
     return store;
@@ -175,7 +175,7 @@ class FireStoreTest extends StoreTest {
   async deleteCondition() {
     let idents = this.getIdentStore();
     let obj = await idents.save({
-      plop: 3,
+      plop: 3
     });
     await assert.rejects(() => idents._delete(obj.getUuid(), 2, "plop"), /UpdateCondition not met/);
     await idents._delete(obj.getUuid(), 3, "plop");

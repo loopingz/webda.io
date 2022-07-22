@@ -1,12 +1,12 @@
 import { Storage as GCS } from "@google-cloud/storage";
 import { suite, test } from "@testdeck/mocha";
+import { getCommonJS } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
 import { Storage } from "./storage";
-import { getCommonJS } from "@webda/core";
-const { __dirname } = getCommonJS(import.meta.url)
+const { __dirname } = getCommonJS(import.meta.url);
 class MockFile {
   constructor(path) {}
   async delete() {}
@@ -66,7 +66,7 @@ class StorageTest extends BinaryTest<Storage> {
   async cleanData() {
     var storage = new GCS();
     const [files] = await storage.bucket(BUCKET).getFiles({
-      prefix: this.prefix,
+      prefix: this.prefix
     });
     for (let file of files) {
       await file.delete();

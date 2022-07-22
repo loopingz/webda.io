@@ -75,8 +75,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
         this.parameters.subscription
       }:acknowledge`,
       body: JSON.stringify({
-        ackIds: [id],
-      }),
+        ackIds: [id]
+      })
     });
     this.messages[id].ack();
     delete this.messages[id];
@@ -101,8 +101,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
     let msgHandler;
     const subscription = this.pubsub.subscription(this.parameters.subscription, {
       flowControl: {
-        maxMessages: 1,
-      },
+        maxMessages: 1
+      }
     });
     try {
       return await new Promise<MessageReceipt<L>[]>((resolve, reject) => {
@@ -117,8 +117,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
           resolve([
             {
               Message: this.unserialize(message.data.toString(), proto),
-              ReceiptHandle: message.ackId,
-            },
+              ReceiptHandle: message.ackId
+            }
           ]);
         };
         subscription.on("error", errorHandler);
@@ -141,8 +141,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
   consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
     const subscription = this.pubsub.subscription(this.parameters.subscription, {
       flowControl: {
-        maxMessages: this.getMaxConsumers(),
-      },
+        maxMessages: this.getMaxConsumers()
+      }
     });
     return new CancelablePromise(
       async () => {

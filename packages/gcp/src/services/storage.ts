@@ -1,11 +1,20 @@
 "use strict";
 import { Bucket, GetSignedUrlConfig, Storage as GCS } from "@google-cloud/storage";
-import { BinaryFile, BinaryMap, BinaryParameters, CloudBinary, Context, CoreModel, DeepPartial, getCommonJS } from "@webda/core";
+import {
+  BinaryFile,
+  BinaryMap,
+  BinaryParameters,
+  CloudBinary,
+  Context,
+  CoreModel,
+  DeepPartial,
+  getCommonJS
+} from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream } from "stream";
 
-const { __dirname } = getCommonJS(import.meta.url)
+const { __dirname } = getCommonJS(import.meta.url);
 export type StorageObject = {
   key: string;
 
@@ -125,7 +134,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       stream
         .pipe(
           file.createWriteStream({
-            contentType,
+            contentType
           })
         )
         .on("error", reject)
@@ -159,7 +168,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   async getUsageCount(hash: string): Promise<number> {
     const [files] = await this.getStorageBucket().getFiles({
-      prefix: this._getKey(hash, ""),
+      prefix: this._getKey(hash, "")
     });
     return files.filter(n => !n.name.endsWith("/data")).length;
   }
@@ -176,7 +185,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     if (!exists) {
       await this.putObject(this._getKey(file.hash), await file.get(), {
         ...file.metadata,
-        challenge: file.challenge,
+        challenge: file.challenge
       });
     }
     await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
@@ -215,7 +224,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     const options: GetSignedUrlConfig = {
       version: "v4",
       action,
-      expires: Date.now() + expires * 1000,
+      expires: Date.now() + expires * 1000
     };
     const [url] = await this.getStorageBucket(bucket).file(key).getSignedUrl(options);
     this._webda.log("TRACE", `The signed url for ${bucket}/${key} is ${url}.`);
@@ -249,7 +258,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     const [metadata] = await this.getStorageBucket(bucket).file(key).getMetadata();
     return {
       size: parseInt(metadata.size),
-      contentType: metadata.contentType,
+      contentType: metadata.contentType
     };
   }
 
@@ -261,8 +270,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       .file(this._getKey(hash, uuid))
       .save("", {
         metadata: {
-          webdaStore: storeName,
-        },
+          webdaStore: storeName
+        }
       });
   }
 }

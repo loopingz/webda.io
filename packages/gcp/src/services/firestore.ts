@@ -8,7 +8,7 @@ import {
   StoreNotFoundError,
   StoreParameters,
   UpdateConditionFailError,
-  WebdaQL,
+  WebdaQL
 } from "@webda/core";
 
 /**
@@ -178,7 +178,7 @@ export default class FireStore<
     return {
       results: res.docs.map(d => this.initModel(this.giveDatesBack(d.data()))),
       filter: filter.children.length ? filter : true,
-      continuationToken: res.docs.length >= parsedQuery.limit ? (offset + parsedQuery.limit).toString() : undefined,
+      continuationToken: res.docs.length >= parsedQuery.limit ? (offset + parsedQuery.limit).toString() : undefined
     };
   }
 
@@ -260,8 +260,8 @@ export default class FireStore<
 
   /**
    * Recursively replace Timestamp by Date
-   * @param doc 
-   * @returns 
+   * @param doc
+   * @returns
    */
   giveDatesBack(doc) {
     if (doc instanceof Timestamp) {
@@ -272,7 +272,7 @@ export default class FireStore<
       let res = {};
       Object.keys(doc).forEach(k => {
         res[k] = this.giveDatesBack(doc[k]);
-      })
+      });
       return res;
     } else {
       return doc;
@@ -351,7 +351,7 @@ export default class FireStore<
       }
       this.checkCondition(uid, doc.data(), itemWriteConditionField, itemWriteCondition);
       t.set(docRef, update, {
-        merge,
+        merge
       });
     });
   }
@@ -380,7 +380,7 @@ export default class FireStore<
       }
       this.checkCondition(uuid, doc.data(), itemWriteConditionField, itemWriteCondition);
       t.update(docRef, {
-        [attribute]: FieldValue.delete(),
+        [attribute]: FieldValue.delete()
       });
     });
   }
@@ -400,7 +400,7 @@ export default class FireStore<
     try {
       await this.getDocumentRef(uid).update({
         [prop]: FieldValue.increment(value),
-        [this._lastUpdateField]: updateDate,
+        [this._lastUpdateField]: updateDate
       });
     } catch (err) {
       if (err.code === 5) {
@@ -434,13 +434,13 @@ export default class FireStore<
         data[prop][index] = item;
         t.update(docRef, {
           [prop]: data[prop],
-          [this._lastUpdateField]: updateDate,
+          [this._lastUpdateField]: updateDate
         });
       });
     } else {
       try {
         await this.getDocumentRef(uid).update({
-          [prop]: FieldValue.arrayUnion(item),
+          [prop]: FieldValue.arrayUnion(item)
         });
       } catch (err) {
         if (err.code === 5) {
@@ -473,7 +473,7 @@ export default class FireStore<
       // Get item from doc?
       t.update(docRef, {
         [prop]: FieldValue.arrayRemove(data[prop][index]),
-        [this._lastUpdateField]: updateDate,
+        [this._lastUpdateField]: updateDate
       });
     });
   }

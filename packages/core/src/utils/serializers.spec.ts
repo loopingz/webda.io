@@ -2,8 +2,8 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { readFileSync } from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { FileUtils, JSONUtils, YAMLUtils } from "./serializers";
-import {fileURLToPath} from 'url';
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../../test/jsonutils/";
 @suite

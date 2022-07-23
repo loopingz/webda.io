@@ -378,6 +378,8 @@ class CoreTest extends WebdaTest {
   @test
   covValidateSchema() {
     assert.strictEqual(this.webda.validateSchema("test", {}), null);
+    assert.strictEqual(this.webda.validateSchema("test", {}, true), null);
+    assert.strictEqual(this.webda.validateSchema("webda/fileconfiguration", {}, true), true);
   }
 
   @test

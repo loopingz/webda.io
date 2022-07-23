@@ -508,10 +508,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       typeof webdaObject === "string"
         ? webdaObject
         : this.application.getFullNameFromPrototype(Object.getPrototypeOf(webdaObject));
+    let cacheName = name;
     if (ignoreRequired) {
-      name += "_noRequired";
+      cacheName += "_noRequired";
     }
-    if (!this._ajvSchemas[name]) {
+    if (!this._ajvSchemas[cacheName]) {
       let schema = this.application.getSchema(name);
       if (!schema) {
         return null;
@@ -520,10 +521,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         schema.required = [];
       }
       this.log("TRACE", "Add schema for", name);
-      this._ajv.addSchema(schema, name);
-      this._ajvSchemas[name] = true;
+      this._ajv.addSchema(schema, cacheName);
+      this._ajvSchemas[cacheName] = true;
     }
-    if (this._ajv.validate(name, object)) {
+    if (this._ajv.validate(cacheName, object)) {
       return true;
     }
     throw new ValidationError(this._ajv.errors);

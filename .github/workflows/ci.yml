@@ -86,7 +86,7 @@ jobs:
           postgresql init scripts: packages/postgres/test/sql
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --ignore-engines
 
       - name: Build project
         run: yarn run build

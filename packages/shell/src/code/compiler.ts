@@ -635,7 +635,6 @@ export class Compiler {
           };
 
           tsquery(sourceFile, "Decorator [name=Bean]").forEach(beanExplorer);
-          //tsquery(sourceFile, "Decorator [name=Operation]").forEach(operationExplorer);
         }
       }
     });

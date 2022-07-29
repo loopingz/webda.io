@@ -1687,7 +1687,7 @@ abstract class Store<
     put: {
       description: "Update a ${modelName} if the permissions allow",
       summary: "Update a ${modelName}",
-      operationId: "updatet${modelName}",
+      operationId: "update${modelName}",
       schemas: {
         input: "${modelName}",
         output: "${modelName}"

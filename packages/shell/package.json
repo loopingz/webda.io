@@ -15,7 +15,8 @@
     "webda": "./lib/bin/webda.js"
   },
   "files": [
-    "lib"
+    "lib",
+    "webda.module.json"
   ],
   "scripts": {
     "build": "tsc-esm",

@@ -169,7 +169,7 @@ export class UnpackedApplication extends Application {
 
     let nodeModules = this.getAppPath("node_modules");
     if (fs.existsSync(nodeModules)) {
-      files = Finder.from(nodeModules).findFiles("webda.module.json");
+      files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
     }
 
     // Search workspace for webda.module.json
@@ -231,7 +231,10 @@ export class UnpackedApplication extends Application {
         let currentModule = this.loadWebdaModule(f);
         // We only take the Beans from current application
         if (appModule !== f) {
+          this.log("DEBUG", `Load module without beans '${f}'`);
           delete currentModule.beans;
+        } else {
+          this.log("DEBUG", `Load module with beans '${f}'`);
         }
         return currentModule;
       })

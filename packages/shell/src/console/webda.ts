@@ -307,7 +307,10 @@ export default class WebdaConsole {
    */
   static async config(argv: yargs.Arguments): Promise<number> {
     if (argv.deployment) {
-      let json = JSON.stringify(this.app.getConfiguration(<string>argv.deployment), null, " ");
+      const config = this.app.getConfiguration(<string>argv.deployment);
+      // Remove deployers as they should be used on deployed app
+      config.cachedModules.deployers = {};
+      let json = JSON.stringify(config, null, " ");
       if (argv.exportFile) {
         fs.writeFileSync(<string>argv.exportFile, json);
       } else {

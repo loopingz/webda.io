@@ -257,7 +257,7 @@ const LAMBDA_LATEST_VERSION = "nodejs14.x";
 /**
  * Deploy the application and its resources using AWS CloudFormation
  *
- * @WebdaDeployer
+ * @WebdaDeployer WebdaAWSDeployer/CloudFormation
  */
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
   template: any = {};

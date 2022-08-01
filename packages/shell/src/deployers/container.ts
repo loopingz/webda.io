@@ -76,7 +76,7 @@ export interface ContainerResources extends DeployerResources {
 }
 
 /**
- * @WebdaDeployer
+ * @WebdaDeployer WebdaDeployer/Container
  */
 export class Container<T extends ContainerResources> extends Deployer<T> {
   _copied: boolean = false;

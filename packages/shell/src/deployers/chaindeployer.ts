@@ -10,7 +10,7 @@ export interface ChainDeployerResources extends DeployerResources {
 /**
  * Run a list of Deployer
  *
- * @WebdaDeployer
+ * @WebdaDeployer WebdaDeployer/ChainDeployer
  */
 export default class ChainDeployer extends Deployer<ChainDeployerResources> {
   /**

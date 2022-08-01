@@ -27,7 +27,7 @@ export interface PackagerResources extends DeployerResources {
  *
  * @param zipPath path to store the package
  * @param entrypoint file to integrate as entrypoint.js
- * @WebdaDeployer
+ * @WebdaDeployer WebdaDeployer/Packager
  */
 export default class Packager<T extends PackagerResources> extends Deployer<T> {
   packagesGenerated: { [key: string]: boolean } = {};

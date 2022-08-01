@@ -20,7 +20,7 @@ export interface LambdaPackagerResources extends PackagerResources {
  *
  * It uses the normmal Packager and just add the default entrypoint
  * And the exclusion of aws-sdk by default
- * @WebdaDeployer
+ * @WebdaDeployer WebdaAWSDeployer/LambdaPackager
  */
 export default class LambdaPackager extends Packager<LambdaPackagerResources> {
   /**

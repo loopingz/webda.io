@@ -34,7 +34,7 @@
   "units": [
     {
       "name": "Packager",
-      "type": "Webda/Packager",
+      "type": "WebdaDeployer/Packager",
       "zipPath": "dist/plop.zip"
     },
     {

@@ -27,7 +27,7 @@
   "units": [
     {
       "name": "WebdaSampleApplication",
-      "type": "webda/cloudformationdeployer",
+      "type": "webdaawsdeployer/cloudformation",
 
       "AssetsBucket": "webda-sample-app-artifacts",
       "FargateCluster": "webda-demo",

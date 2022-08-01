@@ -6,7 +6,7 @@ export interface ShellDeployerResources extends DeployerResources {
 }
 
 /**
- * @WebdaDeployer
+ * @WebdaDeployer WebdaDeployer/ShellDeployer
  */
 export default class ShellDeployer extends Deployer<ShellDeployerResources> {
   async deploy() {

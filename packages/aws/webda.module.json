@@ -10,11 +10,11 @@
   "beans": {},
   "models": {},
   "deployers": {
-    "webda/cloudformationdeployer": "lib/deployers/cloudformation:default",
-    "webda/lambdapackager": "lib/deployers/lambdapackager:default"
+    "webdaawsdeployer/cloudformation": "lib/deployers/cloudformation:default",
+    "webdaawsdeployer/lambdapackager": "lib/deployers/lambdapackager:default"
   },
   "schemas": {
-    "webda/lambdapackager": {
+    "webdaawsdeployer/lambdapackager": {
       "type": "object",
       "properties": {
         "name": {
@@ -25,9 +25,9 @@
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CloudFormationDeployer"
+      "title": "CloudFormation"
     },
-    "webda/cloudformationdeployer": {
+    "webdaawsdeployer/cloudformation": {
       "type": "object",
       "properties": {
         "name": {
@@ -38,7 +38,7 @@
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CloudFormationDeployer"
+      "title": "CloudFormation"
     },
     "webda/cloudwatchlogger": {
       "type": "object",

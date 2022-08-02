@@ -57,6 +57,7 @@ class WebdaConfigurationServerTest {
     let cfg = FileUtils.load(WebdaSampleApplication.configurationFile);
     delete res.cachedModules;
     cfg.parameters = {
+      configurationService: "test",
       sessionSecret: "PLOP",
       import1: true,
       import2: true,

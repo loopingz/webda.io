@@ -89,7 +89,7 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
     let tag = JSONUtils.loadFile("package.json").version;
     assert.strictEqual(
       this.deployer.getDockerfileWebdaShell(),
-      `# Install current @webda/shell version\nRUN yarn global add @webda/shell@${tag}\n\n`
+      `# Install current @webda/shell version\nRUN yarn add @webda/shell@${tag}\n\n`
     );
     process.env.WEBDA_SHELL_DEV = path.resolve(path.join(__dirname, "/../../"));
     // Do not really care if they fail or not
@@ -107,7 +107,7 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
     process.env.WEBDA_SHELL_DEPLOY_VERSION = "0.1.0";
     assert.strictEqual(
       this.deployer.getDockerfileWebdaShell(),
-      "# Install enforced @webda/shell version\nRUN yarn global add @webda/shell@0.1.0\n\n"
+      "# Install enforced @webda/shell version\nRUN yarn add @webda/shell@0.1.0\n\n"
     );
   }
 

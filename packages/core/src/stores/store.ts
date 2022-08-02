@@ -1737,9 +1737,9 @@ abstract class Store<
     await object.canAct(ctx, "update");
     if (ctx.getHttpContext().getMethod() === "PATCH") {
       try {
-        await object.validate(ctx, body);
+        await object.validate(ctx, body, true);
       } catch (err) {
-        this.log("INFO", "Object invalid", err);
+        this.log("INFO", "Object invalid", err, object);
         throw 400;
       }
       let updateObject: any = new this._model();

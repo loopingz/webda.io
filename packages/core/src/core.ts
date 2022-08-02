@@ -14,6 +14,7 @@ import { ConfigurationService, Context, HttpContext, Logger, Service, Store } fr
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";
+import { JSONUtils } from "./utils/serializers";
 const { machineIdSync } = pkg;
 
 /**
@@ -518,6 +519,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         return null;
       }
       if (ignoreRequired) {
+        schema = JSONUtils.duplicate(schema);
         schema.required = [];
       }
       this.log("TRACE", "Add schema for", name);

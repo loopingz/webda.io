@@ -76,6 +76,151 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OwnerModel"
     },
+    "webda/ident": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_user": {
+          "type": "string",
+          "description": "Default owner of the object",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
+        "_type": {
+          "type": "string",
+          "readOnly": true
+        },
+        "uid": {
+          "type": "string"
+        },
+        "_lastUsed": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "_failedLogin": {
+          "type": "number",
+          "readOnly": true
+        },
+        "_lastValidationEmail": {
+          "type": "number",
+          "description": "If EmailIdent",
+          "readOnly": true
+        },
+        "_validation": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the ident was validated",
+          "readOnly": true
+        },
+        "email": {
+          "type": "string",
+          "description": "Email for this ident if it exist"
+        }
+      },
+      "required": [
+        "uid",
+        "uuid"
+      ],
+      "description": "First basic model for Ident",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ident"
+    },
+    "webda/user": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_user": {
+          "type": "string",
+          "description": "Default owner of the object",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Roles of the user",
+          "readOnly": true
+        },
+        "_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Groups for a user",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        }
+      },
+      "required": [
+        "displayName",
+        "uuid"
+      ],
+      "description": "First basic model for User",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User"
+    },
     "webda/cryptoservice": {
       "type": "object",
       "properties": {

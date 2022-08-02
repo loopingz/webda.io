@@ -223,7 +223,8 @@ class FileStoreTest extends StoreTest {
     ctx.session.login("fake_user", "fake_ident");
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/users", {
       type: "CRUD",
-      uuid: "PLOP"
+      uuid: "PLOP",
+      displayName: "Coucou"
     });
     assert.notStrictEqual(executor, undefined);
     await executor.execute(ctx);
@@ -234,7 +235,8 @@ class FileStoreTest extends StoreTest {
     assert.strictEqual(ctx.getResponseBody().indexOf("_lastUpdate") >= 0, true);
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/users", {
       type: "CRUD2",
-      uuid: "PLOP"
+      uuid: "PLOP",
+      displayName: "Coucou 2"
     });
     await assert.rejects(executor.execute(ctx), err => err == 409);
     // Verify the none overide of UUID
@@ -242,7 +244,8 @@ class FileStoreTest extends StoreTest {
       type: "CRUD2",
       additional: "field",
       uuid: "PLOP2",
-      user: "fake_user"
+      user: "fake_user",
+      displayName: "Coucou 3"
     });
     let user = await userStore.get("PLOP");
     assert.strictEqual(user.uuid, "PLOP");
@@ -276,7 +279,8 @@ class FileStoreTest extends StoreTest {
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {
       type: "CRUD3",
       uuid: "PLOP2",
-      _testor: "_ should not be update by client"
+      _testor: "_ should not be update by client",
+      displayName: "yep"
     });
     await executor.execute(ctx);
     user = await userStore.get("PLOP");

@@ -498,8 +498,8 @@ class CoreModel {
    * @param ctx
    * @param updates
    */
-  async validate(ctx: Context, updates: any = undefined): Promise<boolean> {
-    ctx.getWebda().validateSchema(this, updates);
+  async validate(ctx: Context, updates: any, ignoreRequired: boolean = false): Promise<boolean> {
+    ctx.getWebda().validateSchema(this, updates, ignoreRequired);
     return true;
   }
 

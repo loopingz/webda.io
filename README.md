@@ -28,11 +28,11 @@ You should checkout our demo project : [link](https://github.com/loopingz/webda.
 #### Create a project
 
 ```
-npx @webda/shell config
+npx @webda/shell init
 # Or install it globally
-npm install -g @webda/shell
+npm install @webda/shell --save-dev
 # or with yarn
-yarn global add @webda/shell
+yarn add --dev @webda/shell
 ```
 
 You have the configuration UI available, where you can create a service, use a service, or create a custom API resource. You can also manually edit the webda.config.json if you prefer

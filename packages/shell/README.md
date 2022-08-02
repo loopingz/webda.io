@@ -13,16 +13,12 @@ Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=
 ## Install
 
 ```
-npm install -g webda-shell
+npm install @webda/shell --save-dev
+# OR
+yarn add --dev @webda/shell
 ```
 
-#### Configuration UI
-
-Just type 
-
-```
-webda config
-```
+#### Configuration
 
 You'll get the configuration UI for your project
 
@@ -85,7 +81,7 @@ webda -d deploymentName deploy
 If you use Amazon we expose a way for you to get the Postman configuration of your API using AWS
 
 ```
-webda -d deploymentName deploy export swagger postman postman.json
+webda -d deploymentName openapi myOpenApiDocs.json
 ```
 
 #### Only redeploy Lambda code on AWS
@@ -94,26 +90,9 @@ webda -d deploymentName deploy export swagger postman postman.json
 webda -d deploymentName deploy lambda
 ```
 
-
-## Configuration UI
-
-Here is some screenshots of the ui, it is accessible once the webda config is running, it will launch your browser for you to use the configurator.
-
-#### Routes
-
-![image](http://webda.io/images/schemas/ui_route_create.png) ![image](http://webda.io/images/schemas/ui_route_config.png) 
-
-#### Services
-
-![image](http://webda.io/images/schemas/ui_service_create.png) ![image](http://webda.io/images/schemas/ui_service_config.png)
-
-#### Deployments
-
-![image](http://webda.io/images/schemas/ui_deployment_create.png) ![image](http://webda.io/images/schemas/ui_deployment_config.png) ![image](http://webda.io/images/schemas/ui_deployment_deploy.png)
-
 ## Requirements
 
-Node.js >= 8.0.0
+Node.js >= 14.10.0
 
 ## Licence
 

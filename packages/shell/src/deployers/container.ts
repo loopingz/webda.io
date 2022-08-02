@@ -248,7 +248,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
   getDockerfileWebdaShell(): string {
     // If version is enforced
     if (process.env.WEBDA_SHELL_DEPLOY_VERSION) {
-      return `# Install enforced @webda/shell version\nRUN yarn global add @webda/shell@${process.env["WEBDA_SHELL_DEPLOY_VERSION"]}\n\n`;
+      return `# Install enforced @webda/shell version\nRUN yarn add @webda/shell@${process.env["WEBDA_SHELL_DEPLOY_VERSION"]}\n\n`;
     }
 
     // If version is set to dev
@@ -280,7 +280,7 @@ ENV PATH=\${PATH}:/devshell/packages/shell/bin\n`;
 
     // Normal take the same version as local webda-shell
     let tag = JSONUtils.loadFile(__dirname + "/../../package.json").version;
-    return `# Install current @webda/shell version\nRUN yarn global add @webda/shell@${tag}\n\n`;
+    return `# Install current @webda/shell version\nRUN yarn add @webda/shell@${tag}\n\n`;
   }
 
   getDockerfileHeader() {
@@ -375,7 +375,7 @@ ADD package.json /webda/\n\n`;
       // Export deployment
       return `# Add deployment
 COPY ${localPath}/${deployment}.* ${path.join(appPath, "deployments")}
-RUN webda -d ${deployment} config --noCompile webda.config.json${
+RUN /webda/node_modules/.bin/webda -d ${deployment} config --noCompile webda.config.json${
         fs.existsSync(this.getApplication().getAppPath("webda.config.jsonc")) ? "c" : ""
       }
 `;
@@ -431,7 +431,7 @@ RUN webda -d ${deployment} config --noCompile webda.config.json${
     return `# Change user
 USER 1000
 # Launch webda\nENV WEBDA_COMMAND='${command}'
-CMD webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
+CMD /webda/node_modules/.bin/webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
   }
 
   /**
@@ -440,12 +440,15 @@ CMD webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
   getDockerfile(): string {
     let dockerfile = this.getDockerfileHeader() + "RUN yarn install --production\n\n";
 
+    dockerfile += `ENV PATH "$PATH:./node_modules/.bin/"`;
     dockerfile += this.copyPackageFilesTo(".", "/webda", ["webda.config.json", "webda.config.jsonc"]);
     // Import webda-shell
     dockerfile += this.getDockerfileWebdaShell();
 
     // Add deployment
     dockerfile += this.addDeploymentToImage("deployments", "/webda");
+    // Add the packager date
+    dockerfile += "RUN date > .webda.packaged\n";
     dockerfile += this.addCommandToImage();
     if (this.resources.debugDockerfilePath) {
       fs.writeFileSync(this.resources.debugDockerfilePath, dockerfile);

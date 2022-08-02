@@ -797,7 +797,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected createServices(excludes: string[] = []): void {
     const services = this.configuration.services;
-    this.log("DEBUG", beans);
+    this.log("DEBUG", "BEANS", beans);
     for (let i in beans) {
       let name = beans[i].constructor.name;
       if (!services[name]) {

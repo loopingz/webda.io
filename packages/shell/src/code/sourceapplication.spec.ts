@@ -64,6 +64,7 @@ class SourceApplicationTest extends WebdaTest {
     assert.strictEqual(deploymentConfig.parameters.accessKeyId, "PROD_KEY");
     assert.strictEqual(deploymentConfig.services.contacts.table, "webda-sample-app-contacts");
     assert.strictEqual(config.services.contacts.table, "local-table");
+    assert.strictEqual(deploymentConfig.parameters.trustedProxies, "127.0.0.1, ::1");
   }
 
   @test

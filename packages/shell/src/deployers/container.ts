@@ -374,11 +374,11 @@ ADD package.json /webda/\n\n`;
     if (deployment) {
       // Export deployment
       return `# Add deployment
-COPY ${localPath} ${path.join(appPath, "deployments")}
+COPY ${localPath}/${deployment}.* ${path.join(appPath, "deployments")}
 RUN webda -d ${deployment} config --noCompile webda.config.json${
         fs.existsSync(this.getApplication().getAppPath("webda.config.jsonc")) ? "c" : ""
       }
-RUN rm -rf deployments\n\n`;
+`;
     }
     return "";
   }
@@ -440,7 +440,7 @@ CMD webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
   getDockerfile(): string {
     let dockerfile = this.getDockerfileHeader() + "RUN yarn install --production\n\n";
 
-    dockerfile += this.copyPackageFilesTo(".", "/webda", ["webda.config.json"]);
+    dockerfile += this.copyPackageFilesTo(".", "/webda", ["webda.config.json", "webda.config.jsonc"]);
     // Import webda-shell
     dockerfile += this.getDockerfileWebdaShell();
 

@@ -1,4 +1,4 @@
-import { Application, CancelablePromise, FileUtils, getCommonJS, Logger } from "@webda/core";
+import { CancelablePromise, FileUtils, getCommonJS, Logger } from "@webda/core";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
@@ -759,10 +759,6 @@ export default class WebdaConsole {
         if (argv._[0] === "build") {
           // Avoid loading the local module as source might not exist yet
           this.app = new BuildSourceApplication(<string>argv.appPath, output);
-        } else if (fs.existsSync(path.join(argv.appPath, ".webda.packaged"))) {
-          // We are cheating the compiler
-          this.app = <SourceApplication>new Application(<string>argv.appPath, output);
-          this.app.preventCompilation(true);
         } else {
           this.app = new SourceApplication(<string>argv.appPath, output);
         }

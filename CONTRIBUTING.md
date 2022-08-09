@@ -2,6 +2,26 @@
 
 We welcome every contribution
 
+## Clone the repository
+
+```
+git clone https://github.com/loopingz/webda.io
+```
+
+## Install the dependencies
+
+```
+yarn install
+```
+
+## Run unit test
+
+```
+yarn test
+# Test only one package (@webda/core for example)
+yarn test --scope @webda/core
+```
+
 ## Run test locally
 
 If you run the test of all packages, you need the AWS emulation we use [localstack](https://github.com/localstack/localstack). You can run it within Docker with the provided script

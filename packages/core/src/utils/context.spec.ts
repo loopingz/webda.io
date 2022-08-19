@@ -210,7 +210,7 @@ class ContextTest extends WebdaTest {
     this.ctx.setHeader("X-Webda", "HEAD");
     assert.strictEqual(this.ctx.getResponseHeaders()["X-Webda"], "HEAD");
     this.ctx.write(400);
-    assert.strictEqual(this.ctx.getResponseBody(), 400);
+    assert.strictEqual(this.ctx.getResponseBody(), "400");
     // @ts-ignore
     Object.observe = (obj, callback) => {
       callback([

@@ -161,7 +161,7 @@ abstract class StoreTest extends WebdaTest {
       context.getParameters().q = q;
       // @ts-ignore
       await userStore.httpQuery(context);
-      res = JSON.parse(context.getResponseBody());
+      res = JSON.parse(<string> context.getResponseBody());
       offset = res.continuationToken;
       total += res.results.length;
     } while (offset !== undefined);

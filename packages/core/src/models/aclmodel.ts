@@ -1,4 +1,4 @@
-import { Context, ModelAction, Store, User } from "../index";
+import { Context, ModelAction, OperationContext, Store, User } from "../index";
 import { CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -88,7 +88,7 @@ export default class AclModel extends CoreModel {
    * GET
    * @param ctx
    */
-  async _httpGetAcls(ctx: Context) {
+  async _httpGetAcls(ctx: OperationContext) {
     ctx.write({
       raw: this.__acl,
       resolved: await Promise.all(
@@ -106,8 +106,8 @@ export default class AclModel extends CoreModel {
   /**
    *
    */
-  async _httpPutAcls(ctx: Context) {
-    let acl = await ctx.getRequestBody();
+  async _httpPutAcls(ctx: OperationContext) {
+    let acl = await ctx.getInput();
     // This looks like a bad request
     if (acl.raw) {
       throw 400;
@@ -117,7 +117,7 @@ export default class AclModel extends CoreModel {
   }
 
   // Should cache the user role in the session
-  getGroups(_ctx: Context, user: User) {
+  getGroups(_ctx: OperationContext, user: User) {
     if (!user) {
       return [];
     }
@@ -136,7 +136,7 @@ export default class AclModel extends CoreModel {
    * @param user
    * @returns
    */
-  async getPermissions(ctx: Context, user?: User): Promise<string[]> {
+  async getPermissions(ctx: OperationContext, user?: User): Promise<string[]> {
     if (!user) {
       user = await ctx.getCurrentUser();
     }
@@ -150,7 +150,7 @@ export default class AclModel extends CoreModel {
     return [...permissions.values()];
   }
 
-  async hasPermission(ctx: Context, user: User, action: string): Promise<boolean> {
+  async hasPermission(ctx: OperationContext, user: User, action: string): Promise<boolean> {
     let groups = this.getGroups(ctx, user);
     for (let i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
@@ -162,7 +162,7 @@ export default class AclModel extends CoreModel {
     return false;
   }
 
-  async canAct(ctx: Context, action: string) {
+  async canAct(ctx: OperationContext, action: string) {
     if (!this.getAcl() || !ctx.getCurrentUserId()) {
       throw 403;
     }

@@ -109,7 +109,7 @@ class OAuthServiceTest extends WebdaTest {
     this.registerService(this.service);
     assert.strictEqual(this.service._authenticationService, undefined, "Should not get any Authentication service");
     await this.execute(ctx, "webda.io", "GET", "/bouzouf/scope");
-    assert.deepStrictEqual(JSON.parse(ctx.getResponseBody()), ["email", "image"]);
+    assert.deepStrictEqual(JSON.parse(<string> ctx.getResponseBody()), ["email", "image"]);
     let event = 0;
     this.service.on("OAuth.Callback", evt => {
       if (evt.type === "token") {

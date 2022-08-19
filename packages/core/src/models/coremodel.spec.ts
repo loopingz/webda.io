@@ -63,7 +63,7 @@ class CoreModelTest extends WebdaTest {
     let task = new Task();
     task.setContext(ctx);
     ctx.write(task);
-    let result = JSON.parse(ctx.getResponseBody());
+    let result = JSON.parse(<string> ctx.getResponseBody());
     assert.strictEqual(result._gotContext, true);
   }
 

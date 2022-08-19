@@ -124,7 +124,7 @@ class AclPolicyTest {
     await assert.rejects(() => this.model._acl(this._ctx));
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/"));
     await this.model._acl(this._ctx);
-    assert.deepStrictEqual(JSON.parse(this._ctx.getResponseBody()), {
+    assert.deepStrictEqual(JSON.parse(<string> this._ctx.getResponseBody()), {
       raw: {
         acl: "mine"
       },

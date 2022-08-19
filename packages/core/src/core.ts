@@ -34,6 +34,16 @@ export class ValidationError extends Error {
 }
 
 /**
+ * Define an operation within webda app
+ */
+export interface OperationDefinition {
+  input: string;
+  output?: string;
+  service: string;
+  method: string;
+}
+
+/**
  *
  */
 export class RegistryEntry extends CoreModel {
@@ -299,6 +309,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Manage encryption within the application
    */
   protected cryptoService: CryptoService;
+  /**
+   * Contains all operations defined by services
+   */
+  protected operations: { [key: string]: OperationDefinition } = {};
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -472,6 +486,25 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       resolve();
     });
     return this._init;
+  }
+
+  /**
+   * Call an operation within the framework
+   */
+  async callOperation(context: Context, operationId: string) {
+    if (!this.operations[operationId]) {
+      throw new Error(`Unknown Operation Id: ${operationId}`);
+    }
+    return this.getService(this.operations[operationId].service)[this.operations[operationId].method](context);
+  }
+
+  /**
+   * Register a new operation within the app
+   * @param operationId
+   * @param definition
+   */
+  registerOperation(operationId: string, definition: OperationDefinition) {
+    this.operations[operationId] = definition;
   }
 
   /**

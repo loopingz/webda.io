@@ -23,110 +23,63 @@ class Cookie {
 }
 
 /**
- * @category CoreFeatures
- * @WebdaModel
+ * OperationContext is used when call to an operation
  */
-export class Context<T = any, U = any> extends EventEmitter {
-  protected _body: any;
-  /**
-   * Contains the response headers
-   */
-  protected _outputHeaders: Map<string, string>;
+export class OperationContext<T = any, U = any> extends EventEmitter {
+  protected static __globalContext: OperationContext;
+  private global: boolean = false;
   /**
    * Contain emitting Core
    */
   protected _webda: Core;
   /**
-   * Current status code
-   */
-  statusCode: number;
-  _cookie: Map<string, Cookie>;
-  /**
-   *
-   */
-  headers: Map<string, string>;
-  _route: any;
-  /**
    * Session
    */
   protected session: Session;
-  _ended: Promise<any> = undefined;
-  _stream: Writable;
-  /**
-   * Contain all registered promises to this context
-   */
-  _promises: Promise<any>[];
-  _executor: Service<any>;
-  /**
-   * If headers were flushed
-   */
-  protected headersFlushed: boolean;
-  /**
-   * Contain the sanitized request body if computed
-   */
-  protected _sanitized: any;
-  protected parameters: any = undefined;
-  protected _pathParams: any = {};
-  protected _serviceParams: any = {};
-  protected static __globalContext: Context;
-  private global: boolean = false;
   /**
    * Allow extensions
    */
   protected extensions: { [key: string]: any };
   /**
+   * Contain the sanitized request body if computed
+   */
+  protected _sanitized: any;
+
+  /**
+   * Output
+   */
+  protected _body: string;
+
+  /**
    * Loaded user if exist
    */
-  private user: User;
+   private user: User;
 
   /**
-   * Get Global Context
+   * Contain all registered promises to this context
    */
-  public static getGlobalContext() {
-    return Context.__globalContext;
+  _promises: Promise<any>[];
+
+  /**
+   * @ignore
+   * Used by Webda framework to set the body, session and output stream if known
+   */
+  constructor(webda: Core, stream: Writable = undefined) {
+    super();
+    this.extensions = {};
+    this._webda = webda;
+    this._promises = [];
+    this._body = undefined;
+    this._stream = stream;
+    if (stream === undefined) {
+      this.createStream();
+    }
   }
 
   /**
-   * Set the Global Context
-   *
-   * @param ctx to set as Global
+   * Output stream
    */
-  public static setGlobalContext(ctx: Context) {
-    ctx.global = true;
-    Context.__globalContext = ctx;
-  }
-
-  /**
-   * Return if context is global
-   */
-  public isGlobal() {
-    return this.global;
-  }
-
-  /**
-   * Set current http context
-   * @param httpContext current http context
-   */
-  public setHttpContext(httpContext: HttpContext) {
-    this.extensions["http"] = httpContext;
-    this.reinit();
-  }
-
-  /**
-   * Remove samitized body
-   */
-  public reinit() {
-    this._sanitized = undefined;
-    this.createStream();
-  }
-
-  /**
-   * Get current http context
-   */
-  public getHttpContext() {
-    return this.getExtension<HttpContext>("http");
-  }
-
+  _stream: Writable;
   /**
    * Get an extension of the context
    * @param name of the extension
@@ -143,6 +96,305 @@ export class Context<T = any, U = any> extends EventEmitter {
    */
   public setExtension(name: string, extension: any): void {
     this.extensions[name] = extension;
+  }
+
+  /**
+   * Return the webda
+   */
+  getWebda() {
+    return this._webda;
+  }
+
+  /**
+   * Register a promise with the context
+   * @param promise
+   */
+  addAsyncRequest(promise) {
+    this._promises.push(promise);
+  }
+
+  /**
+   * Get output as string, if a OutputStream is provided it will returned null
+   * @returns
+   */
+  getOutput(): string {
+    if (this._stream instanceof WritableStreamBuffer && this._stream.size()) {
+      return this._stream.getContents().toString();
+    }
+    return this._body;
+  }
+
+  /**
+   * Ensure the whole execution is finished
+   */
+  async end() {
+    this.emit("end");
+    await Promise.all(this._promises);
+    this.emit("close");
+  }
+
+  async getInput(
+    sanitizedOptions: any = {
+      allowedTags: [],
+      allowedAttributes: {}
+    }
+  ): Promise<T> {
+    if (this._sanitized) {
+      return this._sanitized;
+    }
+    let recursiveSanitize = (obj, options = undefined) => {
+      if (typeof obj === "string") {
+        return sanitizeHtml(obj, options);
+      }
+      if (typeof obj === "object") {
+        Object.keys(obj).forEach(key => {
+          obj[key] = recursiveSanitize(obj[key], options);
+        });
+      }
+      return obj;
+    };
+    try {
+      this._sanitized = recursiveSanitize(
+        JSON.parse(
+          await this.getRawInputAsString(
+            this.getWebda().getGlobalParams().requestLimit,
+            this.getWebda().getGlobalParams().requestTimeout
+          )
+        ),
+        sanitizedOptions
+      );
+    } catch (err) {
+      this.log("ERROR", err, `Body: '${await this.getRawInputAsString()}'`);
+      return undefined;
+    }
+    return this._sanitized;
+  }
+
+  /**
+   * By default empty
+   * @returns 
+   */
+  async getRawInputAsString(_limit: number = 1024 * 1024 * 10, _timeout: number = 60000, _encoding?: string) : Promise<string> {
+    return "";
+  }
+
+  /**
+   * @override
+   */
+  async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000) : Promise<Buffer> {
+    return Buffer.from("");
+  }
+
+  /**
+   * @override
+   */
+  getRawStream() : Readable {
+    return undefined;
+  }
+
+  /**
+   * Get linked session
+   * @returns
+   */
+  public getSession<K = Session>(): K {
+    return <K>(<unknown>this.session);
+  }
+
+  /**
+   * Remove samitized body
+   */
+  public reinit() {
+    this._sanitized = undefined;
+    this.createStream();
+  }
+
+  /**
+   * Create a buffer stream
+   */
+  createStream() {
+    this._stream = new WritableStreamBuffer({
+      initialSize: 100 * 1024,
+      incrementAmount: 100 * 1024
+    });
+  }
+
+  /**
+   * Proxy for simplification
+   * @param level
+   * @param args
+   */
+  log(level: WorkerLogLevel, ...args: any[]) {
+    this._webda.log(level, ...args);
+  }
+
+  /**
+   * Create a new session
+   * @returns
+   */
+  newSession() {
+    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "Webda/Session"))(this);
+    return this.session;
+  }
+
+  /**
+   * Remove everything that was about to be sent
+   */
+  public resetResponse() {
+    this._body = undefined;
+    if (this._stream instanceof WritableStreamBuffer) {
+      this.createStream();
+    }
+  }
+
+  /**
+   * Write data to the client
+   *
+   * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
+   * @param ...args any arguments to pass to the toPublicJSON method
+   */
+  public write(output: U, _encoding?: string, _cb?: (error: Error) => void): boolean {
+    if (!output) {
+      return false;
+    }
+    if (typeof output === "object" && !(output instanceof Buffer)) {
+      this._body = JSONUtils.stringify(output, undefined, 0, true);
+    } else if (typeof output == "string") {
+      if (this._body == undefined) {
+        this._body = "";
+      }
+      this._body += output;
+    } else {
+      this._body = output.toString();
+    }
+    return true;
+  }
+
+  /**
+   * Get Global Context
+   */
+  public static getGlobalContext() {
+    return OperationContext.__globalContext;
+  }
+
+  /**
+   * Set the Global Context
+   *
+   * @param ctx to set as Global
+   */
+  public static setGlobalContext(ctx: OperationContext) {
+    ctx.global = true;
+    OperationContext.__globalContext = ctx;
+  }
+
+  /**
+   * Return if context is global
+   */
+  public isGlobal() {
+    return this.global;
+  }
+
+  async init(): Promise<this> {
+    return this;
+  }
+
+
+  /**
+   * Get the current user from session
+   */
+   async getCurrentUser<K extends User>(refresh: boolean = false): Promise<K> {
+    if (!this.getCurrentUserId()) {
+      return undefined;
+    }
+    // Caching the answer
+    if (!this.user || refresh) {
+      this.user = await this._webda.getService<Store<K, any>>("Users").get(this.getCurrentUserId());
+    }
+    return <K>this.user;
+  }
+
+  /**
+   * Get the current user id from session
+   */
+  getCurrentUserId() {
+    return undefined;
+  }
+}
+
+/**
+ * This represent in fact a WebContext
+ * @category CoreFeatures
+ * @WebdaModel
+ *
+ * @deprecated use WebContext instead - will be removed in 3.0
+ */
+export class Context<T = any, U = any> extends OperationContext<T, U> {
+  /**
+   * Contains the response headers
+   */
+  protected _outputHeaders: Map<string, string>;
+
+  /**
+   * Current status code
+   */
+  statusCode: number;
+  /**
+   * Cookies to send back
+   */
+  _cookie: Map<string, Cookie>;
+  /**
+   *
+   */
+  headers: Map<string, string>;
+  _route: any;
+
+  _ended: Promise<any> = undefined;
+
+  _executor: Service<any>;
+  /**
+   * If headers were flushed
+   */
+  protected headersFlushed: boolean;
+
+  protected parameters: any = undefined;
+  protected _pathParams: any = {};
+  protected _serviceParams: any = {};
+
+
+  /**
+   * Set current http context
+   * @param httpContext current http context
+   */
+  public setHttpContext(httpContext: HttpContext) {
+    this.extensions["http"] = httpContext;
+    this.reinit();
+  }
+
+  /**
+   * Get current http context
+   */
+  public getHttpContext() {
+    return this.getExtension<HttpContext>("http");
+  }
+
+  /**
+   * @override
+   */
+  async getRawInputAsString(limit: number = 1024 * 1024 * 10, timeout: number = 60000, encoding?: string) : Promise<string> {
+    return this.getHttpContext().getRawBodyAsString(limit, timeout, encoding);
+  }
+
+  /**
+   * @override
+   */
+  async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000) {
+    return this.getHttpContext().getRawBody(limit, timeout);
+  }
+
+  /**
+   * @override
+   */
+  getRawStream() : Readable {
+    return this.getHttpContext().getRawStream();
   }
 
   /**
@@ -169,14 +421,6 @@ export class Context<T = any, U = any> extends EventEmitter {
     this.parameters = Object.assign(this.parameters, this._pathParams);
   }
 
-  /**
-   * Get linked session
-   * @returns
-   */
-  public getSession<K = Session>(): K {
-    return <K>(<unknown>this.session);
-  }
-
   public getServiceParameters() {
     return this._serviceParams;
   }
@@ -199,11 +443,8 @@ export class Context<T = any, U = any> extends EventEmitter {
    * Remove everything that was about to be sent
    */
   public resetResponse() {
-    this._body = undefined;
     this._outputHeaders.clear();
-    if (this._stream instanceof WritableStreamBuffer) {
-      this.createStream();
-    }
+    super.resetResponse();
   }
 
   /**
@@ -213,23 +454,14 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @param ...args any arguments to pass to the toPublicJSON method
    */
   // @ts-ignore
-  public write(output: U, _encoding?: string, _cb?: (error: Error) => void): boolean {
+  public write(output: U, encoding?: string, cb?: (error: Error) => void): boolean {
     if (this.statusCode === 204) {
       this.statusCode = 200;
     }
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this.setHeader("Content-type", "application/json");
-      this._body = JSONUtils.stringify(output, undefined, 0, true);
-      return true;
-    } else if (typeof output == "string") {
-      if (this._body == undefined) {
-        this._body = "";
-      }
-      this._body += output;
-      return true;
-    } else {
-      this._body = output;
     }
+    return super.write(output, encoding, cb);
   }
 
   /**
@@ -282,10 +514,6 @@ export class Context<T = any, U = any> extends EventEmitter {
     return this._cookie;
   }
 
-  addAsyncRequest(promise) {
-    this._promises.push(promise);
-  }
-
   isEnded() {
     return this._ended;
   }
@@ -297,7 +525,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    ******************************/
 
   /**
-   * Express response allow statusCode to be defined this was
+   * Express response allow statusCode to be defined this way
    * @param code to return
    */
   public status(code: number): this {
@@ -306,7 +534,7 @@ export class Context<T = any, U = any> extends EventEmitter {
   }
 
   /**
-   * Express response allow answer to be sent this w
+   * Express response allow answer to be sent this way
    * @param code to return
    */
   public json(obj: any): this {
@@ -332,7 +560,7 @@ export class Context<T = any, U = any> extends EventEmitter {
       }
       await Promise.all(this._promises);
       if (this._stream instanceof WritableStreamBuffer && this._stream.size()) {
-        this._body = this._stream.getContents();
+        this._body = this._stream.getContents().toString();
         this.statusCode = 200;
       }
       if (!this.headersFlushed) {
@@ -440,20 +668,6 @@ export class Context<T = any, U = any> extends EventEmitter {
   }
 
   /**
-   * Get the current user from session
-   */
-  async getCurrentUser<K extends User>(refresh: boolean = false): Promise<K> {
-    if (!this.getCurrentUserId()) {
-      return undefined;
-    }
-    // Caching the answer
-    if (!this.user || refresh) {
-      this.user = await this._webda.getService<Store<K, any>>("Users").get(this.getCurrentUserId());
-    }
-    return <K>this.user;
-  }
-
-  /**
    * Get the current user id from session
    */
   getCurrentUserId() {
@@ -478,13 +692,6 @@ export class Context<T = any, U = any> extends EventEmitter {
       return Promise.resolve(this.getExecutor()[this._route._method.name](this));
     }
     return Promise.reject(Error("Not implemented"));
-  }
-
-  /**
-   * Return the webda
-   */
-  getWebda() {
-    return this._webda;
   }
 
   /**
@@ -528,15 +735,6 @@ export class Context<T = any, U = any> extends EventEmitter {
   }
 
   /**
-   * Proxy for simplification
-   * @param level
-   * @param args
-   */
-  log(level: WorkerLogLevel, ...args: any[]) {
-    this._webda.log(level, ...args);
-  }
-
-  /**
    * Return true if Headers got flushed already
    * @returns
    */
@@ -557,42 +755,17 @@ export class Context<T = any, U = any> extends EventEmitter {
    * Used by Webda framework to set the body, session and output stream if known
    */
   constructor(webda: Core, httpContext: HttpContext, stream: Writable = undefined) {
-    super();
-    this.extensions = {
-      http: httpContext
-    };
-    this._webda = webda;
-    this._promises = [];
+    super(webda, stream);
+    this.setHttpContext(httpContext);
     this._outputHeaders = new Map();
     this.headersFlushed = false;
-    this._body = undefined;
     this.statusCode = 204;
-    this._stream = stream;
     this.parameters = {};
     this.headers = new Map();
-    if (stream === undefined) {
-      this.createStream();
-    }
     this.processParameters();
     if (httpContext) {
       this.session = this.newSession();
     }
-  }
-
-  createStream() {
-    this._stream = new WritableStreamBuffer({
-      initialSize: 100 * 1024,
-      incrementAmount: 100 * 1024
-    });
-  }
-
-  /**
-   * Create a new session
-   * @returns
-   */
-  newSession() {
-    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "Webda/Session"))(this);
-    return this.session;
   }
 
   async init(): Promise<this> {
@@ -603,10 +776,15 @@ export class Context<T = any, U = any> extends EventEmitter {
     if (this.getExtension("http")) {
       this.session = (await this._webda.getService<SessionManager>("SessionManager").load(this)).getProxy();
     }
-    return this;
+    return super.init();
   }
 
   emitError(err) {
     this.emit("error", err);
   }
 }
+
+/**
+ * Replacement for Context
+ */
+export class WebContext<T = any, U = any> extends Context<T, U> {}

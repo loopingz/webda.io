@@ -256,7 +256,7 @@ class WebdaTest {
       throw err;
     }
 
-    let res = ctx.getResponseBody();
+    let res = <string> ctx.getResponseBody();
     if (res) {
       try {
         return JSON.parse(res);

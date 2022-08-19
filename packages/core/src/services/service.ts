@@ -94,10 +94,53 @@ export function Inject(parameterOrName: string, defaultValue?: string | boolean,
   };
 }
 
+/**
+ * Register an Operation within the framework
+ *
+ * An operation is a callable method with an input and output
+ * The method will receive a Context from where it can execute
+ *
+ * @param id
+ * @param input
+ * @param output
+ */
+export function Operation(
+  id: string,
+  input: string,
+  output?: string,
+  url?: string,
+  method?: HttpMethodType,
+  allowPath?: boolean,
+  openapi: OpenAPIWebdaDefinition = {}
+) {
+  return function (target: any, executor: string) {
+    target.constructor.operations ??= {};
+    if (target.constructor.operations[id]) {
+      console.error("Operation already exists", id);
+      return;
+    }
+    target.constructor.operations[id] ??= {
+      executor,
+      input,
+      output
+    };
+    // If url is specified define the openapi
+    if (url) {
+      openapi[method.toLowerCase()] ??= {};
+      let def = openapi[method.toLowerCase()];
+      def.operationId = id;
+      def.schemas ??= {};
+      def.schemas.input ??= input;
+      def.schemas.output ??= output;
+      Route(url, method, allowPath, openapi)(target, executor);
+    }
+  };
+}
+
 // @Route to declare route on Bean
 export function Route(
   route: string,
-  methods: string | string[] = ["GET"],
+  methods: HttpMethodType | HttpMethodType[] = ["GET"],
   allowPath: boolean = false,
   openapi: OpenAPIWebdaDefinition = {}
 ) {

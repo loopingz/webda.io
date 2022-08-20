@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { Readable } from "stream";
 import { Service } from "../services/service";
 import { WebdaTest } from "../test";
-import { Context } from "./context";
+import { Context, OperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
 @suite
 class ContextTest extends WebdaTest {
@@ -257,5 +257,22 @@ class ContextTest extends WebdaTest {
     // @ts-ignore
     this.ctx.getHttpContext().getHeaders()["accept-language"] = "zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "en");
+  }
+
+  @test
+  async operationContext() {
+    let ctx = new OperationContext(this.webda);
+    assert.strictEqual(ctx.getCurrentUserId(), undefined);
+    assert.strictEqual(await ctx.getRawInputAsString(), "");
+    assert.strictEqual((await ctx.getRawInput()).toString(), "");
+    assert.strictEqual(ctx.getRawStream(), undefined);
+    ctx.createStream();
+    ctx.getOutputStream().write("plop");
+    assert.strictEqual(ctx.getOutput(), "plop");
+    // cov
+    let http = new HttpContext("test.webda.io", "GET", "/");
+    ctx = new WebContext(this.webda, http);
+    await ctx.getRawInput();
+    ctx.getRawStream();
   }
 }

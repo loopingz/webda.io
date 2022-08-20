@@ -197,6 +197,14 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 
   /**
+   * Get the HTTP stream to output raw data
+   * @returns {*}
+   */
+   getOutputStream() {
+    return this._stream;
+  }
+
+  /**
    * Get linked session
    * @returns
    */
@@ -209,7 +217,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   public reinit() {
     this._sanitized = undefined;
-    if (this._stream instanceof WritableStreamBuffer) {
+    if (!this._stream || this._stream instanceof WritableStreamBuffer) {
       this.createStream();
     }
   }
@@ -570,7 +578,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
       await Promise.all(this._promises);
       if (this._stream instanceof WritableStreamBuffer && this._stream.size()) {
         this._body = this._stream.getContents().toString();
-        this.statusCode ??= 200;
+        this.statusCode = 200;
       }
       if (!this.headersFlushed) {
         this._webda.flushHeaders(this);
@@ -650,7 +658,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * @returns {*}
    */
   getStream() {
-    return this._stream;
+    return this.getOutputStream();
   }
 
   /**
@@ -742,7 +750,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    */
   constructor(webda: Core, httpContext: HttpContext, stream: Writable = undefined) {
     super(webda, stream);
-    this.extensions["http"] = httpContext;
+    this.setHttpContext(httpContext);
     this._outputHeaders = new Map();
     this.headersFlushed = false;
     this.statusCode = 204;

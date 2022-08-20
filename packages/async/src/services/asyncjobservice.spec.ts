@@ -217,7 +217,7 @@ class AsyncJobServiceTest extends WebdaTest {
       }
     });
     await hook(context);
-    const res = JSON.parse(context.getResponseBody());
+    const res = JSON.parse(<string> context.getResponseBody());
     assert.strictEqual(res.job.param1, "plop");
     const logs = [];
     for (let i = 1; i < 200; i++) {
@@ -235,7 +235,7 @@ class AsyncJobServiceTest extends WebdaTest {
     });
 
     await hook(context);
-    assert.strictEqual(JSON.parse(context.getResponseBody())._lastJobUpdate - res._lastJobUpdate > 0, true);
+    assert.strictEqual(JSON.parse(<string> context.getResponseBody())._lastJobUpdate - res._lastJobUpdate > 0, true);
     assert.strictEqual((await this.store.get("plop")).logs.length, 100);
   }
 
@@ -367,7 +367,7 @@ class AsyncJobServiceTest extends WebdaTest {
         // @ts-ignore
         await service.statusHook(ctx);
         return {
-          data: JSON.parse(ctx.getResponseBody())
+          data: JSON.parse(<string> ctx.getResponseBody())
         };
       });
 

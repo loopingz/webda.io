@@ -1,4 +1,4 @@
-import { Bean, Context, RequestFilter, Route, Service, ServiceParameters } from "@webda/core";
+import { Bean, Context, Operation, OperationContext, RequestFilter, Route, Service, ServiceParameters } from "@webda/core";
 
 interface CustomBody {
   /**
@@ -39,6 +39,11 @@ class CustomService<T extends CustomParameters = CustomParameters> extends Servi
   @Route("/test", "GET")
   test(ctx: Context) {
     ctx.write("Tested");
+  }
+
+  @Operation("testOperation", "schema")
+  testOperation(ctx: OperationContext) {
+
   }
 
   /**

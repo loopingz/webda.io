@@ -106,10 +106,10 @@ export function Inject(parameterOrName: string, defaultValue?: string | boolean,
  */
 export function Operation(
   id: string,
-  input: string,
+  input?: string,
   output?: string,
   url?: string,
-  method?: HttpMethodType,
+  method: HttpMethodType = "GET",
   allowPath?: boolean,
   openapi: OpenAPIWebdaDefinition = {}
 ) {
@@ -120,9 +120,9 @@ export function Operation(
       return;
     }
     target.constructor.operations[id] ??= {
-      executor,
+      method: executor,
       input,
-      output
+      output,
     };
     // If url is specified define the openapi
     if (url) {
@@ -297,6 +297,7 @@ abstract class Service<
     this.computeParameters();
 
     this.initRoutes();
+    this.initOperations();
     return this;
   }
 
@@ -369,6 +370,18 @@ abstract class Service<
       routes[j].forEach(route => {
         this.addRoute(j, route.methods, this[route.executor], route.openapi, route.allowPath || false);
       });
+    }
+  }
+
+  /**
+   * Init the operations
+   */
+   initOperations() {
+    // @ts-ignore
+    let operations = this.constructor.operations || {};
+    for (let j in operations) {
+      this.log("TRACE", "Adding operation", j, "for bean", this.getName());
+      this._webda.registerOperation(j, {...operations[j], service: this.getName()});
     }
   }
 

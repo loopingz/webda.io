@@ -1,8 +1,9 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Inject, Service } from "..";
+import { Inject, Operation, Service } from "..";
 import { WebdaTest } from "../test";
+import { OperationContext } from "../utils/context";
 import { ServiceParameters } from "./service";
 
 class FakeServiceParameters extends ServiceParameters {
@@ -18,6 +19,16 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
   serv3: Service;
   @Inject("params:bean", undefined, false)
   serv4: Service;
+
+  @Operation("myOperation", "test", "plop", "/operation/plop")
+  myOperation(ctx: OperationContext) {
+    ctx.write("plop");
+  }
+
+  @Operation("myOperation")
+  myOperation2(ctx: OperationContext) {
+    ctx.write("plop2");
+  }
 }
 
 class FakeService2 extends Service {
@@ -38,6 +49,20 @@ class ServiceTest extends WebdaTest {
       () => new FakeService2(this.webda, "kf").resolve(),
       /Injector did not found bean 'Authentication2' for 'kf'/
     );
+  }
+
+  @test
+  async operation() {
+    let ctx = new OperationContext(this.webda);
+    await ctx.init();
+    assert.rejects(() => this.webda.callOperation(ctx, "myOperation2"));
+    let service = new FakeService(this.webda, "plop", { bean: "Authentication" });
+    service.resolve();
+    this.registerService(service);
+    
+    await this.webda.callOperation(ctx, "myOperation");
+    await ctx.end();
+    assert.strictEqual(ctx.getOutput(), "plop");
   }
 
   @test

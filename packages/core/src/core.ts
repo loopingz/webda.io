@@ -10,7 +10,7 @@ import { OpenAPIV3 } from "openapi-types";
 import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
-import { ConfigurationService, Context, HttpContext, Logger, Service, Store, WebContext } from "./index";
+import { ConfigurationService, Context, HttpContext, Logger, OperationContext, Service, Store, WebContext } from "./index";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";
@@ -491,7 +491,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   /**
    * Call an operation within the framework
    */
-  async callOperation(context: Context, operationId: string) {
+  async callOperation(context: OperationContext, operationId: string) {
     if (!this.operations[operationId]) {
       throw new Error(`Unknown Operation Id: ${operationId}`);
     }

@@ -18,7 +18,9 @@ class WebdaConfigurationServerTest {
     this.server = new WebdaConfiguration(WebdaSampleApplication);
     await this.server.init();
     this.server.serve().catch(console.error);
+    console.log(new Date(), "Waiting for server to start");
     await this.server.waitForStatus(ServerStatus.Started);
+    console.log(new Date(), "Server started");
   }
 
   async before() {
@@ -30,7 +32,9 @@ class WebdaConfigurationServerTest {
       return;
     }
     try {
+      console.log(new Date(), "Stopping server");
       await this.server.stop();
+      console.log(new Date(), "Server stopped");
     } catch (err) {}
     this.server = undefined;
   }
@@ -70,12 +74,14 @@ class WebdaConfigurationServerTest {
 
   @test
   async checkRequest() {
+    console.log(new Date(), "Fetching /configuration");
     // Will config.webda.io will host later on the configuration tool
     let res = await this.fetch(`/configuration`, {
       headers: {
         Origin: "https://config.webda.io"
       }
     });
+    console.log(new Date(), "Fetched with", res.status);
     assert.strictEqual(res.status, 401);
   }
 

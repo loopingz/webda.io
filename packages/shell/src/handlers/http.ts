@@ -1,11 +1,11 @@
 import {
-  Context,
   Core as Webda,
   HttpContext,
   HttpMethodType,
   ResourceService,
   WaitFor,
-  WaitLinearDelay
+  WaitLinearDelay,
+  WebContext
 } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
 import * as http from "http";
@@ -79,7 +79,6 @@ export class WebdaServer extends Webda {
       // Do not even let the query go through
       this.log("WARN", `X-Forwarded-* headers set from an unknown source: ${req.socket.remoteAddress}`);
       res.writeHead(400);
-      res.end();
       return;
     }
     // Might want to add some whitelisting
@@ -140,7 +139,7 @@ export class WebdaServer extends Webda {
           await ctx.init();
           ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
           try {
-            this.resourceService._serve(await ctx.init());
+            this.resourceService._serve(ctx);
           } catch (err) {
             if (typeof err === "number") {
               ctx.writeHead(err);
@@ -154,7 +153,6 @@ export class WebdaServer extends Webda {
       }
 
       await ctx.init();
-
       // Fallback on reference as Origin is not always set by Edge
       let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
       try {
@@ -182,7 +180,6 @@ export class WebdaServer extends Webda {
         }
         throw err;
       }
-
       if (httpContext.getProtocol() === "https:") {
         // Add the HSTS header
         res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
@@ -202,7 +199,6 @@ export class WebdaServer extends Webda {
         res.setHeader("Access-Control-Max-Age", 86400);
         res.setHeader("Allow", routes.join(","));
         res.writeHead(200);
-        res.end();
         return;
       }
       await this.emitSync("Webda.Request", { context: ctx });
@@ -230,7 +226,7 @@ export class WebdaServer extends Webda {
   /**
    * @override
    */
-  flushHeaders(ctx: Context) {
+  flushHeaders(ctx: WebContext) {
     if (ctx.hasFlushedHeaders()) {
       return;
     }
@@ -251,12 +247,12 @@ export class WebdaServer extends Webda {
   /**
    * @override
    */
-  flush(ctx: Context) {
+  flush(ctx: WebContext) {
     const res = ctx._stream;
-    if (ctx.getResponseBody() !== undefined) {
-      res.write(ctx.getResponseBody());
+    const body = ctx.getResponseBody();
+    if (body !== undefined && body) {
+      res.write(body);
     }
-    res.end();
   }
 
   /**

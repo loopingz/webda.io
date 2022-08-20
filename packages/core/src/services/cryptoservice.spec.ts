@@ -68,12 +68,12 @@ class CryptoServiceTest extends WebdaTest {
     await crypto.resolve().init();
     let ctx = await this.newContext();
     await this.execute(ctx, "test.webda.io", "GET", "/jwk");
-    let body = JSON.parse(<string> ctx.getResponseBody());
+    let body = JSON.parse(<string>ctx.getResponseBody());
     sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
     assert.strictEqual(body.keys.length, 1);
     await crypto.rotate();
     await this.execute(ctx, "test.webda.io", "GET", "/jwk");
-    body = JSON.parse(<string> ctx.getResponseBody());
+    body = JSON.parse(<string>ctx.getResponseBody());
     assert.strictEqual(body.keys.length, 2);
   }
 

@@ -53,7 +53,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   /**
    * Loaded user if exist
    */
-   private user: User;
+  private user: User;
 
   /**
    * Contain all registered promises to this context
@@ -172,23 +172,27 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
 
   /**
    * By default empty
-   * @returns 
+   * @returns
    */
-  async getRawInputAsString(_limit: number = 1024 * 1024 * 10, _timeout: number = 60000, _encoding?: string) : Promise<string> {
+  async getRawInputAsString(
+    _limit: number = 1024 * 1024 * 10,
+    _timeout: number = 60000,
+    _encoding?: string
+  ): Promise<string> {
     return "";
   }
 
   /**
    * @override
    */
-  async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000) : Promise<Buffer> {
+  async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer> {
     return Buffer.from("");
   }
 
   /**
    * @override
    */
-  getRawStream() : Readable {
+  getRawStream(): Readable {
     return undefined;
   }
 
@@ -205,7 +209,9 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   public reinit() {
     this._sanitized = undefined;
-    this.createStream();
+    if (this._stream instanceof WritableStreamBuffer) {
+      this.createStream();
+    }
   }
 
   /**
@@ -297,11 +303,10 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     return this;
   }
 
-
   /**
    * Get the current user from session
    */
-   async getCurrentUser<K extends User>(refresh: boolean = false): Promise<K> {
+  async getCurrentUser<K extends User>(refresh: boolean = false): Promise<K> {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
@@ -322,6 +327,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
 
 /**
  * This represent in fact a WebContext
+ * In 3.0 an abstract version of Context will replace this (closer to OperationContext)
  * @category CoreFeatures
  * @WebdaModel
  *
@@ -359,7 +365,6 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
   protected _pathParams: any = {};
   protected _serviceParams: any = {};
 
-
   /**
    * Set current http context
    * @param httpContext current http context
@@ -379,7 +384,11 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
   /**
    * @override
    */
-  async getRawInputAsString(limit: number = 1024 * 1024 * 10, timeout: number = 60000, encoding?: string) : Promise<string> {
+  async getRawInputAsString(
+    limit: number = 1024 * 1024 * 10,
+    timeout: number = 60000,
+    encoding?: string
+  ): Promise<string> {
     return this.getHttpContext().getRawBodyAsString(limit, timeout, encoding);
   }
 
@@ -393,7 +402,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
   /**
    * @override
    */
-  getRawStream() : Readable {
+  getRawStream(): Readable {
     return this.getHttpContext().getRawStream();
   }
 
@@ -561,7 +570,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
       await Promise.all(this._promises);
       if (this._stream instanceof WritableStreamBuffer && this._stream.size()) {
         this._body = this._stream.getContents().toString();
-        this.statusCode = 200;
+        this.statusCode ??= 200;
       }
       if (!this.headersFlushed) {
         this._webda.flushHeaders(this);
@@ -573,41 +582,18 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
     return this._ended;
   }
 
+  /**
+   * Alias to keep compatibility with WebContext
+   * @param sanitizedOptions
+   * @returns
+   */
   async getRequestBody(
     sanitizedOptions: any = {
       allowedTags: [],
       allowedAttributes: {}
     }
   ): Promise<T> {
-    if (this._sanitized) {
-      return this._sanitized;
-    }
-    let recursiveSanitize = (obj, options = undefined) => {
-      if (typeof obj === "string") {
-        return sanitizeHtml(obj, options);
-      }
-      if (typeof obj === "object") {
-        Object.keys(obj).forEach(key => {
-          obj[key] = recursiveSanitize(obj[key], options);
-        });
-      }
-      return obj;
-    };
-    try {
-      this._sanitized = recursiveSanitize(
-        JSON.parse(
-          await this.getHttpContext().getRawBodyAsString(
-            this.getWebda().getGlobalParams().requestLimit,
-            this.getWebda().getGlobalParams().requestTimeout
-          )
-        ),
-        sanitizedOptions
-      );
-    } catch (err) {
-      this.log("ERROR", err, `Body: '${await this.getHttpContext().getRawBodyAsString()}'`);
-      return undefined;
-    }
-    return this._sanitized;
+    return this.getInput(sanitizedOptions);
   }
 
   /**
@@ -756,7 +742,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    */
   constructor(webda: Core, httpContext: HttpContext, stream: Writable = undefined) {
     super(webda, stream);
-    this.setHttpContext(httpContext);
+    this.extensions["http"] = httpContext;
     this._outputHeaders = new Map();
     this.headersFlushed = false;
     this.statusCode = 204;

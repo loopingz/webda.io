@@ -10,7 +10,7 @@ import { OpenAPIV3 } from "openapi-types";
 import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
-import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
+import { ConfigurationService, Context, HttpContext, Logger, Service, Store, WebContext } from "./index";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";
@@ -697,7 +697,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   /**
    * Add to context information and executor based on the http context
    */
-  public updateContextWithRoute(ctx: Context): boolean {
+  public updateContextWithRoute(ctx: WebContext): boolean {
     let http = ctx.getHttpContext();
     // Check mapping
     let route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());

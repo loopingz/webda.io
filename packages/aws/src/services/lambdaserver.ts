@@ -56,9 +56,10 @@ export default class LambdaServer extends Webda {
   /**
    * @inheritdoc
    */
-  flush(ctx: Context) {
-    if (ctx.getResponseBody() !== undefined) {
-      this._result.body = ctx.getResponseBody();
+  flush(ctx: WebContext) {
+    const body = ctx.getResponseBody();
+    if (body !== undefined && body !== false) {
+      this._result.body = body;
     }
   }
 

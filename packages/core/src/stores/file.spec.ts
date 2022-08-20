@@ -333,7 +333,7 @@ class FileStoreTest extends StoreTest {
       name: "Task #1"
     });
     await executor.execute(ctx);
-    let task = JSON.parse(<string> ctx.getResponseBody());
+    let task = JSON.parse(<string>ctx.getResponseBody());
     // It is two because the Saved has been called two
     assert.notStrictEqual(task.uuid, undefined);
     assert.strictEqual(task._autoListener, 2);

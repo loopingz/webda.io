@@ -271,6 +271,7 @@ class CoreModel {
       | "detach_binary"
       | "attach_binary"
       | "update_binary_metadata"
+      | "subscribe" // To manage MQTT or Websockets
       | string
   ): Promise<this> {
     throw 403;

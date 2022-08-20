@@ -295,7 +295,7 @@ class AuthenticationTest extends WebdaTest {
     // Get me on known user
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");
     await executor.execute(ctx);
-    let user = JSON.parse(<string> ctx.getResponseBody());
+    let user = JSON.parse(<string>ctx.getResponseBody());
     assert.strictEqual(user.plop, "yep");
     assert.strictEqual(user.register, undefined);
     assert.strictEqual(user.locale, "es-ES");

@@ -436,7 +436,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     await assert.rejects(() => executor.execute(ctx), /403/);
     ctx.getSession().login(user1.getUuid(), "fake");
     await executor.execute(ctx);
-    let info = JSON.parse(<string> ctx.getResponseBody());
+    let info = JSON.parse(<string>ctx.getResponseBody());
     assert.ok(!info.done, "should not be done yet");
     // Execute twice as we should still get an upload
     await executor.execute(ctx);
@@ -470,7 +470,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       metadata
     });
     await executor.execute(ctx);
-    info = JSON.parse(<string> ctx.getResponseBody());
+    info = JSON.parse(<string>ctx.getResponseBody());
     assert.ok(info.done, "should be done");
     assert.ok(info.url === undefined);
 
@@ -483,7 +483,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       metadata
     });
     await executor.execute(ctx);
-    info = JSON.parse(<string> ctx.getResponseBody());
+    info = JSON.parse(<string>ctx.getResponseBody());
     assert.ok(info.done, "should be done");
     assert.ok(info.url === undefined);
   }

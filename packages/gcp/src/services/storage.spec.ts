@@ -113,7 +113,7 @@ class StorageTest extends BinaryTest<Storage> {
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location === undefined);
-    assert.notStrictEqual(JSON.parse(<string> ctx.getResponseBody()).Location, undefined);
+    assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);
   }
 
   @test

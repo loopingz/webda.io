@@ -63,7 +63,7 @@ class OwnerModelTest extends WebdaTest {
     });
     this._session.login("fake_user", "fake_ident");
     await executor.execute(this._ctx);
-    let task = JSON.parse(<string> this._ctx.getResponseBody());
+    let task = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(task.name, "Task #1");
   }
 
@@ -86,7 +86,7 @@ class OwnerModelTest extends WebdaTest {
       public: true,
       name: "needed"
     });
-    let result = JSON.parse(<string> this._ctx.getResponseBody());
+    let result = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(result.uuid, "task_user1");
     assert.strictEqual(result.public, true);
   }
@@ -95,7 +95,7 @@ class OwnerModelTest extends WebdaTest {
     this._session.login("fake_user2", "fake_ident");
     let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_public");
     await executor.execute(this._ctx);
-    let result = JSON.parse(<string> this._ctx.getResponseBody());
+    let result = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(result.uuid, "task_public");
   }
 

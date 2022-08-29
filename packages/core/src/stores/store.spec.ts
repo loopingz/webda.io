@@ -809,6 +809,11 @@ abstract class StoreTest extends WebdaTest {
   async update(delay: number = 1) {
     let store = this.getIdentStore();
     let model = await store.save({ counter: 1 });
+    model.saveUpdateCompat = true;
+    await store.save(model, await this.newContext());
+    model.saveInnerMethod = true;
+    model.setContext(await this.newContext());
+    await model.save();
     let model2 = await store.get(model.getUuid());
     store.on("Store.Update", async () => {
       model2._lastUpdate = new Date(100);

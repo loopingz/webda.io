@@ -1031,6 +1031,16 @@ abstract class Store<
    * Might want to rename to create
    */
   async save(object, ctx: Context = undefined): Promise<T> {
+    if (object instanceof this._model && object[this._creationDateField] !== undefined && object[this._lastUpdateField] !== undefined) {
+      if (ctx) {
+        object.setContext(ctx);
+      }
+      return <T> await object.save();
+    }
+    return await this.create(object, ctx);
+  }
+
+  async create(object, ctx: Context = undefined) {
     object = this.initModel(object);
 
     // Dates should be store by the Store

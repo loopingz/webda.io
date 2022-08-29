@@ -191,8 +191,7 @@ class MemoryStore<
   async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
     let obj = await this._get(uid, true);
     this.checkUpdateCondition(obj, writeConditionField, writeCondition);
-    await this._save(object);
-    return this._getSync(uid);
+    return this._save(object);
   }
 
   /**

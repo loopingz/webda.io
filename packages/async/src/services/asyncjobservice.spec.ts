@@ -159,6 +159,10 @@ class AsyncJobServiceTest extends WebdaTest {
     service.getParameters().localLaunch = true;
     await service.launchAction(new AsyncAction());
     assert.strictEqual(stub.callCount, 1);
+    
+    // Try to launch an existing action
+    let action = await service.getService<Store<AsyncAction>>("AsyncJobs").create({});
+    await service.launchAction(action);
   }
 
   @test

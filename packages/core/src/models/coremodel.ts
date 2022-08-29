@@ -473,7 +473,11 @@ class CoreModel {
     }
     // If proxy is not used and not field specified call save
     if ((!util.types.isProxy(this) && full === undefined) || full === true) {
-      await this.__store.save(this);
+      if (!this._creationDate || !this._lastUpdate) {
+        await this.__store.create(this, <any>this.getContext());
+      } else {
+        await this.__store.update(this);
+      }
       return this;
     }
     const patch: any = {

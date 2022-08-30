@@ -171,7 +171,7 @@
                 "retry": {
                   "anyOf": [
                     {
-                      "$ref": "#/definitions/Partial%3Cclass-657338214-692-3001-657338214-0-14911%3E"
+                      "$ref": "#/definitions/Partial%3Cclass-657338214-735-3044-657338214-0-15050%3E"
                     },
                     {
                       "type": "null"
@@ -512,7 +512,26 @@
                                   "type": "number"
                                 },
                                 {
-                                  "$ref": "#/definitions/Long"
+                                  "type": "object",
+                                  "properties": {
+                                    "high": {
+                                      "type": "number",
+                                      "description": "The high 32 bits as a signed value."
+                                    },
+                                    "low": {
+                                      "type": "number",
+                                      "description": "The low 32 bits as a signed value."
+                                    },
+                                    "unsigned": {
+                                      "type": "boolean",
+                                      "description": "Whether unsigned or not."
+                                    }
+                                  },
+                                  "required": [
+                                    "high",
+                                    "low",
+                                    "unsigned"
+                                  ]
                                 },
                                 {
                                   "type": "string"
@@ -599,7 +618,26 @@
                                   "type": "number"
                                 },
                                 {
-                                  "$ref": "#/definitions/Long"
+                                  "type": "object",
+                                  "properties": {
+                                    "high": {
+                                      "type": "number",
+                                      "description": "The high 32 bits as a signed value."
+                                    },
+                                    "low": {
+                                      "type": "number",
+                                      "description": "The low 32 bits as a signed value."
+                                    },
+                                    "unsigned": {
+                                      "type": "boolean",
+                                      "description": "Whether unsigned or not."
+                                    }
+                                  },
+                                  "required": [
+                                    "high",
+                                    "low",
+                                    "unsigned"
+                                  ]
                                 },
                                 {
                                   "type": "string"
@@ -637,7 +675,26 @@
                                   "type": "number"
                                 },
                                 {
-                                  "$ref": "#/definitions/Long"
+                                  "type": "object",
+                                  "properties": {
+                                    "high": {
+                                      "type": "number",
+                                      "description": "The high 32 bits as a signed value."
+                                    },
+                                    "low": {
+                                      "type": "number",
+                                      "description": "The low 32 bits as a signed value."
+                                    },
+                                    "unsigned": {
+                                      "type": "boolean",
+                                      "description": "Whether unsigned or not."
+                                    }
+                                  },
+                                  "required": [
+                                    "high",
+                                    "low",
+                                    "unsigned"
+                                  ]
                                 },
                                 {
                                   "type": "string"
@@ -698,7 +755,26 @@
                           "type": "number"
                         },
                         {
-                          "$ref": "#/definitions/Long"
+                          "type": "object",
+                          "properties": {
+                            "high": {
+                              "type": "number",
+                              "description": "The high 32 bits as a signed value."
+                            },
+                            "low": {
+                              "type": "number",
+                              "description": "The low 32 bits as a signed value."
+                            },
+                            "unsigned": {
+                              "type": "boolean",
+                              "description": "Whether unsigned or not."
+                            }
+                          },
+                          "required": [
+                            "high",
+                            "low",
+                            "unsigned"
+                          ]
                         },
                         {
                           "type": "string"
@@ -759,7 +835,26 @@
                           "type": "number"
                         },
                         {
-                          "$ref": "#/definitions/Long"
+                          "type": "object",
+                          "properties": {
+                            "high": {
+                              "type": "number",
+                              "description": "The high 32 bits as a signed value."
+                            },
+                            "low": {
+                              "type": "number",
+                              "description": "The low 32 bits as a signed value."
+                            },
+                            "unsigned": {
+                              "type": "boolean",
+                              "description": "Whether unsigned or not."
+                            }
+                          },
+                          "required": [
+                            "high",
+                            "low",
+                            "unsigned"
+                          ]
                         },
                         {
                           "type": "string"
@@ -793,7 +888,7 @@
             }
           }
         },
-        "Partial<class-657338214-692-3001-657338214-0-14911>": {
+        "Partial<class-657338214-735-3044-657338214-0-15050>": {
           "type": "object",
           "properties": {
             "retryCodes": {
@@ -860,28 +955,6 @@
             4
           ],
           "description": "State enum."
-        },
-        "Long": {
-          "type": "object",
-          "properties": {
-            "high": {
-              "type": "number",
-              "description": "The high 32 bits as a signed value."
-            },
-            "low": {
-              "type": "number",
-              "description": "The low 32 bits as a signed value."
-            },
-            "unsigned": {
-              "type": "boolean",
-              "description": "Whether unsigned or not."
-            }
-          },
-          "required": [
-            "high",
-            "low",
-            "unsigned"
-          ]
         },
         "google.pubsub.v1.Subscription.State": {
           "type": "number",

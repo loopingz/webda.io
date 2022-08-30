@@ -122,7 +122,7 @@ export function Operation(
     target.constructor.operations[id] ??= {
       method: executor,
       input,
-      output,
+      output
     };
     // If url is specified define the openapi
     if (url) {
@@ -376,12 +376,12 @@ abstract class Service<
   /**
    * Init the operations
    */
-   initOperations() {
+  initOperations() {
     // @ts-ignore
     let operations = this.constructor.operations || {};
     for (let j in operations) {
       this.log("TRACE", "Adding operation", j, "for bean", this.getName());
-      this._webda.registerOperation(j, {...operations[j], service: this.getName()});
+      this._webda.registerOperation(j, { ...operations[j], service: this.getName() });
     }
   }
 

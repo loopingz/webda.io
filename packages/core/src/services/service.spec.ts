@@ -59,7 +59,7 @@ class ServiceTest extends WebdaTest {
     let service = new FakeService(this.webda, "plop", { bean: "Authentication" });
     service.resolve();
     this.registerService(service);
-    
+
     await this.webda.callOperation(ctx, "myOperation");
     await ctx.end();
     assert.strictEqual(ctx.getOutput(), "plop");

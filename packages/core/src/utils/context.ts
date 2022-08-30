@@ -200,7 +200,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * Get the HTTP stream to output raw data
    * @returns {*}
    */
-   getOutputStream() {
+  getOutputStream() {
     return this._stream;
   }
 

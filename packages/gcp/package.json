@@ -32,7 +32,7 @@
   "dependencies": {
     "@google-cloud/firestore": "^6.0.0",
     "@google-cloud/pubsub": "^3.0.0",
-    "@google-cloud/storage": "~6.4.1",
+    "@google-cloud/storage": "~6.5.1",
     "@webda/core": "^2.1.2"
   },
   "c8": {

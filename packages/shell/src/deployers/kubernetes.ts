@@ -200,7 +200,9 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       }
 
       try {
-        let spec = (await this.client.read(resource)).body;
+        // move to any
+        // error TS2345: Argument of type 'KubernetesObject' is not assignable to parameter of type 'KubernetesObjectHeader<KubernetesObject>
+        let spec = (await this.client.read(<any>resource)).body;
         for (let prop in resource.patch) {
           let path = prop;
           if (!prop.startsWith("$.")) {

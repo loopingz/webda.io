@@ -258,7 +258,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     try {
       // try to get the resource, if it does not exist an error will be thrown and we will end up in the catch
       // block.
-      await this.client.read(resource);
+      await this.client.read(<any>resource);
       this.logger.log("INFO", "Updating", resource.metadata);
       try {
         if (resource.kind === "Certificate" && resource.apiVersion === "certmanager.k8s.io/v1alpha1") {

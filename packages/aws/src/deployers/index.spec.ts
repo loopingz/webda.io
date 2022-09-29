@@ -217,7 +217,8 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
           };
         case 3:
           throw new NotFound({
-            $metadata: {}
+            $metadata: {},
+            message: ""
           });
       }
       return res;

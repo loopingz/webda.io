@@ -1,4 +1,4 @@
-import { Context, Core as Webda, HttpContext, HttpMethodType } from "@webda/core";
+import { Core as Webda, HttpContext, HttpMethodType, WebContext } from "@webda/core";
 import { APIGatewayProxyEvent, Context as LambdaContext, S3Event } from "aws-lambda";
 import { serialize as cookieSerialize } from "cookie";
 import { LambdaCommandEvent } from "./lambdacaller";
@@ -37,7 +37,7 @@ export default class LambdaServer extends Webda {
   /**
    * @ignore
    */
-  flushHeaders(ctx: Context) {
+  flushHeaders(ctx: WebContext) {
     const headers = ctx.getResponseHeaders() || {};
 
     this._result = {
@@ -286,7 +286,7 @@ export default class LambdaServer extends Webda {
    * @param context
    * @returns
    */
-  async handleLambdaReturn(context: Context) {
+  async handleLambdaReturn(context: WebContext) {
     await this.emitSync("Webda.Result", { context });
     await context.end();
     return this._result;

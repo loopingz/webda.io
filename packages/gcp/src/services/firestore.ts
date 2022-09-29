@@ -267,7 +267,7 @@ export default class FireStore<
     if (doc instanceof Timestamp) {
       return doc.toDate();
     } else if (Array.isArray(doc)) {
-      return doc.map(this.giveDatesBack, this);
+      return doc.map(d => this.giveDatesBack(d));
     } else if (doc instanceof Object) {
       let res = {};
       Object.keys(doc).forEach(k => {
@@ -305,7 +305,7 @@ export default class FireStore<
       // Limit to 1M docs
       res = (await this.firestore.collection(this.parameters.collection).limit(1000000).get()).docs;
     }
-    return res.map(doc => this.initModel(this.giveDatesBack(doc)));
+    return res.map(doc => this.initModel(this.giveDatesBack(doc.data())));
   }
 
   /**

@@ -19,11 +19,7 @@ import {
   ExtendedAnnotationsReader,
   FunctionType,
   InterfaceAndClassNodeParser,
-  LiteralType,
-  LogicError,
-  NodeParser,
   ObjectProperty,
-  ObjectType,
   ReferenceType,
   SchemaGenerator,
   SubNodeParser,
@@ -78,6 +74,21 @@ export function isStatic(node: ts.Node): boolean {
 export class FunctionTypeFormatter implements SubTypeFormatter {
   public supportsType(type: FunctionType): boolean {
     return type instanceof FunctionType;
+  }
+
+  public getDefinition(_type: FunctionType): Definition {
+    // Return a custom schema for the function property.
+    return {};
+  }
+
+  public getChildren(_type: FunctionType): BaseType[] {
+    return [];
+  }
+}
+
+export class NullTypeFormatter implements SubTypeFormatter {
+  public supportsType(type: FunctionType): boolean {
+    return type === undefined;
   }
 
   public getDefinition(_type: FunctionType): Definition {
@@ -149,71 +160,6 @@ class ConstructorNodeParser implements SubNodeParser {
   }
 }
 
-/**
- * Temporary fix while waiting for https://github.com/vega/ts-json-schema-generator/pull/1183
- */
-export class TypeofNodeParser implements SubNodeParser {
-  public constructor(protected typeChecker: ts.TypeChecker, protected childNodeParser: NodeParser) {}
-
-  public supportsNode(node: ts.TypeQueryNode): boolean {
-    return node.kind === ts.SyntaxKind.TypeQuery;
-  }
-
-  public createType(node: ts.TypeQueryNode, context: Context, reference?: ReferenceType): BaseType | undefined {
-    let symbol = this.typeChecker.getSymbolAtLocation(node.exprName)!;
-    if (symbol.flags & ts.SymbolFlags.Alias) {
-      symbol = this.typeChecker.getAliasedSymbol(symbol);
-    }
-
-    const valueDec = symbol.valueDeclaration;
-    if (ts.isEnumDeclaration(valueDec)) {
-      return this.createObjectFromEnum(valueDec, context, reference);
-    } else if (
-      ts.isVariableDeclaration(valueDec) ||
-      ts.isPropertySignature(valueDec) ||
-      ts.isPropertyDeclaration(valueDec)
-    ) {
-      if (valueDec.type) {
-        return this.childNodeParser.createType(valueDec.type, context);
-      } else if (valueDec.initializer) {
-        return this.childNodeParser.createType(valueDec.initializer, context);
-      }
-    } else if (ts.isClassDeclaration(valueDec)) {
-      return this.childNodeParser.createType(valueDec, context);
-    } else if (ts.isPropertyAssignment(valueDec)) {
-      return this.childNodeParser.createType(valueDec.initializer, context);
-    } else if (valueDec.kind === ts.SyntaxKind.FunctionDeclaration) {
-      return;
-    }
-
-    throw new LogicError(`Invalid type query "${valueDec.getFullText()}" (ts.SyntaxKind = ${valueDec.kind})`);
-  }
-
-  protected createObjectFromEnum(node: ts.EnumDeclaration, context: Context, reference?: ReferenceType): ObjectType {
-    const id = `typeof-enum-${getKey(node, context)}`;
-    if (reference) {
-      reference.setId(id);
-      reference.setName(id);
-    }
-
-    let type: BaseType | null | undefined = null;
-    const properties = node.members.map(member => {
-      const name = member.name.getText();
-      if (member.initializer) {
-        type = this.childNodeParser.createType(member.initializer, context);
-      } else if (type === null) {
-        type = new LiteralType(0);
-      } else if (type instanceof LiteralType && typeof type.getValue() === "number") {
-        type = new LiteralType(+type.getValue() + 1);
-      } else {
-        throw new LogicError(`Enum initializer missing for "${name}"`);
-      }
-      return new ObjectProperty(name, type, true);
-    });
-
-    return new ObjectType(id, [], properties, false);
-  }
-}
 /* c8 ignore stop */
 class WebdaAnnotatedNodeParser extends AnnotatedNodeParser {
   createType(node: ts.Node, context: Context, reference?: ReferenceType) {
@@ -693,7 +639,7 @@ export class Compiler {
     const extraTags = new Set(["Modda", "Model"]);
     const parser = createParser(program, config, (chainNodeParser: ChainNodeParser) => {
       chainNodeParser.addNodeParser(new ConstructorNodeParser());
-      chainNodeParser.addNodeParser(new TypeofNodeParser(this.typeChecker, chainNodeParser));
+      //chainNodeParser.addNodeParser(new TypeofNodeParser(this.typeChecker, chainNodeParser));
       chainNodeParser.addNodeParser(
         new CircularReferenceNodeParser(
           new AnnotatedNodeParser(
@@ -710,6 +656,7 @@ export class Compiler {
     const formatter = createFormatter(config, (fmt, _circularReferenceTypeFormatter) => {
       // If your formatter DOES NOT support children, e.g. getChildren() { return [] }:
       fmt.addTypeFormatter(new FunctionTypeFormatter());
+      fmt.addTypeFormatter(new NullTypeFormatter());
     });
     this.schemaGenerator = new SchemaGenerator(program, parser, formatter, config);
   }

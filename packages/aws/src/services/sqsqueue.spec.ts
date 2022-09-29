@@ -42,15 +42,13 @@ class SQSQueueTest extends QueueTest {
         QueueOwnerAWSAccountId: "000000000000"
       });
     } catch (err) {
-      if (err.name === "AWS.SimpleQueueService.NonExistentQueue") {
-        await sqs.createQueue({
-          QueueName: "webda-test"
-        });
-        this.info = await sqs.getQueueUrl({
-          QueueName: "webda-test",
-          QueueOwnerAWSAccountId: "000000000000"
-        });
-      }
+      await sqs.createQueue({
+        QueueName: "webda-test"
+      });
+      this.info = await sqs.getQueueUrl({
+        QueueName: "webda-test",
+        QueueOwnerAWSAccountId: "000000000000"
+      });
     }
     try {
       this.info = await sqs.getQueueUrl({
@@ -58,18 +56,16 @@ class SQSQueueTest extends QueueTest {
         QueueOwnerAWSAccountId: "000000000000"
       });
     } catch (err) {
-      if (err.name === "AWS.SimpleQueueService.NonExistentQueue") {
-        await sqs.createQueue({
-          QueueName: "webda-test2.fifo",
-          Attributes: {
-            FifoQueue: "true"
-          }
-        });
-        this.info = await sqs.getQueueUrl({
-          QueueName: "webda-test2.fifo",
-          QueueOwnerAWSAccountId: "000000000000"
-        });
-      }
+      await sqs.createQueue({
+        QueueName: "webda-test2.fifo",
+        Attributes: {
+          FifoQueue: "true"
+        }
+      });
+      this.info = await sqs.getQueueUrl({
+        QueueName: "webda-test2.fifo",
+        QueueOwnerAWSAccountId: "000000000000"
+      });
     }
   }
 

@@ -639,7 +639,6 @@ export class Compiler {
     const extraTags = new Set(["Modda", "Model"]);
     const parser = createParser(program, config, (chainNodeParser: ChainNodeParser) => {
       chainNodeParser.addNodeParser(new ConstructorNodeParser());
-      //chainNodeParser.addNodeParser(new TypeofNodeParser(this.typeChecker, chainNodeParser));
       chainNodeParser.addNodeParser(
         new CircularReferenceNodeParser(
           new AnnotatedNodeParser(

@@ -60,7 +60,7 @@
     "@types/nodemailer": "^6.4.4",
     "@webda/tsc-esm": "^1.0.1",
     "antlr4ts-cli": "^0.5.0-alpha.4",
-    "axios": "^0.27.2",
+    "axios": "^1.1.3",
     "c8": "^7.11.3",
     "fs-extra": "^10.0.0",
     "mocha": "^10.0.0",

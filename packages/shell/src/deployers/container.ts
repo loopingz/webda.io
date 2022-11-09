@@ -280,7 +280,7 @@ ENV PATH=\${PATH}:/devshell/packages/shell/bin\n`;
 
     // Normal take the same version as local webda-shell
     let tag = JSONUtils.loadFile(__dirname + "/../../package.json").version;
-    return `# Install current @webda/shell version\nRUN yarn add @webda/shell@${tag}\n\n`;
+    return `# Install current @webda/shell version\nRUN yarn -W add @webda/shell@${tag}\n\n`;
   }
 
   getDockerfileHeader() {

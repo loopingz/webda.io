@@ -11,6 +11,12 @@
     "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "www\\.facebook\\.com"],
     "locales": ["es-ES", "en", "fr-FR"]
   },
+  "cachedModules": {
+    "schemas": {
+      "WebdaTest/Mailer": "./moddas/debugmailer",
+      "WebdaTest/VoidStore": "./moddas/voidstore"
+    }
+  },
   "services": {
     "ResourceService": {
       "type": "Webda/ResourceService",

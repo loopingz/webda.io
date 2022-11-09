@@ -77,15 +77,18 @@ export class UnpackedApplication extends Application {
       configuration = deepmerge(includeConfiguration, configuration);
     }
     configuration.imports = effectiveImports;
-    configuration.cachedModules = {
-      project: this.loadProjectInformation(),
-      beans: {},
-      deployers: {},
-      models: {},
-      schemas: {},
-      moddas: {}
-    };
-    this.mergeModules(configuration);
+    // If cachedModules is defined we do not recompute
+    if (!configuration.cachedModules) {
+      configuration.cachedModules = {
+        project: this.loadProjectInformation(),
+        beans: {},
+        deployers: {},
+        models: {},
+        schemas: {},
+        moddas: {}
+      };
+      this.mergeModules(configuration);
+    }
     return configuration;
   }
 

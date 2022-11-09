@@ -73,7 +73,7 @@ class ApplicationTest extends WebdaTest {
 
   @test
   async cacheSchema() {
-    let app = new Application(__dirname + "/../test/config.json");
+    let app = new Application(__dirname + "/../test/config-cached.json");
     await app.load();
     // Should load from cache
     assert.notStrictEqual(app.getSchema("WebdaTest/Mailer"), undefined);

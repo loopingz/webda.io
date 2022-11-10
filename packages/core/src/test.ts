@@ -14,7 +14,7 @@ export class Executor {
    */
   execute(ctx: Context): Promise<any> {
     if (typeof ctx._route._method === "function") {
-      return Promise.resolve(ctx.getExecutor()[ctx._route._method.name](ctx));
+      return ctx.execute();
     }
     return Promise.reject(Error("Not implemented"));
   }
@@ -256,7 +256,7 @@ class WebdaTest {
       throw err;
     }
 
-    let res = <string> ctx.getResponseBody();
+    let res = <string>ctx.getResponseBody();
     if (res) {
       try {
         return JSON.parse(res);

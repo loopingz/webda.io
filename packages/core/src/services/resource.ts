@@ -197,8 +197,12 @@ export default class ResourceService<
     ctx.writeHead(200, {
       "Content-Type": mimetype
     });
-    ctx.write(fs.readFileSync(file));
-    ctx.end();
+    const stream = fs.createReadStream(file);
+    return new Promise((resolve, reject) => {
+      stream.on("error", reject);
+      stream.on("end", resolve);
+      stream.pipe(ctx.getStream());
+    });
   }
 }
 

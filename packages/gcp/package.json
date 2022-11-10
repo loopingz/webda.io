@@ -52,7 +52,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.2.0",
+    "@testdeck/mocha": "^0.3.0",
     "@types/node": "14.6.0",
     "@webda/async": "^2.1.4",
     "@webda/shell": "^2.1.4",

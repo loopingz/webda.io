@@ -139,7 +139,7 @@ export class WebdaServer extends Webda {
           await ctx.init();
           ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
           try {
-            this.resourceService._serve(ctx);
+            await this.resourceService._serve(ctx);
           } catch (err) {
             if (typeof err === "number") {
               ctx.writeHead(err);

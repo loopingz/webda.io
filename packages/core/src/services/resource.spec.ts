@@ -91,6 +91,16 @@ class ResourceTest extends WebdaTest {
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.txt").toString());
     assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "text/plain; charset=UTF-8");
   }
+
+  @test
+  async pngFile() {
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.png");
+    assert.notStrictEqual(executor, undefined);
+    await executor.execute(this.ctx);
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.png").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "image/png");
+  }
+
   // Check Store HTTP mapping
   @test
   async testStoreHttpMapping() {

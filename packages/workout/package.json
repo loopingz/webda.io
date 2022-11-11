@@ -25,7 +25,7 @@
     "yaml": "^2.0.0"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.2.0",
+    "@testdeck/mocha": "^0.3.2",
     "@types/json-schema": "^7.0.8",
     "@types/node": "=14.6.0",
     "@types/sprintf-js": "^1.1.2",

@@ -102,7 +102,9 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
         name: this.name,
         type: this.type
       },
-      ...this.parameters
+      ...this.parameters,
+      // Allow environment access in case of secrets from CI
+      env: process.env
     });
   }
 

@@ -10,7 +10,16 @@ import { OpenAPIV3 } from "openapi-types";
 import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
-import { ConfigurationService, Context, HttpContext, Logger, OperationContext, Service, Store, WebContext } from "./index";
+import {
+  ConfigurationService,
+  Context,
+  HttpContext,
+  Logger,
+  OperationContext,
+  Service,
+  Store,
+  WebContext
+} from "./index";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";
@@ -486,6 +495,17 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       resolve();
     });
     return this._init;
+  }
+
+  /**
+   * Pause for time ms
+   *
+   * @param time ms
+   */
+  static async sleep(time): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(resolve, time);
+    });
   }
 
   /**

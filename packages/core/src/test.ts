@@ -272,9 +272,7 @@ class WebdaTest {
    * @param time ms
    */
   async sleep(time): Promise<void> {
-    return new Promise(resolve => {
-      setTimeout(resolve, time);
-    });
+    return Core.sleep(time);
   }
 
   /**

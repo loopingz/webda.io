@@ -1,6 +1,17 @@
-import { CloudBinary, Context, Queue, RequestFilter, Service, ServiceParameters, Store } from "@webda/core";
+import {
+  CancelableLoopPromise,
+  CloudBinary,
+  Context,
+  CronService,
+  Queue,
+  RequestFilter,
+  Service,
+  ServiceParameters,
+  Store
+} from "@webda/core";
 import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";
+import { schedule as crontabSchedule } from "node-cron";
 import { v4 as uuidv4 } from "uuid";
 import { AsyncAction, AsyncActionQueueItem, WebdaAsyncAction } from "../models";
 import { Runner } from "./runner";
@@ -61,12 +72,23 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    */
   concurrencyLimit?: number;
 
+  /**
+   * Schedule action resolution
+   *
+   * If set to 1000ms, you can schedule action per second
+   * by default it resolve per minute
+   *
+   * @default 60000
+   */
+  schedulerResolution?: number;
+
   constructor(params: any) {
     super(params);
     this.url ??= "/async/jobs";
     this.queue ??= "AsyncActionsQueue";
     this.store ??= "AsyncActions";
     this.runners ??= [];
+    this.schedulerResolution ??= 60000;
   }
 }
 
@@ -300,6 +322,20 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
+   * Schedule action for later execution
+   *
+   * @param action
+   * @param timestamp
+   */
+  async scheduleAction(action: AsyncAction, timestamp: number) {
+    action.status = "SCHEDULED";
+    action.type = action.constructor.name;
+    // Schedule based on the scheduler resolution
+    action.scheduled = timestamp - (timestamp % this.parameters.schedulerResolution);
+    await this.store.save(action);
+  }
+
+  /**
    * Return headers to request status hook
    *
    * @param jobInfo
@@ -316,6 +352,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       .digest("hex");
     return res;
   }
+
   /**
    * Wrap async job and call the job status hook
    */
@@ -398,6 +435,43 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         headers: this.getHeaders(jobInfo)
       }
     );
+  }
+
+  /**
+   * Manage scheduled actions and crontab actions
+   * @returns
+   */
+  async scheduler() {
+    CronService.loadAnnotations(this._webda.getServices()).forEach(cron => {
+      this.log("INFO", `Schedule cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
+      crontabSchedule(cron.cron, async () => {
+        try {
+          this.log("INFO", `Execute cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
+          await this.getService(cron.serviceName)[cron.method](...cron.args);
+        } catch (err) {
+          this.log(
+            "ERROR",
+            `Execution error cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} - ${err}`
+          );
+        }
+      });
+    });
+    // Every schedulerResolution will check for scheduled task
+    return new CancelableLoopPromise(async () => {
+      let time = Date.now();
+      time -= time % this.parameters.schedulerResolution;
+      // Queue all actions
+      await Promise.all(
+        (
+          await this.store.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)
+        ).results.map(a => this.launchAction(a))
+      );
+      time += this.parameters.schedulerResolution;
+      // Wait for next scheduler resolution
+      if (time > Date.now()) {
+        await this.getWebda().sleep(time - Date.now());
+      }
+    });
   }
 }
 

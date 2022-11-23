@@ -21,8 +21,8 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
   serv4: Service;
 
   @Operation("myOperation", "test", "plop", "/operation/plop")
-  myOperation(ctx: OperationContext) {
-    ctx.write("plop");
+  async myOperation(ctx: OperationContext<{ output: string }>) {
+    ctx.write((await ctx.getInput()).output);
   }
 
   @Operation("myOperation")
@@ -34,6 +34,32 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
 class FakeService2 extends Service {
   @Inject("Authentication2")
   serv: Service;
+}
+
+class FakeOperationContext extends OperationContext {
+  input: string = "";
+  setInput(input: string) {
+    this.input = input;
+  }
+
+  /**
+   * By default empty
+   * @returns
+   */
+  async getRawInputAsString(
+    _limit: number = 1024 * 1024 * 10,
+    _timeout: number = 60000,
+    _encoding?: string
+  ): Promise<string> {
+    return this.input;
+  }
+
+  /**
+   * @override
+   */
+  async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer> {
+    return Buffer.from(this.input);
+  }
 }
 
 @suite
@@ -53,16 +79,44 @@ class ServiceTest extends WebdaTest {
 
   @test
   async operation() {
-    let ctx = new OperationContext(this.webda);
+    let ctx = new FakeOperationContext(this.webda);
     await ctx.init();
+    ctx.setInput(JSON.stringify({ output: "plop" }));
     assert.rejects(() => this.webda.callOperation(ctx, "myOperation2"));
     let service = new FakeService(this.webda, "plop", { bean: "Authentication" });
     service.resolve();
     this.registerService(service);
+    // @ts-ignore
+    this.webda.getApplication().baseConfiguration.cachedModules.schemas["test"] = {
+      properties: {
+        output: {
+          type: "string",
+          minLength: 8
+        }
+      },
+      required: ["output"]
+    };
 
-    await this.webda.callOperation(ctx, "myOperation");
+    await assert.rejects(() => this.webda.callOperation(ctx, "plop.myOperation"), /validation failed/);
+    ctx.getInput = () => undefined;
+    await assert.rejects(
+      () => this.webda.callOperation(ctx, "plop.myOperation"),
+      /Input does not fit the operation input/
+    );
+    ctx = new FakeOperationContext(this.webda);
+    await ctx.init();
+    ctx.setInput(JSON.stringify({ output: "longerOutput" }));
+    await this.webda.callOperation(ctx, "plop.myOperation");
     await ctx.end();
-    assert.strictEqual(ctx.getOutput(), "plop");
+    assert.strictEqual(ctx.getOutput(), "longerOutput");
+
+    // Check the list
+    assert.deepStrictEqual(this.webda.listOperations(), {
+      "plop.myOperation": {
+        input: "test",
+        output: "plop"
+      }
+    });
   }
 
   @test

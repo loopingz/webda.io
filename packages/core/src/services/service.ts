@@ -381,7 +381,7 @@ abstract class Service<
     let operations = this.constructor.operations || {};
     for (let j in operations) {
       this.log("TRACE", "Adding operation", j, "for bean", this.getName());
-      this._webda.registerOperation(j, { ...operations[j], service: this.getName() });
+      this._webda.registerOperation(`${this.getName()}.${j}`, { ...operations[j], service: this.getName() });
     }
   }
 

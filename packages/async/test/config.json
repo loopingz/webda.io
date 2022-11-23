@@ -20,6 +20,9 @@
       "command": "echo",
       "args": ["$JOB_ID"]
     },
+    "WebdaRunner": {
+      "type": "Webda/ServiceRunner"
+    },
     "Binary": {
       "type": "Webda/FileBinary",
       "folder": "./data"

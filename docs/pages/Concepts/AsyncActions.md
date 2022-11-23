@@ -32,6 +32,17 @@ sequenceDiagram
 
 ## Runner
 
+### LocalRunner
+
+This runner execute a process locally by using the `child_process`
+
+### WebdaRunner
+
+This runner execute only another service method within the same NodeJS process
+
+### KubeRunner
+
+This runner launch a Job in a Kubernetes
 
 ## Job
 

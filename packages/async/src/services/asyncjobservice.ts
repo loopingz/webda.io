@@ -2,6 +2,7 @@ import {
   CancelableLoopPromise,
   CloudBinary,
   Context,
+  Core,
   CronService,
   Queue,
   RequestFilter,
@@ -469,7 +470,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       time += this.parameters.schedulerResolution;
       // Wait for next scheduler resolution
       if (time > Date.now()) {
-        await this.getWebda().sleep(time - Date.now());
+        await Core.sleep(time - Date.now());
       }
     });
   }

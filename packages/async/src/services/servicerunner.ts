@@ -5,9 +5,8 @@ import { AgentInfo, Runner, RunnerParameters } from "./runner";
 /**
  * Type of action returned by LocalRunner
  */
-export interface ProcessAction {
+export interface ServiceAction {
   agent: AgentInfo;
-  pid: number;
 }
 
 /**
@@ -15,14 +14,14 @@ export interface ProcessAction {
  *
  * @WebdaModda
  */
-export default class WebdaRunner<T extends RunnerParameters = RunnerParameters> extends Runner<T> {
+export default class ServiceRunner<T extends RunnerParameters = RunnerParameters> extends Runner<T> {
   /**
    * @inheritdoc
    */
-  async launchAction(action: AsyncAction, info: JobInfo): Promise<ProcessAction> {
+  async launchAction(action: AsyncAction, info: JobInfo): Promise<ServiceAction> {
     if (action.type !== "WebdaAsyncAction") {
       this.log("ERROR", "Can only handle WebdaAsyncAction got", action.type);
-      return;
+      throw new Error("Can only handle WebdaAsyncAction got " + action.type);
     }
     const webdaAction = <WebdaAsyncAction>action;
 
@@ -31,7 +30,7 @@ export default class WebdaRunner<T extends RunnerParameters = RunnerParameters> 
       try {
         await action.getStore().patch({ status: "RUNNING" });
         this.log("INFO", "Job", action.getUuid(), "started");
-        await this.getService(webdaAction.serviceName)[webdaAction.method](...webdaAction.arguments);
+        await this.getService(webdaAction.serviceName)[webdaAction.method](...(webdaAction.arguments || []));
         await action.getStore().patch({ status: "SUCCESS" });
         this.log("INFO", "Job", action.getUuid(), "finished");
       } catch (err) {
@@ -41,8 +40,7 @@ export default class WebdaRunner<T extends RunnerParameters = RunnerParameters> 
     })();
 
     return {
-      agent: Runner.getAgentInfo(),
-      pid: 0
+      agent: Runner.getAgentInfo()
     };
   }
 }

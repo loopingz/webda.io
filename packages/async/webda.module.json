@@ -1,7 +1,8 @@
 {
   "moddas": {
     "webda/asyncjobservice": "lib/services/asyncjobservice:default",
-    "webda/localrunner": "lib/services/localrunner:default"
+    "webda/localrunner": "lib/services/localrunner:default",
+    "webda/servicerunner": "lib/services/servicerunner:default"
   },
   "beans": {},
   "models": {
@@ -36,9 +37,14 @@
             "ERROR",
             "QUEUED",
             "STARTING",
-            "TIMEOUT"
+            "TIMEOUT",
+            "SCHEDULED"
           ],
           "description": "Current status"
+        },
+        "scheduled": {
+          "type": "number",
+          "description": "Timestamp when the action was scheduled"
         },
         "errorMessage": {
           "type": "string",
@@ -137,6 +143,11 @@
         "concurrencyLimit": {
           "type": "number",
           "description": "Limit the maximum number of jobs running in //"
+        },
+        "schedulerResolution": {
+          "type": "number",
+          "description": "Schedule action resolution\n\nIf set to 1000ms, you can schedule action per second by default it resolve per minute",
+          "default": 60000
         },
         "openapi": {
           "type": "object",
@@ -310,6 +321,36 @@
         }
       },
       "title": "LocalRunner"
+    },
+    "webda/servicerunner": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actions managed by the runner",
+          "default": []
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceRunner"
     }
   }
 }

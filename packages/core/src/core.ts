@@ -515,7 +515,23 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     if (!this.operations[operationId]) {
       throw new Error(`Unknown Operation Id: ${operationId}`);
     }
+    let input = await context.getInput();
+    if (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true) {
+      throw new Error("Input does not fit the operation input");
+    }
     return this.getService(this.operations[operationId].service)[this.operations[operationId].method](context);
+  }
+
+  /**
+   * Get available operations
+   * @returns
+   */
+  listOperations(): { [key: string]: { input: string; output?: string } } {
+    const list = {};
+    Object.keys(this.operations).forEach(o => {
+      list[o] = { input: this.operations[o].input, output: this.operations[o].output };
+    });
+    return list;
   }
 
   /**

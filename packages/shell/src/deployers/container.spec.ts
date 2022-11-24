@@ -61,7 +61,7 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
     await this.deployer.loadDefaults();
     await this.deployer.deploy();
     assert.strictEqual(this.execs.length, 1);
-    assert.strictEqual(this.execs[0][0], "buildah bud --format=docker -f - -t webda-deployer:test .");
+    assert.strictEqual(this.execs[0][0], "cat | buildah bud --format=docker -f - -t webda-deployer:test .");
     this.execs = [];
     this.deployer.resources.push = true;
     this.deployer.resources.Dockerfile = "./testor";

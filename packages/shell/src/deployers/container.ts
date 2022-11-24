@@ -36,8 +36,8 @@ export const ClientDefinitions: { [key: string]: ContainerClientDefinition } = {
   buildah: {
     buildFile: "buildah bud --format=docker -f ${file} .",
     buildTagFile: "buildah bud --format=docker -f ${file} -t ${tag} .",
-    buildTagStdin: "buildah bud --format=docker -f - -t ${tag} .",
-    buildStdin: "buildah bud --format=docker -f - .",
+    buildTagStdin: "cat | buildah bud --format=docker -f - -t ${tag} .",
+    buildStdin: "cat | buildah bud --format=docker -f - .",
     pushTag: "buildah push ${tag}"
   }
 };

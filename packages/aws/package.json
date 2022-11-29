@@ -75,7 +75,7 @@
     "@webda/async": "^2.1.5",
     "@webda/shell": "^2.1.5",
     "aws-sdk-client-mock": "^0.6.2",
-    "sinon": "^14.0.0"
+    "sinon": "^15.0.0"
   },
   "type": "module",
   "engines": {

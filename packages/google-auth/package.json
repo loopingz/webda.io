@@ -52,7 +52,7 @@
     "@testdeck/mocha": "^0.2.0",
     "@types/node": "14.6.0",
     "@webda/shell": "^2.1.5",
-    "sinon": "^14.0.0"
+    "sinon": "^15.0.0"
   },
   "type": "module",
   "engines": {

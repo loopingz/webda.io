@@ -16,7 +16,7 @@
     "nyc": "^15.0.1",
     "prettier": "^2.3.2",
     "prettier-plugin-organize-imports": "^3.0.0",
-    "sinon": "^14.0.0",
+    "sinon": "^15.0.0",
     "ts-node": "^10.1.0",
     "typedoc": "~0.21.4",
     "typedoc-loopingz-theme": "~1.1.3",

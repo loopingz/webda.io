@@ -33,7 +33,7 @@ jobs:
 
     services:
       localstack:
-        image: localstack/localstack:1.1
+        image: localstack/localstack:latest
         ports:
           - 4566:4566
         env:

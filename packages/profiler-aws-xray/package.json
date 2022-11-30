@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "webda build",
+    "build:watch": "webda build --watch",
     "pretest": "npm run build",
     "test": "exit 0",
     "lint": "prettier --check src/**/*",

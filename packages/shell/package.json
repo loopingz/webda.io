@@ -21,6 +21,7 @@
   "scripts": {
     "build": "tsc-esm",
     "build:module": "webda build",
+    "build:watch": "webda build --watch",
     "pretest": "npm run build",
     "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts",
     "lint": "prettier --check src/**/*",

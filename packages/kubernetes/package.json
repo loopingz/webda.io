@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc-esm",
     "build:module": "webda build",
+    "build:watch": "webda build --watch",
     "pretest": "npm run build",
     "test": "c8 mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
     "run": "node core"

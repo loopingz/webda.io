@@ -1,11 +1,33 @@
-import { Bean, Context, Operation, OperationContext, RequestFilter, Route, Service, ServiceParameters } from "@webda/core";
+import {
+  Bean,
+  Context,
+  Operation,
+  OperationContext,
+  RequestFilter,
+  Route,
+  Service,
+  ServiceParameters
+} from "@webda/core";
 
-interface CustomBody {
+/**
+ * @WebdaSchema testInput
+ */
+export interface CustomBody {
   /**
    * @TJS-test
    */
   test: string;
   optional?: string;
+}
+
+/**
+ * @WebdaSchema testOutput
+ */
+export interface CustomBody {
+  /**
+   * @TJS-test
+   */
+  result: string;
 }
 
 interface DefinedOutput {
@@ -41,11 +63,11 @@ class CustomService<T extends CustomParameters = CustomParameters> extends Servi
     ctx.write("Tested");
   }
 
-  @Operation("testOperation", "schema")
-  testOperation(ctx: OperationContext) {
+  @Operation("testOperation", "testInput")
+  testOperation(ctx: OperationContext) {}
 
-  }
-
+  @Operation("testOperationWithOutput", "testInput", "testOutput")
+  testOperation2(ctx: OperationContext) {}
   /**
    * @MMD {seq:MyGraph} My step 1
    */

@@ -55,6 +55,8 @@ class SourceApplicationTest extends WebdaTest {
     // Simple getters
     this.sampleApp.getPackagesLocations();
     this.sampleApp.getNamespace();
+    process.env.GIT_INFO = "eyJjb21taXQiOiJmYWtlT25lIn0=";
+    assert.strictEqual(this.sampleApp.getGitInformation().commit, "fakeOne");
   }
 
   @test

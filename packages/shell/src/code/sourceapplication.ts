@@ -49,8 +49,8 @@ export class SourceApplication extends UnpackedApplication {
     };
     try {
       // If git information are defined in env - useful for container build
-      if (process.env["GIT_INFO"]) {
-        return JSON.parse(Buffer.from(process.env["GIT_INFO"], "base64").toString());
+      if (process.env.GIT_INFO) {
+        return JSON.parse(Buffer.from(process.env.GIT_INFO, "base64").toString());
       }
       let tags = execSync(`git tag --points-at HEAD`, options)
         .toString()

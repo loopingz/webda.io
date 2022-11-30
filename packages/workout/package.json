@@ -29,7 +29,7 @@
     "@types/json-schema": "^7.0.8",
     "@types/node": "=14.6.0",
     "@types/sprintf-js": "^1.1.2",
-    "@types/uuid": "^8.3.4",
+    "@types/uuid": "^9.0.0",
     "@webda/tsc-esm": "^1.0.1",
     "c8": "^7.11.3",
     "mocha": "^10.0.0",

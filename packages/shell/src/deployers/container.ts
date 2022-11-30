@@ -369,16 +369,23 @@ ADD package.json /webda/\n\n`;
     return dockerfile;
   }
 
+  /**
+   * Add the deployment export
+   * @param localPath
+   * @param appPath
+   * @returns
+   */
   addDeploymentToImage(localPath: string = "deployments", appPath: string = "/webda/") {
     let deployment = this.manager.getDeploymentName();
+    let gitInfo = Buffer.from(JSON.stringify(this.app.getGitInformation())).toString("base64");
     if (deployment) {
       // Export deployment
       return `# Add deployment
-COPY ${localPath}/${deployment}.* ${path.join(appPath, "deployments")}
-RUN /webda/node_modules/.bin/webda -d ${deployment} config --noCompile webda.config.json${
+COPY ${localPath} ${path.join(appPath, "deployments")}
+RUN GIT_INFO=${gitInfo} webda -d ${deployment} config --noCompile webda.config.json${
         fs.existsSync(this.getApplication().getAppPath("webda.config.jsonc")) ? "c" : ""
       }
-`;
+RUN rm -rf deployments\n\n`;
     }
     return "";
   }

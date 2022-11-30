@@ -3,6 +3,7 @@ import {
   CloudBinary,
   Context,
   Core,
+  CronDefinition,
   CronService,
   Queue,
   RequestFilter,
@@ -14,7 +15,7 @@ import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";
 import { schedule as crontabSchedule } from "node-cron";
 import { v4 as uuidv4 } from "uuid";
-import { AsyncAction, AsyncActionQueueItem, WebdaAsyncAction } from "../models";
+import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction } from "../models";
 import { Runner } from "./runner";
 
 /**
@@ -72,6 +73,18 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    * Limit the maximum number of jobs running in //
    */
   concurrencyLimit?: number;
+  /**
+   * Define if we should only use an http hook and not rely on store for AsyncOperation
+   *
+   * @default false
+   */
+  onlyHttpHook?: boolean;
+  /**
+   * Include Cron annotation to launch them as AsyncOperationAction
+   *
+   * @default true
+   */
+  includeCron?: boolean;
 
   /**
    * Schedule action resolution
@@ -90,6 +103,8 @@ export class AsyncJobServiceParameters extends ServiceParameters {
     this.store ??= "AsyncActions";
     this.runners ??= [];
     this.schedulerResolution ??= 60000;
+    this.onlyHttpHook ??= false;
+    this.includeCron ??= true;
   }
 }
 
@@ -136,7 +151,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   resolve(): this {
     super.resolve();
     this.queue = this.getService(this.parameters.queue);
-    if (!this.queue) {
+    if (!this.queue && !this.parameters.localLaunch) {
       throw new Error(`AsyncService requires a valid queue. '${this.parameters.queue}' is invalid`);
     }
     this.store = this.getService(this.parameters.store);
@@ -227,10 +242,25 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)
    */
   protected async statusHook(context: Context) {
-    const action = await this.verifyJobRequest(context);
+    let action = await this.verifyJobRequest(context);
     const body = await context.getRequestBody();
+    action = await this.updateAction(
+      action,
+      body,
+      Number.parseInt(context.getHttpContext().getUniqueHeader("X-Job-Time")) || 0
+    );
+    context.write({ ...action, logs: undefined, statusDetails: undefined });
+  }
 
-    action._lastJobUpdate = Number.parseInt(context.getHttpContext().getUniqueHeader("X-Job-Time")) || 0;
+  /**
+   * Update the async action from hook
+   * @param action
+   * @param body
+   * @param lastUpdate
+   * @returns
+   */
+  protected async updateAction(action: AsyncAction, body: Partial<AsyncAction>, lastUpdate: number = 0) {
+    action._lastJobUpdate = lastUpdate;
     if (Date.now() - action._lastJobUpdate > 60) {
       action._lastJobUpdate = Date.now();
     }
@@ -248,8 +278,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         action[k] = body[k];
       }
     });
-    await this.store.save(action);
-    context.write({ ...action, logs: undefined, statusDetails: undefined });
+    await this.store.patch(action);
+    return action;
   }
 
   /**
@@ -298,7 +328,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     const info: JobInfo = {
       JOB_SECRET_KEY: action.__secretKey,
       JOB_ID: action.getUuid(),
-      JOB_HOOK: this.getWebda().getApiUrl(this.parameters.url), // How to find the absolute url
+      JOB_HOOK:
+        this.parameters.onlyHttpHook || action.type !== "AsyncOperation"
+          ? this.getWebda().getApiUrl(this.parameters.url)
+          : "store", // How to find the absolute url
       JOB_ORCHESTRATOR: this.getName()
     };
     await action.patch({
@@ -355,9 +388,29 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
+   * Post hook to a remote url or use local store to update status
+   * @param jobInfo
+   * @param message
+   * @returns
+   */
+  async postHook(jobInfo: JobInfo, message: any): Promise<AsyncOperationAction> {
+    // Http allow to break paradigm between the executor and the orchestrator
+    if (jobInfo.JOB_HOOK.startsWith("http")) {
+      return (
+        await axios.post<any, AxiosResponse<AsyncOperationAction>>(jobInfo.JOB_HOOK, message, {
+          headers: this.getHeaders(jobInfo)
+        })
+      ).data;
+    } else if (jobInfo.JOB_HOOK === "store") {
+      // If executor and orchestrator runs within same privilege it simplify the infrastructure
+      return <Promise<AsyncOperationAction>>this.updateAction(await this.store.get(jobInfo.JOB_ID), message);
+    }
+  }
+
+  /**
    * Wrap async job and call the job status hook
    */
-  async runWebdaAsyncAction(jobInfo?: JobInfo): Promise<void> {
+  async runAsyncOperationAction(jobInfo?: JobInfo): Promise<void> {
     // Get it from environment
     if (jobInfo === undefined) {
       jobInfo = <JobInfo>{};
@@ -368,30 +421,24 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     // Ensure correct context
     if (!jobInfo.JOB_ORCHESTRATOR || !jobInfo.JOB_ID || !jobInfo.JOB_SECRET_KEY || !jobInfo.JOB_HOOK) {
+      this.log("ERROR", "Cannot run AsyncAction without context");
       throw new Error("Cannot run AsyncAction without context");
     }
     // If we are not the target redirect to the right one
     if (jobInfo.JOB_ORCHESTRATOR !== this.getName()) {
-      return this.getService<AsyncJobService>(jobInfo.JOB_ORCHESTRATOR).runWebdaAsyncAction(jobInfo);
+      this.log("DEBUG", `Passing jobInfo ${jobInfo} to targeted service`);
+      return this.getService<AsyncJobService>(jobInfo.JOB_ORCHESTRATOR).runAsyncOperationAction(jobInfo);
     }
-
+    this.log("DEBUG", "Getting action to execute from hook", jobInfo);
     // Get action info by calling the hook
-    let action = (
-      await axios.post<any, AxiosResponse<WebdaAsyncAction>>(
-        jobInfo.JOB_HOOK,
-        {
-          agent: {
-            ...Runner.getAgentInfo(),
-            nodeVersion: process.version
-          },
-          status: "RUNNING"
-        },
-        {
-          headers: this.getHeaders(jobInfo)
-        }
-      )
-    ).data;
-
+    let action = await this.postHook(jobInfo, {
+      agent: {
+        ...Runner.getAgentInfo(),
+        nodeVersion: process.version
+      },
+      status: "RUNNING"
+    });
+    this.log("DEBUG", "Action received", action.serviceName, action.method, action.arguments);
     let results;
     try {
       // Check it contains the right info
@@ -413,50 +460,54 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       results = await service[action.method](...(action.arguments || []));
     } catch (err) {
       // Job is in error
-      await axios.post(
-        jobInfo.JOB_HOOK,
-        {
-          errorMessage: <string | undefined>err?.message,
-          status: "ERROR"
-        },
-        {
-          headers: this.getHeaders(jobInfo)
-        }
-      );
+      await this.postHook(jobInfo, {
+        errorMessage: <string | undefined>err?.message,
+        status: "ERROR"
+      });
       return;
     }
     // Update status
-    await axios.post(
-      jobInfo.JOB_HOOK,
-      {
-        results,
-        status: "SUCCESS"
-      },
-      {
-        headers: this.getHeaders(jobInfo)
+    await this.postHook(jobInfo, {
+      results,
+      status: "SUCCESS"
+    });
+  }
+
+  /**
+   * Get the cron callback function
+   * @param cron
+   * @returns
+   */
+  getCronExecutor(cron: CronDefinition) {
+    return async () => {
+      try {
+        this.log(
+          "INFO",
+          `Execute cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} as an AsyncOperationAction`
+        );
+        await this.launchAction(new AsyncOperationAction(cron.serviceName, cron.method, cron.args));
+      } catch (err) {
+        this.log(
+          "ERROR",
+          `Execution error cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} - ${err}`
+        );
       }
-    );
+    };
   }
 
   /**
    * Manage scheduled actions and crontab actions
    * @returns
    */
-  async scheduler() {
-    CronService.loadAnnotations(this._webda.getServices()).forEach(cron => {
-      this.log("INFO", `Schedule cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
-      crontabSchedule(cron.cron, async () => {
-        try {
-          this.log("INFO", `Execute cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
-          await this.getService(cron.serviceName)[cron.method](...cron.args);
-        } catch (err) {
-          this.log(
-            "ERROR",
-            `Execution error cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} - ${err}`
-          );
-        }
+  scheduler(): CancelableLoopPromise {
+    // Map cron to an AsyncOperationAction
+    // It allows you to keep a trace of the cron execution in the AsyncAction
+    if (this.parameters.includeCron) {
+      CronService.loadAnnotations(this._webda.getServices()).forEach(cron => {
+        this.log("INFO", `Schedule cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
+        crontabSchedule(cron.cron, this.getCronExecutor(cron));
       });
-    });
+    }
     // Every schedulerResolution will check for scheduled task
     return new CancelableLoopPromise(async () => {
       let time = Date.now();
@@ -471,6 +522,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       // Wait for next scheduler resolution
       if (time > Date.now()) {
         await Core.sleep(time - Date.now());
+        /* c8 ignore next */
       }
     });
   }

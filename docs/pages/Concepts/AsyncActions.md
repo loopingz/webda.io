@@ -1,6 +1,17 @@
 # Async Actions
 
-This module allows you to execute and give status on jobs
+This module allows you to execute background tasks (called AsyncAction).
+An AsyncAction can run as a child process (LocalRunner), a promise (ServiceRunner) or a kubernetes job (KubeRunner of @webda/kubernetes module).
+
+Using child process or kubernetes job allows you to use other languages to implement your AsyncAction.
+
+When promise is used, you need to implement in Typescript of course.
+
+The AsyncJobService will store the information in a Store, launch the AsyncAction passing it the JobInfo that allows the action to update its status.
+
+The AsyncJobService also allow you to schedule the AsyncAction.
+
+Currently to use Cron with something else than an AsyncOperationAction, you need to create an AsyncOperationAction that will then launch the real AsyncAction.
 
 ## Architecture
 
@@ -32,13 +43,19 @@ sequenceDiagram
 
 ## Runner
 
+The runner is the service responsible to launch the action effectively.
+It can pick which action it can handle by implementing the method `handleType`
+
+This way you can decide to execute your Python Action with a KubernetesJob configuration and the other with another configuration or a child_process.
+
 ### LocalRunner
 
 This runner execute a process locally by using the `child_process`
 
-### WebdaRunner
+### ServiceRunner
 
 This runner execute only another service method within the same NodeJS process
+It can only be used with AsyncOperationAction
 
 ### KubeRunner
 
@@ -46,9 +63,20 @@ This runner launch a Job in a Kubernetes
 
 ## Job
 
-### Node
+### Webda
+
+You can define a Kubernetes Job configuration that run your webda image
+
+```
+webda launch AsyncService runAsyncOperationAction
+```
+
+Where AsyncService is the name of your AsyncService instance.
+It will pick up automatically the job info from the environment variables, run the target operation and post its status
 
 ### Python
+
+You can interact with the AsyncJobService API with this primitives.
 
 ```python
 

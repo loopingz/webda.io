@@ -264,14 +264,4 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       mock.restore();
     }
   }
-
-  @test
-  async normal() {
-    // TODO Reenable as soon as localstack fix issue from: https://github.com/spulec/moto/issues/5610
-  }
-
-  @test
-  async update() {
-    // TODO Reenable as soon as localstack fix issue from: https://github.com/spulec/moto/issues/5610
-  }
 }

@@ -134,10 +134,10 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    */
   async handleCallback(ctx: Context) {
     // Verify state are equal
-    if (ctx.getRequestParameters().state !== ctx.getSession<OAuthSession>().oauth.state) {
+    if (ctx.getRequestParameters().state !== ctx.getSession<OAuthSession>().oauth?.state) {
       this.log(
         "WARN",
-        `Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth.state}`
+        `Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth?.state}`
       );
       throw 403;
     }

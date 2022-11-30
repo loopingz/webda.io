@@ -29,6 +29,14 @@ export interface Job {}
  */
 export default class AsyncAction extends CoreModel {
   /**
+   * Set type
+   */
+  constructor() {
+    super();
+    this.type = this.constructor.name;
+  }
+
+  /**
    * Action uuid
    */
   public uuid: string;
@@ -96,15 +104,17 @@ export default class AsyncAction extends CoreModel {
 /**
  * Define a Webda Async Action
  */
-export class WebdaAsyncAction extends AsyncAction {
+export class AsyncOperationAction extends AsyncAction {
   /**
-   * Service to call
+   *
+   * @param serviceName service to call
+   * @param method method to call
+   * @param arguments to call with the method
    */
-  serviceName: string;
-  /**
-   * Method to run
-   */
-  method: string;
+  constructor(public serviceName?: string, public method?: string, args?: any[]) {
+    super();
+    this.arguments = args;
+  }
 }
 
 export { AsyncAction };

@@ -1,4 +1,4 @@
-import { AsyncAction, WebdaAsyncAction } from "../models";
+import { AsyncAction, AsyncOperationAction } from "../models";
 import { JobInfo } from "./asyncjobservice";
 import { AgentInfo, Runner, RunnerParameters } from "./runner";
 
@@ -19,22 +19,25 @@ export default class ServiceRunner<T extends RunnerParameters = RunnerParameters
    * @inheritdoc
    */
   async launchAction(action: AsyncAction, info: JobInfo): Promise<ServiceAction> {
-    if (action.type !== "WebdaAsyncAction") {
-      this.log("ERROR", "Can only handle WebdaAsyncAction got", action.type);
-      throw new Error("Can only handle WebdaAsyncAction got " + action.type);
+    if (action.type !== "AsyncOperationAction") {
+      this.log("ERROR", "Can only handle AsyncOperationAction got", action.type);
+      throw new Error("Can only handle AsyncOperationAction got " + action.type);
     }
-    const webdaAction = <WebdaAsyncAction>action;
+    const webdaAction = <AsyncOperationAction>action;
 
     // Launch within current process
     (async () => {
       try {
-        await action.getStore().patch({ status: "RUNNING" });
+        await action.patch({ status: "RUNNING" });
         this.log("INFO", "Job", action.getUuid(), "started");
         await this.getService(webdaAction.serviceName)[webdaAction.method](...(webdaAction.arguments || []));
-        await action.getStore().patch({ status: "SUCCESS" });
+        await action.patch({ status: "SUCCESS" });
         this.log("INFO", "Job", action.getUuid(), "finished");
       } catch (err) {
-        await action.getStore().patch({ status: "ERROR", errorMessage: err });
+        await action.patch({
+          status: "ERROR",
+          errorMessage: JSON.stringify(err, Object.getOwnPropertyNames(err))
+        });
         this.log("INFO", "Job", action.getUuid(), "errored", err);
       }
     })();

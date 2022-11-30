@@ -94,11 +94,20 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * Proxy to an url
    * @param ctx
    * @param host
-   * @param url
+   * @param url prefix to remove
    */
   async proxy(ctx: Context, host: string, url: string) {
     const subUrl = ctx.getHttpContext().getRelativeUri().substring(url.length);
-    this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${host}${subUrl}`);
+    return this.rawProxy(ctx, host, subUrl);
+  }
+
+  /**
+   * Proxy an url to the response directly
+   * @param ctx
+   * @param url
+   */
+  async rawProxy(ctx: Context, host: string, url: string, headers: any = {}) {
+    this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${url}`);
     await new Promise((resolve, reject) => {
       let xff = ctx.getHttpContext().getHeader("x-forwarded-for");
       if (!xff) {
@@ -108,7 +117,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       }
       const protocol = ctx.getHttpContext().getProtocol();
       let req = this.createRequest(
-        `${host}${subUrl}`,
+        `${host}${url}`,
         ctx.getHttpContext().getMethod(),
         {
           ...this.getRequestHeaders(ctx),
@@ -117,7 +126,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
           "X-Forwarded-Proto": ctx
             .getHttpContext()
             .getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
-          "X-Forwarded-For": xff
+          "X-Forwarded-For": xff,
+          ...headers
         },
         res => {
           res.on("end", resolve);

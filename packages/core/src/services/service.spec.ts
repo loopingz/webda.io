@@ -113,8 +113,8 @@ class ServiceTest extends WebdaTest {
     // Check the list
     assert.deepStrictEqual(this.webda.listOperations(), {
       "plop.myOperation": {
-        input: "test",
-        output: "plop"
+        input: "webda/test",
+        output: "webda/plop"
       }
     });
   }

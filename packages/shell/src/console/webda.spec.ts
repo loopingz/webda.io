@@ -340,6 +340,13 @@ class DynamicService extend Service {
   }
 
   @test
+  async operationsExporter() {
+    // Define what to check
+    await this.commandLine("operations exportOps.json");
+    await this.commandLine("operations exportOps.ts");
+  }
+
+  @test
   async build() {
     let stub;
     try {

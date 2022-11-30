@@ -381,6 +381,35 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "QueueService"
     },
+    "webdademo/testinput": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "optional": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "testInput"
+    },
+    "webdademo/testoutput": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "testOutput"
+    },
     "beans/customservice": {
       "type": "object",
       "properties": {
@@ -393,7 +422,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1580-2064-1131383939-0-7302976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1581-2065-1131383939-0-7374976353190%3E"
         }
       },
       "required": [
@@ -402,7 +431,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-1580-2064-1131383939-0-7302976353190>": {
+        "Partial<class-1131383939-1581-2065-1131383939-0-7374976353190>": {
           "type": "object",
           "properties": {
             "type": {

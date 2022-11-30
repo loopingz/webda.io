@@ -529,7 +529,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   listOperations(): { [key: string]: { input: string; output?: string } } {
     const list = {};
     Object.keys(this.operations).forEach(o => {
-      list[o] = { input: this.operations[o].input, output: this.operations[o].output };
+      list[o] = {
+        input: this.application.completeNamespace(this.operations[o].input),
+        output: this.operations[o].output ? this.application.completeNamespace(this.operations[o].output) : undefined
+      };
     });
     return list;
   }

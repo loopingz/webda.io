@@ -360,6 +360,7 @@ export class StoreParameters extends ServiceParameters {
    * async delete
    */
   asyncDelete: boolean;
+
   /**
    * Expose the service to an urls
    */
@@ -367,9 +368,22 @@ export class StoreParameters extends ServiceParameters {
   /**
    * Allow to load object that does not have the type data
    *
-   * @default true
+   * @default false
    */
   strict?: boolean;
+  /**
+   * When __type model not found, use the model
+   * If strict is setup this parameter is not used
+   *
+   * @default true
+   */
+  defaultModel?: boolean;
+  /**
+   * If set, Store will ignore the __type
+   *
+   * @default false
+   */
+  forceModel?: boolean;
   /**
    * Slow query threshold
    *
@@ -403,7 +417,9 @@ export class StoreParameters extends ServiceParameters {
     if (params.index) {
       throw new Error("Deprecated index usage, use an AggregatorService");
     }
-    this.strict ??= true;
+    this.strict ??= false;
+    this.defaultModel ??= true;
+    this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
   }
 }
@@ -494,6 +510,10 @@ abstract class Store<
    */
   _model: CoreModelDefinition;
   /**
+   * Contains the current model type
+   */
+  _modelType: string;
+  /**
    * Contain the model update date
    */
   _lastUpdateField: string;
@@ -537,6 +557,7 @@ abstract class Store<
     super.computeParameters();
     const p = this.parameters;
     this._model = <CoreModelDefinition>this._webda.getModel(p.model);
+    this._modelType = this._webda.getApplication().getModelFromInstance(new this._model());
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();
@@ -757,9 +778,27 @@ abstract class Store<
    * @returns
    */
   protected initModel(object: any = {}): T {
+    if (object instanceof CoreModel) {
+      object.__type = this.getWebda().getApplication().getModelFromInstance(object);
+    } else {
+      object.__type ??= this._modelType;
+    }
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
-      object = this._model.factory(this._model, object);
+      // Dynamic load type
+      if (object.__type && !this.getParameters().forceModel) {
+        try {
+          const modelType = this.getWebda().getApplication().getModel(object.__type);
+          object = new modelType().load(object, true);
+        } catch (err) {
+          if (!this.parameters.defaultModel) {
+            throw new Error(`Unknown model ${object.__type} found for Store(${this.getName()})`);
+          }
+          object = this._model.factory(this._model, object);
+        }
+      } else {
+        object = this._model.factory(this._model, object);
+      }
     }
     if (!object.getUuid()) {
       object.setUuid(object.generateUid(object));
@@ -1222,8 +1261,11 @@ abstract class Store<
     object[this._lastUpdateField] = new Date();
     this.metrics.get++;
     let load = await this._getFromCache(object[this._uuidField], true);
-    if (load.__type !== this._model.name && this.parameters.strict) {
-      this.log("WARN", `Object '${object[this._uuidField]}' was not created by this store`);
+    if (load.__type !== this._modelType && this.parameters.strict) {
+      this.log(
+        "WARN",
+        `Object '${object[this._uuidField]}' was not created by this store ${load.__type}:${this._modelType}`
+      );
       throw new StoreNotFoundError(object[this._uuidField], this.getName());
     }
     loaded = this.initModel(load);
@@ -1363,8 +1405,8 @@ abstract class Store<
       if (to_delete === undefined) {
         return;
       }
-      if (to_delete.__type !== this._model.name && this.parameters.strict) {
-        this.log("WARN", `Object '${uid}' was not created by this store`);
+      if (to_delete.__type !== this._modelType && this.parameters.strict) {
+        this.log("WARN", `Object '${uid}' was not created by this store ${to_delete.__type}:${this._modelType}`);
         return;
       }
       to_delete = this.initModel(to_delete);
@@ -1472,8 +1514,8 @@ abstract class Store<
     if (!object) {
       return defaultValue ? this.initModel(defaultValue) : undefined;
     }
-    if (object.__type !== this._model.name && this.parameters.strict) {
-      this.log("WARN", `Object '${uid}' was not created by this store`);
+    if (object.__type !== this._modelType && this.parameters.strict) {
+      this.log("WARN", `Object '${uid}' was not created by this store ${object.__type}:${this._modelType}`);
       return undefined;
     }
     object = this.initModel(object);

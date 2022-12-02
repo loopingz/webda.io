@@ -380,7 +380,6 @@ class CoreModel {
     if (this._lastUpdate) {
       this._lastUpdate = new Date(this._lastUpdate);
     }
-    this.__type = this.__class.name;
 
     if (!this.getUuid()) {
       this.setUuid(this.generateUid(raw));
@@ -539,7 +538,6 @@ class CoreModel {
    */
   toStoredJSON(stringify = false): any | string {
     let obj = this._toJSON(true);
-    obj.__type = this.__class.name;
     if (stringify) {
       return JSON.stringify(obj);
     }

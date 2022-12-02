@@ -631,6 +631,16 @@ export class Application {
   }
 
   /**
+   * Return the model name for a object
+   * @param object
+   */
+  getModelFromInstance(object): string | undefined {
+    return Object.keys(this.models)
+      .filter(k => this.models[k] === object.constructor)
+      .pop();
+  }
+
+  /**
    * Return all deployers
    */
   getDeployers(): { [key: string]: Modda } {

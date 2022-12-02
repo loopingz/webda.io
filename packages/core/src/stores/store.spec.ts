@@ -139,6 +139,10 @@ abstract class StoreTest extends WebdaTest {
 
     // Verify permission issue and half pagination
     userStore.setModel(PermissionModel);
+    userStore.getParameters().forceModel = true;
+    if (userStore._cacheStore) {
+      userStore._cacheStore.getParameters().forceModel = true;
+    }
     let context = await this.newContext();
     // Verify pagination system
     i = 0;

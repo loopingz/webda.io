@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync, unlinkSync } from "fs";
-import { AggregatorService, CoreModel, MemoryStore, Store } from "../index";
+import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User } from "../index";
 import { HttpContext } from "../utils/httpcontext";
 import { JSONUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
@@ -70,6 +70,7 @@ class MemoryStoreTest extends StoreTest {
     let userStore = await this.fillForQuery();
     // Verify permission issue and half pagination
     userStore.setModel(PermissionModel);
+    userStore.getParameters().forceModel = true;
     // Return undefined as filter to trigger the warning
     let find = userStore.find;
     userStore.find = async query => {
@@ -129,6 +130,24 @@ class MemoryStoreTest extends StoreTest {
       }
     };
     await assert.throws(() => identStore.initRoutes(), /Action method _test does not exist/);
+  }
+
+  @test
+  async multiModel() {
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    identStore.getParameters().strict = false;
+    await identStore.save(new User().load({ uuid: "user" }, true));
+    await identStore.save(new Ident().load({ uuid: "ident" }, true));
+    assert.ok((await identStore.get("user")) instanceof User);
+    assert.ok((await identStore.get("ident")) instanceof Ident);
+    identStore.getParameters().defaultModel = true;
+    // @ts-ignore
+    identStore.storage["user"] = identStore.storage["user"].replace(/webda\/user/, "webda/user2");
+    assert.ok((await identStore.get("user")).constructor.name === "Ident");
+    assert.ok((await identStore.get("ident")) instanceof Ident);
+    identStore.getParameters().defaultModel = false;
+    await assert.rejects(() => identStore.get("user"));
+    assert.ok((await identStore.get("ident")) instanceof Ident);
   }
 
   @test

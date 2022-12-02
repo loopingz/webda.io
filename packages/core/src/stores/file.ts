@@ -219,7 +219,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     let res = await this.exists(uid);
     if (res) {
       let data = JSON.parse(fs.readFileSync(this.file(uid)).toString());
-      if (data.__type !== this._model.name && this.parameters.strict) {
+      if (data.__type !== this._modelType && this.parameters.strict) {
         return undefined;
       }
       return this.initModel(data);

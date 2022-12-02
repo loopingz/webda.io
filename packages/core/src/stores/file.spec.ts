@@ -61,6 +61,7 @@ class FileStoreTest extends StoreTest {
     let ident = await identStore.save({
       _user: user.getUuid()
     });
+    identStore.getParameters().strict = true;
     let res = await identStore.get(user.getUuid());
     assert.strictEqual(res, undefined);
     const stub = sinon.stub(identStore, "_get").callsFake(async () => user);

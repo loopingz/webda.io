@@ -2,6 +2,8 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as path from "path";
 import { Application, UnpackedApplication } from "./index";
+import { CoreModel } from "./models/coremodel";
+import { User } from "./models/user";
 import { TestApplication, WebdaTest } from "./test";
 import { getCommonJS } from "./utils/esm";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -154,6 +156,8 @@ class ApplicationTest extends WebdaTest {
     // @ts-ignore
     unpackedApp.baseConfiguration.cachedModules.project.webda = undefined;
     assert.deepStrictEqual(unpackedApp.getPackageWebda(), { namespace: "Webda" });
+    assert.strictEqual(app.getModelFromInstance(new CoreModel()), "webda/coremodel");
+    assert.strictEqual(app.getModelFromInstance(new User()), "webda/user");
   }
 
   @test

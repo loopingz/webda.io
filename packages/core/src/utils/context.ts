@@ -178,17 +178,17 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * @returns
    */
   async getRawInputAsString(
-    _limit: number = 1024 * 1024 * 10,
-    _timeout: number = 60000,
-    _encoding?: string
+    limit: number = 1024 * 1024 * 10,
+    timeout: number = 60000,
+    encoding?: BufferEncoding
   ): Promise<string> {
-    return "";
+    return (await this.getRawInput(limit, timeout)).toString(encoding);
   }
 
   /**
    * @override
    */
-  async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer> {
+  async getRawInput(_limit: number = 1024 * 1024 * 10, _timeout: number = 60000): Promise<Buffer> {
     return Buffer.from("");
   }
 
@@ -336,6 +336,24 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 }
 
+/**
+ * Simple Operation Context with custom input
+ */
+export class SimpleOperationContext extends OperationContext {
+  input: Buffer;
+
+  setInput(input: Buffer): this {
+    this.input = input;
+    return this;
+  }
+
+  /**
+   * @override
+   */
+  async getRawInput(limit: number = 1024 * 1024 * 10, _timeout: number = 60000): Promise<Buffer> {
+    return this.input.slice(0, limit);
+  }
+}
 /**
  * This represent in fact a WebContext
  * In 3.0 an abstract version of Context will replace this (closer to OperationContext)

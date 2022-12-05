@@ -45,15 +45,7 @@ export class ActionMemoryLogger extends MemoryLogger {
 
   save(): Promise<void> {
     this.timeout = undefined;
-    return (
-      this.action
-        // @ts-ignore
-        .patch({ logs: this.getLogs().map(msg => ConsoleLogger.format(msg, this.format)) }, null)
-        .then(async () => {
-          console.log("ACTION", this.action);
-          console.log("OK SAVE DONE", await this.action.getStore().get(this.action.getUuid()));
-        })
-    );
+    return this.action.patch({ logs: this.getLogs().map(msg => ConsoleLogger.format(msg, this.format)) }, null);
   }
 
   async saveAndClose() {

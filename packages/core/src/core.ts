@@ -46,9 +46,30 @@ export class ValidationError extends Error {
  * Define an operation within webda app
  */
 export interface OperationDefinition {
-  input: string;
+  /**
+   * Id of the operation
+   */
+  id: string;
+  /**
+   * Name of the schema that defines operation input
+   */
+  input?: string;
+  /**
+   * Name of the schema that defines operation output
+   */
   output?: string;
+  /**
+   * WebdaQL to execute on session to know if
+   * operation is available to user
+   */
+  permission?: string;
+  /**
+   * Service implementing the operation
+   */
   service: string;
+  /**
+   * Method implementing the operation
+   */
   method: string;
 }
 
@@ -526,13 +547,16 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Get available operations
    * @returns
    */
-  listOperations(): { [key: string]: { input: string; output?: string } } {
+  listOperations(): { [key: string]: Omit<OperationDefinition, "service" | "method"> } {
     const list = {};
     Object.keys(this.operations).forEach(o => {
       list[o] = {
-        input: this.application.completeNamespace(this.operations[o].input),
+        ...this.operations[o],
+        input: this.operations[o].input ? this.application.completeNamespace(this.operations[o].input) : undefined,
         output: this.operations[o].output ? this.application.completeNamespace(this.operations[o].output) : undefined
       };
+      delete list[o].service;
+      delete list[o].method;
     });
     return list;
   }
@@ -543,7 +567,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param definition
    */
   registerOperation(operationId: string, definition: OperationDefinition) {
-    this.operations[operationId] = definition;
+    this.operations[operationId] = { ...definition, id: operationId };
   }
 
   /**

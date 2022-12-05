@@ -20,12 +20,13 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
   @Inject("params:bean", undefined, false)
   serv4: Service;
 
-  @Operation("myOperation", "test", "plop", "/operation/plop")
+  // Set to undefined to ensure fallback on method name
+  @Operation({ input: "test", output: "plop" }, { url: "/operation/plop" })
   async myOperation(ctx: OperationContext<{ output: string }>) {
     ctx.write((await ctx.getInput()).output);
   }
 
-  @Operation("myOperation")
+  @Operation({ id: "myOperation" })
   myOperation2(ctx: OperationContext) {
     ctx.write("plop2");
   }
@@ -113,6 +114,7 @@ class ServiceTest extends WebdaTest {
     // Check the list
     assert.deepStrictEqual(this.webda.listOperations(), {
       "plop.myOperation": {
+        id: "plop.myOperation",
         input: "webda/test",
         output: "webda/plop"
       }

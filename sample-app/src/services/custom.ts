@@ -63,11 +63,11 @@ class CustomService<T extends CustomParameters = CustomParameters> extends Servi
     ctx.write("Tested");
   }
 
-  @Operation("testOperation", "testInput")
+  @Operation({ input: "testInput" })
   testOperation(ctx: OperationContext) {}
 
-  @Operation("testOperationWithOutput", "testInput", "testOutput")
-  testOperation2(ctx: OperationContext) {}
+  @Operation({ input: "testInput", output: "testOutput" })
+  testOperationWithOutput(ctx: OperationContext) {}
   /**
    * @MMD {seq:MyGraph} My step 1
    */

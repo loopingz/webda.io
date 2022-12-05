@@ -34,7 +34,7 @@ export interface OperationsExportFormat {
     version: string;
     author?: PackageDescriptorAuthor;
   };
-  operations: { [key: string]: { input: string; output?: string } };
+  operations: { [key: string]: { input?: string; output?: string; permission?: string; id: string } };
   schemas: { [key: string]: JSONSchema7 };
 }
 
@@ -157,7 +157,9 @@ export default class WebdaConsole {
     };
     // Copy all schemas
     Object.values(operations).forEach(ope => {
-      operationsExport.schemas[ope.input] ??= this.app.getSchema(ope.input);
+      if (ope.input) {
+        operationsExport.schemas[ope.input] ??= this.app.getSchema(ope.input);
+      }
       if (ope.output) {
         operationsExport.schemas[ope.output] ??= this.app.getSchema(ope.output);
       }

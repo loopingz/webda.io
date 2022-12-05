@@ -105,34 +105,57 @@ export function Inject(parameterOrName: string, defaultValue?: string | boolean,
  * @param output
  */
 export function Operation(
-  id: string,
-  input?: string,
-  output?: string,
-  url?: string,
-  method: HttpMethodType = "GET",
-  allowPath?: boolean,
-  openapi: OpenAPIWebdaDefinition = {}
+  properties?: {
+    /**
+     * Id of the Operation
+     *
+     * @default methodName
+     */
+    id?: string;
+    /**
+     * Input schema name
+     */
+    input?: string;
+    /**
+     * Output schema name
+     */
+    output?: string;
+    /**
+     * WebdaQL to execute on session object to ensure it can access
+     */
+    permission?: string;
+  },
+  route?: {
+    url: string;
+    method?: HttpMethodType;
+    allowPath?: boolean;
+    openapi?: OpenAPIWebdaDefinition;
+  }
 ) {
   return function (target: any, executor: string) {
     target.constructor.operations ??= {};
+    properties ??= {};
+    properties.id ??= executor;
+    const id = properties.id;
     if (target.constructor.operations[id]) {
       console.error("Operation already exists", id);
       return;
     }
     target.constructor.operations[id] ??= {
       method: executor,
-      input,
-      output
+      ...properties
     };
     // If url is specified define the openapi
-    if (url) {
-      openapi[method.toLowerCase()] ??= {};
-      let def = openapi[method.toLowerCase()];
+    if (route) {
+      route.method ??= "GET";
+      route.openapi ??= {};
+      route.openapi[route.method.toLowerCase()] ??= {};
+      let def = route.openapi[route.method.toLowerCase()];
       def.operationId = id;
       def.schemas ??= {};
-      def.schemas.input ??= input;
-      def.schemas.output ??= output;
-      Route(url, method, allowPath, openapi)(target, executor);
+      def.schemas.input ??= properties.input;
+      def.schemas.output ??= properties.output;
+      Route(route.url, route.method, route.allowPath, route.openapi)(target, executor);
     }
   };
 }

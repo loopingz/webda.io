@@ -15,7 +15,7 @@ import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";
 import { schedule as crontabSchedule } from "node-cron";
 import { v4 as uuidv4 } from "uuid";
-import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction } from "../models";
+import { AsyncAction, AsyncActionQueueItem, AsyncWebdaAction } from "../models";
 import { Runner } from "./runner";
 
 /**
@@ -96,6 +96,15 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    */
   schedulerResolution?: number;
 
+  /**
+   * Limit the number of lines of logs available for an async action
+   *
+   * If you need to store large amount of logs then you should use the CloudWatchLogger or similar logger
+   *
+   * @default 500
+   */
+  logsLimit: number;
+
   constructor(params: any) {
     super(params);
     this.url ??= "/async/jobs";
@@ -105,6 +114,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
     this.schedulerResolution ??= 60000;
     this.onlyHttpHook ??= false;
     this.includeCron ??= true;
+    this.logsLimit ??= 500;
   }
 }
 
@@ -268,8 +278,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     if (body.logs && Array.isArray(body.logs)) {
       action.logs.push(...body.logs);
       // Prevent having too much logs
-      if (action.logs.length > 100) {
-        action.logs = action.logs.slice(-100);
+      if (action.logs.length > this.parameters.logsLimit) {
+        action.logs = action.logs.slice(-1 * this.parameters.logsLimit);
       }
     }
     ["status", "errorMessage", "statusDetails", "results"].forEach(k => {
@@ -329,9 +339,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       JOB_SECRET_KEY: action.__secretKey,
       JOB_ID: action.getUuid(),
       JOB_HOOK:
-        this.parameters.onlyHttpHook || action.type !== "AsyncOperation"
-          ? this.getWebda().getApiUrl(this.parameters.url)
-          : "store", // How to find the absolute url
+        this.parameters.onlyHttpHook || !action.isInternal() ? this.getWebda().getApiUrl(this.parameters.url) : "store", // How to find the absolute url
       JOB_ORCHESTRATOR: this.getName()
     };
     await action.patch({
@@ -393,18 +401,28 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param message
    * @returns
    */
-  async postHook(jobInfo: JobInfo, message: any): Promise<AsyncOperationAction> {
+  async postHook(jobInfo: JobInfo, message: any): Promise<AsyncWebdaAction> {
     // Http allow to break paradigm between the executor and the orchestrator
     if (jobInfo.JOB_HOOK.startsWith("http")) {
       return (
-        await axios.post<any, AxiosResponse<AsyncOperationAction>>(jobInfo.JOB_HOOK, message, {
+        await axios.post<any, AxiosResponse<AsyncWebdaAction>>(jobInfo.JOB_HOOK, message, {
           headers: this.getHeaders(jobInfo)
         })
       ).data;
     } else if (jobInfo.JOB_HOOK === "store") {
       // If executor and orchestrator runs within same privilege it simplify the infrastructure
-      return <Promise<AsyncOperationAction>>this.updateAction(await this.store.get(jobInfo.JOB_ID), message);
+      return <Promise<AsyncWebdaAction>>this.updateAction(await this.store.get(jobInfo.JOB_ID), message);
     }
+  }
+
+  /**
+   * Launch a service.method as an AsyncAction
+   * @param serviceName
+   * @param method
+   * @param args
+   */
+  async launchAsAsyncAction(serviceName: string, method: string, ...args) {
+    return this.launchAction(new AsyncWebdaAction(serviceName, method, ...args));
   }
 
   /**
@@ -485,7 +503,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
           "INFO",
           `Execute cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} as an AsyncOperationAction`
         );
-        await this.launchAction(new AsyncOperationAction(cron.serviceName, cron.method, cron.args));
+        await this.launchAction(new AsyncWebdaAction(cron.serviceName, cron.method, cron.args));
       } catch (err) {
         this.log(
           "ERROR",

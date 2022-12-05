@@ -1,12 +1,12 @@
 import { suite, test } from "@testdeck/mocha";
-import { Cron, HttpContext, Queue, Service, Store } from "@webda/core";
+import { Cron, HttpContext, OperationContext, Queue, Service, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import axios from "axios";
 import * as crypto from "crypto";
 import * as sinon from "sinon";
 import { stub } from "sinon";
-import AsyncAction, { AsyncOperationAction } from "../models";
+import AsyncAction, { AsyncOperationAction, AsyncWebdaAction } from "../models";
 import AsyncJobService from "./asyncjobservice";
 import { Runner } from "./runner";
 
@@ -83,6 +83,15 @@ class AsyncJobServiceTest extends WebdaTest {
     // @ts-ignore
     let routeCount = Object.keys(this.webda.getRouter().routes).length;
     assert.strictEqual(routeCount, previousRouteCount + 2);
+
+    // Just for COV
+    const stubAction = stub(this.service, "launchAction").callsFake(async () => {});
+    await this.service.launchAsAsyncAction("myService", "myMethod", 2);
+    assert.deepStrictEqual(stubAction.getCall(0).args, [new AsyncWebdaAction("myService", "myMethod", 2)]);
+
+    assert.strictEqual(new AsyncAction().isInternal(), false);
+    assert.strictEqual(new AsyncWebdaAction().isInternal(), true);
+    assert.strictEqual(new AsyncOperationAction("ope.id", new OperationContext(this.webda)).isInternal(), true);
   }
 
   @test
@@ -179,6 +188,7 @@ class AsyncJobServiceTest extends WebdaTest {
   @test
   async statusHook() {
     const service = this.getValidService();
+    service.getParameters().logsLimit = 100;
     let context = await this.newContext();
     // @ts-ignore
     const hook = service.statusHook.bind(service);
@@ -258,10 +268,11 @@ class AsyncJobServiceTest extends WebdaTest {
   async handleEvent() {
     const service = this.getValidService();
     // @ts-ignore
-    const handler = service.handleEvent.bind(service, { uuid: "plop", type: "Async" });
-    await this.store.save({
-      uuid: "plop"
-    });
+    const handler = service.handleEvent.bind(service, { uuid: "plop", type: "Async", isInternal: () => false });
+    const action = new AsyncAction();
+    assert.strictEqual(action.__class.name, "AsyncAction");
+    action.uuid = "plop";
+    await this.store.save(action);
     // @ts-ignore
     service.runners = [
       // @ts-ignore
@@ -369,9 +380,7 @@ class AsyncJobServiceTest extends WebdaTest {
       this.registerService(service);
 
       // Set a true action
-      const action = new AsyncOperationAction();
-      action.method = "myMethod";
-      action.serviceName = "mine";
+      const action = new AsyncWebdaAction("mine", "myMethod");
       service.getParameters().onlyHttpHook = true;
       service.launchAction(action);
 
@@ -543,7 +552,7 @@ class AsyncJobServiceTest extends WebdaTest {
     const fakeService = new FakeService(this.webda, "fake");
     this.registerService(fakeService);
     const service = this.getValidService();
-    let action = new AsyncOperationAction("fake", "schedule");
+    let action = new AsyncWebdaAction("fake", "schedule");
     let time = Date.now() + 1;
     await service.scheduleAction(action, time);
     await action.refresh();

@@ -6,6 +6,7 @@ import sanitizeHtml from "sanitize-html";
 import { Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
 import { Core } from "../core";
+import { NotEnumerable } from "../models/coremodel";
 import { User } from "../models/user";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
@@ -31,6 +32,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   /**
    * Contain emitting Core
    */
+  @NotEnumerable
   protected _webda: Core;
   /**
    * Session
@@ -58,6 +60,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   /**
    * Contain all registered promises to this context
    */
+  @NotEnumerable
   _promises: Promise<any>[];
 
   /**
@@ -79,6 +82,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   /**
    * Output stream
    */
+  @NotEnumerable
   _stream: Writable;
   /**
    * Get an extension of the context
@@ -154,15 +158,14 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
       return obj;
     };
     try {
-      this._sanitized = recursiveSanitize(
-        JSON.parse(
-          await this.getRawInputAsString(
-            this.getWebda().getGlobalParams().requestLimit,
-            this.getWebda().getGlobalParams().requestTimeout
-          )
-        ),
-        sanitizedOptions
+      let data = await this.getRawInputAsString(
+        this.getWebda().getGlobalParams().requestLimit,
+        this.getWebda().getGlobalParams().requestTimeout
       );
+      if (!data || data.length === 0) {
+        return undefined;
+      }
+      this._sanitized = recursiveSanitize(JSON.parse(data), sanitizedOptions);
     } catch (err) {
       this.log("ERROR", err, `Body: '${await this.getRawInputAsString()}'`);
       return undefined;

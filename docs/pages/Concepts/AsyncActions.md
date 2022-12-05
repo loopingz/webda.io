@@ -15,6 +15,8 @@ Currently to use Cron with something else than an AsyncOperationAction, you need
 
 ## Architecture
 
+Flow with a Queue 
+
 ```mermaid
 sequenceDiagram
 	participant Q as Queue
@@ -28,7 +30,7 @@ sequenceDiagram
     Q->>Ar: Retrieve Queue item
 	activate Ar
 	Ar->>S: Move action to 'STARTING' status
-	Ar->>O: Run action
+	Ar->>R: Run action
 	R->>J: Launch Job
 	R->>Ar: Return Runner Job Info
 	Ar->>S: Save Runner Job Info
@@ -41,6 +43,50 @@ sequenceDiagram
 	end
 ```
 
+Flow with local run and http hook status
+
+```mermaid
+sequenceDiagram
+    participant S as Store
+    participant Ar as AsyncActionService Worker
+	participant R as Runner
+	participant J as Job
+    Ar->>S: Create new action in 'QUEUED' status
+	activate Ar
+	Ar->>S: Move action to 'STARTING' status
+	Ar->>R: Run action
+	R->>J: Launch Job
+	R->>Ar: Return Runner Job Info
+	Ar->>S: Save Runner Job Info
+	deactivate Ar
+	loop status report
+		J->>Ar: Use hook /async/status to report
+		activate Aa
+		Ar->>S: Update status from report
+		deactivate Aa
+	end
+```
+
+Flow with local run with WebdaAction only
+
+```mermaid
+sequenceDiagram
+    participant S as Store
+    participant Ar as AsyncActionService Worker
+	participant R as Runner
+	participant J as Job
+    Ar->>S: Create new action in 'QUEUED' status
+	activate Ar
+	Ar->>S: Move action to 'STARTING' status
+	Ar->>R: Run action
+	R->>J: Launch Job
+	R->>Ar: Return Runner Job Info
+	Ar->>S: Save Runner Job Info
+	deactivate Ar
+	loop status report
+		J->>S: Update status direclty in Store
+	end
+```
 ## Runner
 
 The runner is the service responsible to launch the action effectively.

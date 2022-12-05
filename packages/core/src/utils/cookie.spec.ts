@@ -3,6 +3,7 @@ import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";
 import { Context, SecureCookie } from "../index";
 import { WebdaTest } from "../test";
+import { SimpleOperationContext } from "./context";
 import { HttpContext } from "./httpcontext";
 import { Session } from "./session";
 
@@ -217,6 +218,10 @@ class CookieTest extends WebdaTest {
   async cov() {
     let session = await SecureCookie.load("test", new Context(this.webda, undefined, undefined), undefined);
     assert.strictEqual(Object.keys(session).length, 0);
+    assert.strictEqual(
+      await new SimpleOperationContext(this.webda).setInput(Buffer.from("plop")).getRawInputAsString(),
+      "plop"
+    );
   }
 
   @test("Oversize cookie") async testOversize() {

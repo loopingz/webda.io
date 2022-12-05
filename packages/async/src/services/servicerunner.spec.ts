@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Operation, OperationContext, Store } from "@webda/core";
+import { Operation, OperationContext, SimpleOperationContext, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import assert from "assert";
 import models, { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../models";
@@ -31,7 +31,6 @@ class ServiceRunnerTest extends WebdaTest {
     this.registerService(new FakeRunner(this.webda, "calledRunner"));
     this.webda.initStatics();
     let runner = new ServiceRunner(this.webda, "runner", { actions: ["plop"] });
-    console.log(this.webda.listOperations());
     const ctx = new OperationContext(this.webda);
     const action = new AsyncOperationAction("calledRunner.testOp", ctx);
     await this.getService<Store<AsyncAction>>("AsyncJobs").save(action);
@@ -75,7 +74,6 @@ class ServiceRunnerTest extends WebdaTest {
     await serviceAction.promise;
     await action2.refresh();
     assert.strictEqual(action2.status, "ERROR");
-    console.log(action2);
     assert.strictEqual(action2.logs?.length, 1);
     assert.ok(action2.logs[0].endsWith(" [ INFO] [calledRunner] FakeRunner test 666"));
     action.type = "plop";
@@ -90,7 +88,10 @@ class ServiceRunnerTest extends WebdaTest {
       /Can only handle AsyncWebdaAction or AsyncOperationAction got plop/
     );
 
-    const opAction = new AsyncOperationAction("calledRunner.operation", new OperationContext(this.webda));
+    const opAction = new AsyncOperationAction(
+      "calledRunner.operation",
+      new SimpleOperationContext(this.webda).setInput(Buffer.from("{}"))
+    );
     this.webda.initStatics();
     await this.getService<Store<AsyncAction>>("AsyncJobs").save(opAction);
     serviceAction = await runner.launchAction(opAction, {
@@ -101,9 +102,8 @@ class ServiceRunnerTest extends WebdaTest {
     });
     await serviceAction.promise;
     await opAction.refresh();
-    console.log(opAction);
-    assert.strictEqual(opAction.status, "ERROR");
+    assert.strictEqual(opAction.status, "SUCCESS");
     assert.strictEqual(opAction.logs?.length, 1);
-    assert.ok(action2.logs[0].endsWith(" [ INFO] [calledRunner] Logging test"));
+    assert.ok(opAction.logs[0].endsWith(" [ INFO] [calledRunner] Logging test"));
   }
 }

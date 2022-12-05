@@ -537,7 +537,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       throw new Error(`Unknown Operation Id: ${operationId}`);
     }
     let input = await context.getInput();
-    if (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true) {
+    this.log("TRACE", `Operation ${operationId} input is '${JSONUtils.safeStringify(input, undefined, 2)}'`);
+    if (
+      this.operations[operationId].input &&
+      (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true)
+    ) {
       throw new Error("Input does not fit the operation input");
     }
     return this.getService(this.operations[operationId].service)[this.operations[operationId].method](context);

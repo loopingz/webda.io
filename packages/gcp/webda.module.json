@@ -36,7 +36,17 @@
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data",
+          "default": false
+        },
+        "defaultModel": {
+          "type": "boolean",
+          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
           "default": true
+        },
+        "forceModel": {
+          "type": "boolean",
+          "description": "If set, Store will ignore the __type",
+          "default": false
         },
         "slowQueryThreshold": {
           "type": "number",

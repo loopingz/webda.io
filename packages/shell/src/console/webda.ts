@@ -783,7 +783,7 @@ ${Object.keys(operationsExport.operations)
       for (let cmd of Object.keys(this.extensions)) {
         let ext = this.extensions[cmd];
         // Dynamic we load from the extension as it is more complex
-        if (this.extensions[cmd].yargs === "dynamic") {
+        if (ext.yargs === "dynamic") {
           parser = parser.command(
             ext.command || cmd,
             ext.description,

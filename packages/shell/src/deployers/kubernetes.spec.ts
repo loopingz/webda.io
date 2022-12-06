@@ -61,12 +61,6 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
   }
 
   @test
-  getCronId() {
-    // @ts-ignore
-    assert.strictEqual(this.deployer.getCronId({}), "56a5f2e2");
-  }
-
-  @test
   async deploy() {
     let patchError = false;
     let completeStub;

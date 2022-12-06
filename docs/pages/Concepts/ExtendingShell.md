@@ -4,6 +4,8 @@ You can extend and add your own command to webda executable
 
 For this just define a `webda.shell.json` in your package
 
+A good example is the `@webda/aws` module.
+
 ## Change shell logo
 
 You can add to your `package.json` this section:

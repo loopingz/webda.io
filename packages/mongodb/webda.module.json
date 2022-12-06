@@ -33,7 +33,17 @@
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data",
+          "default": false
+        },
+        "defaultModel": {
+          "type": "boolean",
+          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
           "default": true
+        },
+        "forceModel": {
+          "type": "boolean",
+          "description": "If set, Store will ignore the __type",
+          "default": false
         },
         "slowQueryThreshold": {
           "type": "number",
@@ -157,7 +167,7 @@
             },
             "raw": {
               "type": "boolean",
-              "description": "Return BSON filled buffers from operations"
+              "description": "Enabling the raw option will return a [Node.js Buffer](https://nodejs.org/api/buffer.html) which is allocated using [allocUnsafe API](https://nodejs.org/api/buffer.html#static-method-bufferallocunsafesize). See this section from the [Node.js Docs here](https://nodejs.org/api/buffer.html#what-makes-bufferallocunsafe-and-bufferallocunsafeslow-unsafe) for more detail about what \"unsafe\" refers to in this context. If you need to maintain your own editable clone of the bytes returned for an extended life time of the process, it is recommended you allocate your own buffer and clone the contents:"
             },
             "checkKeys": {
               "type": "boolean",

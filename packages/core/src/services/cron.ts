@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { schedule } from "node-cron";
 import { CancelablePromise } from "../index";
 import { Service } from "./service";
@@ -76,13 +77,21 @@ class CronService extends Service {
     };
   }
 
+  static getCronId(cron: CronDefinition, name: string = "") {
+    let hash = createHash("sha256");
+    return hash
+      .update(JSON.stringify(cron) + name)
+      .digest("hex")
+      .substring(0, 8);
+  }
+
   static loadAnnotations(services): CronDefinition[] {
     let cronsResult: CronDefinition[] = [];
     for (let i in services) {
       let props = Object.getOwnPropertyDescriptors(services[i].constructor.prototype);
       for (let method in props) {
         // @ts-ignore
-        let crons: CronDefinition[] = props[method].value.cron;
+        let crons: CronDefinition[] = props[method].value?.cron;
         if (crons) {
           crons.forEach(cron => {
             cron.method = method;

@@ -1,5 +1,5 @@
 import * as k8s from "@kubernetes/client-node";
-import { CronDefinition, CronService, JSONUtils } from "@webda/core";
+import { CronService, JSONUtils } from "@webda/core";
 import { getKubernetesApiClient, KubernetesParameters } from "@webda/kubernetes";
 import * as crypto from "crypto";
 import * as fs from "fs";
@@ -18,7 +18,7 @@ export interface KubernetesObject {
   [key: string]: any;
 }
 
-const DEFAULT_CRON_DEFINITION = `apiVersion: batch/v1beta1
+export const K8S_DEFAULT_CRON_DEFINITION = `apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: \${cron.serviceName}-\${cron.method.toLowerCase()}-\${cron.cronId}
@@ -106,14 +106,6 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     return true;
   }
 
-  getCronId(cron: CronDefinition) {
-    let hash = crypto.createHash("sha256");
-    return hash
-      .update(JSON.stringify(cron) + this.name + this.manager.getDeploymentName())
-      .digest("hex")
-      .substring(0, 8);
-  }
-
   async deploy() {
     // Create the Docker image
     if (this.resources.tag && this.resources.push) {
@@ -139,7 +131,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       // Load CronJob resource template
       let resource;
       if (typeof this.resources.cronTemplate === "boolean") {
-        resource = yaml.parse(DEFAULT_CRON_DEFINITION);
+        resource = yaml.parse(K8S_DEFAULT_CRON_DEFINITION);
       } else if (typeof this.resources.cronTemplate === "string") {
         resource = JSONUtils.loadFile(this.resources.cronTemplate);
       } else {
@@ -168,7 +160,10 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       );
       this.resources.resources = this.resources.resources || [];
       crons.forEach(cron => {
-        this.parameters.cron = { ...cron, cronId: this.getCronId(cron) };
+        this.parameters.cron = {
+          ...cron,
+          cronId: CronService.getCronId(cron, this.name + this.manager.getDeploymentName())
+        };
         jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
         jsonpath.value(resource, '$.metadata.annotations["webda.io/crondescription"]', cron.toString());
         let cronResource = this.replaceVariables(resource);

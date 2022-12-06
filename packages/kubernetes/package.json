@@ -17,6 +17,7 @@
   "files": [
     "lib",
     "webda.module.json",
+    "webda.shell.json",
     "package.json"
   ],
   "dependencies": {

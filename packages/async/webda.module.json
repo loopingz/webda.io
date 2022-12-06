@@ -6,7 +6,9 @@
   },
   "beans": {},
   "models": {
-    "webda/asyncaction": "lib/models:default"
+    "webda/asyncaction": "lib/models:default",
+    "webda/asyncoperationaction": "lib/models:AsyncOperationAction",
+    "webda/asyncwebdaaction": "lib/models:AsyncWebdaAction"
   },
   "deployers": {},
   "schemas": {
@@ -97,6 +99,282 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AsyncAction"
     },
+    "webda/asyncwebdaaction": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "description": "Action uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RUNNING",
+            "SUCCESS",
+            "ERROR",
+            "QUEUED",
+            "STARTING",
+            "TIMEOUT",
+            "SCHEDULED"
+          ],
+          "description": "Current status"
+        },
+        "scheduled": {
+          "type": "number",
+          "description": "Timestamp when the action was scheduled"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "If an error occured it should contain the message"
+        },
+        "job": {
+          "type": "object",
+          "description": "Job information"
+        },
+        "_lastJobUpdate": {
+          "type": "number",
+          "description": "Last time the job was updated",
+          "readOnly": true
+        },
+        "results": {
+          "description": "Results from the job"
+        },
+        "statusDetails": {
+          "description": "Job current status"
+        },
+        "type": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "array",
+          "items": {}
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Current logs"
+        },
+        "action": {
+          "type": "string",
+          "description": "Expected action for the job\n\nIt should be a verb"
+        },
+        "logLevel": {
+          "$ref": "#/definitions/WorkerLogLevel"
+        },
+        "serviceName": {
+          "type": "string",
+          "description": "service to call"
+        },
+        "method": {
+          "type": "string",
+          "description": "method to call"
+        }
+      },
+      "required": [
+        "job",
+        "logLevel",
+        "logs",
+        "results",
+        "status",
+        "statusDetails",
+        "type",
+        "uuid"
+      ],
+      "description": "Define a Webda Async Action",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WorkerLogLevel": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
+          "description": "LogLevel as intersection to compare with integer values"
+        }
+      },
+      "title": "AsyncWebdaAction"
+    },
+    "webda/asyncoperationaction": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "description": "Action uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RUNNING",
+            "SUCCESS",
+            "ERROR",
+            "QUEUED",
+            "STARTING",
+            "TIMEOUT",
+            "SCHEDULED"
+          ],
+          "description": "Current status"
+        },
+        "scheduled": {
+          "type": "number",
+          "description": "Timestamp when the action was scheduled"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "If an error occured it should contain the message"
+        },
+        "job": {
+          "type": "object",
+          "description": "Job information"
+        },
+        "_lastJobUpdate": {
+          "type": "number",
+          "description": "Last time the job was updated",
+          "readOnly": true
+        },
+        "results": {
+          "description": "Results from the job"
+        },
+        "statusDetails": {
+          "description": "Job current status"
+        },
+        "type": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "array",
+          "items": {}
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Current logs"
+        },
+        "action": {
+          "type": "string",
+          "description": "Expected action for the job\n\nIt should be a verb"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "_promises": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            },
+            "_stream": {
+              "type": "object",
+              "properties": {
+                "writable": {
+                  "type": "boolean"
+                },
+                "writableEnded": {
+                  "type": "boolean"
+                },
+                "writableFinished": {
+                  "type": "boolean"
+                },
+                "writableHighWaterMark": {
+                  "type": "number"
+                },
+                "writableLength": {
+                  "type": "number"
+                },
+                "writableObjectMode": {
+                  "type": "boolean"
+                },
+                "writableCorked": {
+                  "type": "number"
+                },
+                "destroyed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "destroyed",
+                "writable",
+                "writableCorked",
+                "writableEnded",
+                "writableFinished",
+                "writableHighWaterMark",
+                "writableLength",
+                "writableObjectMode"
+              ],
+              "description": "Output stream",
+              "readOnly": true
+            }
+          },
+          "description": "OperationContext is used when call to an operation"
+        },
+        "logLevel": {
+          "$ref": "#/definitions/WorkerLogLevel"
+        }
+      },
+      "required": [
+        "context",
+        "job",
+        "logLevel",
+        "logs",
+        "operationId",
+        "results",
+        "status",
+        "statusDetails",
+        "type",
+        "uuid"
+      ],
+      "description": "Operation called asynchronously",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WorkerLogLevel": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
+          "description": "LogLevel as intersection to compare with integer values"
+        }
+      },
+      "title": "AsyncOperationAction"
+    },
     "webda/asyncjobservice": {
       "type": "object",
       "properties": {
@@ -144,10 +422,25 @@
           "type": "number",
           "description": "Limit the maximum number of jobs running in //"
         },
+        "onlyHttpHook": {
+          "type": "boolean",
+          "description": "Define if we should only use an http hook and not rely on store for AsyncOperation",
+          "default": false
+        },
+        "includeCron": {
+          "type": "boolean",
+          "description": "Include Cron annotation to launch them as AsyncOperationAction",
+          "default": true
+        },
         "schedulerResolution": {
           "type": "number",
           "description": "Schedule action resolution\n\nIf set to 1000ms, you can schedule action per second by default it resolve per minute",
           "default": 60000
+        },
+        "logsLimit": {
+          "type": "number",
+          "description": "Limit the number of lines of logs available for an async action\n\nIf you need to store large amount of logs then you should use the CloudWatchLogger or similar logger",
+          "default": 500
         },
         "openapi": {
           "type": "object",
@@ -156,6 +449,7 @@
       },
       "required": [
         "fallbackOnFirst",
+        "logsLimit",
         "queue",
         "runners",
         "store",
@@ -341,6 +635,16 @@
           "description": "Actions managed by the runner",
           "default": []
         },
+        "logFormat": {
+          "type": "string",
+          "description": "Define the log format",
+          "default": "ConsoleLoggerDefaultFormat"
+        },
+        "logSaveDelay": {
+          "type": "number",
+          "description": "How long before saving logs (in ms)",
+          "default": 5000
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
@@ -349,6 +653,7 @@
       "required": [
         "type"
       ],
+      "description": "Add the log format to capture",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ServiceRunner"
     }

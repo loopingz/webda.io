@@ -49,5 +49,11 @@ you have to add a parameter in your deployment resources:
 To release a new version of the packages
 
 ```
-yarn new-version
+yarn version
+# To create a minor
+yarn version:minor
+# To create a major
+yarn version:major
+# To create a patch
+yarn version:patch
 ```

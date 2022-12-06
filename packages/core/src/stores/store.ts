@@ -1811,6 +1811,7 @@ abstract class Store<
       object = undefined;
     } else {
       let updateObject: any = new this._model();
+      updateObject.setContext(ctx);
       updateObject.load(body);
       // Copy back the _ attributes
       Object.keys(object)

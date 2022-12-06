@@ -56,6 +56,7 @@ export interface ModelAction {
    */
   openapi?: any;
 }
+
 export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   new (): T;
   /**
@@ -369,10 +370,9 @@ class CoreModel {
   load(raw: any, secure: boolean = false): this {
     // Object assign with filter
     for (let prop in raw) {
-      if (!secure && prop[0] === "_") {
-        continue;
-      }
-      this[prop] = raw[prop];
+      const val = secure ? raw[prop] : this.attributePermission(prop, raw[prop], "WRITE");
+      if (val === undefined) continue;
+      this[prop] = val;
     }
     if (this._creationDate) {
       this._creationDate = new Date(this._creationDate);
@@ -522,9 +522,28 @@ class CoreModel {
    * @param key
    * @param value
    * @returns
+   *
+   * @deprecated Will be removed in 3.0 for attributePermission(key, value, "READ")
    */
-  _jsonFilter(key, value): any {
-    if (key[0] === "_" && key.length > 1 && key[1] === "_") {
+  _jsonFilter(key: string, value): any {
+    return this.attributePermission(key, value, "READ");
+  }
+
+  /**
+   * Define attribute permissions
+   *
+   * If does not apply to subproperty of an attribute
+   *
+   * @param key
+   * @param value
+   * @returns
+   */
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE"): any {
+    /**
+     * By default attribute with `_` prefix are readOnly
+     * attribute with `__` prefix are serverOnly
+     */
+    if (key[0] === "_" && (mode === "WRITE" || (key.length > 1 && key[1] === "_"))) {
       return undefined;
     }
     return value;
@@ -568,10 +587,8 @@ class CoreModel {
   _toJSON(secure): any {
     let obj: any = {};
     for (let i in this) {
-      let value = this[i];
-      if (!secure) {
-        value = this._jsonFilter(i, this[i]);
-      }
+      // TODO For 3.0 remove the _jsonFilter for attributePermission method
+      let value = secure ? this[i] : this._jsonFilter(i, this[i]);
       if (value === undefined) continue;
       obj[i] = value;
     }

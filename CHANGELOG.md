@@ -2,6 +2,34 @@
 
 Changelog has only be initiated on version 2.2.0
 
+
+## Next
+
+### Move from _jsonFilter to attributePermission method
+
+To allow full customization and attributes based permission, the attributePermission method has been added:
+
+```
+/**
+  * Define attribute permissions
+  * @param key
+  * @param value
+  * @returns
+  */
+attributePermission(key: string, value: any, mode: "READ" | "WRITE"): any {
+  /**
+    * By default attribute with `_` prefix are readOnly
+    * attribute with `__` prefix are serverOnly
+    */
+  if (key[0] === "_" && (mode === "WRITE" || (key.length > 1 && key[1] === "_"))) {
+    return undefined;
+  }
+  return value;
+}
+```
+
+This method is called by the `load` method when unsecured with `WRITE` mode and it is called when by the `_toJSON` method when sending to external systems.
+
 ## 2.2.0
 
 The module @webda/shell should not be used as global installed anymore, it is generates glitches than we want to avoid.
@@ -81,3 +109,15 @@ This update is not a BREAKING CHANGE, because the Store parameters default parem
  forceModel: false,
  strict: false
 ```
+
+
+### Kubernetes shell cronjob exporter
+
+In case you want to have the templates of all your Cron defined methods of your application
+You can now run
+
+```
+yarn run webda kubernetes cronExport templateFile outputDir 
+```
+
+It will use your templateFile to create CronJob resources in your outputDir. 

@@ -42,7 +42,10 @@
   "scripts": {
     "build": "lerna run build && lerna run build:module",
     "test": "lerna run test --ignore @webda/sample-app",
-    "new-version": "lerna run build && lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
+    "version": "lerna run build && lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
+    "version:minor": "lerna run build && lerna version --ignore @webda/sample-app --message 'chore(release): publish' --minor",
+    "version:major": "lerna run build && lerna version --ignore @webda/sample-app --message 'chore(release): publish' --major",
+    "version:patch": "lerna run build && lerna version --ignore @webda/sample-app --message 'chore(release): publish' --patch",
     "lint": "lerna run lint --parallel",
     "lint:fix": "lerna run lint:fix --parallel",
     "lerna:publish": "lerna publish",

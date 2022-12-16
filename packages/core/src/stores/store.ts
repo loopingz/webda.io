@@ -391,6 +391,19 @@ export class StoreParameters extends ServiceParameters {
    */
   slowQueryThreshold: number;
 
+  /**
+   * Parent of the store
+   *
+   * If parent is specified the url route is relative to it
+   */
+  parent?: string;
+  /**
+   * For future use in our GraphQL api
+   *
+   * Expose this store in the graphql
+   */
+  graphql?: boolean;
+
   constructor(params: any, service: Service<any>) {
     super(params);
     this.model ??= "Webda/CoreModel";
@@ -542,6 +555,10 @@ abstract class Store<
     queryDuration: 0,
     slowQueries: 0
   };
+  /**
+   * The parent store if it is nested
+   */
+  parent?: Store;
 
   /**
    * Load the parameters for a service
@@ -608,6 +625,23 @@ abstract class Store<
   }
 
   /**
+   * Get the full url with the nested parent
+   * @param url
+   * @param methods
+   * @param depth
+   */
+  getParentUrl(depth: number = 0) {
+    if (!this.parameters.expose) {
+      throw new Error(`Parent store need to be exposed ${this.getName()}`);
+    }
+    let res = `${this.parameters.expose}/{P${depth}uuid}`;
+    if (this.parent) {
+      res = this.parent.getParentUrl(depth + 1) + res;
+    }
+    return res;
+  }
+
+  /**
    * @override
    */
   getUrl(url: string, methods: HttpMethodType[]) {
@@ -615,6 +649,8 @@ abstract class Store<
     if (url.startsWith("/")) {
       return url;
     }
+
+    // Parent url to find here
     const expose = this.parameters.expose;
     if (
       !expose.url ||
@@ -928,6 +964,29 @@ abstract class Store<
         }
       }
     });
+  }
+
+  /**
+   * Get all results without pagination
+   *
+   * This can be resource consuming
+   *
+   * @param query
+   * @param context
+   */
+  async queryAll(query: string, context?: Context): Promise<T[]> {
+    const res: T[] = [];
+    if (query.includes("OFFSET")) {
+      throw new Error("Cannot contain an OFFSET for queryAll method");
+    }
+    let continuationToken;
+    do {
+      let q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
+      let page = await this.query(q, context);
+      continuationToken = page.continuationToken;
+      res.push(...page.results);
+    } while (continuationToken);
+    return res;
   }
 
   /**
@@ -1811,6 +1870,7 @@ abstract class Store<
       object = undefined;
     } else {
       let updateObject: any = new this._model();
+      updateObject.setContext(ctx);
       updateObject.load(body);
       // Copy back the _ attributes
       Object.keys(object)

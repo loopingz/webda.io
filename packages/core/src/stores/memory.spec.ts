@@ -94,6 +94,8 @@ class MemoryStoreTest extends StoreTest {
       total += res.results.length;
     } while (offset);
     assert.strictEqual(total, 100);
+    assert.rejects(() => userStore.queryAll("state = 'CA' OFFSET 123"), /Cannot contain an OFFSET for queryAll method/);
+    assert.strictEqual((await userStore.queryAll("state = 'CA' LIMIT 50")).length, 250);
     return userStore;
   }
 

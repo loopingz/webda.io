@@ -50,6 +50,10 @@
           "description": "Slow query threshold",
           "default": 30000
         },
+        "parent": {
+          "type": "string",
+          "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
+        },
         "table": {
           "type": "string"
         },

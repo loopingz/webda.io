@@ -1,6 +1,6 @@
 import { CoreModel } from "../models/coremodel";
 import { Inject } from "../services/service";
-import { Context } from "../utils/context";
+import { WebContext } from "../utils/context";
 import { Store, StoreEvents, StoreFindResult, StoreParameters } from "./store";
 import { WebdaQL } from "./webdaql/query";
 
@@ -9,6 +9,11 @@ export class AbstractAliasStoreParameters extends StoreParameters {
    * Store to alias
    */
   targetStore: string;
+
+  constructor(params: any, store: Store) {
+    super(params, store);
+    this.strict = true;
+  }
 }
 
 /**
@@ -27,15 +32,29 @@ export abstract class AbstractAliasStore<
   @Inject("params:targetStore")
   _targetStore: Store<T>;
 
+  /**
+   * @override
+   */
   find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
+    let expr = new WebdaQL.AndExpression([new WebdaQL.ComparisonExpression("=", "__type", this._modelType)]);
     // Will need to check for uuid query
+    if (query.filter) {
+      expr.children.push(query.filter);
+    }
+    query.filter = expr;
     return this._targetStore.find(query);
   }
 
+  /**
+   * @override
+   */
   exists(uid: string): Promise<boolean> {
     return this._targetStore.exists(this.generateUuidFromPublicId(uid));
   }
 
+  /**
+   * @override
+   */
   async getAll(list?: string[]): Promise<T[]> {
     if (list) {
       return this._targetStore.getAll(list.map(id => this.generateUuidFromPublicId(id)));
@@ -45,6 +64,9 @@ export abstract class AbstractAliasStore<
     }
   }
 
+  /**
+   * @override
+   */
   _removeAttribute(
     uuid: string,
     attribute: string,
@@ -59,10 +81,16 @@ export abstract class AbstractAliasStore<
     );
   }
 
+  /**
+   * @override
+   */
   _save(object: T): Promise<any> {
-    return this._targetStore.save(object);
+    return this._targetStore._save(object);
   }
 
+  /**
+   * @override
+   */
   _upsertItemToCollection(
     uid: string,
     prop: string,
@@ -83,16 +111,28 @@ export abstract class AbstractAliasStore<
     );
   }
 
+  /**
+   * @override
+   */
   abstract generateUuidFromPublicId(id: string): string;
 
+  /**
+   * @override
+   */
   async _get(uid: string, raiseIfNotFound?: boolean | undefined): Promise<T> {
     return this._targetStore._get(this.generateUuidFromPublicId(uid), raiseIfNotFound);
   }
 
+  /**
+   * @override
+   */
   async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string | undefined): Promise<void> {
     return this._targetStore._delete(this.generateUuidFromPublicId(uid), writeCondition, itemWriteConditionField);
   }
 
+  /**
+   * @override
+   */
   async _deleteItemFromCollection(
     uid: string,
     prop: string,
@@ -111,10 +151,16 @@ export abstract class AbstractAliasStore<
     );
   }
 
+  /**
+   * @override
+   */
   async _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any> {
     return this._targetStore._incrementAttribute(this.generateUuidFromPublicId(uid), prop, value, updateDate);
   }
 
+  /**
+   * @override
+   */
   async _patch(
     object: any,
     uid: string,
@@ -129,6 +175,9 @@ export abstract class AbstractAliasStore<
     );
   }
 
+  /**
+   * @override
+   */
   async _update(
     object: any,
     uid: string,
@@ -143,12 +192,18 @@ export abstract class AbstractAliasStore<
     );
   }
 
-  httpGet(ctx: Context<any, any>): Promise<void> {
+  /**
+   * @override
+   */
+  httpGet(ctx: WebContext<any, any>): Promise<void> {
     ctx.getParameters().id = this.generateUuidFromPublicId(ctx.getParameters().id);
     return super.httpGet(ctx);
   }
 
-  httpAction(ctx: Context<any, any>): Promise<void> {
+  /**
+   * @override
+   */
+  httpAction(ctx: WebContext<any, any>): Promise<void> {
     ctx.getParameters().id = this.generateUuidFromPublicId(ctx.getParameters().id);
     return super.httpAction(ctx);
   }
@@ -169,15 +224,14 @@ export class AliasStoreParameters extends AbstractAliasStoreParameters {
  *
  */
 export class AliasStore<
-  T extends CoreModel,
-  K extends AliasStoreParameters,
-  E extends StoreEvents
+  T extends CoreModel = CoreModel,
+  K extends AliasStoreParameters = AliasStoreParameters,
+  E extends StoreEvents = StoreEvents
 > extends AbstractAliasStore<T, K, E> {
   /**
    * @override
    */
   loadParameters(params: any): StoreParameters {
-    this.log("INFO", "Parameters", params);
     return new AliasStoreParameters(params, this);
   }
 

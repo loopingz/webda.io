@@ -141,38 +141,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async modelActions() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
-    assert.notStrictEqual(identStore.getModel(), undefined);
-    let eventFired = 0;
-    let executor, ctx;
-    identStore.on("Store.Action", evt => {
-      eventFired++;
-    });
-    identStore.on("Store.Actioned", evt => {
-      eventFired++;
-    });
-    ctx = await this.newContext({
-      type: "CRUD",
-      uuid: "PLOP"
-    });
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/idents/coucou/plop");
-    assert.notStrictEqual(executor, undefined);
-    await assert.rejects(executor.execute(ctx), err => err == 404);
-    await identStore.save({
-      uuid: "coucou"
-    });
-    await executor.execute(ctx);
-    // Our fake action is pushing true to _plop
-    assert.strictEqual(JSON.parse(ctx.getResponseBody())._plop, true);
-    assert.strictEqual(eventFired, 2);
-    assert.notStrictEqual(this.getExecutor(ctx, "test.webda.io", "POST", "/idents/coucou/yop"), null);
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop");
-    assert.notStrictEqual(executor, null);
-
-    // Test with action returning the result instead of writing it
-    ctx.resetResponse();
-    await executor.execute(ctx);
-    assert.strictEqual(ctx.getResponseBody(), "youpi");
+    return super.modelActions();
   }
 
   @test
@@ -216,102 +185,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async httpCRUD() {
-    let eventFired;
-    let userStore: Store<TestUser> = this.getUserStore();
-    let ctx, executor;
-    await userStore.__clean();
-    ctx = await this.newContext({});
-    ctx.session.login("fake_user", "fake_ident");
-    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/users", {
-      type: "CRUD",
-      uuid: "PLOP",
-      displayName: "Coucou"
-    });
-    assert.notStrictEqual(executor, undefined);
-    await executor.execute(ctx);
-    ctx.body = undefined;
-    assert.strictEqual((await userStore.getAll()).length, 1);
-    await this.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP").execute(ctx);
-    assert.notStrictEqual(ctx.getResponseBody(), undefined);
-    assert.strictEqual(ctx.getResponseBody().indexOf("_lastUpdate") >= 0, true);
-    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/users", {
-      type: "CRUD2",
-      uuid: "PLOP",
-      displayName: "Coucou 2"
-    });
-    await assert.rejects(executor.execute(ctx), err => err == 409);
-    // Verify the none overide of UUID
-    await this.execute(ctx, "test.webda.io", "PUT", "/users/PLOP", {
-      type: "CRUD2",
-      additional: "field",
-      uuid: "PLOP2",
-      user: "fake_user",
-      displayName: "Coucou 3"
-    });
-    let user = await userStore.get("PLOP");
-    assert.strictEqual(user.uuid, "PLOP");
-    assert.strictEqual(user.type, "CRUD2");
-    assert.strictEqual(user.additional, "field");
-    assert.strictEqual(user.user, "fake_user");
-    assert.strictEqual(user._user, "fake_user");
-
-    // Add a role to the user
-    user.addRole("plop");
-    await user.save();
-
-    user = await userStore.get("PLOP");
-    assert.deepStrictEqual(user.getRoles(), ["plop"]);
-
-    ctx.resetResponse();
-    // Check PATH
-    await this.execute(ctx, "test.webda.io", "PATCH", "/users/PLOP", {
-      type: "CRUD3",
-      uuid: "PLOP2",
-      _testor: "_ should not be update by client"
-    });
-    user = await userStore.get("PLOP");
-    assert.strictEqual(user.uuid, "PLOP");
-    assert.strictEqual(user.type, "CRUD3");
-    assert.strictEqual(user.additional, "field");
-    assert.strictEqual(user._testor, undefined);
-    assert.strictEqual(user._user, "fake_user");
-    assert.deepStrictEqual(user.getRoles(), ["plop"]);
-
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {
-      type: "CRUD3",
-      uuid: "PLOP2",
-      _testor: "_ should not be update by client",
-      displayName: "yep"
-    });
-    await executor.execute(ctx);
-    user = await userStore.get("PLOP");
-    assert.strictEqual(user.uuid, "PLOP");
-    assert.strictEqual(user.type, "CRUD3");
-    assert.strictEqual(user.additional, undefined);
-    assert.strictEqual(user._testor, undefined);
-    assert.deepStrictEqual(user.getRoles(), ["plop"]);
-
-    await this.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP").execute(ctx);
-    eventFired = 0;
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP");
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
-    eventFired++;
-    executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP");
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
-    eventFired++;
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
-    eventFired++;
-    assert.strictEqual(eventFired, 3);
+    return super.httpCRUD();
   }
 
   @test

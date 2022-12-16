@@ -1,5 +1,5 @@
-import { suite } from "@testdeck/mocha";
-import { AggregatorService, CoreModel, Store } from "../index";
+import { suite, test } from "@testdeck/mocha";
+import { CoreModel, MapperService, Store } from "../index";
 import { AliasStore } from "./aliasstore";
 import { StoreTest } from "./store.spec";
 
@@ -10,13 +10,13 @@ class AliasStoreTest extends StoreTest {
     this.registerService(
       new AliasStore(this.webda, "aliasIdent", {
         targetStore: "MemoryIdents",
-        model: "webda/ident",
+        model: "webdatest/ident",
         idTemplate: "{id}",
         expose: {
           url: "/alias/idents"
-        }
-      }),
-      "aliasIdent"
+        },
+        asyncDelete: true
+      })
     );
     // Use MemoryIdents for both
     this.registerService(
@@ -27,14 +27,25 @@ class AliasStoreTest extends StoreTest {
         expose: {
           url: "/alias/users"
         }
-      }),
-      "aliasUser"
+      })
+    );
+    this.registerService(
+      new MapperService(this.webda, "aliasMapper", {
+        source: "aliasIdent",
+        targetAttribute: "idents",
+        target: "aliasUser",
+        attribute: "_user",
+        fields: ["type", "_lastUpdate"],
+        cascade: true
+      })
     );
   }
 
   getIdentStore(): Store<any> {
     // Need to slow down the _get
     let store = <Store<any>>this.getService("MemoryIdents");
+    store.getParameters().forceModel = false;
+    store.getParameters().strict = false;
     let original = store._get.bind(store);
     store._get = async (...args) => {
       await this.sleep(1);
@@ -44,17 +55,30 @@ class AliasStoreTest extends StoreTest {
   }
 
   getUserStore(): Store<any> {
-    return this.getService("aliasUser");
+    const store = this.getService<AliasStore>("aliasUser");
+    // Monkey patch to allow switch from User to PermissionModel during test
+    store.setModel = (...args) => {
+      store._model = args[0];
+      store._targetStore.setModel(...args);
+      store._targetStore.getParameters().forceModel = true;
+      store.getParameters().strict = false;
+      store._targetStore.getParameters().strict = false;
+    };
+    return store;
   }
 
   async getIndex(): Promise<CoreModel> {
-    return this.getService<Store>("memoryaggregators").get("index");
+    return undefined;
   }
 
-  async recreateIndex() {
-    let store = this.getService<Store>("memoryaggregators");
-    await store.__clean();
-    await this.getService<AggregatorService>("memoryidentsindexer").createAggregate();
+  @test
+  async httpCRUD() {
+    return super.httpCRUD("/alias/users");
+  }
+
+  @test
+  async modelActions() {
+    return super.modelActions("/alias/idents");
   }
 }
 

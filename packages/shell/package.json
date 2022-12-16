@@ -31,7 +31,7 @@
     "node": ">=14.6.0"
   },
   "dependencies": {
-    "@kubernetes/client-node": "^0.17.0",
+    "@kubernetes/client-node": "^0.18.0",
     "@phenomnomnominal/tsquery": "^5.0.0",
     "@webda/core": "^2.2.0",
     "@webda/kubernetes": "^2.2.0",

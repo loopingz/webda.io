@@ -390,7 +390,7 @@ export namespace WebdaQL {
         case "boolean":
           return value.toString().toUpperCase();
       }
-      return value.toString();
+      return value?.toString();
     }
 
     /**

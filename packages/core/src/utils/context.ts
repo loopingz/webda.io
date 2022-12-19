@@ -122,8 +122,8 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * @returns
    */
   getOutput(): string {
-    if (this._stream instanceof WritableStreamBuffer && this._stream.size()) {
-      return this._stream.getContents().toString();
+    if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
+      return (<WritableStreamBuffer>this._stream).getContents().toString();
     }
     return this._body;
   }
@@ -597,8 +597,8 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
         await this._webda.getService<SessionManager>("SessionManager").save(this, this.session);
       }
       await Promise.all(this._promises);
-      if (this._stream instanceof WritableStreamBuffer && this._stream.size()) {
-        this._body = this._stream.getContents().toString();
+      if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
+        this._body = (<WritableStreamBuffer>this._stream).getContents().toString();
         this.statusCode = 200;
       }
       if (!this.headersFlushed) {
@@ -631,7 +631,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    */
   getResponseBody() {
     if (!this._body && this._stream instanceof WritableStreamBuffer) {
-      return this._stream.getContents();
+      return (<WritableStreamBuffer>this._stream).getContents();
     }
     return this._body;
   }

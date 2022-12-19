@@ -147,7 +147,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         .digest("hex");
       jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);
 
-      const k8sApi = <k8s.BatchV1beta1Api>this.getClient(k8s.BatchV1beta1Api);
+      const k8sApi = <k8s.BatchV1Api>this.getClient(k8s.BatchV1Api);
       let currentJobs = (
         await k8sApi.listNamespacedCronJob(resource.metadata.namespace || "default")
       ).body.items.filter(i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId);

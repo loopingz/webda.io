@@ -580,6 +580,7 @@ abstract class Store<
     this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
     this.cacheStorePatchException();
+    this.parent = this.parameters.parent ? this.getService(this.parameters.parent) : undefined;
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -634,7 +635,7 @@ abstract class Store<
     if (!this.parameters.expose) {
       throw new Error(`Parent store need to be exposed ${this.getName()}`);
     }
-    let res = `${this.parameters.expose}/{P${depth}uuid}`;
+    let res = `${this.parameters.url}/{P${depth}uuid}`;
     if (this.parent) {
       res = this.parent.getParentUrl(depth + 1) + res;
     }
@@ -664,7 +665,8 @@ abstract class Store<
     ) {
       return undefined;
     }
-    return super.getUrl(url, methods);
+    let parentUrl = this.parent ? this.parent.getParentUrl() : "";
+    return parentUrl + super.getUrl(url, methods);
   }
 
   /**

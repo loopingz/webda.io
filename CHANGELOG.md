@@ -4,6 +4,18 @@ Changelog has only be initiated on version 2.2.0
 
 ## next
 
+### AliasStore
+
+This store allows you to expose a subset of an another store.
+This is useful to have only one Store that is the backend or just use the registry. Then you can expose different models from that Store like `/users`, `/groups` etc
+
+AliasStore has some limitation:
+
+- cannot store several models
+- enforce the model
+
+Mapper can be used on top of AliasStore as they behave like normal Store
+
 ### Throttler
 
 This is a util class that allows to define how many promise to execute in concurrency and queue the remaining one. There are many libraries doing that, just wanted to provide one for Webda.

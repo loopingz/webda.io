@@ -58,7 +58,7 @@ export class CookieOptions implements CookieSerializeOptions {
     this.name ??= "webda";
     if (httpContext) {
       this.domain ??= httpContext.getHostName();
-      this.httpOnly ??= httpContext.getProtocol() === "https:";
+      this.secure ??= httpContext.getProtocol() === "https:";
     }
   }
 }

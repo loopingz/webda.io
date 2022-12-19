@@ -40,7 +40,7 @@ class ApiKeyTest extends WebdaTest {
 
   @test
   checkOrigin() {
-    this.apikey.load(KEY, true);
+    this.apikey.load(<any>KEY, true);
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/origins", {}, { origin: "https://test.webda.io/" });
     assert.ok(this.apikey.checkOrigin(this.context.getHttpContext()), "remotehost should be granted");
@@ -54,7 +54,7 @@ class ApiKeyTest extends WebdaTest {
 
   @test
   checkWhitelist() {
-    this.apikey.load({ ...KEY, whitelist: ["127.0.0.1", "10.0.0.0/16"], origins: undefined }, true);
+    this.apikey.load(<any>{ ...KEY, whitelist: ["127.0.0.1", "10.0.0.0/16"], origins: undefined }, true);
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/path/to/the/valhalla");
     assert.ok(
@@ -77,7 +77,7 @@ class ApiKeyTest extends WebdaTest {
 
   @test
   canRequestNoOrigin() {
-    this.apikey.load({ ...KEY, origins: undefined }, true);
+    this.apikey.load(<any>{ ...KEY, origins: undefined }, true);
 
     this.getExecutor(this.context, "test.webda.io", "POST", "/path");
     assert.ok(!this.apikey.canRequest(this.context.getHttpContext()), "POST should be false");

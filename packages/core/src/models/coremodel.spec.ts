@@ -76,6 +76,7 @@ class CoreModelTest extends WebdaTest {
     await assert.rejects(() => task.refresh(), unattachedMsg);
     await assert.rejects(() => task.save(), unattachedMsg);
     await assert.rejects(() => task.delete(), unattachedMsg);
+    await assert.rejects(() => task.patch(), unattachedMsg);
     task.plop = 1;
     assert.ok(!task.isDirty());
     task = task.getProxy();

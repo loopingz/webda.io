@@ -82,6 +82,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
 
     sinon.stub(service, "deleteSuccess").resolves();
     let model = new CoreModel();
+    // @ts-ignore
     model.load({ plop: [{}, { hash: "fake" }] }, true);
     await service.delete(model, "plop", 1);
     // Check called with "fake", 1

@@ -266,7 +266,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   /**
    * Write data to the client
    *
-   * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
+   * @param output If it is an object it will be serialized with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
    */
   public write(output: U, _encoding?: string, _cb?: (error: Error) => void): boolean {

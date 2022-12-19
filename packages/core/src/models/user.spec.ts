@@ -42,6 +42,7 @@ class UserTest {
   @test
   emailGetter() {
     let user: User = new User();
+    // @ts-ignore
     user.load({ _idents: [{}, { email: "testIdent@test.com" }] }, true);
     assert.strictEqual(user.getEmail(), "testIdent@test.com");
     user.load({ email: "test@test.com", displayName: "Top" });

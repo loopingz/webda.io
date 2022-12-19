@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Core } from "../index";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
-import { Context } from "../utils/context";
+import { Context, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 
 type ModelLoader<T> = { refresh: () => Promise<T>; getUuid(): string };
@@ -124,7 +124,7 @@ class CoreModel {
    * @TJS-ignore
    */
   @NotEnumerable
-  __ctx: Context;
+  __ctx: OperationContext;
   /**
    * If object is attached to its store
    *
@@ -302,7 +302,7 @@ class CoreModel {
    * Create an object
    * @returns
    */
-  static factory(model: new () => CoreModel, object: any, context?: Context): CoreModel {
+  static factory(model: new () => CoreModel, object: any, context?: OperationContext): CoreModel {
     return new model().setContext(context).load(object, context === undefined);
   }
 
@@ -366,7 +366,7 @@ class CoreModel {
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: any, secure: boolean = false): this {
+  load(raw: Partial<this>, secure: boolean = false): this {
     // Object assign with filter
     for (let prop in raw) {
       if (!secure && prop[0] === "_") {
@@ -390,7 +390,7 @@ class CoreModel {
   /**
    * Context of the request
    */
-  setContext(ctx: Context): this {
+  setContext(ctx: OperationContext): this {
     this.__ctx = ctx;
     return this;
   }
@@ -400,8 +400,8 @@ class CoreModel {
    *
    * Global object does not belong to a request
    */
-  getContext() {
-    return this.__ctx || Context.getGlobalContext();
+  getContext<T extends OperationContext>(): T {
+    return <any>this.__ctx || Context.getGlobalContext();
   }
 
   /**
@@ -452,6 +452,9 @@ class CoreModel {
    * @param conditionValue
    */
   async patch(obj: Partial<this>, conditionField?: string | null, conditionValue?: any) {
+    if (!this.__store) {
+      throw new CoreModelUnattachedError();
+    }
     await this.__store.patch(
       { [this.__class.getUuidField()]: this.getUuid(), ...obj },
       true,

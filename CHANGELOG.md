@@ -2,6 +2,14 @@
 
 Changelog has only be initiated on version 2.2.0
 
+## next
+
+### Throttler
+
+This is a util class that allows to define how many promise to execute in concurrency and queue the remaining one. There are many libraries doing that, just wanted to provide one for Webda.
+
+The concurrency can be dynamically updated, and the returned queue promise resolve when the item added resolve, making it easier to throttle part of an app by using a dedicated throttler.
+
 ## 2.2.0
 
 The module @webda/shell should not be used as global installed anymore, it is generates glitches than we want to avoid.

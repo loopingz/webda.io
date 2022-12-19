@@ -60,6 +60,7 @@ export * from "./utils/cookie";
 export * from "./utils/esm";
 export * from "./utils/httpcontext";
 export * from "./utils/logger";
+export * from "./utils/throttler";
 export * from "./utils/serializers";
 export * from "./utils/session";
 export * from "./utils/waiter";

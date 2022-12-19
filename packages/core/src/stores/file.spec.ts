@@ -122,6 +122,16 @@ class FileStoreTest extends StoreTest {
     };
     userStore.initRoutes();
     userStore.getUrl("/url", ["GET"]);
+
+    // Test getParentUrl
+    assert.strictEqual(userStore.getParentUrl(), "/users/{P0uuid}");
+    // @ts-ignore
+    userStore.parent = {
+      getParentUrl: depth => `/fake/{P${depth}}`
+    };
+    assert.strictEqual(userStore.getParentUrl(), "/fake/{P1}/users/{P0uuid}");
+    userStore.getParameters().expose = undefined;
+    assert.throws(() => userStore.getParentUrl(), /Parent store need to be exposed/);
   }
 
   @test

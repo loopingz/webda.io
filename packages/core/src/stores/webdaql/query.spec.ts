@@ -124,4 +124,20 @@ class QueryTest {
   badQuery() {
     assert.throws(() => new WebdaQL.QueryValidator("test lo 'plop'").eval(targets[0]));
   }
+
+  @test
+  setters() {
+    let target: any = {};
+    new WebdaQL.SetterValidator('i = 10 AND j = "12"').eval(target);
+    assert.strictEqual(target.i, 10);
+    assert.strictEqual(target.j, "12");
+    target = {};
+    new WebdaQL.SetterValidator("").eval(target);
+    assert.strictEqual(Object.keys(target).length, 0);
+    new WebdaQL.SetterValidator('test.i = 10 AND j.k.l = "12"').eval(target);
+    assert.strictEqual(target.test.i, 10);
+    assert.strictEqual(target.j.k.l, "12");
+    assert.throws(() => new WebdaQL.SetterValidator('i = 10 OR j = "12"').eval(target), SyntaxError);
+    assert.throws(() => new WebdaQL.SetterValidator('i > 10 AND j = "12"').eval(target), SyntaxError);
+  }
 }

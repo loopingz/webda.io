@@ -348,6 +348,22 @@ export namespace WebdaQL {
     }
 
     /**
+     * Set the value of the attribute based on the assignment
+     *
+     * If used as a Set expression
+     * @param target
+     */
+    setAttributeValue(target: any) {
+      if (this.operator === "=") {
+        let res = target;
+        for (let i = 0; res && i < this.attribute.length - 1; i++) {
+          res[this.attribute[i]] ??= {};
+          res = res[this.attribute[i]];
+        }
+        res[this.attribute[this.attribute.length - 1]] = this.value;
+      }
+    }
+    /**
      * @override
      */
     eval(target: any): boolean {
@@ -586,6 +602,34 @@ export namespace WebdaQL {
         }
       }
       return res;
+    }
+  }
+
+  /**
+   * For now reuse same parser
+   */
+  export class SetterValidator extends QueryValidator {
+    constructor(sql: string) {
+      super(sql);
+      // Do one empty run to raise any issue with disallowed expression
+      this.eval({});
+    }
+
+    eval(target: any): boolean {
+      if (this.query.filter) {
+        this.assign(target, this.query.filter);
+      }
+      return true;
+    }
+
+    assign(target: any, expression: Expression) {
+      if (expression instanceof AndExpression) {
+        expression.children.forEach(c => this.assign(target, c));
+      } else if (expression instanceof ComparisonExpression && (<ComparisonExpression>expression).operator === "=") {
+        expression.setAttributeValue(target);
+      } else {
+        throw new SyntaxError(`Set Expression can only contain And and assignment expression '='`);
+      }
     }
   }
 }

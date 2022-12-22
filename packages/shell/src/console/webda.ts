@@ -500,44 +500,69 @@ ${Object.keys(operationsExport.operations)
     let getAppPath = function (re) {
       return path.join(appPath, re);
     };
-    // Search for shell override
-    if (fs.existsSync(getAppPath("node_modules"))) {
-      let files = [];
-      let rec = (p, lvl = 0) => {
-        try {
-          fs.readdirSync(p).forEach(f => {
-            let ap = path.join(p, f);
-            let stat = fs.lstatSync(ap);
-            if (stat.isDirectory() || stat.isSymbolicLink()) {
-              if (lvl < 3) {
-                rec(ap, lvl + 1);
-              }
-            } else if (f === "webda.shell.json" && stat.isFile()) {
-              this.log("DEBUG", "Found shell extension", ap);
-              files.push(ap);
-            }
-          });
-        } catch (err) {
-          // skip exception
+
+    const paths = [getAppPath("node_modules")];
+
+    // Search for workspace
+    let parent = path.join(appPath, "..");
+    do {
+      let packageJson = path.join(parent, "package.json");
+      if (fs.existsSync(packageJson)) {
+        let currentInfo = FileUtils.load(packageJson);
+        if (currentInfo.workspaces) {
+          this.log("DEBUG", "Application is running within a workspace");
+          // Replace any relative path by absolute one
+          paths.push(path.join(parent, "node_modules"));
+          break;
         }
-      };
-      rec(getAppPath("node_modules"));
-      let appCustom = getAppPath("webda.shell.json");
-      if (fs.existsSync(appCustom)) {
-        files.push(appCustom);
       }
-      // Load each files
-      for (let i in files) {
-        try {
-          let info = JSON.parse(fs.readFileSync(files[i]).toString());
-          for (let j in info.commands) {
-            WebdaConsole.extensions[j] = info.commands[j];
-            WebdaConsole.extensions[j].relPath = path.dirname(files[i]);
+      parent = path.resolve(path.join(parent, ".."));
+    } while (parent !== path.resolve(path.join(parent, "..")));
+
+    let files = [];
+    let rec = (p, lvl = 0) => {
+      try {
+        fs.readdirSync(p).forEach(f => {
+          let ap = path.join(p, f);
+          let stat = fs.lstatSync(ap);
+          if (stat.isDirectory() || stat.isSymbolicLink()) {
+            if (lvl < 3) {
+              rec(ap, lvl + 1);
+            }
+          } else if (f === "webda.shell.json" && stat.isFile()) {
+            this.log("DEBUG", "Found shell extension", ap);
+            files.push(ap);
           }
-        } catch (err) {
-          this.log("ERROR", err);
-          return -1;
+        });
+      } catch (err) {
+        // skip exception
+      }
+    };
+
+    for (let nodeModules of paths) {
+      if (!fs.existsSync(nodeModules)) {
+        continue;
+      }
+      // Search for shell override
+
+      rec(nodeModules);
+    }
+    let appCustom = getAppPath("webda.shell.json");
+    if (fs.existsSync(appCustom)) {
+      files.push(appCustom);
+    }
+
+    // Load each files
+    for (let i in files) {
+      try {
+        let info = JSON.parse(fs.readFileSync(files[i]).toString());
+        for (let j in info.commands) {
+          WebdaConsole.extensions[j] = info.commands[j];
+          WebdaConsole.extensions[j].relPath = path.dirname(files[i]);
         }
+      } catch (err) {
+        this.log("ERROR", err);
+        return -1;
       }
     }
   }

@@ -1,5 +1,5 @@
 import { CronDefinition, CronService, FileUtils } from "@webda/core";
-import { mkdirSync } from "fs-extra";
+import { mkdirSync } from "fs";
 import { extname, join } from "path";
 
 export class KubernetesShell {

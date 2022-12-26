@@ -29,7 +29,19 @@ export class KubernetesShell {
         cron.cronId = CronService.getCronId(cron, "export");
         const filename = join(target, `${cron.serviceName}.${cron.method}-${cron.cronId}.${ext}`);
         Console.log("DEBUG", `Exporting ${filename} cron with ${cron.toString()}`);
-        FileUtils.save(Console.app.replaceVariables(template, { ...replacements, cron }), filename);
+        FileUtils.save(
+          Console.app.replaceVariables(template, {
+            ...replacements,
+            cron: {
+              ...cron,
+              // For future usage
+              argsb64: Buffer.from(JSON.stringify(cron.args)).toString("base64"),
+              // Useful for passing the argument to the command line
+              argsLine: cron.args.map(p => `'${p}'`).join(", ")
+            }
+          }),
+          filename
+        );
       });
       Console.log("INFO", `Exported ${crons.length} crons`);
     }

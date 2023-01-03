@@ -137,6 +137,9 @@ class QueryTest {
     new WebdaQL.SetterValidator('test.i = 10 AND j.k.l = "12"').eval(target);
     assert.strictEqual(target.test.i, 10);
     assert.strictEqual(target.j.k.l, "12");
+    target = {};
+    new WebdaQL.SetterValidator("test.__proto__.test = 10").eval(target);
+    assert.strictEqual(target.__proto__.test, undefined);
     assert.throws(() => new WebdaQL.SetterValidator('i = 10 OR j = "12"').eval(target), SyntaxError);
     assert.throws(() => new WebdaQL.SetterValidator('i > 10 AND j = "12"').eval(target), SyntaxError);
   }

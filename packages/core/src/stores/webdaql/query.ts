@@ -354,6 +354,10 @@ export namespace WebdaQL {
      * @param target
      */
     setAttributeValue(target: any) {
+      // Avoid alteration of prototype for security reason
+      if (this.attribute.includes("__proto__")) {
+        return;
+      }
       if (this.operator === "=") {
         let res = target;
         for (let i = 0; res && i < this.attribute.length - 1; i++) {

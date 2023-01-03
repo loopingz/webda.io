@@ -34,6 +34,14 @@ spec:
               imagePullPolicy: Always
               name: scheduled-job
               resources: {}
+              command: ["/webda/node_modules/.bin/webda"]
+              args: [
+                "--noCompile",
+                "launch",
+                "\${cron.serviceName}",
+                "\${cron.method}",
+                "\${...cron.args}",
+              ]
           restartPolicy: Never
           securityContext: {}
           terminationGracePeriodSeconds: 30

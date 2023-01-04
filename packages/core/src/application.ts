@@ -284,6 +284,19 @@ export interface WebdaPackageDescriptor {
    */
   logo?: string;
   /**
+   * Service to replace default launcher
+   */
+  launcher?: {
+    /**
+     * Service to use for launch
+     */
+    service: string;
+    /**
+     * Method to use
+     */
+    method: string;
+  };
+  /**
    * Information on the workspace
    */
   workspaces?: {

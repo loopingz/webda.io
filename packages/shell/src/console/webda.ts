@@ -244,8 +244,15 @@ ${Object.keys(operationsExport.operations)
     }
     // Launch the worker with arguments
     let timestamp = new Date().getTime();
-
-    return Promise.resolve(service[method](...(<string[]>argv.methodArguments)))
+    const launcher = this.app.getPackageWebda().launcher;
+    const args = [...(<string[]>argv.methodArguments)];
+    if (launcher) {
+      this.log("INFO", `Using launcher: ${launcher.service}.${launcher.method}`);
+      args.unshift(serviceName, method);
+      service = this.webda.getService(launcher.service);
+      method = launcher.method;
+    }
+    return Promise.resolve(service[method](...args))
       .catch(err => {
         this.log("ERROR", "An error occured", err);
       })

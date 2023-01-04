@@ -288,7 +288,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         action[k] = body[k];
       }
     });
-    await this.store.patch(action);
+    await this.store.patch(action, true, null);
     return action;
   }
 
@@ -323,17 +323,23 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       selectedRunner = this.runners[0];
     }
     if (selectedRunner === undefined) {
-      await this.store.patch({
-        uuid: event.uuid,
-        status: "ERROR",
-        errorMessage: `No runner found for the job`
-      });
+      await this.store.patch(
+        {
+          uuid: event.uuid,
+          status: "ERROR",
+          errorMessage: `No runner found for the job`
+        },
+        null
+      );
       return;
     }
-    await this.store.patch({
-      uuid: event.uuid,
-      status: "STARTING"
-    });
+    await this.store.patch(
+      {
+        uuid: event.uuid,
+        status: "STARTING"
+      },
+      null
+    );
     const action = await this.store.get(event.uuid);
     const info: JobInfo = {
       JOB_SECRET_KEY: action.__secretKey,
@@ -342,9 +348,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         this.parameters.onlyHttpHook || !action.isInternal() ? this.getWebda().getApiUrl(this.parameters.url) : "store", // How to find the absolute url
       JOB_ORCHESTRATOR: this.getName()
     };
-    await action.patch({
-      job: await selectedRunner.launchAction(action, info)
-    });
+    let job = await selectedRunner.launchAction(action, info);
+    await action.patch({ job }, null);
+    return job.promise || Promise.resolve();
   }
 
   /**

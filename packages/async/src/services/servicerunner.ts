@@ -124,15 +124,18 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
         }
         await logger.saveAndClose();
 
-        await action.patch({ status: "SUCCESS" });
+        await action.patch({ status: "SUCCESS" }, null);
         this.log("INFO", "Job", action.getUuid(), "finished");
       } catch (err) {
         await logger?.saveAndClose();
-        await action.patch({
-          status: "ERROR",
-          errorMessage: JSON.stringify(err, Object.getOwnPropertyNames(err))
-        });
-        this.log("INFO", "Job", action.getUuid(), "errored", err);
+        await action.patch(
+          {
+            status: "ERROR",
+            errorMessage: JSON.stringify(err, Object.getOwnPropertyNames(err))
+          },
+          null
+        );
+        this.log("ERROR", "Job", action.getUuid(), "errored", err);
       }
     })(<AsyncOperationAction | AsyncWebdaAction>action);
 

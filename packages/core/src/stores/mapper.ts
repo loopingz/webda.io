@@ -303,7 +303,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
         ids = attribute;
         if (typeof updates == "object" && updates[this.parameters.attribute]) {
           let refs = updates[this.parameters.attribute];
-          toAdd = refs.filter(id => !attribute.includes(id));
+          toAdd = refs.filter(id => !ids.includes(id));
           toDelete = attribute.filter(id => !refs.includes(id));
         }
       } else if (typeof attribute === "object") {

@@ -1,6 +1,6 @@
-import { FileUtils, ServiceParameters, YAMLUtils } from "@webda/core";
-import { AsyncAction, JobInfo, Runner, RunnerParameters } from "@webda/async";
 import * as k8s from "@kubernetes/client-node";
+import { AsyncAction, JobInfo, Runner, RunnerParameters } from "@webda/async";
+import { FileUtils, ServiceParameters, YAMLUtils } from "@webda/core";
 import { getKubernetesApiClient, KubernetesParameters } from "../utils/client";
 
 const DEFAULT_JOB_DEFINITION = `apiVersion: batch/v1
@@ -79,7 +79,8 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
       .replaceVariables(this.parameters.jobResources, {
         serviceName: this.getName(),
         image: this.parameters.jobImage,
-        ...info
+        ...info,
+        env: process.env
       });
     // Inject environment variable
     if (
@@ -106,7 +107,7 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
   /**
    * @inheritdoc
    */
-  resolve() : this {
+  resolve(): this {
     super.resolve();
     this.client = <k8s.KubernetesObjectApi>getKubernetesApiClient(this.parameters);
     return this;

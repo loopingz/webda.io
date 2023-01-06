@@ -707,6 +707,11 @@ export class Application {
     let index;
     let i = 0;
     while ((index = scan.indexOf("${")) >= 0) {
+      // Add escape sequence
+      if (index > 0 && scan.substring(index - 1, 1) === "\\") {
+        scan = scan.substring(scan.indexOf("}", index));
+        continue;
+      }
       let next = scan.indexOf("}", index);
       let variable = scan.substring(index + 2, next);
       scan = scan.substring(next);
@@ -717,7 +722,9 @@ export class Application {
         throw new Error("Too many variables");
       }
     }
-    return new Function("return `" + templateString.replace(/\$\{([^\}\{]+)}/g, "${this.$1}") + "`;").call({
+    return new Function(
+      "return `" + (" " + templateString).replace(/([^\\])\$\{([^\}\{]+)}/g, "$1${this.$2}").substring(1) + "`;"
+    ).call({
       ...this.baseConfiguration.cachedModules.project,
       now: this.initTime,
       ...replacements

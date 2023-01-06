@@ -25,7 +25,8 @@ class ApplicationTest extends WebdaTest {
         {
           test: true,
           bouzouf: {
-            yop: "${resources.replace}"
+            yop: "${resources.replace}",
+            yop2: "\\${resources2.replace}"
           }
         },
         {
@@ -37,7 +38,8 @@ class ApplicationTest extends WebdaTest {
       {
         test: true,
         bouzouf: {
-          yop: "Plop"
+          yop: "Plop",
+          yop2: "${resources2.replace}"
         }
       }
     );

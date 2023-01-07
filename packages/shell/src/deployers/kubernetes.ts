@@ -174,7 +174,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         };
         jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
         jsonpath.value(resource, '$.metadata.annotations["webda.io/crondescription"]', cron.toString());
-        let cronResource = CronReplace(resource, cron, this.getApplication(), {
+        let cronResource = CronReplace(resource, this.parameters.cron, this.getApplication(), {
           resources: this.resources,
           deployer: {
             name: this.name,

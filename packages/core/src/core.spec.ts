@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
 import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
-import { Authentication, Bean, ConsoleLoggerService, Route, Service } from "./index";
+import { Authentication, Bean, ConsoleLoggerService, CoreModel, MemoryStore, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
 import { Context } from "./utils/context";
@@ -39,6 +39,13 @@ class ExceptionExecutor extends Service {
   }
 }
 
+class ClassA extends CoreModel {
+  counter: number;
+}
+class ClassB extends CoreModel {}
+class ChildClassA extends ClassA {}
+class SubChildClassA extends ChildClassA {}
+
 /**
  * ImplicitBean are not permitted anymore so just adding the @Bean
  */
@@ -46,6 +53,49 @@ class ExceptionExecutor extends Service {
 class ImplicitBean extends Service {
   @Route("/whynot")
   async whynot() {}
+}
+
+@suite
+class ModelDomainTest extends WebdaTest {
+  public async tweakApp(app: TestApplication): Promise<void> {
+    app.addModel("webdatest/classa", ClassA);
+    app.addModel("webdatest/classb", ClassB);
+    app.addModel("webdatest/childclassa", ChildClassA);
+    app.addModel("webdatest/subchildclassa", SubChildClassA);
+    super.tweakApp(app);
+  }
+
+  protected async buildWebda(): Promise<void> {
+    await super.buildWebda();
+    this.registerService(
+      new MemoryStore(this.webda, "classa", {
+        model: "webdatest/classa"
+      })
+    );
+    this.registerService(
+      new MemoryStore(this.webda, "childclassa", {
+        model: "webdatest/childclassa"
+      })
+    );
+  }
+
+  @test
+  async mainTest() {
+    assert.strictEqual(this.webda.getModelStore(ClassA)?.getName(), "classa");
+    assert.strictEqual(this.webda.getModelStore(ChildClassA)?.getName(), "childclassa");
+    assert.strictEqual(this.webda.getModelStore(SubChildClassA)?.getName(), "childclassa");
+
+    await ChildClassA.store().save({ uuid: "test", plop: true });
+    assert.notStrictEqual(await ChildClassA.get("test"), undefined);
+    assert.strictEqual((await ChildClassA.query("plop = TRUE")).results.length, 1);
+  }
+
+  @test
+  async autoAttach() {
+    await new ChildClassA().load({ counter: 1 }).save();
+    await new ChildClassA().load({ counter: 10 }).save();
+    assert.strictEqual((await ChildClassA.query("counter > 5")).results.length, 1);
+  }
 }
 
 @suite

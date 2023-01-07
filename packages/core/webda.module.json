@@ -1646,8 +1646,24 @@
           "default": 30000
         },
         "parent": {
-          "type": "string",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "condition"
+          ],
           "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
+        },
+        "graphql": {
+          "type": "boolean",
+          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
         },
         "persistence": {
           "type": "object",
@@ -1782,8 +1798,24 @@
           "default": 30000
         },
         "parent": {
-          "type": "string",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "condition"
+          ],
           "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
+        },
+        "graphql": {
+          "type": "boolean",
+          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
         },
         "folder": {
           "type": "string",

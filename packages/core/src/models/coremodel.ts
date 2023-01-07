@@ -1,6 +1,6 @@
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
-import { Core } from "../index";
+import { Core } from "../core";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { Context, OperationContext } from "../utils/context";
@@ -15,9 +15,14 @@ type ModelLinker<T> = string & ModelLoader<T>;
  */
 export type ModelLinked<T> = (query?: string) => Promise<T[]>;
 /**
+ * Mapper attribute (target of a Mapper service)
+ */
+export type ModelMapper<T, K extends keyof T> = Pick<T, K> & ModelLoader<T>;
+/**
  * Define a ModelMap attribute
  */
-export type ModelMap<T, _FK extends keyof T, K extends keyof T> = (Pick<T, K> & ModelLoader<T>)[];
+export type ModelMappers<T, _FK extends keyof T, K extends keyof T> = ModelMapper<T, K>[];
+
 /**
  * Define a link to 1:n relation
  */
@@ -56,6 +61,7 @@ export interface ModelAction {
    */
   openapi?: any;
 }
+
 export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   new (): T;
   /**
@@ -78,6 +84,9 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
 export type Constructor<T> = new (...args: any[]) => T;
 /**
  * Sent if action required attached CoreModel is trigger
+ * A Model cannot be detached anymore
+ *
+ * @deprecated
  */
 export class CoreModelUnattachedError extends Error {
   constructor() {
@@ -154,6 +163,34 @@ class CoreModel {
 
   constructor() {
     this.__class = new.target;
+    // Get the store automatically now
+    this.__store = <Store<this>>Core.get()?.getModelStore(this);
+  }
+
+  /**
+   * Get Store for this model
+   * @param this
+   * @returns
+   */
+  static store<T extends CoreModel>(this: Constructor<T>): Store<T> {
+    return <Store<T>>Core.get().getModelStore(this);
+  }
+
+  /**
+   * Query for models
+   * @param this
+   * @param id
+   * @returns
+   */
+  static async query<T extends CoreModel>(
+    this: Constructor<T>,
+    query: string
+  ): Promise<{
+    results: T[];
+    continuationToken?: string;
+  }> {
+    // @ts-ignore
+    return <any>this.store().query(query);
   }
 
   /**
@@ -319,6 +356,7 @@ class CoreModel {
 
   /**
    * Return if an object is attached to its store
+   * @deprecated Will be removed in 3.0
    */
   isAttached(): boolean {
     return this.__store !== undefined;
@@ -326,6 +364,7 @@ class CoreModel {
 
   /**
    * Attach an object to a store instance
+   * @deprecated Will be removed in 3.0
    */
   attach(store: Store<this>): this {
     this.__store = store;
@@ -446,9 +485,28 @@ class CoreModel {
   }
 
   /**
+   * Load a model from the known store
+   *
+   * @param this the class from which the static is called
+   * @param id of the object to load
+   * @param defaultValue if object not found return a default object
+   * @param context to set on the object
+   * @returns
+   */
+  static async get<T>(
+    this: Constructor<T>,
+    id: string,
+    defaultValue?: Partial<T>,
+    context?: OperationContext
+  ): Promise<T> {
+    // @ts-ignore
+    return <any>this.store(this).get(id, context, defaultValue);
+  }
+
+  /**
    * Patch current object with this update
    * @param obj
-   * @param conditionField
+   * @param conditionField if null no condition used otherwise fallback to lastUpdate
    * @param conditionValue
    */
   async patch(obj: Partial<this>, conditionField?: string | null, conditionValue?: any) {

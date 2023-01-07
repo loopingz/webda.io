@@ -7,7 +7,7 @@ import { getCommonJS } from "../utils/esm";
 const { __filename, __dirname } = getCommonJS(import.meta.url);
 
 @suite
-class AclPolicyTest {
+class AclModelTest {
   _ctx: Context;
   model: AclModel;
   _webda: Core;

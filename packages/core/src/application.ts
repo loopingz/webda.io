@@ -4,7 +4,7 @@ import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
 import { join } from "path";
-import { Constructor, Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
+import { Constructor, Context, Core, CoreModel, CoreModelDefinition, Service, WebdaError } from "./index";
 import { getCommonJS } from "./utils/esm";
 import { FileUtils } from "./utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -67,6 +67,11 @@ export interface PackageDescriptor {
   title?: string;
 }
 
+export type ModelRelation = {
+  attribute: string;
+  model: string;
+  type: "";
+};
 /**
  * A Webda module is a NPM package
  *
@@ -81,6 +86,21 @@ export interface Module {
    * Models provided by the module
    */
   models?: { [key: string]: string };
+  /**
+   * Models graph
+   */
+  modelsGraph?: {
+    [key: string]: {
+      parent?: Omit<ModelRelation, "type">;
+      links?: ModelRelation[];
+      queries?: {
+        attribute: string;
+        model: string;
+        targetAttribute: string;
+      };
+      maps?: any[];
+    };
+  };
   /**
    * Deployers provided by the module
    *
@@ -179,6 +199,10 @@ export type UnpackedConfiguration = {
      * @default 60000
      */
     requestTimeout?: number;
+    /**
+     * Define the default store
+     */
+    defaultStore?: string;
     /**
      * Allow any other type of parameters
      */
@@ -473,6 +497,8 @@ export class Application {
     }
     try {
       this.baseConfiguration = FileUtils.load(file);
+      this.baseConfiguration.parameters ??= {};
+      this.baseConfiguration.parameters.defaultStore ??= "Registry";
       if (this.baseConfiguration.version !== 3) {
         this.log("ERROR", "Your configuration file should use version 3, see https://docs.webda.io/");
       }
@@ -647,9 +673,19 @@ export class Application {
    * Return the model name for a object
    * @param object
    */
-  getModelFromInstance(object): string | undefined {
+  getModelFromInstance(object: CoreModel): string | undefined {
     return Object.keys(this.models)
       .filter(k => this.models[k] === object.constructor)
+      .pop();
+  }
+
+  /**
+   * Return the model name for a object
+   * @param object
+   */
+  getModelFromConstructor(model: Constructor<CoreModel>): string | undefined {
+    return Object.keys(this.models)
+      .filter(k => this.models[k] === model)
       .pop();
   }
 

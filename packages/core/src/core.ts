@@ -343,13 +343,30 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Contains all operations defined by services
    */
   protected operations: { [key: string]: OperationDefinition } = {};
-
+  /**
+   * Cache for model to store resolution
+   */
+  private _modelStoresCache: Map<Constructor<CoreModel>, Store> = new Map<Constructor<CoreModel>, Store>();
+  /**
+   * Store the Core singleton
+   *
+   * The main storage is on the process itself
+   * This second storage allow to identify dual import
+   */
+  private static singleton: Core;
+  /**
+   * True if the dual import warning has been sent
+   */
+  private _dualImportWarn: boolean = false;
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
   constructor(application: Application) {
     /** @ignore */
     super();
+    // Store WebdaCore in process to avoid conflict with import
+    // @ts-ignore
+    Core.singleton = process.webda = this;
     this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
     this.application = application;
@@ -375,6 +392,55 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     if (this.configuration.parameters.website) {
       this.registerCORSFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
     }
+  }
+
+  /**
+   * Get the singleton of Webda Core
+   * @returns
+   */
+  static get(): Core {
+    // @ts-ignore
+    let singleton: Core = process.webda;
+    if (Core.singleton !== singleton && !singleton._dualImportWarn) {
+      singleton._dualImportWarn = true;
+      singleton.log("WARN", "Several import version of WebdaCore has been identified");
+    }
+    // Store WebdaCore in process to avoid conflict with import
+    return singleton;
+  }
+
+  /**
+   * Get the store assigned to this model
+   * @param model
+   * @returns
+   */
+  getModelStore(model: Constructor<CoreModel> | CoreModel) {
+    if (model instanceof CoreModel) {
+      if (this._modelStoresCache.has(model.__class)) {
+        return this._modelStoresCache.get(model.__class);
+      }
+    } else if (this._modelStoresCache.has(model)) {
+      return this._modelStoresCache.get(model);
+    }
+    const setCache = store => {
+      this._modelStoresCache.set(model instanceof CoreModel ? model.__class : model, store);
+    };
+    const stores = this.getStores();
+    let actualScore: number;
+    let actualStore: Store = this.getService(this.parameter("defaultStore"));
+    for (let store in stores) {
+      let score = stores[store].handleModel(model);
+      // As 0 mean exact match we stop there
+      if (score === 0) {
+        setCache(stores[store]);
+        return stores[store];
+      } else if (score > 0 && (actualScore === undefined || actualScore > score)) {
+        actualScore = score;
+        actualStore = stores[store];
+      }
+    }
+    setCache(actualStore);
+    return actualStore;
   }
 
   /**
@@ -740,8 +806,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Return a map of defined stores
    * @returns {{}}
    */
-  getStores(): { [key: string]: Service } {
-    return this.getServicesOfType(Store);
+  getStores(): { [key: string]: Store } {
+    return <any>this.getServicesOfType(Store);
   }
 
   /**

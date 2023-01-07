@@ -4,6 +4,42 @@ Changelog has only be initiated on version 2.2.0
 
 ## next
 
+### WebdaQL Setter Expression
+
+You can now use WebdaQL to set some attributes of an object
+
+```
+const target = {};
+new WebdaQL.SetterValidator("toto.info = 'x' AND toto.plop = 12").eval(target);
+// Will set object target to
+{
+  toto: {
+    plop: 12,
+    info: 'x'
+  }
+}
+```
+
+### Kubernetes arguments spreader
+
+You can use the replacement `${...cron.args}` in your Kubernetes deployment template to
+spread the cron arguments into an array
+
+### Custom launcher
+
+If you specify a launcher in your `webda` section of package.json
+
+```
+ "webda": {
+   "launcher": {
+     "service": "serviceName",
+     "method": "serviceMethod"
+   }
+ }
+```
+
+The launch shell method will launch through this service, it is useful combine with the `AsyncJobService.launchAsAsyncAction` to make local launch async actions.
+
 ### AliasStore
 
 This store allows you to expose a subset of an another store.

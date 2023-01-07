@@ -1,8 +1,8 @@
 import { EventWithContext, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
-import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
+import { Constructor, CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
-import { Context } from "../utils/context";
+import { Context, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { WebdaQL } from "./webdaql/query";
 
@@ -357,6 +357,10 @@ export class StoreParameters extends ServiceParameters {
    */
   model?: string;
   /**
+   * Different models managed by this store
+   */
+  models?: string[];
+  /**
    * async delete
    */
   asyncDelete: boolean;
@@ -367,6 +371,9 @@ export class StoreParameters extends ServiceParameters {
   expose?: ExposeParameters;
   /**
    * Allow to load object that does not have the type data
+   *
+   * If set to true, then the Store will only managed the defined _model and no
+   * model extending this one
    *
    * @default false
    */
@@ -396,7 +403,10 @@ export class StoreParameters extends ServiceParameters {
    *
    * If parent is specified the url route is relative to it
    */
-  parent?: string;
+  parent?: {
+    name: string;
+    condition: string;
+  };
   /**
    * For future use in our GraphQL api
    *
@@ -407,6 +417,7 @@ export class StoreParameters extends ServiceParameters {
   constructor(params: any, service: Service<any>) {
     super(params);
     this.model ??= "Webda/CoreModel";
+    this.models ??= [];
     let expose = params.expose;
     if (typeof expose == "boolean") {
       expose = {};
@@ -523,6 +534,10 @@ abstract class Store<
    */
   _model: CoreModelDefinition;
   /**
+   * Models of this store
+   */
+  _models: CoreModelDefinition[] = [];
+  /**
    * Contains the current model type
    */
   _modelType: string;
@@ -574,13 +589,17 @@ abstract class Store<
     super.computeParameters();
     const p = this.parameters;
     this._model = <CoreModelDefinition>this._webda.getModel(p.model);
-    this._modelType = this._webda.getApplication().getModelFromInstance(new this._model());
+    this._models = [
+      this._model,
+      ...this.parameters.models.map(m => this._webda.getModel(m) as CoreModelDefinition<CoreModel>)
+    ];
+    this._modelType = this._webda.getApplication().getModelFromConstructor(this._model);
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
     this.cacheStorePatchException();
-    this.parent = this.parameters.parent ? this.getService(this.parameters.parent) : undefined;
+    this.parent = this.parameters.parent ? this.getService(this.parameters.parent.name) : undefined;
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -599,6 +618,37 @@ abstract class Store<
     return this._model.getLastUpdateField();
   }
 
+  /**
+   * Return if a model is handled by the store
+   * @param model
+   * @return distance from the managed class -1 means not managed, 0 manage exactly this model, >0 manage an ancestor model
+   *
+   */
+  handleModel(model: Constructor<CoreModel> | CoreModel): number {
+    let finalDepth;
+    // @ts-ignore
+    let inst = model.__class ? model : new model();
+    this._models
+      .filter(m => inst instanceof m)
+      .forEach(m => {
+        let next = model instanceof CoreModel ? model.__class : model;
+        let depth = 0;
+        while (next && next.name !== "") {
+          if (next === m) {
+            finalDepth = finalDepth !== undefined ? Math.min(depth, finalDepth) : depth;
+            return;
+          }
+          // If Store strictly managed one Model
+          if (this.parameters.strict) {
+            return;
+          }
+          depth++;
+          next = Object.getPrototypeOf(next);
+        }
+      });
+    finalDepth ??= -1;
+    return finalDepth;
+  }
   /**
    * Get From Cache or main
    * @param uid
@@ -1565,7 +1615,7 @@ abstract class Store<
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(uid: string, ctx: Context = undefined, defaultValue: any = undefined): Promise<T> {
+  async get(uid: string, ctx: OperationContext = undefined, defaultValue: any = undefined): Promise<T> {
     /** @ignore */
     if (!uid) {
       return undefined;
@@ -1573,7 +1623,7 @@ abstract class Store<
     this.metrics.get++;
     let object = await this._getFromCache(uid);
     if (!object) {
-      return defaultValue ? this.initModel(defaultValue) : undefined;
+      return defaultValue ? this.initModel(defaultValue).setUuid(uid) : undefined;
     }
     if (object.__type !== this._modelType && this.parameters.strict) {
       this.log("WARN", `Object '${uid}' was not created by this store ${object.__type}:${this._modelType}`);

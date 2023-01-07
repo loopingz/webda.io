@@ -7,7 +7,15 @@ import { StoreTest } from "./store.spec";
 class AliasStoreTest extends StoreTest {
   async buildWebda() {
     await super.buildWebda();
-    this.registerService(
+    let services = [
+      new AliasStore(this.webda, "aliasUser", {
+        targetStore: "MemoryIdents",
+        model: "webda/user",
+        idTemplate: "{id}",
+        expose: {
+          url: "/alias/users"
+        }
+      }),
       new AliasStore(this.webda, "aliasIdent", {
         targetStore: "MemoryIdents",
         model: "webdatest/ident",
@@ -16,20 +24,7 @@ class AliasStoreTest extends StoreTest {
           url: "/alias/idents"
         },
         asyncDelete: true
-      })
-    );
-    // Use MemoryIdents for both
-    this.registerService(
-      new AliasStore(this.webda, "aliasUser", {
-        targetStore: "MemoryIdents",
-        model: "webda/user",
-        idTemplate: "{id}",
-        expose: {
-          url: "/alias/users"
-        }
-      })
-    );
-    this.registerService(
+      }),
       new MapperService(this.webda, "aliasMapper", {
         source: "aliasIdent",
         targetAttribute: "idents",
@@ -38,7 +33,8 @@ class AliasStoreTest extends StoreTest {
         fields: ["type", "_lastUpdate"],
         cascade: true
       })
-    );
+    ];
+    services.forEach(s => this.registerService(s));
   }
 
   getIdentStore(): Store<any> {

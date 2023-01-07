@@ -332,6 +332,30 @@ class DynamicService extend Service {
     logs = this.logger.getLogs();
     ind = logs.length - 1;
     assert.strictEqual(logs[ind].log.args[0], "The service UnknownService is missing");
+
+    const packageJson = FileUtils.load(WebdaSampleApplication.getAppPath("package.json"));
+    try {
+      FileUtils.save(
+        {
+          ...packageJson,
+          webda: {
+            ...packageJson.webda,
+            launcher: {
+              method: "output",
+              service: "CustomService"
+            }
+          }
+        },
+        WebdaSampleApplication.getAppPath("package.json")
+      );
+      await this.commandLine("launch DEBUG_MSG");
+      logs = this.logger.getLogs();
+      ind = logs.length - 1;
+      assert.strictEqual(logs[ind].log.args.length, 1);
+      assert.strictEqual(logs[ind].log.args[0], "YOUR MESSAGE IS 'DEBUG_MSG'");
+    } finally {
+      FileUtils.save(packageJson, WebdaSampleApplication.getAppPath("package.json"));
+    }
   }
 
   @test

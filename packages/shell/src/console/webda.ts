@@ -229,11 +229,22 @@ ${Object.keys(operationsExport.operations)
    * @param argv
    */
   static async worker(argv: yargs.Arguments) {
+    const args = [...(<string[]>argv.methodArguments)];
+    const launcher = this.app.getPackageWebda().launcher;
     let serviceName = <string>argv.serviceName;
     WebdaConsole.webda = new WebdaServer(this.app);
     await this.webda.init();
     let service = this.webda.getService(serviceName);
     let method = <string>argv.methodName || "work";
+
+    if (launcher) {
+      this.log("INFO", `Using launcher: ${launcher.service}.${launcher.method}`);
+      args.unshift(serviceName, method);
+      service = this.webda.getService(launcher.service);
+      serviceName = launcher.service;
+      method = launcher.method;
+    }
+
     if (!service) {
       this.log("ERROR", `The service ${serviceName} is missing`);
       return -1;
@@ -244,14 +255,7 @@ ${Object.keys(operationsExport.operations)
     }
     // Launch the worker with arguments
     let timestamp = new Date().getTime();
-    const launcher = this.app.getPackageWebda().launcher;
-    const args = [...(<string[]>argv.methodArguments)];
-    if (launcher) {
-      this.log("INFO", `Using launcher: ${launcher.service}.${launcher.method}`);
-      args.unshift(serviceName, method);
-      service = this.webda.getService(launcher.service);
-      method = launcher.method;
-    }
+
     return Promise.resolve(service[method](...args))
       .catch(err => {
         this.log("ERROR", "An error occured", err);

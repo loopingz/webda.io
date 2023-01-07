@@ -1,6 +1,6 @@
 import * as k8s from "@kubernetes/client-node";
 import { CronService, JSONUtils } from "@webda/core";
-import { getKubernetesApiClient, KubernetesParameters } from "@webda/kubernetes";
+import { CronReplace, getKubernetesApiClient, KubernetesParameters } from "@webda/kubernetes";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import jsonpath from "jsonpath";
@@ -174,7 +174,14 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         };
         jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
         jsonpath.value(resource, '$.metadata.annotations["webda.io/crondescription"]', cron.toString());
-        let cronResource = this.replaceVariables(resource);
+        let cronResource = CronReplace(resource, cron, this.getApplication(), {
+          resources: this.resources,
+          deployer: {
+            name: this.name,
+            type: this.type
+          },
+          ...this.parameters
+        });
         this.resources.resources.push(cronResource);
         if (currentJobsNamesMap[cronResource.metadata.name] !== undefined) {
           delete currentJobsNamesMap[cronResource.metadata.name];

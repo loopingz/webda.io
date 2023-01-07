@@ -22,6 +22,13 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Different models managed by this store"
+        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
@@ -32,7 +39,7 @@
         },
         "strict": {
           "type": "boolean",
-          "description": "Allow to load object that does not have the type data",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
           "default": false
         },
         "defaultModel": {
@@ -51,8 +58,24 @@
           "default": 30000
         },
         "parent": {
-          "type": "string",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "condition"
+          ],
           "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
+        },
+        "graphql": {
+          "type": "boolean",
+          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
         },
         "mongoUrl": {
           "type": "string",
@@ -171,7 +194,7 @@
             },
             "raw": {
               "type": "boolean",
-              "description": "Return BSON filled buffers from operations"
+              "description": "Enabling the raw option will return a [Node.js Buffer](https://nodejs.org/api/buffer.html) which is allocated using [allocUnsafe API](https://nodejs.org/api/buffer.html#static-method-bufferallocunsafesize). See this section from the [Node.js Docs here](https://nodejs.org/api/buffer.html#what-makes-bufferallocunsafe-and-bufferallocunsafeslow-unsafe) for more detail about what \"unsafe\" refers to in this context. If you need to maintain your own editable clone of the bytes returned for an extended life time of the process, it is recommended you allocate your own buffer and clone the contents:"
             },
             "checkKeys": {
               "type": "boolean",

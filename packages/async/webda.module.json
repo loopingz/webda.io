@@ -292,9 +292,7 @@
           "properties": {
             "_promises": {
               "type": "array",
-              "items": {
-                "type": "object"
-              },
+              "items": {},
               "description": "Contain all registered promises to this context",
               "readOnly": true
             },

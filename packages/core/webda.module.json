@@ -1617,6 +1617,13 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Different models managed by this store"
+        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
@@ -1627,7 +1634,7 @@
         },
         "strict": {
           "type": "boolean",
-          "description": "Allow to load object that does not have the type data",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
           "default": false
         },
         "defaultModel": {
@@ -1769,6 +1776,13 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Different models managed by this store"
+        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
@@ -1779,7 +1793,7 @@
         },
         "strict": {
           "type": "boolean",
-          "description": "Allow to load object that does not have the type data",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
           "default": false
         },
         "defaultModel": {

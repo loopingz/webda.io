@@ -38,7 +38,7 @@
           "readOnly": true
         },
         "_company": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_company.ts-131-283-models_company.ts-0-284%3E",
+          "$ref": "#/definitions/ModelParent%3Cclass-models_company.ts-134-281-models_company.ts-0-282%3E",
           "readOnly": true
         },
         "name": {
@@ -50,15 +50,15 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-models_company.ts-131-283-models_company.ts-0-284>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_company.ts-131-283-models_company.ts-0-284%2Cany%3E",
+        "ModelParent<class-models_company.ts-134-281-models_company.ts-0-282>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_company.ts-134-281-models_company.ts-0-282%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-models_company.ts-131-283-models_company.ts-0-284,any>": {
-          "$ref": "#/definitions/ModelLinker%3Cclass-models_company.ts-131-283-models_company.ts-0-284%3E",
+        "ModelLink<class-models_company.ts-134-281-models_company.ts-0-282,any>": {
+          "$ref": "#/definitions/ModelLinker%3Cclass-models_company.ts-134-281-models_company.ts-0-282%3E",
           "description": "Define a link to 1:n relation"
         },
-        "ModelLinker<class-models_company.ts-131-283-models_company.ts-0-284>": {
+        "ModelLinker<class-models_company.ts-134-281-models_company.ts-0-282>": {
           "type": "string"
         }
       },
@@ -422,7 +422,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1581-2065-1131383939-0-7374976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1909-2393-1131383939-0-7678976353190%3E"
         }
       },
       "required": [
@@ -431,7 +431,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-1581-2065-1131383939-0-7374976353190>": {
+        "Partial<class-1131383939-1909-2393-1131383939-0-7678976353190>": {
           "type": "object",
           "properties": {
             "type": {

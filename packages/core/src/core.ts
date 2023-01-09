@@ -18,6 +18,7 @@ import {
   OperationContext,
   Service,
   Store,
+  UnpackedApplication,
   WebContext
 } from "./index";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
@@ -361,7 +362,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
-  constructor(application: Application) {
+  constructor(application?: Application) {
     /** @ignore */
     super();
     // Store WebdaCore in process to avoid conflict with import
@@ -369,7 +370,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     Core.singleton = process.webda = this;
     this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
-    this.application = application;
+    this.application = application || new UnpackedApplication(".");
     this._initTime = new Date().getTime();
     // Schema validations
     this._ajv = new Ajv();

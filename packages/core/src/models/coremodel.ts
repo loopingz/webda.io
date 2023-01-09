@@ -173,6 +173,9 @@ class CoreModel {
    * @returns
    */
   static store<T extends CoreModel>(this: Constructor<T>): Store<T> {
+    if (!Core.get()) {
+      throw new Error("Webda not initialized");
+    }
     return <Store<T>>Core.get().getModelStore(this);
   }
 
@@ -399,6 +402,23 @@ class CoreModel {
     }
     return service.get(uuid);
   }
+
+  /**
+   * Allow to define custom permission per attribute
+   * @param key
+   * @param value
+   * @param mode
+   * @param context
+   * @returns
+   */
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
+    if (mode === "WRITE") {
+      return !key.startsWith("_");
+    } else {
+      return !key.startsWith("__");
+    }
+  }
+
   /**
    * Load an object from RAW
    *
@@ -408,7 +428,7 @@ class CoreModel {
   load(raw: Partial<this>, secure: boolean = false): this {
     // Object assign with filter
     for (let prop in raw) {
-      if (!secure && prop[0] === "_") {
+      if (!secure && !this.attributePermission(prop, raw[prop], "WRITE")) {
         continue;
       }
       this[prop] = raw[prop];
@@ -448,6 +468,14 @@ class CoreModel {
    */
   getStore(): Store<this> {
     return this.__store;
+  }
+
+  /**
+   * Get the object
+   * @returns
+   */
+  async get(): Promise<this> {
+    return this.refresh();
   }
 
   /**
@@ -579,19 +607,6 @@ class CoreModel {
   }
 
   /**
-   * Remove all the attribute starting with __
-   * @param key
-   * @param value
-   * @returns
-   */
-  _jsonFilter(key, value): any {
-    if (key[0] === "_" && key.length > 1 && key[1] === "_") {
-      return undefined;
-    }
-    return value;
-  }
-
-  /**
    * Return the object to be serialized without the __store
    *
    * @param stringify
@@ -630,8 +645,8 @@ class CoreModel {
     let obj: any = {};
     for (let i in this) {
       let value = this[i];
-      if (!secure) {
-        value = this._jsonFilter(i, this[i]);
+      if (!secure && !this.attributePermission(i, value, "READ")) {
+        value = undefined;
       }
       if (value === undefined) continue;
       obj[i] = value;

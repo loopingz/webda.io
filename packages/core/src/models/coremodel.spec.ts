@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { CoreModel, Store } from "..";
+import { Core, CoreModel, Store } from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";
 
@@ -87,11 +87,15 @@ class CoreModelTest extends WebdaTest {
     let store = {
       getService: this.webda.getService.bind(this.webda),
       delete: () => {},
-      patch: () => {}
+      patch: () => {},
+      get: async () => ({
+        test: "123"
+      })
     };
     // @ts-ignore
     task.attach(store);
     assert.ok(task.isAttached());
+    assert.strictEqual((await task.get()).test, "123");
     assert.strictEqual(task.getStore(), store);
     assert.notStrictEqual(task.generateUid(), undefined);
     let stub = sinon.stub(Task, "getUuidField").callsFake(() => "bouzouf");
@@ -114,6 +118,9 @@ class CoreModelTest extends WebdaTest {
       deleteSpy.restore();
     }
     assert.strictEqual(this.getService("ResourceService"), task.getService("ResourceService"));
+    // @ts-ignore
+    process.webda = Core.singleton = undefined;
+    assert.throws(() => CoreModel.store(), /Webda not initialized/);
   }
 
   @test async fullUuid() {

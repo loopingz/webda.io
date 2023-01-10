@@ -2,7 +2,62 @@
 
 Changelog has only be initiated on version 2.2.0
 
-## next
+## 2.3.0
+
+### Attribute based permission
+
+Sometime part of the object should not be readable or updatable by certain persona.
+
+To address this we moved `_jsonFilter` to `attributePermission`
+`_jsonFilter` is now deprecated and will be removed in 3.0
+
+```
+  /**
+   * Allow to define custom permission per attribute
+   * @param key
+   * @param value
+   * @param mode
+   * @param context
+   * @returns
+   */
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
+    if (mode === "WRITE") {
+      return !key.startsWith("_");
+    } else {
+      return !key.startsWith("__");
+    }
+  }
+```
+
+You can use this feature to mask attribute in storage or read:
+
+```
+attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
+  if (key === "card") {
+    const mask = "---X-XXXX-XXXX-X---";
+    value = value.padEnd(mask.length, "?");
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i] === "X") {
+        value = value.substring(0, i) + "X" + value.substring(i + 1);
+      }
+    }
+    return value;
+  }
+  return super.attributePermission(key, value, mode, context);
+}
+```
+
+This is the default implementation that keeps Webda default behavior.
+
+### Core singleton
+
+To move to Domain Driven system, Webda Core is now registering as a singleton.
+Based on the registry multi model, an easier way to use webda could emerge
+
+```
+new Core();
+MyModel.get("id")
+```
 
 ### WebdaQL Setter Expression
 

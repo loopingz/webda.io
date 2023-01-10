@@ -404,18 +404,38 @@ class CoreModel {
   }
 
   /**
+   * Remove all the attribute starting with __
+   * @param key
+   * @param value
+   * @returns
+   *
+   * @deprecated
+   */
+  _jsonFilter(key, value): any {
+    if (key[0] === "_" && key.length > 1 && key[1] === "_") {
+      return undefined;
+    }
+    return value;
+  }
+
+  /**
    * Allow to define custom permission per attribute
+   *
+   * This method allows you to do permission based attribute
+   * But also a mask destructive attribute
+   *
    * @param key
    * @param value
    * @param mode
    * @param context
-   * @returns
+   * @returns updated value
    */
-  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
     if (mode === "WRITE") {
-      return !key.startsWith("_");
+      return key.startsWith("_") ? undefined : value;
     } else {
-      return !key.startsWith("__");
+      // Will be replaced by this !key.startsWith("__") in 3.0.0
+      return this._jsonFilter(key, value);
     }
   }
 
@@ -428,10 +448,14 @@ class CoreModel {
   load(raw: Partial<this>, secure: boolean = false): this {
     // Object assign with filter
     for (let prop in raw) {
-      if (!secure && !this.attributePermission(prop, raw[prop], "WRITE")) {
-        continue;
+      let val = raw[prop];
+      if (!secure) {
+        val = this.attributePermission(prop, raw[prop], "WRITE");
+        if (val === undefined) {
+          continue;
+        }
       }
-      this[prop] = raw[prop];
+      this[prop] = val;
     }
     if (this._creationDate) {
       this._creationDate = new Date(this._creationDate);
@@ -645,8 +669,8 @@ class CoreModel {
     let obj: any = {};
     for (let i in this) {
       let value = this[i];
-      if (!secure && !this.attributePermission(i, value, "READ")) {
-        value = undefined;
+      if (!secure) {
+        value = this.attributePermission(i, value, "READ");
       }
       if (value === undefined) continue;
       obj[i] = value;

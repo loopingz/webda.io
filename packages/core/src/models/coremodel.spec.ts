@@ -1,10 +1,26 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Core, CoreModel, Store } from "..";
+import { Core, CoreModel, OperationContext, Store } from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";
 
+class TestMask extends CoreModel {
+  card: string;
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
+    if (key === "card") {
+      const mask = "---X-XXXX-XXXX-X---";
+      value = value.padEnd(mask.length, "?");
+      for (let i = 0; i < mask.length; i++) {
+        if (mask[i] === "X") {
+          value = value.substring(0, i) + "X" + value.substring(i + 1);
+        }
+      }
+      return value;
+    }
+    return super.attributePermission(key, value, mode, context);
+  }
+}
 @suite
 class CoreModelTest extends WebdaTest {
   @test("Verify unsecure loaded") unsecureLoad() {
@@ -15,6 +31,12 @@ class CoreModelTest extends WebdaTest {
     });
     assert.strictEqual(object._test, undefined);
     assert.strictEqual(object.test, "plop");
+  }
+
+  @test
+  maskAttribute() {
+    let test = new TestMask().load({ card: "1234-1245-5667-0124" });
+    assert.strictEqual(test.card, "123X-XXXX-XXXX-X124");
   }
 
   @test("Verify secure constructor") secureConstructor() {

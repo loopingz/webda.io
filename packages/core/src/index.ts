@@ -47,6 +47,7 @@ export * from "./services/service";
 export * from "./services/version";
 
 // Stores
+export * from "./stores/aliasstore";
 export * from "./stores/aggregator";
 export * from "./stores/file";
 export * from "./stores/mapper";

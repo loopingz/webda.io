@@ -222,6 +222,7 @@ export class AliasStoreParameters extends AbstractAliasStoreParameters {
  * The RegistryStore will default to a model, then specific models from the
  * target collection can be exposed via an endpoint like users
  *
+ * @WebdaModda
  */
 export class AliasStore<
   T extends CoreModel = CoreModel,

@@ -94,6 +94,11 @@ export class CoreModelUnattachedError extends Error {
   }
 }
 
+/**
+ * Make a property hidden from json
+ * @param target
+ * @param propertyKey
+ */
 export function NotEnumerable(target: any, propertyKey: string) {
   Object.defineProperty(target, propertyKey, {
     set(value) {
@@ -105,6 +110,30 @@ export function NotEnumerable(target: any, propertyKey: string) {
     },
     configurable: true
   });
+}
+
+const ActionsAnnotated: Map<any, ModelActions> = new Map();
+/**
+ * Define an object method as an action
+ * @param target
+ * @param propertyKey
+ */
+export function Action(options: { methods?: HttpMethodType[]; openapi?: any } = {}) {
+  return function (target: any, propertyKey: string) {
+    let custom: Record<"Actions", ModelActions> = target;
+    const global = typeof target === "function";
+    if (!global) {
+      custom = target.constructor;
+    }
+    if (!ActionsAnnotated.has(custom)) {
+      ActionsAnnotated.set(custom, {});
+    }
+    const actions = ActionsAnnotated.get(custom);
+    actions[propertyKey] = {
+      ...options,
+      global
+    };
+  };
 }
 
 /**
@@ -282,8 +311,18 @@ class CoreModel {
    *
    * This will expose them by the Store with /storeUrl/{uuid}/{action}
    */
-  static getActions(): ModelActions {
-    return {};
+  static getActions<T>(this: Constructor<T>): ModelActions {
+    const actions = [];
+    // Explore all parent classes to collect all known actions
+    let clazz = this;
+    // @ts-ignore
+    while (clazz !== CoreModel) {
+      if (ActionsAnnotated.has(clazz)) {
+        actions.push(ActionsAnnotated.get(clazz));
+      }
+      clazz = Object.getPrototypeOf(clazz);
+    }
+    return actions.reduce((v, c) => ({ ...v, ...c }), {});
   }
 
   /**

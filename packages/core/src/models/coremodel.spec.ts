@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Core, CoreModel, OperationContext, Store } from "..";
+import { Action, Core, CoreModel, OperationContext, Store } from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";
 
@@ -20,6 +20,17 @@ class TestMask extends CoreModel {
     }
     return super.attributePermission(key, value, mode, context);
   }
+
+  @Action()
+  static globalAction() {}
+
+  @Action()
+  localAction() {}
+}
+
+class SubTestMask extends TestMask {
+  @Action()
+  secondAction() {}
 }
 @suite
 class CoreModelTest extends WebdaTest {
@@ -37,6 +48,17 @@ class CoreModelTest extends WebdaTest {
   maskAttribute() {
     let test = new TestMask().load({ card: "1234-1245-5667-0124" });
     assert.strictEqual(test.card, "123X-XXXX-XXXX-X124");
+  }
+
+  @test
+  actionAnnotation() {
+    assert.deepStrictEqual(CoreModel.getActions(), {});
+    assert.deepStrictEqual(TestMask.getActions(), { localAction: { global: false }, globalAction: { global: true } });
+    assert.deepStrictEqual(SubTestMask.getActions(), {
+      secondAction: { global: false },
+      localAction: { global: false },
+      globalAction: { global: true }
+    });
   }
 
   @test("Verify secure constructor") secureConstructor() {

@@ -138,7 +138,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
       cmd = tag ? this.client.buildTagStdin : this.client.buildStdin;
     }
 
-    this.logger.log("INFO", `Launching Docker build`);
+    this.logger.log("INFO", `Launching Docker build ${this.replaceArgs(cmd, args)}`);
     return this.execute(this.replaceArgs(cmd, args), stdin, false, "INFO");
   }
 

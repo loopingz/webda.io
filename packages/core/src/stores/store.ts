@@ -798,16 +798,16 @@ abstract class Store<
         let executer;
         if (action.global) {
           // By default will grab the object and then call the action
-
-          if (!this._model["_" + name]) {
-            throw Error("Action static method _" + name + " does not exist");
+          if (!this._model[name] && !this._model["_" + name]) {
+            console.log(this._model);
+            throw Error("Action static method /_?" + name + "/ does not exist");
           }
           executer = this.httpGlobalAction;
           this.addRoute(`./${name}`, action.methods, executer, action.openapi);
         } else {
           // By default will grab the object and then call the action
-          if (!this._model.prototype["_" + name]) {
-            throw Error("Action method _" + name + " does not exist");
+          if (!this._model.prototype[name] && !this._model.prototype["_" + name]) {
+            throw Error("Action method /_?" + name + "/ does not exist");
           }
           executer = this.httpAction;
 
@@ -1809,7 +1809,12 @@ abstract class Store<
       store: this,
       context: ctx
     });
-    let res = await object["_" + action](ctx);
+    let res;
+    if (object["_" + action]) {
+      res = await object["_" + action](ctx);
+    } else {
+      res = await object[action](ctx);
+    }
     if (res) {
       ctx.write(res);
     }
@@ -1833,7 +1838,12 @@ abstract class Store<
       store: this,
       context: ctx
     });
-    let res = await this._model["_" + action](ctx);
+    let res;
+    if (this._model["_" + action]) {
+      res = await this._model["_" + action](ctx);
+    } else {
+      res = await this._model[action](ctx);
+    }
     if (res) {
       ctx.write(res);
     }

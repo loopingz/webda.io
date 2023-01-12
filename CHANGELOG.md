@@ -2,6 +2,18 @@
 
 Changelog has only be initiated on version 2.2.0
 
+## 2.3.1
+
+### Fixes
+
+- Docker build with deployment was failing due to `webda` command not available globally anymore
+- AliasStore was not exposed through `Modda` nor exported, making it hard to use
+
+### Action annotation
+
+For model to define an `Action` you can now just use the `@Action` annotation.
+Reminder: an Action is usually exposed through REST with `PUT /models/{uuid}/myAction`
+
 ## 2.3.0
 
 ### Attribute based permission

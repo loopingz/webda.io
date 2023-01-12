@@ -107,15 +107,20 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
     process.env.WEBDA_SHELL_DEPLOY_VERSION = "0.1.0";
     assert.strictEqual(
       this.deployer.getDockerfileWebdaShell(),
-      "# Install enforced @webda/shell version\nRUN yarn add @webda/shell@0.1.0\n\n"
+      "# Install enforced @webda/shell version\nRUN yarn -W add @webda/shell@0.1.0\n\n"
     );
   }
 
   @test
   async testWorkspaceDockerfile() {
     await this.deployer.loadDefaults();
-    assert.ok(
-      this.deployer.getWorkspacesDockerfile().trim(),
+    assert.strictEqual(
+      this.deployer
+        .getWorkspacesDockerfile()
+        .trim()
+        .replace(/GIT_INFO=[^\W=]+=*/g, "GIT_INFO=...")
+        .replace(/shell@\d+\.\d+.\d+/g, "shell@x.x.x")
+        .replace(/enforced/g, "current"),
       `FROM node:lts-alpine
 LABEL webda.io/deployer=undefined
 LABEL webda.io/deployment=Production
@@ -131,22 +136,22 @@ RUN yarn install --production
 
 # Copy all packages content
 
-# Install enforced @webda/shell version
-RUN yarn global add @webda/shell@0.1.0
+# Install current @webda/shell version
+RUN yarn -W add @webda/shell@x.x.x
 
 # Update WORKDIR to project
 WORKDIR /sample-app
 
 # Add deployment
 COPY ../../sample-app/deployments /sample-app/deployments
-RUN webda -d Production config webda.config.json
+RUN GIT_INFO=... /webda/node_modules/.bin/webda -d Production config --noCompile webda.config.jsonc
 RUN rm -rf deployments
 
 # Change user
 USER 1000
 # Launch webda
 ENV WEBDA_COMMAND='serve'
-CMD webda --noCompile $WEBDA_COMMAND`.trim()
+CMD /webda/node_modules/.bin/webda --noCompile $WEBDA_COMMAND`.trim()
     );
   }
 

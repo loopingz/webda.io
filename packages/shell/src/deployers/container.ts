@@ -248,7 +248,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
   getDockerfileWebdaShell(): string {
     // If version is enforced
     if (process.env.WEBDA_SHELL_DEPLOY_VERSION) {
-      return `# Install enforced @webda/shell version\nRUN yarn add @webda/shell@${process.env["WEBDA_SHELL_DEPLOY_VERSION"]}\n\n`;
+      return `# Install enforced @webda/shell version\nRUN yarn -W add @webda/shell@${process.env["WEBDA_SHELL_DEPLOY_VERSION"]}\n\n`;
     }
 
     // If version is set to dev
@@ -382,7 +382,7 @@ ADD package.json /webda/\n\n`;
       // Export deployment
       return `# Add deployment
 COPY ${localPath} ${path.join(appPath, "deployments")}
-RUN GIT_INFO=${gitInfo} webda -d ${deployment} config --noCompile webda.config.json${
+RUN GIT_INFO=${gitInfo} /webda/node_modules/.bin/webda -d ${deployment} config --noCompile webda.config.json${
         fs.existsSync(this.getApplication().getAppPath("webda.config.jsonc")) ? "c" : ""
       }
 RUN rm -rf deployments\n\n`;

@@ -1004,6 +1004,15 @@ abstract class StoreTest extends WebdaTest {
     // Our fake action is pushing true to _plop
     assert.strictEqual(JSON.parse(ctx.getResponseBody())._plop, true);
     assert.strictEqual(eventFired, 2);
+
+    try {
+      identStore._model.prototype.plop = identStore._model.prototype._plop;
+      identStore._model.prototype._plop = undefined;
+      await executor.execute(ctx);
+    } finally {
+      identStore._model.prototype._plop = identStore._model.prototype.plop;
+    }
+
     assert.notStrictEqual(this.getExecutor(ctx, "test.webda.io", "POST", `${url}/coucou/yop`), null);
     executor = this.getExecutor(ctx, "test.webda.io", "GET", `${url}/coucou/yop`);
     assert.notStrictEqual(executor, null);

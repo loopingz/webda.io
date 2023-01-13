@@ -209,6 +209,33 @@ class CoreModel {
   }
 
   /**
+   * Create subobject for a model
+   *
+   * Useful for counters
+   *
+   * @param split
+   * @returns
+   */
+  unflat<T>(split: string = "#"): T {
+    const res: any = {};
+    for (let i in this) {
+      const attrs = i.split(split);
+      let attr = attrs.shift();
+      let cur = res;
+      while (attr) {
+        if (attrs.length) {
+          cur[attr] ??= {};
+          cur = cur[attr];
+        } else {
+          cur[attr] = this[i];
+        }
+        attr = attrs.shift();
+      }
+    }
+    return res;
+  }
+
+  /**
    * Query for models
    * @param this
    * @param id

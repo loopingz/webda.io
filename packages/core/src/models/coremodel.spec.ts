@@ -61,6 +61,36 @@ class CoreModelTest extends WebdaTest {
     });
   }
 
+  @test
+  unflat() {
+    let counters = new CoreModel()
+      .load(<any>{ "test#second#bytes": 12, "test#second#size": 66, "test#first#bytes": 1, "test#first#size": 2 })
+      .unflat<any>();
+    assert.deepStrictEqual(counters.test, {
+      first: {
+        bytes: 1,
+        size: 2
+      },
+      second: {
+        bytes: 12,
+        size: 66
+      }
+    });
+    counters = new CoreModel()
+      .load(<any>{ "test|second|bytes": 12, "test|second|size": 66, "test|first|bytes": 1, "test|first|size": 2 })
+      .unflat<any>("|");
+    assert.deepStrictEqual(counters.test, {
+      first: {
+        bytes: 1,
+        size: 2
+      },
+      second: {
+        bytes: 12,
+        size: 66
+      }
+    });
+  }
+
   @test("Verify secure constructor") secureConstructor() {
     let object: any = new CoreModel();
     object.load(

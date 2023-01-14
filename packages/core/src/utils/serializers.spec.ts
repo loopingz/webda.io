@@ -120,6 +120,18 @@ class UtilsTest {
     );
   }
 
+  @test("YAML octal")
+  octal() {
+    assert.deepEqual(
+      YAMLUtils.parse(
+        `
+plop: 0o600
+`
+      ),
+      { plop: 384 }
+    );
+  }
+
   @test("YAML stringify")
   yaml() {
     assert.strictEqual(

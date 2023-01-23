@@ -1,3 +1,4 @@
+import { Counter, Gauge, Histogram } from "../core";
 import { ServiceParameters } from "../services/service";
 import {
   CancelableLoopPromise,
@@ -81,6 +82,36 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   protected delayer: WaitDelayer;
   eventPrototype: new () => T;
 
+  metrics: {
+    size: Gauge;
+    consumed: Counter;
+    errors: Counter;
+    processing_duration: Histogram;
+  };
+
+  initMetrics() {
+    super.initMetrics();
+    this.metrics.size = this.getMetric(Gauge, {
+      name: "queue_size",
+      help: "Number of item in the queue",
+      collect: async () => {
+        this.metrics.size.set(await this.size());
+      }
+    });
+    this.metrics.consumed = this.getMetric(Gauge, {
+      name: "queue_consumed",
+      help: "Number of item consumed by the queue"
+    });
+    this.metrics.errors = this.getMetric(Gauge, {
+      name: "queue_errors",
+      help: "Number of item in error"
+    });
+    this.metrics.processing_duration = this.getMetric(Histogram, {
+      name: "queue_processing_duration",
+      help: "Time to consume an item"
+    });
+  }
+
   /**
    * Receive one or several messages
    */
@@ -115,16 +146,21 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     try {
       let speed = Date.now();
       let items = await this.receiveMessage(this.eventPrototype);
+      this.metrics.consumed.inc(items.length);
       speed = Date.now() - speed;
       this.failedIterations = 0;
       if (items.length === 0) {
         return { speed, items: items.length };
       }
       const msgWorker = async msg => {
+        const end = this.metrics.processing_duration.startTimer();
         try {
           await this.callback(msg.Message);
           await this.deleteMessage(msg.ReceiptHandle);
+          end();
         } catch (err) {
+          end();
+          this.metrics.errors.inc();
           this.getWebda().log("ERROR", `Message ${msg.ReceiptHandle}`, err);
         }
       };

@@ -1,5 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
+import { register } from "prom-client";
 import { CancelablePromise, Queue } from "..";
 import { MemoryQueue } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";
@@ -81,6 +82,7 @@ class MemoryQueueTest extends QueueTest {
       let queue: Queue = new MemoryQueue(this.webda, "q", {
         workerParallelism: false
       });
+      queue.initMetrics();
       MemoryQueueTest.queue = queue;
       // @ts-ignore
       queue.delayer = () => 1;
@@ -115,6 +117,7 @@ class MemoryQueueTest extends QueueTest {
     const run = async (parallel: boolean) => {
       await new Promise(resolve => {
         let queue: Queue = new MemoryQueue(this.webda, "q", { workerParallelism: parallel });
+        queue.initMetrics();
         MemoryQueueTest.queue = queue;
         MemoryQueueTest.resolve = resolve;
         // @ts-ignore
@@ -176,5 +179,6 @@ class MemoryQueueTest extends QueueTest {
     });
     await queue.sendMessage({});
     assert.strictEqual(callCount, 2);
+    await register.metrics();
   }
 }

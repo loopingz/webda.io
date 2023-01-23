@@ -2,7 +2,7 @@ import Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import * as path from "path";
-import { Ident, User } from "../index";
+import { Counter, Ident, User } from "../index";
 import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";
 
@@ -113,6 +113,26 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   extends Service<T>
   implements MailerService
 {
+  metrics: {
+    sent: Counter;
+    errors: Counter;
+  };
+
+  /**
+   * @override
+   */
+  initMetrics() {
+    super.initMetrics();
+    this.metrics.sent = this.getMetric(Counter, {
+      name: "mailer_sent",
+      help: "Number of emails sent"
+    });
+    this.metrics.errors ??= this.getMetric(Counter, {
+      name: "mailer_errors",
+      help: "Number of emails in error"
+    });
+  }
+
   /**
    * @inheritdoc
    */
@@ -139,13 +159,19 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
     if (!email) {
       throw new Error(`Cannot find a valid email for ${user.__type} '${user.getUuid()}'`);
     }
-    return this.send({
-      template: notification,
-      replacements: {
-        ...replacements
-      },
-      to: email
-    });
+    this.metrics.sent.inc();
+    try {
+      await this.send({
+        template: notification,
+        replacements: {
+          ...replacements
+        },
+        to: email
+      });
+    } catch (err) {
+      this.metrics.errors.inc();
+      throw err;
+    }
   }
 }
 

@@ -12,6 +12,9 @@
     "locales": ["es-ES", "en", "fr-FR"]
   },
   "services": {
+    "PrometheusService": {
+      "type": "Webda/PrometheusService"
+    },
     "ResourceService": {
       "type": "Webda/ResourceService",
       "folder": "test",

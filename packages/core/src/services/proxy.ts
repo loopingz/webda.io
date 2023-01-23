@@ -1,4 +1,5 @@
 import * as http from "http";
+import { Counter, Gauge, Histogram } from "../core";
 import { Context } from "../utils/context";
 import { Route, Service, ServiceParameters } from "./service";
 
@@ -26,6 +27,40 @@ export class ProxyParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class ProxyService<T extends ProxyParameters = ProxyParameters> extends Service<T> {
+  metrics: {
+    http_request_total: Counter;
+    http_request_in_flight: Gauge;
+    http_request_duration_milliseconds: Histogram;
+    http_errors: Counter;
+  };
+
+  /**
+   * @override
+   */
+  initMetrics() {
+    super.initMetrics();
+    this.metrics.http_request_total = this.getMetric(Counter, {
+      name: "proxy_request_total",
+      help: "number of request",
+      labelNames: ["method", "statuscode", "handler", "host"]
+    });
+    this.metrics.http_request_in_flight = this.getMetric(Gauge, {
+      name: "proxy_request_in_flight",
+      help: "number of request in flight",
+      labelNames: ["method", "statuscode", "handler", "host"]
+    });
+    this.metrics.http_request_duration_milliseconds = this.getMetric(Histogram, {
+      name: "proxy_request_duration_milliseconds",
+      help: "request duration",
+      labelNames: ["method", "statuscode", "handler", "host"]
+    });
+    this.metrics.http_errors = this.getMetric(Counter, {
+      name: "proxy_request_errors",
+      help: "request errors",
+      labelNames: ["method", "statuscode", "handler", "host"]
+    });
+  }
+
   /**
    * @override
    */
@@ -108,7 +143,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    */
   async rawProxy(ctx: Context, host: string, url: string, headers: any = {}) {
     this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${url}`);
-    await new Promise((resolve, reject) => {
+    this.metrics.http_request_in_flight.inc();
+    await new Promise<void>((resolve, reject) => {
       let xff = ctx.getHttpContext().getHeader("x-forwarded-for");
       if (!xff) {
         xff += `, ${ctx.getHttpContext().getClientIp()}`;
@@ -130,8 +166,25 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
           ...headers
         },
         res => {
-          res.on("end", resolve);
-          res.on("error", reject);
+          const labels = {
+            method: ctx.getHttpContext().getMethod(),
+            host,
+            handler: url,
+            statuscode: res.statusCode
+          };
+          res.on("end", () => {
+            this.metrics.http_request_in_flight.dec();
+            resolve();
+          });
+          res.on("error", () => {
+            this.metrics.http_request_in_flight.dec();
+            this.metrics.http_errors.inc({ ...labels, statuscode: -1 });
+            reject();
+          });
+          this.metrics.http_request_total.inc(labels);
+          if (res.statusCode >= 400) {
+            this.metrics.http_errors.inc(labels);
+          }
           this.forwardResponse(res, ctx);
         }
       );

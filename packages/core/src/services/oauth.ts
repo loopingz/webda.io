@@ -1,4 +1,4 @@
-import { Core } from "../core";
+import { Core, Counter } from "../core";
 import { Context, EventWithContext, RequestFilter } from "../index";
 import { Authentication } from "./authentication";
 import { Service, ServiceParameters } from "./service";
@@ -125,11 +125,27 @@ export abstract class OAuthService<
   _authenticationService: Authentication;
 
   /**
+   * @override
+   */
+  metrics: {
+    login: Counter;
+  };
+
+  /**
    * Ensure default parameter url
    */
   constructor(webda: Core, name: string, params?: any) {
     super(webda, name, params);
     this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}`;
+  }
+
+  initMetrics(): void {
+    super.initMetrics();
+    this.metrics.login = this.getMetric(Counter, {
+      name: "oauth_login",
+      help: "count the number of login",
+      labelNames: ["method"]
+    });
   }
 
   /**
@@ -320,6 +336,7 @@ export abstract class OAuthService<
       provider: this.getName(),
       context
     });
+    this.metrics.login.inc({ method: "token" });
   }
 
   /**
@@ -337,6 +354,7 @@ export abstract class OAuthService<
       provider: this.getName(),
       context: ctx
     });
+    this.metrics.login.inc({ method: "callback" });
   }
 
   /**

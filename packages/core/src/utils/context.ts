@@ -439,7 +439,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * Get output headers
    */
   public getResponseHeaders(): any {
-    return this._outputHeaders;
+    return { "content-length": this.getResponseSize(), ...this._outputHeaders };
   }
 
   public getRequestParameters() {
@@ -578,6 +578,14 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
   public json(obj: any): this {
     this.write(obj);
     return this;
+  }
+
+  /**
+   * Return the response size
+   * @returns
+   */
+  getResponseSize(): number {
+    return this._body?.length || 0;
   }
 
   /**

@@ -1,7 +1,7 @@
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
-import { Core, Logger } from "../index";
+import { Constructor, Core, Counter, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
 import { HttpMethodType } from "../utils/httpcontext";
 import { EventService } from "./asyncevents";
@@ -258,6 +258,10 @@ abstract class Service<
    */
   protected logger: Logger;
   /**
+   * Get metrics
+   */
+  protected metrics?: any;
+  /**
    *
    *
    * @class Service
@@ -313,6 +317,7 @@ abstract class Service<
    * Call initRoutes and initBeanRoutes
    */
   resolve(): this {
+    this.initMetrics();
     // Inject dependencies
     Injector.resolveAll(this);
 
@@ -322,6 +327,25 @@ abstract class Service<
     this.initRoutes();
     this.initOperations();
     return this;
+  }
+
+  /**
+   * Init the metrics
+   */
+  initMetrics() {
+    this.metrics = {};
+  }
+
+  /**
+   * Add service name label
+   * @param type
+   * @param configuration
+   * @returns
+   */
+  getMetric<T = Gauge | Counter | Histogram>(type: Constructor<T>, configuration: MetricConfiguration<T>): T {
+    configuration.labelNames ??= [];
+    configuration.labelNames = [...configuration.labelNames, "service"];
+    return this.getWebda().getMetric(type, configuration);
   }
 
   /**

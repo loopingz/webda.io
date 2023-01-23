@@ -1,6 +1,7 @@
 {
   "moddas": {
     "webda/aggregator": "lib/stores/aggregator:default",
+    "webda/aliasstore": "lib/stores/aliasstore:AliasStore",
     "webda/asyncevents": "lib/services/asyncevents:EventService",
     "webda/authentication": "lib/services/authentication:Authentication",
     "webda/configurationservice": "lib/services/configuration:default",
@@ -23,6 +24,7 @@
     "webda/memoryqueue": "lib/queues/memoryqueue:MemoryQueue",
     "webda/memorystore": "lib/stores/memory:MemoryStore",
     "webda/multinotificationservice": "lib/services/notificationservice:default",
+    "webda/prometheusservice": "lib/services/prometheus:PrometheusService",
     "webda/proxyservice": "lib/services/proxy:ProxyService",
     "webda/resourceservice": "lib/services/resource:default",
     "webda/versionservice": "lib/services/version:VersionService"
@@ -1473,6 +1475,148 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "VersionService"
     },
+    "webda/aliasstore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Different models managed by this store"
+        },
+        "asyncDelete": {
+          "type": "boolean",
+          "description": "async delete"
+        },
+        "expose": {
+          "$ref": "#/definitions/ExposeParameters",
+          "description": "Expose the service to an urls"
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
+          "default": false
+        },
+        "defaultModel": {
+          "type": "boolean",
+          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
+          "default": true
+        },
+        "forceModel": {
+          "type": "boolean",
+          "description": "If set, Store will ignore the __type",
+          "default": false
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
+        },
+        "parent": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "condition"
+          ],
+          "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
+        },
+        "graphql": {
+          "type": "boolean",
+          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
+        },
+        "targetStore": {
+          "type": "string",
+          "description": "Store to alias"
+        },
+        "idTemplate": {
+          "type": "string",
+          "description": "Store to alias"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "asyncDelete",
+        "idTemplate",
+        "slowQueryThreshold",
+        "targetStore",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ExposeParameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL endpoint to use to expose REST Resources API",
+              "default": "service.getName().toLowerCase()"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Do not expose the POST"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Do not expose the PUT and PATCH"
+                },
+                "get": {
+                  "type": "boolean",
+                  "description": "Do not expose the GET"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Do not expose the DELETE"
+                },
+                "query": {
+                  "type": "boolean",
+                  "description": "Do not expose the query endpoint"
+                }
+              },
+              "description": "You can restrict any part of the CRUD",
+              "default": {}
+            },
+            "queryMethod": {
+              "type": "string",
+              "enum": [
+                "PUT",
+                "GET"
+              ],
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
+              "default": "GET"
+            }
+          }
+        }
+      },
+      "title": "AliasStore"
+    },
     "webda/mapper": {
       "type": "object",
       "properties": {
@@ -2044,6 +2188,64 @@
         }
       },
       "title": "FileLogger"
+    },
+    "webda/prometheusservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content",
+          "default": "/metrics"
+        },
+        "portNumber": {
+          "type": "number",
+          "description": "If defined will launch another http server to serve the scaper"
+        },
+        "bind": {
+          "type": "string",
+          "description": "If defined along with portNumber used to bind specific address for dedicated http server"
+        },
+        "includeNodeMetrics": {
+          "type": "boolean",
+          "description": "Include NodeJS engine metrics",
+          "default": true
+        },
+        "includeRequestMetrics": {
+          "type": "boolean",
+          "description": "Include request served by Webda\n\nIt should generate common http_* metrics",
+          "default": true
+        },
+        "partitionHistogram": {
+          "type": "boolean",
+          "description": "Do not partition histogram with requests labels"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Labels to add"
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix to add to metrics"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "includeNodeMetrics",
+        "includeRequestMetrics",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PrometheusService"
     }
   }
 }

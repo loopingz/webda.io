@@ -209,10 +209,9 @@ export class OperationClient {
 
 ${Object.keys(operationsExport.operations)
   .map(k => {
-    return `    public async call(operation: "${k}", input: ${operationsExport.operations[k].input.replace(
-      /\//,
-      "_"
-    )}) : Promise<${(operationsExport.operations[k].output || "void").replace(/\//, "_")}>;\n`;
+    return `    public async call(operation: "${k}"${
+      operationsExport.operations[k].input ? ", input: " + operationsExport.operations[k].input.replace(/\//, "_") : ""
+    }) : Promise<${(operationsExport.operations[k].output || "void").replace(/\//, "_")}>;\n`;
   })
   .join("")}  
     public async call(operation: Operations, input: any) : Promise<any> {

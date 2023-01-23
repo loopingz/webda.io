@@ -85,7 +85,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
 
   async loadDefaults() {
     await super.loadDefaults();
-    this.resources.baseImage = this.resources.baseImage || "node:lts-alpine";
+    this.resources.baseImage = this.resources.baseImage || "docker.io/library/node:lts-alpine";
     this.resources.command = this.resources.command || "serve";
     this.resources.excludePackages = this.resources.excludePackages || [];
     this.resources.containerClient = this.resources.containerClient || "docker";

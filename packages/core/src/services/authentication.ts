@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { EventWithContext } from "../core";
+import { Counter, EventWithContext } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Route, Service, ServiceParameters } from "../services/service";
@@ -245,6 +245,15 @@ class Authentication<
   _passwordVerifier: PasswordVerifier;
   providers: Set<string> = new Set<string>();
 
+  metrics: {
+    login: Counter;
+    logout: Counter;
+    loginFailed?: Counter;
+    recovery?: Counter;
+    recovered?: Counter;
+    registration?: Counter;
+  };
+
   /**
    * Load the parameters for a service
    */
@@ -293,6 +302,100 @@ class Authentication<
     // Add email provider
     if (this.parameters.email) {
       this.addProvider("email");
+      this.addRoute("./email/{email}/recover", ["GET"], this._passwordRecoveryEmail, {
+        get: {
+          description: "The password reset process will be start",
+          summary: "Start password recovery",
+          operationId: "startEmailRecovery",
+          responses: {
+            "204": {
+              description: ""
+            },
+            "404": {
+              description: "Email does not exist"
+            },
+            "429": {
+              description: "Recovery has been initiated in the last 4 hours"
+            }
+          }
+        }
+      });
+      this.addRoute("./email/passwordRecovery", ["POST"], this._passwordRecovery, {
+        post: {
+          schemas: {
+            input: {
+              type: "object",
+              properties: {
+                token: {
+                  type: "string"
+                },
+                expire: {
+                  type: "number"
+                },
+                password: {
+                  type: "string"
+                },
+                login: {
+                  type: "string"
+                }
+              }
+            }
+          },
+          description: "Reinit the password if we have the right token, expire",
+          summary: "Reinit password",
+          operationId: "reinitPassword",
+          responses: {
+            "204": {
+              description: ""
+            },
+            "403": {
+              description: "Wrong Token"
+            }
+          }
+        }
+      });
+      this.addRoute("./email", ["POST"], this._handleEmail, {
+        post: {
+          description: "Authenticate with an email and password",
+          summary: "Authenticate with email",
+          operationId: `authWithEmail`
+        }
+      });
+    }
+  }
+
+  /**
+   * @override
+   */
+  initMetrics(): void {
+    super.initMetrics();
+    this.metrics.login = this.getMetric(Counter, {
+      name: "auth_login",
+      help: "Counter number of login per provider",
+      labelNames: ["provider"]
+    });
+    this.metrics.logout = this.getMetric(Counter, {
+      name: "auth_logout",
+      help: "Counter number of logout"
+    });
+    this.metrics.registration = this.getMetric(Counter, {
+      name: "auth_registration",
+      help: "Counter number of registration per provider",
+      labelNames: ["provider"]
+    });
+    if (this.parameters.email) {
+      this.metrics.loginFailed = this.getMetric(Counter, {
+        name: "auth_login_failed",
+        help: "Counter number of login failed with password"
+      });
+      this.metrics.recovery = this.getMetric(Counter, {
+        name: "auth_login_recovery",
+        help: "Counter number of password lost process initiated"
+      });
+      this.metrics.recovered = this.getMetric(Counter, {
+        name: "auth_login_recovered",
+        help: "Counter number of password lost process successful"
+      });
     }
   }
 
@@ -427,6 +530,7 @@ class Authentication<
   async _listAuthentications(ctx: Context) {
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await this.logout(ctx);
+      this.metrics.logout.inc();
       ctx.write("GoodBye");
       return;
     }
@@ -443,7 +547,7 @@ class Authentication<
     let ident: Ident = await this._identsStore.get(identId);
     // Ident is known
     if (ident) {
-      await this.login(ctx, ident.getUser(), ident);
+      await this.login(ctx, ident.getUser(), ident, provider);
       await this._identsStore.patch({
         _lastUsed: new Date(),
         __tokens: tokens,
@@ -492,7 +596,7 @@ class Authentication<
     ident.setType(provider);
     await ident.save(true);
     ident.__new = true;
-    await this.login(ctx, user, ident);
+    await this.login(ctx, user, ident, provider);
   }
 
   /**
@@ -511,6 +615,7 @@ class Authentication<
   async registerUser(ctx: Context, data: any, identId: string, user: any = this._usersStore.newModel()): Promise<any> {
     user.email = data.email;
     user.locale = ctx.getLocale();
+    this.metrics.registration.inc();
     await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
       data: data,
@@ -546,24 +651,6 @@ class Authentication<
    * Manage password recovery
    * @param ctx
    */
-  @Route("./email/{email}/recover", ["GET"], false, {
-    get: {
-      description: "The password reset process will be start",
-      summary: "Start password recovery",
-      operationId: "startEmailRecovery",
-      responses: {
-        "204": {
-          description: ""
-        },
-        "404": {
-          description: "Email does not exist"
-        },
-        "429": {
-          description: "Recovery has been initiated in the last 4 hours"
-        }
-      }
-    }
-  })
   async _passwordRecoveryEmail(ctx: Context) {
     let email = ctx.parameter("email");
     let ident: Ident = await this._identsStore.get(email + "_email");
@@ -583,6 +670,7 @@ class Authentication<
       true,
       null
     );
+    this.metrics.recovery.inc();
     await this.sendRecoveryEmail(ctx, user, email);
   }
 
@@ -599,40 +687,6 @@ class Authentication<
     }
   }
 
-  @Route("./email/passwordRecovery", ["POST"], false, {
-    post: {
-      schemas: {
-        input: {
-          type: "object",
-          properties: {
-            token: {
-              type: "string"
-            },
-            expire: {
-              type: "number"
-            },
-            password: {
-              type: "string"
-            },
-            login: {
-              type: "string"
-            }
-          }
-        }
-      },
-      description: "Reinit the password if we have the right token, expire",
-      summary: "Reinit password",
-      operationId: "reinitPassword",
-      responses: {
-        "204": {
-          description: ""
-        },
-        "403": {
-          description: "Wrong Token"
-        }
-      }
-    }
-  })
   async _passwordRecovery(ctx: Context<PasswordRecoveryBody>) {
     let body = await ctx.getRequestBody();
     if (
@@ -665,6 +719,7 @@ class Authentication<
       true,
       null
     );
+    this.metrics.recovered.inc();
     await this.emitSync("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
       user,
       password,
@@ -824,7 +879,7 @@ class Authentication<
    * @param ident
    * @returns
    */
-  async login(ctx: Context, user: User | string, ident: Ident) {
+  async login(ctx: Context, user: User | string, ident: Ident, provider: string) {
     const event: EventAuthenticationLogin = {
       context: ctx,
       userId: "",
@@ -841,6 +896,7 @@ class Authentication<
     event.context = ctx;
 
     ctx.getSession().login(event.userId, event.identId);
+    this.metrics.login.inc({ provider });
     return this.emitSync("Authentication.Login", event);
   }
 
@@ -867,9 +923,10 @@ class Authentication<
       updates.uuid = ident.uuid;
 
       await this._identsStore.patch(updates, true, null);
-      await this.login(ctx, ident.getUser(), ident);
+      await this.login(ctx, ident.getUser(), ident, "email");
       ctx.write(user);
     } else {
+      this.metrics.loginFailed.inc();
       await this.emitSync("Authentication.LoginFailed", <EventAuthenticationLoginFailed>{
         user,
         context: ctx
@@ -893,13 +950,6 @@ class Authentication<
    * @param ctx
    * @returns
    */
-  @Route("./email", ["POST"], false, {
-    post: {
-      description: "Authenticate with an email and password",
-      summary: "Authenticate with email",
-      operationId: `authWithEmail`
-    }
-  })
   async _handleEmail(ctx: Context<LoginBody>) {
     // If called while logged in reject
     if (ctx.getCurrentUserId() !== undefined) {
@@ -970,7 +1020,7 @@ class Authentication<
         newIdent._lastValidationEmail = Date.now();
       }
       ident = await newIdent.save(true);
-      await this.login(ctx, user, ident);
+      await this.login(ctx, user, ident, "email");
       ctx.write(user);
       if (!validation && !mailConfig.skipEmailValidation) {
         await this.sendValidationEmail(ctx, email);

@@ -131,5 +131,13 @@ class MailerTest extends WebdaTest {
     } finally {
       stub.restore();
     }
+    stub = sinon.stub(this.mailer, "send").callsFake(async () => {
+      throw new Error("Fake");
+    });
+    await assert.rejects(
+      () => this.mailer.sendNotification(new User().load({ email: "test@test.com" }), "", undefined, undefined),
+      /Fake/
+    );
+    stub.restore();
   }
 }

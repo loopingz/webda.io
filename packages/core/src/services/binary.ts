@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
-import { WebdaError } from "../index";
+import { Counter, WebdaError } from "../index";
 import { CoreModel, NotEnumerable } from "../models/coremodel";
 import { EventStoreDeleted, MappingService, Store } from "../stores/store";
 import { Context } from "../utils/context";
@@ -371,6 +371,36 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
 {
   _lowercaseMaps: any;
 
+  metrics: {
+    upload: Counter;
+    download: Counter;
+    delete: Counter;
+    metadataUpdate: Counter;
+  };
+
+  /**
+   * @override
+   */
+  initMetrics(): void {
+    super.initMetrics();
+    this.metrics.upload = this.getMetric(Counter, {
+      name: "binary_upload",
+      help: "Number of binary upload"
+    });
+    this.metrics.delete = this.getMetric(Counter, {
+      name: "binary_delete",
+      help: "Number of binary deleted"
+    });
+    this.metrics.download = this.getMetric(Counter, {
+      name: "binary_download",
+      help: "Number of binary upload"
+    });
+    this.metrics.metadataUpdate = this.getMetric(Counter, {
+      name: "binary_metadata_update",
+      help: "Number of binary metadata updated"
+    });
+  }
+
   /**
    * When you store a binary to be able to retrieve it you need to store the information into another object
    *
@@ -423,6 +453,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       object: info,
       service: this
     });
+    this.metrics.download.inc();
     return this._get(info);
   }
 
@@ -437,6 +468,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       object: info,
       service: this
     });
+    this.metrics.download.inc();
     let readStream: any = await this._get(info);
     let writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
@@ -557,6 +589,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       service: this,
       target: object
     });
+    this.metrics.upload.inc();
   }
 
   /**
@@ -582,6 +615,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       object: info,
       service: this
     });
+    this.metrics.delete.inc();
     return update;
   }
 
@@ -898,6 +932,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
             },
             false
           );
+          this.metrics.metadataUpdate.inc();
           await this.emitSync("Binary.MetadataUpdated", evt);
         }
       }

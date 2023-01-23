@@ -330,7 +330,7 @@ class CoreTest extends WebdaTest {
   @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesOfType();
-    assert.strictEqual(Object.keys(moddas).length, 29);
+    assert.strictEqual(Object.keys(moddas).length, 30);
   }
 
   @test

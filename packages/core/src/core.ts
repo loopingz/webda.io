@@ -7,6 +7,15 @@ import { JSONSchema7 } from "json-schema";
 import jsonpath from "jsonpath";
 import pkg from "node-machine-id";
 import { OpenAPIV3 } from "openapi-types";
+import {
+  Counter,
+  CounterConfiguration,
+  Gauge,
+  GaugeConfiguration,
+  Histogram,
+  HistogramConfiguration,
+  register
+} from "prom-client";
 import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
@@ -384,6 +393,12 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     // Init default values for configuration
     this.configuration.parameters ??= {};
     this.configuration.parameters.apiUrl ??= "http://localhost:18080";
+    this.configuration.parameters.metrics ??= {};
+    if (this.configuration.parameters.metrics) {
+      this.configuration.parameters.metrics.labels ??= {};
+      this.configuration.parameters.metrics.config ??= {};
+      this.configuration.parameters.metrics.prefix ??= "";
+    }
     this.configuration.services ??= {};
     // Add CSRF origins filtering
     if (this.configuration.parameters.csrfOrigins) {
@@ -1308,4 +1323,66 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     return openapi;
   }
+
+  /**
+   * Get a metric object
+   *
+   * Use the Service.getMetric method if possible
+   *
+   * This is map from prometheus 3 types of metrics
+   * Our hope is that we can adapt them to export to other
+   * metrics system if needed
+   *
+   * @param type
+   * @param configuration
+   * @returns
+   */
+  getMetric<T = Gauge | Counter | Histogram>(type: Constructor<T>, configuration: MetricConfiguration<T>): T {
+    const metrics = this.getGlobalParams().metrics;
+    if (metrics === false) {
+      // Return a mock
+      return <T>{
+        inc: () => {},
+        reset: () => {},
+        labels: () => undefined,
+        remove: () => {},
+        observe: () => {},
+        startTimer: () => {
+          return () => 0;
+        },
+        zero: () => {},
+        dec: () => {},
+        setToCurrentTime: () => {},
+        set: () => {}
+      };
+    }
+    const name = `${metrics.prefix}webda_${configuration.name}`;
+    const labelNames = [...(configuration.labelNames || []), ...Object.keys(metrics.labels)];
+    // Will probably need to override with a staticLabels property
+    return (
+      <T>register.getSingleMetric(name) ||
+      new type({
+        ...configuration,
+        ...metrics.config[configuration.name],
+        name,
+        labelNames
+      })
+    );
+  }
 }
+
+/**
+ * Generic type for metric
+ */
+export type MetricConfiguration<T = Counter | Gauge | Histogram, K extends string = string> = T extends Counter
+  ? CounterConfiguration<K>
+  : T extends Gauge
+  ? GaugeConfiguration<K>
+  : HistogramConfiguration<K>;
+
+/**
+ * Export a Registry type alias
+ */
+export type Registry<T extends CoreModel = RegistryEntry> = Store<T>;
+
+export { Counter, Gauge, Histogram };

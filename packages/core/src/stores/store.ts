@@ -1,4 +1,4 @@
-import { EventWithContext, WebdaError } from "../core";
+import { Counter, EventWithContext, Histogram, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
@@ -556,19 +556,10 @@ abstract class Store<
   /**
    * Add metrics counter
    */
-  metrics = {
-    save: 0,
-    update: 0,
-    partialUpdate: 0,
-    get: 0,
-    increment: 0,
-    delete: 0,
-    collectionUpsert: 0,
-    collectionDelete: 0,
-    attributeDelete: 0,
-    query: 0,
-    queryDuration: 0,
-    slowQueries: 0
+  metrics: {
+    operations_total: Counter;
+    slow_queries_total: Counter;
+    queries: Histogram;
   };
   /**
    * The parent store if it is nested
@@ -604,6 +595,23 @@ abstract class Store<
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
     // TODO Need to implement: https://github.com/loopingz/webda.io/issues/202
+  }
+
+  /**
+   * @override
+   */
+  initMetrics(): void {
+    super.initMetrics();
+    this.metrics.operations_total = this.getMetric(Counter, {
+      name: "store_operations_total",
+      help: "Operations counter for this store",
+      labelNames: ["operation"]
+    });
+    this.metrics.slow_queries_total = this.getMetric(Counter, {
+      name: "store_slow_queries",
+      help: "Number of slow queries encountered"
+    });
+    this.metrics.queries = this.getMetric(Histogram, { name: "store_queries", help: "Query duration" });
   }
 
   /**
@@ -671,7 +679,7 @@ abstract class Store<
    * @returns
    */
   async getObject(uid: string): Promise<T> {
-    this.metrics.get++;
+    this.metrics.operations_total.inc({ operation: "get" });
     return this._getFromCache(uid);
   }
 
@@ -936,7 +944,7 @@ abstract class Store<
       return Promise.resolve();
     }
     let updateDate = new Date();
-    this.metrics.increment++;
+    this.metrics.operations_total.inc({ operation: "increment" });
     await this._incrementAttribute(uid, prop, value, updateDate);
     await this._cacheStore?._incrementAttribute(uid, prop, value, updateDate);
     return this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
@@ -961,7 +969,7 @@ abstract class Store<
     itemWriteConditionField: string = this._uuidField
   ) {
     let updateDate = new Date();
-    this.metrics.collectionUpsert++;
+    this.metrics.operations_total.inc({ operation: "collectionUpsert" });
     await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
     await this._cacheStore?._upsertItemToCollection(
       uid,
@@ -995,7 +1003,7 @@ abstract class Store<
     itemWriteConditionField: string = this._uuidField
   ) {
     let updateDate = new Date();
-    this.metrics.collectionDelete++;
+    this.metrics.operations_total.inc({ operation: "collectionDelete" });
     await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate);
     await this._cacheStore?._deleteItemFromCollection(
       uid,
@@ -1088,7 +1096,7 @@ abstract class Store<
     let [mainOffset, subOffset] = offset.split("_");
     let secondOffset = parseInt(subOffset || "0");
     let duration = Date.now();
-    this.metrics.query++;
+    this.metrics.operations_total.inc({ operation: "query" });
 
     while (result.results.length < limit) {
       let tmpResults = await this.find({ ...parsedQuery, continuationToken: mainOffset });
@@ -1134,10 +1142,10 @@ abstract class Store<
       }
     }
     duration = Date.now() - duration;
-    this.metrics.queryDuration =
-      (this.metrics.queryDuration * (this.metrics.query - 1) + duration) / this.metrics.query;
+    this.metrics.queries.observe(duration / 1000);
     if (duration > this.parameters.slowQueryThreshold) {
       this.logSlowQuery(query, "", duration);
+      this.metrics.slow_queries_total.inc();
     }
     await this.emitSync("Store.Queried", <EventStoreQueried>{
       query,
@@ -1211,7 +1219,7 @@ abstract class Store<
     });
     // Handle object auto listener
     await object._onSave();
-    this.metrics.save++;
+    this.metrics.operations_total.inc({ operation: "save" });
     let res = await this._save(object);
     await this._cacheStore?._save(object);
     object = this.initModel(res);
@@ -1370,7 +1378,7 @@ abstract class Store<
     }
 
     object[this._lastUpdateField] = new Date();
-    this.metrics.get++;
+    this.metrics.operations_total.inc({ operation: "get" });
     let load = await this._getFromCache(object[this._uuidField], true);
     if (load.__type !== this._modelType && this.parameters.strict) {
       this.log(
@@ -1404,7 +1412,7 @@ abstract class Store<
       conditionValue ??= load[conditionField];
     }
     if (partial) {
-      this.metrics.partialUpdate++;
+      this.metrics.operations_total.inc({ operation: "partialUpdate" });
       await this._patch(object, object[this._uuidField], conditionValue, conditionField);
       await this._cacheStore?._patch(
         object,
@@ -1419,7 +1427,7 @@ abstract class Store<
         object[this._reverseMap[i].property] = loaded[this._reverseMap[i].property];
       }
       object = this.initModel(object);
-      this.metrics.update++;
+      this.metrics.operations_total.inc({ operation: "update" });
       res = await this._update(object, object[this._uuidField], conditionValue, conditionField);
       await this._cacheStore?._update(
         object,
@@ -1460,7 +1468,7 @@ abstract class Store<
    * @returns
    */
   async removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
-    this.metrics.attributeDelete++;
+    this.metrics.operations_total.inc({ operation: "attributeDelete" });
     await this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
     await this._cacheStore?._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
@@ -1511,7 +1519,7 @@ abstract class Store<
     if (typeof uid === "object") {
       to_delete = uid;
     } else {
-      this.metrics.get++;
+      this.metrics.operations_total.inc({ operation: "get" });
       to_delete = await this._getFromCache(uid);
       if (to_delete === undefined) {
         return;
@@ -1538,7 +1546,7 @@ abstract class Store<
 
     // If async we just tag the object as deleted
     if (this.parameters.asyncDelete && !sync) {
-      this.metrics.partialUpdate++;
+      this.metrics.operations_total.inc({ operation: "partialUpdate" });
       await this._patch(
         {
           __deleted: true
@@ -1552,7 +1560,7 @@ abstract class Store<
         to_delete.getUuid()
       );
     } else {
-      this.metrics.delete++;
+      this.metrics.operations_total.inc({ operation: "delete" });
       // Delete from the DB for real
       await this._delete(to_delete.getUuid(), writeCondition, writeConditionField);
       await this._cacheStore?._delete(to_delete.getUuid(), writeCondition, writeConditionField);
@@ -1582,7 +1590,7 @@ abstract class Store<
    * @returns {Promise<Map<string, any>>}
    */
   async getConfiguration(id: string): Promise<{ [key: string]: any }> {
-    this.metrics.get++;
+    this.metrics.operations_total.inc({ operation: "get" });
     let object = await this._getFromCache(id);
     if (!object) {
       return undefined;
@@ -1620,7 +1628,7 @@ abstract class Store<
     if (!uid) {
       return undefined;
     }
-    this.metrics.get++;
+    this.metrics.operations_total.inc({ operation: "get" });
     let object = await this._getFromCache(uid);
     if (!object) {
       return defaultValue ? this.initModel(defaultValue).setUuid(uid) : undefined;

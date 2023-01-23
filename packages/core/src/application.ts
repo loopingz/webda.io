@@ -204,6 +204,16 @@ export type UnpackedConfiguration = {
      */
     defaultStore?: string;
     /**
+     * Define metrics
+     */
+    metrics?:
+      | false
+      | {
+          labels?: { [key: string]: string };
+          config?: { [key: string]: any };
+          prefix?: string;
+        };
+    /**
      * Allow any other type of parameters
      */
     [key: string]: any;

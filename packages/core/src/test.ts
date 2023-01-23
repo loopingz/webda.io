@@ -8,6 +8,8 @@ import { CachedModule, SectionEnum } from "./application";
 import { existsSync, unlinkSync } from "fs";
 import { UnpackedApplication } from "./unpackedapplication";
 import { FileUtils, JSONUtils } from "./utils/serializers";
+import { PrometheusService } from "./services/prometheus";
+import { register } from "prom-client";
 export class Executor {
   /**
    * Main method called by the webda framework if the route don't specify a _method
@@ -163,6 +165,13 @@ class WebdaTest {
    * @param init wait for the full init
    */
   async before(init: boolean = true) {
+    // Reset any prometheus
+    // @ts-ignore
+    PrometheusService.nodeMetricsRegistered = false;
+    // @ts-ignore
+    PrometheusService.requestMetricsRegistered = false;
+    register.clear();
+
     await this.buildWebda();
     if (init) {
       await this.webda.init();

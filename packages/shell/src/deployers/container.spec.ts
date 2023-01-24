@@ -121,7 +121,7 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
         .replace(/GIT_INFO=[^\W=]+=*/g, "GIT_INFO=...")
         .replace(/shell@\d+\.\d+.\d+/g, "shell@x.x.x")
         .replace(/enforced/g, "current"),
-      `FROM node:lts-alpine
+      `FROM docker.io/library/node:lts-alpine
 LABEL webda.io/deployer=undefined
 LABEL webda.io/deployment=Production
 LABEL webda.io/version=${this.deployer.getApplication().getWebdaVersion()}

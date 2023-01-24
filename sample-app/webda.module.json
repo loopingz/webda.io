@@ -422,7 +422,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1909-2393-1131383939-0-7678976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1970-2454-1131383939-0-8089976353190%3E"
         }
       },
       "required": [
@@ -431,7 +431,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-1909-2393-1131383939-0-7678976353190>": {
+        "Partial<class-1131383939-1970-2454-1131383939-0-8089976353190>": {
           "type": "object",
           "properties": {
             "type": {

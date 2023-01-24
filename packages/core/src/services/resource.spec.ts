@@ -71,7 +71,7 @@ class ResourceTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/config.json").toString());
-    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "application/json");
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/json");
   }
 
   @test
@@ -80,7 +80,7 @@ class ResourceTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/moddas/voidstore.js").toString());
-    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "application/javascript");
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/javascript");
   }
 
   @test
@@ -89,7 +89,7 @@ class ResourceTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.txt").toString());
-    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "text/plain; charset=UTF-8");
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "text/plain; charset=UTF-8");
   }
 
   @test
@@ -98,7 +98,7 @@ class ResourceTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.png").toString());
-    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "image/png");
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "image/png");
   }
 
   // Check Store HTTP mapping
@@ -116,6 +116,6 @@ class ResourceTest extends WebdaTest {
       this.ctx.getResponseBody().toString(),
       fs.readFileSync("./templates/PASSPORT_EMAIL_RECOVERY/html.mustache").toString()
     );
-    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "application/octet-stream");
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/octet-stream");
   }
 }

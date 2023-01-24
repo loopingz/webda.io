@@ -195,7 +195,8 @@ export default class ResourceService<
       mimetype += "; charset=UTF-8";
     }
     ctx.writeHead(200, {
-      "Content-Type": mimetype
+      "content-type": mimetype,
+      "content-length": fs.lstatSync(file).size
     });
     const stream = fs.createReadStream(file);
     return new Promise((resolve, reject) => {

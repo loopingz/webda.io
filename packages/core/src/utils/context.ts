@@ -366,7 +366,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
   /**
    * Contains the response headers
    */
-  protected _outputHeaders: Map<string, string>;
+  protected _outputHeaders: http.OutgoingHttpHeaders;
 
   /**
    * Current status code
@@ -439,7 +439,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * Get output headers
    */
   public getResponseHeaders(): any {
-    return { "content-length": this.getResponseSize(), ...this._outputHeaders };
+    return {"content-length": this.getResponseSize(), ...this._outputHeaders};
   }
 
   public getRequestParameters() {
@@ -481,7 +481,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * Remove everything that was about to be sent
    */
   public resetResponse() {
-    this._outputHeaders.clear();
+    this._outputHeaders = {};
     super.resetResponse();
   }
 
@@ -584,8 +584,8 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * Return the response size
    * @returns
    */
-  getResponseSize(): number {
-    return this._body?.length || 0;
+  getResponseSize(): number | undefined {
+    return this._body?.length;
   }
 
   /**
@@ -780,7 +780,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
   constructor(webda: Core, httpContext: HttpContext, stream: Writable = undefined) {
     super(webda, stream);
     this.setHttpContext(httpContext);
-    this._outputHeaders = new Map();
+    this._outputHeaders = {};
     this.headersFlushed = false;
     this.statusCode = 204;
     this.parameters = {};

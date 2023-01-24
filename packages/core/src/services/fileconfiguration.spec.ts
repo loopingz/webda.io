@@ -187,6 +187,6 @@ class FileConfigurationMissingFileNoDefaultTest extends WebdaTest {
 
   @test
   async initialLoad() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Fail");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
   }
 }

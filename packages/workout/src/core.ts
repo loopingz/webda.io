@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { format } from "util";
 import { v4 as uuidv4 } from "uuid";
 
 export interface Logger {
@@ -154,6 +155,26 @@ export type WorkerMessageType =
   | "input.timeout"
   | "title.set";
 
+/*
+ * This function dumps long stack traces for exceptions having a cause()
+ * method. The error classes from
+ * [verror](https://github.com/davepacheco/node-verror) and
+ * [restify v2.0](https://github.com/mcavage/node-restify) are examples.
+ *
+ * Based on `dumpException` in
+ * https://github.com/davepacheco/node-extsprintf/blob/master/lib/extsprintf.js
+ */
+function getFullErrorStack(ex) {
+  let ret = ex.stack || ex.toString();
+  if (ex.cause && typeof ex.cause === "function") {
+    let cex = ex.cause();
+    if (cex) {
+      ret += "\nCaused by: " + getFullErrorStack(cex);
+    }
+  }
+  return ret;
+}
+
 /**
  * Represents a message emitted by WorkerOutput
  */
@@ -295,6 +316,58 @@ export class WorkerOutput extends EventEmitter {
    */
   log(level: WorkerLogLevel, ...args: any[]): void {
     this.logWithContext(level, undefined, ...args);
+  }
+
+  /**
+   *
+   * @returns
+   */
+  getBunyanLogger() {
+    const bunyanFormatter = (level: WorkerLogLevel, ...args) => {
+      if (args.length === 0) {
+        // We cannot know which level is enabled
+        return true;
+      }
+      let fields: any = {};
+      if (args[0] instanceof Error) {
+        // We do not handle fields for now
+        fields.err = args.shift();
+      } else if (typeof args[0] !== "string" && typeof args[0] !== "number") {
+        // We do not handle fields for now
+        fields = args.shift();
+      }
+      if (fields.err) {
+        fields.err = {
+          message: fields.err.message,
+          name: fields.err.name,
+          stack: getFullErrorStack(fields.err),
+          code: fields.err.code,
+          signal: fields.err.signal
+        };
+      }
+      this.logWithContext(level, fields, format(args.shift() || "", ...args));
+    };
+    return {
+      info: (...args: any[]): void | boolean => {
+        return bunyanFormatter("INFO", ...args);
+      },
+      trace: (...args: any[]): void | boolean => {
+        return bunyanFormatter("TRACE", ...args);
+      },
+      warn: (...args: any[]): void | boolean => {
+        return bunyanFormatter("WARN", ...args);
+      },
+      debug: (...args: any[]): void | boolean => {
+        return bunyanFormatter("DEBUG", ...args);
+      },
+      error: (...args: any[]): void | boolean => {
+        return bunyanFormatter("ERROR", ...args);
+      },
+      fatal: (...args: any[]): void | boolean => {
+        // Reroute fatal to error as we do not have FATAL
+        return bunyanFormatter("ERROR", ...args);
+      }
+    };
   }
 
   /**

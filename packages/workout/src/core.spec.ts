@@ -1,6 +1,6 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { WorkerOutput, WorkerProgress, WorkerInputType } from ".";
+import * as assert from "assert";
+import { WorkerInputType, WorkerOutput, WorkerProgress } from ".";
 import { WorkerInput } from "./core";
 
 function mapper([msg]) {
@@ -32,6 +32,34 @@ class WorkerOutputTest {
     assert.deepStrictEqual(this.calls.map(mapper), [
       { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } }
     ]);
+  }
+
+  @test
+  async bunyan() {
+    let logger = this.output.getBunyanLogger();
+    let err;
+    try {
+      this.calls[10].plop();
+    } catch (err2) {
+      err = err2;
+      logger.error(err);
+    }
+    logger.info("Test %s ok", 12);
+    logger.warn({ field1: "test" }, "Warn");
+    logger.trace({ field1: "test", err }, "trace");
+    err.cause = () => new Error("plop");
+    logger.debug(err, "debug");
+    logger.fatal("fatal");
+    assert.deepStrictEqual(this.calls.map(mapper), [
+      { type: "log", groups: [], progresses: {}, log: { level: "ERROR", args: [""] } },
+      { type: "log", groups: [], progresses: {}, log: { level: "INFO", args: ["Test 12 ok"] } },
+      { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Warn"] } },
+      { type: "log", groups: [], progresses: {}, log: { level: "TRACE", args: ["trace"] } },
+      { type: "log", groups: [], progresses: {}, log: { level: "DEBUG", args: ["debug"] } },
+      { type: "log", groups: [], progresses: {}, log: { level: "ERROR", args: ["fatal"] } }
+    ]);
+    assert.strictEqual(logger.fatal(), true);
+    assert.strictEqual(logger.trace(), true);
   }
 
   @test

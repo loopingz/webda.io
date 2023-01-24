@@ -2,6 +2,33 @@
 
 Changelog has only be initiated on version 2.2.0
 
+## 2.4.0
+
+### Prometheus
+
+Add Prometheus metrics system.
+
+You can add a PrometheusService to serve the metrics to Prometheus server
+
+To listen on another port to avoid exposing metrics on public endpoint
+
+```
+{
+  "type": "Webda/PrometheusService",
+  "portNumber": 9090
+}
+```
+
+The `store.ts` file is a good example on how to use metrics
+
+### @webda/workout bunyan logger compatibility
+
+You can use `getBunyanLogger()` to get a compatible logger
+
+### async executeAsAsyncAction
+
+This method execute within the current node process the method and arguments as an AsyncAction
+
 ## 2.3.1
 
 ### Fixes

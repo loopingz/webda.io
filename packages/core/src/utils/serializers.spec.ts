@@ -13,7 +13,7 @@ class UtilsTest {
     assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
     assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
     assert.deepStrictEqual(FileUtils.load(TEST_FOLDER + "test.json"), { test: "ok" });
-    assert.throws(() => JSONUtils.loadFile("/none"), /File does not exist/);
+    assert.throws(() => JSONUtils.loadFile("/none"), /File '\/none' does not exist/);
     assert.throws(() => JSONUtils.loadFile("./Dockerfile"), /Unknown format/);
   }
 

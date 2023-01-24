@@ -14,7 +14,7 @@ export const FileUtils = {
    */
   load: filename => {
     if (!existsSync(filename)) {
-      throw new Error("File does not exist");
+      throw new Error(`File '${filename}' does not exist.`);
     }
     let content = readFileSync(filename, "utf-8");
     if (filename.match(/\.ya?ml$/i)) {

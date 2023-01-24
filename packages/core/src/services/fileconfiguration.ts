@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import { existsSync, watchFile } from "fs";
 import { WebdaError } from "../core";
 import { JSONUtils } from "../index";
 import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
@@ -19,11 +19,11 @@ export class FileConfigurationService<
 
     // Load it from where it should be
     this.parameters.source = this._webda.getAppPath(this.parameters.source);
-    if (!fs.existsSync(this.parameters.source)) {
+    if (!existsSync(this.parameters.source)) {
       throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
-    fs.watchFile(this.parameters.source, this.checkUpdate.bind(this));
+    watchFile(this.parameters.source, this.checkUpdate.bind(this));
 
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
@@ -45,6 +45,14 @@ export class FileConfigurationService<
    */
   async initConfiguration(): Promise<{ [key: string]: any }> {
     this.parameters.source = this._webda.getAppPath(this.parameters.source);
+
+    /**
+     * Auto-generate file if missing
+     */
+    if (!existsSync(this.parameters.source) && this.parameters.default) {
+      JSONUtils.saveFile(this.parameters.default, this.parameters.source);
+    }
+
     return this.loadAndStoreConfiguration();
   }
 }

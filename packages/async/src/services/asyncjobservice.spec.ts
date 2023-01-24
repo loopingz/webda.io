@@ -92,6 +92,8 @@ class AsyncJobServiceTest extends WebdaTest {
     assert.strictEqual(new AsyncAction().isInternal(), false);
     assert.strictEqual(new AsyncWebdaAction().isInternal(), true);
     assert.strictEqual(new AsyncOperationAction("ope.id", new OperationContext(this.webda)).isInternal(), true);
+
+    await this.service.executeAsAsyncAction("myService", "myMethod", 2);
   }
 
   @test

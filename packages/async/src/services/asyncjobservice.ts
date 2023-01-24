@@ -17,6 +17,7 @@ import { schedule as crontabSchedule } from "node-cron";
 import { v4 as uuidv4 } from "uuid";
 import { AsyncAction, AsyncActionQueueItem, AsyncWebdaAction } from "../models";
 import { Runner } from "./runner";
+import ServiceRunner from "./servicerunner";
 
 /**
  * Represent a Job information as you will find in env
@@ -323,6 +324,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       selectedRunner = this.runners[0];
     }
     if (selectedRunner === undefined) {
+      this.log("ERROR", `Cannot find a runner for action ${event.uuid}`);
       await this.store.patch(
         {
           uuid: event.uuid,
@@ -333,6 +335,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       );
       return;
     }
+    this.log("INFO", `Starting action ${event.uuid}`);
     await this.store.patch(
       {
         uuid: event.uuid,
@@ -341,16 +344,24 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       null
     );
     const action = await this.store.get(event.uuid);
-    const info: JobInfo = {
+    let job = await selectedRunner.launchAction(action, this.getJobInfo(action));
+    await action.patch({ job }, null);
+    return job.promise || Promise.resolve();
+  }
+
+  /**
+   * Get the job info
+   * @param action
+   * @returns
+   */
+  getJobInfo(action: AsyncAction): JobInfo {
+    return {
       JOB_SECRET_KEY: action.__secretKey,
       JOB_ID: action.getUuid(),
       JOB_HOOK:
         this.parameters.onlyHttpHook || !action.isInternal() ? this.getWebda().getApiUrl(this.parameters.url) : "store", // How to find the absolute url
       JOB_ORCHESTRATOR: this.getName()
     };
-    let job = await selectedRunner.launchAction(action, info);
-    await action.patch({ job }, null);
-    return job.promise || Promise.resolve();
   }
 
   /**
@@ -429,6 +440,24 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   async launchAsAsyncAction(serviceName: string, method: string, ...args) {
     return this.launchAction(new AsyncWebdaAction(serviceName, method, ...args));
+  }
+
+  /**
+   * Execute a service.method as an AsyncAction
+   *
+   * Useful for crontab execution
+   * @param serviceName
+   * @param method
+   * @param args
+   */
+  async executeAsAsyncAction(serviceName: string, method: string, ...args): Promise<void> {
+    let runner: ServiceRunner = Object.values(this.getWebda().getServicesOfType(ServiceRunner)).shift();
+    // Create a temporary one if needed
+    runner ??= await new ServiceRunner(this.getWebda(), this.getName() + "_temprunner").resolve().init();
+    // Save action
+    const action = await new AsyncWebdaAction(serviceName, method, ...args).save();
+    // Run it
+    return (await runner.launchAction(action, this.getJobInfo(action))).promise;
   }
 
   /**

@@ -340,7 +340,7 @@ class CoreTest extends WebdaTest {
   }
   @test
   getServicesImplementationsWithType() {
-    let stores = this.webda.getServicesOfType(Store);
+    let stores = this.webda.getServicesOfType(<any>Store);
     assert.strictEqual(Object.keys(stores).length, 7);
   }
 

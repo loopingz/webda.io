@@ -803,7 +803,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesOfType(type = undefined): { [key: string]: Service } {
+  getServicesOfType<T>(type: Constructor<T> = undefined): { [key: string]: T } {
     let result = {};
     for (let i in this.services) {
       let service = this.services[i];
@@ -823,7 +823,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @returns {{}}
    */
   getStores(): { [key: string]: Store } {
-    return <any>this.getServicesOfType(Store);
+    return this.getServicesOfType(<any>Store);
   }
 
   /**

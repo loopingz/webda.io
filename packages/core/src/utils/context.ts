@@ -439,7 +439,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * Get output headers
    */
   public getResponseHeaders(): any {
-    return {"content-length": this.getResponseSize(), ...this._outputHeaders};
+    return this._outputHeaders;
   }
 
   public getRequestParameters() {

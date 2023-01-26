@@ -1,6 +1,6 @@
 import { existsSync, watchFile } from "fs";
 import { WebdaError } from "../core";
-import { JSONUtils } from "../index";
+import { FileUtils } from "../utils/serializers";
 import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
 
 /**
@@ -37,7 +37,7 @@ export class FileConfigurationService<
    * @override
    */
   protected async loadConfiguration(): Promise<{ [key: string]: any }> {
-    return JSONUtils.loadFile(this.parameters.source);
+    return FileUtils.load(this.parameters.source);
   }
 
   /**
@@ -50,7 +50,7 @@ export class FileConfigurationService<
      * Auto-generate file if missing
      */
     if (!existsSync(this.parameters.source) && this.parameters.default) {
-      JSONUtils.saveFile(this.parameters.default, this.parameters.source);
+      FileUtils.save(this.parameters.default, this.parameters.source);
     }
 
     return this.loadAndStoreConfiguration();

@@ -39,12 +39,15 @@ export class ActionMemoryLogger extends MemoryLogger {
   onMessage(msg: WorkerMessage) {
     super.onMessage(msg);
     if (!this.timeout) {
-      setTimeout(() => this.save(), this.logSaveDelay);
+      this.timeout = setTimeout(() => this.save(), this.logSaveDelay);
     }
   }
 
   save(): Promise<void> {
-    this.timeout = undefined;
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = undefined;
+    }
     return this.action.patch({ logs: this.getLogs().map(msg => ConsoleLogger.format(msg, this.format)) }, null);
   }
 

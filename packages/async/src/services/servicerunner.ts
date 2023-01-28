@@ -98,9 +98,9 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
    * @inheritdoc
    */
   async launchAction(action: AsyncAction, info: JobInfo): Promise<ServiceAction> {
-    if (action.type !== "AsyncWebdaAction" && action.type !== "AsyncOperationAction") {
-      this.log("ERROR", "Can only handle AsyncWebdaAction or AsyncOperationAction got", action.type);
-      throw new Error("Can only handle AsyncWebdaAction or AsyncOperationAction got " + action.type);
+    if (!(action instanceof AsyncWebdaAction || action instanceof AsyncOperationAction)) {
+      this.log("ERROR", "Can only handle AsyncWebdaAction or AsyncOperationAction got", action.constructor.name);
+      throw new Error("Can only handle AsyncWebdaAction or AsyncOperationAction got " + action.constructor.name);
     }
 
     // Launch within current process
@@ -118,12 +118,10 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
           this.parameters.logSaveDelay,
           this.parameters.logFormat
         );
-        if (action.type === "AsyncWebdaAction") {
-          const webdaAction = <AsyncWebdaAction>action;
-          await this.getService(webdaAction.serviceName)[webdaAction.method](...(webdaAction.arguments || []));
+        if (action instanceof AsyncWebdaAction) {
+          await this.getService(action.serviceName)[action.method](...(action.arguments || []));
         } else {
-          const operationAction = <AsyncOperationAction>action;
-          await this.getWebda().callOperation(operationAction.context, operationAction.operationId);
+          await this.getWebda().callOperation(action.context, action.operationId);
         }
         await logger.saveAndClose();
 
@@ -140,7 +138,7 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
         );
         this.log("ERROR", "Job", action.getUuid(), "errored", err);
       }
-    })(<AsyncOperationAction | AsyncWebdaAction>action);
+    })(action);
 
     return {
       agent: Runner.getAgentInfo(),

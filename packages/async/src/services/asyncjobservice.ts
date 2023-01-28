@@ -1,8 +1,11 @@
 import {
   CancelableLoopPromise,
   CloudBinary,
+  Constructor,
   Context,
   Core,
+  CoreModel,
+  CoreModelDefinition,
   CronDefinition,
   CronService,
   Queue,
@@ -106,6 +109,13 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    */
   logsLimit: number;
 
+  /**
+   * Model to use when launching async action
+   *
+   * @default Webda/AsyncWebdaAction
+   */
+  asyncActionModel?: string;
+
   constructor(params: any) {
     super(params);
     this.url ??= "/async/jobs";
@@ -116,6 +126,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
     this.onlyHttpHook ??= false;
     this.includeCron ??= true;
     this.logsLimit ??= 500;
+    this.asyncActionModel ??= "Webda/AsyncWebdaAction";
   }
 }
 
@@ -149,6 +160,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * If we want job to be able to upload/download
    */
   protected binaryStore: CloudBinary;
+  /**
+   * Model to use when launching action
+   */
+  model: CoreModelDefinition<CoreModel> | Constructor<any>;
 
   /**
    * @inheritdoc
@@ -161,6 +176,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   resolve(): this {
     super.resolve();
+    this.model = this.getWebda().getModel(this.parameters.asyncActionModel);
     this.queue = this.getService(this.parameters.queue);
     if (!this.queue && !this.parameters.localLaunch) {
       throw new Error(`AsyncService requires a valid queue. '${this.parameters.queue}' is invalid`);
@@ -439,7 +455,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param args
    */
   async launchAsAsyncAction(serviceName: string, method: string, ...args) {
-    return this.launchAction(new AsyncWebdaAction(serviceName, method, ...args));
+    return this.launchAction(new this.model(serviceName, method, ...args));
   }
 
   /**
@@ -455,7 +471,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // Create a temporary one if needed
     runner ??= await new ServiceRunner(this.getWebda(), this.getName() + "_temprunner").resolve().init();
     // Save action
-    const action = await new AsyncWebdaAction(serviceName, method, ...args).save();
+    const action = await new this.model(serviceName, method, ...args).save();
     // Run it
     return (await runner.launchAction(action, this.getJobInfo(action))).promise;
   }
@@ -538,7 +554,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
           "INFO",
           `Execute cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} as an AsyncOperationAction`
         );
-        await this.launchAction(new AsyncWebdaAction(cron.serviceName, cron.method, cron.args));
+        await this.launchAction(new this.model(cron.serviceName, cron.method, cron.args));
       } catch (err) {
         this.log(
           "ERROR",

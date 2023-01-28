@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Operation, OperationContext, SimpleOperationContext, Store } from "@webda/core";
+import { CoreModel, Operation, OperationContext, SimpleOperationContext, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import assert from "assert";
 import models, { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../models";
@@ -79,13 +79,13 @@ class ServiceRunnerTest extends WebdaTest {
     action.type = "plop";
     await assert.rejects(
       () =>
-        runner.launchAction(action, {
+        runner.launchAction(<any>new CoreModel(), {
           JOB_HOOK: "",
           JOB_ID: action2.getUuid(),
           JOB_ORCHESTRATOR: "test",
           JOB_SECRET_KEY: ""
         }),
-      /Can only handle AsyncWebdaAction or AsyncOperationAction got plop/
+      /Can only handle AsyncWebdaAction or AsyncOperationAction got CoreModel/
     );
 
     const opAction = new AsyncOperationAction(

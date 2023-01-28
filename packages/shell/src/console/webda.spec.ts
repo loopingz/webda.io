@@ -192,7 +192,7 @@ class ConsoleTest {
       watchDirectory: ts.WatchDirectoryKind.FixedPollingInterval
     };
     this.commandLine(
-      `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`,
+      `debug -d Dev -w --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`,
       true,
       undefined,
       "INFO"

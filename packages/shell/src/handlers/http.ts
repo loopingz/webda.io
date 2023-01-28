@@ -318,7 +318,8 @@ export class WebdaServer extends Webda {
               // Use our checkRequest filtering system
               const ctx = await this.getContextFromRequest(req);
               // Check CORS and Request at the same time as the origin callback only provide origin string
-              if (!(await this.checkCORSRequest(ctx)) || !(await this.checkRequest(ctx))) {
+              if (!(this.devMode || await this.checkCORSRequest(ctx)) || !(await this.checkRequest(ctx))) {
+                this.output("Request refused either CORSFilter or RequestFilter");
                 callback("Request not allowed", null);
               } else {
                 // Load session

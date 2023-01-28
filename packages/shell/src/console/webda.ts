@@ -304,6 +304,8 @@ ${Object.keys(operationsExport.operations)
       args.push("--appPath");
       args.push(this.app.getAppPath());
 
+
+      args.push("serve");
       if (argv.port) {
         args.push("--port");
         args.push(<string>argv.port);
@@ -314,7 +316,10 @@ ${Object.keys(operationsExport.operations)
         args.push(<string>argv.bind);
       }
 
-      args.push("serve");
+      if (argv.websockets) {
+        args.push("-w");
+      }
+
       if (argv.logLevels) {
         args.push("--logLevels");
         args.push(<string>argv.logLevels);
@@ -708,7 +713,20 @@ ${Object.keys(operationsExport.operations)
       },
       debug: {
         handler: WebdaConsole.debug,
-        description: "Debug current application"
+        description: "Debug current application",
+        module: {
+          port: {
+            alias: "p",
+            default: 18080
+          },
+          bind: {
+            alias: "b",
+            default: "127.0.0.1"
+          },
+          websockets: {
+            alias: "w"
+          }
+        }
       },
       config: {
         handler: WebdaConsole.config,

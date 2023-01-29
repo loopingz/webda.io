@@ -278,6 +278,10 @@ ${Object.keys(operationsExport.operations)
    * @param argv
    */
   static async debug(argv: yargs.Arguments) {
+    const curArgs = <string[]>argv._.slice(1);
+    if (curArgs.length === 0) {
+      curArgs.push("serve");
+    }
     let launchServe = (diagnostic: ts.Diagnostic | string) => {
       if (typeof diagnostic !== "string" && (diagnostic.code === 6032 || diagnostic.code === 6031)) {
         this.setDebuggerStatus(DebuggerStatus.Compiling);
@@ -289,12 +293,12 @@ ${Object.keys(operationsExport.operations)
       }
       this.setDebuggerStatus(DebuggerStatus.Launching);
       if (this.serverProcess) {
-        this.logger.logTitle("Refreshing Webda Server");
+        this.logger.logTitle("Refreshing Webda");
         this.serverProcess.removeAllListeners();
         this.serverProcess.kill();
       } else {
-        this.logger.logTitle("Launching Webda Server");
-        this.output("Launch webda serve in debug mode");
+        this.logger.logTitle("Launching Webda");
+        this.output("Launch webda in debug mode");
       }
       let args = ["--noCompile"];
       if (argv.deployment) {
@@ -304,8 +308,7 @@ ${Object.keys(operationsExport.operations)
       args.push("--appPath");
       args.push(this.app.getAppPath());
 
-
-      args.push("serve");
+      args.push(...curArgs);
       if (argv.port) {
         args.push("--port");
         args.push(<string>argv.port);

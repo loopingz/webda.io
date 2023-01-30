@@ -467,13 +467,13 @@ class CoreModel {
    * @param partials
    * @returns
    */
-  static async fromFullUuid<T extends CoreModel = CoreModel>(core: Core, fullUuid: string, partials?: any): Promise<T> {
+  static async fromFullUuid<T extends CoreModel = CoreModel>(fullUuid: string, core: Core = Core.get(), partials?: any): Promise<T> {
     const [store, uuid] = fullUuid.split("$");
     let service = core.getService<Store<T>>(store);
     if (partials) {
-      return service.newModel(partials).setUuid(uuid);
+      return service?.newModel(partials).setUuid(uuid);
     }
-    return service.get(uuid);
+    return service?.get(uuid);
   }
 
   /**

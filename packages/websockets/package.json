@@ -1,0 +1,61 @@
+{
+  "name": "@webda/websockets",
+  "version": "2.4.2",
+  "description": "Implements WebSockets on webda",
+  "keywords": [
+    "websockets",
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "webda build",
+    "build:watch": "webda build --watch",
+    "pretest": "npm run build",
+    "lint": "prettier --check src/**/*",
+    "lint:fix": "prettier --write src/**/*",
+    "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts"
+  },
+  "dependencies": {
+    "@webda/core": "^2.4.2",
+    "pg": "^8.7.1",
+    "socket.io": "^4.5.4",
+    "socket.io-client": "^4.5.4"
+  },
+  "files": [
+    "lib",
+    "webda.module.json"
+  ],
+  "c8": {
+    "report-dir": "./reports",
+    "reporter": [
+      "html",
+      "lcov",
+      "json",
+      "text"
+    ],
+    "exclude": [
+      "**/*.spec.ts"
+    ]
+  },
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  },
+  "devDependencies": {
+    "@testdeck/mocha": "^0.3.2",
+    "@types/node": "14.6.0",
+    "@webda/shell": "^2.4.2",
+    "sinon": "^15.0.0",
+    "ts-node": "^10.9.1"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=14.6.0"
+  }
+}

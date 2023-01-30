@@ -536,7 +536,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param partials
    */
   async getModelObject<T extends CoreModel = CoreModel>(fullUuid: string, partials?: any): Promise<T> {
-    return CoreModel.fromFullUuid(this, fullUuid, partials);
+    return CoreModel.fromFullUuid(fullUuid, this, partials);
   }
 
   /**

@@ -32,6 +32,10 @@ interface EventStore {
    * Store emitting
    */
   store: Store;
+  /**
+   * Context of the operation
+   */
+  context?: OperationContext;
 }
 /**
  * Event called before save of an object
@@ -103,7 +107,7 @@ export interface EventStorePatchUpdated extends EventStoreUpdated {}
 /**
  * Event called after partial update of an object
  */
-export interface EventStorePartialUpdated {
+export interface EventStorePartialUpdated<T extends CoreModel = CoreModel> {
   /**
    * Object uuid
    */
@@ -111,7 +115,7 @@ export interface EventStorePartialUpdated {
   /**
    * Emitting store
    */
-  store: Store;
+  store: Store<T>;
   /**
    * Update date
    */
@@ -183,6 +187,10 @@ export interface EventStoreQuery {
    * The parsed query by our grammar
    */
   parsedQuery: WebdaQL.Query;
+  /**
+   * Context in which the query was run
+   */
+  context: OperationContext;
 }
 /**
  * Event sent when query is resolved
@@ -944,14 +952,14 @@ abstract class Store<
     this.metrics.operations_total.inc({ operation: "increment" });
     await this._incrementAttribute(uid, <string>prop, value, updateDate);
     await this._cacheStore?._incrementAttribute(uid, <string>prop, value, updateDate);
-    return this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
+    return this.emitSync("Store.PartialUpdated", {
       object_id: uid,
       store: this,
       updateDate,
       partial_update: {
         increment: {
           value: value,
-          property: prop
+          property: <string>prop
         }
       }
     });
@@ -996,14 +1004,14 @@ abstract class Store<
       updateDate
     );
 
-    await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
+    await this.emitSync("Store.PartialUpdated", {
       object_id: uid,
       store: this,
       updateDate,
       partial_update: {
         addItem: {
           value: item,
-          property: prop,
+          property: <string>prop,
           index: index
         }
       }
@@ -1044,13 +1052,13 @@ abstract class Store<
       itemWriteConditionField,
       updateDate
     );
-    await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
+    await this.emitSync("Store.PartialUpdated", {
       object_id: uid,
       store: this,
       updateDate,
       partial_update: {
         deleteItem: {
-          property: prop,
+          property: <string>prop,
           index: index
         }
       }
@@ -1104,7 +1112,7 @@ abstract class Store<
     const limit = queryValidator.getLimit();
     const parsedQuery = queryValidator.getQuery();
     // Emit the default event
-    await this.emitSync("Store.Query", <EventStoreQuery>{
+    await this.emitSync("Store.Query", {
       query,
       parsedQuery,
       store: this,
@@ -1178,7 +1186,7 @@ abstract class Store<
       this.logSlowQuery(query, "", duration);
       this.metrics.slow_queries_total.inc();
     }
-    await this.emitSync("Store.Queried", <EventStoreQueried>{
+    await this.emitSync("Store.Queried", {
       query,
       parsedQuery: parsedQuery,
       store: this,
@@ -1243,7 +1251,7 @@ abstract class Store<
     if (ctx) {
       object.setContext(ctx);
     }
-    await this.emitSync("Store.Save", <EventStoreSave>{
+    await this.emitSync("Store.Save", {
       object: object,
       store: this,
       context: ctx
@@ -1254,7 +1262,7 @@ abstract class Store<
     let res = await this._save(object);
     await this._cacheStore?._save(object);
     object = this.initModel(res);
-    await this.emitSync("Store.Saved", <EventStoreSaved>{
+    await this.emitSync("Store.Saved", {
       object: object,
       store: this,
       context: ctx
@@ -1521,11 +1529,12 @@ abstract class Store<
       itemWriteCondition,
       <string>itemWriteConditionField
     );
-    await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
+    await this.emitSync("Store.PartialUpdated", {
       object_id: uuid,
       partial_update: {
-        deleteAttribute: attribute
-      }
+        deleteAttribute: <string>attribute
+      },
+      store: this
     });
   }
 
@@ -1588,7 +1597,7 @@ abstract class Store<
       }
     }
     // Send preevent
-    await this.emitSync("Store.Delete", <EventStoreDelete>{
+    await this.emitSync("Store.Delete", {
       object: to_delete,
       store: this
     });
@@ -1617,7 +1626,7 @@ abstract class Store<
     }
 
     // Send post event
-    await this.emitSync("Store.Deleted", <EventStoreDeleted>{
+    await this.emitSync("Store.Deleted", {
       object: to_delete,
       store: this
     });
@@ -1689,7 +1698,7 @@ abstract class Store<
     }
     object = this.initModel(object);
     object.setContext(ctx);
-    await this.emitSync("Store.Get", <EventStoreGet>{
+    await this.emitSync("Store.Get", {
       object: object,
       store: this,
       context: ctx
@@ -1842,7 +1851,7 @@ abstract class Store<
     }
     await this.save(object, ctx);
     ctx.write(object);
-    await this.emitSync("Store.WebCreate", <EventStoreWebCreate>{
+    await this.emitSync("Store.WebCreate", {
       context: ctx,
       values: body,
       object: object,
@@ -1861,7 +1870,7 @@ abstract class Store<
       throw 404;
     }
     await object.canAct(ctx, action);
-    await this.emitSync("Store.Action", <EventStoreAction>{
+    await this.emitSync("Store.Action", {
       action: action,
       object: object,
       store: this,
@@ -1876,7 +1885,7 @@ abstract class Store<
     if (res) {
       ctx.write(res);
     }
-    await this.emitSync("Store.Actioned", <EventStoreActioned>{
+    await this.emitSync("Store.Actioned", {
       action: action,
       object: object,
       store: this,
@@ -1891,7 +1900,7 @@ abstract class Store<
    */
   async httpGlobalAction(ctx: Context) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
-    await this.emitSync("Store.Action", <EventStoreAction>{
+    await this.emitSync("Store.Action", {
       action: action,
       store: this,
       context: ctx
@@ -1905,7 +1914,7 @@ abstract class Store<
     if (res) {
       ctx.write(res);
     }
-    await this.emitSync("Store.Actioned", <EventStoreActioned>{
+    await this.emitSync("Store.Actioned", {
       action: action,
       store: this,
       context: ctx,
@@ -2009,12 +2018,12 @@ abstract class Store<
       object = await this.update(updateObject);
     }
     ctx.write(object);
-    await this.emitSync("Store.WebUpdate", <EventStoreWebUpdate>{
+    await this.emitSync("Store.WebUpdate", {
       context: ctx,
       updates: body,
       object: object,
       store: this,
-      method: ctx.getHttpContext().getMethod()
+      method: <"PATCH" | "PUT">ctx.getHttpContext().getMethod()
     });
   }
 
@@ -2048,7 +2057,7 @@ abstract class Store<
   async httpGet(ctx: Context) {
     let uuid = ctx.parameter("uuid");
     let object = await this.get(uuid, ctx);
-    await this.emitSync("Store.WebGetNotFound", <EventStoreWebGetNotFound>{
+    await this.emitSync("Store.WebGetNotFound", {
       context: ctx,
       uuid,
       store: this
@@ -2058,7 +2067,7 @@ abstract class Store<
     }
     await object.canAct(ctx, "get");
     ctx.write(object);
-    await this.emitSync("Store.WebGet", <EventStoreWebGet>{
+    await this.emitSync("Store.WebGet", {
       context: ctx,
       object: object,
       store: this
@@ -2100,7 +2109,7 @@ abstract class Store<
     // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
     ctx.write({});
     await this.delete(uuid);
-    await this.emitSync("Store.WebDelete", <EventStoreWebDelete>{
+    await this.emitSync("Store.WebDelete", {
       context: ctx,
       object_id: uuid,
       store: this

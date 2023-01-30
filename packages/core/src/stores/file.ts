@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { CoreModel } from "../models/coremodel";
+import { CoreModel, FilterKeys } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { MemoryStore } from "./memory";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
@@ -123,7 +123,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       // Need to keep sync to avoid conflicts
       return await this.simulateUpsertItemToCollection(
         this.initModel(JSONUtils.loadFile(this.file(uid))),
-        prop,
+        <FilterKeys<T, any[]>>prop,
         item,
         updateDate,
         index,
@@ -140,7 +140,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
     let res = await this._get(uuid, true);
-    this.checkUpdateCondition(res, writeConditionField, writeCondition);
+    this.checkUpdateCondition(res, <keyof T>writeConditionField, writeCondition);
     delete res[attribute];
     await this._save(res);
   }
@@ -157,7 +157,13 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     updateDate: Date
   ) {
     let res = await this._get(uid, true);
-    this.checkCollectionUpdateCondition(res, prop, itemWriteConditionField, itemWriteCondition, index);
+    this.checkCollectionUpdateCondition(
+      res,
+      <FilterKeys<T, any[]>>prop,
+      <keyof T>itemWriteConditionField,
+      itemWriteCondition,
+      index
+    );
     res[prop].splice(index, 1);
     res[this._lastUpdateField] = updateDate;
     return this._save(res);
@@ -178,7 +184,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   async _patch(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     let stored = await this._get(uid, true);
-    this.checkUpdateCondition(stored, writeConditionField, writeCondition);
+    this.checkUpdateCondition(stored, <keyof T>writeConditionField, writeCondition);
     for (let prop in object) {
       stored[prop] = object[prop];
     }
@@ -190,7 +196,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     let stored = await this._get(uid, true);
-    this.checkUpdateCondition(stored, writeConditionField, writeCondition);
+    this.checkUpdateCondition(stored, <keyof T>writeConditionField, writeCondition);
     return this._save(this.initModel(object));
   }
 

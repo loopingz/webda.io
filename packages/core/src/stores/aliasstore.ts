@@ -73,6 +73,7 @@ export abstract class AbstractAliasStore<
     itemWriteCondition?: any,
     itemWriteConditionField?: string
   ): Promise<void> {
+    // @ts-ignore
     return this._targetStore._removeAttribute(
       this.generateUuidFromPublicId(uuid),
       attribute,
@@ -85,6 +86,7 @@ export abstract class AbstractAliasStore<
    * @override
    */
   _save(object: T): Promise<any> {
+    // @ts-ignore
     return this._targetStore._save(object);
   }
 
@@ -100,6 +102,7 @@ export abstract class AbstractAliasStore<
     itemWriteConditionField: string,
     updateDate: Date
   ): Promise<any> {
+    // @ts-ignore
     return this._targetStore._upsertItemToCollection(
       this.generateUuidFromPublicId(uid),
       prop,
@@ -120,6 +123,7 @@ export abstract class AbstractAliasStore<
    * @override
    */
   async _get(uid: string, raiseIfNotFound?: boolean | undefined): Promise<T> {
+    // @ts-ignore
     return this._targetStore._get(this.generateUuidFromPublicId(uid), raiseIfNotFound);
   }
 
@@ -127,6 +131,7 @@ export abstract class AbstractAliasStore<
    * @override
    */
   async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string | undefined): Promise<void> {
+    // @ts-ignore
     return this._targetStore._delete(this.generateUuidFromPublicId(uid), writeCondition, itemWriteConditionField);
   }
 
@@ -141,6 +146,7 @@ export abstract class AbstractAliasStore<
     itemWriteConditionField: string,
     updateDate: Date
   ): Promise<any> {
+    // @ts-ignore
     return this._targetStore._deleteItemFromCollection(
       this.generateUuidFromPublicId(uid),
       prop,
@@ -155,6 +161,7 @@ export abstract class AbstractAliasStore<
    * @override
    */
   async _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any> {
+    // @ts-ignore
     return this._targetStore._incrementAttribute(this.generateUuidFromPublicId(uid), prop, value, updateDate);
   }
 
@@ -167,6 +174,7 @@ export abstract class AbstractAliasStore<
     itemWriteCondition?: any,
     itemWriteConditionField?: string | undefined
   ): Promise<any> {
+    // @ts-ignore
     return this._targetStore._patch(
       object,
       this.generateUuidFromPublicId(uid),
@@ -184,6 +192,7 @@ export abstract class AbstractAliasStore<
     itemWriteCondition?: any,
     itemWriteConditionField?: string | undefined
   ): Promise<any> {
+    // @ts-ignore
     return this._targetStore._update(
       object,
       this.generateUuidFromPublicId(uid),

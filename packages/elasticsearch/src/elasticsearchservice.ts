@@ -254,7 +254,7 @@ export default class ElasticSearchService<
     return this.indexes[index];
   }
 
-  async search(index: string, query: any, from: number = 0) {
+  async search<T extends CoreModel = CoreModel>(index: string, query: any, from: number = 0) : Promise<T[]> {
     let idx = this.checkIndex(index);
     // Cannot import type from ES client easily
     let q: any = {};

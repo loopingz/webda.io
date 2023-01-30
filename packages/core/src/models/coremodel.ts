@@ -42,6 +42,13 @@ export type ModelActions = {
   [key: string]: ModelAction;
 };
 
+/**
+ * Filter type keys by type
+ */
+export type FilterKeys<T extends CoreModel, K> = {
+  [L in keyof T]: T[L] extends K ? L : never;
+}[keyof T];
+
 export interface ModelAction {
   /**
    * Method for the route
@@ -151,7 +158,7 @@ class CoreModel {
    * Class reference to the object
    */
   @NotEnumerable
-  __class: any;
+  __class: CoreModelDefinition;
   /**
    * Type name
    */
@@ -627,7 +634,7 @@ class CoreModel {
    * @param conditionField if null no condition used otherwise fallback to lastUpdate
    * @param conditionValue
    */
-  async patch(obj: Partial<this>, conditionField?: string | null, conditionValue?: any) {
+  async patch(obj: Partial<this>, conditionField?: keyof this | null, conditionValue?: any) {
     if (!this.__store) {
       throw new CoreModelUnattachedError();
     }

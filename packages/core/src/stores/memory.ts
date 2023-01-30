@@ -177,7 +177,7 @@ class MemoryStore<
    */
   async _patch(object: any, uuid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
     let obj = await this._get(uuid, true);
-    this.checkUpdateCondition(obj, writeConditionField, writeCondition);
+    this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
     for (let prop in object) {
       obj[prop] = object[prop];
     }
@@ -190,7 +190,7 @@ class MemoryStore<
    */
   async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
     let obj = await this._get(uid, true);
-    this.checkUpdateCondition(obj, writeConditionField, writeCondition);
+    this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
     return this._save(object);
   }
 
@@ -232,7 +232,7 @@ class MemoryStore<
    */
   async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
     let res = await this._get(uuid, true);
-    this.checkUpdateCondition(res, writeConditionField, writeCondition);
+    this.checkUpdateCondition(res, <keyof T>writeConditionField, writeCondition);
     delete res[attribute];
     this._save(res);
   }
@@ -284,7 +284,7 @@ class MemoryStore<
   ) {
     return this.simulateUpsertItemToCollection(
       this._getSync(uid, true),
-      prop,
+      <any>prop,
       item,
       updateDate,
       index,

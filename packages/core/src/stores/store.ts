@@ -1,6 +1,6 @@
 import { Counter, EventWithContext, Histogram, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
-import { Constructor, CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
+import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
 import { Context, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
@@ -532,11 +532,11 @@ abstract class Store<
   /**
    * Contains the current model
    */
-  _model: CoreModelDefinition;
+  _model: CoreModelDefinition<T>;
   /**
    * Models of this store
    */
-  _models: CoreModelDefinition[] = [];
+  _models: CoreModelDefinition<T>[] = [];
   /**
    * Contains the current model type
    */
@@ -579,11 +579,8 @@ abstract class Store<
   computeParameters(): void {
     super.computeParameters();
     const p = this.parameters;
-    this._model = <CoreModelDefinition>this._webda.getModel(p.model);
-    this._models = [
-      this._model,
-      ...this.parameters.models.map(m => this._webda.getModel(m) as CoreModelDefinition<CoreModel>)
-    ];
+    this._model = <CoreModelDefinition<T>>this._webda.getModel(p.model);
+    this._models = [this._model, ...this.parameters.models.map(m => this._webda.getModel(m) as CoreModelDefinition<T>)];
     this._modelType = this._webda.getApplication().getModelFromConstructor(this._model);
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
@@ -829,7 +826,7 @@ abstract class Store<
    * OVerwrite the model
    * Used mainly in test
    */
-  setModel(model: CoreModelDefinition) {
+  setModel(model: CoreModelDefinition<T>) {
     this._model = model;
     this._cacheStore?.setModel(model);
     this.parameters.strict = false;
@@ -938,15 +935,15 @@ abstract class Store<
     });
   }
 
-  async incrementAttribute(uid: string, prop: string, value: number) {
+  async incrementAttribute<FK extends FilterKeys<T, number>>(uid: string, prop: FK, value: number) {
     // If value === 0 no need to update anything
     if (value === 0) {
       return Promise.resolve();
     }
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "increment" });
-    await this._incrementAttribute(uid, prop, value, updateDate);
-    await this._cacheStore?._incrementAttribute(uid, prop, value, updateDate);
+    await this._incrementAttribute(uid, <string>prop, value, updateDate);
+    await this._cacheStore?._incrementAttribute(uid, <string>prop, value, updateDate);
     return this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
       store: this,
@@ -960,9 +957,19 @@ abstract class Store<
     });
   }
 
-  async upsertItemToCollection(
+  /**
+   * Add or update an item to an array in the model
+   *
+   * @param uid of the model
+   * @param prop of the model to add in
+   * @param item to add in the array
+   * @param index if specified update item in this index
+   * @param itemWriteCondition value of the condition to test (in case of update)
+   * @param itemWriteConditionField field to read the condition from (in case of update)
+   */
+  async upsertItemToCollection<FK extends FilterKeys<T, Array<any>>>(
     uid: string,
-    prop: string,
+    prop: FK,
     item: any,
     index: number = undefined,
     itemWriteCondition: any = undefined,
@@ -970,14 +977,22 @@ abstract class Store<
   ) {
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionUpsert" });
-    await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
-    await this._cacheStore?._upsertItemToCollection(
+    await this._upsertItemToCollection(
       uid,
-      prop,
+      <string>prop,
       item,
       index,
       itemWriteCondition,
-      itemWriteConditionField,
+      <string>itemWriteConditionField,
+      updateDate
+    );
+    await this._cacheStore?._upsertItemToCollection(
+      uid,
+      <string>prop,
+      item,
+      index,
+      itemWriteCondition,
+      <string>itemWriteConditionField,
       updateDate
     );
 
@@ -995,19 +1010,35 @@ abstract class Store<
     });
   }
 
-  async deleteItemFromCollection(
+  /**
+   * Remove an item from an array in the model
+   *
+   * @param uid of the model
+   * @param prop of the model to remove from
+   * @param index of the item to remove in the array
+   * @param itemWriteCondition value of the condition
+   * @param itemWriteConditionField field to read the condition from
+   */
+  async deleteItemFromCollection<FK extends FilterKeys<T, Array<any>>>(
     uid: string,
-    prop: string,
+    prop: FK,
     index: number,
     itemWriteCondition: any,
     itemWriteConditionField: string = this._uuidField
   ) {
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionDelete" });
-    await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate);
+    await this._deleteItemFromCollection(
+      uid,
+      <string>prop,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField,
+      updateDate
+    );
     await this._cacheStore?._deleteItemFromCollection(
       uid,
-      prop,
+      <string>prop,
       index,
       itemWriteCondition,
       itemWriteConditionField,
@@ -1240,10 +1271,10 @@ abstract class Store<
    * @param reverseMap
    * @returns
    */
-  async patch(
+  async patch<FK extends keyof T>(
     object: Partial<T>,
     reverseMap = true,
-    conditionField?: string | null,
+    conditionField?: FK | null,
     conditionValue?: any
   ): Promise<T | undefined> {
     return this.update(object, reverseMap, true, conditionField, conditionValue);
@@ -1256,11 +1287,11 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkUpdateCondition(model: T, conditionField?: string, condition?: any, uid?: string) {
+  checkUpdateCondition<CK extends keyof T>(model: T, conditionField?: CK, condition?: any, uid?: string) {
     if (conditionField) {
       // Add toString to manage Date object
       if (model[conditionField].toString() !== condition.toString()) {
-        throw new UpdateConditionFailError(uid ? uid : model.getUuid(), conditionField, condition);
+        throw new UpdateConditionFailError(uid ? uid : model.getUuid(), <string>conditionField, condition);
       }
     }
   }
@@ -1272,21 +1303,25 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkCollectionUpdateCondition(
+  checkCollectionUpdateCondition<FK extends FilterKeys<T, Array<any>>, CK extends keyof T>(
     model: T,
-    collection: string,
-    conditionField?: string,
+    collection: FK,
+    conditionField?: CK,
     condition?: any,
     index?: number
   ) {
     // No index so addition to collection
     if (index === null) {
       // The condition must be length of the collection
-      if (!model[collection] || model[collection].length !== condition) {
-        throw new UpdateConditionFailError(model.getUuid(), collection, condition);
+      if (!model[collection] || (<any[]>model[collection]).length !== condition) {
+        throw new UpdateConditionFailError(model.getUuid(), <string>collection, condition);
       }
     } else if (condition && model[collection][index][conditionField] !== condition) {
-      throw new UpdateConditionFailError(model.getUuid(), `${collection}[${index}].${conditionField}`, condition);
+      throw new UpdateConditionFailError(
+        model.getUuid(),
+        `${<string>collection}[${index}].${<string>conditionField}`,
+        condition
+      );
     }
   }
 
@@ -1297,9 +1332,14 @@ abstract class Store<
    * @param conditionField
    * @param condition
    */
-  async conditionalPatch(uuid: string, updates: any, conditionField, condition): Promise<boolean> {
+  async conditionalPatch<CK extends keyof T>(
+    uuid: string,
+    updates: Partial<T>,
+    conditionField: CK,
+    condition: any
+  ): Promise<boolean> {
     try {
-      await this._patch(updates, uuid, condition, conditionField);
+      await this._patch(updates, uuid, condition, <string>conditionField);
       await this._cacheStore?.patch({ uuid, ...updates });
       return true;
     } catch (err) {
@@ -1320,9 +1360,9 @@ abstract class Store<
    * @param itemWriteConditionField
    * @param updateDate
    */
-  async simulateUpsertItemToCollection(
+  async simulateUpsertItemToCollection<FK extends FilterKeys<T, Array<any>>>(
     model: T,
-    prop: string,
+    prop: FK,
     item: any,
     updateDate: Date,
     index?: number,
@@ -1332,12 +1372,12 @@ abstract class Store<
     if (prop === "__proto__") {
       throw new Error("Cannot update __proto__: js/prototype-polluting-assignment");
     }
-    this.checkCollectionUpdateCondition(model, prop, itemWriteConditionField, itemWriteCondition, index);
+    this.checkCollectionUpdateCondition(model, prop, <keyof T>itemWriteConditionField, itemWriteCondition, index);
     if (index === undefined) {
       if (model[prop] === undefined) {
-        model[prop] = [item];
+        (<any[]>model[prop]) = [item];
       } else {
-        model[prop].push(item);
+        (<any[]>model[prop]).push(item);
       }
     } else {
       model[prop][index] = item;
@@ -1355,11 +1395,11 @@ abstract class Store<
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(
+  async update<CK extends keyof T>(
     object: any,
     reverseMap = true,
     partial = false,
-    conditionField?: string | null,
+    conditionField?: CK | null,
     conditionValue?: any
   ): Promise<T | undefined> {
     /** @ignore */
@@ -1408,12 +1448,12 @@ abstract class Store<
     await loaded._onUpdate(object);
     let res: any;
     if (conditionField !== null) {
-      conditionField ??= this._lastUpdateField;
+      conditionField ??= <CK>this._lastUpdateField;
       conditionValue ??= load[conditionField];
     }
     if (partial) {
       this.metrics.operations_total.inc({ operation: "partialUpdate" });
-      await this._patch(object, object[this._uuidField], conditionValue, conditionField);
+      await this._patch(object, object[this._uuidField], conditionValue, <string>conditionField);
       await this._cacheStore?._patch(
         object,
         object[this._uuidField],
@@ -1428,7 +1468,7 @@ abstract class Store<
       }
       object = this.initModel(object);
       this.metrics.operations_total.inc({ operation: "update" });
-      res = await this._update(object, object[this._uuidField], conditionValue, conditionField);
+      res = await this._update(object, object[this._uuidField], conditionValue, <string>conditionField);
       await this._cacheStore?._update(
         object,
         object[this._uuidField],
@@ -1467,10 +1507,20 @@ abstract class Store<
    * @param attribute
    * @returns
    */
-  async removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
+  async removeAttribute<CK extends keyof T>(
+    uuid: string,
+    attribute: CK,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: CK
+  ) {
     this.metrics.operations_total.inc({ operation: "attributeDelete" });
-    await this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
-    await this._cacheStore?._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
+    await this._removeAttribute(uuid, <string>attribute, itemWriteCondition, <string>itemWriteConditionField);
+    await this._cacheStore?._removeAttribute(
+      uuid,
+      <string>attribute,
+      itemWriteCondition,
+      <string>itemWriteConditionField
+    );
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uuid,
       partial_update: {
@@ -1507,10 +1557,10 @@ abstract class Store<
    * @param {Boolean} delete sync even if asyncDelete is active
    * @return {Promise} the deletion promise
    */
-  async delete(
+  async delete<CK extends keyof T>(
     uid: string | T,
     writeCondition?: any,
-    writeConditionField?: string,
+    writeConditionField?: CK,
     sync: boolean = false
   ): Promise<void> {
     /** @ignore */
@@ -1534,7 +1584,7 @@ abstract class Store<
     // Check condition as we have the object
     if (writeCondition) {
       if (to_delete[writeConditionField] !== writeCondition) {
-        throw new UpdateConditionFailError(to_delete.getUuid(), writeConditionField, writeCondition);
+        throw new UpdateConditionFailError(to_delete.getUuid(), <string>writeConditionField, writeCondition);
       }
     }
     // Send preevent
@@ -1562,8 +1612,8 @@ abstract class Store<
     } else {
       this.metrics.operations_total.inc({ operation: "delete" });
       // Delete from the DB for real
-      await this._delete(to_delete.getUuid(), writeCondition, writeConditionField);
-      await this._cacheStore?._delete(to_delete.getUuid(), writeCondition, writeConditionField);
+      await this._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
+      await this._cacheStore?._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
     }
 
     // Send post event
@@ -1610,7 +1660,7 @@ abstract class Store<
    * @param uuid
    * @param data
    */
-  async put(uuid: string, data: any): Promise<T> {
+  async put(uuid: string, data: Partial<T>): Promise<T> {
     if (await this.exists(uuid)) {
       return this.update({ ...data, uuid });
     }
@@ -1658,7 +1708,7 @@ abstract class Store<
    * @param value new value
    * @returns
    */
-  async setAttribute(uid: string, property: string, value: any): Promise<void> {
+  async setAttribute<CK extends keyof T>(uid: string, property: CK, value: any): Promise<void> {
     let patch: any = {};
     patch[property] = value;
     patch[this.getUuidField()] = uid;
@@ -2084,7 +2134,7 @@ abstract class Store<
    * @param writeCondition
    * @param itemWriteConditionField
    */
-  abstract _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string): Promise<void>;
+  protected abstract _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string): Promise<void>;
 
   /**
    * Retrieve an element from the store
@@ -2092,7 +2142,7 @@ abstract class Store<
    * @param uid to retrieve
    * @param raiseIfNotFound raise an StoreNotFound exception if not found
    */
-  abstract _get(uid: string, raiseIfNotFound?: boolean): Promise<T>;
+  protected abstract _get(uid: string, raiseIfNotFound?: boolean): Promise<T>;
 
   /**
    * Get an object
@@ -2102,11 +2152,21 @@ abstract class Store<
    */
   abstract getAll(list?: string[]): Promise<T[]>;
 
-  abstract _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
+  protected abstract _update(
+    object: any,
+    uid: string,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<any>;
 
-  abstract _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
+  protected abstract _patch(
+    object: any,
+    uid: string,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<any>;
 
-  abstract _removeAttribute(
+  protected abstract _removeAttribute(
     uuid: string,
     attribute: string,
     itemWriteCondition?: any,
@@ -2117,7 +2177,7 @@ abstract class Store<
    * Save within the store
    * @param object
    */
-  abstract _save(object: T): Promise<any>;
+  protected abstract _save(object: T): Promise<any>;
 
   /**
    * Increment the attribute
@@ -2126,9 +2186,9 @@ abstract class Store<
    * @param value
    * @param updateDate
    */
-  abstract _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any>;
+  protected abstract _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any>;
 
-  abstract _upsertItemToCollection(
+  protected abstract _upsertItemToCollection(
     uid: string,
     prop: string,
     item: any,
@@ -2138,7 +2198,7 @@ abstract class Store<
     updateDate: Date
   ): Promise<any>;
 
-  abstract _deleteItemFromCollection(
+  protected abstract _deleteItemFromCollection(
     uid: string,
     prop: string,
     index: number,

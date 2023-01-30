@@ -42,7 +42,9 @@ class AliasStoreTest extends StoreTest {
     let store = <Store<any>>this.getService("MemoryIdents");
     store.getParameters().forceModel = false;
     store.getParameters().strict = false;
+    // @ts-ignore
     let original = store._get.bind(store);
+    // @ts-ignore
     store._get = async (...args) => {
       await this.sleep(1);
       return original(...args);

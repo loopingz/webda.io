@@ -143,7 +143,7 @@ export default class ApiKey extends OwnerModel {
       };
       await this.getStore().update(updates, false, true);
     } else {
-      await this.getStore().removeAttribute("origins", `key_${this.uuid}`);
+      await this.getStore().removeAttribute("origins", <any>`key_${this.uuid}`);
     }
   }
 

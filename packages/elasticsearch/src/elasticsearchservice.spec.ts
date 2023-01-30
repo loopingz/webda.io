@@ -4,7 +4,7 @@ import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { ElasticSearchService } from "./elasticsearchservice";
 
-type TestCoreModel = CoreModel & { uuid: string; status: string };
+type TestCoreModel = CoreModel & { uuid: string; status: string, toRemove: string, toAdd: string, counter: number, items: any[] };
 @suite
 class ElasticSearchTest extends WebdaTest {
   service: ElasticSearchService;
@@ -99,7 +99,7 @@ class ElasticSearchTest extends WebdaTest {
     await this.waitAsyncEnded();
     // Have to wait 1s for now...
     await this.sleep(1000);
-    let results = await this.service.search("articles", "*");
+    let results = await this.service.search<TestCoreModel>("articles", "*");
     assert.strictEqual(results.length, 1);
     if (results[0].items.length > 1) {
       // TODO Investigate this one

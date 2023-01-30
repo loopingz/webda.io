@@ -27,6 +27,9 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "test": {
+          "type": "number"
+        },
         "uuid": {
           "type": "string",
           "description": "Action uuid"
@@ -87,13 +90,14 @@
         }
       },
       "required": [
-        "uuid",
-        "status",
         "job",
+        "logs",
         "results",
+        "status",
         "statusDetails",
+        "test",
         "type",
-        "logs"
+        "uuid"
       ],
       "description": "Define here a model that can be used along with Store service",
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -113,6 +117,9 @@
           "format": "date-time",
           "description": "Last update date",
           "readOnly": true
+        },
+        "test": {
+          "type": "number"
         },
         "uuid": {
           "type": "string",
@@ -191,6 +198,7 @@
         "results",
         "status",
         "statusDetails",
+        "test",
         "type",
         "uuid"
       ],
@@ -225,6 +233,9 @@
           "format": "date-time",
           "description": "Last update date",
           "readOnly": true
+        },
+        "test": {
+          "type": "number"
         },
         "uuid": {
           "type": "string",
@@ -353,6 +364,7 @@
         "results",
         "status",
         "statusDetails",
+        "test",
         "type",
         "uuid"
       ],
@@ -372,6 +384,47 @@
         }
       },
       "title": "AsyncOperationAction"
+    },
+    "webda/servicerunner": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actions managed by the runner",
+          "default": []
+        },
+        "logFormat": {
+          "type": "string",
+          "description": "Define the log format",
+          "default": "ConsoleLoggerDefaultFormat"
+        },
+        "logSaveDelay": {
+          "type": "number",
+          "description": "How long before saving logs (in ms)",
+          "default": 5000
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Add the log format to capture",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceRunner"
     },
     "webda/asyncjobservice": {
       "type": "object",
@@ -439,6 +492,11 @@
           "type": "number",
           "description": "Limit the number of lines of logs available for an async action\n\nIf you need to store large amount of logs then you should use the CloudWatchLogger or similar logger",
           "default": 500
+        },
+        "asyncActionModel": {
+          "type": "string",
+          "description": "Model to use when launching async action",
+          "default": "Webda/AsyncWebdaAction"
         },
         "openapi": {
           "type": "object",
@@ -613,47 +671,6 @@
         }
       },
       "title": "LocalRunner"
-    },
-    "webda/servicerunner": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "actions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Actions managed by the runner",
-          "default": []
-        },
-        "logFormat": {
-          "type": "string",
-          "description": "Define the log format",
-          "default": "ConsoleLoggerDefaultFormat"
-        },
-        "logSaveDelay": {
-          "type": "number",
-          "description": "How long before saving logs (in ms)",
-          "default": 5000
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Add the log format to capture",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ServiceRunner"
     }
   }
 }

@@ -3,7 +3,7 @@ import { join } from "path";
 import { Readable } from "stream";
 import { CloudBinary, CloudBinaryParameters, CoreModel } from "../index";
 import { Context } from "../utils/context";
-import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
+import { Binary, BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
 import CryptoService from "./cryptoservice";
 import { Inject, ServiceParameters } from "./service";
 
@@ -237,7 +237,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(uid, ctx);
-    await this.uploadSuccess(object, property, body);
+    await this.uploadSuccess(<BinaryModel>object, property, body);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(body.hash))) {
       fs.mkdirSync(this._getPath(body.hash));
@@ -341,7 +341,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    */
   async delete(object: CoreModel, property: string, index: number): Promise<void> {
     let hash = object[property][index].hash;
-    await this.deleteSuccess(object, property, index);
+    await this.deleteSuccess(<BinaryModel>object, property, index);
     await this._cleanUsage(hash, object.getUuid());
   }
 
@@ -381,11 +381,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     this.checkMap(storeName, property);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${object.getUuid()}`));
-      await this.uploadSuccess(object, property, fileInfo);
+      await this.uploadSuccess(<BinaryModel>object, property, fileInfo);
       return;
     }
     await this._store(file, object);
-    await this.uploadSuccess(object, property, fileInfo);
+    await this.uploadSuccess(<BinaryModel>object, property, fileInfo);
   }
 
   /**

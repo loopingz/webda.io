@@ -65,7 +65,7 @@ export class MapperParameters extends ServiceParameters {
  */
 export default class MapperService<T extends MapperParameters = MapperParameters> extends Service<T> {
   @Inject("params:target")
-  targetStore: Store;
+  targetStore: Store<CoreModel & { [key: string]: any[] }>;
 
   @Inject("params:source")
   sourceService: Store;

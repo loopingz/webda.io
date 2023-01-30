@@ -29,7 +29,9 @@ class FileStoreTest extends StoreTest {
   getIdentStore(): Store<any> {
     // Need to slow down the _get
     let store = <Store<any>>this.getService("Idents");
+    // @ts-ignore
     let original = store._get.bind(store);
+    // @ts-ignore
     store._get = async (...args) => {
       await this.sleep(1);
       return original(...args);
@@ -55,7 +57,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async cov() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    let identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.getService<any>("idents");
     let userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("users");
     let user: any = await userStore.save({});
     let ident = await identStore.save({
@@ -83,6 +85,7 @@ class FileStoreTest extends StoreTest {
       stub.restore();
     }
 
+    identStore.incrementAttribute("test", "test", 12);
     // Shoud return directly
     await identStore.incrementAttribute("test", "test", 0);
     removeSync(identStore.getParameters().folder);
@@ -110,7 +113,7 @@ class FileStoreTest extends StoreTest {
     identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 0, null);
 
     assert.rejects(
-      () => identStore.simulateUpsertItemToCollection(undefined, "__proto__", undefined, new Date()),
+      () => identStore.simulateUpsertItemToCollection(undefined, <any>"__proto__", undefined, new Date()),
       /Cannot update __proto__: js\/prototype-polluting-assignment/
     );
 

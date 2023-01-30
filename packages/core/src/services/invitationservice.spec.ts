@@ -48,7 +48,7 @@ class InvitationTest extends WebdaTest {
     });
     this.webda.getServices()["invit"] = this.service;
     this.store = this.webda.getService<Store<AclModel>>("Companies");
-    this.store._model = MyCompany;
+    this.store._model = <any>MyCompany;
     this.invitations = this.webda.getService<Store<CoreModel>>("Invitations");
     this.authentication = this.webda.getService<Authentication>("Authentication");
     this.mailer = this.webda.getService<Mailer>("DebugMailer");
@@ -263,7 +263,7 @@ class InvitationTest extends WebdaTest {
     );
 
     // Missing model
-    await this.invitations.setAttribute("test4@webda.io_email_invit", "invit_test", "all");
+    await this.invitations.setAttribute("test4@webda.io_email_invit", <any>"invit_test", "all");
 
     // Register user 3 and 4
     await this.authentication.createUserWithIdent("email", "test3@webda.io");
@@ -489,7 +489,7 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(userCheck["_companies"], []);
 
     // Missing model
-    await this.invitations.setAttribute("test4@webda.io_email_invit", "invit_test", "all");
+    await this.invitations.setAttribute("test4@webda.io_email_invit", <any>"invit_test", "all");
 
     // Register user 3 and 4
     await this.authentication.createUserWithIdent("email", "test3@webda.io");

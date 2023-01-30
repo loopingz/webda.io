@@ -703,11 +703,13 @@ abstract class StoreTest extends WebdaTest {
     await assert.rejects(() => store.setAttribute(uuidv4(), "counter", 4), StoreNotFoundError);
     store.on("Store.PatchUpdate", async () => {
       model._lastUpdate = new Date(100);
+      // @ts-ignore
       await store._update(model, model.getUuid());
     });
     await assert.rejects(() => store.setAttribute(model.getUuid(), "counter", 4), UpdateConditionFailError);
     store.removeAllListeners("Store.PatchUpdate");
     store.on("Store.PatchUpdate", async () => {
+      // @ts-ignore
       await store._delete(model.getUuid());
       await this.sleep(1);
     });
@@ -791,6 +793,7 @@ abstract class StoreTest extends WebdaTest {
       ))
     );
     assert.strictEqual((await store.get(model.getUuid())).plop, 12);
+    // @ts-ignore
     stub(store, "_patch").callsFake(() => {
       throw new Error("Fake Error");
     });
@@ -821,6 +824,7 @@ abstract class StoreTest extends WebdaTest {
     let model2 = await store.get(model.getUuid());
     store.on("Store.Update", async () => {
       model2._lastUpdate = new Date(100);
+      // @ts-ignore
       await store._update(model2, model2.getUuid());
     });
     model.plop = "yop";
@@ -828,6 +832,7 @@ abstract class StoreTest extends WebdaTest {
     await assert.rejects(() => store.update(model), UpdateConditionFailError);
     store.removeAllListeners("Store.Update");
     store.on("Store.Update", async () => {
+      // @ts-ignore
       await store._delete(model.getUuid());
       await this.sleep(delay);
     });

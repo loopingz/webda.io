@@ -13,7 +13,9 @@ class MemoryStoreTest extends StoreTest {
   getIdentStore(): Store<any> {
     // Need to slow down the _get
     let store = <Store<any>>this.getService("MemoryIdents");
+    // @ts-ignore
     let original = store._get.bind(store);
+    // @ts-ignore
     store._get = async (...args) => {
       await this.sleep(1);
       return original(...args);

@@ -343,6 +343,11 @@ export type BinaryEvents = {
 };
 
 /**
+ * Define a BinaryModel with infinite field for binary map
+ */
+export type BinaryModel<T = { [key: string]: BinaryMap[] }> = CoreModel & T;
+
+/**
  * This is an abstract service to represent a storage of files
  * The binary allow you to expose this service as HTTP
  *
@@ -576,7 +581,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    */
-  async uploadSuccess(object: CoreModel, property: string, file: BinaryFileInfo): Promise<void> {
+  async uploadSuccess(object: BinaryModel, property: string, file: BinaryFileInfo): Promise<void> {
     let object_uid = object.getUuid();
     await this.emitSync("Binary.UploadSuccess", {
       object: file,
@@ -608,7 +613,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @param index
    * @returns
    */
-  async deleteSuccess(object: CoreModel, property: string, index: number) {
+  async deleteSuccess(object: BinaryModel, property: string, index: number) {
     let info: BinaryMap = object[property][index];
     let update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
     await this.emitSync("Binary.Delete", {

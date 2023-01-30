@@ -1,7 +1,6 @@
 import { join } from "path";
 import { Context } from "../index";
-import { CoreModel } from "../models/coremodel";
-import { Binary, BinaryMap, BinaryParameters } from "./binary";
+import { Binary, BinaryMap, BinaryModel, BinaryParameters } from "./binary";
 
 /**
  * Default binary parameters
@@ -150,7 +149,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   /**
    * @inheritdoc
    */
-  async delete(object: CoreModel, property: string, index: number) {
+  async delete(object: BinaryModel, property: string, index: number) {
     let hash = object[property][index].hash;
     await this.deleteSuccess(object, property, index);
     await this._cleanUsage(hash, object.getUuid());

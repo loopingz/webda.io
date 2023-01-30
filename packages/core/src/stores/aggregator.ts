@@ -81,6 +81,7 @@ export default class AggregatorService<T extends AggregatorParameters = Aggregat
     });
     mapUpdates[object.getUuid()] = mapper;
     mapUpdates._lastUpdate = new Date();
+    // @ts-ignore
     await this.targetStore._patch(mapUpdates, this.parameters.key);
   }
 }

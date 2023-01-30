@@ -4,7 +4,7 @@ import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { Context } from "../utils/context";
-import { Binary, BinaryEvents, BinaryFile, BinaryMap, BinaryMetadata, BinaryParameters } from "./binary";
+import { Binary, BinaryEvents, BinaryFile, BinaryMap, BinaryMetadata, BinaryModel, BinaryParameters } from "./binary";
 import { BinaryTest } from "./binary.spec";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 
@@ -84,7 +84,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
     let model = new CoreModel();
     // @ts-ignore
     model.load({ plop: [{}, { hash: "fake" }] }, true);
-    await service.delete(model, "plop", 1);
+    await service.delete(<BinaryModel>model, "plop", 1);
     // Check called with "fake", 1
   }
 

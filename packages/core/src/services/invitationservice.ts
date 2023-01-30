@@ -301,7 +301,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         promises.push(
           this.invitationStore.removeAttribute(
             `${ident}_${this.getName()}`,
-            this.getInvitationAttribute(model.getUuid())
+            <any>this.getInvitationAttribute(model.getUuid())
           )
         );
         invitedIdents.push(ident);
@@ -351,7 +351,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       if (invit.model === model) {
         await this.authenticationService
           .getUserStore()
-          .deleteItemFromCollection(user, this.parameters.mapAttribute, index, model, "model");
+          .deleteItemFromCollection(user, <any>this.parameters.mapAttribute, index, model, "model");
         return;
       }
       index++;
@@ -431,7 +431,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       };
       if (await this.invitationStore.exists(invitUuid)) {
         promises.push(
-          this.invitationStore.setAttribute(invitUuid, this.getInvitationAttribute(model.getUuid()), invitInfo)
+          this.invitationStore.setAttribute(invitUuid, <any>this.getInvitationAttribute(model.getUuid()), invitInfo)
         );
       } else {
         promises.push(
@@ -489,7 +489,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     }
     await this.authenticationService
       .getUserStore()
-      .upsertItemToCollection(user.getUuid(), this.parameters.mapAttribute, {
+      .upsertItemToCollection(user.getUuid(), <any>this.parameters.mapAttribute, {
         model: model.getUuid(),
         metadata,
         inviter: inviter.toPublicEntry(),

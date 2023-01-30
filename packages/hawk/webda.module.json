@@ -65,6 +65,9 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "test": {
+          "type": "number"
+        },
         "_user": {
           "type": "string",
           "description": "Default owner of the object",
@@ -141,6 +144,7 @@
       "required": [
         "algorithm",
         "name",
+        "test",
         "uuid"
       ],
       "description": "Api Key to use with hawk",

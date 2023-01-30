@@ -991,7 +991,7 @@ abstract class Store<
       item,
       index,
       itemWriteCondition,
-      <string>itemWriteConditionField,
+      itemWriteConditionField,
       updateDate
     );
     await this._cacheStore?._upsertItemToCollection(
@@ -1000,7 +1000,7 @@ abstract class Store<
       item,
       index,
       itemWriteCondition,
-      <string>itemWriteConditionField,
+      itemWriteConditionField,
       updateDate
     );
 

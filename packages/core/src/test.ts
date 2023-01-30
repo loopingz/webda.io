@@ -285,6 +285,16 @@ class WebdaTest {
   }
 
   /**
+   * Wait for the next tick(s)
+   * @param ticks if you want to wait for more than one tick
+   */
+  async nextTick(ticks: number = 1) : Promise<void> {
+    while (ticks-- > 0) {
+      await  new Promise(resolve => process.nextTick(resolve));
+    }
+  }
+
+  /**
    * Get service from Webda
    * @param service name
    * @returns
@@ -299,10 +309,11 @@ class WebdaTest {
    * @param name of the service to add
    * @param service to add
    */
-  registerService(service: Service, name: string = service.getName()) {
+  registerService<T extends Service>(service: T, name: string = service.getName()) : T {
     // Have to override protected
     // @ts-ignore
     this.webda.services[name.toLowerCase()] = service;
+    return service;
   }
 }
 

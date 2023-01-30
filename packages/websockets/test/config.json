@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "parameters": {},
+  "services": {
+    "MemoryLogger": {
+      "type": "Webda/MemoryLogger",
+      "logLevel": "TRACE"
+    },
+    "Registry": {
+      "type": "Webda/MemoryStore"
+    },
+    "version": {
+      "type": "Webda/versionservice"
+    }
+  }
+}

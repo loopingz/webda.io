@@ -1673,7 +1673,7 @@ abstract class Store<
     if (await this.exists(uuid)) {
       return this.update({ ...data, uuid });
     }
-    return this.save({ ...data, uuid });
+    return this.save(data instanceof CoreModel ? data.setUuid(uuid) : { ...data, uuid });
   }
 
   /**

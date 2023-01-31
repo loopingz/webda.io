@@ -1,11 +1,23 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import * as jsonc from "jsonc-parser";
 import * as yaml from "yaml";
-
+import { join } from "path";
 /**
  * Allow save/load of yaml or json file
  */
 export const FileUtils = {
+  /**
+   * Recursively run a process
+   * 
+   * @param path 
+   * @param processor 
+   */
+  finder: (path: string, processor: (filepath: string) => void) : void => {
+    let files = readdirSync(path);
+    files.map(f => join(path, f)).forEach(p => 
+      lstatSync(p).isDirectory() ? FileUtils.finder(p, processor) : processor(p)
+    );
+  },
   /**
    * Load a YAML or JSON file based on its extension
    *

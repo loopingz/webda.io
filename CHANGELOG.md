@@ -2,6 +2,39 @@
 
 Changelog has only be initiated on version 2.2.0
 
+## next
+
+### Fixes
+
+- `webda debug -w` was not passing the websockets argument to the debugged server
+- websockets server kept trying to validate cors even with `devMode` on
+- Add more typings to Store to verify model attribute
+
+### WebSockets module
+
+A whole new module to allow modern WUI to connect to frontend and subscribe to models modification events.
+
+Backend services can connect to the frontend to forward their events with `WebSocketsClientService`
+
+### webda debug launch
+
+You can now use `webda debug` with other commands like `launch` to hot reload a worker method
+
+### Custom AsyncWebdaAction
+
+You can now define the model to use with your `AsyncService`
+
+## 2.4.2 
+
+### Allow yaml file for FileConfiguration
+
+FileConfiguration can now load yaml file as configuration.
+If default configuration is defined, the configuration file is auto created according to the default configuration
+
+## 2.4.1
+
+Fix bad content-length generation by removing it
+
 ## 2.4.0
 
 ### Prometheus

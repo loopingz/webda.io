@@ -20,6 +20,28 @@ export type PackageDescriptorAuthor =
 export type Modda = ServiceConstructor<Service>;
 
 /**
+ * Defined relationship for one model
+ */
+export type ModelGraph = {
+  parent?: Omit<ModelRelation, "type">;
+  links?: ModelRelation[];
+  queries?: {
+    attribute: string;
+    model: string;
+    targetAttribute: string;
+  };
+  maps?: any[];
+}
+
+/**
+ * Defined relationship for all models
+ */
+export type ModelsGraph = {
+  // key is shared with models
+  [key: string]: ModelGraph;
+}
+
+/**
  * Some package exists but seems pretty big for this
  * https://classic.yarnpkg.com/en/docs/package-json
  */
@@ -88,19 +110,14 @@ export interface Module {
   models?: { [key: string]: string };
   /**
    * Models graph
+   * 
+   * Typescript does not have reflection, we therefore deduct the 
+   * relations on compilation time and inject in the module
+   * 
+   * The parent is define by a ModelParent type on the model
+   * The links are attribute of types ModelLink
    */
-  modelsGraph?: {
-    [key: string]: {
-      parent?: Omit<ModelRelation, "type">;
-      links?: ModelRelation[];
-      queries?: {
-        attribute: string;
-        model: string;
-        targetAttribute: string;
-      };
-      maps?: any[];
-    };
-  };
+  modelsGraph?: ModelsGraph;
   /**
    * Deployers provided by the module
    *
@@ -430,6 +447,11 @@ export class Application {
   protected models: { [key: string]: any } = {};
 
   /**
+   * Models graph
+   */
+  protected graph: ModelsGraph;
+
+  /**
    * Class Logger
    */
   protected logger: WorkerOutput;
@@ -540,6 +562,21 @@ export class Application {
    */
   getSchema(type: string): JSONSchema7 {
     return this.baseConfiguration.cachedModules.schemas[type];
+  }
+
+  /**
+   * Get model graph
+   */
+  getRelations(model: string | Constructor<CoreModel>) {
+    return this.getGraph()[typeof model === "string" ? model : this.getModelFromConstructor(model)] || {};
+  }
+
+  /**
+   * Get the all graph
+   * @returns 
+   */
+  getGraph() {
+    return this.graph || {};
   }
 
   /**
@@ -933,6 +970,9 @@ export class Application {
         this[section][key.toLowerCase()] ??= await this.importFile(path.join(parent, info[section][key]));
       }
     };
+    Object.keys(module.modelsGraph || {}).forEach(k => {
+      this.graph[k] = module.modelsGraph[k];
+    });
     await Promise.all([
       sectionLoader("moddas"),
       sectionLoader("deployers"),

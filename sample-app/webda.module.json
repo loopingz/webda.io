@@ -14,6 +14,7 @@
   },
   "models": {
     "webdademo/company": "lib/models/company:Company",
+    "webdademo/computer": "lib/models/user:Computer",
     "webdademo/contact": "lib/models/contact:default",
     "webdademo/project": "lib/models/project:Project",
     "webdademo/user": "lib/models/user:User"
@@ -38,7 +39,7 @@
           "readOnly": true
         },
         "_company": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_company.ts-134-281-models_company.ts-0-282%3E",
+          "$ref": "#/definitions/ModelParent%3Cclass-922587926-134-281-922587926-0-282%3E",
           "readOnly": true
         },
         "name": {
@@ -50,19 +51,61 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-models_company.ts-134-281-models_company.ts-0-282>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_company.ts-134-281-models_company.ts-0-282%2Cany%3E",
+        "ModelParent<class-922587926-134-281-922587926-0-282>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-922587926-134-281-922587926-0-282%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-models_company.ts-134-281-models_company.ts-0-282,any>": {
-          "$ref": "#/definitions/ModelLinker%3Cclass-models_company.ts-134-281-models_company.ts-0-282%3E",
+        "ModelLink<class-922587926-134-281-922587926-0-282,any>": {
+          "$ref": "#/definitions/ModelLinker%3Cclass-922587926-134-281-922587926-0-282%3E",
           "description": "Define a link to 1:n relation"
         },
-        "ModelLinker<class-models_company.ts-134-281-models_company.ts-0-282>": {
+        "ModelLinker<class-922587926-134-281-922587926-0-282>": {
           "type": "string"
         }
       },
       "title": "User"
+    },
+    "webdademo/computer": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_user": {
+          "$ref": "#/definitions/ModelParent%3Cclass-src_models_user.ts-90-204-src_models_user.ts-0-316%3E",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ModelParent<class-src_models_user.ts-90-204-src_models_user.ts-0-316>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-src_models_user.ts-90-204-src_models_user.ts-0-316%2Cany%3E",
+          "description": "Define the parent of the model"
+        },
+        "ModelLink<class-src_models_user.ts-90-204-src_models_user.ts-0-316,any>": {
+          "$ref": "#/definitions/ModelLinker%3Cclass-src_models_user.ts-90-204-src_models_user.ts-0-316%3E",
+          "description": "Define a link to 1:n relation"
+        },
+        "ModelLinker<class-src_models_user.ts-90-204-src_models_user.ts-0-316>": {
+          "type": "string"
+        }
+      },
+      "title": "Computer"
     },
     "webdademo/contact": {
       "type": "object",
@@ -183,7 +226,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -198,7 +241,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -224,7 +267,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -239,7 +282,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -288,7 +331,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -309,7 +352,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -422,7 +465,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1970-2454-1131383939-0-8089976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-1970-2454-178760925-0-8089976353190%3E"
         }
       },
       "required": [
@@ -431,7 +474,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-1970-2454-1131383939-0-8089976353190>": {
+        "Partial<class-178760925-1970-2454-178760925-0-8089976353190>": {
           "type": "object",
           "properties": {
             "type": {

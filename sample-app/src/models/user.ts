@@ -8,3 +8,11 @@ export class User extends CoreModel {
   _company: ModelParent<Company>;
   name: string;
 }
+
+/**
+ * @WebdaModel
+ */
+export class Computer extends CoreModel {
+  _user: ModelParent<User>;
+  name: string;
+}

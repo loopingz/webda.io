@@ -16,7 +16,8 @@ export class StoreListener {
       if (!evt.object || !this.uuids.has(evt.object.getUuid())) {
         return;
       }
-      this.wsclient.sendModelEvent(evt.object.getFullUuid(), "Model.Actioned", {
+      this.wsclient.sendModelEvent(evt.object.getFullUuid(),  {
+        type: "Actioned",
         model: evt.object,
         action: evt.action
       });
@@ -26,7 +27,8 @@ export class StoreListener {
       if (!evt.object || !this.uuids.has(evt.object.getUuid())) {
         return;
       }
-      this.wsclient.sendModelEvent(evt.object.getFullUuid(), "Model.Updated", {
+      this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
+        type: "Updated",
         model: evt.object
       });
     },
@@ -35,7 +37,7 @@ export class StoreListener {
       if (!evt.object || !this.uuids.has(evt.object.getUuid())) {
         return;
       }
-      this.wsclient.sendModelEvent(evt.object.getFullUuid(), "Model.Deleted", {
+      this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
         type: "Deleted"
       });
     },
@@ -44,8 +46,9 @@ export class StoreListener {
       if (!evt.object || !this.uuids.has(evt.object.getUuid())) {
         return;
       }
-      this.wsclient.sendModelEvent(evt.object.getFullUuid(), "Model.PatchUpdated", {
-        model: evt.object
+      this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
+        model: evt.object,
+        type: "PatchUpdated",
       });
     },
     "Store.PartialUpdated": (evt: EventStorePartialUpdated) => {
@@ -53,7 +56,7 @@ export class StoreListener {
       if (!evt.object_id || !this.uuids.has(evt.object_id)) {
         return;
       }
-      this.wsclient.sendModelEvent(evt.store.getName() + "$" + evt.object_id, "Model.PartialUpdated", {
+      this.wsclient.sendModelEvent(evt.store.getName() + "$" + evt.object_id, {
         type: "PartialUpdated",
         partial_update: evt.partial_update
       });
@@ -61,7 +64,7 @@ export class StoreListener {
   };
 
   constructor(private store: Store, private wsclient: WSService) {
-    wsclient.log("INFO", "Add store listeners", store.getName());
+    wsclient.log("DEBUG", "Add store listeners", store.getName());
     for (let evt in this.listeners) {
       store.on(<any>evt, this.listeners[evt]);
     }

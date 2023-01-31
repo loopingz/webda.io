@@ -6,6 +6,7 @@ import { Store } from "../stores/store";
 import { Context, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 
+// Might want to rename refresh to get
 type ModelLoader<T> = { refresh: () => Promise<T>; getUuid(): string };
 
 type ModelLinker<T> = string & ModelLoader<T>;
@@ -539,6 +540,17 @@ class CoreModel {
 
     if (!this.getUuid()) {
       this.setUuid(this.generateUid(raw));
+    }
+
+    // Get relation
+    const addLoader = (attr, model) => {
+      attr.refresh = async () => {
+        return Core.get().getModelStore(model).get(attr);
+      }
+    }
+    const rel = Core.get().getApplication().getRelations(<any>this);
+    if (rel.parent && this[rel.parent.attribute]) {
+      addLoader(this[rel.parent.attribute], rel.parent.model);
     }
     return this;
   }

@@ -23,7 +23,7 @@ export abstract class WSService<T extends WebSocketsParameters = WebSocketsParam
     [key: string]: StoreListener;
   } = {};
   usedTokens: Set<string> = new Set<string>();
-  protected abstract _sendModelEvent(fullUuid: string, type: string, evt: any): Promise<void>;
+  protected abstract _sendModelEvent(fullUuid: string, evt: any): Promise<void>;
 
   /**
    * Send a model event if somebody is listening
@@ -31,9 +31,9 @@ export abstract class WSService<T extends WebSocketsParameters = WebSocketsParam
    * @param type
    * @param evt
    */
-  async sendModelEvent(fullUuid: string | CoreModel, type: string, evt: any): Promise<void> {
+  async sendModelEvent(fullUuid: string | CoreModel, evt: any): Promise<void> {
     if (this.hasRoom(fullUuid)) {
-      this._sendModelEvent(fullUuid instanceof CoreModel ? fullUuid.getFullUuid() : fullUuid, type, evt);
+      this._sendModelEvent(fullUuid instanceof CoreModel ? fullUuid.getFullUuid() : fullUuid, evt);
     }
   }
 

@@ -1,4 +1,4 @@
-import { Context, Counter, Gauge, RequestFilter, Store } from "@webda/core";
+import { Context, Counter, Gauge, RequestFilter } from "@webda/core";
 import { Server, Socket } from "socket.io";
 import { WebSocketsParameters, WSService } from "./service";
 
@@ -13,8 +13,9 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
    * @param type
    * @param evt
    */
-  async _sendModelEvent(fullUuid: string, type: string, ...evt: any): Promise<void> {
-    this.io.to(`model_${fullUuid}`).emit(type, ...evt);
+  async _sendModelEvent(fullUuid: string, ...evt: any): Promise<void> {
+    this.log("DEBUG", "Send Model event", fullUuid);
+    this.io.to(`model_${fullUuid}`).emit("model", ...evt);
   }
 
   metrics: {
@@ -56,19 +57,36 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
    */
   async onSubscribe(fullUuid: string, socket: Socket, context: Context, method: "leave" | "join" = "join") {
     const result = (method === "leave" ? "un" : "") + "subscribed";
-    this.log("INFO", (await this.getService<Store>("Registry").get("test")).getFullUuid(), fullUuid);
     try {
-      this.log("INFO", "Subscribing to", fullUuid);
+      this.log("TRACE", "Subscribing to", fullUuid);
       let model = await this.getWebda().getModelObject(fullUuid);
       if (!model) {
         throw new Error("Not found");
       }
       await model.canAct(context, "subscribe");
 
-      const store = model.getStore();
-      const storeName = store.getName();
-      this.log("INFO", "Check for ", storeName);
-      await socket[method](`model_${fullUuid}`);
+      const roomName = `model_${fullUuid}`;
+      await socket[method](roomName);
+      // Join room success
+      socket.emit(result, {
+        status: "SUCCESS",
+        uuid: fullUuid
+      });
+      const roomSize = this.io.sockets.adapter.rooms.get(roomName).size;
+      // Now it is worth sending the event for ui
+      if (method === "join" && roomSize === 2) {
+        this.io.to(roomName).emit("uiroom", {
+          model: fullUuid,
+          enable: true
+        });
+      } else if (method === "leave" && roomSize === 1) {
+        // Tell remaining client that no one else listen to him
+        this.io.to(roomName).emit("uiroom", {
+          model: fullUuid,
+          enable: false
+        });
+      }
+      
       socket.emit(result, {
         status: "SUCCESS",
         uuid: fullUuid
@@ -88,7 +106,6 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
    */
   initMetrics(): void {
     super.initMetrics();
-    this.log("INFO", "init metrics");
     this.metrics.connections = this.getMetric(Gauge, { name: "ws_connections", help: "Number of active connections" });
     this.metrics.messages = this.getMetric(Counter, {
       name: "ws_messages",
@@ -138,9 +155,9 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
           socket.emit("registered", {
             rooms: this.getRooms()
           });
-          socket.on("backend-event", (fullUuid, type, ...args) => {
-            this.log("INFO", "Received backend event");
-            this.io.to(`model_${fullUuid}`).emit(type, ...args);
+          socket.on("backend-event", (fullUuid, ...args) => {
+            this.log("DEBUG", "Forward Model event", fullUuid);
+            this.io.to(`model_${fullUuid}`).emit("model",  ...args);
           });
         }
         // Does not allow anonymous
@@ -159,7 +176,12 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
           this.metrics.messages.inc({ type: "unsubscribe" });
           this.onSubscribe(fullUuid, socket, context, "leave");
         });
-        socket.on("uievent", (fullUuid: string, ...evt: any) => {});
+        // UI can send event
+        socket.on("uievent", (fullUuid: string, ...evt: any[]) => {
+          if (socket.rooms.has(`model_${fullUuid}`)) {
+            socket.broadcast.to(`model_${fullUuid}`).emit("uievent", ...evt);
+          }
+        });
         // Call an operation
         socket.on("operation", async (operation, input) => {
           this.metrics.messages.inc({ type: "operation" });
@@ -167,7 +189,16 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
         });
 
         socket.on("disconnect", async () => {
-          this.log("INFO", "Socket closed");
+          this.log("TRACE", "Socket closed");
+          for (let room of this.io.sockets.adapter.rooms.keys()) {
+            if (!room.startsWith("model_")) continue;
+            if (this.io.sockets.adapter.rooms.get(room).size === 1) {
+              this.io.to(room).emit("uiroom", {
+                model: room.substring(6),
+                enable: false
+              })
+            }
+          }
           this.metrics.connections.dec();
         });
         socket.on("error", async () => {

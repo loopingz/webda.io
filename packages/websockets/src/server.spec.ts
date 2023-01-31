@@ -171,29 +171,109 @@ class FullTest extends WebdaTest {
         "X-WUI": `1`
       }
     });
-    await this.nextTick();
+    let secondSocket =  io(this.client.getParameters().frontend, {
+      extraHeaders: {
+        "X-WUI": `1`
+      }
+    });
+    let uieventCounter = 0;
+    let uiroomCounter = 0;
+    let resolve;
+    let id = 0;
+    let promise;
+    this.log("INFO", "Testing uievent");
+    const reinitPromise = () => {
+      id++;
+      promise = new Promise(r => {
+        resolve = r;
+      })
+    }
+    reinitPromise();
+    this.uiSocket.on("uievent", () => {
+      uieventCounter++;
+      if (id === 2) resolve();
+    })
+    this.uiSocket.on("uiroom", () => {
+      uiroomCounter++;
+      if (id === 1 || id > 2) resolve();
+    })
     this.uiSocket.emit("subscribe", "Registry$test");
+    this.uiSocket.emit("uievent", "Registry$test", "myevent");
+    secondSocket.emit("subscribe", "Registry$test");
+    await promise;
+    assert.strictEqual(uiroomCounter, 1);
+    assert.strictEqual(uieventCounter, 0);
+    reinitPromise();
+    secondSocket.emit("uievent", "Registry$test", "plop");
+    await promise;
+    assert.strictEqual(uiroomCounter, 1);
+    assert.strictEqual(uieventCounter, 1);
+    reinitPromise();
+    secondSocket.emit("unsubscribe", "Registry$test");
+    await promise;
+    assert.strictEqual(uiroomCounter, 2);
+    assert.strictEqual(uieventCounter, 1);
+    reinitPromise();
+    secondSocket.emit("subscribe", "Registry$test");
+    await promise;
+    assert.strictEqual(uiroomCounter, 3);
+    reinitPromise();
+    secondSocket.close();
+    await promise;
+    assert.strictEqual(uiroomCounter, 4);
+
+    this.uiSocket.removeAllListeners();
+
+    this.log("INFO", "Testing channels and server events");
     this.uiSocket.emit("subscribe", "Registry$test2");
     this.uiSocket.emit("subscribe", "Registry2$test");
     this.uiSocket.emit("unsubscribe", "Registry$test");
+    reinitPromise();
+    this.uiSocket.on("operation", resolve);
     this.uiSocket.emit("operation", "opId");
+
+    let counts: any = {}
+    this.uiSocket.on("model", (evt) => {
+      counts[evt.type] ??= 0;
+      counts[evt.type]++;
+      if (evt.type === "Deleted") {
+        this.log("INFO", "Resolving promise")
+        resolve();
+      }
+    });
+    // Subscription of backend can take more time so play first with server
     const clientStore = this.client.getService<Store<FakeModel>>("Registry");
     const serverStore = this.server.getService<Store<FakeModel>>("Registry");
-    await this.nextTick();
-    await this.sleep(1000);
+    this.log("INFO", "Wait for operation response");
+    await promise;
+    reinitPromise();
+    await serverStore.patch({ uuid: "test", update: Date.now() });
+    await serverStore.update({ uuid: "test2", update: 10 });
+    await serverStore.update({ uuid: "test3", update: 10 });
+    await serverStore.delete("test3");
+    await serverStore.delete("test2");
+    this.log("INFO", "Wait for server-side side delete event");
+    await promise;
+    
+
+    reinitPromise();
+    this.log("INFO", "Testing channels and backend events");
+
     await clientStore.patch({ uuid: "test2", update: Date.now() });
     await clientStore.upsertItemToCollection("test2", "collect", { test: "plop" });
     
     await clientStore.incrementAttribute("test2", "update", 1);
     await clientStore.incrementAttribute("test", "update", 1);
+
     await clientStore.emitSync("Store.Actioned", {
       action: "unitTest",
       object: await clientStore.get("test2"),
       store: clientStore,
       result: {},
       context: null
-    })
-    await clientStore.delete("test2");
+    });
+    
+    this.log("INFO", "Testing channels and server events");
     await clientStore.emitSync("Store.Actioned", {
       action: "unitTest",
       object: await clientStore.get("test3"),
@@ -201,12 +281,18 @@ class FullTest extends WebdaTest {
       result: {},
       context: null
     })
-    await this.sleep(1000);
-    await serverStore.patch({ uuid: "test", update: Date.now() });
-    await serverStore.update({ uuid: "test2", update: 10 });
-    await serverStore.update({ uuid: "test3", update: 10 });
-    await serverStore.delete("test3");
+
+    await clientStore.delete("test2");
+    this.log("INFO", "Wait for backend-side side delete event");
+    await promise;
     this.uiSocket.close();
     await this.nextTick();
+    assert.deepStrictEqual(counts, {
+      Actioned: 1,
+      Deleted: 2,
+      PartialUpdated: 2,
+      PatchUpdated: 1,
+      Updated: 1
+    })
   }
 }

@@ -54,14 +54,14 @@ export class WebSocketsClientService<T extends WebSocketsClientParameters = WebS
      * New room created
      */
     this.socket.on("create-room", room => {
-      this.log("INFO", "Adding channel", room);
+      this.log("DEBUG", "Adding channel", room);
       this.registerRoom(room);
     });
     /**
      * Delete room
      */
     this.socket.on("delete-room", room => {
-      this.log("INFO", "Deleting channel", room);
+      this.log("DEBUG", "Deleting channel", room);
       this.unregisterRoom(room);
     });
     return super.init();

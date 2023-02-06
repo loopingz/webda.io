@@ -83,13 +83,13 @@ class Injector {
  *
  * Might consider to split into two annotations
  */
-export function Inject(parameterOrName: string, defaultValue?: string | boolean, optional?: boolean) {
+export function Inject(parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) {
   return function (target: any, propertyName: string): void {
     target.Injectors = target.Injectors || [];
     if (typeof defaultValue === "boolean") {
-      target.Injectors.push(new Injector(propertyName, parameterOrName, undefined, defaultValue));
+      target.Injectors.push(new Injector(propertyName, parameterOrName || propertyName, undefined, defaultValue));
     } else {
-      target.Injectors.push(new Injector(propertyName, parameterOrName, defaultValue, optional));
+      target.Injectors.push(new Injector(propertyName, parameterOrName || propertyName, defaultValue, optional));
     }
   };
 }

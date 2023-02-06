@@ -1,7 +1,6 @@
 import { WorkerOutput } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as fs from "fs";
-import Finder from "fs-finder";
 import * as path from "path";
 import {
   Application,
@@ -170,17 +169,22 @@ export class UnpackedApplication extends Application {
       files.push(currentModule);
     }
 
-    let nodeModules = this.getAppPath("node_modules");
-    if (fs.existsSync(nodeModules)) {
-      files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
+    const findModuleFiles = (nodeModules: string) : void => {
+      if (!fs.existsSync(nodeModules)) {
+        return;
+      }
+      FileUtils.finder(nodeModules, (filepath) => {
+        if (filepath.endsWith("webda.module.json")) {
+          files.push(filepath);
+        }
+      });
     }
 
+    findModuleFiles(this.getAppPath("node_modules"));
+    
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
-      nodeModules = path.join(module.project.webda.workspaces.path, "node_modules");
-      if (fs.existsSync(nodeModules)) {
-        files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
-      }
+      findModuleFiles(path.join(module.project.webda.workspaces.path, "node_modules"));
     }
 
     // Ensure we are not adding many times the same modules

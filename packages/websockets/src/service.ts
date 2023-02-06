@@ -1,19 +1,21 @@
 import { CoreModel, DeepPartial, Service, ServiceParameters } from "@webda/core";
 import { createHmac } from "crypto";
 import { StoreListener } from "./storelistener";
- 
+
 export class WebSocketsParameters extends ServiceParameters {
   /**
    * @default {type: "JWT"}
    */
-  auth?: {
-    type: "HMAC",
-    secret: string
-  } | { type: "JWT" };
+  auth?:
+    | {
+        type: "HMAC";
+        secret: string;
+      }
+    | { type: "JWT" };
 
   constructor(params: any) {
     super(params);
-    this.auth ??= {type: "JWT"}
+    this.auth ??= { type: "JWT" };
   }
 }
 
@@ -47,21 +49,24 @@ export abstract class WSService<T extends WebSocketsParameters = WebSocketsParam
   /**
    * Get the authentication token
    */
-  async getAuthToken() : Promise<string> {
+  async getAuthToken(): Promise<string> {
     let data = Date.now().toString();
     if (this.parameters.auth.type === "HMAC") {
-      return `${data}:${createHmac("sha256", this.parameters.auth.secret).update(data).digest('hex')}`;
+      return `${data}:${createHmac("sha256", this.parameters.auth.secret).update(data).digest("hex")}`;
     } else if (this.parameters.auth.type === "JWT") {
-      return this.getWebda().getCrypto().jwtSign({timeout: data}, {
-        expiresIn: "30000"
-      });
+      return this.getWebda().getCrypto().jwtSign(
+        { timeout: data },
+        {
+          expiresIn: "30000"
+        }
+      );
     }
   }
 
   /**
    * Verify the JWT token
-   * @param token 
-   * @returns 
+   * @param token
+   * @returns
    */
   async verifyAuthToken(token: string): Promise<boolean> {
     let result: boolean = false;
@@ -69,20 +74,20 @@ export abstract class WSService<T extends WebSocketsParameters = WebSocketsParam
       return false;
     }
     if (this.parameters.auth.type === "HMAC") {
-      const [timeout, hmac ] = token.split(":");
+      const [timeout, hmac] = token.split(":");
       if (parseInt(timeout) < Date.now() - TOKEN_TIMEOUT || this.usedTokens.has(token)) {
         return false;
       }
-      result = createHmac("sha256", this.parameters.auth.secret).update(timeout).digest('hex') === hmac;
+      result = createHmac("sha256", this.parameters.auth.secret).update(timeout).digest("hex") === hmac;
     } else if (this.parameters.auth.type === "JWT") {
-      result = await this.getWebda().getCrypto().jwtVerify(token); 
+      result = await this.getWebda().getCrypto().jwtVerify(token);
     }
     if (result) {
       this.usedTokens.add(token);
       setTimeout(() => {
         /* c8 ignore next */
         this.usedTokens.delete(token);
-      }, TOKEN_TIMEOUT)
+      }, TOKEN_TIMEOUT);
     }
     return result;
   }

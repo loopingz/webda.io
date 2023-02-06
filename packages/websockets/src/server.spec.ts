@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Context, Core, CoreModel, HttpContext, Store, VersionService } from "@webda/core";
+import { Context, Core, CoreModel, HttpContext, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { createHmac } from "crypto";
@@ -70,7 +70,7 @@ class WebSocketsServerTest extends WebdaTest {
     const socket = new MockSocket();
 
     socket.request.webdaContext = ctx;
-    ctx.getSession().login("plop", "66")
+    ctx.getSession().login("plop", "66");
     mock.emit("connection", socket);
     socket.emit("subscribe", "model_Registry$test");
     socket.emit("subscribe", "model_Registry$test2");
@@ -82,29 +82,28 @@ class WebSocketsServerTest extends WebdaTest {
     mock.emit("connection", socket);
     ctx.getHttpContext().headers["x-webda-ws"] = await this.service.getAuthToken();
     mock.emit("connection", socket);
-    this.service.getParameters().auth = {"type": "HMAC", secret: "12345"};
+    this.service.getParameters().auth = { type: "HMAC", secret: "12345" };
     let token = await this.service.getAuthToken();
     assert.ok(await this.service.verifyAuthToken(token));
-    assert.ok(!await this.service.verifyAuthToken(token));
+    assert.ok(!(await this.service.verifyAuthToken(token)));
     let timeout = (Date.now() - 30001).toString();
     token = timeout + ":" + createHmac("sha256", "12345").update(timeout).digest("hex");
-    assert.ok(!await this.service.verifyAuthToken(token));
+    assert.ok(!(await this.service.verifyAuthToken(token)));
     ctx.getHttpContext().headers["x-webda-ws"] = token;
     mock.emit("connection", socket);
     let eventEmitter = new EventEmitter();
-    const p = new Promise<{status: string, result?: any}>(resolve => {
-      eventEmitter.on("operation", (evt) => {
+    const p = new Promise<{ status: string; result?: any }>(resolve => {
+      eventEmitter.on("operation", evt => {
         resolve(evt);
-      })
-    })
+      });
+    });
     this.service.getWebda().registerOperation("test", {
       id: "test",
       method: "getName",
       service: "version"
-    })
-    await this.service.onOperation({id: "test"}, <any>eventEmitter, ctx);
+    });
+    await this.service.onOperation({ id: "test" }, <any>eventEmitter, ctx);
     assert.strictEqual((await p).result, "version");
-
   }
 }
 
@@ -118,12 +117,14 @@ class FullTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this.server = this.registerService(new WebSocketsService(this.webda, "wsserver", {
-      auth: {
-        type: "HMAC",
-        secret: "12345"
-      }
-    }));
+    this.server = this.registerService(
+      new WebSocketsService(this.webda, "wsserver", {
+        auth: {
+          type: "HMAC",
+          secret: "12345"
+        }
+      })
+    );
     this.server.resolve();
     await this.server.init();
     this.io = new Server(12345, {
@@ -135,7 +136,7 @@ class FullTest extends WebdaTest {
           await ctx.init();
           // @ts-ignore
           req.session = ctx.getSession();
-          ctx.getSession().login("plop","email")
+          ctx.getSession().login("plop", "email");
           // @ts-ignore
           req.webdaContext = ctx;
           callback(null, true);
@@ -150,7 +151,10 @@ class FullTest extends WebdaTest {
     this.clientCore = new Core(this.webda.getApplication());
     await this.clientCore.init();
     this.client = this.registerService(
-      new WebSocketsClientService(this.clientCore, "wsserver", { frontend: "http://127.0.0.1:12345", auth: {type: "HMAC", secret: "12345"} })
+      new WebSocketsClientService(this.clientCore, "wsserver", {
+        frontend: "http://127.0.0.1:12345",
+        auth: { type: "HMAC", secret: "12345" }
+      })
     );
     this.client.resolve();
     await this.client.init();
@@ -171,7 +175,7 @@ class FullTest extends WebdaTest {
         "X-WUI": `1`
       }
     });
-    let secondSocket =  io(this.client.getParameters().frontend, {
+    let secondSocket = io(this.client.getParameters().frontend, {
       extraHeaders: {
         "X-WUI": `1`
       }
@@ -186,17 +190,17 @@ class FullTest extends WebdaTest {
       id++;
       promise = new Promise(r => {
         resolve = r;
-      })
-    }
+      });
+    };
     reinitPromise();
     this.uiSocket.on("uievent", () => {
       uieventCounter++;
       if (id === 2) resolve();
-    })
+    });
     this.uiSocket.on("uiroom", () => {
       uiroomCounter++;
       if (id === 1 || id > 2) resolve();
-    })
+    });
     this.uiSocket.emit("subscribe", "Registry$test");
     this.uiSocket.emit("uievent", "Registry$test", "myevent");
     secondSocket.emit("subscribe", "Registry$test");
@@ -232,12 +236,12 @@ class FullTest extends WebdaTest {
     this.uiSocket.on("operation", resolve);
     this.uiSocket.emit("operation", "opId");
 
-    let counts: any = {}
-    this.uiSocket.on("model", (evt) => {
+    let counts: any = {};
+    this.uiSocket.on("model", evt => {
       counts[evt.type] ??= 0;
       counts[evt.type]++;
       if (evt.type === "Deleted") {
-        this.log("INFO", "Resolving promise")
+        this.log("INFO", "Resolving promise");
         resolve();
       }
     });
@@ -254,14 +258,13 @@ class FullTest extends WebdaTest {
     await serverStore.delete("test2");
     this.log("INFO", "Wait for server-side side delete event");
     await promise;
-    
 
     reinitPromise();
     this.log("INFO", "Testing channels and backend events");
 
     await clientStore.patch({ uuid: "test2", update: Date.now() });
     await clientStore.upsertItemToCollection("test2", "collect", { test: "plop" });
-    
+
     await clientStore.incrementAttribute("test2", "update", 1);
     await clientStore.incrementAttribute("test", "update", 1);
 
@@ -272,7 +275,7 @@ class FullTest extends WebdaTest {
       result: {},
       context: null
     });
-    
+
     this.log("INFO", "Testing channels and server events");
     await clientStore.emitSync("Store.Actioned", {
       action: "unitTest",
@@ -280,7 +283,7 @@ class FullTest extends WebdaTest {
       store: clientStore,
       result: {},
       context: null
-    })
+    });
 
     await clientStore.delete("test2");
     this.log("INFO", "Wait for backend-side side delete event");
@@ -293,6 +296,6 @@ class FullTest extends WebdaTest {
       PartialUpdated: 2,
       PatchUpdated: 1,
       Updated: 1
-    })
+    });
   }
 }

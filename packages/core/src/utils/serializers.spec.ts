@@ -153,6 +153,10 @@ plop: test
   finder() {
     let res = [];
     FileUtils.finder("test", f => res.push(f));
-    assert.ok(["test/models/ident.js", "test/my-cnf.json", "test/jsonutils/mdocs.yaml", "test/data/test.png"].map(c => res.includes(c)).reduce((v, c) => v && c, true));
+    assert.ok(
+      ["test/models/ident.js", "test/my-cnf.json", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
+        .map(c => res.includes(c))
+        .reduce((v, c) => v && c, true)
+    );
   }
 }

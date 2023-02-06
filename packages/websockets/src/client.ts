@@ -15,7 +15,9 @@ export class WebSocketsClientParameters extends WebSocketsParameters {
  *
  * @WebdaModda
  */
-export class WebSocketsClientService<T extends WebSocketsClientParameters = WebSocketsClientParameters> extends WSService<T> {
+export class WebSocketsClientService<
+  T extends WebSocketsClientParameters = WebSocketsClientParameters
+> extends WSService<T> {
   socket: Socket;
 
   /**
@@ -25,7 +27,6 @@ export class WebSocketsClientService<T extends WebSocketsClientParameters = WebS
   async _sendModelEvent(...args) {
     this.socket.emit("backend-event", ...args);
   }
-
 
   /**
    * @override

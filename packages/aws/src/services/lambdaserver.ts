@@ -198,11 +198,10 @@ export default class LambdaServer extends Webda {
     if (this.getConfiguration().parameters.lambdaRequestHeader) {
       ctx.setHeader(this.getConfiguration().parameters.lambdaRequestHeader, context.awsRequestId);
     }
-    // Fallback on reference as Origin is not always set by Edge
-    let origin = headers.Origin || headers.origin || headers.Referer || headers.referer;
+    let origin = headers.Origin || headers.origin;
     try {
       // Set predefined headers for CORS
-      if (await this.checkCORSRequest(ctx)) {
+      if (!origin || await this.checkCORSRequest(ctx)) {
         if (origin) {
           ctx.setHeader("Access-Control-Allow-Origin", origin);
         }

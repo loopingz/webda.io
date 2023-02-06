@@ -132,7 +132,7 @@ export interface RequestFilter<T extends Context = Context> {
    *
    * @param context to check for
    */
-  checkRequest(context: T): Promise<boolean>;
+  checkRequest(context: T, type: "CORS" | "AUTH"): Promise<boolean>;
 }
 
 /**
@@ -1226,7 +1226,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     if (ctx.getHttpContext().getMethod() === "OPTIONS") {
       return true;
     }
-    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx)))).some(v => v);
+    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "AUTH")))).some(v => v);
   }
 
   /**
@@ -1235,7 +1235,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param context Context of the request
    */
   protected async checkCORSRequest(ctx: Context): Promise<boolean> {
-    return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx)))).some(v => v);
+    return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
   }
 
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {

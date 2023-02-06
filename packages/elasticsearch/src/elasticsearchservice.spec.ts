@@ -4,7 +4,14 @@ import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { ElasticSearchService } from "./elasticsearchservice";
 
-type TestCoreModel = CoreModel & { uuid: string; status: string, toRemove: string, toAdd: string, counter: number, items: any[] };
+type TestCoreModel = CoreModel & {
+  uuid: string;
+  status: string;
+  toRemove: string;
+  toAdd: string;
+  counter: number;
+  items: any[];
+};
 @suite
 class ElasticSearchTest extends WebdaTest {
   service: ElasticSearchService;

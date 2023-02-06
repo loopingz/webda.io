@@ -2,11 +2,13 @@ import { Context, Counter, Gauge, RequestFilter } from "@webda/core";
 import { Server, Socket } from "socket.io";
 import { WebSocketsParameters, WSService } from "./service";
 
-
 /**
  * @WebdaModda
  */
-export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParameters> extends WSService<T> implements RequestFilter {
+export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParameters>
+  extends WSService<T>
+  implements RequestFilter
+{
   /**
    * Send to the model channel
    * @param fullUuid
@@ -31,9 +33,9 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
 
   /**
    * Call an Operation from the websocket
-   * @param operation 
-   * @param socket 
-   * @param context 
+   * @param operation
+   * @param socket
+   * @param context
    */
   async onOperation(operation: { id: string; input?: any }, socket: Socket, context: Context) {
     try {
@@ -50,10 +52,10 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
 
   /**
    * Subscribe to a model
-   * @param fullUuid 
-   * @param socket 
-   * @param context 
-   * @param method 
+   * @param fullUuid
+   * @param socket
+   * @param context
+   * @param method
    */
   async onSubscribe(fullUuid: string, socket: Socket, context: Context, method: "leave" | "join" = "join") {
     const result = (method === "leave" ? "un" : "") + "subscribed";
@@ -86,7 +88,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
           enable: false
         });
       }
-      
+
       socket.emit(result, {
         status: "SUCCESS",
         uuid: fullUuid
@@ -116,7 +118,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
 
   /**
    * Return list of the current model rooms
-   * @returns 
+   * @returns
    */
   getRooms() {
     return [...this.io.sockets.adapter.rooms.keys()].filter(c => c.startsWith("model_"));
@@ -147,7 +149,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
         let context = <Context>(<any>socket.request).webdaContext;
         let authToken = <string>context.getHttpContext().getHeader("x-webda-ws");
         if (authToken) {
-          if (!await this.verifyAuthToken(authToken)) {
+          if (!(await this.verifyAuthToken(authToken))) {
             socket.disconnect();
           }
           // Verify some stuff here
@@ -157,7 +159,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
           });
           socket.on("backend-event", (fullUuid, ...args) => {
             this.log("DEBUG", "Forward Model event", fullUuid);
-            this.io.to(`model_${fullUuid}`).emit("model",  ...args);
+            this.io.to(`model_${fullUuid}`).emit("model", ...args);
           });
         }
         // Does not allow anonymous
@@ -196,7 +198,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
               this.io.to(room).emit("uiroom", {
                 model: room.substring(6),
                 enable: false
-              })
+              });
             }
           }
           this.metrics.connections.dec();

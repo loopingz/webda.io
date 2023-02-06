@@ -89,4 +89,8 @@ export class SchemaTest2 {
    * @minimum 0
    */
   age: number;
+  /**
+   * @readOnly
+   */
+  uuid: string;
 }

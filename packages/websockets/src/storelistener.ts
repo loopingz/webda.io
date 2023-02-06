@@ -16,7 +16,7 @@ export class StoreListener {
       if (!evt.object || !this.uuids.has(evt.object.getUuid())) {
         return;
       }
-      this.wsclient.sendModelEvent(evt.object.getFullUuid(),  {
+      this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
         type: "Actioned",
         model: evt.object,
         action: evt.action
@@ -48,7 +48,7 @@ export class StoreListener {
       }
       this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
         model: evt.object,
-        type: "PatchUpdated",
+        type: "PatchUpdated"
       });
     },
     "Store.PartialUpdated": (evt: EventStorePartialUpdated) => {

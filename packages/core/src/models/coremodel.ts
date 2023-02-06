@@ -468,7 +468,11 @@ class CoreModel {
    * @param partials
    * @returns
    */
-  static async fromFullUuid<T extends CoreModel = CoreModel>(fullUuid: string, core: Core = Core.get(), partials?: any): Promise<T> {
+  static async fromFullUuid<T extends CoreModel = CoreModel>(
+    fullUuid: string,
+    core: Core = Core.get(),
+    partials?: any
+  ): Promise<T> {
     const [store, uuid] = fullUuid.split("$");
     let service = core.getService<Store<T>>(store);
     if (partials) {
@@ -546,9 +550,11 @@ class CoreModel {
     const addLoader = (attr, model) => {
       attr.refresh = async () => {
         return Core.get().getModelStore(model).get(attr);
-      }
-    }
-    const rel = Core.get().getApplication().getRelations(<any>this);
+      };
+    };
+    const rel = Core.get()
+      .getApplication()
+      .getRelations(<any>this);
     if (rel.parent && this[rel.parent.attribute]) {
       addLoader(this[rel.parent.attribute], rel.parent.model);
     }

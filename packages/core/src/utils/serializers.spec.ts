@@ -152,11 +152,17 @@ plop: test
   @test
   finder() {
     let res = [];
-    FileUtils.finder("test", f => res.push(f));
+    FileUtils.find("test", f => res.push(f));
     assert.ok(
       ["test/models/ident.js", "test/my-cnf.json", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
         .map(c => res.includes(c))
         .reduce((v, c) => v && c, true)
     );
+  }
+
+  @test
+  streams() {
+    FileUtils.getWriteStream("/tmp/webda.stream").write("plop").close();
+    FileUtils.getReadStream("/tmp/webda.stream").close();
   }
 }

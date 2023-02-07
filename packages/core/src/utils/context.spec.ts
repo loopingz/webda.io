@@ -144,6 +144,17 @@ class ContextTest extends WebdaTest {
     req.setTimeout(1, () => {});
   }
 
+
+  @test
+  getResponseSize() {
+    // @ts-ignore
+    this.ctx._body = "PLOP";
+    assert.strictEqual(this.ctx.getResponseSize(), 4);
+    // @ts-ignore
+    this.ctx._body = "Rémi";
+    assert.strictEqual(this.ctx.getResponseSize(), 5);
+  }
+
   @test
   getAbsoluteUrl() {
     let ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 80, {

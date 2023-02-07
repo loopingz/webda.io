@@ -585,7 +585,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * @returns
    */
   getResponseSize(): number | undefined {
-    return this._body?.length;
+    return this._body ? Buffer.byteLength(this._body, 'utf8') : undefined;
   }
 
   /**

@@ -970,6 +970,7 @@ export class Application {
         this[section][key.toLowerCase()] ??= await this.importFile(path.join(parent, info[section][key]));
       }
     };
+    // Merging graph from different modules
     Object.keys(module.modelsGraph || {}).forEach(k => {
       this.graph[k] = module.modelsGraph[k];
     });

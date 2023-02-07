@@ -1,23 +1,52 @@
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, writeFileSync, createReadStream, createWriteStream } from "fs";
 import * as jsonc from "jsonc-parser";
 import { join } from "path";
 import * as yaml from "yaml";
+import { Readable, Writable } from "stream";
+
+/**
+ * Define a Finder that can be use
+ */
+export interface StorageFinder {
+  /**
+   * Recursively browse the path and call processor on each
+   */
+    find(path: string, processor: (filepath: string) => void, options?: {followSymlinks?: boolean}): void;
+    /**
+     * Get a write stream based on the id return by the finder
+     */
+    getWriteStream(path: string) : Writable;
+     /**
+     * Get a read stream based on the id return by the finder
+     */
+    getReadStream(path: string) : Readable;
+}
 /**
  * Allow save/load of yaml or json file
  */
-export const FileUtils = {
+export const FileUtils : StorageFinder & any = {
+  /**
+   * @override
+   */
+  getWriteStream: (path: string) => {
+    return createWriteStream(path);
+  },
+
+  getReadStream: (path: string) => {
+    return createReadStream(path);
+  },
   /**
    * Recursively run a process
    *
    * @param path
    * @param processor
    */
-  finder: (path: string, processor: (filepath: string) => void, options: {followSymlinks?: boolean} = {}): void => {
+  find: (path: string, processor: (filepath: string) => void, options: {followSymlinks?: boolean} = {}): void => {
     let files = readdirSync(path);
     const fileItemCallback = (p) => {
       const stat = lstatSync(p);
       if (stat.isDirectory()) {
-        FileUtils.finder(p, processor, options)
+        FileUtils.find(p, processor, options)
       } else if (stat.isSymbolicLink()) {
         const newpath = realpathSync(p);
         fileItemCallback(newpath);

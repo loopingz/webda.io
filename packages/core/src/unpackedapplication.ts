@@ -173,7 +173,7 @@ export class UnpackedApplication extends Application {
       if (!fs.existsSync(nodeModules)) {
         return;
       }
-      FileUtils.finder(nodeModules, (filepath) => {
+      FileUtils.find(nodeModules, (filepath) => {
         if (filepath.endsWith("webda.module.json")) {
           files.push(filepath);
         }

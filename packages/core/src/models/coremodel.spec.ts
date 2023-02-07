@@ -76,6 +76,9 @@ class CoreModelTest extends WebdaTest {
         size: 66
       }
     });
+    const flat = {};
+    CoreModel.flat(flat, counters.test);
+    assert.deepStrictEqual(flat, {"second#bytes": 12, "second#size": 66, "first#bytes": 1, "first#size": 2})
     counters = new CoreModel()
       .load(<any>{ "test|second|bytes": 12, "test|second|size": 66, "test|first|bytes": 1, "test|first|size": 2 })
       .unflat<any>("|");

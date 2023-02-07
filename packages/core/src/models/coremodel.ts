@@ -217,16 +217,14 @@ class CoreModel {
   }
 
   /**
-   * Create subobject for a model
-   *
-   * Useful for counters
-   *
-   * @param split
-   * @returns
+   * Unflat an object
+   * @param data 
+   * @param split 
+   * @returns 
    */
-  unflat<T>(split: string = "#"): T {
+  static unflat<T = any>(data: any, split: string = "#") : T {
     const res: any = {};
-    for (let i in this) {
+    for (let i in data) {
       const attrs = i.split(split);
       let attr = attrs.shift();
       let cur = res;
@@ -235,12 +233,56 @@ class CoreModel {
           cur[attr] ??= {};
           cur = cur[attr];
         } else {
-          cur[attr] = this[i];
+          cur[attr] = data[i];
         }
         attr = attrs.shift();
       }
     }
     return res;
+  }
+
+  /**
+   * Create subobject for a model
+   *
+   * Useful for counters
+   *
+   * @param split
+   * @returns
+   */
+  unflat<T>(split: string = "#"): T {
+    return CoreModel.unflat(this, split);
+  }
+
+  /**
+   * Flat an object into another
+   * 
+   * {
+   *    a: {
+   *      b: 1
+   *    },
+   *    c: 1
+   * }
+   * 
+   * become 
+   * 
+   * {
+   *    "a#b": 1
+   *    "c": 1
+   * }
+   * 
+   * @param target 
+   * @param data 
+   * @param split 
+   * @param prefix 
+   */
+  static flat(target: any, data: any, split: string = "#", prefix: string = "") : any {
+    for (let i in data) {
+      if (typeof data[i] === "object") {
+        CoreModel.flat(target, data[i], split, i + split);
+      } else {
+        target[prefix + i] = data[i];
+      }
+    }
   }
 
   /**

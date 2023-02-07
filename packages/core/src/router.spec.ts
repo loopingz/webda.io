@@ -57,6 +57,15 @@ class RouterTest extends WebdaTest {
   }
 
   @test
+  async testRouteWithPath() {
+    this.webda.addRoute("/test/{path+}", { methods: ["GET"], executor: "DefinedMailer" });
+    let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/toto/plus", "https");
+    let ctx = await this.webda.newContext(httpContext);
+    this.webda.updateContextWithRoute(ctx);
+    assert.deepStrictEqual(ctx.getPathParameters(), {"path+": "plop/toto/plus"});
+  }
+
+  @test
   async testRouteWithQueryParam() {
     this.webda.addRoute("/test/plop{?uuid}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "http");

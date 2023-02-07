@@ -22,7 +22,7 @@ We use [uri-templates](https://www.npmjs.com/package/uri-templates) to parse uri
 
 ## Path arguments
 
-Wildcard path: `/test/{path*}` will map all the rest of the uri
+Wildcard path: `/test/{path*}` or `/test/{path+}` will map all the rest of the uri
 
 ## Query arguments
 

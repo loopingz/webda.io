@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "fs";
 import * as jsonc from "jsonc-parser";
 import { join } from "path";
 import * as yaml from "yaml";
@@ -12,11 +12,22 @@ export const FileUtils = {
    * @param path
    * @param processor
    */
-  finder: (path: string, processor: (filepath: string) => void): void => {
+  finder: (path: string, processor: (filepath: string) => void, options: {followSymlinks?: boolean} = {}): void => {
     let files = readdirSync(path);
+    const fileItemCallback = (p) => {
+      const stat = lstatSync(p);
+      if (stat.isDirectory()) {
+        FileUtils.finder(p, processor, options)
+      } else if (stat.isSymbolicLink()) {
+        const newpath = realpathSync(p);
+        fileItemCallback(newpath);
+      } else if (stat.isFile()) {
+        processor(p);
+      }
+    }
     files
       .map(f => join(path, f))
-      .forEach(p => (lstatSync(p).isDirectory() ? FileUtils.finder(p, processor) : processor(p)));
+      .forEach(fileItemCallback);
   },
   /**
    * Load a YAML or JSON file based on its extension

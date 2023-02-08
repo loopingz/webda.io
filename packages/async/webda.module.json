@@ -27,9 +27,6 @@
           "description": "Last update date",
           "readOnly": true
         },
-        "test": {
-          "type": "number"
-        },
         "uuid": {
           "type": "string",
           "description": "Action uuid"
@@ -90,14 +87,13 @@
         }
       },
       "required": [
-        "job",
-        "logs",
-        "results",
+        "uuid",
         "status",
+        "job",
+        "results",
         "statusDetails",
-        "test",
         "type",
-        "uuid"
+        "logs"
       ],
       "description": "Define here a model that can be used along with Store service",
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -117,9 +113,6 @@
           "format": "date-time",
           "description": "Last update date",
           "readOnly": true
-        },
-        "test": {
-          "type": "number"
         },
         "uuid": {
           "type": "string",
@@ -198,7 +191,6 @@
         "results",
         "status",
         "statusDetails",
-        "test",
         "type",
         "uuid"
       ],
@@ -233,9 +225,6 @@
           "format": "date-time",
           "description": "Last update date",
           "readOnly": true
-        },
-        "test": {
-          "type": "number"
         },
         "uuid": {
           "type": "string",
@@ -364,7 +353,6 @@
         "results",
         "status",
         "statusDetails",
-        "test",
         "type",
         "uuid"
       ],

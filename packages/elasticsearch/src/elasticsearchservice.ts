@@ -70,12 +70,11 @@ export default class ElasticSearchService<
       this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly
       store.on("Store.PartialUpdated", evt => {
-        if (evt.partial_update.increment) {
-          return this._increment(
+        if (evt.partial_update.increments) {
+          return this._increments(
             index.name,
             evt.object_id,
-            evt.partial_update.increment.property,
-            evt.partial_update.increment.value
+            evt.partial_update.increments
           );
         } else if (evt.partial_update.addItem) {
           return this._addItem(
@@ -112,26 +111,28 @@ export default class ElasticSearchService<
   }
 
   /**
-   * Increment a property of an object
+   * Increments one or several properties of an object
    *
    * @param index
    * @param uuid
-   * @param property
-   * @param increment
    */
-  protected async _increment(index: string, uuid: string, property: string, increment: number) {
+  protected async _increments(index: string, uuid: string, parameters: {property: string, value: number}[]) {
+    const params = {};
+    parameters.forEach(({value}, i) => {
+      params[`count${i}`] = value;
+    })
     await this._client.update({
       index,
       id: uuid,
       body: {
         script: {
           lang: "painless",
-          source: `if (ctx._source.${property} != null) {
-  ctx._source.${property} += params.count;
+          source: parameters.map(({property}, i) => (`if (ctx._source.${property} != null) {
+  ctx._source.${property} += params.count${i};
 } else {
-  ctx._source.${property} = params.count;
-}`,
-          params: { count: increment }
+  ctx._source.${property} = params.count${i};
+}`)).join("\n"),
+          params
         }
       }
     });

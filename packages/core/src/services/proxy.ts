@@ -1,4 +1,5 @@
 import * as http from "http";
+import * as https from "https";
 import { Counter, Gauge, Histogram } from "../core";
 import { Context } from "../utils/context";
 import { Route, Service, ServiceParameters } from "./service";
@@ -19,6 +20,13 @@ export class ProxyParameters extends ServiceParameters {
    * Helper to refuse any request if user is not auth
    */
   requireAuthentication: boolean;
+
+  constructor(params: any) {
+    super(params);
+    if (this.backend.endsWith("/")) {
+      this.backend = this.backend.substring(0, this.backend.length - 1);
+    }
+  }
 }
 
 /**
@@ -77,7 +85,11 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @returns
    */
   createRequest(url: string, method: string, headers: any, callback: (response: http.IncomingMessage) => void) {
-    return http.request(
+    let mod: any = http;
+    if (url.startsWith("https://")) {
+      mod = https;
+    }
+    return mod.request(
       url,
       {
         method,
@@ -152,44 +164,49 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
         xff = ctx.getHttpContext().getClientIp();
       }
       const protocol = ctx.getHttpContext().getProtocol();
-      let req = this.createRequest(
-        `${host}${url}`,
-        ctx.getHttpContext().getMethod(),
-        {
-          ...this.getRequestHeaders(ctx),
-          "X-Rewrite-URL": ctx.getHttpContext().getRelativeUri(),
-          "X-Forwarded-Host": ctx.getHttpContext().getHeader("x-forwarded-host", `${ctx.getHttpContext().getHost()}`),
-          "X-Forwarded-Proto": ctx
-            .getHttpContext()
-            .getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
-          "X-Forwarded-For": xff,
-          ...headers
-        },
-        res => {
-          const labels = {
-            method: ctx.getHttpContext().getMethod(),
-            host,
-            handler: url,
-            statuscode: res.statusCode
-          };
-          res.on("end", () => {
-            this.metrics.http_request_in_flight.dec();
-            resolve();
-          });
-          res.on("error", () => {
-            this.metrics.http_request_in_flight.dec();
-            this.metrics.http_errors.inc({ ...labels, statuscode: -1 });
-            reject();
-          });
-          this.metrics.http_request_total.inc(labels);
-          if (res.statusCode >= 400) {
-            this.metrics.http_errors.inc(labels);
+      const labels = {
+        method: ctx.getHttpContext().getMethod(),
+        host,
+        handler: url
+      };
+      const onError = e => {
+        this.metrics.http_request_in_flight.dec();
+        this.metrics.http_errors.inc({ ...labels, statuscode: -1 });
+        this.log("ERROR", "Proxying error", e);
+        resolve();
+      };
+      try {
+        const req = this.createRequest(
+          `${host}${url}`,
+          ctx.getHttpContext().getMethod(),
+          {
+            ...this.getRequestHeaders(ctx),
+            "X-Rewrite-URL": ctx.getHttpContext().getRelativeUri(),
+            "X-Forwarded-Host": ctx.getHttpContext().getHeader("x-forwarded-host", `${ctx.getHttpContext().getHost()}`),
+            "X-Forwarded-Proto": ctx
+              .getHttpContext()
+              .getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
+            "X-Forwarded-For": xff,
+            ...headers
+          },
+          res => {
+            res.on("end", () => {
+              this.metrics.http_request_in_flight.dec();
+              resolve();
+            });
+            res.on("error", onError);
+            this.metrics.http_request_total.inc({ ...labels, statuscode: res.statusCode });
+            if (res.statusCode >= 400) {
+              this.metrics.http_errors.inc(labels);
+            }
+            this.forwardResponse(res, ctx);
           }
-          this.forwardResponse(res, ctx);
-        }
-      );
-      req.on("error", reject);
-      ctx.getHttpContext().getRawStream().pipe(req);
+        );
+        req.on("error", onError);
+        ctx.getHttpContext().getRawStream().pipe(req);
+      } catch (e) {
+        onError(e);
+      }
     });
   }
 

@@ -238,13 +238,16 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   /**
    * @override
    */
-  async _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any> {
+  async _incrementAttributes(uid: string, params: {property: string, value: number}[], updateDate: Date): Promise<any> {
     let stored = await this._get(uid, true);
-    if (stored[prop] === undefined) {
-      stored[prop] = 0;
-    }
+    params.forEach(({property: prop, value}) => {
+      if (stored[prop] === undefined) {
+        stored[prop] = 0;
+      }
+      stored[this._lastUpdateField] = updateDate;
+      stored[prop] += value;
+    })
     stored[this._lastUpdateField] = updateDate;
-    stored[prop] += value;
     return this._save(stored);
   }
 

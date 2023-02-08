@@ -666,24 +666,27 @@ export default class DynamoStore<
   /**
    * @inheritdoc
    */
-  async _incrementAttribute(uid, prop, value, updateDate: Date) {
+  async _incrementAttributes(uid, parameters: { property: string; value: number }[], updateDate: Date) {
     let params = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
       },
-      UpdateExpression: "SET #a2 = :v2 ADD #a1 :v1",
+      UpdateExpression: "SET #ud = :ud ADD ",
       ConditionExpression: "attribute_exists(#uu)",
       ExpressionAttributeValues: {
-        ":v1": value,
-        ":v2": this._serializeDate(updateDate)
+        ":ud": this._serializeDate(updateDate)
       },
       ExpressionAttributeNames: {
-        "#a1": prop,
-        "#a2": this._lastUpdateField,
+        "#ud": this._lastUpdateField,
         "#uu": "uuid"
       }
     };
+    parameters.forEach((p, i) => {
+      params.ExpressionAttributeValues[`:v${i}`] = p.value;
+      params.ExpressionAttributeNames[`#a${i}`] = p.property;
+    });
+    params.UpdateExpression += parameters.map((_, i) => `#a${i} :v${i}`).join(",");
     try {
       return await this._client.update(params);
     } catch (err) {

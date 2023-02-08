@@ -136,12 +136,30 @@ export default class PostgresStore<
   /**
    * @override
    */
-  async _incrementAttribute(uid: string, attribute: string, value: number, updateDate: Date): Promise<any> {
+  async _incrementAttributes(
+    uid: string,
+    params: { property: string; value: number }[],
+    updateDate: Date
+  ): Promise<any> {
+    let data = "data";
+    params.forEach(p => {
+      data = `jsonb_set(${data}, '{${p.property}}', (COALESCE(data->>'${p.property}','0')::int + ${p.value})::text::jsonb)::jsonb`;
+    });
     let query = `UPDATE ${
       this.parameters.table
-    } SET data = jsonb_set(jsonb_set(data, '{${attribute}}', (COALESCE(data->>'${attribute}','0')::int + ${value})::text::jsonb)::jsonb, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(
+    } SET data = jsonb_set(${data}, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(
       uid
     )}'`;
+    console.log("QUERY1", query);
+    const { property: attribute, value } = params[0];
+    console.log(
+      "QUERY2",
+      `UPDATE ${
+        this.parameters.table
+      } SET data = jsonb_set(jsonb_set(data, '{${attribute}}', (COALESCE(data->>'${attribute}','0')::int + ${value})::text::jsonb)::jsonb, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(
+        uid
+      )}'`
+    );
     let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       throw new StoreNotFoundError(uid, this.getName());

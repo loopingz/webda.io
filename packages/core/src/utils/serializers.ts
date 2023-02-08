@@ -24,7 +24,7 @@ export interface StorageFinder {
 /**
  * Allow save/load of yaml or json file
  */
-export const FileUtils : StorageFinder & any = {
+export const FileUtils : StorageFinder & {save: (object: any, filename: string, publicAudience?: boolean) => void, load: (filename: string) => any} = {
   /**
    * @override
    */

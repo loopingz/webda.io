@@ -86,8 +86,8 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     const method = this.parameters.async ? "onAsync" : "on";
     this.sourceService[method]("Store.PartialUpdated", async (evt: EventStorePartialUpdated) => {
       let prop;
-      if (evt.partial_update.increment) {
-        prop = evt.partial_update.increment.property;
+      if (evt.partial_update.increments) {
+        prop = evt.partial_update.increments.map(c => c.property);
       } else if (evt.partial_update.addItem) {
         prop = evt.partial_update.addItem.property;
       } else if (evt.partial_update.deleteItem) {
@@ -260,17 +260,20 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    * @param updateDate
    * @param prop
    */
-  async _handleMapFromPartial(uid: string, updateDate: Date, prop: string = undefined) {
-    if (this.isMapped(prop) || this.isMapped(this.sourceService.getLastUpdateField())) {
+  async _handleMapFromPartial(uid: string, updateDate: Date, property: string | string[] = undefined) {
+    const props: string[] = Array.isArray(property) ? property : [property];
+    if (props.find(p => this.isMapped(p)) || this.isMapped(this.sourceService.getLastUpdateField())) {
       // Not optimal need to reload the object
       let source = await this.sourceService.getObject(uid);
       let updates = {};
       if (this.isMapped(this.sourceService.getLastUpdateField())) {
         updates[this.sourceService.getLastUpdateField()] = updateDate;
       }
-      if (this.isMapped(prop)) {
-        updates[prop] = source[prop];
-      }
+      props.filter(prop => this.isMapped(prop)).forEach(prop => {
+        if (this.isMapped(prop)) {
+          updates[prop] = source[prop];
+        }
+      })
       await this.handleMap(source, updates);
     }
   }

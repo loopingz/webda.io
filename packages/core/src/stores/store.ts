@@ -127,7 +127,7 @@ export interface EventStorePartialUpdated<T extends CoreModel = CoreModel> {
     /**
      * If incremental update
      */
-    increment?: {
+    increments?: {
       /**
        * Increment value
        */
@@ -136,7 +136,7 @@ export interface EventStorePartialUpdated<T extends CoreModel = CoreModel> {
        * Property to increment
        */
       property: string;
-    };
+    }[];
     /**
      * Add item to a collection
      */
@@ -861,7 +861,7 @@ abstract class Store<
       "_patch",
       "_update",
       "_delete",
-      "_incrementAttribute",
+      "_incrementAttributes",
       "_upsertItemToCollection",
       "_deleteItemFromCollection",
       "_removeAttribute"
@@ -943,26 +943,42 @@ abstract class Store<
     });
   }
 
-  async incrementAttribute<FK extends FilterKeys<T, number>>(uid: string, prop: FK, value: number) {
+  /**
+   * Increment attributes of an object
+   *
+   * @param uid
+   * @param info
+   * @returns
+   */
+  async incrementAttributes<FK extends FilterKeys<T, number>>(uid: string, info: { property: FK; value: number }[]) {
+    let params = <{ property: string; value: number }[]>info.filter(i => i.value !== 0);
     // If value === 0 no need to update anything
-    if (value === 0) {
+    if (params.length === 0) {
       return Promise.resolve();
     }
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "increment" });
-    await this._incrementAttribute(uid, <string>prop, value, updateDate);
-    await this._cacheStore?._incrementAttribute(uid, <string>prop, value, updateDate);
+    await this._incrementAttributes(uid, params, updateDate);
+    await this._cacheStore?._incrementAttributes(uid, params, updateDate);
     return this.emitSync("Store.PartialUpdated", {
       object_id: uid,
       store: this,
       updateDate,
       partial_update: {
-        increment: {
-          value: value,
-          property: <string>prop
-        }
+        increments: params
       }
     });
+  }
+
+  /**
+   * Helper function that call incrementAttributes
+   * @param uid
+   * @param prop
+   * @param value
+   * @returns
+   */
+  async incrementAttribute<FK extends FilterKeys<T, number>>(uid: string, prop: FK, value: number) {
+    return this.incrementAttributes(uid, [{ property: prop, value }]);
   }
 
   /**
@@ -2195,7 +2211,11 @@ abstract class Store<
    * @param value
    * @param updateDate
    */
-  protected abstract _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any>;
+  protected abstract _incrementAttributes(
+    uid: string,
+    params: { property: string; value: number }[],
+    updateDate: Date
+  ): Promise<any>;
 
   protected abstract _upsertItemToCollection(
     uid: string,

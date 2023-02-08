@@ -186,14 +186,16 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   /**
    * @override
    */
-  async _incrementAttribute(uid, prop, value, updateDate: Date) {
+  async _incrementAttributes(uid: string, parameters: {property: string, value: number}[], updateDate: Date) {
     await this._connect();
     let params = {
       $inc: {},
       $set: {}
     };
     params["$set"][this._lastUpdateField] = updateDate;
-    params["$inc"][prop] = value;
+    parameters.forEach(p => {
+      params["$inc"][p.property] = p.value;
+    })
     let res = await this._collection.updateOne(
       {
         _id: uid

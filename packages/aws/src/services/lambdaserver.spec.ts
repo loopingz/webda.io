@@ -264,16 +264,20 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestRefererCSRF() {
     this.evt.headers.Referer = "https://test3.webda.io";
     this.evt.headers.Host = "test3.webda.io";
+    this.evt.headers.origin = "test3.webda.io";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 401);
   }
 
   @test
-  async handleRequestRefererGoodCORS() {
+  async handleRequestRefererNoCORS() {
+    // No more fallback on referer for CORS
+    // BUt request should be served as no CORS is requested (lack of Origin)
     this.evt.headers.Referer = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Referer);
+    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], undefined);
+    assert.strictEqual(res.statusCode, 200);
   }
 
   @test
@@ -295,7 +299,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   ensureGoodCSRF() {
-    this.evt.headers.Referer = "https://test.webda.io";
+    this.evt.headers.Origin = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
   }
 

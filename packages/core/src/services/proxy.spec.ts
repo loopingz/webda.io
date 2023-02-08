@@ -17,6 +17,15 @@ class ProxyTest extends WebdaTest {
   fakeServe() {
     this.server = http
       .createServer((req, res) => {
+        console.log("URL", req.url);
+        if (req.url === "/plop404") {
+          res.writeHead(404);
+          res.end();
+          return;
+        } else if (req.url === "/plop500") {
+          res.end();
+          return;
+        }
         // Just simple echo
         req.pipe(res);
       })
@@ -43,6 +52,14 @@ class ProxyTest extends WebdaTest {
     await exec.execute(ctx);
     assert.notStrictEqual((<WritableStreamBuffer>ctx.getStream()).size(), 0);
     assert.strictEqual(ctx.getResponseBody().toString(), "Bouzouf");
+    exec = this.getExecutor(ctx, "test.webda.io", "GET", "/proxy/plop404", "Bouzouf");
+    await exec.execute(ctx);
+    proxyService.getParameters().backend = "http://256.256.256.256/";
+    exec = this.getExecutor(ctx, "test.webda.io", "GET", "/proxy/webda", "Bouzouf");
+    await exec.execute(ctx);
+    proxyService.getParameters().backend = "https://www.loopingz.com/";
+    exec = this.getExecutor(ctx, "test.webda.io", "GET", "/proxy/webda", "Bouzouf");
+    await exec.execute(ctx);
 
     proxyService.getParameters().requireAuthentication = true;
     await assert.rejects(() => this.execute(ctx, "test.webda.io", "GET", "/proxy"), /401/);

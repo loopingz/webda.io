@@ -214,9 +214,6 @@
                     }
                   ]
                 },
-                "parseInputDatesAsUTC": {
-                  "type": "boolean"
-                },
                 "ssl": {
                   "anyOf": [
                     {
@@ -1220,9 +1217,6 @@
                       "type": "number"
                     }
                   ]
-                },
-                "parseInputDatesAsUTC": {
-                  "type": "boolean"
                 },
                 "ssl": {
                   "anyOf": [

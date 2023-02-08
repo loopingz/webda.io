@@ -73,29 +73,29 @@ export class SampleApplicationTest {
   }
 
   async testApi(noCsrf: number = 401) {
-    let res = await fetch(`${this.baseUrl}/test`, {});
+    let res = await fetch(`${this.baseUrl}/test`, { headers: { origin: "bouzouf.com" } });
     assert.strictEqual(res.status, noCsrf);
     // Status 401 as CSRF protection is on
     // Check OPTIONS
     res = await fetch(`${this.baseUrl}/test`, {
-      headers: { host: "dev.webda-demo.com" },
+      headers: { host: "dev.webda-demo.com", origin: "dev.webda-demo.com" },
       method: "OPTIONS"
     });
     assert.strictEqual(res.status, 200);
     // Check OPTIONS
     res = await fetch(`${this.baseUrl}/test2`, {
-      headers: { host: "dev.webda-demo.com" },
+      headers: { host: "dev.webda-demo.com", origin: "dev.webda-demo.com" },
       method: "OPTIONS"
     });
     assert.strictEqual(res.status, 404);
     // Test default answer
     res = await fetch(`${this.baseUrl}/test`, {
-      headers: { host: "dev.webda-demo.com" }
+      headers: { host: "dev.webda-demo.com", origin: "dev.webda-demo.com" }
     });
     assert.strictEqual(await res.text(), "Tested");
     // Message
     res = await fetch(`${this.baseUrl}/msg/bouzouf`, {
-      headers: { host: "dev.webda-demo.com" }
+      headers: { host: "dev.webda-demo.com", origin: "dev.webda-demo.com" }
     });
     assert.strictEqual(await res.text(), "YOUR MESSAGE IS 'bouzouf'");
     // on purpose change the host and rely on the x-forwarded-*

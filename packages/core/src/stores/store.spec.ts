@@ -635,7 +635,10 @@ abstract class StoreTest extends WebdaTest {
     await identStore.incrementAttribute(ident1.uuid, "counter", 3);
     ident1 = await identStore.get(ident1.uuid);
     assert.strictEqual(ident1.counter, 4);
-    await identStore.incrementAttribute(ident1.uuid, "counter", -6);
+    await identStore.incrementAttributes(ident1.uuid, [
+      { property: "counter", value: -6 },
+      { property: "counter2", value: 10 }
+    ]);
     let res = await identStore.exists(ident1.uuid);
     assert.strictEqual(res, true);
     ident1 = await identStore.get(ident1.uuid);

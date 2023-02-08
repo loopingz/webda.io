@@ -162,7 +162,7 @@ plop: test
 
   @test
   streams() {
-    FileUtils.getWriteStream("/tmp/webda.stream").write("plop").close();
-    FileUtils.getReadStream("/tmp/webda.stream").close();
+    FileUtils.getWriteStream("/tmp/webda.stream").end();
+    FileUtils.getReadStream("/tmp/webda.stream");
   }
 }

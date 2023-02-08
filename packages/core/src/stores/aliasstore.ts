@@ -160,9 +160,9 @@ export abstract class AbstractAliasStore<
   /**
    * @override
    */
-  async _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any> {
+  async _incrementAttributes(uid: string, ...args): Promise<any> {
     // @ts-ignore
-    return this._targetStore._incrementAttribute(this.generateUuidFromPublicId(uid), prop, value, updateDate);
+    return this._targetStore._incrementAttributes(this.generateUuidFromPublicId(uid), ...args);
   }
 
   /**

@@ -197,7 +197,7 @@ export class DynamoDBTest extends StoreTest {
     let identStore: DynamoStore<Ident> = <DynamoStore<Ident>>this.getIdentStore();
     let ident = new Ident();
     ident.load(
-      {
+      <any>{
         arr: [
           {
             value: "",
@@ -306,7 +306,10 @@ export class DynamoDBTest extends StoreTest {
       await assert.rejects(() => userStore._patch({ t: "l" }, "plop"), /Unknown/);
       await assert.rejects(() => userStore._update({ t: "l" }, "plop"), /Unknown/);
       await assert.rejects(() => userStore._scan([]), /Unknown/);
-      await assert.rejects(() => userStore._incrementAttribute("plop", "t", 1, new Date()), /Unknown/);
+      await assert.rejects(
+        () => userStore._incrementAttributes("plop", [{ property: "t", value: 1 }], new Date()),
+        /Unknown/
+      );
     } finally {
       stubs.forEach(s => s.restore());
     }

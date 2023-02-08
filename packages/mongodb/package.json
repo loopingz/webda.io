@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@webda/core": "^2.4.2",
-    "mongodb": "^4.1.2"
+    "mongodb": "^5.0.1"
   },
   "files": [
     "lib",

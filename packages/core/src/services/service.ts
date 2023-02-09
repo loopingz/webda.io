@@ -342,7 +342,10 @@ abstract class Service<
    * @param configuration
    * @returns
    */
-  getMetric<T = Gauge | Counter | Histogram>(type: Constructor<T>, configuration: MetricConfiguration<T>): T {
+  getMetric<T = Gauge | Counter | Histogram>(
+    type: Constructor<T, [MetricConfiguration<T>]>,
+    configuration: MetricConfiguration<T>
+  ): T {
     configuration.labelNames ??= [];
     configuration.labelNames = [...configuration.labelNames, "service"];
     return this.getWebda().getMetric(type, configuration);

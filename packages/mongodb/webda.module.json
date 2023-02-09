@@ -313,9 +313,7 @@
             }
           }
         },
-        "LoggerFunction": {
-          "deprecated": "The Legacy Logger is deprecated and will be removed in the next major version."
-        },
+        "LoggerFunction": {},
         "LoggerLevel": {
           "anyOf": [
             {
@@ -335,8 +333,7 @@
               "const": "debug"
             },
             {}
-          ],
-          "deprecated": "The Legacy Logger is deprecated and will be removed in the next major version."
+          ]
         },
         "W": {
           "anyOf": [

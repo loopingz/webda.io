@@ -803,7 +803,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesOfType<T>(type: Constructor<T> = undefined): { [key: string]: T } {
+  getServicesOfType<T extends Service>(type: Constructor<T, [Core, string, any]> = undefined): { [key: string]: T } {
     let result = {};
     for (let i in this.services) {
       let service = this.services[i];
@@ -839,7 +839,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @param {String} name The model name to retrieve
    */
-  getModel<T = any>(name): Constructor<T> | CoreModelDefinition {
+  getModel<T = any, K extends Array<any> = any[]>(name): Constructor<T, K> | CoreModelDefinition {
     return this.application.getModel(name);
   }
 
@@ -1337,7 +1337,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param configuration
    * @returns
    */
-  getMetric<T = Gauge | Counter | Histogram>(type: Constructor<T>, configuration: MetricConfiguration<T>): T {
+  getMetric<T = Gauge | Counter | Histogram>(
+    type: Constructor<T, [MetricConfiguration<T>]>,
+    configuration: MetricConfiguration<T>
+  ): T {
     const metrics = this.getGlobalParams().metrics;
     if (metrics === false) {
       // Return a mock

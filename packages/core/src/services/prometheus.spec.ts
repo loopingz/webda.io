@@ -40,6 +40,6 @@ class PrometheusTest extends WebdaTest {
     await this.webda.emitSync("Webda.Result", { context: ctx });
     this.webda.getGlobalParams().metrics = false;
     // Fake metrics should return 0 for timer
-    assert.strictEqual(this.webda.getMetric(Histogram, { name: "test", help: "fake" }).startTimer()(), 0);
+    assert.strictEqual((<Histogram>this.webda.getMetric(Histogram, { name: "test", help: "fake" })).startTimer()(), 0);
   }
 }

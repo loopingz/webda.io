@@ -14,3 +14,6 @@ webda-dev-750c62811e3b.json
 .bak
 .webda-deployment-schema.json
 .webda-config-schema.json
+built-docs
+yarn.lock
+received-emails

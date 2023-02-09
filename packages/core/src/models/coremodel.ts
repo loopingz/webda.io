@@ -89,7 +89,8 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   getPermissionQuery(context?: Context): null | { partial: boolean; query: string };
 }
 
-export type Constructor<T> = new (...args: any[]) => T;
+export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
+
 /**
  * Sent if action required attached CoreModel is trigger
  * A Model cannot be detached anymore
@@ -218,11 +219,11 @@ class CoreModel {
 
   /**
    * Unflat an object
-   * @param data 
-   * @param split 
-   * @returns 
+   * @param data
+   * @param split
+   * @returns
    */
-  static unflat<T = any>(data: any, split: string = "#") : T {
+  static unflat<T = any>(data: any, split: string = "#"): T {
     const res: any = {};
     for (let i in data) {
       const attrs = i.split(split);
@@ -255,27 +256,27 @@ class CoreModel {
 
   /**
    * Flat an object into another
-   * 
+   *
    * {
    *    a: {
    *      b: 1
    *    },
    *    c: 1
    * }
-   * 
-   * become 
-   * 
+   *
+   * become
+   *
    * {
    *    "a#b": 1
    *    "c": 1
    * }
-   * 
-   * @param target 
-   * @param data 
-   * @param split 
-   * @param prefix 
+   *
+   * @param target
+   * @param data
+   * @param split
+   * @param prefix
    */
-  static flat(target: any, data: any, split: string = "#", prefix: string = "") : any {
+  static flat(target: any, data: any, split: string = "#", prefix: string = ""): any {
     for (let i in data) {
       if (typeof data[i] === "object") {
         CoreModel.flat(target, data[i], split, i + split);

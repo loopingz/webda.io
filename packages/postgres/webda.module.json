@@ -2232,5 +2232,6 @@
       },
       "title": "PostgresStore"
     }
-  }
+  },
+  "graph": {}
 }

@@ -189,7 +189,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       });
     }
     await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
-    await this.uploadSuccess(object, property, file);
+    await this.uploadSuccess(<any>object, property, file);
   }
 
   /**

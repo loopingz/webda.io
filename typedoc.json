@@ -1,21 +1,266 @@
 {
   "excludePrivate": true,
   "excludeExternals": true,
-  
+  "entryPointStrategy": "packages",
   "media": "docs/media",
-  "exclude": ["**/node_modules", "packages/*/node_modules", "packages/*/src/**/*.spec.ts", "sample-app"],
+  "exclude": [
+    "**/node_modules",
+    "packages/*/node_modules",
+    "packages/*/src/**/*.spec.ts",
+    "sample-app"
+  ],
   "readme": "./readme.md",
-  "pages": {
-    "source": "./docs/pages/",
-    "replaceGlobalsPage": true,
-    "reflectionNavigationTitle": "Modules",
-    "autoDetectPageTitle": true,
-    "autoPopulateChildren": true,
-    "noJekyll": true,
-    "githubPagesDomain": "docs.webda.io"
-  },
-
-  "theme": "./node_modules/typedoc-loopingz-theme/bin/default",
-
-  "name": "webda.io"
+  "name": "webda.io",
+  "out": ".built-docs",
+  "pluginPages": {
+    "pages": [
+      {
+        "title": "Common Issues",
+        "source": "./docs/pages/CommonIssues.md"
+      },
+      {
+        "title": "Concepts",
+        "source": "./docs/pages/Concepts.md",
+        "children": [
+          {
+            "title": "Application",
+            "source": "Application.md"
+          },
+          {
+            "title": "Async Actions",
+            "source": "AsyncActions.md"
+          },
+          {
+            "title": "Authentication",
+            "source": "Authentication.md",
+            "children": [
+              {
+                "title": "Apple",
+                "source": "Apple.md"
+              },
+              {
+                "title": "Google Auth",
+                "source": "Google.md"
+              }
+            ],
+            "childrenDir": "Authentication"
+          },
+          {
+            "title": "Binary",
+            "source": "Binary.md"
+          },
+          {
+            "title": "Configuration Service",
+            "source": "ConfigurationService.md",
+            "children": [
+              {
+                "title": "Kubernetes Configuration Service",
+                "source": "KubernetesConfiguration.md"
+              }
+            ],
+            "childrenDir": "ConfigurationService"
+          },
+          {
+            "title": "CryptoService",
+            "source": "CryptoService.md"
+          },
+          {
+            "title": "Events",
+            "source": "Events.md"
+          },
+          {
+            "title": "Extending webda executable",
+            "source": "ExtendingShell.md"
+          },
+          {
+            "title": "Invitation Service",
+            "source": "InvitationService.md"
+          },
+          {
+            "title": "Loggers",
+            "source": "Logger.md"
+          },
+          {
+            "title": "Mailer",
+            "source": "Mailer.md"
+          },
+          {
+            "title": "Modda",
+            "source": "Modda.md"
+          },
+          {
+            "title": "Models",
+            "source": "Models.md",
+            "children": [
+              {
+                "title": "Acl Model",
+                "source": "AclModel.md"
+              },
+              {
+                "title": "Acl Model",
+                "source": "RoleAclModel.md"
+              }
+            ],
+            "childrenDir": "Models"
+          },
+          {
+            "title": "Operations",
+            "source": "Operations.md"
+          },
+          {
+            "title": "Queues",
+            "source": "Queues.md"
+          },
+          {
+            "title": "Registry",
+            "source": "Registry.md"
+          },
+          {
+            "title": "Routes",
+            "source": "Routes.md"
+          },
+          {
+            "title": "Services",
+            "source": "Services.md",
+            "children": [
+              {
+                "title": "S3Binary",
+                "source": "S3Binary.md"
+              }
+            ],
+            "childrenDir": "Services"
+          },
+          {
+            "title": "Session",
+            "source": "Session.md"
+          },
+          {
+            "title": "Store",
+            "source": "Stores.md",
+            "children": [
+              {
+                "title": "DynamoDB Store",
+                "source": "DynamoDB.md"
+              },
+              {
+                "title": "MongoDB Store",
+                "source": "MongoDB.md"
+              },
+              {
+                "title": "PostgresSQL Store",
+                "source": "PostgresStore.md"
+              },
+              {
+                "title": "WebdaQL Developement",
+                "source": "WebdaQL Development.md"
+              },
+              {
+                "title": "WebdaQL",
+                "source": "WebdaQL.md"
+              }
+            ],
+            "childrenDir": "Stores"
+          },
+          {
+            "title": "webda.config.json",
+            "source": "Webda.config.json.md"
+          }
+        ],
+        "childrenDir": "./docs/pages/Concepts"
+      },
+      {
+        "title": "Quick Start",
+        "source": "./docs/pages/Contribute.md"
+      },
+      {
+        "title": "Docker development version",
+        "source": "././docs/pages/Contributing/Docker.md"
+      },
+      {
+        "title": "Dates",
+        "source": "./docs/pages/DateParadigm.md"
+      },
+      {
+        "title": "Debug in VSCode",
+        "source": "./docs/pages/DebugInVSCode.md"
+      },
+      {
+        "title": "Deployments",
+        "source": "./docs/pages/Deployments.md",
+        "children": [
+          {
+            "title": "AWS deployment",
+            "source": "AWS.md"
+          },
+          {
+            "title": "Docker",
+            "source": "Docker.md"
+          },
+          {
+            "title": "Kubernetes",
+            "source": "Kubernetes.md",
+            "children": [
+              {
+                "title": "ConfigMap and Secrets",
+                "source": "ConfigMap.md"
+              }
+            ],
+            "childrenDir": "Kubernetes"
+          }
+        ],
+        "childrenDir": "./docs/pages/Deployments"
+      },
+      {
+        "title": "Docs",
+        "source": "./docs/pages/Docs.md"
+      },
+      {
+        "title": "ES6 Modules",
+        "source": "./docs/pages/ESM6.md"
+      },
+      {
+        "title": "JSONSchema",
+        "source": "./docs/pages/JSONSchema.md"
+      },
+      {
+        "title": "Migration",
+        "source": "./docs/pages/Migration.md"
+      },
+      {
+        "title": "Definitions",
+        "source": "./docs/pages/ModelDriven.md"
+      },
+      {
+        "title": "OpenAPI Defintion",
+        "source": "./docs/pages/OpenAPI.md"
+      },
+      {
+        "title": "Quick Start",
+        "source": "./docs/pages/QuickStart.md"
+      },
+      {
+        "title": "Security",
+        "source": "./docs/pages/Security.md",
+        "children": [
+          {
+            "title": "CORS",
+            "source": "CORS.md"
+          },
+          {
+            "title": "Cookies",
+            "source": "CookieConfiguration.md"
+          },
+          {
+            "title": "Hawk",
+            "source": "Hawk.md"
+          }
+        ],
+        "childrenDir": "./docs/pages/Security"
+      },
+      {
+        "title": "WebSockets",
+        "source": "./docs/pages/WebSockets.md"
+      }
+    ]
+  }
 }

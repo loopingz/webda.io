@@ -361,7 +361,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
 
     await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
-    await this.uploadSuccess(object, property, file);
+    await this.uploadSuccess(<any>object, property, file);
   }
 
   /**

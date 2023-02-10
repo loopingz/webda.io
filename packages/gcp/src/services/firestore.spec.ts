@@ -184,11 +184,14 @@ class FireStoreTest extends StoreTest {
   @test
   async cov() {
     const store: FireStore = <FireStore>this.getIdentStore();
+    // @ts-ignore
     await assert.rejects(() => store.upsertItemToCollection("inexisting", "plop", {}, 0), /Item not found inexisting/);
     sinon.stub(store, "getDocumentRef").callsFake(() => {
       throw new Error("FAKE");
     });
+    // @ts-ignore
     await assert.rejects(() => store.upsertItemToCollection("inexisting", "plop", {}), /FAKE/);
+    // @ts-ignore
     await assert.rejects(() => store.incrementAttribute("inexisting", "plop", 1), /FAKE/);
   }
 }

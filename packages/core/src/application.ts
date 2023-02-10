@@ -110,14 +110,14 @@ export interface Module {
   models?: { [key: string]: string };
   /**
    * Models graph
-   * 
-   * Typescript does not have reflection, we therefore deduct the 
+   *
+   * Typescript does not have reflection, we therefore deduct the
    * relations on compilation time and inject in the module
-   * 
+   *
    * The parent is define by a ModelParent type on the model
    * The links are attribute of types ModelLink
    */
-  modelsGraph?: ModelsGraph;
+  graph?: ModelsGraph;
   /**
    * Deployers provided by the module
    *
@@ -573,7 +573,7 @@ export class Application {
 
   /**
    * Get the all graph
-   * @returns 
+   * @returns
    */
   getGraph() {
     return this.graph || {};
@@ -971,8 +971,8 @@ export class Application {
       }
     };
     // Merging graph from different modules
-    Object.keys(module.modelsGraph || {}).forEach(k => {
-      this.graph[k] = module.modelsGraph[k];
+    Object.keys(module.graph || {}).forEach(k => {
+      this.graph[k] = module.graph[k];
     });
     await Promise.all([
       sectionLoader("moddas"),

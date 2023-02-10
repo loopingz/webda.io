@@ -26,6 +26,7 @@ import {
   SubTypeFormatter
 } from "ts-json-schema-generator";
 import ts from "typescript";
+import { Docs } from "./docs";
 import { SourceApplication } from "./sourceapplication";
 
 /**
@@ -423,14 +424,17 @@ export class Compiler {
   generateModule() {
     // Ensure we have compiled the application
     this.compile();
-
+    console.log("GENERATE DOCS");
+    new Docs().generate(this.tsProgram);
+    console.log("GENERATE DOCS DONE");
     // Local module
     const moduleInfo: Module = {
       moddas: {},
       beans: {},
       models: {},
       deployers: {},
-      schemas: {}
+      schemas: {},
+      graph: {}
     };
 
     // Generate the Module
@@ -978,9 +982,9 @@ export class Compiler {
    * @param node
    * @param level
    */
-  displayTree(node: ts.Node, level: number = 0) {
-    this.displayItem(node, level);
-    ts.forEachChild(node, n => this.displayTree(n, level + 1));
+  static displayTree(node: ts.Node, stream?: (...args) => void, level: number = 0) {
+    this.displayItem(node, stream, level);
+    ts.forEachChild(node, n => this.displayTree(n, stream, level + 1));
   }
 
   /**
@@ -988,8 +992,11 @@ export class Compiler {
    * @param node
    * @param level
    */
-  displayItem(node: ts.Node, level: number = 0) {
-    console.log(".".repeat(level), ts.SyntaxKind[node.kind], node.getText().split("\n")[0].substring(0, 60));
+  static displayItem(node: ts.Node, log?: (...args) => void, level: number = 0) {
+    if (!log) {
+      log = (...args) => console.log(...args);
+    }
+    log(".".repeat(level), ts.SyntaxKind[node.kind], node.getText().split("\n")[0].substring(0, 60));
   }
 
   /**
@@ -1013,7 +1020,7 @@ export class Compiler {
    * Display all parent of a Node
    * @param node
    */
-  displayParents(node: ts.Node) {
+  static displayParents(node: ts.Node, stream?: any) {
     let parent = node.parent;
     let parents = [];
     while (parent !== undefined) {
@@ -1021,8 +1028,8 @@ export class Compiler {
       parent = parent.parent;
     }
     parents.forEach((p, ind) => {
-      this.displayItem(p, ind);
+      this.displayItem(p, stream, ind);
     });
-    this.displayItem(node, parents.length);
+    this.displayItem(node, stream, parents.length);
   }
 }

@@ -4,12 +4,40 @@ import { CoreModel, Service, ServiceParameters, Store, WebdaError } from "@webda
 interface IndexParameter {
   store: string;
   url: string;
+  /**
+   * Split index by date
+   *
+   * Following Grafana convention
+   */
+  dateSplit?: {
+    /**
+     * If index key is stats
+     * yearly: stats-YYYY
+     * monthly: stats-YYYY.MM
+     * weekly: stats-GGGG.WW
+     * daily: stats-YYYY.MM.DD
+     * hourly: stats-YYYY.MM.DD.HH
+     *
+     * With dateSplit enable some synchronization features won't be available
+     * To get the right index of the document the attribute need to be known,
+     * therefore the PartialUpdate and PatchUpdate will likely require to reload
+     * the original object
+     *
+     * @default "monthly"
+     */
+    frequency?: "yearly" | "monthly" | "daily" | "hourly";
+    /**
+     * That contains the date field
+     */
+    attribute: string;
+  };
 }
 
 interface IndexInfo extends IndexParameter {
   _store: Store;
   name: string;
 }
+
 class ElasticSearchServiceParameters extends ServiceParameters {
   /**
    * ClientOptions is not usable for now
@@ -21,6 +49,12 @@ class ElasticSearchServiceParameters extends ServiceParameters {
   constructor(params: any) {
     super(params);
     this.indexes ??= {};
+    // Ensure to default to monthly
+    Object.values(this.indexes)
+      .filter(i => i.dateSplit)
+      .forEach(index => {
+        index.dateSplit.frequency ??= "monthly";
+      });
   }
 }
 
@@ -71,11 +105,7 @@ export default class ElasticSearchService<
       // Plug on every modification on the store to update the index accordingly
       store.on("Store.PartialUpdated", evt => {
         if (evt.partial_update.increments) {
-          return this._increments(
-            index.name,
-            evt.object_id,
-            evt.partial_update.increments
-          );
+          return this._increments(index.name, evt.object_id, evt.partial_update.increments);
         } else if (evt.partial_update.addItem) {
           return this._addItem(
             index.name,
@@ -111,31 +141,102 @@ export default class ElasticSearchService<
   }
 
   /**
+   * Create index if not exists
+   * @param index
+   */
+  protected async createIndex(index: string) {
+    this._client.index({
+      index: index
+    });
+  }
+
+  /**
+   * Reindex a store
+   * @param index
+   */
+  protected async reindex(index: string) {
+    let info = this.indexes[index];
+    if (!info) {
+      throw new ESUnknownIndexError(index);
+    }
+    const store = info._store;
+
+    let continuationToken;
+    do {
+      const page = await store.query(continuationToken ? `LIMIT ${continuationToken}, 1000` : "");
+      for (let object of page.results) {
+        await this._create(index, object);
+      }
+      continuationToken = page.continuationToken;
+    } while (continuationToken);
+  }
+
+  /**
    * Increments one or several properties of an object
    *
    * @param index
    * @param uuid
    */
-  protected async _increments(index: string, uuid: string, parameters: {property: string, value: number}[]) {
+  protected async _increments(index: string, uuid: string, parameters: { property: string; value: number }[]) {
     const params = {};
-    parameters.forEach(({value}, i) => {
+    parameters.forEach(({ value }, i) => {
       params[`count${i}`] = value;
-    })
+    });
     await this._client.update({
       index,
       id: uuid,
       body: {
         script: {
           lang: "painless",
-          source: parameters.map(({property}, i) => (`if (ctx._source.${property} != null) {
+          source: parameters
+            .map(
+              ({ property }, i) => `if (ctx._source.${property} != null) {
   ctx._source.${property} += params.count${i};
 } else {
   ctx._source.${property} = params.count${i};
-}`)).join("\n"),
+}`
+            )
+            .join("\n"),
           params
         }
       }
     });
+  }
+
+  /**
+   * Return the timed index for the target object
+   * @param index
+   * @param object
+   * @returns
+   */
+  getTimedIndex(index: string, object: CoreModel) {
+    if (!this.indexes[index]) {
+      throw new ESUnknownIndexError(index);
+    }
+    let indexInfo = this.indexes[index];
+    if (!indexInfo.dateSplit) {
+      return index;
+    }
+    let date = new Date(object[indexInfo.dateSplit.attribute]);
+    switch (indexInfo.dateSplit.frequency) {
+      case "yearly":
+        return `${index}-${date.getFullYear()}`;
+      case "monthly":
+        return `${index}-${date.getFullYear()}-${date.getMonth() + 1}`;
+      case "daily":
+        return `${index}-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    }
+  }
+
+  /**
+   *
+   * @param index
+   * @param uuid
+   * @returns
+   */
+  async getTimedIndexFromUuid(index: string, uuid: string) {
+    let object = await this.indexes[index]._store.get(uuid);
+    return this.getTimedIndex(index, object);
   }
 
   /**
@@ -255,6 +356,13 @@ export default class ElasticSearchService<
     return this.indexes[index];
   }
 
+  /**
+   * Search on Elastic search
+   * @param index
+   * @param query
+   * @param from
+   * @returns
+   */
   async search<T extends CoreModel = CoreModel>(index: string, query: any, from: number = 0): Promise<T[]> {
     let idx = this.checkIndex(index);
     // Cannot import type from ES client easily

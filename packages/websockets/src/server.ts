@@ -169,6 +169,9 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
           return;
         }
 
+        socket.on("join", (room: string) => {});
+        socket.on("leave", (room: string) => {});
+
         // Subscribe to a model event
         socket.on("subscribe", (fullUuid: string) => {
           this.metrics.messages.inc({ type: "subscribe" });

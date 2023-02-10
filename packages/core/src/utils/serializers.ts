@@ -1,8 +1,17 @@
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, writeFileSync, createReadStream, createWriteStream } from "fs";
+import {
+  createReadStream,
+  createWriteStream,
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync
+} from "fs";
 import * as jsonc from "jsonc-parser";
 import { join } from "path";
-import * as yaml from "yaml";
 import { Readable, Writable } from "stream";
+import * as yaml from "yaml";
 
 /**
  * Define a Finder that can be use
@@ -11,20 +20,23 @@ export interface StorageFinder {
   /**
    * Recursively browse the path and call processor on each
    */
-    find(path: string, processor: (filepath: string) => void, options?: {followSymlinks?: boolean}): void;
-    /**
-     * Get a write stream based on the id return by the finder
-     */
-    getWriteStream(path: string) : Writable;
-     /**
-     * Get a read stream based on the id return by the finder
-     */
-    getReadStream(path: string) : Readable;
+  find(path: string, processor: (filepath: string) => void, options?: { followSymlinks?: boolean }): void;
+  /**
+   * Get a write stream based on the id return by the finder
+   */
+  getWriteStream(path: string): Writable;
+  /**
+   * Get a read stream based on the id return by the finder
+   */
+  getReadStream(path: string): Readable;
 }
 /**
  * Allow save/load of yaml or json file
  */
-export const FileUtils : StorageFinder & {save: (object: any, filename: string, publicAudience?: boolean) => void, load: (filename: string) => any} = {
+export const FileUtils: StorageFinder & {
+  save: (object: any, filename: string, publicAudience?: boolean) => void;
+  load: (filename: string) => any;
+} = {
   /**
    * @override
    */
@@ -41,22 +53,30 @@ export const FileUtils : StorageFinder & {save: (object: any, filename: string, 
    * @param path
    * @param processor
    */
-  find: (path: string, processor: (filepath: string) => void, options: {followSymlinks?: boolean} = {}): void => {
+  find: (
+    path: string,
+    processor: (filepath: string) => void,
+    options: { followSymlinks?: boolean; includeDir?: boolean } = {}
+  ): void => {
     let files = readdirSync(path);
-    const fileItemCallback = (p) => {
+    const fileItemCallback = p => {
       const stat = lstatSync(p);
       if (stat.isDirectory()) {
-        FileUtils.find(p, processor, options)
+        if (options.includeDir) {
+          processor(p);
+        }
+        FileUtils.find(p, processor, options);
       } else if (stat.isSymbolicLink()) {
         const newpath = realpathSync(p);
+        if (options.includeDir) {
+          processor(newpath);
+        }
         fileItemCallback(newpath);
       } else if (stat.isFile()) {
         processor(p);
       }
-    }
-    files
-      .map(f => join(path, f))
-      .forEach(fileItemCallback);
+    };
+    files.map(f => join(path, f)).forEach(fileItemCallback);
   },
   /**
    * Load a YAML or JSON file based on its extension

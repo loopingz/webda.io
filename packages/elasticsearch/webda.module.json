@@ -30,6 +30,30 @@
               },
               "url": {
                 "type": "string"
+              },
+              "dateSplit": {
+                "type": "object",
+                "properties": {
+                  "frequency": {
+                    "type": "string",
+                    "enum": [
+                      "yearly",
+                      "monthly",
+                      "daily",
+                      "hourly"
+                    ],
+                    "description": "If index key is stats yearly: stats-YYYY monthly: stats-YYYY.MM weekly: stats-GGGG.WW daily: stats-YYYY.MM.DD hourly: stats-YYYY.MM.DD.HH\n\nWith dateSplit enable some synchronization features won't be available To get the right index of the document the attribute need to be known, therefore the PartialUpdate and PatchUpdate will likely require to reload the original object",
+                    "default": "monthly"
+                  },
+                  "attribute": {
+                    "type": "string",
+                    "description": "That contains the date field"
+                  }
+                },
+                "required": [
+                  "attribute"
+                ],
+                "description": "Split index by date\n\nFollowing Grafana convention"
               }
             },
             "required": [
@@ -51,5 +75,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ElasticSearchService"
     }
-  }
+  },
+  "graph": {}
 }

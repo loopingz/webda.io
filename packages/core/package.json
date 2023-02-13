@@ -32,7 +32,7 @@
     "cookie": "^0.5.0",
     "dateformat": "^5.0.3",
     "deepmerge-ts": "^4.0.3",
-    "email-templates": "^10.0.1",
+    "email-templates": "^11.0.3",
     "glob": "^8.0.1",
     "global": "^4.4.0",
     "jsonc-parser": "^3.0.0",

@@ -11,7 +11,7 @@ export abstract class AbstractProject<T> extends CoreModel {
 export interface Test {}
 
 /**
- * 
+ *
  */
 export interface TestDoc2 {}
 
@@ -62,7 +62,7 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
   }
 }
 
-class SubProject extends Project {
+export class SubProject extends Project {
   constructor() {
     super();
   }
@@ -77,7 +77,7 @@ class AnotherSubProject<T, K extends Array<any> = any[]> extends Project {
   }
 }
 
-class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
+export class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
   constructor() {
     super();
   }

@@ -33,10 +33,10 @@ class CompilerTest {
     await app.load();
     let compiler = new Compiler(app);
     compiler.compile();
-    compiler.displayParents(node);
+    Compiler.displayParents(node);
     assert.strictEqual(compiler.getParent(node, ts.SyntaxKind.AnyKeyword), node.parent);
     assert.strictEqual(compiler.getParent(node, ts.SyntaxKind.AmpersandAmpersandEqualsToken), undefined);
-    compiler.displayTree(node);
+    Compiler.displayTree(node);
     assert.strictEqual(compiler.getServiceTypePattern("Webda/Test"), "^([wW][eE][bB][dD][aA]/)?[tT][eE][sS][tT]$");
     assert.strictEqual(
       compiler.getServiceTypePattern("ReTest"),

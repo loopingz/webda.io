@@ -1,6 +1,6 @@
-import { ModelMappers } from "./coremodel";
 import { Ident } from "./ident";
 import { OwnerModel } from "./ownermodel";
+import { ModelsMapped } from "./relations";
 
 /**
  * First basic model for User
@@ -33,7 +33,7 @@ export class User extends OwnerModel {
    * Idents used by the user
    * @SchemaIgnore
    */
-  _idents: ModelMappers<Ident, "_user", "_type" | "uuid" | "email"> = [];
+  _idents: ModelsMapped<Ident, "_type" | "uuid" | "email"> = [];
   /**
    * Define the user avatar if exists
    */
@@ -86,7 +86,7 @@ export class User extends OwnerModel {
     return this.displayName;
   }
 
-  getIdents(): ModelMappers<Ident, "_user", "_type" | "uuid" | "email"> {
+  getIdents(): ModelsMapped<Ident, "_type" | "uuid" | "email"> {
     return this._idents;
   }
 

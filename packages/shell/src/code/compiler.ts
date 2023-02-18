@@ -26,7 +26,6 @@ import {
   SubTypeFormatter
 } from "ts-json-schema-generator";
 import ts from "typescript";
-import { Docs } from "./docs";
 import { SourceApplication } from "./sourceapplication";
 
 /**
@@ -424,9 +423,6 @@ export class Compiler {
   generateModule() {
     // Ensure we have compiled the application
     this.compile();
-    console.log("GENERATE DOCS");
-    new Docs().generate(this.tsProgram);
-    console.log("GENERATE DOCS DONE");
     // Local module
     const moduleInfo: Module = {
       moddas: {},
@@ -436,6 +432,8 @@ export class Compiler {
       schemas: {},
       graph: {}
     };
+
+    const symbolMap = new Map<ts.Type, string>();
 
     // Generate the Module
     this.tsProgram.getSourceFiles().forEach(sourceFile => {
@@ -461,6 +459,13 @@ export class Compiler {
               }
             });
 
+            const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
+            // Auto add @WebdaModel
+            if (this.extends(classTree, "@webda/core", "CoreModel") && !Object.keys(tags).includes("WebdaIgnore")) {
+              tags["WebdaModel"] = clazz.name.escapedText;
+            }
+            // this.extends(classTree, "@webda/core", "CoreModel") might be automatic
+            // add @WebdaIgnore to ignore a class
             if (
               Object.keys(tags).includes("WebdaModel") ||
               Object.keys(tags).includes("WebdaModda") ||
@@ -480,7 +485,7 @@ export class Compiler {
               let schemaNode: ts.Node;
               let name: string;
               let originName: string;
-              const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
+
               if (tags["WebdaSchema"]) {
                 schemaNode = clazz;
                 originName = tags["WebdaSchema"];
@@ -521,6 +526,92 @@ export class Compiler {
               }
               if (!moduleInfo.schemas[name] && schemaNode) {
                 try {
+                  if (section === "models") {
+                    // @ts-ignore
+                    symbolMap.set(classTree[0].id, name);
+                    // @ts-ignore
+                    console.log("Set", classTree[0].id, name);
+                    this.app.log("INFO", "Adding graph for model");
+                    moduleInfo.graph[name] = {};
+                    const type = classTree[0];
+                    this.app.log("INFO", "FIRST CLASS TREE", type.symbol.name, name);
+                    type
+                      .getProperties()
+                      .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
+                      .forEach((prop: ts.Symbol) => {
+                        const pType: ts.TypeReferenceNode = <ts.TypeReferenceNode>prop.valueDeclaration
+                          .getChildren()
+                          .filter(c => c.kind === ts.SyntaxKind.TypeReference)
+                          .shift();
+                        if (pType) {
+                          switch (pType.typeName.getText()) {
+                            case "ModelParent":
+                              this.app.log("INFO", prop.escapedName, name, pType.typeName.getFullText());
+                              Compiler.displayTree(prop.valueDeclaration);
+                              moduleInfo.graph[name].parent = {
+                                attribute: prop.escapedName.toString(),
+                                // @ts-ignore
+                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id
+                              };
+                              break;
+                            case "ModelRelated":
+                              moduleInfo.graph[name].queries ??= [];
+                              moduleInfo.graph[name].queries.push({
+                                attribute: prop.escapedName.toString(),
+                                // @ts-ignore
+                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                                targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
+                              });
+                              break;
+                            case "ModelsMapped":
+                              moduleInfo.graph[name].maps ??= [];
+                              moduleInfo.graph[name].maps.push({
+                                attribute: prop.escapedName.toString(),
+                                // @ts-ignore
+                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                                targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
+                              });
+                              break;
+                            case "ModelLink":
+                              moduleInfo.graph[name].links ??= [];
+                              moduleInfo.graph[name].links.push({
+                                attribute: prop.escapedName.toString(),
+                                // @ts-ignore
+                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                                type: "LINK"
+                              });
+                              break;
+                            case "ModelLinksMap":
+                              moduleInfo.graph[name].links ??= [];
+                              moduleInfo.graph[name].links.push({
+                                attribute: prop.escapedName.toString(),
+                                // @ts-ignore
+                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                                type: "LINKS_MAP"
+                              });
+                              break;
+                            case "ModelLinksArray":
+                              moduleInfo.graph[name].links ??= [];
+                              moduleInfo.graph[name].links.push({
+                                attribute: prop.escapedName.toString(),
+                                // @ts-ignore
+                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                                type: "LINKS_ARRAY"
+                              });
+                              break;
+                            case "ModelLinksSimpleArray":
+                              moduleInfo.graph[name].links ??= [];
+                              moduleInfo.graph[name].links.push({
+                                attribute: prop.escapedName.toString(),
+                                // @ts-ignore
+                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                                type: "LINKS_SIMPLE_ARRAY"
+                              });
+                              break;
+                          }
+                        }
+                      });
+                  }
                   let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
                   let definitionName = schema.$ref.split("/").pop();
                   moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
@@ -593,6 +684,30 @@ export class Compiler {
     moduleInfo.models = this.sortObject(moduleInfo.models);
     moduleInfo.moddas = this.sortObject(moduleInfo.moddas);
     moduleInfo.deployers = this.sortObject(moduleInfo.deployers);
+
+    Object.values(moduleInfo.graph).forEach(graph => {
+      console.log("checking graph", graph);
+      if (graph.parent && typeof graph.parent.model === "number") {
+        console.log("guessing the model", symbolMap.get(graph.parent.model));
+        graph.parent.model = symbolMap.get(graph.parent.model) || "unknown";
+      }
+      graph.links?.forEach(link => {
+        if (typeof link.model === "number") {
+          link.model = symbolMap.get(link.model) || "unknown";
+        }
+      });
+      graph.queries?.forEach(query => {
+        if (typeof query.model === "number") {
+          query.model = symbolMap.get(query.model) || "unknown";
+        }
+      });
+      graph.maps?.forEach(map => {
+        if (typeof map.model === "number") {
+          map.model = symbolMap.get(map.model) || "unknown";
+        }
+      });
+    });
+
     return moduleInfo;
   }
 

@@ -9,10 +9,6 @@ FileUtils.find("docs/pages", file => {
   if (!file.endsWith(".md")) {
     return;
   }
-  let rel = file.substring("docs/pages/".length);
-  let toAdd = pages;
-  if (rel.includes("/")) {
-  }
   let title = readFileSync(file)
     .toString()
     .match(/# (.*)/);

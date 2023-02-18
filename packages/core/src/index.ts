@@ -15,6 +15,7 @@ export * from "./models/coremodel";
 export * from "./models/deployment";
 export * from "./models/ident";
 export * from "./models/ownermodel";
+export * from "./models/relations";
 export * from "./models/rolemodel";
 export * from "./models/user";
 

@@ -13,16 +13,53 @@
     "beans/customservice": "lib/services/custom"
   },
   "models": {
+    "webdademo/abstractproject": "lib/models/project:AbstractProject",
+    "webdademo/classroom": "lib/models/relations:Classroom",
     "webdademo/company": "lib/models/company:Company",
     "webdademo/computer": "lib/models/user:Computer",
+    "webdademo/computerscreen": "lib/models/relations:ComputerScreen",
     "webdademo/contact": "lib/models/contact:default",
+    "webdademo/course": "lib/models/relations:Course",
+    "webdademo/hardware": "lib/models/relations:Hardware",
     "webdademo/project": "lib/models/project:Project",
+    "webdademo/student": "lib/models/relations:Student",
+    "webdademo/subproject": "lib/models/project:SubProject",
+    "webdademo/subsubproject": "lib/models/project:SubSubProject",
+    "webdademo/teacher": "lib/models/relations:Teacher",
     "webdademo/user": "lib/models/user:User"
   },
   "deployers": {
     "webdademo/customdeployer": "lib/services/deployer:CustomDeployer"
   },
   "schemas": {
+    "webdademo/abstractproject": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "description": "This file contains several empty methods to test our auto docs",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AbstractProject"
+    },
+    "webdademo/subproject": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubProject"
+    },
+    "webdademo/subsubproject": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubSubProject"
+    },
     "webdademo/user": {
       "type": "object",
       "properties": {
@@ -39,7 +76,7 @@
           "readOnly": true
         },
         "_company": {
-          "$ref": "#/definitions/ModelParent%3Cclass-922587926-134-281-922587926-0-282%3E",
+          "$ref": "#/definitions/ModelParent%3Cclass-models_company.ts-135-295-models_company.ts-0-296%3E",
           "readOnly": true
         },
         "name": {
@@ -51,16 +88,13 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-922587926-134-281-922587926-0-282>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-922587926-134-281-922587926-0-282%2Cany%3E",
+        "ModelParent<class-models_company.ts-135-295-models_company.ts-0-296>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_company.ts-135-295-models_company.ts-0-296%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-922587926-134-281-922587926-0-282,any>": {
-          "$ref": "#/definitions/ModelLinker%3Cclass-922587926-134-281-922587926-0-282%3E",
+        "ModelLink<class-models_company.ts-135-295-models_company.ts-0-296,any>": {
+          "type": "string",
           "description": "Define a link to 1:n relation"
-        },
-        "ModelLinker<class-922587926-134-281-922587926-0-282>": {
-          "type": "string"
         }
       },
       "title": "User"
@@ -81,7 +115,7 @@
           "readOnly": true
         },
         "_user": {
-          "$ref": "#/definitions/ModelParent%3Cclass-src_models_user.ts-90-204-src_models_user.ts-0-316%3E",
+          "$ref": "#/definitions/ModelParent%3Cclass-models_user.ts-90-204-models_user.ts-0-316%3E",
           "readOnly": true
         },
         "name": {
@@ -93,16 +127,13 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-src_models_user.ts-90-204-src_models_user.ts-0-316>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-src_models_user.ts-90-204-src_models_user.ts-0-316%2Cany%3E",
+        "ModelParent<class-models_user.ts-90-204-models_user.ts-0-316>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_user.ts-90-204-models_user.ts-0-316%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-src_models_user.ts-90-204-src_models_user.ts-0-316,any>": {
-          "$ref": "#/definitions/ModelLinker%3Cclass-src_models_user.ts-90-204-src_models_user.ts-0-316%3E",
+        "ModelLink<class-models_user.ts-90-204-models_user.ts-0-316,any>": {
+          "type": "string",
           "description": "Define a link to 1:n relation"
-        },
-        "ModelLinker<class-src_models_user.ts-90-204-src_models_user.ts-0-316>": {
-          "type": "string"
         }
       },
       "title": "Computer"
@@ -165,6 +196,142 @@
         "description": "Allow mine"
       }
     },
+    "webdademo/student": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "friends": {
+          "$ref": "#/definitions/ModelLinksMap%3Cclass-models_relations.ts-197-413-models_relations.ts-0-1144%2C(%22email%22%7C%22firstName%22%7C%22lastName%22)%3E"
+        }
+      },
+      "required": [
+        "email",
+        "firstName",
+        "lastName",
+        "friends"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ModelLinksMap<class-models_relations.ts-197-413-models_relations.ts-0-1144,(\"email\"|\"firstName\"|\"lastName\")>": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "properties": {
+            "add": {
+              "description": "Add a linked object"
+            },
+            "remove": {
+              "description": "Remove a linked object"
+            }
+          },
+          "required": [
+            "add",
+            "remove"
+          ],
+          "description": "Define 1:n relation with some sort of additional data or duplicated data\n\nThe key of the map is the value of the FK"
+        }
+      },
+      "title": "Student"
+    },
+    "webdademo/hardware": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "classroom": {
+          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%3E"
+        }
+      },
+      "required": [
+        "classroom"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ModelParent<class-models_relations.ts-755-916-models_relations.ts-0-1144>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%2Cany%3E",
+          "description": "Define the parent of the model"
+        },
+        "ModelLink<class-models_relations.ts-755-916-models_relations.ts-0-1144,any>": {
+          "type": "string",
+          "description": "Define a link to 1:n relation"
+        }
+      },
+      "title": "Hardware"
+    },
+    "webdademo/computerscreen": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "classroom": {
+          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%3E"
+        },
+        "modelId": {
+          "type": "string"
+        },
+        "serialNumber": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "classroom",
+        "modelId",
+        "serialNumber"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ModelParent<class-models_relations.ts-755-916-models_relations.ts-0-1144>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%2Cany%3E",
+          "description": "Define the parent of the model"
+        },
+        "ModelLink<class-models_relations.ts-755-916-models_relations.ts-0-1144,any>": {
+          "type": "string",
+          "description": "Define a link to 1:n relation"
+        }
+      },
+      "title": "ComputerScreen"
+    },
     "beans/beanservice": {
       "type": "object",
       "properties": {
@@ -226,7 +393,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -241,7 +408,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -267,7 +434,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -282,7 +449,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -331,7 +498,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -352,7 +519,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -465,7 +632,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-178760925-1970-2454-178760925-0-8089976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1971-2455-1131383939-0-8116976353190%3E"
         }
       },
       "required": [
@@ -474,7 +641,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-178760925-1970-2454-178760925-0-8089976353190>": {
+        "Partial<class-1131383939-1971-2455-1131383939-0-8116976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -530,5 +697,112 @@
       "title": "CustomReusableService"
     }
   },
-  "graph": {}
+  "graph": {
+    "webdademo/abstractproject": {},
+    "webdademo/project": {
+      "parent": {
+        "attribute": "_company",
+        "model": "webdademo/company"
+      }
+    },
+    "webdademo/subproject": {
+      "parent": {
+        "attribute": "_company",
+        "model": "webdademo/company"
+      }
+    },
+    "webdademo/subsubproject": {
+      "parent": {
+        "attribute": "_company",
+        "model": "webdademo/company"
+      }
+    },
+    "webdademo/user": {
+      "parent": {
+        "attribute": "_company",
+        "model": "webdademo/company"
+      }
+    },
+    "webdademo/computer": {
+      "parent": {
+        "attribute": "_user",
+        "model": "webdademo/user"
+      }
+    },
+    "webdademo/company": {
+      "queries": [
+        {
+          "attribute": "users",
+          "model": "webdademo/user",
+          "targetAttribute": "_company"
+        }
+      ]
+    },
+    "webdademo/contact": {},
+    "webdademo/student": {
+      "links": [
+        {
+          "attribute": "friends",
+          "model": "webdademo/student",
+          "type": "LINKS_MAP"
+        }
+      ]
+    },
+    "webdademo/teacher": {
+      "maps": [
+        {
+          "attribute": "courses",
+          "model": "webdademo/course",
+          "targetAttribute": "name"
+        }
+      ]
+    },
+    "webdademo/course": {
+      "links": [
+        {
+          "attribute": "classroom",
+          "model": "webdademo/classroom",
+          "type": "LINK"
+        },
+        {
+          "attribute": "teacher",
+          "model": "webdademo/teacher",
+          "type": "LINK"
+        },
+        {
+          "attribute": "students",
+          "model": "webdademo/student",
+          "type": "LINKS_ARRAY"
+        }
+      ]
+    },
+    "webdademo/classroom": {
+      "maps": [
+        {
+          "attribute": "courses",
+          "model": "webdademo/course",
+          "targetAttribute": "name"
+        }
+      ],
+      "queries": [
+        {
+          "attribute": "hardware",
+          "model": "webdademo/hardware",
+          "targetAttribute": "classroom"
+        }
+      ]
+    },
+    "webdademo/hardware": {
+      "parent": {
+        "attribute": "classroom",
+        "model": "webdademo/classroom"
+      }
+    },
+    "webdademo/computerscreen": {
+      "parent": {
+        "attribute": "classroom",
+        "model": "webdademo/classroom"
+      }
+    }
+  }
 }

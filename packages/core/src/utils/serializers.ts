@@ -20,7 +20,11 @@ export interface StorageFinder {
   /**
    * Recursively browse the path and call processor on each
    */
-  find(path: string, processor: (filepath: string) => void, options?: { followSymlinks?: boolean }): void;
+  find(
+    path: string,
+    processor: (filepath: string) => void,
+    options?: { followSymlinks?: boolean; includeDir?: boolean }
+  ): void;
   /**
    * Get a write stream based on the id return by the finder
    */

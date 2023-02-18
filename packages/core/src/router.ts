@@ -209,7 +209,7 @@ export class Router {
   /**
    * @hidden
    */
-  protected initURITemplates(config: any): void {
+  protected initURITemplates(config: Map<string, RouteInfo[]>): void {
     // Prepare tbe URI parser
     for (let map in config) {
       if (map.indexOf("{") !== -1) {
@@ -267,6 +267,7 @@ export class Router {
         continue;
       }
       const parse_result = map._uriTemplateParse.fromUri(finalUrl);
+      Core.get().log("WARN", "Parse result", finalUrl, parse_result);
       if (parse_result !== undefined) {
         ctx.setServiceParameters(parameters);
         ctx.setPathParameters(parse_result);

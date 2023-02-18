@@ -12,7 +12,7 @@ The `toJSON` method filters the attached store and context.
 ## Attributes
 
 Every attribute starting with a `_` is not modifiable by the HTTP APIs.
-If an attribte starts with a double underscore `__`, the attribute will be strip from any HTTP output, this is useful to store 
+If an attribte starts with a double underscore `__`, the attribute will be strip from any HTTP output, this is useful to store
 passwords or others server-only attributes.
 
 Another type of readonly attributes is the defined maps.
@@ -61,6 +61,7 @@ class MyModel extends CoreModel {
 The schema is generated with [ts-json-schema-generator](https://github.com/vega/ts-json-schema-generator)
 
 All servers properties: starting with a `_` will be ignored in the schema generation
+
 ### JSDocs Annotation
 
 ```
@@ -119,15 +120,22 @@ denormalized(1-n): denormalized collection ModelLink <-> ModelMap
 denormalized(n-m): denormalized collection ModelNLink <-> ModelMap
 ```
 
-
 ```
-ModelLink: contains a full uuid to an object, if not optional this full uuid is required and some access required
-ModelLinks: contains several full uuid, no permissions is modified by default
-ModelMap: contains a denormalized map of the target object
-ModelLinked: field is just a loader to read collection
+ModelMapped: 1:1 mapper
+ModelsMapped: 1:n mapper
+
+ModelLinksSimpleArray: n:m relation, can be source of a Mapper, it is an array of uuid of the targeted model
+ModelLinksArray: n:m relation, can be source of a Mapper, it is an array of object containing the uuid of the targeted model and some additional data
+ModelLinksMap: n:m relation, can be source of a Mapper, it is a map of uuid of the targeted model to some attributes.
+
+ModelLink: 1:n relation, can be source of a Mapper too, this is normally a Foreign Key within a Relational DataBase
+ModelParent: used to defined a hierarchy between model, it is a 'special' `ModelLink`
+
+ModelRelated<T>: In a SQL server, it would be querying on the Foreign Key of the table managing the model T
 ```
 
 Denormalized are managed through a Mapper service that keeps in sync the mapper.
+
 ### Mapper
 
 A mapper is a `PartialModel<CoreModel>` that represent a target object.

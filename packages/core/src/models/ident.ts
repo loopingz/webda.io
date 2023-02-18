@@ -1,5 +1,5 @@
-import { ModelLink } from "./coremodel";
 import { OwnerModel } from "./ownermodel";
+import { ModelLink } from "./relations";
 import { User } from "./user";
 
 export class IdentTokens {

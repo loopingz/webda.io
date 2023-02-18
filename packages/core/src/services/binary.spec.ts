@@ -4,7 +4,7 @@ import axios from "axios";
 import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as sinon from "sinon";
-import { Binary, Context, Store, User } from "../index";
+import { Binary, Store, User, WebContext } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import {
@@ -403,7 +403,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
   async setupDefault(
     withLogin: boolean = true
-  ): Promise<{ userStore: Store; binary: Binary; user1: ImageUser; ctx: Context }> {
+  ): Promise<{ userStore: Store; binary: Binary; user1: ImageUser; ctx: WebContext }> {
     let userStore = this.getUserStore();
     let binary = this.getBinary();
     let user1: ImageUser = await userStore.save({
@@ -537,7 +537,7 @@ class BinaryAbstractTest extends WebdaTest {
       stubs.push(
         sinon.stub(binary, "_verifyMapAndStore").callsFake(() => {
           return {
-            get: async (uuid: string, ctx: Context) => {
+            get: async (uuid: string, ctx: WebContext) => {
               return model as CoreModel;
             }
           } as Store<CoreModel>;

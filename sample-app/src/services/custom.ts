@@ -1,12 +1,12 @@
 import {
   Bean,
-  Context,
   Operation,
   OperationContext,
   RequestFilter,
   Route,
   Service,
-  ServiceParameters
+  ServiceParameters,
+  WebContext
 } from "@webda/core";
 
 /**
@@ -54,12 +54,12 @@ class CustomService<T extends CustomParameters = CustomParameters> extends Servi
   }
 
   @Route("/msg/{msg}", ["GET"])
-  msgRoute(ctx: Context) {
+  msgRoute(ctx: WebContext) {
     ctx.write(this.output(ctx.getParameters().msg));
   }
 
   @Route("/test", "GET")
-  test(ctx: Context) {
+  test(ctx: WebContext) {
     ctx.write("Tested");
   }
 
@@ -72,7 +72,7 @@ class CustomService<T extends CustomParameters = CustomParameters> extends Servi
    * @MMD {seq:MyGraph} My step 1
    */
   @Route("/docs", "POST")
-  autoDocs(plop: Context<CustomBody>) {
+  autoDocs(plop: WebContext<CustomBody>) {
     plop.getRequestBody();
     let res: DefinedOutput = {
       plop: true

@@ -3,10 +3,18 @@ import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
 import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
-import { Authentication, Bean, ConsoleLoggerService, CoreModel, MemoryStore, Route, Service } from "./index";
+import {
+  Authentication,
+  Bean,
+  ConsoleLoggerService,
+  CoreModel,
+  MemoryStore,
+  Route,
+  Service,
+  WebContext
+} from "./index";
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
-import { Context } from "./utils/context";
 import { getCommonJS } from "./utils/esm";
 import { HttpContext } from "./utils/httpcontext";
 import { JSONUtils } from "./utils/serializers";
@@ -100,7 +108,7 @@ class ModelDomainTest extends WebdaTest {
 
 @suite
 class CSRFTest extends WebdaTest {
-  ctx: Context;
+  ctx: WebContext;
   filter: WebsiteOriginFilter;
   async checkRequest(ctx) {
     // @ts-ignore
@@ -239,7 +247,7 @@ class CSRFTest extends WebdaTest {
 
 @suite
 class CoreTest extends WebdaTest {
-  ctx: Context;
+  ctx: WebContext;
   async before() {
     await super.before();
     this.ctx = await this.newContext({});
@@ -258,7 +266,7 @@ class CoreTest extends WebdaTest {
 
     assert.notStrictEqual(openapi.paths["/contacts"], undefined);
     assert.notStrictEqual(openapi.paths["/contacts/{uuid}"], undefined);
-    app.addModel("webda/anotherContext", Context);
+    app.addModel("webda/anotherContext", WebContext);
     app.getConfiguration().openapi = {
       tags: [{ name: "Zzzz" }, { name: "Aaaaa" }]
     };

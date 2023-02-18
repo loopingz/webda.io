@@ -5,13 +5,13 @@ import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
-import { Context } from "../utils/context";
+import { OperationContext } from "../utils/context";
 import { Authentication } from "./authentication";
 import InvitationService, { InvitationParameters } from "./invitationservice";
 import { Mailer } from "./mailer";
 
 class MyCompany extends AclModel {
-  async canAct(ctx: Context, action: string) {
+  async canAct(ctx: OperationContext, action: string) {
     if (action === "create") {
       return this;
     }

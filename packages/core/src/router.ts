@@ -2,7 +2,7 @@ import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import uriTemplates from "uri-templates";
 import { Core } from "./core";
-import { Context } from "./utils/context";
+import { WebContext } from "./utils/context";
 import { HttpMethodType } from "./utils/httpcontext";
 
 type RecursivePartial<T> = {
@@ -246,7 +246,7 @@ export class Router {
   /**
    * Get the route from a method / url
    */
-  public getRouteFromUrl(ctx: Context, method: HttpMethodType, url: string): any {
+  public getRouteFromUrl(ctx: WebContext, method: HttpMethodType, url: string): any {
     const finalUrl = this.getFinalUrl(url);
     let parameters = this.webda.getConfiguration().parameters;
     for (let i in this.pathMap) {

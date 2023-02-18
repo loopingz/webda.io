@@ -3,9 +3,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { MailerParameters, User } from "..";
+import { MailerParameters, User, WebContext } from "..";
 import { WebdaTest } from "../test";
-import { Context } from "../utils/context";
 
 @suite
 class MailerTest extends WebdaTest {
@@ -14,7 +13,7 @@ class MailerTest extends WebdaTest {
   lastInfo;
   lastOptions;
   lastCallback;
-  ctx: Context;
+  ctx: WebContext;
   async before() {
     await super.before();
     this.lastLevel = this.lastInfo = this.lastOptions = this.lastCallback = undefined;

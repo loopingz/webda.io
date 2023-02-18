@@ -21,7 +21,6 @@ import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
 import {
   ConfigurationService,
-  Context,
   HttpContext,
   Logger,
   OperationContext,
@@ -117,8 +116,8 @@ export class WebdaError extends Error {
 /**
  * Ensure all events store the context in the same place
  */
-export interface EventWithContext {
-  context: Context;
+export interface EventWithContext<T extends OperationContext = OperationContext> {
+  context: T;
 }
 
 /**
@@ -126,7 +125,7 @@ export interface EventWithContext {
  *
  * If one of the filter replies with "true" then the request will go through
  */
-export interface RequestFilter<T extends Context = Context> {
+export interface RequestFilter<T extends WebContext = WebContext> {
   /**
    * Return true if the request should be allowed
    *
@@ -140,7 +139,7 @@ export interface RequestFilter<T extends Context = Context> {
  *
  * @category CoreFeatures
  */
-export class OriginFilter implements RequestFilter<Context> {
+export class OriginFilter implements RequestFilter<WebContext> {
   regexs: RegExp[];
   constructor(origins: string[]) {
     this.regexs = origins.map(origin => {
@@ -158,7 +157,7 @@ export class OriginFilter implements RequestFilter<Context> {
    * @param context
    * @returns
    */
-  async checkRequest(context: Context): Promise<boolean> {
+  async checkRequest(context: WebContext): Promise<boolean> {
     let httpContext = context.getHttpContext();
     for (let regexp of this.regexs) {
       if (httpContext.hostname.match(regexp)) {
@@ -175,7 +174,7 @@ export class OriginFilter implements RequestFilter<Context> {
 /**
  * Authorize requests based on the website
  */
-export class WebsiteOriginFilter implements RequestFilter<Context> {
+export class WebsiteOriginFilter implements RequestFilter<WebContext> {
   websites: string[] = [];
   constructor(website: any) {
     if (!Array.isArray(website)) {
@@ -188,7 +187,7 @@ export class WebsiteOriginFilter implements RequestFilter<Context> {
       this.websites = [...website];
     }
   }
-  async checkRequest(context: Context): Promise<boolean> {
+  async checkRequest(context: WebContext): Promise<boolean> {
     let httpContext = context.getHttpContext();
     if (
       this.websites.indexOf(httpContext.origin) >= 0 ||
@@ -214,15 +213,15 @@ export type CoreEvents = {
   /**
    * Emitted when new result is sent
    */
-  "Webda.Result": EventWithContext;
+  "Webda.Result": EventWithContext<WebContext>;
   /**
    * Emitted when new request comes in
    */
-  "Webda.Request": EventWithContext;
+  "Webda.Request": EventWithContext<WebContext>;
   /**
    * Emitted when a request does not match any route
    */
-  "Webda.404": EventWithContext;
+  "Webda.404": EventWithContext<WebContext>;
   /**
    * Emitted when Services have been initialized
    */
@@ -238,7 +237,7 @@ export type CoreEvents = {
   /**
    * Emitted whenever a new Context is created
    */
-  "Webda.NewContext": Context;
+  "Webda.NewContext": OperationContext;
   [key: string]: unknown;
 };
 
@@ -323,14 +322,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Added via [[Webda.registerRequestFilter]]
    * See [[CorsFilter]]
    */
-  protected _requestFilters: RequestFilter<Context>[] = [];
+  protected _requestFilters: RequestFilter<WebContext>[] = [];
   /**
    * CORS Filter registry
    *
    * Added via [[Webda.registerCORSRequestFilter]]
    * See [[CorsFilter]]
    */
-  protected _requestCORSFilters: RequestFilter<Context>[] = [];
+  protected _requestCORSFilters: RequestFilter<WebContext>[] = [];
   /**
    * Worker output
    *
@@ -389,7 +388,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     // Load the configuration and migrate
     this.configuration = this.application.getCurrentConfiguration();
     // Set the global context
-    Context.setGlobalContext(<Context>new (this.getModel(this.parameter("contextModel") || "Webda/Context"))(this));
+    OperationContext.setGlobalContext(
+      <OperationContext>new (this.getModel(this.parameter("contextModel") || "Webda/WebContext"))(this)
+    );
     // Init default values for configuration
     this.configuration.parameters ??= {};
     this.configuration.parameters.apiUrl ??= "http://localhost:18080";
@@ -662,7 +663,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Will apply to all requests regardless of the devMode
    * @param filter
    */
-  registerRequestFilter(filter: RequestFilter<Context>) {
+  registerRequestFilter(filter: RequestFilter<WebContext>) {
     this._requestFilters.push(filter);
   }
 
@@ -672,7 +673,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Does not apply in devMode
    * @param filter
    */
-  registerCORSFilter(filter: RequestFilter<Context>) {
+  registerCORSFilter(filter: RequestFilter<WebContext>) {
     this._requestCORSFilters.push(filter);
   }
 
@@ -865,14 +866,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @abstract
    */
-  public flushHeaders(_context: Context): void {
+  public flushHeaders(_context: WebContext): void {
     // Should be overriden by implementation
   }
 
   /**
    * Flush the entire response to the client
    */
-  public flush(_context: Context): void {
+  public flush(_context: WebContext): void {
     // Should be overriden by implementation
   }
 
@@ -1119,13 +1120,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param stream - The request output stream if any
    * @return A new context object to pass along
    */
-  public async newContext<T extends Context>(
+  public async newContext<T extends WebContext>(
     httpContext: HttpContext,
     stream: Writable = undefined,
     noInit: boolean = false
   ): Promise<T> {
-    let res: Context = <Context>(
-      new (this.getModel(this.parameter("contextModel") || "Webda/Context"))(this, httpContext, stream)
+    let res: OperationContext = <OperationContext>(
+      new (this.getModel(this.parameter("contextModel") || "Webda/WebContext"))(this, httpContext, stream)
     );
     if (!noInit) {
       await res.init();
@@ -1221,7 +1222,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @param context Context of the request
    */
-  protected async checkRequest(ctx: Context): Promise<boolean> {
+  protected async checkRequest(ctx: WebContext): Promise<boolean> {
     // Do not need to filter on OPTIONS as CORS is for that
     if (ctx.getHttpContext().getMethod() === "OPTIONS") {
       return true;
@@ -1234,7 +1235,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @param context Context of the request
    */
-  protected async checkCORSRequest(ctx: Context): Promise<boolean> {
+  protected async checkCORSRequest(ctx: WebContext): Promise<boolean> {
     return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
   }
 

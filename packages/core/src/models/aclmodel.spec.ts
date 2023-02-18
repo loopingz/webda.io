@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { AclModel, Context, Core, HttpContext, Session, User } from "../index";
+import { AclModel, Core, HttpContext, Session, User, WebContext } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 
@@ -8,7 +8,7 @@ const { __filename, __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class AclModelTest {
-  _ctx: Context;
+  _ctx: WebContext;
   model: AclModel;
   _webda: Core;
   _session: Session;

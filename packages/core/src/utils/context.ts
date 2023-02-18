@@ -25,6 +25,9 @@ class Cookie {
 
 /**
  * OperationContext is used when call to an operation
+ *
+ * @param T type of input for this context
+ * @param U type of output for this context
  */
 export class OperationContext<T = any, U = any> extends EventEmitter {
   protected static __globalContext: OperationContext;
@@ -91,6 +94,22 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   public getExtension<K = any>(name: string): K {
     return <K>this.extensions[name];
+  }
+
+  /**
+   * For easier compatibility with WebContext
+   * On OperationContext this call is simply ignored
+   */
+  setHeader(_name: string, _value: string) {
+    // Do nothing
+  }
+
+  /**
+   * For easier compatibility with WebContext
+   * On OperationContext this call is simply ignored
+   */
+  writeHead(_code: number, _headers: any) {
+    // Do nothing
   }
 
   /**
@@ -360,9 +379,8 @@ export class SimpleOperationContext extends OperationContext {
  * @category CoreFeatures
  * @WebdaModel
  *
- * @deprecated use WebContext instead - will be removed in 3.0
  */
-export class Context<T = any, U = any> extends OperationContext<T, U> {
+export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   /**
    * Contains the response headers
    */
@@ -585,7 +603,7 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
    * @returns
    */
   getResponseSize(): number | undefined {
-    return this._body ? Buffer.byteLength(this._body, 'utf8') : undefined;
+    return this._body ? Buffer.byteLength(this._body, "utf8") : undefined;
   }
 
   /**
@@ -806,8 +824,3 @@ export class Context<T = any, U = any> extends OperationContext<T, U> {
     this.emit("error", err);
   }
 }
-
-/**
- * Replacement for Context
- */
-export class WebContext<T = any, U = any> extends Context<T, U> {}

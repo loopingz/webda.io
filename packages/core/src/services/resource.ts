@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
-import { Context } from "../utils/context";
+import { WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
 /**
@@ -162,7 +162,7 @@ export default class ResourceService<
    *
    * @param ctx
    */
-  _redirect(ctx: Context) {
+  _redirect(ctx: WebContext) {
     ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this.parameters.url));
   }
 
@@ -171,7 +171,7 @@ export default class ResourceService<
    *
    * @param ctx
    */
-  _serve(ctx: Context) {
+  _serve(ctx: WebContext) {
     let file = this._resolved;
     // If resource is not a file
     if (!this.fileOnly) {

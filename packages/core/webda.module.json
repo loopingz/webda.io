@@ -32,13 +32,16 @@
   "beans": {},
   "models": {
     "webda/aclmodel": "lib/models/aclmodel:default",
-    "webda/context": "lib/utils/context:Context",
+    "webda/comment": "lib/models/comment:Comment",
     "webda/coremodel": "lib/models/coremodel:CoreModel",
     "webda/ident": "lib/models/ident:Ident",
     "webda/ownermodel": "lib/models/ownermodel:OwnerModel",
+    "webda/registryentry": "lib/core:RegistryEntry",
+    "webda/rolemodel": "lib/models/rolemodel:RoleModel",
     "webda/securecookie": "lib/utils/cookie:SecureCookie",
     "webda/session": "lib/utils/session:Session",
-    "webda/user": "lib/models/user:User"
+    "webda/user": "lib/models/user:User",
+    "webda/webcontext": "lib/utils/context:WebContext"
   },
   "deployers": {},
   "schemas": {
@@ -695,6 +698,25 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CoreModel"
     },
+    "webda/registryentry": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RegistryEntry"
+    },
     "webda/aclmodel": {
       "type": "object",
       "properties": {
@@ -719,6 +741,25 @@
       "description": "Object that contains ACL to define its own permissions",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AclModel"
+    },
+    "webda/rolemodel": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoleModel"
     },
     "webda/filequeue": {
       "type": "object",
@@ -2246,7 +2287,100 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PrometheusService"
+    },
+    "webda/comment": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "target": {
+          "$ref": "#/definitions/ModelParent%3Cclass-348499747-3813-21475-348499747-0-21499852964236%3E",
+          "description": "Can be linked to any object but cannot be a root object"
+        },
+        "author": {
+          "$ref": "#/definitions/ModelLink%3Cclass-src_models_user.ts-119-2699-src_models_user.ts-0-2700764695182%3E",
+          "description": "User that posted the comment"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Comment content"
+        }
+      },
+      "required": [
+        "target",
+        "author",
+        "title",
+        "description"
+      ],
+      "description": "Generic comment class",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ModelParent<class-348499747-3813-21475-348499747-0-21499852964236>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-348499747-3813-21475-348499747-0-21499852964236%2Cany%3E",
+          "description": "Define the parent of the model"
+        },
+        "ModelLink<class-348499747-3813-21475-348499747-0-21499852964236,any>": {
+          "type": "string",
+          "description": "Define a link to 1:n relation"
+        },
+        "ModelLink<class-src_models_user.ts-119-2699-src_models_user.ts-0-2700764695182>": {
+          "type": "string",
+          "description": "Define a link to 1:n relation"
+        }
+      },
+      "title": "Comment"
     }
   },
-  "graph": {}
+  "graph": {
+    "webda/ownermodel": {},
+    "webda/ident": {
+      "links": [
+        {
+          "attribute": "_user",
+          "model": "webda/user",
+          "type": "LINK"
+        }
+      ]
+    },
+    "webda/user": {
+      "maps": [
+        {
+          "attribute": "_idents",
+          "model": "webda/ident",
+          "targetAttribute": "_type | uuid | email"
+        }
+      ]
+    },
+    "webda/coremodel": {},
+    "webda/registryentry": {},
+    "webda/aclmodel": {},
+    "webda/rolemodel": {},
+    "webda/comment": {
+      "parent": {
+        "attribute": "target",
+        "model": "webda/coremodel"
+      },
+      "links": [
+        {
+          "attribute": "author",
+          "model": "webda/user",
+          "type": "LINK"
+        }
+      ]
+    }
+  }
 }

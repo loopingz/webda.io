@@ -1,7 +1,7 @@
 import * as http from "http";
 import * as https from "https";
 import { Counter, Gauge, Histogram } from "../core";
-import { Context } from "../utils/context";
+import { WebContext } from "../utils/context";
 import { Route, Service, ServiceParameters } from "./service";
 
 /**
@@ -123,7 +123,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param response
    * @param context
    */
-  forwardResponse(response: http.IncomingMessage, context: Context) {
+  forwardResponse(response: http.IncomingMessage, context: WebContext) {
     context.writeHead(response.statusCode, this.filterHeaders(response.headers));
     response.pipe(context.getStream());
   }
@@ -133,7 +133,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param context
    * @returns
    */
-  getRequestHeaders(context: Context) {
+  getRequestHeaders(context: WebContext) {
     return context.getHttpContext().getHeaders();
   }
 
@@ -143,7 +143,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param host
    * @param url prefix to remove
    */
-  async proxy(ctx: Context, host: string, url: string) {
+  async proxy(ctx: WebContext, host: string, url: string) {
     const subUrl = ctx.getHttpContext().getRelativeUri().substring(url.length);
     return this.rawProxy(ctx, host, subUrl);
   }
@@ -153,7 +153,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param ctx
    * @param url
    */
-  async rawProxy(ctx: Context, host: string, url: string, headers: any = {}) {
+  async rawProxy(ctx: WebContext, host: string, url: string, headers: any = {}) {
     this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${url}`);
     this.metrics.http_request_in_flight.inc();
     await new Promise<void>((resolve, reject) => {
@@ -216,7 +216,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    */
   @Route("./{path}", ["GET", "POST", "DELETE", "PUT", "PATCH"], true)
   @Route(".", ["GET", "POST", "DELETE", "PUT", "PATCH"])
-  async proxyRoute(ctx: Context) {
+  async proxyRoute(ctx: WebContext) {
     if (this.parameters.requireAuthentication && !ctx.getCurrentUserId()) {
       throw 401;
     }

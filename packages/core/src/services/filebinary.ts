@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { join } from "path";
 import { Readable } from "stream";
 import { CloudBinary, CloudBinaryParameters, CoreModel } from "../index";
-import { Context } from "../utils/context";
+import { WebContext } from "../utils/context";
 import { Binary, BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
 import CryptoService from "./cryptoservice";
 import { Inject, ServiceParameters } from "./service";
@@ -117,7 +117,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * Download a binary with a challenge
    */
-  async downloadBinaryLink(ctx: Context) {
+  async downloadBinaryLink(ctx: WebContext) {
     const { hash } = ctx.getPathParameters();
     // Verify token
     try {
@@ -154,7 +154,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * Get signed url to download an element
    */
-  async getSignedUrlFromMap(map: BinaryMap, expires: number, context: Context): Promise<string> {
+  async getSignedUrlFromMap(map: BinaryMap, expires: number, context: WebContext): Promise<string> {
     return `${context
       .getHttpContext()
       .getAbsoluteUrl(this.parameters.expose.url + "/download/data/" + map.hash)}?token=${await this.getToken(
@@ -206,7 +206,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param ctx
    * @returns
    */
-  async getPutUrl(ctx: Context<BinaryFile>) {
+  async getPutUrl(ctx: WebContext<BinaryFile>) {
     let body = await ctx.getRequestBody();
     // Get a full URL, this method should be in a Route Object
     // Add a JWT token for 60s
@@ -221,7 +221,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    *
    * @ignore
    */
-  async putRedirectUrl(ctx: Context<BinaryFile>): Promise<{ url: string; method: string }> {
+  async putRedirectUrl(ctx: WebContext<BinaryFile>): Promise<{ url: string; method: string }> {
     let body = await ctx.getRequestBody();
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
@@ -259,7 +259,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    *
    * @ignore
    */
-  async storeBinary(ctx: Context) {
+  async storeBinary(ctx: WebContext) {
     let body = await ctx.getHttpContext().getRawBody(this.parameters.maxSize);
     let result = await new MemoryBinaryFile(body, {
       mimetype: (ctx.getHttpContext().getUniqueHeader("content-type") || "application/json").split(";")[0],

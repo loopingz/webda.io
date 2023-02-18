@@ -1,4 +1,4 @@
-import { Context, DeployerResources } from "@webda/core";
+import { DeployerResources, OperationContext } from "@webda/core";
 import { Deployer } from "@webda/shell";
 
 /**
@@ -6,7 +6,7 @@ import { Deployer } from "@webda/shell";
  */
 
 export class CustomDeployer extends Deployer<DeployerResources> {
-  test(ctx: Context) {
+  test(ctx: OperationContext) {
     ctx.write("Tested");
   }
 

@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
-import { Context } from "../utils/context";
+import { WebContext } from "../utils/context";
 import { Binary, BinaryEvents, BinaryFile, BinaryMap, BinaryMetadata, BinaryModel, BinaryParameters } from "./binary";
 import { BinaryTest } from "./binary.spec";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
@@ -120,7 +120,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
     let service = new CloudBinaryFakeService(this.webda, "fake", {});
     let wrote;
     let wroteHead;
-    let context: Context = <any>{
+    let context: WebContext = <any>{
       parameter: name => {
         return name === "index" ? 1 : name;
       },

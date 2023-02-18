@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
-import { Context, RegistryEntry, Store } from "../index";
+import { OperationContext, RegistryEntry, Store } from "../index";
 import { JSONUtils } from "../utils/serializers";
 import { DeepPartial, Inject, Route, Service, ServiceParameters } from "./service";
 export interface KeysRegistry {
@@ -225,7 +225,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
       operationId: "getJWKS"
     }
   })
-  async serveJWKS(context: Context) {
+  async serveJWKS(context: OperationContext) {
     context.write({
       keys: Object.keys(this.keys).map(k => {
         if (!this.jwks[k]) {

@@ -1,4 +1,4 @@
-import { Context, ModelAction, OperationContext, Store, User } from "../index";
+import { ModelAction, OperationContext, Store, User, WebContext } from "../index";
 import { CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -76,7 +76,7 @@ export default class AclModel extends CoreModel {
    * @param ctx
    * @returns
    */
-  _acl(ctx: Context) {
+  _acl(ctx: WebContext) {
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this._httpPutAcls(ctx);
     } else if (ctx.getHttpContext().getMethod() === "GET") {

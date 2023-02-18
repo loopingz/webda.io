@@ -1,4 +1,4 @@
-import { Context, Service, ServiceParameters } from "../index";
+import { OperationContext, Service, ServiceParameters } from "../index";
 
 /**
  * Version parameters
@@ -41,7 +41,7 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
    *
    * @param ctx
    */
-  version(ctx: Context) {
+  version(ctx: OperationContext) {
     ctx.setHeader("Content-Type", "text/plain");
     ctx.write(this.parameters.version);
   }

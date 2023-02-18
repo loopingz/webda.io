@@ -93,7 +93,21 @@
           "description": "Define the parent of the model"
         },
         "ModelLink<class-models_company.ts-135-295-models_company.ts-0-296,any>": {
-          "type": "string",
+          "type": "object",
+          "properties": {
+            "set": {},
+            "length": {
+              "type": "number"
+            },
+            "get": {},
+            "toString": {}
+          },
+          "required": [
+            "get",
+            "length",
+            "set",
+            "toString"
+          ],
           "description": "Define a link to 1:n relation"
         }
       },
@@ -132,7 +146,21 @@
           "description": "Define the parent of the model"
         },
         "ModelLink<class-models_user.ts-90-204-models_user.ts-0-316,any>": {
-          "type": "string",
+          "type": "object",
+          "properties": {
+            "set": {},
+            "length": {
+              "type": "number"
+            },
+            "get": {},
+            "toString": {}
+          },
+          "required": [
+            "get",
+            "length",
+            "set",
+            "toString"
+          ],
           "description": "Define a link to 1:n relation"
         }
       },
@@ -196,64 +224,6 @@
         "description": "Allow mine"
       }
     },
-    "webdademo/student": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "email": {
-          "type": "string"
-        },
-        "firstName": {
-          "type": "string"
-        },
-        "lastName": {
-          "type": "string"
-        },
-        "friends": {
-          "$ref": "#/definitions/ModelLinksMap%3Cclass-models_relations.ts-197-413-models_relations.ts-0-1144%2C(%22email%22%7C%22firstName%22%7C%22lastName%22)%3E"
-        }
-      },
-      "required": [
-        "email",
-        "firstName",
-        "lastName",
-        "friends"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelLinksMap<class-models_relations.ts-197-413-models_relations.ts-0-1144,(\"email\"|\"firstName\"|\"lastName\")>": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object"
-          },
-          "properties": {
-            "add": {
-              "description": "Add a linked object"
-            },
-            "remove": {
-              "description": "Remove a linked object"
-            }
-          },
-          "required": [
-            "add",
-            "remove"
-          ],
-          "description": "Define 1:n relation with some sort of additional data or duplicated data\n\nThe key of the map is the value of the FK"
-        }
-      },
-      "title": "Student"
-    },
     "webdademo/hardware": {
       "type": "object",
       "properties": {
@@ -270,7 +240,7 @@
           "readOnly": true
         },
         "classroom": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%3E"
+          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%3E"
         }
       },
       "required": [
@@ -278,12 +248,26 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-models_relations.ts-755-916-models_relations.ts-0-1144>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%2Cany%3E",
+        "ModelParent<class-models_relations.ts-824-985-models_relations.ts-0-1213>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-models_relations.ts-755-916-models_relations.ts-0-1144,any>": {
-          "type": "string",
+        "ModelLink<class-models_relations.ts-824-985-models_relations.ts-0-1213,any>": {
+          "type": "object",
+          "properties": {
+            "set": {},
+            "length": {
+              "type": "number"
+            },
+            "get": {},
+            "toString": {}
+          },
+          "required": [
+            "get",
+            "length",
+            "set",
+            "toString"
+          ],
           "description": "Define a link to 1:n relation"
         }
       },
@@ -305,7 +289,7 @@
           "readOnly": true
         },
         "classroom": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%3E"
+          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%3E"
         },
         "modelId": {
           "type": "string"
@@ -321,12 +305,26 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-models_relations.ts-755-916-models_relations.ts-0-1144>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-755-916-models_relations.ts-0-1144%2Cany%3E",
+        "ModelParent<class-models_relations.ts-824-985-models_relations.ts-0-1213>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-models_relations.ts-755-916-models_relations.ts-0-1144,any>": {
-          "type": "string",
+        "ModelLink<class-models_relations.ts-824-985-models_relations.ts-0-1213,any>": {
+          "type": "object",
+          "properties": {
+            "set": {},
+            "length": {
+              "type": "number"
+            },
+            "get": {},
+            "toString": {}
+          },
+          "required": [
+            "get",
+            "length",
+            "set",
+            "toString"
+          ],
           "description": "Define a link to 1:n relation"
         }
       },
@@ -745,6 +743,11 @@
           "attribute": "friends",
           "model": "webdademo/student",
           "type": "LINKS_MAP"
+        },
+        {
+          "attribute": "teachers",
+          "model": "webdademo/teacher",
+          "type": "LINKS_SIMPLE_ARRAY"
         }
       ]
     },

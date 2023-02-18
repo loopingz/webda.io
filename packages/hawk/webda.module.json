@@ -148,5 +148,7 @@
       "title": "ApiKey"
     }
   },
-  "graph": {}
+  "graph": {
+    "webda/apikey": {}
+  }
 }

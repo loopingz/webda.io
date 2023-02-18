@@ -396,14 +396,18 @@ export default class FireStore<
   /**
    * @override
    */
-  async _incrementAttributes(uid: string, params: {property: string, value: number}[], updateDate: Date): Promise<any> {
+  async _incrementAttributes(
+    uid: string,
+    params: { property: string; value: number }[],
+    updateDate: Date
+  ): Promise<any> {
     try {
       const args: any = {
         [this._lastUpdateField]: updateDate
       };
       params.forEach(p => {
         args[p.property] = FieldValue.increment(p.value);
-      })
+      });
       await this.getDocumentRef(uid).update(args);
     } catch (err) {
       if (err.code === 5) {

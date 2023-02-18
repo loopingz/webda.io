@@ -279,12 +279,13 @@ class ContextTest extends WebdaTest {
     ctx.createStream();
     ctx.getOutputStream().write("plop");
     assert.strictEqual(ctx.getOutput(), "plop");
+    ctx.writeHead(200, { test: "plip" });
+    ctx.setHeader("test", "plip");
+
     // cov
     let http = new HttpContext("test.webda.io", "GET", "/");
     ctx = new WebContext(this.webda, http);
     await ctx.getRawInput();
     ctx.getRawStream();
-    ctx.writeHead(200, { test: "plip" });
-    ctx.setHeader("test", "plip");
   }
 }

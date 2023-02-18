@@ -530,7 +530,6 @@ export class Compiler {
                     // @ts-ignore
                     symbolMap.set(classTree[0].id, name);
                     // @ts-ignore
-                    console.log("Set", classTree[0].id, name);
                     this.app.log("INFO", "Adding graph for model");
                     moduleInfo.graph[name] = {};
                     const type = classTree[0];
@@ -544,6 +543,17 @@ export class Compiler {
                           .filter(c => c.kind === ts.SyntaxKind.TypeReference)
                           .shift();
                         if (pType) {
+                          const addLinkToGraph = (
+                            type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY"
+                          ) => {
+                            moduleInfo.graph[name].links ??= [];
+                            moduleInfo.graph[name].links.push({
+                              attribute: prop.escapedName.toString(),
+                              // @ts-ignore
+                              model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                              type
+                            });
+                          };
                           switch (pType.typeName.getText()) {
                             case "ModelParent":
                               this.app.log("INFO", prop.escapedName, name, pType.typeName.getFullText());
@@ -573,40 +583,16 @@ export class Compiler {
                               });
                               break;
                             case "ModelLink":
-                              moduleInfo.graph[name].links ??= [];
-                              moduleInfo.graph[name].links.push({
-                                attribute: prop.escapedName.toString(),
-                                // @ts-ignore
-                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
-                                type: "LINK"
-                              });
+                              addLinkToGraph("LINK");
                               break;
                             case "ModelLinksMap":
-                              moduleInfo.graph[name].links ??= [];
-                              moduleInfo.graph[name].links.push({
-                                attribute: prop.escapedName.toString(),
-                                // @ts-ignore
-                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
-                                type: "LINKS_MAP"
-                              });
+                              addLinkToGraph("LINKS_MAP");
                               break;
                             case "ModelLinksArray":
-                              moduleInfo.graph[name].links ??= [];
-                              moduleInfo.graph[name].links.push({
-                                attribute: prop.escapedName.toString(),
-                                // @ts-ignore
-                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
-                                type: "LINKS_ARRAY"
-                              });
+                              addLinkToGraph("LINKS_ARRAY");
                               break;
                             case "ModelLinksSimpleArray":
-                              moduleInfo.graph[name].links ??= [];
-                              moduleInfo.graph[name].links.push({
-                                attribute: prop.escapedName.toString(),
-                                // @ts-ignore
-                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
-                                type: "LINKS_SIMPLE_ARRAY"
-                              });
+                              addLinkToGraph("LINKS_SIMPLE_ARRAY");
                               break;
                           }
                         }
@@ -686,9 +672,7 @@ export class Compiler {
     moduleInfo.deployers = this.sortObject(moduleInfo.deployers);
 
     Object.values(moduleInfo.graph).forEach(graph => {
-      console.log("checking graph", graph);
       if (graph.parent && typeof graph.parent.model === "number") {
-        console.log("guessing the model", symbolMap.get(graph.parent.model));
         graph.parent.model = symbolMap.get(graph.parent.model) || "unknown";
       }
       graph.links?.forEach(link => {

@@ -5,25 +5,40 @@ import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
+import { Throttler } from "../utils/throttler";
 import { ModelActions } from "./relations";
 
-export function Expose() {
-  return function (target: any, propertyKey: string) {
-    Object.defineProperty(target, propertyKey, {
-      set(value) {
-        Object.defineProperty(this, propertyKey, {
-          value,
-          writable: true,
-          configurable: true
-        });
-      },
-      configurable: true
-    });
+/**
+ * Expose the model through API or GraphQL if it exists
+ * @returns
+ */
+export function Expose(
+  segment?: string,
+  restrict?: { create?: boolean; update?: boolean; list?: boolean; get?: boolean; delete?: boolean }
+) {
+  return function (target: any): void {
+    segment ??= target.constructor.name.toLowerCase();
+    // @ts-ignore
+    target.Expose ??= {
+      segment,
+      restrict
+    };
   };
 }
 
 class CoreModelQuery {
-  constructor(private type: string, private modelId: string) {}
+  @NotEnumerable
+  private type: string;
+  @NotEnumerable
+  private model: CoreModel;
+  @NotEnumerable
+  private attribute: string;
+
+  constructor(type: string, model: CoreModel, attribute: string) {
+    this.attribute = attribute;
+    this.type = type;
+    this.model = model;
+  }
   /**
    * Query the object
    * @param query
@@ -36,18 +51,51 @@ class CoreModelQuery {
     results: CoreModel[];
     continuationToken?: string;
   }> {
-    return Core.get().getModelStore(Core.get().getModel(this.type)).query(query, context);
+    return Core.get().getModelStore(Core.get().getModel(this.type)).query(this.completeQuery(query), context);
   }
 
-  async forEach() {}
+  /**
+   * Complete the query with condition
+   * @param query
+   * @returns
+   */
+  protected completeQuery(query?: string): string {
+    query = query ? `(${query}) AND` : "";
+    query += ` ${this.attribute} = '${this.model.getUuid()}'`;
+    return query;
+  }
+
+  /**
+   *
+   * @param callback
+   * @param context
+   */
+  async forEach(
+    callback: (model: any) => Promise<void>,
+    query?: string,
+    context?: OperationContext,
+    parallelism: number = 3
+  ) {
+    const throttler = new Throttler();
+    throttler.setConcurrency(parallelism);
+    let continuationToken: string | undefined;
+    do {
+      const result = await this.query(query, context);
+      continuationToken = result.continuationToken;
+      for (const model of result.results) {
+        throttler.queue(() => callback(model));
+      }
+      await throttler.waitForCompletion();
+    } while (continuationToken);
+  }
 
   /**
    * Get all objects linked
    * @param context
    * @returns
    */
-  async getAll(context?: OperationContext) {
-    return Core.get().getModelStore(Core.get().getModel(this.type)).queryAll("", context);
+  async getAll(query?: string, context?: OperationContext) {
+    return Core.get().getModelStore(Core.get().getModel(this.type)).queryAll(this.completeQuery(query), context);
   }
 }
 
@@ -98,18 +146,6 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
-
-/**
- * Sent if action required attached CoreModel is trigger
- * A Model cannot be detached anymore
- *
- * @deprecated
- */
-export class CoreModelUnattachedError extends Error {
-  constructor() {
-    super("No store linked to this object");
-  }
-}
 
 /**
  * Make a property hidden from json
@@ -480,32 +516,12 @@ class CoreModel {
   }
 
   /**
-   * Return if an object is attached to its store
-   * @deprecated Will be removed in 3.0
-   */
-  isAttached(): boolean {
-    return this.__store !== undefined;
-  }
-
-  /**
-   * Attach an object to a store instance
-   * @deprecated Will be removed in 3.0
-   */
-  attach(store: Store<this>): this {
-    this.__store = store;
-    return this;
-  }
-
-  /**
    * Return a unique reference within the application to the object
    *
    * It contains the Store containing it
    * @returns
    */
   getFullUuid() {
-    if (!this.isAttached()) {
-      throw new Error("Cannot return full uuid of unattached object");
-    }
     return `${this.__store.getName()}$${this.getUuid()}`;
   }
 
@@ -605,13 +621,17 @@ class CoreModel {
   protected handleRelations() {
     // Get relation
     const addLoader = (attr: string, model) => {
-      if (!this[attr]) {
-        return;
+      this[attr] ??= {};
+      if (typeof this[attr] === "string") {
+        this[attr] = new String(this[attr]);
       }
       this[attr].get = async () => {
-        return Core.get().getModelStore(model).get(attr);
+        return Core.get().getModelStore(Core.get().getModel(model)).get(this[attr]);
       };
       this[attr].set = value => {
+        if (typeof value === "string") {
+          value = new String(value);
+        }
         this[attr] = value;
         addLoader(attr, model);
       };
@@ -621,7 +641,7 @@ class CoreModel {
       this[attr] ??= [];
       this[attr].forEach(el => {
         el.get = async () => {
-          return Core.get().getModelStore(model).get(el);
+          return Core.get().getModelStore(Core.get().getModel(model)).get(el.uuid);
         };
       });
     };
@@ -634,10 +654,17 @@ class CoreModel {
       }
 
       // Add an item to the collection
-      this[attr].add = async value => {
-        value.uuid ??= value.getUuid();
+      this[attr].add = value => {
+        if (type !== "LINKS_SIMPLE_ARRAY") {
+          value.uuid ??= value.getUuid();
+        }
+        if (typeof value === "string") {
+          value = new String(value);
+        }
         value.get = async () => {
-          return Core.get().getModelStore(model).get(value.uuid);
+          return Core.get()
+            .getModelStore(Core.get().getModel(model))
+            .get(type !== "LINKS_SIMPLE_ARRAY" ? value.uuid : value);
         };
         if (Array.isArray(this[attr])) {
           this[attr].push(value);
@@ -646,9 +673,15 @@ class CoreModel {
         }
       };
       // Remove an item from the collection
-      this[attr].remove = async (uuid: string) => {
+      this[attr].remove = (uuid: string | { getUuid: () => string }) => {
+        if (uuid instanceof Object) {
+          uuid = uuid.getUuid();
+        }
         if (Array.isArray(this[attr])) {
-          this[attr] = this[attr].filter(el => el.uuid !== uuid);
+          this[attr].splice(
+            this[attr].findIndex(el => el.uuid !== uuid),
+            1
+          );
         } else {
           delete this[attr][uuid];
         }
@@ -669,7 +702,7 @@ class CoreModel {
       addMapLoader(link.attribute, link.model);
     }
     for (let query of rel.queries || []) {
-      this[query.attribute] = new CoreModelQuery(query.model, this.getUuid());
+      this[query.attribute] = new CoreModelQuery(query.model, this, query.targetAttribute);
     }
     if (rel.parent) {
       addLoader(rel.parent.attribute, rel.parent.model);
@@ -714,9 +747,6 @@ class CoreModel {
    * @throws Error if the object is not coming from a store
    */
   async refresh(): Promise<this> {
-    if (!this.__store) {
-      throw new CoreModelUnattachedError();
-    }
     let obj = await this.__store.get(this.getUuid());
     if (obj) {
       Object.assign(this, obj);
@@ -736,9 +766,6 @@ class CoreModel {
    * @throws Error if the object is not coming from a store
    */
   async delete(): Promise<void> {
-    if (!this.__store) {
-      throw new CoreModelUnattachedError();
-    }
     return this.__store.delete(this.getUuid());
   }
 
@@ -768,9 +795,6 @@ class CoreModel {
    * @param conditionValue
    */
   async patch(obj: Partial<this>, conditionField?: keyof this | null, conditionValue?: any) {
-    if (!this.__store) {
-      throw new CoreModelUnattachedError();
-    }
     await this.__store.patch(
       { [this.__class.getUuidField()]: this.getUuid(), ...obj },
       true,
@@ -786,9 +810,6 @@ class CoreModel {
    * @throws Error if the object is not coming from a store
    */
   async save(full?: boolean | keyof this, ...args: (keyof this)[]): Promise<this> {
-    if (!this.__store) {
-      throw new CoreModelUnattachedError();
-    }
     // If proxy is not used and not field specified call save
     if ((!util.types.isProxy(this) && full === undefined) || full === true) {
       if (!this._creationDate || !this._lastUpdate) {
@@ -857,9 +878,6 @@ class CoreModel {
    * WARNING: Only object attached to a store can retrieve service
    */
   getService<T extends Service>(service): T {
-    if (!this.__store) {
-      throw new CoreModelUnattachedError();
-    }
     return this.__store.getService<T>(service);
   }
 

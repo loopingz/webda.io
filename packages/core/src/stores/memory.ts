@@ -260,14 +260,14 @@ class MemoryStore<
   /**
    * @override
    */
-  async _incrementAttributes(uid, params: {property: string, value: number}[], updateDate: Date) {
+  async _incrementAttributes(uid, params: { property: string; value: number }[], updateDate: Date) {
     const res = await this._get(uid, true);
-    params.forEach(({property: prop, value}) => {
+    params.forEach(({ property: prop, value }) => {
       if (!res[prop]) {
         res[prop] = 0;
       }
       res[prop] += value;
-    })
+    });
     res[this._lastUpdateField] = updateDate;
     return this._save(res);
   }

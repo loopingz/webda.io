@@ -1,12 +1,36 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Action, Core, CoreModel, OperationContext, Store } from "..";
+import {
+  Action,
+  Core,
+  CoreModel,
+  Expose,
+  ModelLink,
+  ModelLinksArray,
+  ModelLinksMap,
+  ModelLinksSimpleArray,
+  ModelParent,
+  ModelRelated,
+  ModelsMapped,
+  OperationContext,
+  Store
+} from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";
 
+@Expose()
 class TestMask extends CoreModel {
   card: string;
+  link: ModelLink<Task>;
+  links: ModelLinksArray<Task, { card: string }>;
+  links_simple: ModelLinksSimpleArray<Task>;
+  links_map: ModelLinksMap<Task, { card: string }>;
+  maps: ModelsMapped<Task, "uuid">;
+  queries: ModelRelated<Task, "side">;
+  parent: ModelParent<Task>;
+  side: string;
+
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
     if (key === "card") {
       const mask = "---X-XXXX-XXXX-X---";
@@ -148,19 +172,12 @@ class CoreModelTest extends WebdaTest {
     let task = new Task();
     assert.ok(CoreModel.instanceOf(task));
     await assert.rejects(() => new CoreModel().canAct(undefined, "test"), /403/);
-    assert.ok(!task.isAttached());
-    const unattachedMsg = /No store linked to this object/;
-    await assert.rejects(() => task.refresh(), unattachedMsg);
-    await assert.rejects(() => task.save(), unattachedMsg);
-    await assert.rejects(() => task.delete(), unattachedMsg);
-    await assert.rejects(() => task.patch(), unattachedMsg);
     task.plop = 1;
     assert.ok(!task.isDirty());
     task = task.getProxy();
     assert.ok(!task.isDirty());
     task.plop = 2;
     assert.ok(task.isDirty());
-    assert.throws(() => task.getService("ResourceService"), unattachedMsg);
     let store = {
       getService: this.webda.getService.bind(this.webda),
       delete: () => {},
@@ -169,9 +186,7 @@ class CoreModelTest extends WebdaTest {
         test: "123"
       })
     };
-    // @ts-ignore
-    task.attach(store);
-    assert.ok(task.isAttached());
+    task.__store = store;
     assert.strictEqual((await task.get()).test, "123");
     assert.strictEqual(task.getStore(), store);
     assert.notStrictEqual(task.generateUid(), undefined);
@@ -203,7 +218,6 @@ class CoreModelTest extends WebdaTest {
   @test async fullUuid() {
     let task = new Task();
     task.setUuid("task#1");
-    assert.throws(() => task.getFullUuid(), /Cannot return full uuid of unattached object/);
     let memoryStore = this.getService<Store>("MemoryUsers");
     task = await memoryStore.save({ ...task, test: false });
     assert.strictEqual(task.getFullUuid(), "MemoryUsers$task#1");
@@ -274,46 +288,77 @@ class CoreModelTest extends WebdaTest {
   }
 
   @test
-  loaders() {
+  async loaders() {
     this.webda.getApplication().getRelations = () => {
       return {
         parent: {
-          model: "Task",
+          model: "webdatest/testmask",
           attribute: "parent"
         },
         links: [
           {
-            model: "Task",
+            model: "webdatest/testmask",
+            attribute: "link",
+            type: "LINK"
+          },
+          {
+            model: "webdatest/testmask",
             attribute: "links",
             type: "LINKS_ARRAY"
           },
           {
-            model: "Task",
+            model: "webdatest/testmask",
             attribute: "links_simple",
             type: "LINKS_SIMPLE_ARRAY"
           },
           {
-            model: "Task",
+            model: "webdatest/testmask",
             attribute: "links_map",
             type: "LINKS_MAP"
           }
         ],
         maps: [
           {
-            model: "Task",
+            model: "webdatest/testmask",
             attribute: "maps"
           }
         ],
         queries: [
           {
-            model: "Task",
+            model: "webdatest/testmask",
             attribute: "queries",
             targetAttribute: "side"
           }
         ]
       };
     };
-    let task = new Task().load();
-    console.log(task);
+    this.webda.getApplication().getModels()["webdatest/testmask"] = TestMask;
+    // @ts-ignore
+    let test = new TestMask().load({ card: "plop", maps: [{ uuid: "uuid-test" }] }, true);
+    await new TestMask().load({ side: "uuid-test" }).save();
+    await new TestMask().load({ side: "uuid-test", card: "plip" }).save();
+    test.setUuid("uuid-test");
+    test.parent.set("uuid-test");
+    await test.save();
+    test.links.add({ card: "test", uuid: test.getUuid() });
+    test.links.remove(test.getUuid());
+    test.links_simple.add(test.getUuid());
+    assert.strictEqual(test.links_simple.length, 1);
+    test.links_simple.remove(test.getUuid());
+    test.links_simple.add(test.getUuid());
+    test.links_map.add(test);
+    test.links_map.remove(test);
+    assert.strictEqual((await test.links_simple[0].get()).card, "plop");
+    assert.strictEqual((await test.parent.get()).card, "plop");
+    assert.strictEqual((await test.maps[0].get()).card, "plop");
+    assert.strictEqual((await test.queries.getAll()).length, 2);
+    console.log("Test query now");
+    assert.strictEqual((await test.queries.query("card = 'pliX?XXXX?XXXX?X???'")).results.length, 1);
+    console.log("Test for each");
+    let count = 0;
+    await test.queries.forEach(async () => {
+      count++;
+    });
+    assert.strictEqual(count, 2);
   }
 }

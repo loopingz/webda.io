@@ -248,9 +248,9 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     const user = await ctx.getCurrentUser();
     let metadata = undefined;
     user.getIdents().forEach(i => {
-      if (model[this.parameters.pendingAttribute][`ident_${i.getUuid()}`]) {
-        metadata = model[this.parameters.pendingAttribute][`ident_${i.getUuid()}`];
-        delete model[this.parameters.pendingAttribute][`ident_${i.getUuid()}`];
+      if (model[this.parameters.pendingAttribute][`ident_${i.uuid}`]) {
+        metadata = model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
+        delete model[this.parameters.pendingAttribute][`ident_${i.uuid}`];
       }
     });
     if (model[this.parameters.pendingAttribute][`user_${user.getUuid()}`]) {

@@ -211,7 +211,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Proxy to starling
+   * Proxy route
    * @param ctx
    */
   @Route("./{path}", ["GET", "POST", "DELETE", "PUT", "PATCH"], true)

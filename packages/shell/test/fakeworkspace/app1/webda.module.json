@@ -3,5 +3,6 @@
   "beans": {},
   "models": {},
   "deployers": {},
-  "schemas": {}
+  "schemas": {},
+  "graph": {}
 }

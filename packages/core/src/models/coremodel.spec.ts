@@ -78,7 +78,7 @@ class CoreModelTest extends WebdaTest {
     });
     const flat = {};
     CoreModel.flat(flat, counters.test);
-    assert.deepStrictEqual(flat, {"second#bytes": 12, "second#size": 66, "first#bytes": 1, "first#size": 2})
+    assert.deepStrictEqual(flat, { "second#bytes": 12, "second#size": 66, "first#bytes": 1, "first#size": 2 });
     counters = new CoreModel()
       .load(<any>{ "test|second|bytes": 12, "test|second|size": 66, "test|first|bytes": 1, "test|first|size": 2 })
       .unflat<any>("|");
@@ -271,5 +271,49 @@ class CoreModelTest extends WebdaTest {
     assert.ok(!task.isDirty());
     delete task.plop2;
     assert.ok(task.isDirty());
+  }
+
+  @test
+  loaders() {
+    this.webda.getApplication().getRelations = () => {
+      return {
+        parent: {
+          model: "Task",
+          attribute: "parent"
+        },
+        links: [
+          {
+            model: "Task",
+            attribute: "links",
+            type: "LINKS_ARRAY"
+          },
+          {
+            model: "Task",
+            attribute: "links_simple",
+            type: "LINKS_SIMPLE_ARRAY"
+          },
+          {
+            model: "Task",
+            attribute: "links_map",
+            type: "LINKS_MAP"
+          }
+        ],
+        maps: [
+          {
+            model: "Task",
+            attribute: "maps"
+          }
+        ],
+        queries: [
+          {
+            model: "Task",
+            attribute: "queries",
+            targetAttribute: "side"
+          }
+        ]
+      };
+    };
+    let task = new Task().load();
+    console.log(task);
   }
 }

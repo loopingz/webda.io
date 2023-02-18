@@ -5,43 +5,38 @@ import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { Context, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
+import { ModelActions } from "./relations";
 
-// Might want to rename refresh to get
-type ModelLoader<T> = { refresh: () => Promise<T>; getUuid(): string };
+export function Expose() {
+  return function (target: any, propertyKey: string) {
+    Object.defineProperty(target, propertyKey, {
+      set(value) {
+        Object.defineProperty(this, propertyKey, {
+          value,
+          writable: true,
+          configurable: true
+        });
+      },
+      configurable: true
+    });
+  };
+}
 
-type ModelLinker<T> = string & ModelLoader<T>;
+class CoreModelQuery {
+  constructor(private type: string, private model: string) {}
+  /**
+   * Query the object
+   * @param query
+   * @returns
+   */
+  query(query?: string): Promise<CoreModel[]> {
+    return null;
+  }
 
-/**
- * Load related objects
- */
-export type ModelLinked<T> = (query?: string) => Promise<T[]>;
-/**
- * Mapper attribute (target of a Mapper service)
- */
-export type ModelMapper<T, K extends keyof T> = Pick<T, K> & ModelLoader<T>;
-/**
- * Define a ModelMap attribute
- */
-export type ModelMappers<T, _FK extends keyof T, K extends keyof T> = ModelMapper<T, K>[];
+  async forEach() {}
 
-/**
- * Define a link to 1:n relation
- */
-export type ModelLink<T, _FK extends keyof T = any> = ModelLinker<T>;
-/**
- * Define several links for n:m relation
- */
-export type ModelLinks<T, _FK extends keyof T> = ModelLinker<T>[] | { [key: string]: ModelLinker<T> };
-/**
- * Define the parent of the model
- */
-export type ModelParent<T> = ModelLink<T, any>;
-/**
- * Define an export of actions from Model
- */
-export type ModelActions = {
-  [key: string]: ModelAction;
-};
+  async getAll() {}
+}
 
 /**
  * Filter type keys by type
@@ -316,7 +311,7 @@ class CoreModel {
           return true;
         },
         get: (target: this, p: string | symbol) => {
-          if (Array.isArray(target[p]) || (target[p] instanceof Object && target[p].prototype == Object.prototype)) {
+          if (Array.isArray(target[p]) || target[p] instanceof Object) {
             return new Proxy(target[p], subProxier(prop));
           }
           return target[p];
@@ -345,10 +340,7 @@ class CoreModel {
         if (typeof p === "string" && p.startsWith("__")) {
           return target[p];
         }
-        if (
-          Array.isArray(target[p]) ||
-          (typeof target[p] === "object" && target[p].constructor.prototype === Object.prototype)
-        ) {
+        if (Array.isArray(target[p]) || target[p] instanceof Object) {
           return new Proxy(target[p], subProxier(p));
         }
         return target[p];
@@ -589,19 +581,86 @@ class CoreModel {
       this.setUuid(this.generateUid(raw));
     }
 
+    this.handleRelations();
+    return this;
+  }
+
+  /**
+   * Patch every attribute that is based on a relation
+   * to add all the helpers
+   */
+  protected handleRelations() {
     // Get relation
-    const addLoader = (attr, model) => {
-      attr.refresh = async () => {
+    const addLoader = (attr: string, model) => {
+      if (!this[attr]) {
+        return;
+      }
+      this[attr].get = async () => {
         return Core.get().getModelStore(model).get(attr);
       };
+      this[attr].set = value => {
+        this[attr] = value;
+        addLoader(attr, model);
+      };
     };
+
+    const addMapLoader = (attr: string, model) => {
+      this[attr] ??= [];
+      this[attr].forEach(el => {
+        el.get = async () => {
+          return Core.get().getModelStore(model).get(el);
+        };
+      });
+    };
+
+    const addCollectionLoader = (type: "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY" | "LINKS_MAP", attr: string, model) => {
+      if (type === "LINKS_MAP") {
+        this[attr] ??= {};
+      } else {
+        this[attr] ??= [];
+      }
+
+      // Add an item to the collection
+      this[attr].add = async value => {
+        value.uuid ??= value.getUuid();
+        value.get = async () => {
+          return Core.get().getModelStore(model).get(value.uuid);
+        };
+        if (Array.isArray(this[attr])) {
+          this[attr].push(value);
+        } else {
+          this[attr][value.uuid] = value;
+        }
+      };
+      // Remove an item from the collection
+      this[attr].remove = async (uuid: string) => {
+        if (Array.isArray(this[attr])) {
+          this[attr] = this[attr].filter(el => el.uuid !== uuid);
+        } else {
+          delete this[attr][uuid];
+        }
+      };
+    };
+
     const rel = Core.get()
       .getApplication()
       .getRelations(<any>this);
-    if (rel.parent && this[rel.parent.attribute]) {
-      addLoader(this[rel.parent.attribute], rel.parent.model);
+    for (let link of rel.links || []) {
+      if (link.type === "LINK") {
+        addLoader(link.attribute, link.model);
+      } else if (link.type.startsWith("LINKS_")) {
+        addCollectionLoader(link.type, link.attribute, link.model);
+      }
     }
-    return this;
+    for (let link of rel.maps || []) {
+      addMapLoader(link.attribute, link.model);
+    }
+    for (let query of rel.queries || []) {
+      this[query.attribute] = new CoreModelQuery(query.model, this.getUuid());
+    }
+    if (rel.parent) {
+      addLoader(rel.parent.attribute, rel.parent.model);
+    }
   }
 
   /**

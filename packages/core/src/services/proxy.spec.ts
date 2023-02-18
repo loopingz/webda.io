@@ -26,6 +26,7 @@ class ProxyTest extends WebdaTest {
           res.end();
           return;
         }
+        res.writeHead(200, { "X-URL": req.url });
         // Just simple echo
         req.pipe(res);
       })
@@ -52,6 +53,13 @@ class ProxyTest extends WebdaTest {
     await exec.execute(ctx);
     assert.notStrictEqual((<WritableStreamBuffer>ctx.getStream()).size(), 0);
     assert.strictEqual(ctx.getResponseBody().toString(), "Bouzouf");
+
+    exec = this.getExecutor(ctx, "test.webda.io", "PUT", "/proxy/test/plop/toto?query=1&query2=test,test2", "Bouzouf");
+    await exec.execute(ctx);
+    assert.notStrictEqual((<WritableStreamBuffer>ctx.getStream()).size(), 0);
+    assert.strictEqual(ctx.getResponseBody().toString(), "Bouzouf");
+    assert.strictEqual(ctx.getResponseHeaders()["x-url"], "/test/plop/toto?query=1&query2=test,test2");
+
     exec = this.getExecutor(ctx, "test.webda.io", "GET", "/proxy/plop404", "Bouzouf");
     await exec.execute(ctx);
     proxyService.getParameters().backend = "http://256.256.256.256/";

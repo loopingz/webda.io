@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync, symlinkSync } from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { FileUtils, JSONUtils, YAMLUtils } from "./serializers";
@@ -152,9 +152,25 @@ plop: test
   @test
   finder() {
     let res = [];
+    if (!existsSync("./test/link")) {
+      symlinkSync("../templates", "test/link");
+    }
     FileUtils.find("test", f => res.push(f));
     assert.ok(
       ["test/models/ident.js", "test/my-cnf.json", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
+        .map(c => res.includes(c))
+        .reduce((v, c) => v && c, true)
+    );
+    FileUtils.find("test", f => res.push(f), { includeDir: true, followSymlinks: true });
+    assert.ok(
+      [
+        "templates/PASSPORT_EMAIL_RECOVERY",
+        "test/models",
+        "test/models/ident.js",
+        "test/my-cnf.json",
+        "test/jsonutils/mdocs.yaml",
+        "test/data/test.png"
+      ]
         .map(c => res.includes(c))
         .reduce((v, c) => v && c, true)
     );

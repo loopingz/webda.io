@@ -29,9 +29,9 @@ export type ModelGraph = {
     attribute: string;
     model: string;
     targetAttribute: string;
-  };
+  }[];
   maps?: any[];
-}
+};
 
 /**
  * Defined relationship for all models
@@ -39,7 +39,7 @@ export type ModelGraph = {
 export type ModelsGraph = {
   // key is shared with models
   [key: string]: ModelGraph;
-}
+};
 
 /**
  * Some package exists but seems pretty big for this
@@ -92,7 +92,7 @@ export interface PackageDescriptor {
 export type ModelRelation = {
   attribute: string;
   model: string;
-  type: "";
+  type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
 };
 /**
  * A Webda module is a NPM package

@@ -4,7 +4,7 @@ import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Route, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
-import { Context } from "../utils/context";
+import { OperationContext, WebContext } from "../utils/context";
 import { HttpContext, HttpMethodType } from "../utils/httpcontext";
 import CryptoService from "./cryptoservice";
 import { Mailer } from "./mailer";
@@ -488,7 +488,7 @@ class Authentication<
       operationId: "getCurrentUser"
     }
   })
-  async _getMe(ctx: Context) {
+  async _getMe(ctx: OperationContext) {
     let user = await ctx.getCurrentUser();
     if (user === undefined) {
       throw 404;
@@ -527,7 +527,7 @@ class Authentication<
       }
     }
   })
-  async _listAuthentications(ctx: Context) {
+  async _listAuthentications(ctx: WebContext) {
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await this.logout(ctx);
       this.metrics.logout.inc();
@@ -537,7 +537,7 @@ class Authentication<
     ctx.write(Array.from(this.providers));
   }
 
-  async onIdentLogin(ctx: Context, provider: string, identId: string, profile: any, tokens: any = undefined) {
+  async onIdentLogin(ctx: WebContext, provider: string, identId: string, profile: any, tokens: any = undefined) {
     // Auto postifx with provider name
     const postfix = `_${provider}`;
     if (!identId.endsWith(postfix)) {
@@ -612,7 +612,12 @@ class Authentication<
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
 
-  async registerUser(ctx: Context, data: any, identId: string, user: any = this._usersStore.newModel()): Promise<any> {
+  async registerUser(
+    ctx: WebContext,
+    data: any,
+    identId: string,
+    user: any = this._usersStore.newModel()
+  ): Promise<any> {
     user.email = data.email;
     user.locale = ctx.getLocale();
     this.metrics.registration.inc();
@@ -651,7 +656,7 @@ class Authentication<
    * Manage password recovery
    * @param ctx
    */
-  async _passwordRecoveryEmail(ctx: Context) {
+  async _passwordRecoveryEmail(ctx: WebContext) {
     let email = ctx.parameter("email");
     let ident: Ident = await this._identsStore.get(email + "_email");
     if (!ident) {
@@ -687,7 +692,7 @@ class Authentication<
     }
   }
 
-  async _passwordRecovery(ctx: Context<PasswordRecoveryBody>) {
+  async _passwordRecovery(ctx: WebContext<PasswordRecoveryBody>) {
     let body = await ctx.getRequestBody();
     if (
       body.password === undefined ||
@@ -735,7 +740,7 @@ class Authentication<
   @Route("./email/callback{?email,token,user}", ["GET"], false, {
     hidden: true
   })
-  async _handleEmailCallback(ctx: Context) {
+  async _handleEmailCallback(ctx: WebContext) {
     if (!ctx.parameter("token")) {
       throw 400;
     }
@@ -795,7 +800,7 @@ class Authentication<
    * @param email
    * @returns
    */
-  async sendRecoveryEmail(ctx: Context, user, email: string) {
+  async sendRecoveryEmail(ctx: WebContext, user, email: string) {
     let infos = await this.getPasswordRecoveryInfos(user);
     const mailer: Mailer = this.getMailMan();
     let locale = user.locale || ctx.getLocale();
@@ -816,7 +821,7 @@ class Authentication<
    * @param email
    * @returns
    */
-  async sendValidationEmail(ctx: Context, email: string) {
+  async sendValidationEmail(ctx: WebContext, email: string) {
     const mailer: Mailer = this.getMailMan();
     let replacements = {
       ...this.parameters.email,
@@ -864,7 +869,7 @@ class Authentication<
   /**
    * Logout user
    */
-  async logout(ctx: Context) {
+  async logout(ctx: WebContext) {
     await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
       context: ctx
     });
@@ -879,7 +884,7 @@ class Authentication<
    * @param ident
    * @returns
    */
-  async login(ctx: Context, user: User | string, ident: Ident, provider: string) {
+  async login(ctx: WebContext, user: User | string, ident: Ident, provider: string) {
     const event: EventAuthenticationLogin = {
       context: ctx,
       userId: "",
@@ -910,7 +915,7 @@ class Authentication<
    * @param ctx
    * @param ident
    */
-  protected async handleLogin(ctx: Context<LoginBody>, ident: Ident) {
+  protected async handleLogin(ctx: WebContext<LoginBody>, ident: Ident) {
     let updates: any = {};
     let user: User = await this._usersStore.get(ident.getUser());
     // Check password
@@ -950,7 +955,7 @@ class Authentication<
    * @param ctx
    * @returns
    */
-  async _handleEmail(ctx: Context<LoginBody>) {
+  async _handleEmail(ctx: WebContext<LoginBody>) {
     // If called while logged in reject
     if (ctx.getCurrentUserId() !== undefined) {
       throw 410;

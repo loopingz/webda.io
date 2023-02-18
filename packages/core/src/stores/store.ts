@@ -2,7 +2,7 @@ import { Counter, EventWithContext, Histogram, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
-import { Context, OperationContext } from "../utils/context";
+import { OperationContext, WebContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { WebdaQL } from "./webdaql/query";
 
@@ -1089,7 +1089,7 @@ abstract class Store<
    * @param query
    * @param context
    */
-  async queryAll(query: string, context?: Context): Promise<T[]> {
+  async queryAll(query: string, context?: OperationContext): Promise<T[]> {
     const res: T[] = [];
     if (query.includes("OFFSET")) {
       throw new Error("Cannot contain an OFFSET for queryAll method");
@@ -1109,7 +1109,7 @@ abstract class Store<
    * @param query
    * @param context to apply permission
    */
-  async query(query: string, context?: Context): Promise<{ results: T[]; continuationToken?: string }> {
+  async query(query: string, context?: OperationContext): Promise<{ results: T[]; continuationToken?: string }> {
     let permissionQuery = this._model.getPermissionQuery(context);
     let partialPermission = true;
     let fullQuery;
@@ -1216,7 +1216,7 @@ abstract class Store<
   /**
    * Expose query to http
    */
-  protected async httpQuery(ctx: Context) {
+  protected async httpQuery(ctx: WebContext): Promise<void> {
     let query: string;
     if (ctx.getHttpContext().getMethod() === "GET") {
       query = ctx.getParameters().q;
@@ -1243,7 +1243,7 @@ abstract class Store<
    *
    * Might want to rename to create
    */
-  async save(object, ctx: Context = undefined): Promise<T> {
+  async save(object, ctx: OperationContext = undefined): Promise<T> {
     if (
       object instanceof this._model &&
       object[this._creationDateField] !== undefined &&
@@ -1257,7 +1257,7 @@ abstract class Store<
     return this.create(object, ctx);
   }
 
-  async create(object, ctx: Context = undefined) {
+  async create(object, ctx: OperationContext = undefined) {
     object = this.initModel(object);
 
     // Dates should be store by the Store
@@ -1851,7 +1851,7 @@ abstract class Store<
       }
     }
   })
-  async httpCreate(ctx: Context) {
+  async httpCreate(ctx: WebContext) {
     let body = await ctx.getRequestBody();
     let object = this._model.factory(this._model, body, ctx);
     object[this._creationDateField] = new Date();
@@ -1879,7 +1879,7 @@ abstract class Store<
    * Handle obect action
    * @param ctx
    */
-  async httpAction(ctx: Context) {
+  async httpAction(ctx: WebContext) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
     let object = await this.get(ctx.parameter("uuid"), ctx);
     if (object === undefined || object.__deleted) {
@@ -1914,7 +1914,7 @@ abstract class Store<
    * Handle collection action
    * @param ctx
    */
-  async httpGlobalAction(ctx: Context) {
+  async httpGlobalAction(ctx: WebContext) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
     await this.emitSync("Store.Action", {
       action: action,
@@ -1988,7 +1988,7 @@ abstract class Store<
       }
     }
   })
-  async httpUpdate(ctx: Context) {
+  async httpUpdate(ctx: WebContext) {
     let body = await ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     body[this._uuidField] = uuid;
@@ -2070,7 +2070,7 @@ abstract class Store<
       }
     }
   })
-  async httpGet(ctx: Context) {
+  async httpGet(ctx: WebContext) {
     let uuid = ctx.parameter("uuid");
     let object = await this.get(uuid, ctx);
     await this.emitSync("Store.WebGetNotFound", {
@@ -2115,7 +2115,7 @@ abstract class Store<
       }
     }
   })
-  async httpRoute(ctx: Context) {
+  async httpRoute(ctx: WebContext) {
     let uuid = ctx.parameter("uuid");
     let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw 404;

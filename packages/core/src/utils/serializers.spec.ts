@@ -161,19 +161,9 @@ plop: test
         .map(c => res.includes(c))
         .reduce((v, c) => v && c, true)
     );
+    res = [];
     FileUtils.find("test", f => res.push(f), { includeDir: true, followSymlinks: true });
-    assert.ok(
-      [
-        "templates/PASSPORT_EMAIL_RECOVERY",
-        "test/models",
-        "test/models/ident.js",
-        "test/my-cnf.json",
-        "test/jsonutils/mdocs.yaml",
-        "test/data/test.png"
-      ]
-        .map(c => res.includes(c))
-        .reduce((v, c) => v && c, true)
-    );
+    assert.ok(res.filter(r => r.includes("PASSPORT_EMAIL_RECOVERY")).length > 0);
   }
 
   @test

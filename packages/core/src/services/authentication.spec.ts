@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Authentication, Context, CoreModel, DebugMailer, Ident, PasswordRecoveryInfos, Store } from "..";
+import { Authentication, CoreModel, DebugMailer, Ident, PasswordRecoveryInfos, Store, WebContext } from "..";
 import { WebdaTest } from "../test";
 import { AuthenticationParameters } from "./authentication";
 
@@ -43,7 +43,7 @@ class AuthenticationTest extends WebdaTest {
     this.mailer.sent = [];
   }
 
-  async registerTest2(ctx: Context) {
+  async registerTest2(ctx: WebContext) {
     let executor = this.getExecutor(
       ctx,
       "test.webda.io",

@@ -1,6 +1,6 @@
 import { CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
 import { JWTOptions } from "../services/cryptoservice";
-import { Context } from "./context";
+import { WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
 
 /**
@@ -90,7 +90,7 @@ export class SecureCookie {
    * @param context
    * @returns
    */
-  static async load(name: string, context: Context, options?: JWTOptions) {
+  static async load(name: string, context: WebContext, options?: JWTOptions) {
     let cookies = {};
     let raw = "";
     let session = context.newSession();
@@ -134,7 +134,7 @@ export class SecureCookie {
    */
   static async save(
     name: string,
-    context: Context,
+    context: WebContext,
     data: any,
     options?: JWTOptions,
     cookieOptions?: Partial<CookieOptions>
@@ -153,7 +153,7 @@ export class SecureCookie {
    * @param value of the cookie
    * @param params for the cookie
    */
-  static sendCookie(ctx: Context, name: string, value: string, params: CookieOptions) {
+  static sendCookie(ctx: WebContext, name: string, value: string, params: CookieOptions) {
     let j = 1;
     let cookieName = name;
     let limit;

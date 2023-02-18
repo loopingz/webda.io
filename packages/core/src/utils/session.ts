@@ -2,7 +2,7 @@ import { CoreModel, NotEnumerable } from "../models/coremodel";
 import CryptoService, { JWTOptions } from "../services/cryptoservice";
 import { DeepPartial, Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
-import { Context } from "./context";
+import { WebContext } from "./context";
 import { CookieOptions, SecureCookie } from "./cookie";
 
 /**
@@ -13,13 +13,13 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
    * Load a session based on context
    * @param context
    */
-  abstract load(context: Context): Promise<Session>;
+  abstract load(context: WebContext): Promise<Session>;
   /**
    * Save the session within the context
    * @param context
    * @param session
    */
-  abstract save(context: Context, session: Session): Promise<void>;
+  abstract save(context: WebContext, session: Session): Promise<void>;
 }
 
 export class CookieSessionParameters extends ServiceParameters {
@@ -76,7 +76,7 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  async load(context: Context): Promise<Session> {
+  async load(context: WebContext): Promise<Session> {
     const session = new Session();
     let cookie = await SecureCookie.load(this.parameters.cookie.name, context, this.parameters.jwt);
     if (this.sessionStore) {
@@ -94,7 +94,7 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  async save(context: Context, session: Session) {
+  async save(context: WebContext, session: Session) {
     // If store is found session info are stored in db
     if (this.sessionStore) {
       await this.sessionStore.save({

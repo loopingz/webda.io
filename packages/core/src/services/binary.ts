@@ -7,7 +7,7 @@ import { Readable } from "stream";
 import { Counter, WebdaError } from "../index";
 import { CoreModel, NotEnumerable } from "../models/coremodel";
 import { EventStoreDeleted, MappingService, Store } from "../stores/store";
-import { Context } from "../utils/context";
+import { OperationContext, WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
 /**
@@ -19,7 +19,7 @@ export interface EventBinary {
   /**
    * In case the Context is known
    */
-  context?: Context;
+  context?: OperationContext;
 }
 
 export interface EventBinaryUploadSuccess extends EventBinary {
@@ -224,7 +224,7 @@ export class BinaryMap extends BinaryFile {
    * Current context
    */
   @NotEnumerable
-  __ctx: Context;
+  __ctx: OperationContext;
   /**
    * Link to the binary store
    */
@@ -277,7 +277,7 @@ export class BinaryMap extends BinaryFile {
    * Set the http context
    * @param ctx
    */
-  setContext(ctx: Context) {
+  setContext(ctx: OperationContext) {
     this.__ctx = ctx;
   }
 }
@@ -629,7 +629,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @param req
    * @returns
    */
-  async _getFile(req: Context): Promise<BinaryFile> {
+  async _getFile(req: WebContext): Promise<BinaryFile> {
     let file = await req.getHttpContext().getRawBody(10 * 1024 * 1024);
     // TODO Check if we have other type
     return new MemoryBinaryFile(Buffer.from(file), {
@@ -801,7 +801,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @param ctx
    * @returns
    */
-  _verifyMapAndStore(ctx: Context): Store<CoreModel> {
+  _verifyMapAndStore(ctx: WebContext): Store<CoreModel> {
     let store = ctx.parameter("store").toLowerCase();
     // To avoid any probleme lowercase everything
     let map = this.parameters.map[this._lowercaseMaps[store]];
@@ -823,7 +823,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    *
    * @param ctx
    */
-  async putRedirectUrl(_ctx: Context): Promise<{ url: string; method?: string }> {
+  async putRedirectUrl(_ctx: WebContext): Promise<{ url: string; method?: string }> {
     // Dont handle the redirect url
     throw 404;
   }
@@ -831,7 +831,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   /**
    * Mechanism to add a data based on challenge
    */
-  async httpChallenge(ctx: Context<BinaryFile>) {
+  async httpChallenge(ctx: WebContext<BinaryFile>) {
     let body = await ctx.getRequestBody();
     if (!body.hash || !body.challenge) {
       throw 400;
@@ -857,7 +857,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * Manage the different routes
    * @param ctx
    */
-  async httpRoute(ctx: Context) {
+  async httpRoute(ctx: WebContext) {
     // First verify if map exist
     let targetStore = this._verifyMapAndStore(ctx);
     // Get the object

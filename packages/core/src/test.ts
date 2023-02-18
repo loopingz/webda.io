@@ -1,6 +1,6 @@
 // organize-imports-ignore
 import { WorkerLogLevel } from "@webda/workout";
-import { Context, Core, HttpContext, HttpMethodType, Service } from "./index";
+import { Core, HttpContext, HttpMethodType, Service, WebContext } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as path from "path";
 import { execSync } from "child_process";
@@ -14,7 +14,7 @@ export class Executor {
   /**
    * Main method called by the webda framework if the route don't specify a _method
    */
-  execute(ctx: Context): Promise<any> {
+  execute(ctx: WebContext): Promise<any> {
     if (typeof ctx._route._method === "function") {
       return ctx.execute();
     }
@@ -199,7 +199,7 @@ class WebdaTest {
    * @param body to add to the context
    * @returns
    */
-  async newContext<T extends Context>(body: any = {}): Promise<T> {
+  async newContext<T extends WebContext>(body: any = {}): Promise<T> {
     let res = await this.webda.newContext<T>(new HttpContext("test.webda.io", "GET", "/"));
     res.getHttpContext().setBody(body);
     return res;
@@ -217,7 +217,7 @@ class WebdaTest {
    * @returns
    */
   getExecutor(
-    ctx: Context = undefined,
+    ctx: WebContext = undefined,
     host: string = "test.webda.io",
     method: HttpMethodType = "GET",
     url: string = "/",
@@ -228,13 +228,13 @@ class WebdaTest {
     httpContext.setBody(body);
     httpContext.setClientIp("127.0.0.1");
     if (!ctx) {
-      ctx = new Context(this.webda, httpContext);
+      ctx = new WebContext(this.webda, httpContext);
     } else {
       ctx.setHttpContext(httpContext);
     }
     if (this.webda.updateContextWithRoute(ctx)) {
       return {
-        execute: async (argCtx: Context = ctx) => {
+        execute: async (argCtx: WebContext = ctx) => {
           if (typeof argCtx._route._method === "function") {
             return Promise.resolve(argCtx.getExecutor()[argCtx._route._method.name](argCtx));
           }
@@ -244,7 +244,7 @@ class WebdaTest {
   }
 
   async execute(
-    ctx: Context = undefined,
+    ctx: WebContext = undefined,
     host: string = "test.webda.io",
     method: HttpMethodType = "GET",
     url: string = "/",
@@ -288,9 +288,9 @@ class WebdaTest {
    * Wait for the next tick(s)
    * @param ticks if you want to wait for more than one tick
    */
-  async nextTick(ticks: number = 1) : Promise<void> {
+  async nextTick(ticks: number = 1): Promise<void> {
     while (ticks-- > 0) {
-      await  new Promise(resolve => process.nextTick(resolve));
+      await new Promise(resolve => process.nextTick(resolve));
     }
   }
 
@@ -309,7 +309,7 @@ class WebdaTest {
    * @param name of the service to add
    * @param service to add
    */
-  registerService<T extends Service>(service: T, name: string = service.getName()) : T {
+  registerService<T extends Service>(service: T, name: string = service.getName()): T {
     // Have to override protected
     // @ts-ignore
     this.webda.services[name.toLowerCase()] = service;

@@ -661,5 +661,9 @@
       "title": "LocalRunner"
     }
   },
-  "graph": {}
+  "graph": {
+    "webda/asyncaction": {},
+    "webda/asyncwebdaaction": {},
+    "webda/asyncoperationaction": {}
+  }
 }

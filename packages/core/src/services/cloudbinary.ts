@@ -1,5 +1,5 @@
 import { join } from "path";
-import { Context } from "../index";
+import { OperationContext } from "../utils/context";
 import { Binary, BinaryMap, BinaryModel, BinaryParameters } from "./binary";
 
 /**
@@ -176,5 +176,5 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param {GetSignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  abstract getSignedUrlFromMap(map: BinaryMap, expires: number, context: Context): Promise<string>;
+  abstract getSignedUrlFromMap(map: BinaryMap, expires: number, context: OperationContext): Promise<string>;
 }

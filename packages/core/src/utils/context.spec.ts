@@ -3,14 +3,14 @@ import * as assert from "assert";
 import { Readable } from "stream";
 import { Service } from "../services/service";
 import { WebdaTest } from "../test";
-import { Context, OperationContext, WebContext } from "./context";
+import { OperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
 @suite
 class ContextTest extends WebdaTest {
-  ctx: Context;
+  ctx: WebContext;
   async before() {
     await super.before();
-    this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/"));
+    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/"));
   }
 
   @test
@@ -48,7 +48,7 @@ class ContextTest extends WebdaTest {
     this.ctx.getRoute();
     assert.notStrictEqual(this.ctx.getService("Users"), undefined);
     assert.notStrictEqual(this.ctx.getService<Service>("Users"), undefined);
-    this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setPathParameters({ id: "plop" });
     this.ctx.setServiceParameters({ id: "service" });
     assert.strictEqual(this.ctx.getServiceParameters().id, "service");
@@ -144,7 +144,6 @@ class ContextTest extends WebdaTest {
     req.setTimeout(1, () => {});
   }
 
-
   @test
   getResponseSize() {
     // @ts-ignore
@@ -183,11 +182,11 @@ class ContextTest extends WebdaTest {
 
   @test
   expressCompatibility() {
-    this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.status(403), this.ctx);
     assert.strictEqual(this.ctx.statusCode, 403);
-    this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.json({ plop: "test" }), this.ctx);
     assert.strictEqual(this.ctx.getResponseBody(), '{"plop":"test"}');
@@ -285,5 +284,7 @@ class ContextTest extends WebdaTest {
     ctx = new WebContext(this.webda, http);
     await ctx.getRawInput();
     ctx.getRawStream();
+    ctx.writeHead(200, { test: "plip" });
+    ctx.setHeader("test", "plip");
   }
 }

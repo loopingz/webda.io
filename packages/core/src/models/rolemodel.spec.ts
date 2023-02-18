@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Context, Core, HttpContext, RoleModel, Session, User } from "../index";
+import { Core, HttpContext, RoleModel, Session, User, WebContext } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -30,7 +30,7 @@ class RolePolicyModelPermissive extends RoleModel {
 
 @suite
 class RolePolicyTest {
-  _ctx: Context;
+  _ctx: WebContext;
   nonPermissive: RoleModel;
   permissive: RoleModel;
   _webda: Core;

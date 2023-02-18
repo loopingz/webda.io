@@ -1,4 +1,4 @@
-import { Context } from "../utils/context";
+import { OperationContext } from "../utils/context";
 import { CoreModel } from "./coremodel";
 
 /**
@@ -23,7 +23,7 @@ export class OwnerModel extends CoreModel {
   /**
    * Return false if can't create
    */
-  async canCreate(ctx: Context): Promise<this> {
+  async canCreate(ctx: OperationContext): Promise<this> {
     const userId = ctx.getSession().userId;
     if (!userId) {
       throw 403;
@@ -52,7 +52,7 @@ export class OwnerModel extends CoreModel {
   }
 
   async canAct(
-    ctx: Context,
+    ctx: OperationContext,
     action:
       | "create"
       | "update"
@@ -87,7 +87,7 @@ export class OwnerModel extends CoreModel {
    * @param context
    * @returns
    */
-  static getPermissionQuery(context?: Context): null | { partial: boolean; query: string } {
+  static getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string } {
     if (!context) {
       return null;
     }
@@ -100,7 +100,7 @@ export class OwnerModel extends CoreModel {
   /**
    * Return false if can't update
    */
-  async canUpdate(ctx: Context): Promise<this> {
+  async canUpdate(ctx: OperationContext): Promise<this> {
     // Allow to modify itself by default
     if ((!this.getOwner() || ctx.getCurrentUserId() !== this.getOwner()) && ctx.getCurrentUserId() !== this.uuid) {
       throw 403;
@@ -111,7 +111,7 @@ export class OwnerModel extends CoreModel {
   /**
    * Return false if can't get
    */
-  async canGet(ctx: Context): Promise<this> {
+  async canGet(ctx: OperationContext): Promise<this> {
     if (this.public) {
       return this;
     }
@@ -121,7 +121,7 @@ export class OwnerModel extends CoreModel {
   /**
    * Return false if can't delete
    */
-  async canDelete(ctx: Context): Promise<this> {
+  async canDelete(ctx: OperationContext): Promise<this> {
     return this.canUpdate(ctx);
   }
 }

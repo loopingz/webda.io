@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";
-import { Context, CookieOptions, SecureCookie } from "../index";
+import { CookieOptions, SecureCookie, WebContext } from "../index";
 import { WebdaTest } from "../test";
 import { SimpleOperationContext } from "./context";
 import { HttpContext } from "./httpcontext";
@@ -12,7 +12,7 @@ const SECRET =
 
 @suite
 class CookieTest extends WebdaTest {
-  _ctx: Context;
+  _ctx: WebContext;
   async before() {
     await super.before();
     this._ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
@@ -29,7 +29,7 @@ class CookieTest extends WebdaTest {
 
   @test
   async cov() {
-    let session = await SecureCookie.load("test", new Context(this.webda, undefined, undefined), undefined);
+    let session = await SecureCookie.load("test", new WebContext(this.webda, undefined, undefined), undefined);
     assert.strictEqual(Object.keys(session).length, 0);
     assert.strictEqual(
       await new SimpleOperationContext(this.webda).setInput(Buffer.from("plop")).getRawInputAsString(),

@@ -4,7 +4,7 @@ import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
 import { join } from "path";
-import { Constructor, Context, Core, CoreModel, CoreModelDefinition, Service, WebdaError } from "./index";
+import { Constructor, Core, CoreModel, CoreModelDefinition, OperationContext, Service, WebdaError } from "./index";
 import { getCommonJS } from "./utils/esm";
 import { FileUtils } from "./utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -712,7 +712,7 @@ export class Application {
   /**
    * Get all models definitions
    */
-  getModels(): { [key: string]: Constructor<Context> | CoreModelDefinition } {
+  getModels(): { [key: string]: Constructor<OperationContext> | CoreModelDefinition } {
     return this.models;
   }
 

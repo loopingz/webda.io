@@ -1,5 +1,5 @@
 import { Core, Counter } from "../core";
-import { Context, EventWithContext, RequestFilter } from "../index";
+import { EventWithContext, OperationContext, RequestFilter, WebContext } from "../index";
 import { Authentication } from "./authentication";
 import { Service, ServiceParameters } from "./service";
 
@@ -120,7 +120,7 @@ export abstract class OAuthService<
     E extends OAuthEvents = OAuthEvents
   >
   extends Service<T, E>
-  implements RequestFilter<Context>
+  implements RequestFilter<WebContext>
 {
   _authenticationService: Authentication;
 
@@ -166,7 +166,7 @@ export abstract class OAuthService<
    * @param context
    * @returns
    */
-  async checkRequest(context: Context): Promise<boolean> {
+  async checkRequest(context: WebContext): Promise<boolean> {
     // Only authorize url from this service
     if (!context.getHttpContext().getRelativeUri().startsWith(this.parameters.url)) {
       return false;
@@ -280,7 +280,7 @@ export abstract class OAuthService<
    * Expose the scope used by the authentication
    * @param ctx
    */
-  _scope(ctx: Context) {
+  _scope(ctx: OperationContext) {
     ctx.write(this.parameters.scope);
   }
 
@@ -298,7 +298,7 @@ export abstract class OAuthService<
    * The calling url must be and authorized_uris if defined
    * @param ctx
    */
-  _redirect(ctx: Context) {
+  _redirect(ctx: WebContext) {
     // implement default behavior
     let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
     let redirect = ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
@@ -327,7 +327,7 @@ export abstract class OAuthService<
    * This is private to avoid any override
    * @param context
    */
-  private async _token(context: Context) {
+  private async _token(context: WebContext) {
     const res = await this.handleToken(context);
     await this.handleReturn(context, res.identId, res.profile);
     await this.emitSync("OAuth.Callback", <EventOAuthToken>{
@@ -345,7 +345,7 @@ export abstract class OAuthService<
    * This is private to avoid any override
    * @param ctx
    */
-  private async _callback(ctx: Context) {
+  private async _callback(ctx: WebContext) {
     const res = await this.handleCallback(ctx);
     await this.handleReturn(ctx, res.identId, res.profile);
     await this.emitSync("OAuth.Callback", {
@@ -363,7 +363,7 @@ export abstract class OAuthService<
    * @param identId
    * @param profile
    */
-  async handleReturn(ctx: Context, identId: string, profile: any, _tokens: any = undefined) {
+  async handleReturn(ctx: WebContext, identId: string, profile: any, _tokens: any = undefined) {
     // If no identId has been provided error
     if (!identId) {
       throw 403;
@@ -415,18 +415,18 @@ export abstract class OAuthService<
    * @param state random state
    * @param ctx Context of request
    */
-  abstract generateAuthUrl(redirect_uri: string, state: string, ctx: Context);
+  abstract generateAuthUrl(redirect_uri: string, state: string, ctx: WebContext);
 
   /**
    * Verify a token from a provider
    *
    * @param ctx
    */
-  abstract handleToken(ctx: Context): Promise<OAuthReturn>;
+  abstract handleToken(ctx: OperationContext): Promise<OAuthReturn>;
 
   /**
    * Manage the return of a provider
    * @param ctx
    */
-  abstract handleCallback(ctx: Context): Promise<OAuthReturn>;
+  abstract handleCallback(ctx: WebContext): Promise<OAuthReturn>;
 }

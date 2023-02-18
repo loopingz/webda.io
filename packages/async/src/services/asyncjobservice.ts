@@ -2,7 +2,6 @@ import {
   CancelableLoopPromise,
   CloudBinary,
   Constructor,
-  Context,
   Core,
   CoreModel,
   CoreModelDefinition,
@@ -12,7 +11,8 @@ import {
   RequestFilter,
   Service,
   ServiceParameters,
-  Store
+  Store,
+  WebContext
 } from "@webda/core";
 import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";
@@ -225,7 +225,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Allow job status report url
    */
-  async checkRequest(context: Context): Promise<boolean> {
+  async checkRequest(context: WebContext): Promise<boolean> {
     const url = context.getHttpContext().getRelativeUri();
     if (url.startsWith(this.parameters.url)) {
       // Allow status url to be called without other mechanism
@@ -240,7 +240,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param context
    * @param action
    */
-  async verifyJobRequest<K extends AsyncAction = AsyncAction>(context: Context): Promise<K> {
+  async verifyJobRequest<K extends AsyncAction = AsyncAction>(context: WebContext): Promise<K> {
     const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
     if (!jobId) {
       this.log("TRACE", "Require Job Id");
@@ -268,7 +268,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    *
    * Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)
    */
-  protected async statusHook(context: Context) {
+  protected async statusHook(context: WebContext) {
     let action = await this.verifyJobRequest(context);
     const body = await context.getRequestBody();
     action = await this.updateAction(

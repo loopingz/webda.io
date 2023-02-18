@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { v4 as uuidv4 } from "uuid";
 import { Ident } from "../../test/models/ident";
-import { Context, Store, StoreParameters, User } from "../index";
+import { OperationContext, Store, StoreParameters, User } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
@@ -14,7 +14,7 @@ import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./sto
  */
 export class PermissionModel extends CoreModel {
   order: number;
-  async canAct(ctx: Context, _action: string): Promise<this> {
+  async canAct(ctx: OperationContext, _action: string): Promise<this> {
     if (this.order % 200 < 120) {
       throw 403;
     }

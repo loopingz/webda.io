@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Core } from "../core";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
-import { Context, OperationContext } from "../utils/context";
+import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { ModelActions } from "./relations";
 
@@ -23,19 +23,32 @@ export function Expose() {
 }
 
 class CoreModelQuery {
-  constructor(private type: string, private model: string) {}
+  constructor(private type: string, private modelId: string) {}
   /**
    * Query the object
    * @param query
    * @returns
    */
-  query(query?: string): Promise<CoreModel[]> {
-    return null;
+  query(
+    query?: string,
+    context?: OperationContext
+  ): Promise<{
+    results: CoreModel[];
+    continuationToken?: string;
+  }> {
+    return Core.get().getModelStore(Core.get().getModel(this.type)).query(query, context);
   }
 
   async forEach() {}
 
-  async getAll() {}
+  /**
+   * Get all objects linked
+   * @param context
+   * @returns
+   */
+  async getAll(context?: OperationContext) {
+    return Core.get().getModelStore(Core.get().getModel(this.type)).queryAll("", context);
+  }
 }
 
 /**
@@ -76,12 +89,12 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
    * @param object to load data from
    * @param context if the data is unsafe from http
    */
-  factory(model: new () => T, object: any, context?: Context): T;
+  factory(model: new () => T, object: any, context?: OperationContext): T;
   getActions(): { [key: string]: ModelAction };
   getUuidField(): string;
   getLastUpdateField(): string;
   getCreationField(): string;
-  getPermissionQuery(context?: Context): null | { partial: boolean; query: string };
+  getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -401,7 +414,7 @@ class CoreModel {
    * @param context of the query
    * @returns
    */
-  static getPermissionQuery(_ctx: Context): null | { partial: boolean; query: string } {
+  static getPermissionQuery(_ctx: OperationContext): null | { partial: boolean; query: string } {
     return null;
   }
 
@@ -410,7 +423,7 @@ class CoreModel {
    * @returns
    */
   async canAct(
-    _ctx: Context,
+    _ctx: OperationContext,
     _action:
       | "create"
       | "update"
@@ -677,7 +690,7 @@ class CoreModel {
    * Global object does not belong to a request
    */
   getContext<T extends OperationContext>(): T {
-    return <any>this.__ctx || Context.getGlobalContext();
+    return <any>this.__ctx || OperationContext.getGlobalContext();
   }
 
   /**
@@ -808,7 +821,7 @@ class CoreModel {
    * @param ctx
    * @param updates
    */
-  async validate(ctx: Context, updates: any, ignoreRequired: boolean = false): Promise<boolean> {
+  async validate(ctx: OperationContext, updates: any, ignoreRequired: boolean = false): Promise<boolean> {
     ctx.getWebda().validateSchema(this, updates, ignoreRequired);
     return true;
   }

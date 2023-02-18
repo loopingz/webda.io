@@ -1,4 +1,4 @@
-import { Context, CoreModel } from "../index";
+import { CoreModel, OperationContext } from "../index";
 abstract class RoleModel extends CoreModel {
   abstract getRolesMap(): { [key: string]: string };
 
@@ -6,7 +6,7 @@ abstract class RoleModel extends CoreModel {
     return false;
   }
 
-  async getRoles(ctx: Context) {
+  async getRoles(ctx: OperationContext) {
     if (!ctx.getCurrentUserId()) {
       throw 403;
     }
@@ -20,7 +20,7 @@ abstract class RoleModel extends CoreModel {
     return ctx.getSession().roles;
   }
 
-  async canAct(ctx: Context, action: string) {
+  async canAct(ctx: OperationContext, action: string) {
     // If this action doesn't require role
     if (!this.getRolesMap()[action]) {
       if (this.isPermissive()) {

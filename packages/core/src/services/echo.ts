@@ -1,4 +1,4 @@
-import { Context } from "../index";
+import { WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
 export class EchoServiceParameters extends ServiceParameters {
@@ -49,7 +49,7 @@ export class EchoService extends Service<EchoServiceParameters> {
   }
 
   /** @ignore */
-  async execute(ctx: Context): Promise<any> {
+  async execute(ctx: WebContext): Promise<any> {
     if (this.parameters.mime) {
       ctx.writeHead(200, {
         "Content-Type": this.parameters.mime

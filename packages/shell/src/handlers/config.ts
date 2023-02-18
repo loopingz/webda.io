@@ -1,11 +1,11 @@
 import {
   Application,
   Configuration,
-  Context,
   RequestFilter,
   SectionEnum,
   Service,
-  ServiceConstructor
+  ServiceConstructor,
+  WebContext
 } from "@webda/core";
 import * as path from "path";
 import { Deployment } from "../models/deployment";
@@ -14,10 +14,10 @@ import { WebdaServer } from "./http";
 /**
  * @WebdaModda webdashell/configuration
  */
-export default class ConfigurationService extends Service implements RequestFilter<Context> {
+export default class ConfigurationService extends Service implements RequestFilter<WebContext> {
   webdaApplication: Application;
 
-  async checkRequest(context: Context): Promise<boolean> {
+  async checkRequest(context: WebContext): Promise<boolean> {
     if (context.getHttpContext().getHeader("origin") === "localhost:18181") {
       return true;
     }
@@ -42,7 +42,7 @@ export default class ConfigurationService extends Service implements RequestFilt
     return this;
   }
 
-  async crudConfiguration(ctx: Context) {
+  async crudConfiguration(ctx: WebContext) {
     if (ctx.getHttpContext().getMethod() === "GET") {
       ctx.write(this.webdaApplication.getConfiguration());
     } else if (ctx.getHttpContext().getMethod() === "PUT") {
@@ -55,18 +55,18 @@ export default class ConfigurationService extends Service implements RequestFilt
    *
    * @param ctx
    */
-  async getWebdaVersions(ctx: Context) {
+  async getWebdaVersions(ctx: WebContext) {
     ctx.write({
       Core: this._webda.getApplication(),
       Shell: this.webdaApplication.getPackageDescription().version
     });
   }
 
-  async npmSearch(ctx: Context) {
+  async npmSearch(ctx: WebContext) {
     ctx.write({});
   }
 
-  async getApplication(ctx: Context) {
+  async getApplication(ctx: WebContext) {
     ctx.write(this.webdaApplication);
   }
 }

@@ -1,4 +1,4 @@
-import { Context, EventAuthenticationRegister, EventWithContext, Ident, Store } from "../index";
+import { EventAuthenticationRegister, EventWithContext, Ident, OperationContext, Store, WebContext } from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
@@ -234,8 +234,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @param model
    */
-  async answerInvitation(ctx: Context<InvitationAnswerBody>, model: CoreModel) {
-    let body = await ctx.getRequestBody();
+  async answerInvitation(ctx: WebContext<InvitationAnswerBody>, model: CoreModel) {
+    let body = await ctx.getInput();
     // Need to specify if you accept or not
     if (typeof body.accept !== "boolean") {
       throw 400;
@@ -286,8 +286,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @param model
    */
-  async uninvite(ctx: Context<Invitation>, model: CoreModel) {
-    const body: Invitation = await ctx.getRequestBody();
+  async uninvite(ctx: OperationContext<Invitation>, model: CoreModel) {
+    const body: Invitation = await ctx.getInput();
     body.users ??= [];
     body.idents ??= [];
     const promises = [];
@@ -364,7 +364,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @returns
    */
-  async invite(ctx: Context) {
+  async invite(ctx: WebContext) {
     let model = await this.modelStore.get(ctx.getParameters().uuid);
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);

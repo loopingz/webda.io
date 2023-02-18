@@ -1,11 +1,11 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Context, CoreModel, HttpContext, Session, Store, User } from "../index";
+import { CoreModel, HttpContext, Session, Store, User, WebContext } from "../index";
 import { WebdaTest } from "../test";
 
 @suite
 class OwnerModelTest extends WebdaTest {
-  _ctx: Context;
+  _ctx: WebContext;
   _session: Session;
   _user: User;
   _taskStore: Store<CoreModel, any>;

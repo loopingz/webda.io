@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Context } from "@webda/core";
+import { WebContext } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { ApiKey } from "./apikey";
@@ -13,12 +13,12 @@ const KEY = {
 
 @suite
 class ApiKeyTest extends WebdaTest {
-  context: Context;
+  context: WebContext;
   apikey: ApiKey;
 
   async before() {
     await super.before();
-    this.context = <Context>await this.newContext();
+    this.context = <WebContext>await this.newContext();
     this.apikey = new ApiKey();
   }
 

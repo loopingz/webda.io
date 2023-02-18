@@ -1,7 +1,7 @@
 // organize-imports-ignore
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { CacheService, Context, HttpContext, HttpMethodType, Store, UnknownSession } from "@webda/core";
+import { CacheService, WebContext, HttpContext, HttpMethodType, Store, UnknownSession } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
@@ -11,7 +11,7 @@ import { HawkService } from "./hawk";
 class HawkServiceTest extends WebdaTest {
   store: Store<ApiKey>;
   service: HawkService;
-  context: Context;
+  context: WebContext;
   key: ApiKey;
   fakeCredentials: any;
 
@@ -22,7 +22,7 @@ class HawkServiceTest extends WebdaTest {
     await this.store.save({ uuid: "origins" });
     assert.notStrictEqual(this.service, undefined);
     assert.notStrictEqual(this.store, undefined);
-    this.context = <Context>await this.newContext();
+    this.context = <WebContext>await this.newContext();
     this.context.getSession<UnknownSession>().userProfile = { login: "gabitbol" };
     this.key = this.store.newModel({ __secret: "randomSecret", uuid: "mykey" });
     await this.key.save();

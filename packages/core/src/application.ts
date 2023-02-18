@@ -449,7 +449,7 @@ export class Application {
   /**
    * Models graph
    */
-  protected graph: ModelsGraph;
+  protected graph: ModelsGraph = {};
 
   /**
    * Class Logger
@@ -576,7 +576,7 @@ export class Application {
    * @returns
    */
   getGraph() {
-    return this.graph || {};
+    return this.graph;
   }
 
   /**

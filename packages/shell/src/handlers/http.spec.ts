@@ -225,6 +225,17 @@ class WebdaServerTest {
     ctx.setFlushedHeaders();
     // Test we do not double flush headers
     this.server.flushHeaders(ctx);
+    // Test the catch
+    ctx.setFlushedHeaders(false);
+    // @ts-ignore
+    ctx.getStream = () => {
+      return {
+        setHeader: () => {
+          throw new Error("Plop");
+        }
+      };
+    };
+    this.server.flushHeaders(ctx);
   }
 
   @test

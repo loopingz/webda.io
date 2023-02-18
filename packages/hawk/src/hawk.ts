@@ -1,4 +1,13 @@
-import { Cache, Context, CryptoService, Inject, RequestFilter, Service, ServiceParameters, Store } from "@webda/core";
+import {
+  Cache,
+  CryptoService,
+  Inject,
+  RequestFilter,
+  Service,
+  ServiceParameters,
+  Store,
+  WebContext
+} from "@webda/core";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
 
@@ -91,7 +100,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   /**
    * Return information for hawk
    */
-  async getHawkRequest(context: Context) {
+  async getHawkRequest(context: WebContext) {
     let http = context.getHttpContext();
     return {
       method: http.getMethod(),
@@ -154,14 +163,14 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    * Redirect with a CSRF
    * @param context
    */
-  async _redirect(context: Context) {
+  async _redirect(context: WebContext) {
     return this.redirectWithCSRF(context, context.getParameters().url);
   }
 
   /**
    * Redirect to a website with CSRF
    */
-  async redirectWithCSRF(context: Context, url: string) {
+  async redirectWithCSRF(context: WebContext, url: string) {
     if (!this.parameters.redirectUris.some(u => url.startsWith(u))) {
       throw 403;
     }
@@ -207,7 +216,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    * @param {Context} context
    * @returns {Promise<boolean>}
    */
-  async checkRequest(context: Context): Promise<boolean> {
+  async checkRequest(context: WebContext): Promise<boolean> {
     // Authorize the options
     if (context.getHttpContext().getMethod() === "OPTIONS") {
       return this.checkOPTIONS(context.getHttpContext().getUniqueHeader("origin") || "");

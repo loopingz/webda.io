@@ -1,4 +1,4 @@
-import { Context, LoggerService, Service, ServiceParameters } from "@webda/core";
+import { LoggerService, Service, ServiceParameters, WebContext } from "@webda/core";
 
 /**
  * Profiler Parameters
@@ -155,7 +155,7 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
    * @param {Context} request to instrument
    * @param {any[]}
    */
-  instrumentRequest(ctx: Context, ..._args: any[]) {
+  instrumentRequest(ctx: WebContext, ..._args: any[]) {
     const exec = ctx.execute.bind(ctx);
     // Dynamic replace the execute functionc
     ctx.execute = async () => {

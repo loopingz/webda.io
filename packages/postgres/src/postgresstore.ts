@@ -150,16 +150,6 @@ export default class PostgresStore<
     } SET data = jsonb_set(${data}, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(
       uid
     )}'`;
-    console.log("QUERY1", query);
-    const { property: attribute, value } = params[0];
-    console.log(
-      "QUERY2",
-      `UPDATE ${
-        this.parameters.table
-      } SET data = jsonb_set(jsonb_set(data, '{${attribute}}', (COALESCE(data->>'${attribute}','0')::int + ${value})::text::jsonb)::jsonb, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(
-        uid
-      )}'`
-    );
     let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       throw new StoreNotFoundError(uid, this.getName());

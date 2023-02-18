@@ -192,6 +192,9 @@ class ApplicationTest extends WebdaTest {
         },
         deployers: {
           ReTest: "notFound.js"
+        },
+        graph: {
+          "webdademo/test": {}
         }
       },
       ""

@@ -209,11 +209,11 @@ class ConsoleTest {
     // Add a new .ts
     fs.writeFileSync(
       this.dynamicFile,
-      `import { Bean, Context, Route, Service } from "@webda/core";
+      `import { Bean, OperationContext, Route, Service } from "@webda/core";
 @Bean
 class DynamicService extends Service {
     @Route("/myNewRoute", ["GET"])
-    test(ctx: Context) {
+    test(ctx: OperationContext) {
         ctx.write("Debugger Rox!");
     }
 }

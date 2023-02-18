@@ -269,11 +269,13 @@ export default class MapperService<T extends MapperParameters = MapperParameters
       if (this.isMapped(this.sourceService.getLastUpdateField())) {
         updates[this.sourceService.getLastUpdateField()] = updateDate;
       }
-      props.filter(prop => this.isMapped(prop)).forEach(prop => {
-        if (this.isMapped(prop)) {
-          updates[prop] = source[prop];
-        }
-      })
+      props
+        .filter(prop => this.isMapped(prop))
+        .forEach(prop => {
+          if (this.isMapped(prop)) {
+            updates[prop] = source[prop];
+          }
+        });
       await this.handleMap(source, updates);
     }
   }

@@ -21,7 +21,11 @@ export type Methods<T extends object> = {
 /**
  * Model loader with a `get` method
  */
-type ModelLoader<T extends CoreModel, K = string> = { get: () => Promise<T> } & Readonly<K>;
+type ModelLoader<T extends CoreModel, K = string> = {
+  get: () => Promise<T>;
+  set: (info: K) => void;
+  toString(): string;
+} & Readonly<K>;
 
 /**
  * Load related objects
@@ -34,7 +38,7 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
    * @param query
    * @returns
    */
-  query: (query?: string) => Promise<T[]>;
+  query: (query?: string) => Promise<{ results: T[]; continuationToken?: string }>;
   /**
    *
    * @param model Iterate through all related objects
@@ -67,7 +71,7 @@ export type ModelsMapped<T extends CoreModel, K extends Attributes<T>> = Readonl
  * Define a link to 1:n relation
  */
 export type ModelLink<T extends CoreModel, _FK extends keyof T = any> = ModelLoader<T> &
-  string & {
+  String & {
     set: (id: string) => void;
   };
 

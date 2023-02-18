@@ -1,4 +1,11 @@
-import { Context, OAuthEvents, OAuthService, OAuthServiceParameters, OAuthSession, RequestFilter } from "@webda/core";
+import {
+  OAuthEvents,
+  OAuthService,
+  OAuthServiceParameters,
+  OAuthSession,
+  RequestFilter,
+  WebContext
+} from "@webda/core";
 import { Credentials, OAuth2Client } from "google-auth-library";
 import * as http from "http";
 
@@ -10,7 +17,7 @@ export interface EventGoogleOAuthToken {
   /**
    * Request context
    */
-  context: Context;
+  context: WebContext;
 }
 
 /**
@@ -64,7 +71,7 @@ type GoogleAuthEvents = OAuthEvents & {
  */
 export default class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   extends OAuthService<T, GoogleAuthEvents>
-  implements RequestFilter<Context>
+  implements RequestFilter<WebContext>
 {
   protected _client: OAuth2Client;
 
@@ -109,7 +116,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    * @param redirect_uri
    * @param state
    */
-  generateAuthUrl(redirect_uri: string, state: string, _ctx: Context) {
+  generateAuthUrl(redirect_uri: string, state: string, _ctx: WebContext) {
     let oauthClient = this.getOAuthClient(redirect_uri);
     return oauthClient.generateAuthUrl({
       access_type: this.parameters.access_type,
@@ -132,7 +139,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
   /**
    * @inheritdoc
    */
-  async handleCallback(ctx: Context) {
+  async handleCallback(ctx: WebContext) {
     // Verify state are equal
     if (ctx.getRequestParameters().state !== ctx.getSession<OAuthSession>().oauth?.state) {
       this.log(
@@ -178,7 +185,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
   /**
    * Verify a Google Auth Token
    */
-  async handleToken(context: Context) {
+  async handleToken(context: WebContext) {
     let tokens = (await context.getRequestBody()).tokens;
     if (!tokens) {
       throw 400;

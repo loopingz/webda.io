@@ -153,7 +153,7 @@ export class WebdaServer extends Webda {
       }
 
       await ctx.init();
-      const origin = <string> (req.headers.Origin || req.headers.origin);
+      const origin = <string>(req.headers.Origin || req.headers.origin);
       try {
         // Set predefined headers for CORS
         if (this.devMode || !origin || (await this.checkCORSRequest(ctx))) {

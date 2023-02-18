@@ -17,7 +17,6 @@ class ProxyTest extends WebdaTest {
   fakeServe() {
     this.server = http
       .createServer((req, res) => {
-        console.log("URL", req.url);
         if (req.url === "/plop404") {
           res.writeHead(404);
           res.end();

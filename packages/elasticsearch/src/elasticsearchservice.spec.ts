@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { CoreModel, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { ElasticSearchService } from "./elasticsearchservice";
+import { ElasticSearchService, ESUnknownIndexError } from "./elasticsearchservice";
 
 type TestCoreModel = CoreModel & {
   uuid: string;
@@ -119,5 +119,104 @@ class ElasticSearchTest extends WebdaTest {
     assert.strictEqual(results[0].toRemove, undefined);
     assert.strictEqual(results[0].toAdd, "ADDED");
     assert.strictEqual(results[0].status, "TESTED");
+  }
+
+  @test
+  async timeIndex() {
+    let store = this.webda.getService<Store>("MemoryStore");
+    let es = new ElasticSearchService(this.webda, "ESService", {
+      client: {
+        node: "http://localhost:9200"
+      },
+      indexes: {
+        articles1: {
+          store: "MemoryStore",
+          dateSplit: {
+            attribute: "@timestamp"
+          }
+        },
+        articles2: {
+          store: "MemoryStore",
+          dateSplit: {
+            attribute: "@timestamp",
+            frequency: "daily"
+          }
+        },
+        articles3: {
+          store: "MemoryStore",
+          dateSplit: {
+            attribute: "@timestamp",
+            frequency: "hourly"
+          }
+        },
+        articles4: {
+          store: "MemoryStore",
+          dateSplit: {
+            attribute: "@timestamp",
+            frequency: "yearly"
+          }
+        },
+        articles5: {
+          store: "MemoryStore",
+          dateSplit: {
+            attribute: "@timestamp",
+            frequency: "weekly"
+          }
+        },
+        articles6: {
+          store: "MemoryStore"
+        }
+      }
+    });
+    this.registerService(es, "es");
+    es.resolve();
+    await es.init();
+    await store.save({
+      "@timestamp": "2019-01-01T00:00:00.000Z",
+      uuid: "1"
+    });
+    await store.save({
+      "@timestamp": "1983-10-28T01:45:00.000Z",
+      uuid: "2"
+    });
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles1", "1"), "articles1-2019.01");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles2", "1"), "articles2-2019.01.01");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles3", "1"), "articles3-2019.01.01.00");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles4", "1"), "articles4-2019");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles5", "1"), "articles5-2019.01");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles1", "2"), "articles1-1983.10");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles2", "2"), "articles2-1983.10.28");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles3", "2"), "articles3-1983.10.28.01");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles4", "2"), "articles4-1983");
+    assert.strictEqual(await es.getTimedIndexFromUuid("articles5", "2"), "articles5-1983.43");
+    // @ts-ignore
+    assert.strictEqual(es.getTimedIndex("articles6", undefined), "articles6");
+    // @ts-ignore
+    assert.throws(() => es.getTimedIndex("articles7", undefined), ESUnknownIndexError);
+  }
+
+  @test
+  async reindex() {
+    assert.rejects(() => this.service.reindex("articles7"), ESUnknownIndexError);
+    await this.service.__clean();
+    await this.waitAsyncEnded();
+    let store = this.webda.getService<Store>("MemoryStore");
+    await store.save({
+      "@timestamp": "2019-01-01T00:00:00.000Z",
+      uuid: "1"
+    });
+    store.removeAllListeners();
+    await store.save({
+      "@timestamp": "1983-10-28T01:45:00.000Z",
+      uuid: "2"
+    });
+    await this.service.reindex("articles");
+    await this.waitAsyncEnded();
+    assert.ok(await this.service.exists("articles", "1"));
+    assert.ok(await this.service.exists("articles", "2"));
+    // @ts-ignore
+    this.service._client = undefined;
+    // It should not fail but display warning in logs
+    await this.service.reindex("articles");
   }
 }

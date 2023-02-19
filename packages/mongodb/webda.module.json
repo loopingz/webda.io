@@ -94,12 +94,6 @@
         "databaseOptions": {
           "type": "object",
           "properties": {
-            "logger": {
-              "$ref": "#/definitions/LoggerFunction"
-            },
-            "loggerLevel": {
-              "$ref": "#/definitions/LoggerLevel"
-            },
             "writeConcern": {
               "anyOf": [
                 {
@@ -174,7 +168,7 @@
             },
             "promoteLongs": {
               "type": "boolean",
-              "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits"
+              "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits."
             },
             "promoteBuffers": {
               "type": "boolean",
@@ -312,28 +306,6 @@
               "default": "GET"
             }
           }
-        },
-        "LoggerFunction": {},
-        "LoggerLevel": {
-          "anyOf": [
-            {
-              "type": "string",
-              "const": "error"
-            },
-            {
-              "type": "string",
-              "const": "warn"
-            },
-            {
-              "type": "string",
-              "const": "info"
-            },
-            {
-              "type": "string",
-              "const": "debug"
-            },
-            {}
-          ]
         },
         "W": {
           "anyOf": [

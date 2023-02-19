@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Context, Core, CoreModel, HttpContext, Store } from "@webda/core";
+import { Core, CoreModel, HttpContext, Store, WebContext } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { createHmac } from "crypto";
@@ -37,7 +37,7 @@ class FakeModel extends CoreModel {
   uuid: string;
   update: number;
   collect: any[];
-  async canAct(_ctx: Context<any, any>, _action: string): Promise<this> {
+  async canAct(_ctx: WebContext<any, any>, _action: string): Promise<this> {
     return this;
   }
 }

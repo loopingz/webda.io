@@ -1,4 +1,4 @@
-import { Context, Counter, Gauge, RequestFilter } from "@webda/core";
+import { Counter, Gauge, RequestFilter, WebContext } from "@webda/core";
 import { Server, Socket } from "socket.io";
 import { WebSocketsParameters, WSService } from "./service";
 
@@ -25,7 +25,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
     messages: Counter;
   };
 
-  async checkRequest(context: Context<any, any>): Promise<boolean> {
+  async checkRequest(context: WebContext<any, any>): Promise<boolean> {
     return context.getHttpContext().getRelativeUri().startsWith("/socket.io/");
   }
 
@@ -37,7 +37,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
    * @param socket
    * @param context
    */
-  async onOperation(operation: { id: string; input?: any }, socket: Socket, context: Context) {
+  async onOperation(operation: { id: string; input?: any }, socket: Socket, context: WebContext) {
     try {
       socket.emit("operation", {
         status: "SUCCESS",
@@ -57,7 +57,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
    * @param context
    * @param method
    */
-  async onSubscribe(fullUuid: string, socket: Socket, context: Context, method: "leave" | "join" = "join") {
+  async onSubscribe(fullUuid: string, socket: Socket, context: WebContext, method: "leave" | "join" = "join") {
     const result = (method === "leave" ? "un" : "") + "subscribed";
     try {
       this.log("TRACE", "Subscribing to", fullUuid);
@@ -146,7 +146,7 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
       // On connection
       this.io.on("connection", async socket => {
         this.metrics.connections.inc();
-        let context = <Context>(<any>socket.request).webdaContext;
+        let context = <WebContext>(<any>socket.request).webdaContext;
         let authToken = <string>context.getHttpContext().getHeader("x-webda-ws");
         if (authToken) {
           if (!(await this.verifyAuthToken(authToken))) {

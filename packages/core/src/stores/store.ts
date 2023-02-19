@@ -1892,12 +1892,7 @@ abstract class Store<
       store: this,
       context: ctx
     });
-    let res;
-    if (object["_" + action]) {
-      res = await object["_" + action](ctx);
-    } else {
-      res = await object[action](ctx);
-    }
+    const res = await object[action](ctx);
     if (res) {
       ctx.write(res);
     }
@@ -1921,12 +1916,7 @@ abstract class Store<
       store: this,
       context: ctx
     });
-    let res;
-    if (this._model["_" + action]) {
-      res = await this._model["_" + action](ctx);
-    } else {
-      res = await this._model[action](ctx);
-    }
+    const res = await this._model[action](ctx);
     if (res) {
       ctx.write(res);
     }

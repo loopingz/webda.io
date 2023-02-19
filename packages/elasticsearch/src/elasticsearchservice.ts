@@ -1,5 +1,6 @@
 import { Client } from "@elastic/elasticsearch";
 import { CoreModel, Service, ServiceParameters, Store, WebdaError } from "@webda/core";
+import dateFormat from "dateformat";
 
 interface IndexParameter {
   store: string;
@@ -25,7 +26,7 @@ interface IndexParameter {
      *
      * @default "monthly"
      */
-    frequency?: "yearly" | "monthly" | "daily" | "hourly";
+    frequency?: "yearly" | "monthly" | "weekly" | "daily" | "hourly";
     /**
      * That contains the date field
      */
@@ -141,20 +142,10 @@ export default class ElasticSearchService<
   }
 
   /**
-   * Create index if not exists
-   * @param index
-   */
-  protected async createIndex(index: string) {
-    this._client.index({
-      index: index
-    });
-  }
-
-  /**
    * Reindex a store
    * @param index
    */
-  protected async reindex(index: string) {
+  public async reindex(index: string) {
     let info = this.indexes[index];
     if (!info) {
       throw new ESUnknownIndexError(index);
@@ -165,7 +156,13 @@ export default class ElasticSearchService<
     do {
       const page = await store.query(continuationToken ? `LIMIT ${continuationToken}, 1000` : "");
       for (let object of page.results) {
-        await this._create(index, object);
+        try {
+          await this._create(index, object);
+        } catch (err) {
+          if (err.name !== "ResponseError" && err.meta?.statusCode !== 409) {
+            this.log("WARN", "Cannot reindex", object.getUuid(), err);
+          }
+        }
       }
       continuationToken = page.continuationToken;
     } while (continuationToken);
@@ -218,13 +215,18 @@ export default class ElasticSearchService<
       return index;
     }
     let date = new Date(object[indexInfo.dateSplit.attribute]);
+
     switch (indexInfo.dateSplit.frequency) {
       case "yearly":
-        return `${index}-${date.getFullYear()}`;
+        return `${index}-${dateFormat(date, "UTC:yyyy")}`;
       case "monthly":
-        return `${index}-${date.getFullYear()}-${date.getMonth() + 1}`;
+        return `${index}-${dateFormat(date, "UTC:yyyy.mm")}`;
+      case "weekly":
+        return `${index}-${dateFormat(date, "UTC:yyyy.WW")}`;
       case "daily":
-        return `${index}-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        return `${index}-${dateFormat(date, "UTC:yyyy.mm.dd")}`;
+      case "hourly":
+        return `${index}-${dateFormat(date, "UTC:yyyy.mm.dd.HH")}`;
     }
   }
 

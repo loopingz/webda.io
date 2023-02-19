@@ -39,6 +39,7 @@
                     "enum": [
                       "yearly",
                       "monthly",
+                      "weekly",
                       "daily",
                       "hourly"
                     ],

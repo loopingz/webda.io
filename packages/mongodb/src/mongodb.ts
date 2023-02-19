@@ -7,7 +7,7 @@ import {
   UpdateConditionFailError,
   WebdaQL
 } from "@webda/core";
-import { Collection, Db, DbOptions, Document, MongoClient } from "mongodb";
+import { Collection, Db, DbOptions, Document, MongoClient, ObjectId } from "mongodb";
 
 export class MongoParameters extends StoreParameters {
   constructor(params: any, service: Store) {
@@ -198,7 +198,9 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
     });
     let res = await this._collection.updateOne(
       {
-        _id: uid
+        _id: {
+          $eq: <ObjectId>(<unknown>uid)
+        }
       },
       params
     );

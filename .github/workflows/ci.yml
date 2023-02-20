@@ -105,15 +105,9 @@ jobs:
         run: yarn run build
 
       - name: Run tests
-        run: yarn run test --ignore @webda/gcp
+        run: yarn run test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
-
-      - name: Run GCP tests
-        run: |
-          (echo "===== GCP Test Attempt: 1 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== GCP Test Attempt: 2 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== GCP Test Failed ====" && exit 1)
 
       - name: CodeCov
         uses: codecov/codecov-action@v2

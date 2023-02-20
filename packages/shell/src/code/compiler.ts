@@ -556,8 +556,6 @@ export class Compiler {
                           };
                           switch (pType.typeName.getText()) {
                             case "ModelParent":
-                              this.app.log("INFO", prop.escapedName, name, pType.typeName.getFullText());
-                              Compiler.displayTree(prop.valueDeclaration);
                               moduleInfo.graph[name].parent = {
                                 attribute: prop.escapedName.toString(),
                                 // @ts-ignore

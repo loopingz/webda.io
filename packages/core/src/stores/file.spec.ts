@@ -188,21 +188,12 @@ class FileStoreTest extends StoreTest {
     ctx.resetResponse();
     // Return some infos instead of using ctx
     // @ts-ignore
-    identStore._model._index = async () => {
+    identStore._model.index = async () => {
       return "vouzouf";
     };
     await executor.execute(ctx);
     // Our fake index action is just outputing 'indexer'
     assert.strictEqual(ctx.getResponseBody(), "vouzouf");
-    ctx.resetResponse();
-    // @ts-ignore
-    identStore._model.index = async () => {
-      return "bouzouf";
-    };
-    // @ts-ignore
-    identStore._model._index = undefined;
-    await executor.execute(ctx);
-    assert.strictEqual(ctx.getResponseBody(), "bouzouf");
   }
 
   @test

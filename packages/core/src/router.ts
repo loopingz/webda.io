@@ -267,7 +267,6 @@ export class Router {
         continue;
       }
       const parse_result = map._uriTemplateParse.fromUri(finalUrl);
-      Core.get().log("WARN", "Parse result", finalUrl, parse_result);
       if (parse_result !== undefined) {
         ctx.setServiceParameters(parameters);
         ctx.setPathParameters(parse_result);

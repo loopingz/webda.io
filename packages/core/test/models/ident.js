@@ -17,17 +17,17 @@ export class Ident extends WebdaIdent {
     };
   }
 
-  _yop() {
+  yop() {
     return "youpi";
   }
 
   canAct(ctx, action) {}
 
-  static _index(ctx) {
+  static index(ctx) {
     ctx.write("indexer");
   }
 
-  _plop(ctx) {
+  plop(ctx) {
     ctx.write({ _plop: true });
     return Promise.resolve();
   }

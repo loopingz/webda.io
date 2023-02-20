@@ -46,7 +46,7 @@
     "lint:fix": "lerna run lint:fix --parallel",
     "lerna:publish": "lerna publish",
     "docs": "yarn docs:pages && yarn docs:typedoc",
-    "docs:pages": "yarn node .updatepages.mjs",
+    "docs:pages": "yarn node scripts/docs/updatepages.mjs",
     "docs:publish": "yarn docs && gh-pages -t -d .built-docs",
     "docs:typedoc": "typedoc . --out .built-docs",
     "init": "husky install"

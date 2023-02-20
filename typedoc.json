@@ -97,7 +97,7 @@
                 "source": "AclModel.md"
               },
               {
-                "title": "Acl Model",
+                "title": "Role Acl Model",
                 "source": "RoleAclModel.md"
               }
             ],
@@ -217,6 +217,10 @@
       {
         "title": "ES6 Modules",
         "source": "./docs/pages/ESM6.md"
+      },
+      {
+        "title": "Glossary",
+        "source": "./docs/pages/Glossary.md"
       },
       {
         "title": "JSONSchema",

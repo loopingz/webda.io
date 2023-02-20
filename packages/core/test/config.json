@@ -165,6 +165,9 @@
       "type": "WebdaTest/VoidStore",
       "accessKeyId": "LOCAL_ACCESS_KEY",
       "secretAccessKey": "LOCAL_SECRET_KEY"
+    },
+    "Registry": {
+      "type": "Webda/MemoryStore"
     }
   }
 }

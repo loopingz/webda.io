@@ -169,19 +169,20 @@ export class UnpackedApplication extends Application {
       files.push(currentModule);
     }
 
-    const findModuleFiles = (nodeModules: string) : void => {
+    const findModuleFiles = (nodeModules: string): void => {
       if (!fs.existsSync(nodeModules)) {
         return;
       }
-      FileUtils.find(nodeModules, (filepath) => {
-        if (filepath.endsWith("webda.module.json")) {
+      FileUtils.find(nodeModules, filepath => {
+        // We filter out the cache of nx
+        if (filepath.endsWith("webda.module.json") && !filepath.includes("node_modules/.cache/nx")) {
           files.push(filepath);
         }
       });
-    }
+    };
 
     findModuleFiles(this.getAppPath("node_modules"));
-    
+
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
       findModuleFiles(path.join(module.project.webda.workspaces.path, "node_modules"));

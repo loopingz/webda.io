@@ -5,10 +5,10 @@ import {
   BinaryMap,
   BinaryParameters,
   CloudBinary,
-  Context,
   CoreModel,
   DeepPartial,
-  getCommonJS
+  getCommonJS,
+  OperationContext
 } from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
@@ -89,7 +89,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   /**
    * @override
    */
-  getSignedUrlFromMap(map: BinaryMap, expires: number, _context: Context): Promise<string> {
+  getSignedUrlFromMap(map: BinaryMap, expires: number, _context: OperationContext): Promise<string> {
     return this.getSignedUrl({ key: this._getKey(map.hash), expires, action: "read" });
   }
 

@@ -1,0 +1,24 @@
+{
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "test", "build:module"]
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/packages/**/lib", "{projectRoot}/packages/**/webda.module.json"]
+    },
+    "build:module": {
+      "dependsOn": ["^build:module"],
+      "outputs": ["{projectRoot}/packages/**/webda.module.json"]
+    },
+    "test": {
+      "dependsOn": ["^test"],
+      "outputs": ["{projectRoot}/packages/**/reports"]
+    }
+  }
+}

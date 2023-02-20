@@ -85,32 +85,6 @@ jobs:
           postgresql db: webda.io
           postgresql init scripts: packages/postgres/test/sql
 
-      - name: Install dependencies
-        run: yarn --ignore-engines
-
-      - name: Build project
-        run: yarn run build
-
-      - name: Run core tests
-        run: |
-          (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/core) || \
-          (echo "===== Core Test Attempt: 2 ====" && yarn run test --scope @webda/core) || \
-          (echo "===== Core Test Failed ====" && exit 1)
-
-      - name: Run Postgres tests
-        run: yarn run test --scope @webda/postgres
-
-      - name: Run shell tests
-        run: |
-          (echo "===== Shell Test Attempt: 1 ====" && yarn run test --scope @webda/shell) || \
-          (echo "===== Shell Test Attempt: 2 ====" && yarn run test --scope @webda/shell) || \
-          (echo "===== Shell Test Failed ====" && exit 1)
-
-      - name: Run AWS tests
-        run: yarn run test --scope @webda/aws
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-
       - id: auth
         uses: google-github-actions/auth@v0.4.0
         with:
@@ -118,14 +92,22 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
           service_account: ${{ secrets.GCP_OIDC_SA}}
 
-      - name: Run GCP tests
-        run: |
-          (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== Core Test Attempt: 2 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== Core Test Failed ====" && exit 1)
+      - name: Restore Lerna Cache
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-${{ matrix.node }}
 
-      - name: Run other modules tests
-        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/gcp --ignore @webda/core --ignore @webda/postgres
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build project
+        run: yarn run build
+
+      - name: Run tests
+        run: yarn run test
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
 
       - name: CodeCov
         uses: codecov/codecov-action@v2

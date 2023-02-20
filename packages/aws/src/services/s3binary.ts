@@ -1,7 +1,16 @@
 // Load the AWS SDK for Node.js
 import { GetObjectCommand, HeadObjectCommandOutput, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { BinaryFile, BinaryMap, BinaryParameters, CloudBinary, Context, CoreModel, WebdaError } from "@webda/core";
+import {
+  BinaryFile,
+  BinaryMap,
+  BinaryParameters,
+  CloudBinary,
+  CoreModel,
+  OperationContext,
+  WebContext,
+  WebdaError
+} from "@webda/core";
 import bluebird from "bluebird";
 import { Readable } from "stream";
 import CloudFormationDeployer from "../deployers/cloudformation";
@@ -70,7 +79,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async putRedirectUrl(ctx: Context): Promise<{ url: string; method: string }> {
+  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string }> {
     let body = await ctx.getRequestBody();
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
@@ -158,7 +167,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @override
    */
-  async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: Context) {
+  async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: OperationContext) {
     let params: any = {};
     params.Expires = expire; // A get should not take more than 30s
     params.ResponseContentDisposition = `attachment; filename=${binaryMap.name || binaryMap.originalname}`;

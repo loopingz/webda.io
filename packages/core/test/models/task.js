@@ -13,9 +13,9 @@ export class Task extends OwnerModel {
     };
   }
 
-  _actionable() {}
+  actionable() {}
 
-  _impossible() {}
+  impossible() {}
 
   async canAct(ctx, action) {
     if ("actionable" === action) {

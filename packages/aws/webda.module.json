@@ -79,6 +79,13 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Different models managed by this store"
+        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
@@ -89,7 +96,7 @@
         },
         "strict": {
           "type": "boolean",
-          "description": "Allow to load object that does not have the type data",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
           "default": false
         },
         "defaultModel": {
@@ -106,6 +113,26 @@
           "type": "number",
           "description": "Slow query threshold",
           "default": 30000
+        },
+        "parent": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "condition"
+          ],
+          "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
+        },
+        "graphql": {
+          "type": "boolean",
+          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
         },
         "openapi": {
           "type": "object",
@@ -345,5 +372,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SQSQueue"
     }
-  }
+  },
+  "graph": {}
 }

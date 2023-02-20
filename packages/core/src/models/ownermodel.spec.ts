@@ -112,7 +112,7 @@ class OwnerModelTest extends WebdaTest {
     assert.deepStrictEqual(res.results.length, 1);
   }
 
-  @test("Actions") async actioms() {
+  @test("Actions") async actions() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
     let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_user1/actionable");

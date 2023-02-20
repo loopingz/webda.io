@@ -975,8 +975,7 @@ ${Object.keys(operationsExport.operations)
 
       // Launch builtin commands
       if (WebdaConsole.builtinCommands()[argv._[0]]) {
-        await WebdaConsole.builtinCommands()[argv._[0]].handler.bind(this)(argv);
-        return 0;
+        return (await WebdaConsole.builtinCommands()[argv._[0]].handler.bind(this)(argv)) ?? 0;
       }
 
       if (extension) {

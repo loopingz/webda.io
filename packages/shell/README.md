@@ -33,11 +33,9 @@ webda config -d deploymentName
 webda config -d deploymentName export.json
 ```
 
-
 #### Serve the current project
 
 This will load the Webda framework and run your project with it on port 18080
-
 
 ```
 webda serve
@@ -61,10 +59,8 @@ You can debug with a specific deployment configuration by adding the deployment 
 webda -d deploymentName debug
 ```
 
-
 It will serve the project on port 18080 and restart the server on any changes made on the folder files
 If the project has a tsconfig.json, then `webda debug` will launch the typescript compiler and restart server everytime the compilation process finishes with success.
-
 
 #### Deploy
 
@@ -76,7 +72,7 @@ Then just use the Deploy button on the UI or with webda client :
 webda -d deploymentName deploy
 ```
 
-#### Generate Swagger/Postman configuration 
+#### Generate Swagger/Postman configuration
 
 If you use Amazon we expose a way for you to get the Postman configuration of your API using AWS
 
@@ -92,7 +88,7 @@ webda -d deploymentName deploy lambda
 
 ## Requirements
 
-Node.js >= 14.10.0
+Node.js >= 16.0.0
 
 ## Licence
 

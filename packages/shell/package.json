@@ -28,7 +28,7 @@
     "lint:fix": "prettier --write src/**/*"
   },
   "engines": {
-    "node": ">=14.6.0"
+    "node": ">=16.0.0"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.18.0",

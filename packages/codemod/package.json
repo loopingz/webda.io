@@ -38,6 +38,6 @@
   "private": false,
   "type": "module",
   "engines": {
-    "node": ">=14.6.0"
+    "node": ">=16.0.0"
   }
 }

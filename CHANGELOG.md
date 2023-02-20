@@ -4,11 +4,18 @@ Changelog has only be initiated on version 2.2.0
 
 ## next
 
+### Breaking Changes
+
+- Actions are no longer adding a `_` prefix to the implementation method, typescript usage of `protected` or `private` is enough.
+- Constructor are now typed which can break compilation when used without typing
+
 ### Fixes
 
 - `webda debug -w` was not passing the websockets argument to the debugged server
 - websockets server kept trying to validate cors even with `devMode` on
 - Add more typings to Store to verify model attribute
+- Compilation is now returning -1 when failing
+- CORS are not checked if no origin is sent
 
 ### WebSockets module
 
@@ -24,7 +31,11 @@ You can now use `webda debug` with other commands like `launch` to hot reload a 
 
 You can now define the model to use with your `AsyncService`
 
-## 2.4.2 
+### FileUtils.find
+
+We removed `fs-finder` module as it was too old, and we implemented a basic feature to search
+
+## 2.4.2
 
 ### Allow yaml file for FileConfiguration
 

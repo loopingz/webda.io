@@ -99,7 +99,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.node }}
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --ignore-engines
 
       - name: Build project
         run: yarn run build

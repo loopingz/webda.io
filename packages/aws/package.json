@@ -49,7 +49,7 @@
     "@webda/core": "^2.4.2",
     "bluebird": "^3.7.2",
     "glob": "^8.0.1",
-    "iam-policy-optimizer": "^1.1.2",
+    "iam-policy-optimizer": "^1.2.0",
     "uuid": "^9.0.0",
     "yaml": "^2.0.0"
   },

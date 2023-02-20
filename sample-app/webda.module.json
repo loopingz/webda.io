@@ -13,7 +13,6 @@
     "beans/customservice": "lib/services/custom"
   },
   "models": {
-    "webdademo/abstractproject": "lib/models/project:AbstractProject",
     "webdademo/classroom": "lib/models/relations:Classroom",
     "webdademo/company": "lib/models/company:Company",
     "webdademo/computer": "lib/models/user:Computer",
@@ -32,26 +31,6 @@
     "webdademo/customdeployer": "lib/services/deployer:CustomDeployer"
   },
   "schemas": {
-    "webdademo/abstractproject": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        }
-      },
-      "description": "This file contains several empty methods to test our auto docs",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AbstractProject"
-    },
     "webdademo/subproject": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubProject"
@@ -696,7 +675,6 @@
     }
   },
   "graph": {
-    "webdademo/abstractproject": {},
     "webdademo/project": {
       "parent": {
         "attribute": "_company",

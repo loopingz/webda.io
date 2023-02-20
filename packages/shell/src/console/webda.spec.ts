@@ -162,7 +162,6 @@ class ConsoleTest {
     let time = 0;
     do {
       let currentStatus = WebdaConsole.getDebuggerStatus();
-      console.log("WAIT FOR STATUS", status, "CURRENT", currentStatus);
       if (currentStatus === status) {
         return;
       }
@@ -481,6 +480,7 @@ class DynamicService extend Service {
   async types() {
     await this.commandLine("types");
     let logs = this.logger.getLogs();
+    console.log(logs.map(l => l.log?.level + ": " + l.log?.args.join(" ")).join("\n"));
     assert.strictEqual(
       logs.length,
       5,

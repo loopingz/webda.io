@@ -37,7 +37,6 @@
     "webda/ident": "lib/models/ident:Ident",
     "webda/ownermodel": "lib/models/ownermodel:OwnerModel",
     "webda/registryentry": "lib/core:RegistryEntry",
-    "webda/rolemodel": "lib/models/rolemodel:RoleModel",
     "webda/securecookie": "lib/utils/cookie:SecureCookie",
     "webda/session": "lib/utils/session:Session",
     "webda/user": "lib/models/user:User",
@@ -741,25 +740,6 @@
       "description": "Object that contains ACL to define its own permissions",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AclModel"
-    },
-    "webda/rolemodel": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RoleModel"
     },
     "webda/filequeue": {
       "type": "object",
@@ -2396,7 +2376,6 @@
     "webda/coremodel": {},
     "webda/registryentry": {},
     "webda/aclmodel": {},
-    "webda/rolemodel": {},
     "webda/comment": {
       "parent": {
         "attribute": "target",

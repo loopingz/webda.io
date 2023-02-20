@@ -7,18 +7,25 @@
       }
     }
   },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*"],
+    "production": ["{projectRoot}/src/**/*", "!{projectRoot}/src/**/*.spec.ts", "{projectRoot}/package.json"]
+  },
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["{projectRoot}/packages/**/lib", "{projectRoot}/packages/**/webda.module.json"]
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/lib", "{projectRoot}/webda.module.json", "{projectRoot}/package.json"]
     },
     "build:module": {
-      "dependsOn": ["^build:module"],
-      "outputs": ["{projectRoot}/packages/**/webda.module.json"]
+      "dependsOn": ["^build:module", "build"],
+      "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/webda.module.json"]
     },
     "test": {
-      "dependsOn": ["^test"],
-      "outputs": ["{projectRoot}/packages/**/reports"]
+      "dependsOn": ["^test", "build", "build:module"],
+      "inputs": ["default", "^production"],
+      "outputs": ["{projectRoot}/reports"]
     }
   }
 }

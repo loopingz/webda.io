@@ -461,7 +461,11 @@ export class Compiler {
 
             const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
             // Auto add @WebdaModel
-            if (this.extends(classTree, "@webda/core", "CoreModel") && !Object.keys(tags).includes("WebdaIgnore")) {
+            if (
+              this.extends(classTree, "@webda/core", "CoreModel") &&
+              !Object.keys(tags).includes("WebdaIgnore") &&
+              tsquery(clazz, "AbstractKeyword").length === 0
+            ) {
               tags["WebdaModel"] = clazz.name.escapedText;
             }
             // this.extends(classTree, "@webda/core", "CoreModel") might be automatic

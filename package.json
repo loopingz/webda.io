@@ -58,5 +58,6 @@
   },
   "webda": {
     "randomLink": "./test.json"
-  }
+  },
+  "type": "module"
 }

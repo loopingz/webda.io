@@ -92,22 +92,25 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
           service_account: ${{ secrets.GCP_OIDC_SA}}
 
-      - name: Restore Lerna Cache
+      - name: Restore Lerna/NX Cache
         uses: actions/cache@v3
         with:
-          path: '**/node_modules'
+          path: node_modules/.cache
           key: ${{ runner.os }}-${{ matrix.node }}
 
       - name: Install dependencies
         run: yarn --ignore-engines
 
-      - name: Build project
-        run: yarn run build
-
       - name: Run tests
-        run: yarn run test
+        run: yarn run test --ignore @webda/gcp
         env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
+          NODE_OPTIONS: "--max-old-space-size=6144"
+
+      - name: Run GCP tests
+        run: |
+          (echo "===== GCP Test Attempt: 1 ====" && yarn run test --scope @webda/gcp) || \
+          (echo "===== GCP Test Attempt: 2 ====" && yarn run test --scope @webda/gcp) || \
+          (echo "===== GCP Test Failed ====" && exit 1)
 
       - name: CodeCov
         uses: codecov/codecov-action@v2

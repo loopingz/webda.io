@@ -12,6 +12,7 @@ import * as jsonc from "jsonc-parser";
 import { join } from "path";
 import { Readable, Writable } from "stream";
 import * as yaml from "yaml";
+import { Core } from "../core";
 
 /**
  * Define a Finder that can be use
@@ -64,20 +65,25 @@ export const FileUtils: StorageFinder & {
   ): void => {
     let files = readdirSync(path);
     const fileItemCallback = p => {
-      const stat = lstatSync(p);
-      if (stat.isDirectory()) {
-        if (options.includeDir) {
+      try {
+        const stat = lstatSync(p);
+        if (stat.isDirectory()) {
+          if (options.includeDir) {
+            processor(p);
+          }
+          FileUtils.find(p, processor, options);
+        } else if (stat.isSymbolicLink()) {
+          const newpath = realpathSync(p);
+          if (options.includeDir) {
+            processor(newpath);
+          }
+          fileItemCallback(newpath);
+        } else if (stat.isFile()) {
           processor(p);
         }
-        FileUtils.find(p, processor, options);
-      } else if (stat.isSymbolicLink()) {
-        const newpath = realpathSync(p);
-        if (options.includeDir) {
-          processor(newpath);
-        }
-        fileItemCallback(newpath);
-      } else if (stat.isFile()) {
-        processor(p);
+        /* c8 ignore next 3 */
+      } catch (err) {
+        Core.get().log("ERROR", "FileUtils.find: Error while reading file", p, err);
       }
     };
     files.map(f => join(path, f)).forEach(fileItemCallback);

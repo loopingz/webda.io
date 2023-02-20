@@ -23,7 +23,7 @@
       "outputs": ["{projectRoot}/webda.module.json"]
     },
     "test": {
-      "dependsOn": ["^test", "build", "build:module"],
+      "dependsOn": ["build", "build:module"],
       "inputs": ["default", "^production"],
       "outputs": ["{projectRoot}/reports"]
     }

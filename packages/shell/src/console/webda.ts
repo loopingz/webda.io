@@ -1,4 +1,4 @@
-import { CancelablePromise, FileUtils, getCommonJS, Logger, PackageDescriptorAuthor } from "@webda/core";
+import { CancelablePromise, FileUtils, getCommonJS, Logger, PackageDescriptorAuthor, Store } from "@webda/core";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
@@ -10,6 +10,7 @@ import semver from "semver";
 import { Transform } from "stream";
 import ts from "typescript";
 import yargs from "yargs";
+import { createGzip } from "zlib";
 import { BuildSourceApplication, SourceApplication } from "../code/sourceapplication";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
@@ -537,6 +538,7 @@ ${Object.keys(operationsExport.operations)
       parent = path.resolve(path.join(parent, ".."));
     } while (parent !== path.resolve(path.join(parent, "..")));
 
+    // Replace with find, when a max depth is added
     let files = [];
     let rec = (p, lvl = 0) => {
       try {
@@ -698,6 +700,17 @@ ${Object.keys(operationsExport.operations)
           return y.command("name", "Deployment name to create");
         }
       },
+      store: {
+        command: "store <storeName> <action>",
+        handler: WebdaConsole.store,
+        description: "Store actions",
+        module: y => {
+          return y.command("storeName", "Store name to use", y2 =>
+            /* c8 ignore next 2 */
+            y2.command("export <filepath>", "Export the store to a file").option("batchSize")
+          );
+        }
+      },
       "service-configuration": {
         command: "service-configuration <name>",
         handler: WebdaConsole.serviceConfig,
@@ -832,7 +845,6 @@ ${Object.keys(operationsExport.operations)
     // Init WorkerOutput
     output = output || new WorkerOutput();
     WebdaConsole.logger = new Logger(output, "console/webda");
-
     // Only load extension if the command is unknown
     if (!WebdaConsole.builtinCommands()[argv._[0]] || argv.help) {
       WebdaConsole.loadExtensions(argv.appPath || process.cwd());
@@ -843,7 +855,7 @@ ${Object.keys(operationsExport.operations)
           parser = parser.command(
             ext.command || cmd,
             ext.description,
-            await import(path.join(ext.relPath, ext.require))["yargs"]
+            (await import(path.join(ext.relPath, ext.require)))["yargs"]
           );
           // Hybrid with builder
         } else if (ext.yargs && ext.yargs.command) {
@@ -1022,6 +1034,48 @@ ${Object.keys(operationsExport.operations)
   static async executeShellExtension(ext: WebdaShellExtension, relPath: string, argv: any) {
     ext.export ??= "default";
     return (await import(path.join(relPath, ext.require)))[ext.export](this, argv);
+  }
+
+  /**
+   * Manage store
+   * @param argv
+   */
+  static async store(argv: yargs.Arguments): Promise<number> {
+    this.webda = new WebdaServer(this.app);
+    await this.webda.init();
+    let store = this.webda.getService<Store>(<string>argv.storeName);
+    if (!store) {
+      this.log("ERROR", `Store not found '${argv.storeName}'`);
+      return -1;
+    }
+    switch (argv.action) {
+      case "export":
+        let filepath = <string>argv._[1] || "./export.ndjson.gz";
+        const writer = createGzip();
+        const fsWriter = fs.createWriteStream(filepath);
+        writer.pipe(fsWriter);
+        const batchSize = argv.batchSize || 100;
+        let continuationToken: string | undefined;
+        let count = 0;
+        do {
+          const result = await store.query(
+            continuationToken ? `LIMIT ${batchSize} OFFSET '` + continuationToken + "'" : `LIMIT ${batchSize}`
+          );
+          count += result.results.length;
+          this.log("INFO", "Exported", count, "models");
+          continuationToken = result.continuationToken;
+          for (const model of result.results) {
+            writer.write(
+              JSON.stringify(model.toStoredJSON(), (_, value) =>
+                typeof value === "bigint" ? value.toString() : value
+              ) + "\n"
+            );
+          }
+        } while (continuationToken);
+        let p = new Promise(resolve => fsWriter.on("finish", resolve));
+        writer.end();
+        await p;
+    }
   }
 
   /**

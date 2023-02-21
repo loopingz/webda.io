@@ -128,6 +128,13 @@ class ConsoleTest {
     fs.unlinkSync(deploymentPath);
   }
 
+  @test
+  async storeExport() {
+    // Just to initiate it
+    assert.strictEqual(await this.commandLine("store Registry export ./test.ndjson.gz"), 0);
+    assert.strictEqual(await this.commandLine("store Registry2 export ./test.ndjson.gz"), -1);
+  }
+
   async waitForWebda() {
     for (let i = 0; i < 100; i++) {
       if (WebdaConsole.webda) {

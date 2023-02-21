@@ -10,9 +10,7 @@
       "type": "FileBinary",
       "folder": "./data/images",
       "map": {
-        "contacts": [
-          "picture"
-        ]
+        "contacts": ["picture"]
       }
     },
     "thumbnailsqueue": {

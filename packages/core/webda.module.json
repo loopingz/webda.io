@@ -2284,7 +2284,7 @@
           "readOnly": true
         },
         "target": {
-          "$ref": "#/definitions/ModelParent%3Cclass-348499747-4839-22272-348499747-0-22296852964236%3E",
+          "$ref": "#/definitions/ModelParent%3Cclass-348499747-4896-22329-348499747-0-22353852964236%3E",
           "description": "Can be linked to any object but cannot be a root object"
         },
         "author": {
@@ -2309,11 +2309,11 @@
       "description": "Generic comment class",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-348499747-4839-22272-348499747-0-22296852964236>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-348499747-4839-22272-348499747-0-22296852964236%2Cany%3E",
+        "ModelParent<class-348499747-4896-22329-348499747-0-22353852964236>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-348499747-4896-22329-348499747-0-22353852964236%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-348499747-4839-22272-348499747-0-22296852964236,any>": {
+        "ModelLink<class-348499747-4896-22329-348499747-0-22353852964236,any>": {
           "type": "object",
           "properties": {
             "set": {},

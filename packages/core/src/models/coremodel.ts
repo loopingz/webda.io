@@ -80,7 +80,7 @@ class CoreModelQuery {
     throttler.setConcurrency(parallelism);
     let continuationToken: string | undefined;
     do {
-      const result = await this.query(query, context);
+      const result = await this.query(query + continuationToken ? "OFFSET " + continuationToken : "", context);
       continuationToken = result.continuationToken;
       for (const model of result.results) {
         throttler.queue(() => callback(model));

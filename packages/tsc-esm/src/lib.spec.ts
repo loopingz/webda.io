@@ -1,5 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
+import { existsSync, unlinkSync } from "fs";
 import { writer } from "./lib";
 
 @suite
@@ -22,5 +23,11 @@ class Test {
     }`
     );
     assert.ok(true);
+  }
+
+  after() {
+    if (existsSync("./test/plop.js")) {
+      unlinkSync("./test/plop.js");
+    }
   }
 }

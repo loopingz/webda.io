@@ -12,6 +12,7 @@ class FileConfigurationServiceTest extends WebdaTest {
   }
 
   async before() {
+    this.cleanFiles.push(__dirname + "/../../test/my-cnf.json");
     writeFileSync(
       __dirname + "/../../test/my-cnf.json",
       JSON.stringify(

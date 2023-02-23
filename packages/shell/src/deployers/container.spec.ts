@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { getCommonJS, JSONUtils } from "@webda/core";
+import { FileUtils, getCommonJS, JSONUtils } from "@webda/core";
 import * as assert from "assert";
 import fs from "fs-extra";
 import * as path from "path";
@@ -22,6 +22,10 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
         WebdaSampleApplication.getAppPath("node_modules/@webda/aws")
       );
     } catch (err) {}
+  }
+
+  after() {
+    FileUtils.clean("./test/fakeworkspace/app1/testDebugDocker", "./test/fakeworkspace/testDebugDocker");
   }
 
   async getDeployer(manager: DeploymentManager) {

@@ -76,23 +76,27 @@ class UtilsTest {
 
   @test("Write JSON/YAML")
   writeJSON() {
-    let file = path.join(TEST_FOLDER, "writeTest.json");
-    JSONUtils.saveFile({ test: "plop" }, file);
-    assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
-    file = path.join(TEST_FOLDER, "writeTest.yaml");
-    JSONUtils.saveFile({ test: "plop" }, file);
-    assert.strictEqual(readFileSync(file).toString(), `test: plop\n`);
+    try {
+      let file = path.join(TEST_FOLDER, "writeTest.json");
+      JSONUtils.saveFile({ test: "plop" }, file);
+      assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+      file = path.join(TEST_FOLDER, "writeTest.yaml");
+      JSONUtils.saveFile({ test: "plop" }, file);
+      assert.strictEqual(readFileSync(file).toString(), `test: plop\n`);
 
-    // Yaml alias
-    file = path.join(TEST_FOLDER, "writeTest.json");
-    YAMLUtils.saveFile({ test: "plop" }, file);
-    assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+      // Yaml alias
+      file = path.join(TEST_FOLDER, "writeTest.json");
+      YAMLUtils.saveFile({ test: "plop" }, file);
+      assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
 
-    // True implem
-    file = path.join(TEST_FOLDER, "writeTest.json");
-    FileUtils.save({ test: "plop" }, file);
-    assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
-    assert.throws(() => JSONUtils.saveFile({}, "./Dockerfile.zzz"), /Unknown format/);
+      // True implem
+      file = path.join(TEST_FOLDER, "writeTest.json");
+      FileUtils.save({ test: "plop" }, file);
+      assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+      assert.throws(() => JSONUtils.saveFile({}, "./Dockerfile.zzz"), /Unknown format/);
+    } finally {
+      FileUtils.clean("test/jsonutils/writeTest.json", "test/jsonutils/writeTest.yaml");
+    }
   }
 
   @test
@@ -151,19 +155,23 @@ plop: test
 
   @test
   finder() {
-    let res = [];
-    if (!existsSync("./test/link")) {
-      symlinkSync("../templates", "test/link");
+    try {
+      let res = [];
+      if (!existsSync("./test/link")) {
+        symlinkSync("../templates", "test/link");
+      }
+      FileUtils.find("test", f => res.push(f));
+      assert.ok(
+        ["test/models/ident.js", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
+          .map(c => res.includes(c))
+          .reduce((v, c) => v && c, true)
+      );
+      res = [];
+      FileUtils.find("test", f => res.push(f), { includeDir: true, followSymlinks: true });
+      assert.ok(res.filter(r => r.includes("PASSPORT_EMAIL_RECOVERY")).length > 0);
+    } finally {
+      FileUtils.clean("test/link");
     }
-    FileUtils.find("test", f => res.push(f));
-    assert.ok(
-      ["test/models/ident.js", "test/my-cnf.json", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
-        .map(c => res.includes(c))
-        .reduce((v, c) => v && c, true)
-    );
-    res = [];
-    FileUtils.find("test", f => res.push(f), { includeDir: true, followSymlinks: true });
-    assert.ok(res.filter(r => r.includes("PASSPORT_EMAIL_RECOVERY")).length > 0);
   }
 
   @test

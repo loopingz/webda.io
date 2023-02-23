@@ -10,6 +10,11 @@ import { WebdaQL } from "./webdaql/query";
 
 @suite
 class MemoryStoreTest extends StoreTest {
+  async before() {
+    this.cleanFiles.push(".test.json");
+    return super.before();
+  }
+
   getIdentStore(): Store<any> {
     // Need to slow down the _get
     let store = <Store<any>>this.getService("MemoryIdents");

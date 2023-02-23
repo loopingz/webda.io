@@ -167,8 +167,11 @@ plop: test
   }
 
   @test
-  streams() {
-    FileUtils.getWriteStream("/tmp/webda.stream").end();
+  async streams() {
+    const st = FileUtils.getWriteStream("/tmp/webda.stream");
+    let p = new Promise(resolve => st.on("finish", resolve));
+    st.end();
+    await p;
     FileUtils.getReadStream("/tmp/webda.stream");
   }
 }

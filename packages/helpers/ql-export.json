@@ -1,0 +1,3078 @@
+[
+  {
+    "query": "test.attr1='plop'<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "BinaryComparisonExpressionContext",
+        "query": "test.attr1='plop'",
+        "children": [
+          {
+            "type": "AtomExpressionContext",
+            "query": "test.attr1",
+            "children": [
+              {
+                "type": "IdentifierAtomContext",
+                "query": "test.attr1",
+                "children": [
+                  {
+                    "type": "IdentifierContext",
+                    "query": "test.attr1",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "test.attr1",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "=",
+            "children": []
+          },
+          {
+            "type": "StringAtomContext",
+            "query": "'plop'",
+            "children": [
+              {
+                "type": "StringLiteralContext",
+                "query": "'plop'",
+                "children": [
+                  {
+                    "type": "TerminalNode",
+                    "query": "'plop'",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "test.attr1='plop2'<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "BinaryComparisonExpressionContext",
+        "query": "test.attr1='plop2'",
+        "children": [
+          {
+            "type": "AtomExpressionContext",
+            "query": "test.attr1",
+            "children": [
+              {
+                "type": "IdentifierAtomContext",
+                "query": "test.attr1",
+                "children": [
+                  {
+                    "type": "IdentifierContext",
+                    "query": "test.attr1",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "test.attr1",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "=",
+            "children": []
+          },
+          {
+            "type": "StringAtomContext",
+            "query": "'plop2'",
+            "children": [
+              {
+                "type": "StringLiteralContext",
+                "query": "'plop2'",
+                "children": [
+                  {
+                    "type": "TerminalNode",
+                    "query": "'plop2'",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "test.attr1='plop'ANDattr2IN['TEST','OK']<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "AndLogicExpressionContext",
+        "query": "test.attr1='plop'ANDattr2IN['TEST','OK']",
+        "children": [
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "test.attr1='plop'",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "test.attr1",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "test.attr1",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "test.attr1",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "test.attr1",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "StringAtomContext",
+                "query": "'plop'",
+                "children": [
+                  {
+                    "type": "StringLiteralContext",
+                    "query": "'plop'",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "'plop'",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "AND",
+            "children": []
+          },
+          {
+            "type": "InExpressionContext",
+            "query": "attr2IN['TEST','OK']",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "attr2",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "attr2",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "attr2",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "attr2",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "IN",
+                "children": []
+              },
+              {
+                "type": "SetExpressionContext",
+                "query": "['TEST','OK']",
+                "children": [
+                  {
+                    "type": "TerminalNode",
+                    "query": "[",
+                    "children": []
+                  },
+                  {
+                    "type": "StringAtomContext",
+                    "query": "'TEST'",
+                    "children": [
+                      {
+                        "type": "StringLiteralContext",
+                        "query": "'TEST'",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "'TEST'",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": ",",
+                    "children": []
+                  },
+                  {
+                    "type": "StringAtomContext",
+                    "query": "'OK'",
+                    "children": [
+                      {
+                        "type": "StringLiteralContext",
+                        "query": "'OK'",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "'OK'",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "]",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "(test.attr1='plop'ANDattr2IN['TEST','OK'])ORattr3<=12<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "OrLogicExpressionContext",
+        "query": "(test.attr1='plop'ANDattr2IN['TEST','OK'])ORattr3<=12",
+        "children": [
+          {
+            "type": "SubExpressionContext",
+            "query": "(test.attr1='plop'ANDattr2IN['TEST','OK'])",
+            "children": [
+              {
+                "type": "TerminalNode",
+                "query": "(",
+                "children": []
+              },
+              {
+                "type": "AndLogicExpressionContext",
+                "query": "test.attr1='plop'ANDattr2IN['TEST','OK']",
+                "children": [
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "test.attr1='plop'",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "test.attr1",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "test.attr1",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "test.attr1",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "test.attr1",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "StringAtomContext",
+                        "query": "'plop'",
+                        "children": [
+                          {
+                            "type": "StringLiteralContext",
+                            "query": "'plop'",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "'plop'",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "AND",
+                    "children": []
+                  },
+                  {
+                    "type": "InExpressionContext",
+                    "query": "attr2IN['TEST','OK']",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "attr2",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "attr2",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "attr2",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "attr2",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "IN",
+                        "children": []
+                      },
+                      {
+                        "type": "SetExpressionContext",
+                        "query": "['TEST','OK']",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "[",
+                            "children": []
+                          },
+                          {
+                            "type": "StringAtomContext",
+                            "query": "'TEST'",
+                            "children": [
+                              {
+                                "type": "StringLiteralContext",
+                                "query": "'TEST'",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "'TEST'",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": ",",
+                            "children": []
+                          },
+                          {
+                            "type": "StringAtomContext",
+                            "query": "'OK'",
+                            "children": [
+                              {
+                                "type": "StringLiteralContext",
+                                "query": "'OK'",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "'OK'",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": "]",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": ")",
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "OR",
+            "children": []
+          },
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "attr3<=12",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "attr3",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "attr3",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "attr3",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "attr3",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "<=",
+                "children": []
+              },
+              {
+                "type": "IntegerAtomContext",
+                "query": "12",
+                "children": [
+                  {
+                    "type": "IntegerLiteralContext",
+                    "query": "12",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "12",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "test.attr1='plop'ANDattr2IN['TEST','OK']ORattr3<=12ANDattr4='ok'<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "OrLogicExpressionContext",
+        "query": "test.attr1='plop'ANDattr2IN['TEST','OK']ORattr3<=12ANDattr4='ok'",
+        "children": [
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "test.attr1='plop'ANDattr2IN['TEST','OK']",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "test.attr1='plop'",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "test.attr1",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "test.attr1",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "test.attr1",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "test.attr1",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "StringAtomContext",
+                    "query": "'plop'",
+                    "children": [
+                      {
+                        "type": "StringLiteralContext",
+                        "query": "'plop'",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "'plop'",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "InExpressionContext",
+                "query": "attr2IN['TEST','OK']",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "attr2",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "attr2",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "attr2",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "attr2",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "IN",
+                    "children": []
+                  },
+                  {
+                    "type": "SetExpressionContext",
+                    "query": "['TEST','OK']",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "[",
+                        "children": []
+                      },
+                      {
+                        "type": "StringAtomContext",
+                        "query": "'TEST'",
+                        "children": [
+                          {
+                            "type": "StringLiteralContext",
+                            "query": "'TEST'",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "'TEST'",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": ",",
+                        "children": []
+                      },
+                      {
+                        "type": "StringAtomContext",
+                        "query": "'OK'",
+                        "children": [
+                          {
+                            "type": "StringLiteralContext",
+                            "query": "'OK'",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "'OK'",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "]",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "OR",
+            "children": []
+          },
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "attr3<=12ANDattr4='ok'",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "attr3<=12",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "attr3",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "attr3",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "attr3",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "attr3",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "<=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "12",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "12",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "12",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "attr4='ok'",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "attr4",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "attr4",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "attr4",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "attr4",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "StringAtomContext",
+                    "query": "'ok'",
+                    "children": [
+                      {
+                        "type": "StringLiteralContext",
+                        "query": "'ok'",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "'ok'",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "test.attr1='plop'AND(attr2IN['TEST','OK']ORattr3<=12)ANDattr4='ok'<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "AndLogicExpressionContext",
+        "query": "test.attr1='plop'AND(attr2IN['TEST','OK']ORattr3<=12)ANDattr4='ok'",
+        "children": [
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "test.attr1='plop'AND(attr2IN['TEST','OK']ORattr3<=12)",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "test.attr1='plop'",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "test.attr1",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "test.attr1",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "test.attr1",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "test.attr1",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "StringAtomContext",
+                    "query": "'plop'",
+                    "children": [
+                      {
+                        "type": "StringLiteralContext",
+                        "query": "'plop'",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "'plop'",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "SubExpressionContext",
+                "query": "(attr2IN['TEST','OK']ORattr3<=12)",
+                "children": [
+                  {
+                    "type": "TerminalNode",
+                    "query": "(",
+                    "children": []
+                  },
+                  {
+                    "type": "OrLogicExpressionContext",
+                    "query": "attr2IN['TEST','OK']ORattr3<=12",
+                    "children": [
+                      {
+                        "type": "InExpressionContext",
+                        "query": "attr2IN['TEST','OK']",
+                        "children": [
+                          {
+                            "type": "AtomExpressionContext",
+                            "query": "attr2",
+                            "children": [
+                              {
+                                "type": "IdentifierAtomContext",
+                                "query": "attr2",
+                                "children": [
+                                  {
+                                    "type": "IdentifierContext",
+                                    "query": "attr2",
+                                    "children": [
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "attr2",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": "IN",
+                            "children": []
+                          },
+                          {
+                            "type": "SetExpressionContext",
+                            "query": "['TEST','OK']",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "[",
+                                "children": []
+                              },
+                              {
+                                "type": "StringAtomContext",
+                                "query": "'TEST'",
+                                "children": [
+                                  {
+                                    "type": "StringLiteralContext",
+                                    "query": "'TEST'",
+                                    "children": [
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "'TEST'",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "TerminalNode",
+                                "query": ",",
+                                "children": []
+                              },
+                              {
+                                "type": "StringAtomContext",
+                                "query": "'OK'",
+                                "children": [
+                                  {
+                                    "type": "StringLiteralContext",
+                                    "query": "'OK'",
+                                    "children": [
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "'OK'",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "TerminalNode",
+                                "query": "]",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "OR",
+                        "children": []
+                      },
+                      {
+                        "type": "BinaryComparisonExpressionContext",
+                        "query": "attr3<=12",
+                        "children": [
+                          {
+                            "type": "AtomExpressionContext",
+                            "query": "attr3",
+                            "children": [
+                              {
+                                "type": "IdentifierAtomContext",
+                                "query": "attr3",
+                                "children": [
+                                  {
+                                    "type": "IdentifierContext",
+                                    "query": "attr3",
+                                    "children": [
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "attr3",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": "<=",
+                            "children": []
+                          },
+                          {
+                            "type": "IntegerAtomContext",
+                            "query": "12",
+                            "children": [
+                              {
+                                "type": "IntegerLiteralContext",
+                                "query": "12",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "12",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": ")",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "AND",
+            "children": []
+          },
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "attr4='ok'",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "attr4",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "attr4",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "attr4",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "attr4",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "StringAtomContext",
+                "query": "'ok'",
+                "children": [
+                  {
+                    "type": "StringLiteralContext",
+                    "query": "'ok'",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "'ok'",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "test.attr1='plop'ANDattr2IN['TEST','OK']ANDattr3<=12ANDattr4='ok'<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "AndLogicExpressionContext",
+        "query": "test.attr1='plop'ANDattr2IN['TEST','OK']ANDattr3<=12ANDattr4='ok'",
+        "children": [
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "test.attr1='plop'ANDattr2IN['TEST','OK']ANDattr3<=12",
+            "children": [
+              {
+                "type": "AndLogicExpressionContext",
+                "query": "test.attr1='plop'ANDattr2IN['TEST','OK']",
+                "children": [
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "test.attr1='plop'",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "test.attr1",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "test.attr1",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "test.attr1",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "test.attr1",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "StringAtomContext",
+                        "query": "'plop'",
+                        "children": [
+                          {
+                            "type": "StringLiteralContext",
+                            "query": "'plop'",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "'plop'",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "AND",
+                    "children": []
+                  },
+                  {
+                    "type": "InExpressionContext",
+                    "query": "attr2IN['TEST','OK']",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "attr2",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "attr2",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "attr2",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "attr2",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "IN",
+                        "children": []
+                      },
+                      {
+                        "type": "SetExpressionContext",
+                        "query": "['TEST','OK']",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "[",
+                            "children": []
+                          },
+                          {
+                            "type": "StringAtomContext",
+                            "query": "'TEST'",
+                            "children": [
+                              {
+                                "type": "StringLiteralContext",
+                                "query": "'TEST'",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "'TEST'",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": ",",
+                            "children": []
+                          },
+                          {
+                            "type": "StringAtomContext",
+                            "query": "'OK'",
+                            "children": [
+                              {
+                                "type": "StringLiteralContext",
+                                "query": "'OK'",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "'OK'",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": "]",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "attr3<=12",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "attr3",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "attr3",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "attr3",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "attr3",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "<=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "12",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "12",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "12",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "AND",
+            "children": []
+          },
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "attr4='ok'",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "attr4",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "attr4",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "attr4",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "attr4",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "StringAtomContext",
+                "query": "'ok'",
+                "children": [
+                  {
+                    "type": "StringLiteralContext",
+                    "query": "'ok'",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "'ok'",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "a=1ORb=2<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "OrLogicExpressionContext",
+        "query": "a=1ORb=2",
+        "children": [
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "a=1",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "a",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "a",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "a",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "a",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "IntegerAtomContext",
+                "query": "1",
+                "children": [
+                  {
+                    "type": "IntegerLiteralContext",
+                    "query": "1",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "1",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "OR",
+            "children": []
+          },
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "b=2",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "b",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "b",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "b",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "b",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "IntegerAtomContext",
+                "query": "2",
+                "children": [
+                  {
+                    "type": "IntegerLiteralContext",
+                    "query": "2",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "2",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "a=1ANDb=2ANDc=3ANDd=4<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "AndLogicExpressionContext",
+        "query": "a=1ANDb=2ANDc=3ANDd=4",
+        "children": [
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "a=1ANDb=2ANDc=3",
+            "children": [
+              {
+                "type": "AndLogicExpressionContext",
+                "query": "a=1ANDb=2",
+                "children": [
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "a=1",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "a",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "a",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "a",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "a",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "IntegerAtomContext",
+                        "query": "1",
+                        "children": [
+                          {
+                            "type": "IntegerLiteralContext",
+                            "query": "1",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "1",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "AND",
+                    "children": []
+                  },
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "b=2",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "b",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "b",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "b",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "b",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "IntegerAtomContext",
+                        "query": "2",
+                        "children": [
+                          {
+                            "type": "IntegerLiteralContext",
+                            "query": "2",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "2",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "c=3",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "c",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "c",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "c",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "c",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "3",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "3",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "3",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "AND",
+            "children": []
+          },
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "d=4",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "d",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "d",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "d",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "d",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "IntegerAtomContext",
+                "query": "4",
+                "children": [
+                  {
+                    "type": "IntegerLiteralContext",
+                    "query": "4",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "4",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "a=1AND(b=2ANDc=3)ANDd=4<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "AndLogicExpressionContext",
+        "query": "a=1AND(b=2ANDc=3)ANDd=4",
+        "children": [
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "a=1AND(b=2ANDc=3)",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "a=1",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "a",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "a",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "a",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "a",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "1",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "1",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "1",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "SubExpressionContext",
+                "query": "(b=2ANDc=3)",
+                "children": [
+                  {
+                    "type": "TerminalNode",
+                    "query": "(",
+                    "children": []
+                  },
+                  {
+                    "type": "AndLogicExpressionContext",
+                    "query": "b=2ANDc=3",
+                    "children": [
+                      {
+                        "type": "BinaryComparisonExpressionContext",
+                        "query": "b=2",
+                        "children": [
+                          {
+                            "type": "AtomExpressionContext",
+                            "query": "b",
+                            "children": [
+                              {
+                                "type": "IdentifierAtomContext",
+                                "query": "b",
+                                "children": [
+                                  {
+                                    "type": "IdentifierContext",
+                                    "query": "b",
+                                    "children": [
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "b",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": "=",
+                            "children": []
+                          },
+                          {
+                            "type": "IntegerAtomContext",
+                            "query": "2",
+                            "children": [
+                              {
+                                "type": "IntegerLiteralContext",
+                                "query": "2",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "2",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "AND",
+                        "children": []
+                      },
+                      {
+                        "type": "BinaryComparisonExpressionContext",
+                        "query": "c=3",
+                        "children": [
+                          {
+                            "type": "AtomExpressionContext",
+                            "query": "c",
+                            "children": [
+                              {
+                                "type": "IdentifierAtomContext",
+                                "query": "c",
+                                "children": [
+                                  {
+                                    "type": "IdentifierContext",
+                                    "query": "c",
+                                    "children": [
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "c",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": "=",
+                            "children": []
+                          },
+                          {
+                            "type": "IntegerAtomContext",
+                            "query": "3",
+                            "children": [
+                              {
+                                "type": "IntegerLiteralContext",
+                                "query": "3",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "3",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": ")",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "AND",
+            "children": []
+          },
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "d=4",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "d",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "d",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "d",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "d",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "IntegerAtomContext",
+                "query": "4",
+                "children": [
+                  {
+                    "type": "IntegerLiteralContext",
+                    "query": "4",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "4",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "a=1ANDb=2ORc=3ANDd=4<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "OrLogicExpressionContext",
+        "query": "a=1ANDb=2ORc=3ANDd=4",
+        "children": [
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "a=1ANDb=2",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "a=1",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "a",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "a",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "a",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "a",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "1",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "1",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "1",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "b=2",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "b",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "b",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "b",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "b",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "2",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "2",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "2",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "OR",
+            "children": []
+          },
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "c=3ANDd=4",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "c=3",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "c",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "c",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "c",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "c",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "3",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "3",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "3",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "d=4",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "d",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "d",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "d",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "d",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "4",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "4",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "4",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "a=1ANDb=2ORc=3ANDd=4ORe=5ANDf=6<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "OrLogicExpressionContext",
+        "query": "a=1ANDb=2ORc=3ANDd=4ORe=5ANDf=6",
+        "children": [
+          {
+            "type": "OrLogicExpressionContext",
+            "query": "a=1ANDb=2ORc=3ANDd=4",
+            "children": [
+              {
+                "type": "AndLogicExpressionContext",
+                "query": "a=1ANDb=2",
+                "children": [
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "a=1",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "a",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "a",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "a",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "a",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "IntegerAtomContext",
+                        "query": "1",
+                        "children": [
+                          {
+                            "type": "IntegerLiteralContext",
+                            "query": "1",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "1",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "AND",
+                    "children": []
+                  },
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "b=2",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "b",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "b",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "b",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "b",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "IntegerAtomContext",
+                        "query": "2",
+                        "children": [
+                          {
+                            "type": "IntegerLiteralContext",
+                            "query": "2",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "2",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "OR",
+                "children": []
+              },
+              {
+                "type": "AndLogicExpressionContext",
+                "query": "c=3ANDd=4",
+                "children": [
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "c=3",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "c",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "c",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "c",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "c",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "IntegerAtomContext",
+                        "query": "3",
+                        "children": [
+                          {
+                            "type": "IntegerLiteralContext",
+                            "query": "3",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "3",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "AND",
+                    "children": []
+                  },
+                  {
+                    "type": "BinaryComparisonExpressionContext",
+                    "query": "d=4",
+                    "children": [
+                      {
+                        "type": "AtomExpressionContext",
+                        "query": "d",
+                        "children": [
+                          {
+                            "type": "IdentifierAtomContext",
+                            "query": "d",
+                            "children": [
+                              {
+                                "type": "IdentifierContext",
+                                "query": "d",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "d",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "=",
+                        "children": []
+                      },
+                      {
+                        "type": "IntegerAtomContext",
+                        "query": "4",
+                        "children": [
+                          {
+                            "type": "IntegerLiteralContext",
+                            "query": "4",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "4",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "OR",
+            "children": []
+          },
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "e=5ANDf=6",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "e=5",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "e",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "e",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "e",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "e",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "5",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "5",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "5",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "f=6",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "f",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "f",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "f",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "f",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "6",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "6",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "6",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  },
+  {
+    "query": "a=1AND(b=2OR(c=3AND(d=4ORe=5)))ANDf=6<EOF>",
+    "type": "WebdaqlContext",
+    "children": [
+      {
+        "type": "AndLogicExpressionContext",
+        "query": "a=1AND(b=2OR(c=3AND(d=4ORe=5)))ANDf=6",
+        "children": [
+          {
+            "type": "AndLogicExpressionContext",
+            "query": "a=1AND(b=2OR(c=3AND(d=4ORe=5)))",
+            "children": [
+              {
+                "type": "BinaryComparisonExpressionContext",
+                "query": "a=1",
+                "children": [
+                  {
+                    "type": "AtomExpressionContext",
+                    "query": "a",
+                    "children": [
+                      {
+                        "type": "IdentifierAtomContext",
+                        "query": "a",
+                        "children": [
+                          {
+                            "type": "IdentifierContext",
+                            "query": "a",
+                            "children": [
+                              {
+                                "type": "TerminalNode",
+                                "query": "a",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": "=",
+                    "children": []
+                  },
+                  {
+                    "type": "IntegerAtomContext",
+                    "query": "1",
+                    "children": [
+                      {
+                        "type": "IntegerLiteralContext",
+                        "query": "1",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "1",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "AND",
+                "children": []
+              },
+              {
+                "type": "SubExpressionContext",
+                "query": "(b=2OR(c=3AND(d=4ORe=5)))",
+                "children": [
+                  {
+                    "type": "TerminalNode",
+                    "query": "(",
+                    "children": []
+                  },
+                  {
+                    "type": "OrLogicExpressionContext",
+                    "query": "b=2OR(c=3AND(d=4ORe=5))",
+                    "children": [
+                      {
+                        "type": "BinaryComparisonExpressionContext",
+                        "query": "b=2",
+                        "children": [
+                          {
+                            "type": "AtomExpressionContext",
+                            "query": "b",
+                            "children": [
+                              {
+                                "type": "IdentifierAtomContext",
+                                "query": "b",
+                                "children": [
+                                  {
+                                    "type": "IdentifierContext",
+                                    "query": "b",
+                                    "children": [
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "b",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": "=",
+                            "children": []
+                          },
+                          {
+                            "type": "IntegerAtomContext",
+                            "query": "2",
+                            "children": [
+                              {
+                                "type": "IntegerLiteralContext",
+                                "query": "2",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "2",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "TerminalNode",
+                        "query": "OR",
+                        "children": []
+                      },
+                      {
+                        "type": "SubExpressionContext",
+                        "query": "(c=3AND(d=4ORe=5))",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "(",
+                            "children": []
+                          },
+                          {
+                            "type": "AndLogicExpressionContext",
+                            "query": "c=3AND(d=4ORe=5)",
+                            "children": [
+                              {
+                                "type": "BinaryComparisonExpressionContext",
+                                "query": "c=3",
+                                "children": [
+                                  {
+                                    "type": "AtomExpressionContext",
+                                    "query": "c",
+                                    "children": [
+                                      {
+                                        "type": "IdentifierAtomContext",
+                                        "query": "c",
+                                        "children": [
+                                          {
+                                            "type": "IdentifierContext",
+                                            "query": "c",
+                                            "children": [
+                                              {
+                                                "type": "TerminalNode",
+                                                "query": "c",
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "=",
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "IntegerAtomContext",
+                                    "query": "3",
+                                    "children": [
+                                      {
+                                        "type": "IntegerLiteralContext",
+                                        "query": "3",
+                                        "children": [
+                                          {
+                                            "type": "TerminalNode",
+                                            "query": "3",
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "TerminalNode",
+                                "query": "AND",
+                                "children": []
+                              },
+                              {
+                                "type": "SubExpressionContext",
+                                "query": "(d=4ORe=5)",
+                                "children": [
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": "(",
+                                    "children": []
+                                  },
+                                  {
+                                    "type": "OrLogicExpressionContext",
+                                    "query": "d=4ORe=5",
+                                    "children": [
+                                      {
+                                        "type": "BinaryComparisonExpressionContext",
+                                        "query": "d=4",
+                                        "children": [
+                                          {
+                                            "type": "AtomExpressionContext",
+                                            "query": "d",
+                                            "children": [
+                                              {
+                                                "type": "IdentifierAtomContext",
+                                                "query": "d",
+                                                "children": [
+                                                  {
+                                                    "type": "IdentifierContext",
+                                                    "query": "d",
+                                                    "children": [
+                                                      {
+                                                        "type": "TerminalNode",
+                                                        "query": "d",
+                                                        "children": []
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "TerminalNode",
+                                            "query": "=",
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "IntegerAtomContext",
+                                            "query": "4",
+                                            "children": [
+                                              {
+                                                "type": "IntegerLiteralContext",
+                                                "query": "4",
+                                                "children": [
+                                                  {
+                                                    "type": "TerminalNode",
+                                                    "query": "4",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "TerminalNode",
+                                        "query": "OR",
+                                        "children": []
+                                      },
+                                      {
+                                        "type": "BinaryComparisonExpressionContext",
+                                        "query": "e=5",
+                                        "children": [
+                                          {
+                                            "type": "AtomExpressionContext",
+                                            "query": "e",
+                                            "children": [
+                                              {
+                                                "type": "IdentifierAtomContext",
+                                                "query": "e",
+                                                "children": [
+                                                  {
+                                                    "type": "IdentifierContext",
+                                                    "query": "e",
+                                                    "children": [
+                                                      {
+                                                        "type": "TerminalNode",
+                                                        "query": "e",
+                                                        "children": []
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "TerminalNode",
+                                            "query": "=",
+                                            "children": []
+                                          },
+                                          {
+                                            "type": "IntegerAtomContext",
+                                            "query": "5",
+                                            "children": [
+                                              {
+                                                "type": "IntegerLiteralContext",
+                                                "query": "5",
+                                                "children": [
+                                                  {
+                                                    "type": "TerminalNode",
+                                                    "query": "5",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "TerminalNode",
+                                    "query": ")",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "TerminalNode",
+                            "query": ")",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "TerminalNode",
+                    "query": ")",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "TerminalNode",
+            "query": "AND",
+            "children": []
+          },
+          {
+            "type": "BinaryComparisonExpressionContext",
+            "query": "f=6",
+            "children": [
+              {
+                "type": "AtomExpressionContext",
+                "query": "f",
+                "children": [
+                  {
+                    "type": "IdentifierAtomContext",
+                    "query": "f",
+                    "children": [
+                      {
+                        "type": "IdentifierContext",
+                        "query": "f",
+                        "children": [
+                          {
+                            "type": "TerminalNode",
+                            "query": "f",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "TerminalNode",
+                "query": "=",
+                "children": []
+              },
+              {
+                "type": "IntegerAtomContext",
+                "query": "6",
+                "children": [
+                  {
+                    "type": "IntegerLiteralContext",
+                    "query": "6",
+                    "children": [
+                      {
+                        "type": "TerminalNode",
+                        "query": "6",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TerminalNode",
+        "query": "<EOF>",
+        "children": []
+      }
+    ]
+  }
+]

@@ -1,0 +1,194 @@
+{
+  "moddas": {
+    "mycompany/authentication": "lib/authentication:Authentication",
+    "mycompany/invitationservice": "lib/invitationservice:default"
+  },
+  "beans": {},
+  "models": {},
+  "deployers": {},
+  "schemas": {
+    "mycompany/authentication": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content",
+          "default": "/auth"
+        },
+        "identStore": {
+          "type": "string",
+          "description": "Idents store for authentication identifiers",
+          "default": "idents"
+        },
+        "userStore": {
+          "type": "string",
+          "description": "User store for authentication users",
+          "default": "users"
+        },
+        "email": {
+          "type": "object",
+          "properties": {
+            "mailer": {
+              "type": "string",
+              "description": "Mailer service name"
+            },
+            "postValidation": {
+              "type": "boolean",
+              "description": "Allow user to create their account without validating their email first"
+            },
+            "skipEmailValidation": {
+              "type": "boolean",
+              "description": "Do not even validate the email at all"
+            },
+            "delay": {
+              "type": "number",
+              "description": "Minimal delay between two password recovery or validation email",
+              "default": "3600000 * 4"
+            },
+            "failedLoginBeforeDelay": {
+              "type": "number",
+              "description": "When a delay is added between two attempt to authenticate",
+              "default": 3
+            }
+          },
+          "required": [
+            "postValidation",
+            "skipEmailValidation",
+            "delay",
+            "failedLoginBeforeDelay"
+          ],
+          "description": "Enable the email authentication"
+        },
+        "password": {
+          "type": "object",
+          "properties": {
+            "verifier": {
+              "type": "string",
+              "description": "Password verifier Service name"
+            },
+            "regexp": {
+              "type": "string",
+              "description": "Regexp that password must check",
+              "default": "{8,}"
+            }
+          }
+        },
+        "salt": {
+          "type": "string",
+          "description": "Number of salt iteration for bcrypt.hashSync"
+        },
+        "failureRedirect": {
+          "type": "string",
+          "description": "Redirect to this page when email validation failed"
+        },
+        "successRedirect": {
+          "type": "string",
+          "description": "Redirect to this page when email validation succeed"
+        },
+        "registerRedirect": {
+          "type": "string",
+          "description": "Redirect to this page once email is validate to finish the registration process"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "failureRedirect",
+        "password",
+        "registerRedirect",
+        "salt",
+        "successRedirect",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Authentication"
+    },
+    "mycompany/invitationservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "authenticationService": {
+          "type": "string",
+          "description": "Name of the bean to use for Authentication",
+          "default": "Authentication"
+        },
+        "notificationService": {
+          "type": "string",
+          "description": "Notification service",
+          "default": "Mailer"
+        },
+        "modelStore": {
+          "type": "string",
+          "description": "Store to use"
+        },
+        "invitationStore": {
+          "type": "string",
+          "description": "Used to store pending invitation"
+        },
+        "mapFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields to duplicate"
+        },
+        "mapAttribute": {
+          "type": "string",
+          "description": "Attribute to use for the mapping"
+        },
+        "attribute": {
+          "type": "string",
+          "description": "Attribute where to store once the invitation is accepted\n\nIf attribute is __acls, the multiple will be ignored and the storage will be compatible with AclModel\n\nWhere to store within the model User"
+        },
+        "pendingAttribute": {
+          "type": "string",
+          "description": "Attribute where to store once the invitation is created and pending\n\nWhere to store within the model Ident and User"
+        },
+        "multiple": {
+          "type": "boolean",
+          "description": "Define if several invitation can be accepted or just one"
+        },
+        "autoAccept": {
+          "type": "boolean",
+          "description": "Do not require a validation by the invitee"
+        },
+        "notification": {
+          "type": "string",
+          "description": "Email template to send to the user"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "attribute",
+        "authenticationService",
+        "autoAccept",
+        "invitationStore",
+        "mapAttribute",
+        "mapFields",
+        "modelStore",
+        "multiple",
+        "pendingAttribute",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InvitationService"
+    }
+  },
+  "graph": {}
+}

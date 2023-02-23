@@ -1,6 +1,6 @@
 import { Core, Counter } from "../core";
 import { EventWithContext, OperationContext, RequestFilter, WebContext } from "../index";
-import { Authentication } from "./authentication";
+import { IAuthenticationService } from "./iauthentication";
 import { Service, ServiceParameters } from "./service";
 
 export interface EventOAuthToken extends EventWithContext {
@@ -122,7 +122,7 @@ export abstract class OAuthService<
   extends Service<T, E>
   implements RequestFilter<WebContext>
 {
-  _authenticationService: Authentication;
+  _authenticationService: IAuthenticationService;
 
   /**
    * @override
@@ -191,7 +191,7 @@ export abstract class OAuthService<
    */
   resolve(): this {
     super.resolve();
-    this._authenticationService = this.getService(this.parameters.authenticationService);
+    this._authenticationService = this.getService<IAuthenticationService>(this.parameters.authenticationService);
     return this;
   }
 

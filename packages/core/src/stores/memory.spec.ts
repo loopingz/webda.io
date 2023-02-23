@@ -1,12 +1,18 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync, unlinkSync } from "fs";
-import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User } from "../index";
-import { HttpContext } from "../utils/httpcontext";
-import { JSONUtils } from "../utils/serializers";
-import { StoreNotFoundError } from "./store";
+import {
+  CoreModel,
+  HttpContext,
+  Ident,
+  JSONUtils,
+  MemoryStore,
+  Store,
+  StoreNotFoundError,
+  User,
+  WebdaQL
+} from "../index";
 import { PermissionModel, StoreTest } from "./store.spec";
-import { WebdaQL } from "./webdaql/query";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -34,7 +40,7 @@ class MemoryStoreTest extends StoreTest {
   async recreateIndex() {
     let store = this.getService<Store>("memoryaggregators");
     await store.__clean();
-    await this.getService<AggregatorService>("memoryidentsindexer").createAggregate();
+    await this.getService<any>("memoryidentsindexer").createAggregate();
   }
 
   @test async deleteAsyncHttp() {

@@ -43,7 +43,7 @@
     "dateformat": "^5.0.3",
     "filesize": "^10.0.5",
     "fs-extra": "^11.0.0",
-    "generator-webda": "^1.2.0",
+    "generator-webda": "~1.3.0",
     "glob": "^8.0.1",
     "is-in-subnet": "^4.0.1",
     "json-stable-stringify": "^1.0.1",

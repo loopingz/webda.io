@@ -1,0 +1,340 @@
+{
+  "moddas": {
+    "webda/filebinary": "lib/filebinary:FileBinary",
+    "webda/fileconfiguration": "lib/fileconfiguration:FileConfigurationService",
+    "webda/filequeue": "lib/filequeue:FileQueue",
+    "webda/filestore": "lib/filestore:FileStore"
+  },
+  "beans": {},
+  "models": {},
+  "deployers": {},
+  "schemas": {
+    "webda/filebinary": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in"
+        },
+        "expose": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to expose the service to"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "get": {
+                  "type": "boolean",
+                  "description": "Restrict GET"
+                },
+                "create": {
+                  "type": "boolean",
+                  "description": "Restrict POST"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Restrict DELETE"
+                },
+                "metadata": {
+                  "type": "boolean",
+                  "description": "Restrict update of metadata"
+                }
+              },
+              "description": "Restrict some APIs"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "description": "Expose the service to http"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "folder": {
+          "type": "string",
+          "description": "Define the folder to store objects in"
+        },
+        "maxSize": {
+          "type": "number",
+          "description": "Maximum size to handle",
+          "default": "10Mb"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "folder",
+        "map",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FileBinary"
+    },
+    "webda/fileconfiguration": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "checkInterval": {
+          "type": "number",
+          "description": "Check configuration every {checkInterval} seconds"
+        },
+        "source": {
+          "type": "string",
+          "description": "Format sourceServiceName:sourceId"
+        },
+        "default": {
+          "description": "Default configuration to use"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "default",
+        "source",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FileConfiguration"
+    },
+    "webda/filequeue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "workerDelayer": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "expire": {
+          "type": "number",
+          "description": "Number of seconds before droping message",
+          "default": 30
+        },
+        "folder": {
+          "type": "string",
+          "description": "Where to store the queue"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "folder",
+        "maxConsumers",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FileQueue"
+    },
+    "webda/filestore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Different models managed by this store"
+        },
+        "asyncDelete": {
+          "type": "boolean",
+          "description": "async delete"
+        },
+        "expose": {
+          "$ref": "#/definitions/ExposeParameters",
+          "description": "Expose the service to an urls"
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
+          "default": false
+        },
+        "defaultModel": {
+          "type": "boolean",
+          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
+          "default": true
+        },
+        "forceModel": {
+          "type": "boolean",
+          "description": "If set, Store will ignore the __type",
+          "default": false
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
+        },
+        "parent": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "condition"
+          ],
+          "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
+        },
+        "graphql": {
+          "type": "boolean",
+          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
+        },
+        "folder": {
+          "type": "string",
+          "description": "Local path where to store all `json` files"
+        },
+        "beautify": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Parameter sent to JSON.stringify when storing the json"
+        },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable memory cache\n\nUseful if several process update storage files",
+          "default": false
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "asyncDelete",
+        "folder",
+        "slowQueryThreshold",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ExposeParameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL endpoint to use to expose REST Resources API",
+              "default": "service.getName().toLowerCase()"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Do not expose the POST"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Do not expose the PUT and PATCH"
+                },
+                "get": {
+                  "type": "boolean",
+                  "description": "Do not expose the GET"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Do not expose the DELETE"
+                },
+                "query": {
+                  "type": "boolean",
+                  "description": "Do not expose the query endpoint"
+                }
+              },
+              "description": "You can restrict any part of the CRUD",
+              "default": {}
+            },
+            "queryMethod": {
+              "type": "string",
+              "enum": [
+                "PUT",
+                "GET"
+              ],
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
+              "default": "GET"
+            }
+          }
+        }
+      },
+      "title": "FileStore"
+    }
+  },
+  "graph": {}
+}

@@ -1,0 +1,38 @@
+{
+  "moddas": {},
+  "beans": {},
+  "models": {
+    "mycompany/aclmodel": "lib/aclmodel:default"
+  },
+  "deployers": {},
+  "schemas": {
+    "mycompany/aclmodel": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        }
+      },
+      "description": "Object that contains ACL to define its own permissions",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AclModel"
+    }
+  },
+  "graph": {
+    "mycompany/aclmodel": {}
+  }
+}

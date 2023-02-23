@@ -1,0 +1,85 @@
+{
+  "type": "object",
+  "properties": {
+    "identStore": {
+      "description": "Idents store for authentication identifiers",
+      "default": "idents",
+      "type": "string"
+    },
+    "userStore": {
+      "description": "User store for authentication users",
+      "default": "users",
+      "type": "string"
+    },
+    "url": {
+      "default": "/auth",
+      "type": "string"
+    },
+    "email": {
+      "description": "Enable the email authentication",
+      "type": "object",
+      "properties": {
+        "mailer": {
+          "description": "Mailer service name",
+          "type": "string"
+        },
+        "postValidation": {
+          "description": "Allow user to create their account without validating their email first",
+          "type": "boolean"
+        },
+        "skipEmailValidation": {
+          "description": "Do not even validate the email at all",
+          "type": "boolean"
+        },
+        "delay": {
+          "description": "Minimal delay between two password recovery or validation email",
+          "default": "3600000 * 4",
+          "type": "number"
+        }
+      },
+      "required": [
+        "delay",
+        "postValidation",
+        "skipEmailValidation"
+      ]
+    },
+    "password": {
+      "type": "object",
+      "properties": {
+        "verifier": {
+          "description": "Password verifier Service name",
+          "type": "string"
+        },
+        "regexp": {
+          "description": "Regexp that password must check",
+          "default": "{8,}",
+          "type": "string"
+        }
+      }
+    },
+    "salt": {
+      "description": "Number of salt iteration for bcrypt.hashSync",
+      "type": "string"
+    },
+    "failureRedirect": {
+      "description": "Redirect to this page when email validation failed",
+      "type": "string"
+    },
+    "successRedirect": {
+      "description": "Redirect to this page when email validation succeed",
+      "type": "string"
+    },
+    "type": {
+      "description": "Type of the service",
+      "type": "string"
+    }
+  },
+  "required": [
+    "failureRedirect",
+    "password",
+    "salt",
+    "successRedirect",
+    "type"
+  ],
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

@@ -1,0 +1,209 @@
+NAME                                INSTALLED           FIXED-IN                 VULNERABILITY        SEVERITY   
+aether-connector-file               0.9.0.M2                                     CVE-2007-1536        High        
+apt                                 2.2.4                                        CVE-2011-3374        Negligible  
+avatica-core                        1.17.0                                       CVE-2020-13955       Medium      
+avatica-metrics                     1.17.0                                       CVE-2020-13955       Medium      
+avatica-server                      1.17.0                                       CVE-2020-13955       Medium      
+bsdutils                            1:2.36.1-8+deb11u1                           CVE-2022-0563        Negligible  
+calcite-core                        1.21.0              1.26.0                   GHSA-hxp5-8pgq-mgv9  Medium      
+calcite-core                        1.21.0                                       CVE-2020-13955       Medium      
+calcite-linq4j                      1.21.0                                       CVE-2020-13955       Medium      
+coreutils                           8.32-4+b1           (won't fix)              CVE-2016-2781        Low         
+coreutils                           8.32-4+b1                                    CVE-2017-18018       Negligible  
+curl                                7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22924       Low         
+curl                                7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22945       Critical    
+curl                                7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22946       High        
+curl                                7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22947       Medium      
+curl                                7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22898       Low         
+curl                                7.74.0-1.3+deb11u1                           CVE-2021-22922       Negligible  
+curl                                7.74.0-1.3+deb11u1                           CVE-2021-22923       Negligible  
+google-oauth-client                 1.26.0              1.31.0                   GHSA-f263-c949-w85g  High        
+guava                               16.0.1              24.1.1                   GHSA-mvr2-9pj6-7w5j  Medium      
+guava                               16.0.1                                       GHSA-5mg8-w23w-74h3  Low         
+guava                               16.0.1                                       CVE-2018-10237       Medium      
+guava                               16.0.1                                       CVE-2020-8908        Low         
+httpclient                          4.5.10              4.5.13                   GHSA-7r82-7xv7-xcpj  Medium      
+httpclient                          4.5.10                                       CVE-2020-13956       Medium      
+jetty-client                        9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-client                        9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-continuation                  9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-continuation                  9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-http                          9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-http                          9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-io                            9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-io                            9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-proxy                         9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-proxy                         9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-rewrite                       9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-rewrite                       9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-security                      9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-security                      9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-server                        9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-server                        9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-servlet                       9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-servlet                       9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-servlets                      9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-servlets                      9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-util                          9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-util                          9.4.40.v20210413                             CVE-2021-34429       Medium      
+jetty-util-ajax                     9.4.40.v20210413                             CVE-2021-28169       Medium      
+jetty-util-ajax                     9.4.40.v20210413                             CVE-2021-34429       Medium      
+json-smart                          2.3                 2.4.5                    GHSA-fg2v-w576-w4v3  High        
+json-smart                          2.3                 2.3.1                    GHSA-v528-7hrm-frqp  Critical    
+libapt-pkg6.0                       2.2.4                                        CVE-2011-3374        Negligible  
+libblkid1                           2.36.1-8+deb11u1                             CVE-2022-0563        Negligible  
+libc-bin                            2.31-13+deb11u2                              CVE-2021-43396       Negligible  
+libc-bin                            2.31-13+deb11u2     (won't fix)              CVE-2021-3998        Unknown     
+libc-bin                            2.31-13+deb11u2     (won't fix)              CVE-2021-3999        Unknown     
+libc-bin                            2.31-13+deb11u2     (won't fix)              CVE-2022-23218       Critical    
+libc-bin                            2.31-13+deb11u2     (won't fix)              CVE-2022-23219       Critical    
+libc-bin                            2.31-13+deb11u2                              CVE-2010-4756        Negligible  
+libc-bin                            2.31-13+deb11u2                              CVE-2018-20796       Negligible  
+libc-bin                            2.31-13+deb11u2                              CVE-2019-1010022     Negligible  
+libc-bin                            2.31-13+deb11u2                              CVE-2019-1010023     Negligible  
+libc-bin                            2.31-13+deb11u2                              CVE-2019-1010024     Negligible  
+libc-bin                            2.31-13+deb11u2                              CVE-2019-1010025     Negligible  
+libc-bin                            2.31-13+deb11u2                              CVE-2019-9192        Negligible  
+libc-bin                            2.31-13+deb11u2     (won't fix)              CVE-2021-33574       Critical    
+libc6                               2.31-13+deb11u2                              CVE-2021-43396       Negligible  
+libc6                               2.31-13+deb11u2     (won't fix)              CVE-2021-3998        Unknown     
+libc6                               2.31-13+deb11u2     (won't fix)              CVE-2021-3999        Unknown     
+libc6                               2.31-13+deb11u2     (won't fix)              CVE-2022-23218       Critical    
+libc6                               2.31-13+deb11u2     (won't fix)              CVE-2022-23219       Critical    
+libc6                               2.31-13+deb11u2                              CVE-2010-4756        Negligible  
+libc6                               2.31-13+deb11u2                              CVE-2018-20796       Negligible  
+libc6                               2.31-13+deb11u2                              CVE-2019-1010022     Negligible  
+libc6                               2.31-13+deb11u2                              CVE-2019-1010023     Negligible  
+libc6                               2.31-13+deb11u2                              CVE-2019-1010024     Negligible  
+libc6                               2.31-13+deb11u2                              CVE-2019-1010025     Negligible  
+libc6                               2.31-13+deb11u2                              CVE-2019-9192        Negligible  
+libc6                               2.31-13+deb11u2     (won't fix)              CVE-2021-33574       Critical    
+libcurl4                            7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22924       Low         
+libcurl4                            7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22945       Critical    
+libcurl4                            7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22946       High        
+libcurl4                            7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22947       Medium      
+libcurl4                            7.74.0-1.3+deb11u1  (won't fix)              CVE-2021-22898       Low         
+libcurl4                            7.74.0-1.3+deb11u1                           CVE-2021-22922       Negligible  
+libcurl4                            7.74.0-1.3+deb11u1                           CVE-2021-22923       Negligible  
+libexpat1                           2.2.10-2+deb11u2                             CVE-2013-0340        Negligible  
+libgcrypt20                         1.8.7-6             (won't fix)              CVE-2021-33560       High        
+libgcrypt20                         1.8.7-6                                      CVE-2018-6829        Negligible  
+libgnutls30                         3.7.1-5                                      CVE-2011-3389        Medium      
+libgnutls30                         3.7.1-5             (won't fix)              CVE-2021-4209        Unknown     
+libgssapi-krb5-2                    1.18.3-6+deb11u1                             CVE-2004-0971        Negligible  
+libgssapi-krb5-2                    1.18.3-6+deb11u1                             CVE-2018-5709        Negligible  
+libk5crypto3                        1.18.3-6+deb11u1                             CVE-2004-0971        Negligible  
+libk5crypto3                        1.18.3-6+deb11u1                             CVE-2018-5709        Negligible  
+libkrb5-3                           1.18.3-6+deb11u1                             CVE-2004-0971        Negligible  
+libkrb5-3                           1.18.3-6+deb11u1                             CVE-2018-5709        Negligible  
+libkrb5support0                     1.18.3-6+deb11u1                             CVE-2004-0971        Negligible  
+libkrb5support0                     1.18.3-6+deb11u1                             CVE-2018-5709        Negligible  
+libldap-2.4-2                       2.4.57+dfsg-3                                CVE-2015-3276        Negligible  
+libldap-2.4-2                       2.4.57+dfsg-3                                CVE-2017-14159       Negligible  
+libldap-2.4-2                       2.4.57+dfsg-3                                CVE-2017-17740       Negligible  
+libldap-2.4-2                       2.4.57+dfsg-3                                CVE-2020-15719       Negligible  
+libmount1                           2.36.1-8+deb11u1                             CVE-2022-0563        Negligible  
+libncursesw6                        6.2+20201114-2                               CVE-2021-39537       Negligible  
+libpcre3                            2:8.39-13                                    CVE-2017-11164       Negligible  
+libpcre3                            2:8.39-13                                    CVE-2017-16231       Negligible  
+libpcre3                            2:8.39-13                                    CVE-2017-7245        Negligible  
+libpcre3                            2:8.39-13                                    CVE-2017-7246        Negligible  
+libpcre3                            2:8.39-13                                    CVE-2019-20838       Negligible  
+libpng16-16                         1.6.37-3                                     CVE-2019-6129        Negligible  
+libpng16-16                         1.6.37-3                                     CVE-2021-4214        Negligible  
+libsasl2-2                          2.1.27+dfsg-2.1     2.1.27+dfsg-2.1+deb11u1  CVE-2022-24407       High        
+libsasl2-modules-db                 2.1.27+dfsg-2.1     2.1.27+dfsg-2.1+deb11u1  CVE-2022-24407       High        
+libsepol1                           3.1-1               (won't fix)              CVE-2021-36084       Low         
+libsepol1                           3.1-1               (won't fix)              CVE-2021-36085       Low         
+libsepol1                           3.1-1               (won't fix)              CVE-2021-36086       Low         
+libsepol1                           3.1-1               (won't fix)              CVE-2021-36087       Low         
+libsmartcols1                       2.36.1-8+deb11u1                             CVE-2022-0563        Negligible  
+libsqlite3-0                        3.34.1-3                                     CVE-2021-36690       Negligible  
+libsqlite3-0                        3.34.1-3            (won't fix)              CVE-2021-45346       Medium      
+libssl1.1                           1.1.1k-1+deb11u1                             CVE-2007-6755        Negligible  
+libssl1.1                           1.1.1k-1+deb11u1                             CVE-2010-0928        Negligible  
+libssl1.1                           1.1.1k-1+deb11u1    1.1.1k-1+deb11u2         CVE-2021-4160        Medium      
+libssl1.1                           1.1.1k-1+deb11u1    1.1.1k-1+deb11u2         CVE-2022-0778        Unknown     
+libsystemd0                         247.3-6                                      CVE-2013-4392        Negligible  
+libsystemd0                         247.3-6                                      CVE-2020-13529       Negligible  
+libsystemd0                         247.3-6             (won't fix)              CVE-2021-3997        Unknown     
+libtinfo6                           6.2+20201114-2                               CVE-2021-39537       Negligible  
+libudev1                            247.3-6                                      CVE-2013-4392        Negligible  
+libudev1                            247.3-6                                      CVE-2020-13529       Negligible  
+libudev1                            247.3-6             (won't fix)              CVE-2021-3997        Unknown     
+libuuid1                            2.36.1-8+deb11u1                             CVE-2022-0563        Negligible  
+log4j-1.2-api                       2.16.0                                       CVE-2021-44832       Medium      
+log4j-1.2-api                       2.16.0                                       CVE-2021-45105       Medium      
+log4j-api                           2.16.0                                       CVE-2021-44832       Medium      
+log4j-api                           2.16.0                                       CVE-2021-45105       Medium      
+log4j-core                          2.16.0              2.17.1                   GHSA-8489-44mv-ggj8  Medium      
+log4j-core                          2.16.0              2.17.0                   GHSA-p6xc-xr62-6r2g  High        
+log4j-core                          2.16.0                                       CVE-2021-44832       Medium      
+log4j-core                          2.16.0                                       CVE-2021-45105       Medium      
+log4j-jul                           2.16.0                                       CVE-2021-44832       Medium      
+log4j-jul                           2.16.0                                       CVE-2021-45105       Medium      
+log4j-slf4j-impl                    2.16.0                                       CVE-2021-44832       Medium      
+log4j-slf4j-impl                    2.16.0                                       CVE-2021-45105       Medium      
+login                               1:4.8.1-1                                    CVE-2007-5686        Negligible  
+login                               1:4.8.1-1                                    CVE-2013-4235        Negligible  
+login                               1:4.8.1-1                                    CVE-2019-19882       Negligible  
+maven-aether-provider               3.1.1                                        CVE-2021-26291       Critical    
+maven-artifact                      3.6.0                                        CVE-2021-26291       Critical    
+maven-model                         3.1.1                                        CVE-2021-26291       Critical    
+maven-model-builder                 3.1.1                                        CVE-2021-26291       Critical    
+maven-repository-metadata           3.1.1                                        CVE-2021-26291       Critical    
+maven-settings                      3.1.1                                        CVE-2021-26291       Critical    
+maven-settings-builder              3.1.1                                        CVE-2021-26291       Critical    
+mount                               2.36.1-8+deb11u1                             CVE-2022-0563        Negligible  
+ncurses-base                        6.2+20201114-2                               CVE-2021-39537       Negligible  
+ncurses-bin                         6.2+20201114-2                               CVE-2021-39537       Negligible  
+netty                               3.10.6.Final                                 CVE-2019-16869       High        
+netty                               3.10.6.Final                                 CVE-2019-20444       Critical    
+netty                               3.10.6.Final                                 CVE-2019-20445       Critical    
+netty                               3.10.6.Final                                 CVE-2021-21290       Medium      
+netty                               3.10.6.Final                                 CVE-2021-21295       Medium      
+netty                               3.10.6.Final                                 CVE-2021-21409       Medium      
+netty                               3.10.6.Final                                 CVE-2021-37136       High        
+netty                               3.10.6.Final                                 CVE-2021-37137       High        
+netty                               3.10.6.Final                                 CVE-2021-43797       Medium      
+netty-codec-http                    4.1.68.Final        4.1.71.Final             GHSA-wx5j-54mm-rqqq  Medium      
+netty-reactive-streams              2.0.0                                        CVE-2014-3488        Medium      
+netty-reactive-streams              2.0.0                                        CVE-2015-2156        High        
+netty-reactive-streams              2.0.0                                        CVE-2019-16869       High        
+netty-reactive-streams              2.0.0                                        CVE-2019-20444       Critical    
+netty-reactive-streams              2.0.0                                        CVE-2019-20445       Critical    
+netty-reactive-streams              2.0.0                                        CVE-2021-21290       Medium      
+netty-reactive-streams              2.0.0                                        CVE-2021-21295       Medium      
+netty-reactive-streams              2.0.0                                        CVE-2021-21409       Medium      
+netty-reactive-streams              2.0.0                                        CVE-2021-37136       High        
+netty-reactive-streams              2.0.0                                        CVE-2021-37137       High        
+netty-reactive-streams              2.0.0                                        CVE-2021-43797       Medium      
+okhttp                              1.0.2                                        CVE-2016-2402        Medium      
+openssl                             1.1.1k-1+deb11u1                             CVE-2007-6755        Negligible  
+openssl                             1.1.1k-1+deb11u1                             CVE-2010-0928        Negligible  
+openssl                             1.1.1k-1+deb11u1    1.1.1k-1+deb11u2         CVE-2021-4160        Medium      
+openssl                             1.1.1k-1+deb11u1    1.1.1k-1+deb11u2         CVE-2022-0778        Unknown     
+passwd                              1:4.8.1-1                                    CVE-2007-5686        Negligible  
+passwd                              1:4.8.1-1                                    CVE-2013-4235        Negligible  
+passwd                              1:4.8.1-1                                    CVE-2019-19882       Negligible  
+perl-base                           5.32.1-4+deb11u2                             CVE-2011-4116        Negligible  
+perl-base                           5.32.1-4+deb11u2    (won't fix)              CVE-2020-16156       High        
+postgresql                          42.2.14                                      CVE-2017-8806        Medium      
+prometheus_emitter_0.18.0-SNAPSHOT  0.18.0-SNAPSHOT                              CVE-2021-25646       High        
+prometheus_emitter_0.18.0-SNAPSHOT  0.18.0-SNAPSHOT                              CVE-2021-26919       High        
+prometheus_emitter_0.18.0-SNAPSHOT  0.18.0-SNAPSHOT                              CVE-2021-26920       Medium      
+prometheus_emitter_0.18.0-SNAPSHOT  0.18.0-SNAPSHOT                              CVE-2021-36749       Medium      
+protobuf-java                       3.11.0              3.16.1                   GHSA-wrvw-hg22-4m67  High        
+protobuf-java                       3.11.0                                       CVE-2021-22569       Medium      
+protobuf-java                       3.11.0                                       CVE-2021-22570       High        
+tar                                 1.34+dfsg-1                                  CVE-2005-2541        Negligible  
+unzip                               6.0-26                                       CVE-2021-4217        Negligible  
+unzip                               6.0-26                                       CVE-2022-0529        High        
+unzip                               6.0-26                                       CVE-2022-0530        High        
+util-linux                          2.36.1-8+deb11u1                             CVE-2022-0563        Negligible  
+wget                                1.21-1+deb11u1      (won't fix)              CVE-2021-31879       Medium      
+xz                                  1.8                                          CVE-2015-4035        High        
+zookeeper                           3.5.9                                        CVE-2021-21295       Medium      
+zookeeper                           3.5.9                                        CVE-2021-28169       Medium      
+zookeeper-jute                      3.5.9                                        CVE-2021-21295       Medium      
+zookeeper-jute                      3.5.9                                        CVE-2021-28169       Medium      

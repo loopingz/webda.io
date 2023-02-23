@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from "fs";
+import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath } from "url";
 /**
@@ -22,43 +23,11 @@ let versions = {
         type: ""
     }
 };
-/**
- * Include Webda library
- *
- * Resolution order is:
- *  - local library
- *  - local folder
- *  - embedded library
- */
-if (fs.existsSync("node_modules/@webda/core")) {
-    // Local module of webda exists use it
-    versions["@webda/core"].path = process.cwd() + "/node_modules/@webda/core";
-    versions["@webda/core"].version = getVersion(versions["@webda/core"].path);
-    versions["@webda/core"].type = "local";
-}
-else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
-    versions["@webda/core"].path = process.cwd();
-    versions["@webda/core"].version = "dev";
-    versions["@webda/core"].type = "development";
-}
-else {
-    let dir = process.cwd() + "/..";
-    while (path.resolve(dir) !== "/") {
-        if (fs.existsSync(path.join(dir, "node_modules/@webda/core"))) {
-            versions["@webda/core"].path = dir + "/node_modules/@webda/core";
-            versions["@webda/core"].version = getVersion(versions["@webda/core"].path);
-            versions["@webda/core"].type = "local";
-            break;
-        }
-        dir = path.join(dir, "..");
-    }
-    if (versions["@webda/core"].type !== "local") {
-        // Use the webda-shell default webda
-        versions["@webda/core"].path = "@webda/core";
-        versions["@webda/core"].version = getVersion(versions["@webda/core"].path);
-        versions["@webda/core"].type = "embedded";
-    }
-}
+// Rely solely on the Node resolver
+const require = createRequire(import.meta.url);
+versions["@webda/core"].path = path.dirname(require.resolve("@webda/core/package.json"));
+versions["@webda/core"].version = getVersion(versions["@webda/core"].path);
+versions["@webda/core"].type = "resolved";
 versions["@webda/shell"].path = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".."));
 versions["@webda/shell"].version = getVersion(versions["@webda/shell"].path);
 /**

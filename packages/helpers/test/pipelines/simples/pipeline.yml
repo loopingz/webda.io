@@ -1,0 +1,17 @@
+description: Test
+
+processors:
+  - set:
+      field: event.type
+      value: flow
+  - set:
+      field: event.category
+      value: network_traffic
+  - drop:
+      if: 'ctx.event?.original.startsWith("version") || ctx.event?.original.startsWith("instance-id")'
+  - date:
+      field: aws.vpcflow.end
+      target_field: "@timestamp"
+      ignore_failure: true
+      formats:
+        - UNIX

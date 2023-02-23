@@ -1,0 +1,173 @@
+{
+  "version": 2,
+  "parameters": {
+    "cookie": {
+      "sameSite": "None",
+      "name": "test"
+    },
+    "TEST": "Global",
+    "region": "us-east-1",
+    "website": ["test.webda.io", "test2.webda.io"],
+    "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "www\\.facebook\\.com"],
+    "locales": ["es-ES", "en", "fr-FR"]
+  },
+  "services": {
+    "PrometheusService": {
+      "type": "Webda/PrometheusService"
+    },
+    "ResourceService": {
+      "type": "Webda/ResourceService",
+      "folder": "test",
+      "indexFallback": false
+    },
+    "VersionService": {
+      "type": "Webda/VersionService"
+    },
+    "ModelsResource": {
+      "type": "Webda/ResourceService",
+      "url": "templates"
+    },
+    "AsyncEvents": {
+      "type": "AsyncEvents",
+      "queues": {
+        "default": "EventQueue",
+        "priority": "PriorityEventQueue"
+      }
+    },
+    "MemoryQueue": {
+      "type": "MemoryQueue",
+      "expire": 1,
+      "maxConsumers": 1
+    },
+    "FileQueue": {
+      "type": "FileQueue",
+      "expire": 1,
+      "folder": "./test/data/queue"
+    },
+    "PriorityEventQueue": {
+      "type": "MemoryQueue",
+      "expire": 3600
+    },
+    "EventQueue": {
+      "type": "MemoryQueue",
+      "expire": 3600
+    },
+    "Authentication": {
+      "successRedirect": "https://webda.io/user.html",
+      "registerRedirect": "https://webda.io/register.html",
+      "failureRedirect": "/login-error",
+      "email": {
+        "from": "",
+        "subject": "",
+        "html": "",
+        "text": "",
+        "mailer": "DefinedMailer",
+        "postValidation": false
+      }
+    },
+    "DefinedMailer": {
+      "type": "WebdaTest/Mailer"
+    },
+    "TrueMailer": {
+      "type": "Webda/Mailer",
+      "config": {
+        "transport": "ses"
+      }
+    },
+    "MemoryIdentsIndexer": {
+      "type": "Webda/Aggregator",
+      "source": "MemoryIdents",
+      "target": "MemoryAggregators",
+      "fields": "type"
+    },
+    "MemoryAggregators": {
+      "type": "MemoryStore"
+    },
+    "MemoryIdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "MemoryIdents",
+      "targetAttribute": "idents",
+      "target": "MemoryUsers",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate",
+      "cascade": true
+    },
+    "MemoryIdents": {
+      "asyncDelete": true,
+      "expose": {
+        "url": "/memory/idents"
+      },
+      "model": "WebdaTest/Ident",
+      "type": "MemoryStore"
+    },
+    "MemoryUsers": {
+      "expose": {
+        "url": "/memory/users"
+      },
+      "type": "MemoryStore"
+    },
+    "IdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "Idents",
+      "targetAttribute": "idents",
+      "target": "Users",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate,counter",
+      "cascade": true
+    },
+    "IdentsIndexer": {
+      "type": "Webda/Aggregator",
+      "source": "Idents",
+      "target": "MemoryAggregators",
+      "fields": "type,_lastUpdate",
+      "key": "idents-index"
+    },
+    "Idents": {
+      "asyncDelete": true,
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "model": "WebdaTest/Ident",
+      "type": "FileStore",
+      "folder": "./test/data/idents",
+      "validator": "IdentValidator"
+    },
+    "Users": {
+      "expose": {
+        "url": "/users"
+      },
+      "type": "FileStore",
+      "folder": "./test/data/idents",
+      "model": "Webda/User"
+    },
+    "Tasks": {
+      "type": "FileStore",
+      "folder": "./test/data/tasks",
+      "model": "WebdaTest/Task",
+      "expose": true
+    },
+    "binary": {
+      "type": "FileBinary",
+      "folder": "./test/data/binaries",
+      "map": {
+        "users": ["images"],
+        "notexisting": ["images"]
+      },
+      "expose": {
+        "url": "/binary"
+      }
+    },
+    "brokenService": {
+      "type": "WebdaTest/VoidStore",
+      "accessKeyId": "LOCAL_ACCESS_KEY",
+      "secretAccessKey": "LOCAL_SECRET_KEY"
+    },
+    "Registry": {
+      "type": "Webda/MemoryStore"
+    }
+  }
+}

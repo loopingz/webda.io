@@ -4,7 +4,15 @@ import * as events from "events";
 import { Constructor, Core, Counter, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
 import { HttpMethodType } from "../utils/httpcontext";
-import { EventService } from "./asyncevents";
+
+/**
+ * EventService for asynchronous events
+ * 
+ * NEEDS MORE DOCUMENTATION
+ */
+export interface IEventService extends Service {
+  bindAsyncListener(service: Service, event: string, callback, queue: string): void;
+}
 
 /**
  * Represent a Inject annotation
@@ -535,7 +543,7 @@ abstract class Service<
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
   onAsync<Key extends keyof E>(event: Key, listener: (evt: E[Key]) => void, queue: string = undefined) {
-    this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
+    this._webda.getService<IEventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
   }
 
   /**

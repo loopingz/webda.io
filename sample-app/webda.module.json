@@ -370,7 +370,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-192-240-829200435-0-1184%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -385,7 +385,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-829200435-192-240-829200435-0-1184>": {
           "type": "object",
           "properties": {
             "test": {
@@ -411,7 +411,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-192-240-829200435-0-1184%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -426,7 +426,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-829200435-192-240-829200435-0-1184>": {
           "type": "object",
           "properties": {
             "test": {
@@ -475,7 +475,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-192-240-829200435-0-1184%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -496,7 +496,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-829200435-192-240-829200435-0-1184>": {
           "type": "object",
           "properties": {
             "test": {

@@ -1,8 +1,6 @@
 "use strict";
 import * as uuid from "uuid";
-import { ServiceParameters } from "../services/service";
-import { JSONUtils } from "../utils/serializers";
-import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
+import { JSONUtils, MessageReceipt, Queue, QueueParameters, ServiceParameters } from "../index";
 
 interface QueueMap {
   [key: string]: any;

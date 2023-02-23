@@ -4,7 +4,6 @@ import * as path from "path";
 import * as sinon from "sinon";
 import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
 import {
-  Authentication,
   Bean,
   ConsoleLoggerService,
   CoreModel,
@@ -464,13 +463,13 @@ class CoreTest extends WebdaTest {
 
   @test
   async updateConfiguration() {
-    let service = this.webda.getService<Authentication>("Authentication");
+    let service = this.webda.getService<any>("Authentication");
     assert.strictEqual(service.getParameters().password.regexp, ".{8,}");
     assert.strictEqual(service.getParameters().email.mailer, "DefinedMailer");
     await this.webda.reinit({
       "Authentication.password.regexp": ".{12,}"
     });
-    let newService = this.webda.getService<Authentication>("Authentication");
+    let newService = this.webda.getService<any>("Authentication");
     assert.strictEqual(newService.getParameters().password.regexp, ".{12,}");
     assert.strictEqual(newService.getParameters().email.mailer, "DefinedMailer");
     await assert.rejects(

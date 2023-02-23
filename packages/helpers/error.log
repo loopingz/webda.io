@@ -1,0 +1,330 @@
+src/application.ts(95,47): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/application.ts(159,59): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/application.ts(167,5): error TS2322: Type 'typeof EventService' is not assignable to type 'ServiceConstructor<any>'.
+  Type 'typeof EventService' provides no match for the signature 'new (webda: Core, name: string, params: any): any'.
+src/application.ts(168,5): error TS2322: Type 'typeof ResourceService' is not assignable to type 'ServiceConstructor<any>'.
+  Type 'typeof ResourceService' provides no match for the signature 'new (webda: Core, name: string, params: any): any'.
+src/application.ts(170,5): error TS2322: Type 'typeof ConfigurationService' is not assignable to type 'ServiceConstructor<any>'.
+  Type 'typeof ConfigurationService' provides no match for the signature 'new (webda: Core, name: string, params: any): any'.
+src/application.ts(171,5): error TS2741: Property 'getModda' is missing in type 'typeof FileConfigurationService' but required in type 'ServiceConstructor<any>'.
+src/application.ts(172,5): error TS2741: Property 'getModda' is missing in type 'typeof KubernetesConfigurationService' but required in type 'ServiceConstructor<any>'.
+src/application.ts(421,56): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/application.ts(466,55): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.spec.ts(10,2): error TS2345: Argument of type 'typeof ExceptionExecutor' is not assignable to parameter of type 'Function'.
+  Type 'typeof ExceptionExecutor' is missing the following properties from type 'Function': apply, call, bind, length, and 4 more.
+src/core.spec.ts(11,33): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.ts(241,40): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.ts(475,29): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.ts(520,24): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.ts(531,35): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.ts(540,66): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.ts(559,33): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/core.ts(797,31): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/models/coremodel.ts(15,20): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/models/coremodel.ts(45,12): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/models/coremodel.ts(81,17): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/models/coremodel.ts(263,24): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/queues/memoryqueue.spec.ts(12,42): error TS2554: Expected 0 arguments, but got 3.
+src/queues/memoryqueue.spec.ts(14,13): error TS2339: Property '_webda' does not exist on type 'Queue'.
+src/queues/memoryqueue.spec.ts(70,30): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/memoryqueue.spec.ts(71,11): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/memoryqueue.spec.ts(73,30): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/memoryqueue.spec.ts(74,11): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/memoryqueue.ts(15,27): error TS2507: Type 'typeof Queue' is not a constructor function type.
+src/queues/memoryqueue.ts(21,15): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/memoryqueue.ts(22,12): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/memoryqueue.ts(24,10): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/memoryqueue.ts(49,64): error TS2339: Property '_params' does not exist on type 'MemoryQueue'.
+src/queues/queueservice.ts(6,30): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/queues/queueservice.ts(43,16): error TS2339: Property '_webda' does not exist on type 'Queue'.
+src/queues/queueservice.ts(49,12): error TS2339: Property '_webda' does not exist on type 'Queue'.
+src/services/asyncevents.spec.ts(13,16): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/asyncevents.spec.ts(13,36): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/asyncevents.ts(5,12): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/asyncevents.ts(35,28): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/asyncevents.ts(46,14): error TS2339: Property '_params' does not exist on type 'EventService'.
+src/services/asyncevents.ts(47,24): error TS2339: Property '_params' does not exist on type 'EventService'.
+src/services/asyncevents.ts(52,34): error TS2339: Property 'getService' does not exist on type 'EventService'.
+src/services/asyncevents.ts(52,57): error TS2339: Property '_params' does not exist on type 'EventService'.
+src/services/asyncevents.ts(55,25): error TS2339: Property '_params' does not exist on type 'EventService'.
+src/services/asyncevents.ts(58,12): error TS2339: Property '_webda' does not exist on type 'EventService'.
+src/services/asyncevents.ts(58,86): error TS2339: Property '_params' does not exist on type 'EventService'.
+src/services/authentication.spec.ts(11,14): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.spec.ts(12,15): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.spec.ts(16,19): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.spec.ts(17,13): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.spec.ts(20,20): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.spec.ts(21,13): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.spec.ts(34,25): error TS2339: Property 'on' does not exist on type 'Authentication'.
+src/services/authentication.spec.ts(37,25): error TS2339: Property 'on' does not exist on type 'Authentication'.
+src/services/authentication.ts(12,36): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/authentication.ts(43,30): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/authentication.ts(45,17): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.ts(46,16): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.ts(54,10): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(54,36): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(55,10): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(55,35): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(56,10): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(56,29): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(61,20): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(63,10): error TS2339: Property '_addRoute' does not exist on type 'Authentication'.
+src/services/authentication.ts(84,10): error TS2339: Property '_addRoute' does not exist on type 'Authentication'.
+src/services/authentication.ts(91,14): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(94,12): error TS2339: Property '_addRoute' does not exist on type 'Authentication'.
+src/services/authentication.ts(101,12): error TS2339: Property '_addRoute' does not exist on type 'Authentication'.
+src/services/authentication.ts(104,12): error TS2339: Property '_addRoute' does not exist on type 'Authentication'.
+src/services/authentication.ts(132,12): error TS2339: Property '_addRoute' does not exist on type 'Authentication'.
+src/services/authentication.ts(144,12): error TS2339: Property '_addRoute' does not exist on type 'Authentication'.
+src/services/authentication.ts(161,17): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(177,14): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(178,32): error TS2339: Property 'getService' does not exist on type 'Authentication'.
+src/services/authentication.ts(178,43): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.ts(178,62): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(181,14): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(182,31): error TS2339: Property 'getService' does not exist on type 'Authentication'.
+src/services/authentication.ts(182,42): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/authentication.ts(182,60): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(185,29): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(186,10): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(186,40): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(188,14): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(189,37): error TS2339: Property 'getService' does not exist on type 'Authentication'.
+src/services/authentication.ts(189,71): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(233,16): error TS2339: Property 'emitSync' does not exist on type 'Authentication'.
+src/services/authentication.ts(307,16): error TS2339: Property 'emitSync' does not exist on type 'Authentication'.
+src/services/authentication.ts(356,34): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(397,24): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(408,24): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(424,22): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(436,33): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(451,33): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(454,14): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(498,39): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(502,16): error TS2339: Property 'emitSync' does not exist on type 'Authentication'.
+src/services/authentication.ts(522,17): error TS2339: Property 'emitSync' does not exist on type 'Authentication'.
+src/services/authentication.ts(526,17): error TS2339: Property 'getService' does not exist on type 'Authentication'.
+src/services/authentication.ts(526,41): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(526,69): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(545,18): error TS2339: Property 'emitSync' does not exist on type 'Authentication'.
+src/services/authentication.ts(566,12): error TS2339: Property '_webda' does not exist on type 'Authentication'.
+src/services/authentication.ts(579,27): error TS2339: Property '_params' does not exist on type 'Authentication'.
+src/services/authentication.ts(647,45): error TS2339: Property '_webda' does not exist on type 'Authentication'.
+src/services/binary.spec.ts(8,19): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/binary.spec.ts(9,13): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/binary.spec.ts(35,18): error TS2339: Property '__clean' does not exist on type 'Binary'.
+src/services/binary.spec.ts(47,14): error TS2339: Property 'on' does not exist on type 'Binary'.
+src/services/binary.ts(55,22): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/binary.ts(121,16): error TS2339: Property 'emitSync' does not exist on type 'Binary'.
+src/services/binary.ts(145,16): error TS2339: Property '_webda' does not exist on type 'Binary'.
+src/services/binary.ts(155,23): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(173,31): error TS2339: Property '_webda' does not exist on type 'Binary'.
+src/services/binary.ts(175,14): error TS2339: Property '_webda' does not exist on type 'Binary'.
+src/services/binary.ts(183,25): error TS2339: Property '_name' does not exist on type 'Binary'.
+src/services/binary.ts(193,27): error TS2339: Property '_name' does not exist on type 'Binary'.
+src/services/binary.ts(228,20): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(261,16): error TS2339: Property 'emitSync' does not exist on type 'Binary'.
+src/services/binary.ts(285,18): error TS2339: Property 'emitSync' does not exist on type 'Binary'.
+src/services/binary.ts(292,18): error TS2339: Property 'emitSync' does not exist on type 'Binary'.
+src/services/binary.ts(310,21): error TS2339: Property 'emitSync' does not exist on type 'Binary'.
+src/services/binary.ts(341,15): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(344,21): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(345,17): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(348,12): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(349,12): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(349,44): error TS2339: Property '_name' does not exist on type 'Binary'.
+src/services/binary.ts(350,28): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(351,18): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(352,12): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(353,12): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(354,28): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(354,63): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(355,12): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(355,44): error TS2339: Property '_name' does not exist on type 'Binary'.
+src/services/binary.ts(357,14): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(358,12): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(360,22): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(361,21): error TS2339: Property '_name' does not exist on type 'Binary'.
+src/services/binary.ts(366,15): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(370,15): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(371,18): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(372,12): error TS2339: Property '_addRoute' does not exist on type 'Binary'.
+src/services/binary.ts(387,15): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(389,18): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(390,12): error TS2339: Property '_addRoute' does not exist on type 'Binary'.
+src/services/binary.ts(409,15): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(411,18): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(412,12): error TS2339: Property '_addRoute' does not exist on type 'Binary'.
+src/services/binary.ts(427,15): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(429,18): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(430,12): error TS2339: Property '_addRoute' does not exist on type 'Binary'.
+src/services/binary.ts(454,37): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/binary.ts(457,20): error TS2339: Property '_params' does not exist on type 'Binary'.
+src/services/binary.ts(468,22): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/binary.ts(468,46): error TS2339: Property 'getService' does not exist on type 'Binary'.
+src/services/binary.ts(468,57): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/configuration.spec.ts(34,16): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/configuration.spec.ts(34,36): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/services/configuration.ts(15,51): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/configuration.ts(26,15): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(27,12): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(30,15): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(33,23): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(34,32): error TS2339: Property 'getService' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(51,47): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(58,41): error TS2339: Property '_webda' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(58,65): error TS2339: Property '_webda' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(86,10): error TS2339: Property 'log' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(87,63): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(89,12): error TS2339: Property 'emit' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(90,12): error TS2339: Property 'log' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(95,14): error TS2339: Property 'log' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(102,12): error TS2339: Property 'emit' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(107,12): error TS2339: Property 'log' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(107,63): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/configuration.ts(112,51): error TS2339: Property '_params' does not exist on type 'ConfigurationService'.
+src/services/cron.ts(53,27): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/cron.ts(97,57): error TS2339: Property '_webda' does not exist on type 'CronService'.
+src/services/cron.ts(111,10): error TS2339: Property 'log' does not exist on type 'CronService'.
+src/services/cron.ts(123,16): error TS2339: Property 'getService' does not exist on type 'CronService'.
+src/services/cron.ts(140,12): error TS2339: Property 'log' does not exist on type 'CronService'.
+src/services/debugmailer.ts(7,42): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/debugmailer.ts(22,10): error TS2339: Property 'log' does not exist on type 'DebugMailer'.
+src/services/echo.ts(17,27): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/echo.ts(20,14): error TS2339: Property '_params' does not exist on type 'EchoService'.
+src/services/echo.ts(22,30): error TS2339: Property '_params' does not exist on type 'EchoService'.
+src/services/echo.ts(25,21): error TS2339: Property '_params' does not exist on type 'EchoService'.
+src/services/echo.ts(26,37): error TS2339: Property '_params' does not exist on type 'EchoService'.
+src/services/echo.ts(28,22): error TS2339: Property '_params' does not exist on type 'EchoService'.
+src/services/filebinary.spec.ts(11,23): error TS2351: This expression is not constructable.
+  Type 'typeof Binary' has no construct signatures.
+src/services/filebinary.spec.ts(22,14): error TS2339: Property '_validChallenge' does not exist on type 'FileBinary'.
+src/services/filebinary.spec.ts(26,14): error TS2339: Property '_validChallenge' does not exist on type 'FileBinary'.
+src/services/filebinary.spec.ts(30,14): error TS2339: Property '_validChallenge' does not exist on type 'FileBinary'.
+src/services/filebinary.spec.ts(34,14): error TS2339: Property '_validChallenge' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(20,26): error TS2507: Type 'typeof Binary' is not a constructor function type.
+src/services/filebinary.ts(27,15): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(28,12): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(37,20): error TS2339: Property '_url' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(38,21): error TS2339: Property '_name' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(38,52): error TS2339: Property '_name' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(39,15): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(40,12): error TS2339: Property '_addRoute' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(67,19): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(69,17): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(80,53): error TS2339: Property '_url' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(91,12): error TS2339: Property '_webda' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(105,28): error TS2339: Property '_verifyMapAndStore' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(107,16): error TS2339: Property 'updateSuccess' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(131,23): error TS2339: Property '_getHashes' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(174,17): error TS2339: Property 'deleteSuccess' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(181,15): error TS2339: Property '_validChallenge' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(206,10): error TS2339: Property '_checkMap' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(207,10): error TS2339: Property '_prepareInput' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(208,31): error TS2339: Property '_getHashes' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(211,19): error TS2339: Property 'updateSuccess' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(214,17): error TS2339: Property 'updateSuccess' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(218,10): error TS2339: Property '_checkMap' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(219,10): error TS2339: Property '_prepareInput' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(220,31): error TS2339: Property '_getHashes' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(223,19): error TS2339: Property 'updateSuccess' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(226,17): error TS2339: Property 'updateSuccess' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(230,35): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(233,39): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(235,28): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/filebinary.ts(237,25): error TS2339: Property '_params' does not exist on type 'FileBinary'.
+src/services/fileconfiguration.ts(9,47): error TS2507: Type 'typeof ConfigurationService' is not a constructor function type.
+src/services/fileconfiguration.ts(12,15): error TS2339: Property '_params' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(17,10): error TS2339: Property '_params' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(17,32): error TS2339: Property '_webda' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(17,55): error TS2339: Property '_params' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(18,29): error TS2339: Property '_params' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(22,23): error TS2339: Property '_params' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(22,44): error TS2339: Property '_checkUpdate' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(25,10): error TS2339: Property 'watch' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(25,41): error TS2339: Property '_webda' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(25,65): error TS2339: Property '_webda' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(27,16): error TS2339: Property '_checkUpdate' does not exist on type 'FileConfigurationService'.
+src/services/fileconfiguration.ts(33,36): error TS2339: Property '_params' does not exist on type 'FileConfigurationService'.
+src/services/kubernetesconfiguration.ts(10,53): error TS2507: Type 'typeof ConfigurationService' is not a constructor function type.
+src/services/kubernetesconfiguration.ts(13,15): error TS2339: Property '_params' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(16,10): error TS2339: Property '_params' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(16,32): error TS2339: Property '_webda' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(16,55): error TS2339: Property '_params' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(17,29): error TS2339: Property '_params' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(22,10): error TS2339: Property 'watch' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(22,41): error TS2339: Property '_webda' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(22,65): error TS2339: Property '_webda' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(24,33): error TS2339: Property '_params' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(24,65): error TS2339: Property '_checkUpdate' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(25,16): error TS2339: Property '_checkUpdate' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(32,25): error TS2339: Property '_params' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(35,39): error TS2339: Property '_params' does not exist on type 'KubernetesConfigurationService'.
+src/services/kubernetesconfiguration.ts(43,10): error TS2339: Property 'log' does not exist on type 'KubernetesConfigurationService'.
+src/services/mailer.ts(26,22): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/mailer.ts(49,10): error TS2339: Property '_params' does not exist on type 'Mailer'.
+src/services/mailer.ts(49,35): error TS2339: Property '_params' does not exist on type 'Mailer'.
+src/services/mailer.ts(55,30): error TS2339: Property '_params' does not exist on type 'Mailer'.
+src/services/mailer.ts(59,16): error TS2339: Property '_webda' does not exist on type 'Mailer'.
+src/services/mailer.ts(64,14): error TS2339: Property '_webda' does not exist on type 'Mailer'.
+src/services/mailer.ts(71,29): error TS2339: Property '_params' does not exist on type 'Mailer'.
+src/services/mailer.ts(86,12): error TS2339: Property '_webda' does not exist on type 'Mailer'.
+src/services/mailer.ts(90,27): error TS2339: Property '_params' does not exist on type 'Mailer'.
+src/services/oauth.ts(7,44): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/oauth.ts(25,10): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(25,29): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(28,10): error TS2339: Property '_addRoute' does not exist on type 'OAuthService'.
+src/services/oauth.ts(28,25): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(40,10): error TS2339: Property '_addRoute' does not exist on type 'OAuthService'.
+src/services/oauth.ts(41,12): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(58,12): error TS2339: Property '_addRoute' does not exist on type 'OAuthService'.
+src/services/oauth.ts(58,27): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(71,14): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(72,12): error TS2339: Property '_addRoute' does not exist on type 'OAuthService'.
+src/services/oauth.ts(72,27): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(87,20): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(96,29): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(98,14): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/oauth.ts(99,16): error TS2339: Property '_params' does not exist on type 'OAuthService'.
+src/services/resource.ts(10,46): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/services/resource.ts(14,10): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(14,29): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(15,15): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(16,12): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(16,37): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(18,15): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(19,12): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(22,10): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(22,32): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(22,61): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(23,15): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(24,12): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(26,40): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(30,10): error TS2339: Property '_addRoute' does not exist on type 'ResourceService'.
+src/services/resource.ts(30,25): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(42,10): error TS2339: Property '_addRoute' does not exist on type 'ResourceService'.
+src/services/resource.ts(43,12): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(60,14): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(61,12): error TS2339: Property '_addRoute' does not exist on type 'ResourceService'.
+src/services/resource.ts(75,59): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/services/resource.ts(81,21): error TS2339: Property '_params' does not exist on type 'ResourceService'.
+src/stores/file.spec.ts(9,19): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(10,28): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(13,20): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(14,28): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(19,21): error TS2314: Generic type 'FileStore<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(19,60): error TS2314: Generic type 'FileStore<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(48,21): error TS2314: Generic type 'FileStore<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(48,60): error TS2314: Generic type 'FileStore<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(145,26): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/file.spec.ts(149,43): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/memory.spec.ts(9,20): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/memory.spec.ts(10,13): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/memory.spec.ts(13,19): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/memory.spec.ts(14,13): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/memory.spec.ts(20,21): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/store.spec.ts(9,29): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/stores/store.spec.ts(10,28): error TS2314: Generic type 'Store<T, K>' requires 2 type argument(s).
+src/test.ts(100,24): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/utils/context.spec.ts(22,47): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).
+src/utils/context.ts(500,24): error TS2314: Generic type 'Service<T>' requires 1 type argument(s).

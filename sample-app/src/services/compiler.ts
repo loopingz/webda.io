@@ -1,4 +1,5 @@
-import { FileQueue, FileQueueParameters, Service, ServiceParameters } from "@webda/core";
+import { FileQueue, FileQueueParameters } from "@webda/helpers";
+import { Service, ServiceParameters } from "@webda/core";
 
 /**
  * @WebdaModda

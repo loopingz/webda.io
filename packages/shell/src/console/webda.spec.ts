@@ -27,6 +27,7 @@ class DebugLogger extends MemoryLogger {
 @suite
 class ConsoleTest {
   static helpStub;
+  cleanFiles: string[] = [];
   logger: DebugLogger;
   dynamicFile: string;
   workerOutput: WorkerOutput;
@@ -83,6 +84,9 @@ class ConsoleTest {
       await WebdaConsole.webda.stop();
     }
     await WebdaConsole.stopDebugger();
+    // Clean all remaining files
+    this.cleanFiles.filter(f => fs.existsSync(f)).forEach(f => fs.unlinkSync(f));
+    this.cleanFiles = [];
   }
 
   @test
@@ -130,6 +134,7 @@ class ConsoleTest {
 
   @test
   async storeExport() {
+    this.cleanFiles.push("test.ndjson.gz");
     // Just to initiate it
     assert.strictEqual(await this.commandLine("store Registry export ./test.ndjson.gz"), 0);
     assert.strictEqual(await this.commandLine("store Registry2 export ./test.ndjson.gz"), -1);
@@ -371,6 +376,8 @@ class DynamicService extend Service {
 
   @test
   async operationsExporter() {
+    this.cleanFiles.push("exportOps.json");
+    this.cleanFiles.push("exportOps.ts");
     // Define what to check
     await this.commandLine("operations exportOps.json");
     await this.commandLine("operations exportOps.ts");
@@ -437,6 +444,7 @@ class DynamicService extend Service {
 
   @test
   async openapiCommandLine() {
+    this.cleanFiles.push("./openapi.json", "./myopenapi.yml", "./myopenapi.yaml");
     ["./openapi.json", "./myopenapi.yml", "./myopenapi.yaml"].forEach(f => {
       if (fs.existsSync(f)) {
         fs.unlinkSync(f);
@@ -465,6 +473,7 @@ class DynamicService extend Service {
 
   @test
   async exporter() {
+    this.cleanFiles.push("test.exports.json");
     await this.commandLine(`-d Dev --noCompile config test.exports.json`);
     this.checkTestDeploymentConfig(JSON.parse(fs.readFileSync("test.exports.json").toString()));
   }
@@ -508,6 +517,7 @@ class DynamicService extend Service {
 
   @test
   async schema() {
+    this.cleanFiles.push("authentication.json");
     const f = "./authentication.json";
     if (fs.existsSync(f)) {
       fs.unlinkSync(f);
@@ -719,6 +729,9 @@ export default class FakeTerminal {
     } finally {
       process.stdout.isTTY = false;
       fs.writeFileSync(packagePath, originalContent);
+      if (fs.existsSync(logoPath)) {
+        fs.unlinkSync(logoPath);
+      }
     }
   }
 

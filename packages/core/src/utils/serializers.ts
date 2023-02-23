@@ -6,6 +6,7 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  unlinkSync,
   writeFileSync
 } from "fs";
 import * as jsonc from "jsonc-parser";
@@ -41,6 +42,7 @@ export interface StorageFinder {
 export const FileUtils: StorageFinder & {
   save: (object: any, filename: string, publicAudience?: boolean) => void;
   load: (filename: string) => any;
+  clean: (...files: string[]) => void;
 } = {
   /**
    * @override
@@ -130,6 +132,13 @@ export const FileUtils: StorageFinder & {
       return writeFileSync(filename, JSONUtils.stringify(object, undefined, 2, publicAudience));
     }
     throw new Error("Unknown format");
+  },
+  /**
+   * Delete files if exists
+   * @param files
+   */
+  clean: (...files: string[]) => {
+    files.filter(f => existsSync(f)).forEach(f => unlinkSync(f));
   }
 };
 

@@ -112,6 +112,10 @@ export class TestApplication extends UnpackedApplication {
 class WebdaTest {
   webda: Core;
   addConsoleLogger: boolean = true;
+  /**
+   * Files to clean after test
+   */
+  cleanFiles: string[] = [];
 
   /**
    * Get the configuration file to use for the test
@@ -176,6 +180,12 @@ class WebdaTest {
     if (init) {
       await this.webda.init();
     }
+  }
+
+  after() {
+    // Clean all remaining files
+    this.cleanFiles.filter(f => existsSync(f)).forEach(f => unlinkSync(f));
+    this.cleanFiles = [];
   }
 
   /**

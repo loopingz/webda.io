@@ -64,6 +64,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
   }
 
   async before(init: boolean = true) {
+    this.cleanFiles.push("./downloadTo.tmp");
     await super.before(init);
     let userStore = this.getUserStore();
     let binary = this.getBinary();

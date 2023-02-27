@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { MemoryStore } from "../stores/memory";
 import { WebdaTest } from "../test";
+import { OperationContext } from "./context";
 import { CookieSessionManager, UnknownSession } from "./session";
 
 @suite
@@ -53,5 +54,9 @@ class SessionStoreTest extends WebdaTest {
     assert.strictEqual(session.uuid, sessions[0].getUuid());
     assert.strictEqual(session.identUsed, "bouzouf");
     assert.strictEqual(session.sub, undefined);
+    let opCtx = new OperationContext(this.webda);
+    // cov
+    await this.getService<CookieSessionManager>("SessionManager").load(opCtx);
+    await this.getService<CookieSessionManager>("SessionManager").save(opCtx, undefined);
   }
 }

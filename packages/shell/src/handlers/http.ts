@@ -107,7 +107,7 @@ export class WebdaServer extends Webda {
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
       httpContext.setBody(req);
     }
-    return this.newContext(httpContext, <Writable>res, true);
+    return this.newWebContext(httpContext, <Writable>res, true);
   }
 
   /**

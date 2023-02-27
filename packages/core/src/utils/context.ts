@@ -24,12 +24,46 @@ class Cookie {
 }
 
 /**
+ * Data provided by the context
+ */
+export interface ContextProviderInfo {
+  /**
+   * Stream to write to
+   */
+  stream?: Writable;
+  /**
+   * If this is http context
+   */
+  http?: HttpContext;
+  /**
+   * true if this is a global context
+   */
+  global?: boolean;
+  /**
+   * Can contain any type of information
+   */
+  [key: string]: any;
+}
+
+/**
+ * @category CoreFeatures
+ */
+export interface ContextProvider {
+  /**
+   * Info can contain any type of information
+   * @param info 
+   */
+  getContext(info: ContextProviderInfo): OperationContext;
+}
+
+/**
  * OperationContext is used when call to an operation
  *
  * @param T type of input for this context
  * @param U type of output for this context
  */
 export class OperationContext<T = any, U = any> extends EventEmitter {
+
   protected static __globalContext: OperationContext;
   private global: boolean = false;
   /**
@@ -267,8 +301,8 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * Create a new session
    * @returns
    */
-  newSession() {
-    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "Webda/Session"))(this);
+  async newSession() {
+    this.session = await this._webda.getService<SessionManager>("SessionManager").newSession(this);
     return this.session;
   }
 
@@ -359,6 +393,9 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
  * Simple Operation Context with custom input
  */
 export class SimpleOperationContext extends OperationContext {
+  constructor(webda: Core) {
+    super(webda);
+  }
   input: Buffer;
 
   setInput(input: Buffer): this {
@@ -377,7 +414,6 @@ export class SimpleOperationContext extends OperationContext {
  * This represent in fact a WebContext
  * In 3.0 an abstract version of Context will replace this (closer to OperationContext)
  * @category CoreFeatures
- * @WebdaModel
  *
  */
 export class WebContext<T = any, U = any> extends OperationContext<T, U> {
@@ -804,9 +840,6 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     this.parameters = {};
     this.headers = new Map();
     this.processParameters();
-    if (httpContext) {
-      this.session = this.newSession();
-    }
   }
 
   async init(): Promise<this> {

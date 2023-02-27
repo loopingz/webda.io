@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { CacheService, ConsoleLoggerService, Core, getCommonJS, Module } from "@webda/core";
+import { CacheService, ConsoleLoggerService, Core, FileUtils, getCommonJS, Module } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { execSync } from "child_process";
@@ -135,10 +135,35 @@ class SourceApplicationTest extends WebdaTest {
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib")), false);
     this.sampleApp.preventCompilation(false);
     this.sampleApp.compile();
+    this.sampleApp.generateModule();
     // assert files are there
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib")), true);
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib/services/bean.js")), true);
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib/models/contact.js")), true);
+
+    // Cheeck the module
+    const module: Module = FileUtils.load(this.sampleApp.getAppPath("webda.module.json"));
+    module.models ??= {
+      list: {},
+      graph: {},
+      tree: {}
+    };
+    module.beans ??= {};
+    // Abstract project should not be there
+    assert.strictEqual(module.models["webdademo/abstractproject"], undefined);
+    // Subsubproject2 should not be there as it is not exported
+    assert.strictEqual(module.models["webdademo/subsubproject2"], undefined);
+    // The @Webda/Ignore should prevent the export of the model
+    assert.strictEqual(module.models["webdademo/subsubproject3"], undefined);
+    // The bean is not extending Service
+    assert.strictEqual(module.beans["webdademo/sampleappbadbean"], undefined);
+
+    // Check for good objects
+    assert.notStrictEqual(module.models["webdademo/subsubproject"], undefined);
+    assert.notStrictEqual(module.models["webdademo/subproject"], undefined);
+    assert.notStrictEqual(module.models["webdademo/project"], undefined);
+    assert.notStrictEqual(module.beans["webdademo/beanservice"], undefined);
+    assert.notStrictEqual(module.beans["webdademo/sampleappgoodbean"], undefined);
 
     this.cleanSampleApp();
     // should not recreate

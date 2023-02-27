@@ -2,7 +2,7 @@ import { CoreModel, NotEnumerable } from "../models/coremodel";
 import CryptoService, { JWTOptions } from "../services/cryptoservice";
 import { DeepPartial, Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
-import { WebContext } from "./context";
+import { OperationContext, WebContext } from "./context";
 import { CookieOptions, SecureCookie } from "./cookie";
 
 /**
@@ -13,13 +13,17 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
    * Load a session based on context
    * @param context
    */
-  abstract load(context: WebContext): Promise<Session>;
+  abstract load(context: OperationContext): Promise<Session>;
   /**
    * Save the session within the context
    * @param context
    * @param session
    */
-  abstract save(context: WebContext, session: Session): Promise<void>;
+  abstract save(context: OperationContext, session: Session): Promise<void>;
+  /**
+   * Create a new session
+   */
+  abstract newSession(context: OperationContext) : Promise<Session>;
 }
 
 export class CookieSessionParameters extends ServiceParameters {
@@ -76,7 +80,10 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  async load(context: WebContext): Promise<Session> {
+  async load(context: OperationContext): Promise<Session> {
+    if (!(context instanceof WebContext)) {
+      return new Session();
+    }
     const session = new Session();
     let cookie = await SecureCookie.load(this.parameters.cookie.name, context, this.parameters.jwt);
     if (this.sessionStore) {
@@ -94,7 +101,17 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  async save(context: WebContext, session: Session) {
+  async newSession(context: OperationContext<any, any>) {
+    return new Session();
+  }
+
+  /**
+   * @override
+   */
+  async save(context: OperationContext, session: Session) {
+    if (!(context instanceof WebContext)) {
+      return;
+    }
     // If store is found session info are stored in db
     if (this.sessionStore) {
       await this.sessionStore.save({
@@ -115,9 +132,7 @@ export class CookieSessionManager<
 }
 
 /**
- * Session model
- *
- * @WebdaModel
+ * Session
  */
 export class Session {
   @NotEnumerable

@@ -1,48 +1,4 @@
 {
-  "moddas": {
-    "webda/aggregator": "lib/stores/aggregator:default",
-    "webda/aliasstore": "lib/stores/aliasstore:AliasStore",
-    "webda/asyncevents": "lib/services/asyncevents:EventService",
-    "webda/authentication": "lib/services/authentication:Authentication",
-    "webda/configurationservice": "lib/services/configuration:default",
-    "webda/consolelogger": "lib/utils/logger:ConsoleLoggerService",
-    "webda/cookiesessionmanager": "lib/utils/session:CookieSessionManager",
-    "webda/cronservice": "lib/services/cron:CronService",
-    "webda/cryptoservice": "lib/services/cryptoservice:default",
-    "webda/debugmailer": "lib/services/debugmailer:default",
-    "webda/echoservice": "lib/services/echo:EchoService",
-    "webda/filebinary": "lib/services/filebinary:FileBinary",
-    "webda/fileconfiguration": "lib/services/fileconfiguration:FileConfigurationService",
-    "webda/filelogger": "lib/utils/logger:FileLoggerService",
-    "webda/filequeue": "lib/queues/filequeue:FileQueue",
-    "webda/filestore": "lib/stores/file:FileStore",
-    "webda/invitationservice": "lib/services/invitationservice:default",
-    "webda/kubernetesconfigurationservice": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
-    "webda/mailer": "lib/services/mailer:Mailer",
-    "webda/mapper": "lib/stores/mapper:default",
-    "webda/memorylogger": "lib/utils/logger:MemoryLoggerService",
-    "webda/memoryqueue": "lib/queues/memoryqueue:MemoryQueue",
-    "webda/memorystore": "lib/stores/memory:MemoryStore",
-    "webda/multinotificationservice": "lib/services/notificationservice:default",
-    "webda/prometheusservice": "lib/services/prometheus:PrometheusService",
-    "webda/proxyservice": "lib/services/proxy:ProxyService",
-    "webda/resourceservice": "lib/services/resource:default",
-    "webda/versionservice": "lib/services/version:VersionService"
-  },
-  "beans": {},
-  "models": {
-    "webda/aclmodel": "lib/models/aclmodel:default",
-    "webda/comment": "lib/models/comment:Comment",
-    "webda/coremodel": "lib/models/coremodel:CoreModel",
-    "webda/ident": "lib/models/ident:Ident",
-    "webda/ownermodel": "lib/models/ownermodel:OwnerModel",
-    "webda/registryentry": "lib/core:RegistryEntry",
-    "webda/securecookie": "lib/utils/cookie:SecureCookie",
-    "webda/session": "lib/utils/session:Session",
-    "webda/user": "lib/models/user:User",
-    "webda/webcontext": "lib/utils/context:WebContext"
-  },
-  "deployers": {},
   "schemas": {
     "webda/ownermodel": {
       "type": "object",
@@ -78,7 +34,7 @@
         "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "OwnerModel"
+      "title": "webda/ownermodel"
     },
     "webda/ident": {
       "type": "object",
@@ -147,7 +103,7 @@
       ],
       "description": "First basic model for Ident",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Ident"
+      "title": "webda/ident"
     },
     "webda/user": {
       "type": "object",
@@ -223,7 +179,7 @@
       ],
       "description": "First basic model for User",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User"
+      "title": "webda/user"
     },
     "webda/cryptoservice": {
       "type": "object",
@@ -425,10 +381,6 @@
             "keyid": {}
           },
           "description": "Default JWT options"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -456,7 +408,7 @@
           ]
         }
       },
-      "title": "CryptoService"
+      "title": "webda/cryptoservice"
     },
     "webda/cookiesessionmanager": {
       "type": "object",
@@ -614,10 +566,6 @@
             }
           },
           "description": "Cookie configuration for session"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -642,7 +590,7 @@
           ]
         }
       },
-      "title": "CookieSessionManager"
+      "title": "webda/cookiesessionmanager"
     },
     "webda/asyncevents": {
       "type": "object",
@@ -665,17 +613,13 @@
         "sync": {
           "type": "boolean",
           "description": "Make the event sending asynchronous"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AsyncEvents"
+      "title": "webda/asyncevents"
     },
     "webda/coremodel": {
       "type": "object",
@@ -695,7 +639,7 @@
       },
       "description": "Basic Object in Webda\n\nIt is used to define a data stored Any variable starting with _ can only be set by the server Any variable starting with __ won't be exported outside of the server",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CoreModel"
+      "title": "webda/coremodel"
     },
     "webda/registryentry": {
       "type": "object",
@@ -714,7 +658,7 @@
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RegistryEntry"
+      "title": "webda/registryentry"
     },
     "webda/aclmodel": {
       "type": "object",
@@ -739,7 +683,26 @@
       },
       "description": "Object that contains ACL to define its own permissions",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AclModel"
+      "title": "webda/aclmodel"
+    },
+    "webda/rolemodel": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webda/rolemodel"
     },
     "webda/filequeue": {
       "type": "object",
@@ -788,10 +751,6 @@
         "folder": {
           "type": "string",
           "description": "Where to store the queue"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -800,7 +759,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FileQueue"
+      "title": "webda/filequeue"
     },
     "webda/memoryqueue": {
       "type": "object",
@@ -845,10 +804,6 @@
           "type": "number",
           "description": "Number of seconds before droping message",
           "default": 30
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -856,7 +811,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MemoryQueue"
+      "title": "webda/memoryqueue"
     },
     "webda/multinotificationservice": {
       "type": "object",
@@ -880,10 +835,6 @@
           "type": "boolean",
           "description": "Define if it sends one or several notification per user",
           "default": false
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -892,7 +843,7 @@
       ],
       "description": "Parameters for multi notification service",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MultiNotificationService"
+      "title": "webda/multinotificationservice"
     },
     "webda/mailer": {
       "type": "object",
@@ -926,10 +877,6 @@
         },
         "SES": {
           "description": "SES AWS Bean if transport === \"ses\""
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -938,7 +885,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Mailer"
+      "title": "webda/mailer"
     },
     "webda/authentication": {
       "type": "object",
@@ -1025,10 +972,6 @@
         "registerRedirect": {
           "type": "string",
           "description": "Redirect to this page once email is validate to finish the registration process"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1040,7 +983,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Authentication"
+      "title": "webda/authentication"
     },
     "webda/configurationservice": {
       "type": "object",
@@ -1063,10 +1006,6 @@
         },
         "default": {
           "description": "Default configuration to use"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1075,7 +1014,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ConfigurationService"
+      "title": "webda/configurationservice"
     },
     "webda/cronservice": {
       "type": "object",
@@ -1087,10 +1026,6 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1098,7 +1033,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CronService"
+      "title": "webda/cronservice"
     },
     "webda/debugmailer": {
       "type": "object",
@@ -1110,10 +1045,6 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1121,7 +1052,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DebugMailer"
+      "title": "webda/debugmailer"
     },
     "webda/echoservice": {
       "type": "object",
@@ -1146,10 +1077,6 @@
             {}
           ],
           "description": "result to write on the url"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1158,7 +1085,7 @@
         "url"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "EchoService"
+      "title": "webda/echoservice"
     },
     "webda/filebinary": {
       "type": "object",
@@ -1227,10 +1154,6 @@
           "type": "number",
           "description": "Maximum size to handle",
           "default": "10Mb"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1239,7 +1162,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FileBinary"
+      "title": "webda/filebinary"
     },
     "webda/fileconfiguration": {
       "type": "object",
@@ -1262,10 +1185,6 @@
         },
         "default": {
           "description": "Default configuration to use"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1274,7 +1193,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FileConfiguration"
+      "title": "webda/fileconfiguration"
     },
     "webda/invitationservice": {
       "type": "object",
@@ -1335,10 +1254,6 @@
         "notification": {
           "type": "string",
           "description": "Email template to send to the user"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1354,7 +1269,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InvitationService"
+      "title": "webda/invitationservice"
     },
     "webda/kubernetesconfigurationservice": {
       "type": "object",
@@ -1377,10 +1292,6 @@
         },
         "default": {
           "description": "Default configuration to use"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1389,7 +1300,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "KubernetesConfigurationService"
+      "title": "webda/kubernetesconfigurationservice"
     },
     "webda/proxyservice": {
       "type": "object",
@@ -1409,10 +1320,6 @@
         "requireAuthentication": {
           "type": "boolean",
           "description": "Helper to refuse any request if user is not auth"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1422,7 +1329,7 @@
       ],
       "description": "Proxy to a backend service",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProxyService"
+      "title": "webda/proxyservice"
     },
     "webda/resourceservice": {
       "type": "object",
@@ -1455,10 +1362,6 @@
           "type": "boolean",
           "description": "Return the index file for any unfound resource Useful for single page application",
           "default": true
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1466,7 +1369,7 @@
       ],
       "description": "ResourceService parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ResourceService"
+      "title": "webda/resourceservice"
     },
     "webda/versionservice": {
       "type": "object",
@@ -1483,10 +1386,6 @@
         "version": {
           "type": "string",
           "description": "To force version otherwise would read from package.json"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1494,7 +1393,7 @@
       ],
       "description": "Version parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "VersionService"
+      "title": "webda/versionservice"
     },
     "webda/aliasstore": {
       "type": "object",
@@ -1574,10 +1473,6 @@
         "idTemplate": {
           "type": "string",
           "description": "Store to alias"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1636,7 +1531,7 @@
           }
         }
       },
-      "title": "AliasStore"
+      "title": "webda/aliasstore"
     },
     "webda/mapper": {
       "type": "object",
@@ -1680,10 +1575,6 @@
         "cascade": {
           "type": "boolean",
           "description": "Delete source if target object is deleted"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1698,7 +1589,7 @@
       ],
       "description": "Mapper configuration",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Mapper"
+      "title": "webda/mapper"
     },
     "webda/aggregator": {
       "type": "object",
@@ -1746,10 +1637,6 @@
         "key": {
           "type": "string",
           "default": "index"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1764,7 +1651,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Aggregator"
+      "title": "webda/aggregator"
     },
     "webda/memorystore": {
       "type": "object",
@@ -1862,10 +1749,6 @@
             "path"
           ],
           "description": "Persist the data in a file"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1923,7 +1806,7 @@
           }
         }
       },
-      "title": "MemoryStore"
+      "title": "webda/memorystore"
     },
     "webda/filestore": {
       "type": "object",
@@ -2011,10 +1894,6 @@
           "type": "boolean",
           "description": "Disable memory cache\n\nUseful if several process update storage files",
           "default": false
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -2072,7 +1951,7 @@
           }
         }
       },
-      "title": "FileStore"
+      "title": "webda/filestore"
     },
     "webda/memorylogger": {
       "type": "object",
@@ -2091,10 +1970,6 @@
         },
         "limit": {
           "type": "number"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -2115,7 +1990,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "MemoryLogger"
+      "title": "webda/memorylogger"
     },
     "webda/consolelogger": {
       "type": "object",
@@ -2134,10 +2009,6 @@
         },
         "format": {
           "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -2158,7 +2029,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "ConsoleLogger"
+      "title": "webda/consolelogger"
     },
     "webda/filelogger": {
       "type": "object",
@@ -2183,10 +2054,6 @@
         },
         "sizeLimit": {
           "type": "number"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -2208,7 +2075,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "FileLogger"
+      "title": "webda/filelogger"
     },
     "webda/prometheusservice": {
       "type": "object",
@@ -2254,10 +2121,6 @@
         "prefix": {
           "type": "string",
           "description": "Prefix to add to metrics"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -2266,7 +2129,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PrometheusService"
+      "title": "webda/prometheusservice"
     },
     "webda/comment": {
       "type": "object",
@@ -2284,7 +2147,7 @@
           "readOnly": true
         },
         "target": {
-          "$ref": "#/definitions/ModelParent%3Cclass-348499747-4896-22329-348499747-0-22353852964236%3E",
+          "$ref": "#/definitions/ModelParent%3Cclass-348499747-4896-22832-348499747-0-22856852964236%3E",
           "description": "Can be linked to any object but cannot be a root object"
         },
         "author": {
@@ -2309,11 +2172,11 @@
       "description": "Generic comment class",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelParent<class-348499747-4896-22329-348499747-0-22353852964236>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-348499747-4896-22329-348499747-0-22353852964236%2Cany%3E",
+        "ModelParent<class-348499747-4896-22832-348499747-0-22856852964236>": {
+          "$ref": "#/definitions/ModelLink%3Cclass-348499747-4896-22832-348499747-0-22856852964236%2Cany%3E",
           "description": "Define the parent of the model"
         },
-        "ModelLink<class-348499747-4896-22329-348499747-0-22353852964236,any>": {
+        "ModelLink<class-348499747-4896-22832-348499747-0-22856852964236,any>": {
           "type": "object",
           "properties": {
             "set": {},
@@ -2350,44 +2213,101 @@
           "description": "Define a link to 1:n relation"
         }
       },
-      "title": "Comment"
+      "title": "webda/comment"
     }
   },
-  "graph": {
-    "webda/ownermodel": {},
-    "webda/ident": {
-      "links": [
-        {
-          "attribute": "_user",
-          "model": "webda/user",
-          "type": "LINK"
-        }
-      ]
-    },
-    "webda/user": {
-      "maps": [
-        {
-          "attribute": "_idents",
-          "model": "webda/ident",
-          "targetAttribute": "_type | uuid | email"
-        }
-      ]
-    },
-    "webda/coremodel": {},
-    "webda/registryentry": {},
-    "webda/aclmodel": {},
-    "webda/comment": {
-      "parent": {
-        "attribute": "target",
-        "model": "webda/coremodel"
+  "beans": {},
+  "models": {
+    "graph": {
+      "webda/ownermodel": {},
+      "webda/ident": {
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "webda/user",
+            "type": "LINK"
+          }
+        ]
       },
-      "links": [
-        {
-          "attribute": "author",
-          "model": "webda/user",
-          "type": "LINK"
-        }
-      ]
+      "webda/user": {
+        "maps": [
+          {
+            "attribute": "_idents",
+            "model": "webda/ident",
+            "targetAttribute": "_type | uuid | email"
+          }
+        ]
+      },
+      "webda/coremodel": {},
+      "webda/registryentry": {},
+      "webda/aclmodel": {},
+      "webda/rolemodel": {},
+      "webda/comment": {
+        "parent": {
+          "attribute": "target",
+          "model": "webda/coremodel"
+        },
+        "links": [
+          {
+            "attribute": "author",
+            "model": "webda/user",
+            "type": "LINK"
+          }
+        ]
+      }
+    },
+    "tree": {
+      "webda/coremodel": {
+        "webda/ownermodel": {
+          "webda/ident": {},
+          "webda/user": {}
+        },
+        "webda/registryentry": {},
+        "webda/aclmodel": {},
+        "webda/rolemodel": {},
+        "webda/comment": {}
+      }
+    },
+    "list": {
+      "webda/aclmodel": "lib/models/aclmodel:default",
+      "webda/comment": "lib/models/comment:Comment",
+      "webda/coremodel": "lib/models/coremodel:CoreModel",
+      "webda/ident": "lib/models/ident:Ident",
+      "webda/ownermodel": "lib/models/ownermodel:OwnerModel",
+      "webda/registryentry": "lib/core:RegistryEntry",
+      "webda/rolemodel": "lib/models/rolemodel:RoleModel",
+      "webda/user": "lib/models/user:User"
     }
-  }
+  },
+  "moddas": {
+    "webda/aggregator": "lib/stores/aggregator:default",
+    "webda/aliasstore": "lib/stores/aliasstore:AliasStore",
+    "webda/asyncevents": "lib/services/asyncevents:EventService",
+    "webda/authentication": "lib/services/authentication:Authentication",
+    "webda/configurationservice": "lib/services/configuration:default",
+    "webda/consolelogger": "lib/utils/logger:ConsoleLoggerService",
+    "webda/cookiesessionmanager": "lib/utils/session:CookieSessionManager",
+    "webda/cronservice": "lib/services/cron:CronService",
+    "webda/cryptoservice": "lib/services/cryptoservice:default",
+    "webda/debugmailer": "lib/services/debugmailer:default",
+    "webda/echoservice": "lib/services/echo:EchoService",
+    "webda/filebinary": "lib/services/filebinary:FileBinary",
+    "webda/fileconfiguration": "lib/services/fileconfiguration:FileConfigurationService",
+    "webda/filelogger": "lib/utils/logger:FileLoggerService",
+    "webda/filequeue": "lib/queues/filequeue:FileQueue",
+    "webda/filestore": "lib/stores/file:FileStore",
+    "webda/invitationservice": "lib/services/invitationservice:default",
+    "webda/kubernetesconfigurationservice": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
+    "webda/mailer": "lib/services/mailer:Mailer",
+    "webda/mapper": "lib/stores/mapper:default",
+    "webda/memorylogger": "lib/utils/logger:MemoryLoggerService",
+    "webda/memoryqueue": "lib/queues/memoryqueue:MemoryQueue",
+    "webda/memorystore": "lib/stores/memory:MemoryStore",
+    "webda/multinotificationservice": "lib/services/notificationservice:default",
+    "webda/prometheusservice": "lib/services/prometheus:PrometheusService",
+    "webda/proxyservice": "lib/services/proxy:ProxyService",
+    "webda/resourceservice": "lib/services/resource:default",
+    "webda/versionservice": "lib/services/version:VersionService"
+  },
+  "deployers": {}
 }

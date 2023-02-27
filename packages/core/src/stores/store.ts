@@ -880,10 +880,11 @@ abstract class Store<
    */
   protected initModel(object: any = {}): T {
     if (object instanceof CoreModel) {
-      object.__type = this.getWebda().getApplication().getModelFromInstance(object);
+      object.__type = this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
     } else {
       object.__type ??= this._modelType;
     }
+    
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
       // Dynamic load type

@@ -81,13 +81,13 @@ class OAuthServiceTest extends WebdaTest {
     // We should have two idents existing now
     assert.strictEqual(await this.webda.getService<Store<Ident>>("Idents").exists("plop_fake"), true);
     assert.strictEqual(await this.webda.getService<Store<Ident>>("Idents").exists("rcattiau@gmail.com_email"), true);
-    ctx.newSession();
+    await ctx.newSession();
     // Log with known ident / email
     assert.strictEqual(ctx.getSession().identUsed, undefined);
     await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
     assert.strictEqual(ctx.getSession().identUsed, "plop_fake");
     let userId = ctx.getCurrentUserId();
-    ctx.newSession();
+    await ctx.newSession();
     // Log with new ident / known email
     await this.service.handleReturn(ctx, "plop2", { email: "rcattiau@gmail.com" }, undefined);
     assert.strictEqual(ctx.getSession().identUsed, "plop2_fake");

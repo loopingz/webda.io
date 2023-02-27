@@ -1,7 +1,7 @@
-import { Bean, Cron, Service } from "@webda/core";
+import { Bean, Cron, Operation, OperationContext, Service } from "@webda/core";
 
 @Bean
-class BeanService extends Service {
+export class BeanService extends Service {
   test() {}
 
   @Cron("* * * * *")
@@ -9,4 +9,13 @@ class BeanService extends Service {
 }
 
 @Bean
-class SampleAppBadBean {}
+export class SampleAppBadBean {
+  @Operation()
+  operation(context: OperationContext<{ projectId: string }>) {}
+}
+
+@Bean
+export class SampleAppGoodBean extends BeanService {
+  @Operation()
+  operation(context: OperationContext<{ projectId: string }>) {}
+}

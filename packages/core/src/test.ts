@@ -1,5 +1,5 @@
 // organize-imports-ignore
-import { WorkerLogLevel } from "@webda/workout";
+import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { Core, HttpContext, HttpMethodType, Service, WebContext } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as path from "path";
@@ -10,6 +10,9 @@ import { UnpackedApplication } from "./unpackedapplication";
 import { FileUtils, JSONUtils } from "./utils/serializers";
 import { PrometheusService } from "./services/prometheus";
 import { register } from "prom-client";
+import { WebContextMock } from "./utils/context.spec";
+
+
 export class Executor {
   /**
    * Main method called by the webda framework if the route don't specify a _method
@@ -28,6 +31,9 @@ export class Executor {
  * Test use ts-node so to share same prototypes we need to load from the sources
  */
 export class TestApplication extends UnpackedApplication {
+  constructor(file?: string, logger?: WorkerOutput) {
+    super(file || "./", logger);
+  }
   /**
    * Set the status of the compilation
    *
@@ -98,6 +104,12 @@ export class TestApplication extends UnpackedApplication {
             );
           }
         });
+      for (let key in module.models.list) {
+        module.models.list[key] = path.join(
+          path.relative(this.getAppPath(), path.dirname(moduleFile)),
+          module.models.list[key].replace(/^lib\//, "src/")
+        );
+      }
       return module;
     }
     return super.loadWebdaModule(moduleFile);
@@ -122,7 +134,7 @@ class WebdaTest {
    *
    * @returns absolute path to configuration file
    */
-  getTestConfiguration(): string {
+  getTestConfiguration(): string | undefined {
     return process.cwd() + "/test/config.json";
   }
 
@@ -146,10 +158,6 @@ class WebdaTest {
   protected async buildWebda() {
     let app = new TestApplication(this.getTestConfiguration());
     await app.load();
-    if (app.getConfiguration() && app.getConfiguration().parameters) {
-      app.getConfiguration().parameters.sessionSecret ??= "1234567890ABCDEF".repeat(16);
-    }
-
     await this.tweakApp(app);
 
     if (JSONUtils.loadFile("package.json").name === "@webda/core" && existsSync(".registry")) {
@@ -210,7 +218,7 @@ class WebdaTest {
    * @returns
    */
   async newContext<T extends WebContext>(body: any = {}): Promise<T> {
-    let res = await this.webda.newContext<T>(new HttpContext("test.webda.io", "GET", "/"));
+    let res = await this.webda.newWebContext<T>(new HttpContext("test.webda.io", "GET", "/"));
     res.getHttpContext().setBody(body);
     return res;
   }
@@ -238,7 +246,8 @@ class WebdaTest {
     httpContext.setBody(body);
     httpContext.setClientIp("127.0.0.1");
     if (!ctx) {
-      ctx = new WebContext(this.webda, httpContext);
+      // @ts-ignore
+      ctx = new WebContext(this.webda, httpContext) ;
     } else {
       ctx.setHttpContext(httpContext);
     }
@@ -327,4 +336,9 @@ class WebdaTest {
   }
 }
 
-export { WebdaTest };
+class WebdaSimpleTest extends WebdaTest {
+  getTestConfiguration(): string {
+    return undefined;
+  }
+}
+export { WebdaTest, WebdaSimpleTest };

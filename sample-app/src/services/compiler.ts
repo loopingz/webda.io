@@ -1,6 +1,14 @@
 import { FileQueue, FileQueueParameters, Service, ServiceParameters } from "@webda/core";
 
 /**
+ * @WebdaSchema
+ */
+export type MyInterface = {
+  test: string;
+  num: number;
+};
+
+/**
  * @WebdaModda
  */
 export class SimpleService extends Service {}

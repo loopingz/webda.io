@@ -13,7 +13,7 @@ class OwnerModelTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this._ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
+    this._ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = await this._ctx.newSession();
     this._session.login("none", "none");
     // @ts-ignore

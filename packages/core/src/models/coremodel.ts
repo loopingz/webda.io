@@ -210,6 +210,10 @@ class CoreModel {
    */
   __type: string;
   /**
+   * Type name
+   */
+  __typeTree: string[];
+  /**
    * Object context
    *
    * @TJS-ignore

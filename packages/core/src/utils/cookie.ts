@@ -77,7 +77,6 @@ export class CookieOptions implements CookieSerializeOptions {
  * You cannot store variables starting with _ in the session if you do use them they won't be persist, so it can be used to add some context
  *
  * @category CoreFeatures
- * @WebdaModel
  */
 export class SecureCookie {
   /**
@@ -93,7 +92,7 @@ export class SecureCookie {
   static async load(name: string, context: WebContext, options?: JWTOptions) {
     let cookies = {};
     let raw = "";
-    let session = context.newSession();
+    let session = await context.newSession();
 
     // No http context
     if (!context.getHttpContext()) {

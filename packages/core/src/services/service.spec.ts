@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Inject, Operation, Service } from "..";
+import { Core, Inject, Operation, Service } from "..";
 import { WebdaTest } from "../test";
 import { OperationContext } from "../utils/context";
 import { ServiceParameters } from "./service";
@@ -38,6 +38,9 @@ class FakeService2 extends Service {
 }
 
 class FakeOperationContext extends OperationContext {
+  public constructor(webda: Core) {
+    super(webda);
+  }
   input: string = "";
   setInput(input: string) {
     this.input = input;

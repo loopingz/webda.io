@@ -42,8 +42,8 @@ class RolePolicyTest {
     await app.load();
     this._webda = new Core(app);
     await this._webda.init();
-    this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
-    this._session = this._ctx.newSession();
+    this._ctx = await this._webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
+    this._session = await this._ctx.newSession();
     this._session.login("none", "none");
     // @ts-ignore
     this._ctx.getCurrentUser = async () => {

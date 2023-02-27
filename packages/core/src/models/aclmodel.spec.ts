@@ -15,11 +15,11 @@ class AclModelTest {
   _user: User;
 
   async before() {
-    let app = new TestApplication(__dirname + "/../../test/config.json");
+    let app = new TestApplication();
     await app.load();
     this._webda = new Core(app);
     await this._webda.init();
-    this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
+    this._ctx = await this._webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");
     this.model = new AclModel().getProxy();

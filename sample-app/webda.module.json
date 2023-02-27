@@ -1,4 +1,278 @@
 {
+  "schemas": {
+    "webdademo/sampleappgoodbean.operation.input": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "projectId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webdademo/sampleappgoodbean.operation.input"
+    },
+    "webdademo/subsubproject.action.input": {
+      "type": "object",
+      "properties": {
+        "param": {
+          "type": "string",
+          "description": "My param"
+        }
+      },
+      "required": [
+        "param"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webdademo/subsubproject.action.input"
+    },
+    "webdademo/subsubproject.action2.input": {
+      "type": "object",
+      "properties": {
+        "_company": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "_creator": {},
+        "_creationDate": {},
+        "_lastUpdate": {}
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webdademo/subsubproject.action2.input"
+    },
+    "webdademo/subsubproject.action3.input": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "_company",
+        "name",
+        "type",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webdademo/subsubproject.action3.input"
+    },
+    "webdademo/subsubproject.action6.input": {
+      "type": "string",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webdademo/subsubproject.action6.input"
+    }
+  },
+  "beans": {
+    "webdademo/beanservice": "lib/services/bean:BeanService",
+    "webdademo/sampleappgoodbean": "lib/services/bean:SampleAppGoodBean"
+  },
+  "models": {
+    "graph": {
+      "webdademo/abstractproject": {},
+      "webdademo/project": {
+        "parent": {
+          "attribute": "_company",
+          "model": "webdademo/company"
+        }
+      },
+      "webdademo/subproject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "webdademo/company"
+        }
+      },
+      "webdademo/anothersubproject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "webdademo/company"
+        }
+      },
+      "webdademo/subsubproject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "webdademo/company"
+        }
+      },
+      "webdademo/user": {
+        "parent": {
+          "attribute": "_company",
+          "model": "webdademo/company"
+        },
+        "maps": [
+          {
+            "attribute": "_idents",
+            "model": "unknown",
+            "targetAttribute": "_type | uuid | email"
+          }
+        ]
+      },
+      "webdademo/computer": {
+        "parent": {
+          "attribute": "_user",
+          "model": "webdademo/user"
+        }
+      },
+      "webdademo/company": {
+        "queries": [
+          {
+            "attribute": "users",
+            "model": "webdademo/user",
+            "targetAttribute": "_company"
+          }
+        ]
+      },
+      "webdademo/contact": {},
+      "webdademo/student": {
+        "links": [
+          {
+            "attribute": "friends",
+            "model": "webdademo/student",
+            "type": "LINKS_MAP"
+          },
+          {
+            "attribute": "teachers",
+            "model": "webdademo/teacher",
+            "type": "LINKS_SIMPLE_ARRAY"
+          }
+        ]
+      },
+      "webdademo/teacher": {
+        "maps": [
+          {
+            "attribute": "courses",
+            "model": "webdademo/course",
+            "targetAttribute": "name"
+          }
+        ]
+      },
+      "webdademo/course": {
+        "links": [
+          {
+            "attribute": "classroom",
+            "model": "webdademo/classroom",
+            "type": "LINK"
+          },
+          {
+            "attribute": "teacher",
+            "model": "webdademo/teacher",
+            "type": "LINK"
+          },
+          {
+            "attribute": "students",
+            "model": "webdademo/student",
+            "type": "LINKS_ARRAY"
+          }
+        ]
+      },
+      "webdademo/classroom": {
+        "maps": [
+          {
+            "attribute": "courses",
+            "model": "webdademo/course",
+            "targetAttribute": "name"
+          }
+        ],
+        "queries": [
+          {
+            "attribute": "hardware",
+            "model": "webdademo/hardware",
+            "targetAttribute": "classroom"
+          }
+        ]
+      },
+      "webdademo/hardware": {
+        "parent": {
+          "attribute": "classroom",
+          "model": "webdademo/classroom"
+        }
+      },
+      "webdademo/computerscreen": {
+        "parent": {
+          "attribute": "classroom",
+          "model": "webdademo/classroom"
+        }
+      }
+    },
+    "tree": {
+      "webda/aclmodel": {
+        "webdademo/abstractproject": {
+          "webdademo/project": {
+            "webdademo/subproject": {},
+            "webdademo/anothersubproject": {
+              "webdademo/subsubproject": {}
+            }
+          }
+        }
+      },
+      "webda/ownermodel": {
+        "webda/user": {
+          "webdademo/user": {}
+        }
+      },
+      "webdademo/computer": {},
+      "webdademo/company": {},
+      "webdademo/contact": {},
+      "webdademo/student": {},
+      "webdademo/teacher": {},
+      "webdademo/course": {},
+      "webdademo/classroom": {},
+      "webdademo/hardware": {
+        "webdademo/computerscreen": {}
+      }
+    },
+    "list": {
+      "webdademo/abstractproject": "lib/models/project:AbstractProject",
+      "webdademo/anothersubproject": "lib/models/project:AnotherSubProject",
+      "webdademo/classroom": "lib/models/relations:Classroom",
+      "webdademo/company": "lib/models/company:Company",
+      "webdademo/computer": "lib/models/user:Computer",
+      "webdademo/computerscreen": "lib/models/relations:ComputerScreen",
+      "webdademo/contact": "lib/models/contact:default",
+      "webdademo/course": "lib/models/relations:Course",
+      "webdademo/hardware": "lib/models/relations:Hardware",
+      "webdademo/project": "lib/models/project:Project",
+      "webdademo/student": "lib/models/relations:Student",
+      "webdademo/subproject": "lib/models/project:SubProject",
+      "webdademo/subsubproject": "lib/models/project:SubSubProject",
+      "webdademo/teacher": "lib/models/relations:Teacher",
+      "webdademo/user": "lib/models/user:User"
+    }
+  },
   "moddas": {
     "webdademo/anotherservice": "lib/services/compiler:AnotherService",
     "webdademo/customreusableservice": "lib/services/reusable:default",
@@ -8,782 +282,7 @@
     "webdademo/simpleservice": "lib/services/compiler:SimpleService",
     "webdademo/thirdotherservice": "lib/services/compiler:ThirdOtherService"
   },
-  "beans": {
-    "beans/beanservice": "lib/services/bean",
-    "beans/customservice": "lib/services/custom"
-  },
-  "models": {
-    "webdademo/classroom": "lib/models/relations:Classroom",
-    "webdademo/company": "lib/models/company:Company",
-    "webdademo/computer": "lib/models/user:Computer",
-    "webdademo/computerscreen": "lib/models/relations:ComputerScreen",
-    "webdademo/contact": "lib/models/contact:default",
-    "webdademo/course": "lib/models/relations:Course",
-    "webdademo/hardware": "lib/models/relations:Hardware",
-    "webdademo/project": "lib/models/project:Project",
-    "webdademo/student": "lib/models/relations:Student",
-    "webdademo/subproject": "lib/models/project:SubProject",
-    "webdademo/subsubproject": "lib/models/project:SubSubProject",
-    "webdademo/teacher": "lib/models/relations:Teacher",
-    "webdademo/user": "lib/models/user:User"
-  },
   "deployers": {
     "webdademo/customdeployer": "lib/services/deployer:CustomDeployer"
-  },
-  "schemas": {
-    "webdademo/subproject": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SubProject"
-    },
-    "webdademo/subsubproject": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SubSubProject"
-    },
-    "webdademo/user": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "_company": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_company.ts-135-295-models_company.ts-0-296%3E",
-          "readOnly": true
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelParent<class-models_company.ts-135-295-models_company.ts-0-296>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_company.ts-135-295-models_company.ts-0-296%2Cany%3E",
-          "description": "Define the parent of the model"
-        },
-        "ModelLink<class-models_company.ts-135-295-models_company.ts-0-296,any>": {
-          "type": "object",
-          "properties": {
-            "set": {},
-            "length": {
-              "type": "number"
-            },
-            "get": {},
-            "toString": {}
-          },
-          "required": [
-            "get",
-            "length",
-            "set",
-            "toString"
-          ],
-          "description": "Define a link to 1:n relation"
-        }
-      },
-      "title": "User"
-    },
-    "webdademo/computer": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "_user": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_user.ts-90-204-models_user.ts-0-316%3E",
-          "readOnly": true
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelParent<class-models_user.ts-90-204-models_user.ts-0-316>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_user.ts-90-204-models_user.ts-0-316%2Cany%3E",
-          "description": "Define the parent of the model"
-        },
-        "ModelLink<class-models_user.ts-90-204-models_user.ts-0-316,any>": {
-          "type": "object",
-          "properties": {
-            "set": {},
-            "length": {
-              "type": "number"
-            },
-            "get": {},
-            "toString": {}
-          },
-          "required": [
-            "get",
-            "length",
-            "set",
-            "toString"
-          ],
-          "description": "Define a link to 1:n relation"
-        }
-      },
-      "title": "Computer"
-    },
-    "webdademo/contact": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "firstName": {
-          "type": "string",
-          "description": "Contact firstname"
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Contact lastname"
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "PERSONAL",
-            "PROFESSIONAL"
-          ],
-          "description": "Contact type"
-        },
-        "age": {
-          "type": "number",
-          "description": "Contact age",
-          "minimum": 0
-        },
-        "readonly": {
-          "type": "number",
-          "description": "To indicate a property that will be set by server, similar to @SchemaOptional",
-          "readOnly": true
-        },
-        "optional": {
-          "type": "string",
-          "description": "Useful to auto complete on the creation side without forcing UI to push the attribute"
-        }
-      },
-      "required": [
-        "firstName",
-        "lastName",
-        "type",
-        "age"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Contact",
-      "additionalProperties": {
-        "description": "Allow mine"
-      }
-    },
-    "webdademo/hardware": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "classroom": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%3E"
-        }
-      },
-      "required": [
-        "classroom"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelParent<class-models_relations.ts-824-985-models_relations.ts-0-1213>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%2Cany%3E",
-          "description": "Define the parent of the model"
-        },
-        "ModelLink<class-models_relations.ts-824-985-models_relations.ts-0-1213,any>": {
-          "type": "object",
-          "properties": {
-            "set": {},
-            "length": {
-              "type": "number"
-            },
-            "get": {},
-            "toString": {}
-          },
-          "required": [
-            "get",
-            "length",
-            "set",
-            "toString"
-          ],
-          "description": "Define a link to 1:n relation"
-        }
-      },
-      "title": "Hardware"
-    },
-    "webdademo/computerscreen": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "classroom": {
-          "$ref": "#/definitions/ModelParent%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%3E"
-        },
-        "modelId": {
-          "type": "string"
-        },
-        "serialNumber": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "classroom",
-        "modelId",
-        "serialNumber"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelParent<class-models_relations.ts-824-985-models_relations.ts-0-1213>": {
-          "$ref": "#/definitions/ModelLink%3Cclass-models_relations.ts-824-985-models_relations.ts-0-1213%2Cany%3E",
-          "description": "Define the parent of the model"
-        },
-        "ModelLink<class-models_relations.ts-824-985-models_relations.ts-0-1213,any>": {
-          "type": "object",
-          "properties": {
-            "set": {},
-            "length": {
-              "type": "number"
-            },
-            "get": {},
-            "toString": {}
-          },
-          "required": [
-            "get",
-            "length",
-            "set",
-            "toString"
-          ],
-          "description": "Define a link to 1:n relation"
-        }
-      },
-      "title": "ComputerScreen"
-    },
-    "beans/beanservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
-    },
-    "webdademo/simpleservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
-    },
-    "webdademo/anotherservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "anotherParameter": {
-          "type": "string"
-        },
-        "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
-          "description": "The Partial will generate a new $ref"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "anotherParameter",
-        "interfaceParam",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
-          "type": "object",
-          "properties": {
-            "test": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "title": "AnotherService"
-    },
-    "webdademo/secondotherservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "anotherParameter": {
-          "type": "string"
-        },
-        "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
-          "description": "The Partial will generate a new $ref"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "anotherParameter",
-        "interfaceParam",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
-          "type": "object",
-          "properties": {
-            "test": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "title": "SecondOtherService"
-    },
-    "webdademo/thirdotherservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
-    },
-    "webdademo/fourthotherservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "anotherParameter": {
-          "type": "string"
-        },
-        "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
-          "description": "The Partial will generate a new $ref"
-        },
-        "fourthParameter": {
-          "type": "number",
-          "minimum": 100,
-          "maximum": 1000
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "anotherParameter",
-        "fourthParameter",
-        "interfaceParam",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
-          "type": "object",
-          "properties": {
-            "test": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "title": "FourthOtherService"
-    },
-    "webdademo/queueservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "workerDelayer": {
-          "type": "object",
-          "properties": {
-            "interval": {
-              "type": "number",
-              "description": "Interval"
-            },
-            "type": {
-              "type": "string",
-              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-            }
-          },
-          "required": [
-            "interval",
-            "type"
-          ],
-          "description": "Delayer between two failed attempts to process messages"
-        },
-        "workerParallelism": {
-          "type": "boolean",
-          "description": "Define if worker should process multi message received in //",
-          "default": true
-        },
-        "maxConsumers": {
-          "type": "number",
-          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
-          "default": 10
-        },
-        "expire": {
-          "type": "number",
-          "description": "Number of seconds before droping message",
-          "default": 30
-        },
-        "folder": {
-          "type": "string",
-          "description": "Where to store the queue"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "folder",
-        "maxConsumers",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "QueueService"
-    },
-    "webdademo/testinput": {
-      "type": "object",
-      "properties": {
-        "test": {
-          "type": "string"
-        },
-        "optional": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "test"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "testInput"
-    },
-    "webdademo/testoutput": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "result"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "testOutput"
-    },
-    "beans/customservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1971-2455-1131383939-0-8116976353190%3E"
-        }
-      },
-      "required": [
-        "introspection",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Partial<class-1131383939-1971-2455-1131383939-0-8116976353190>": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "description": "Type of the service"
-            },
-            "url": {
-              "type": "string",
-              "description": "URL on which to serve the content"
-            }
-          }
-        }
-      },
-      "title": "CustomService"
-    },
-    "webdademo/customdeployer": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CustomDeployer"
-    },
-    "webdademo/customreusableservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "mandatoryField": {
-          "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "mandatoryField",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CustomReusableService"
-    }
-  },
-  "graph": {
-    "webdademo/project": {
-      "parent": {
-        "attribute": "_company",
-        "model": "webdademo/company"
-      }
-    },
-    "webdademo/subproject": {
-      "parent": {
-        "attribute": "_company",
-        "model": "webdademo/company"
-      }
-    },
-    "webdademo/subsubproject": {
-      "parent": {
-        "attribute": "_company",
-        "model": "webdademo/company"
-      }
-    },
-    "webdademo/user": {
-      "parent": {
-        "attribute": "_company",
-        "model": "webdademo/company"
-      }
-    },
-    "webdademo/computer": {
-      "parent": {
-        "attribute": "_user",
-        "model": "webdademo/user"
-      }
-    },
-    "webdademo/company": {
-      "queries": [
-        {
-          "attribute": "users",
-          "model": "webdademo/user",
-          "targetAttribute": "_company"
-        }
-      ]
-    },
-    "webdademo/contact": {},
-    "webdademo/student": {
-      "links": [
-        {
-          "attribute": "friends",
-          "model": "webdademo/student",
-          "type": "LINKS_MAP"
-        },
-        {
-          "attribute": "teachers",
-          "model": "webdademo/teacher",
-          "type": "LINKS_SIMPLE_ARRAY"
-        }
-      ]
-    },
-    "webdademo/teacher": {
-      "maps": [
-        {
-          "attribute": "courses",
-          "model": "webdademo/course",
-          "targetAttribute": "name"
-        }
-      ]
-    },
-    "webdademo/course": {
-      "links": [
-        {
-          "attribute": "classroom",
-          "model": "webdademo/classroom",
-          "type": "LINK"
-        },
-        {
-          "attribute": "teacher",
-          "model": "webdademo/teacher",
-          "type": "LINK"
-        },
-        {
-          "attribute": "students",
-          "model": "webdademo/student",
-          "type": "LINKS_ARRAY"
-        }
-      ]
-    },
-    "webdademo/classroom": {
-      "maps": [
-        {
-          "attribute": "courses",
-          "model": "webdademo/course",
-          "targetAttribute": "name"
-        }
-      ],
-      "queries": [
-        {
-          "attribute": "hardware",
-          "model": "webdademo/hardware",
-          "targetAttribute": "classroom"
-        }
-      ]
-    },
-    "webdademo/hardware": {
-      "parent": {
-        "attribute": "classroom",
-        "model": "webdademo/classroom"
-      }
-    },
-    "webdademo/computerscreen": {
-      "parent": {
-        "attribute": "classroom",
-        "model": "webdademo/classroom"
-      }
-    }
   }
 }

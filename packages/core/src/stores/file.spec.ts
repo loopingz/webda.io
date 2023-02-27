@@ -208,7 +208,7 @@ class FileStoreTest extends StoreTest {
 
   @test("JSON Schema - Create") async schemaCreate() {
     let taskStore = this.webda.getService<Store<CoreModel>>("Tasks");
-    let ctx = await this.webda.newContext(new HttpContext("webda.io", "GET", "/"));
+    let ctx = await this.webda.newWebContext(new HttpContext("webda.io", "GET", "/"));
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       noname: "Task #1"
     });

@@ -4,6 +4,7 @@ import { serialize as cookieSerialize } from "cookie";
 import { CookieOptions, SecureCookie, WebContext } from "../index";
 import { WebdaTest } from "../test";
 import { SimpleOperationContext } from "./context";
+import { WebContextMock } from "./context.spec";
 import { HttpContext } from "./httpcontext";
 import { Session } from "./session";
 
@@ -15,7 +16,7 @@ class CookieTest extends WebdaTest {
   _ctx: WebContext;
   async before() {
     await super.before();
-    this._ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
+    this._ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     this.webda.updateContextWithRoute(this._ctx);
   }
 
@@ -24,12 +25,13 @@ class CookieTest extends WebdaTest {
     ctx.getHttpContext().cookies = {};
     ctx.getHttpContext().cookies["test"] = "plop";
     let session = await SecureCookie.load("test", ctx, undefined);
+    console.log(session);
     assert.strictEqual(Object.keys(session).length, 0);
   }
 
   @test
   async cov() {
-    let session = await SecureCookie.load("test", new WebContext(this.webda, undefined, undefined), undefined);
+    let session = await SecureCookie.load("test", new WebContextMock(this.webda, undefined, undefined), undefined);
     assert.strictEqual(Object.keys(session).length, 0);
     assert.strictEqual(
       await new SimpleOperationContext(this.webda).setInput(Buffer.from("plop")).getRawInputAsString(),

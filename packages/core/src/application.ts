@@ -3,7 +3,6 @@ import * as fs from "fs";
 import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
-import { join } from "path";
 import { Constructor, Core, CoreModel, CoreModelDefinition, OperationContext, Service, WebdaError } from "./index";
 import { getCommonJS } from "./utils/esm";
 import { FileUtils } from "./utils/serializers";
@@ -94,6 +93,13 @@ export type ModelRelation = {
   model: string;
   type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
 };
+
+/**
+ * Define the model hierarchy
+ */
+export type ModelsTree = {
+  [key: string]: ModelsTree;
+};
 /**
  * A Webda module is a NPM package
  *
@@ -107,17 +113,29 @@ export interface Module {
   /**
    * Models provided by the module
    */
-  models?: { [key: string]: string };
-  /**
-   * Models graph
-   *
-   * Typescript does not have reflection, we therefore deduct the
-   * relations on compilation time and inject in the module
-   *
-   * The parent is define by a ModelParent type on the model
-   * The links are attribute of types ModelLink
-   */
-  graph?: ModelsGraph;
+  models: {
+    /**
+     * Models provided by the module
+     */
+    list: { [key: string]: string };
+    /**
+     * Models hierarchy tree
+     *
+     * Models Graph establish the relationship between models
+     * Models Tree establish the hierarchy between models classes
+     */
+    tree: ModelsTree;
+    /**
+     * Models graph
+     *
+     * Typescript does not have reflection, we therefore deduct the
+     * relations on compilation time and inject in the module
+     *
+     * The parent is define by a ModelParent type on the model
+     * The links are attribute of types ModelLink
+     */
+    graph: ModelsGraph;
+  };
   /**
    * Deployers provided by the module
    *
@@ -152,7 +170,6 @@ export type StaticWebsite = {
 };
 export type UnpackedConfiguration = {
   version: 3;
-
   /**
    * Services configuration
    */
@@ -192,12 +209,6 @@ export type UnpackedConfiguration = {
      * Define the api url
      */
     apiUrl?: string;
-    /**
-     * Define the model to use for Context
-     *
-     * @default Context
-     */
-    contextModel?: string;
     /**
      * Will not try to parse request bigger than this
      *
@@ -318,7 +329,6 @@ export interface ServiceConstructor<T extends Service> {
 export enum SectionEnum {
   Moddas = "moddas",
   Deployers = "deployers",
-  Models = "models",
   Beans = "beans"
 }
 
@@ -422,7 +432,11 @@ export class Application {
    */
   protected appModule: Module = {
     moddas: {},
-    models: {},
+    models: {
+      list: {},
+      graph: {},
+      tree: {}
+    },
     deployers: {}
   };
 
@@ -444,7 +458,7 @@ export class Application {
   /**
    * Models type registry
    */
-  protected models: { [key: string]: any } = {};
+  protected models: { [key: string]: CoreModelDefinition } = {};
 
   /**
    * Models graph
@@ -501,7 +515,7 @@ export class Application {
       }
     }
     this.configurationFile = file;
-    this.appPath = path.dirname(file);
+    this.appPath = path.resolve(path.dirname(file));
   }
 
   /**
@@ -549,6 +563,12 @@ export class Application {
         if (this[SectionEnum[section]][i] && this[SectionEnum[section]][i].prototype === proto) {
           return i;
         }
+      }
+    }
+    // Manage CoreModel too
+    for (let i in this.models) {
+      if (this.models[i].prototype === proto) {
+        return i;
       }
     }
   }
@@ -734,6 +754,30 @@ export class Application {
     return Object.keys(this.models)
       .filter(k => this.models[k] === model)
       .pop();
+  }
+
+  /**
+   * Get the model name from a model or a constructor
+   *
+   * @param model
+   * @returns
+   */
+  getModelName(model: CoreModel | Constructor<CoreModel>): string | undefined {
+    if (model instanceof CoreModel) {
+      return this.getModelFromInstance(model);
+    }
+    return this.getModelFromConstructor(model);
+  }
+
+  /**
+   * Get the model hierarchy
+   * @param model
+   */
+  getModelHierarchy(model: CoreModel | Constructor<CoreModel> | string) {
+    if (typeof model !== "string") {
+      model = this.getModelName(model);
+    }
+    return null;
   }
 
   /**
@@ -924,8 +968,9 @@ export class Application {
    * @param info
    */
   async importFile(info: string, withExport: boolean = true): Promise<any> {
+    let orig = info;
     if (info.startsWith(".")) {
-      info = join(this.appPath, ...info.split("/"));
+      info = this.getAppPath(info);
     }
     try {
       this.log("TRACE", "Load file", info);
@@ -971,13 +1016,20 @@ export class Application {
       }
     };
     // Merging graph from different modules
-    Object.keys(module.graph || {}).forEach(k => {
-      this.graph[k] = module.graph[k];
+    Object.keys(module.models.graph || {}).forEach(k => {
+      this.graph[k] = module.models.graph[k];
     });
+
+    // TODO Merging tree from different modules
     await Promise.all([
       sectionLoader("moddas"),
       sectionLoader("deployers"),
-      sectionLoader("models"),
+      // Load models
+      (async () => {
+        for (let key in info.models.list) {
+          this.models[key.toLowerCase()] ??= await this.importFile(path.join(parent, info.models.list[key]));
+        }
+      })(),
       ...Object.keys(info.beans).map(f => {
         this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
         return this.importFile(path.join(parent, info.beans[f]), false).catch(this.log.bind(this, "WARN"));

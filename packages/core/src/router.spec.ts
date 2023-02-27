@@ -41,7 +41,7 @@ class RouterTest extends WebdaTest {
     this.webda.addRoute("/test/{uuid}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/prefix/test/plop", "https");
     httpContext.setPrefix("/prefix");
-    let ctx = await this.webda.newContext(httpContext);
+    let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.strictEqual(ctx.getPathParameters().uuid, "plop");
   }
@@ -51,7 +51,7 @@ class RouterTest extends WebdaTest {
     this.webda.addRoute("/test/{uuid}", { methods: ["GET"], executor: "DefinedMailer" });
     this.webda.addRoute("/test/{id}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "https");
-    let ctx = await this.webda.newContext(httpContext);
+    let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/test/plop"), ["GET"]);
   }
@@ -61,11 +61,11 @@ class RouterTest extends WebdaTest {
     this.webda.addRoute("/test/{path+}", { methods: ["GET"], executor: "DefinedMailer" });
     this.webda.addRoute("/test2/{path+}{?query*}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/toto/plus", "https");
-    let ctx = await this.webda.newContext(httpContext);
+    let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.deepStrictEqual(ctx.getPathParameters(), { "path+": "plop/toto/plus" });
     httpContext = new HttpContext("test.webda.io", "GET", "/test2/plop/toto/plus?query3=12&query2=test,test2", "https");
-    ctx = await this.webda.newContext(httpContext);
+    ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.deepStrictEqual(ctx.getPathParameters(), {
       "path+": "plop/toto/plus",
@@ -80,11 +80,11 @@ class RouterTest extends WebdaTest {
   async testRouteWithQueryParam() {
     this.webda.addRoute("/test/plop{?uuid}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "http");
-    let ctx = await this.webda.newContext(httpContext);
+    let ctx = await this.webda.newWebContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
     assert.strictEqual(ctx.getPathParameters().uuid, undefined);
     httpContext = new HttpContext("test.webda.io", "GET", "/test/plop?uuid=bouzouf", "http");
-    ctx = await this.webda.newContext(httpContext);
+    ctx = await this.webda.newWebContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
     assert.strictEqual(ctx.getPathParameters().uuid, "bouzouf");
   }

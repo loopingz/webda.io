@@ -2,6 +2,11 @@
   "version": 2,
   "module": {},
   "cachedModules": {
-    "sources": ["./test/moddas/fakeservice.js", "./test/models/task.js"]
+    "sources": ["./test/moddas/fakeservice.js", "./test/models/task.js"],
+    "models": {
+      "list": {},
+      "graph": {},
+      "tree": {}
+    }
   }
 }

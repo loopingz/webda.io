@@ -4,5 +4,6 @@
   "models": {},
   "deployers": {},
   "schemas": {},
-  "graph": {}
+  "graph": {},
+  "tree": {}
 }

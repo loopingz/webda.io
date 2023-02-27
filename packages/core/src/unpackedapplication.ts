@@ -82,7 +82,11 @@ export class UnpackedApplication extends Application {
         project: this.loadProjectInformation(),
         beans: {},
         deployers: {},
-        models: {},
+        models: {
+          list: {},
+          graph: {},
+          tree: {}
+        },
         schemas: {},
         moddas: {}
       };
@@ -211,6 +215,7 @@ export class UnpackedApplication extends Application {
     Object.keys(SectionEnum)
       .filter(k => Number.isNaN(+k))
       .forEach(p => {
+        // Do not keep Beans from other modules
         if (this.getAppPath("webda.module.json") !== moduleFile && SectionEnum[p] === "beans") {
           delete module[SectionEnum[p]];
           return;
@@ -221,7 +226,15 @@ export class UnpackedApplication extends Application {
             module[SectionEnum[p]][key]
           );
         }
+
       });
+
+      for (let key in module.models.list) {
+        module.models.list[key] = path.join(
+          path.relative(this.getAppPath(), path.dirname(moduleFile)),
+          module.models.list[key]
+        );
+      }
     return module;
   }
 
@@ -254,6 +267,11 @@ export class UnpackedApplication extends Application {
       .forEach(p => {
         module[SectionEnum[p]] = value[SectionEnum[p]];
       });
+    // Copying models
+    module.models.list = value.models.list;
+    module.models.graph = value.models.graph;
+    module.models.tree = value.models.tree;
+    // Copying schemas
     module.schemas = value.schemas;
   }
 }

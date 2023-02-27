@@ -1,6 +1,6 @@
 //node.kind === ts.SyntaxKind.ClassDeclaration
 import { tsquery } from "@phenomnomnominal/tsquery";
-import { Application, FileUtils, JSONUtils, Logger, Module, Section } from "@webda/core";
+import { Application, FileUtils, JSONUtils, Logger, ModelGraph } from "@webda/core";
 import { writer } from "@webda/tsc-esm";
 import { existsSync } from "fs";
 import { JSONSchema7 } from "json-schema";
@@ -22,12 +22,79 @@ import {
   ObjectProperty,
   ReferenceType,
   SchemaGenerator,
+  StringType,
   SubNodeParser,
   SubTypeFormatter
 } from "ts-json-schema-generator";
 import ts from "typescript";
 import { SourceApplication } from "./sourceapplication";
 
+type WebdaSearchResult = {
+  type: ts.Type;
+  symbol: ts.Symbol;
+  node: ts.Node;
+  tags: {
+    [key: string]: string;
+  };
+  jsFile: string;
+  name: string;
+};
+
+type WebdaSearchResults = {
+  [key: string]: WebdaSearchResult;
+};
+
+class WebdaSchemaResults {
+  protected store: {[key: string]: {
+    name: string;
+    schemaNode?: ts.Node;
+    link?: string;
+  }} = {};
+  protected byNode = new Map<ts.Node, string>();
+
+  get(node: ts.Node) {
+    if (this.byNode.has(node)) {
+      return this.byNode.get(node);
+    }
+  }
+
+  compute() {
+
+  }
+
+  /**
+   * Generate all schemas
+   * @param info
+   */
+  generateSchemas(compiler: Compiler) {
+    let schemas = {};
+    Object.entries(this.store)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([name, { schemaNode, link }]) => {
+        if (schemaNode) {
+          schemas[name] = compiler.generateSchema(schemaNode, name);
+        } else {
+          schemas[name] = link;
+        }
+      });
+    return schemas;
+  }
+
+  add(name: string, info?: ts.Node | string) {
+    if (typeof info === "object") {
+      this.store[name] = {
+        name: name,
+        schemaNode: info
+      }
+      this.byNode.set(info, name);
+    } else {
+      this.store[name] = {
+        name: name,
+        link: info,
+      }
+    }
+  }
+}
 /**
  * Copy from  https://github.com/vega/ts-json-schema-generator/blob/next/src/Utils/modifiers.ts
  * They are not exported correctly
@@ -224,6 +291,20 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         if (ignore) {
           return undefined;
         }
+        // @ts-ignore
+        let typeName = member.type?.typeName?.escapedText;
+        if (typeName === "ModelParent" || typeName === "ModelLink") {
+          return new ObjectProperty(this.getPropertyName(member.name), new StringType(), true);
+        } else if (
+          typeName === "ModelLinksMap" ||
+          typeName === "ModelLinksSimpleArray" ||
+          typeName === "ModelLinksArray"
+        ) {
+          return undefined;
+          return new ObjectProperty(this.getPropertyName(member.name), new StringType(), true);
+        } else if (typeName === "ModelMapped") {
+          return undefined;
+        }
         let type = this.childNodeParser.createType(member.type, context);
         let optional = jsDocs.filter(n => ["SchemaOptional", "readOnly"].includes(n.tagName.text)).length > 0;
         // If property is in readOnly then we do not want to require it
@@ -338,7 +419,7 @@ export class Compiler {
    * @param node
    * @returns
    */
-  getExportedName(node: ts.ClassDeclaration): string | undefined {
+  getExportedName(node: ts.ClassDeclaration | ts.InterfaceDeclaration): string | undefined {
     let exportNodes = tsquery(node, "ExportKeyword");
     const className = node.name.escapedText.toString();
     if (exportNodes.length === 0) {
@@ -365,9 +446,36 @@ export class Compiler {
     return Object.keys(unordered)
       .sort()
       .reduce((obj, key) => {
-        obj[key] = unordered[key];
+        obj[key] = unordered[key].jsFile;
         return obj;
       }, {});
+  }
+
+  /**
+   * Generate a single schema
+   * @param schemaNode
+   */
+  generateSchema(schemaNode: ts.Node, title?: string) {
+    let res;
+    try {
+      this.app.log("INFO", "Generating schema for " + title);
+      let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
+      let definitionName = decodeURI(schema.$ref.split("/").pop());
+      res = <JSONSchema7>schema.definitions[definitionName];
+      res.$schema = schema.$schema;
+      // Copy sub definition if needed
+      if (Object.keys(schema.definitions).length > 1) {
+        res.definitions = schema.definitions;
+        // Avoid cycle ref
+        delete res.definitions[definitionName];
+      }
+      if (title) {
+        res.title = title;
+      }
+    } catch (err) {
+      this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
+    }
+    return res;
   }
 
   /**
@@ -410,6 +518,153 @@ export class Compiler {
   }
 
   /**
+   * Load all JSDoc tags for a node
+   * @param node
+   * @returns
+   */
+  getTagsName(node: ts.Node) {
+    let tags = {};
+    ts.getAllJSDocTags(node, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
+      return true;
+    }).forEach(n => {
+      const tagName = n.tagName.escapedText.toString();
+      if (tagName.startsWith("Webda")) {
+        // @ts-ignore
+        tags[tagName] = n.comment?.toString().trim().split(" ").shift() || node.name?.escapedText;
+      } else if (tagName.startsWith("Schema")) {
+        tags[tagName] = n.comment?.toString().trim() || "";
+      }
+    });
+    return tags;
+  }
+  /**
+   * Retrieve all webda  objects from source
+   *
+   * If an object have a @WebdaIgnore tag, it will be ignored
+   * Every CoreModel object will be added if it is exported and not abstract
+   * @returns
+   */
+  searchForWebdaObjects() {
+    const result: {
+      schemas: WebdaSchemaResults;
+      models: WebdaSearchResults;
+      moddas: WebdaSearchResults;
+      deployers: WebdaSearchResults;
+      beans: WebdaSearchResults;
+    } = {
+      schemas: new WebdaSchemaResults(),
+      models: {},
+      moddas: {},
+      deployers: {},
+      beans: {}
+    };
+    this.tsProgram.getSourceFiles().forEach(sourceFile => {
+      if (
+        !this.tsProgram.isSourceFileDefaultLibrary(sourceFile) &&
+        this.tsProgram.getRootFileNames().includes(sourceFile.fileName) &&
+        !sourceFile.fileName.endsWith(".spec.ts")
+      ) {
+        this.sourceFile = sourceFile;
+        ts.forEachChild(sourceFile, (node: ts.Node) => {
+          // Skip everything except class and interface\
+          // Might want to allow type for schema
+          const tags = this.getTagsName(node);
+          const type = this.typeChecker.getTypeAtLocation(node);
+          // Manage schemas
+          if (tags["WebdaSchema"]) {
+            // @ts-ignore
+            const name = this.app.completeNamespace(tags["WebdaSchema"] || node.name?.escapedText.toString());
+            result["schemas"][name] = {
+              name,
+              schemaNode: node
+            };
+            return;
+            // Only Schema work with other than class declaration
+          } else if (!ts.isClassDeclaration(node)) {
+            return;
+          }
+          const classNode: ts.ClassDeclaration = <ts.ClassDeclaration>node;
+          const symbol = this.typeChecker.getSymbolAtLocation(classNode.name);
+
+          // Explicit ignore this class
+          if (tags["WebdaIgnore"]) {
+            return;
+          }
+
+          const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
+          const classTree = this.getClassTree(type);
+
+          let section;
+          let schemaNode;
+          if (this.extends(classTree, "@webda/core", "CoreModel") || tags["WebdaModel"]) {
+            section = "models";
+            schemaNode = node;
+          } else if (tags["WebdaModda"]) {
+            if (!this.extends(classTree, "@webda/core", "Service")) {
+              this.app.log(
+                "WARN",
+                `${importTarget}(${classNode.name?.escapedText}) have a @WebdaModda annotation but does not inherite from Service`
+              );
+              return;
+            }
+            section = "moddas";
+            schemaNode = this.getSchemaNode(classTree);
+          } else if (tags["WebdaDeployer"]) {
+            if (!this.extends(classTree, "@webda/core", "AbstractDeployer")) {
+              this.app.log(
+                "WARN",
+                `${importTarget}(${classNode.name?.escapedText}) have a @WebdaDeployer annotation but does not inherite from AbstractDeployer`
+              );
+              return;
+            }
+            section = "deployers";
+            schemaNode = this.getSchemaNode(classTree, "DeployerParameters");
+          } else if (this.extends(classTree, "@webda/core", "Service")) {
+            // Check if a Bean is declared
+            if (!ts.getDecorators(classNode)?.find(decorator => decorator.expression.getText() === "Bean")) {
+              return;
+            }
+            section = "beans";
+            schemaNode = this.getSchemaNode(classTree);
+          } else {
+            return;
+          }
+          const exportName = this.getExportedName(classNode);
+          if (!exportName) {
+            this.app.log(
+              "WARN",
+              `WebdaObjects need to be exported ${classNode.name.escapedText} in ${sourceFile.fileName}`
+            );
+            return;
+          }
+          let info: WebdaSearchResult = {
+            type,
+            symbol,
+            node,
+            tags,
+            jsFile: `${importTarget}:${exportName}`,
+            name: this.app.completeNamespace(
+              tags[`Webda${section.substring(0, 1).toUpperCase()}${section.substring(1, section.length - 1)}`] ||
+                classNode.name.escapedText
+            )
+          };
+          if (schemaNode && !result["schemas"][info.name]) {
+            result["schemas"][info.name] = {
+              name: info.name,
+              schemaNode
+            };
+          }
+          if (section === "schemas") {
+            return;
+          }
+          result[section][info.name] = info;
+        });
+      }
+    });
+    return result;
+  }
+
+  /**
    * Generating the local module from source
    *
    * It scans for JSDoc @WebdaModda and @WebdaModel
@@ -423,257 +678,193 @@ export class Compiler {
   generateModule() {
     // Ensure we have compiled the application
     this.compile();
-    // Local module
-    const moduleInfo: Module = {
-      moddas: {},
-      beans: {},
-      models: {},
-      deployers: {},
-      schemas: {},
-      graph: {}
-    };
-
-    const symbolMap = new Map<ts.Type, string>();
-
     // Generate the Module
-    this.tsProgram.getSourceFiles().forEach(sourceFile => {
-      if (!this.tsProgram.isSourceFileDefaultLibrary(sourceFile)) {
-        this.sourceFile = sourceFile;
+    const objects = this.searchForWebdaObjects();
+    // Check for @Action methods
+    this.exploreModelsAction(objects.models, objects.schemas);
+    // Check for @Operation and @Route methods
+    this.exploreServices(objects.moddas, objects.schemas);
+    this.exploreServices(objects.beans, objects.schemas);
 
-        if (
-          this.tsProgram.getRootFileNames().includes(sourceFile.fileName) &&
-          !sourceFile.fileName.endsWith(".spec.ts")
-        ) {
-          const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
-          for (let node of tsquery(sourceFile, "ClassDeclaration, InterfaceDeclaration")) {
-            let clazz: ts.ClassDeclaration = <any>node;
-            let tags = {};
-            ts.getAllJSDocTags(clazz, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
-              return true;
-            }).forEach(n => {
-              const tagName = n.tagName.escapedText.toString();
-              if (tagName.startsWith("Webda")) {
-                tags[tagName] = n.comment?.toString().trim().split(" ").shift() || clazz.name.escapedText;
-              } else if (tagName.startsWith("Schema")) {
-                tags[tagName] = n.comment?.toString().trim() || "";
-              }
-            });
+    return {
+      schemas: objects.schemas.generateSchemas(this),
+      beans: this.sortObject(objects.beans),
+      models: { ...this.processModels(objects.models), list: this.sortObject(objects.models) },
+      moddas: this.sortObject(objects.moddas),
+      deployers: this.sortObject(objects.deployers)
+    };
+  }
 
-            const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
-            // Auto add @WebdaModel
-            if (
-              this.extends(classTree, "@webda/core", "CoreModel") &&
-              !Object.keys(tags).includes("WebdaIgnore") &&
-              tsquery(clazz, "AbstractKeyword").length === 0
-            ) {
-              tags["WebdaModel"] = clazz.name.escapedText;
-            }
-            // this.extends(classTree, "@webda/core", "CoreModel") might be automatic
-            // add @WebdaIgnore to ignore a class
-            if (
-              Object.keys(tags).includes("WebdaModel") ||
-              Object.keys(tags).includes("WebdaModda") ||
-              Object.keys(tags).includes("WebdaDeployer") ||
-              Object.keys(tags).includes("WebdaSchema")
-            ) {
-              let exportName = this.getExportedName(clazz);
-              if (!exportName) {
-                this.app.log(
-                  "WARN",
-                  `WebdaObjects need to be exported ${clazz.name.escapedText} in ${sourceFile.fileName}`
-                );
-                continue;
-              }
-              const jsFile = `${importTarget}:${exportName}`;
-              let section: Section;
-              let schemaNode: ts.Node;
-              let name: string;
-              let originName: string;
+  /**
+   * Explore services or beans for @Operation and @Route methods
+   * @param services 
+   * @param schemas 
+   */
+  exploreServices(services: WebdaSearchResults, schemas: WebdaSchemaResults) {
+    Object.values(services).forEach(service => {
+      service.type
+          .getProperties()
+          .filter(
+            prop =>
+              prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
+              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
+              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
+                // @ts-ignore
+                return ["Operation"].includes(annotation.expression.expression && annotation.expression.expression.getText());
+              })
+          )
+          .map(prop => prop.valueDeclaration)
+          .forEach((method: ts.MethodDeclaration) => {
+            this.checkMethodForContext(service.name, method, schemas);
+          });
+    });
+  }
 
-              if (tags["WebdaSchema"]) {
-                schemaNode = clazz;
-                originName = tags["WebdaSchema"];
-                name = this.app.completeNamespace(originName);
-              } else if (tags["WebdaModel"]) {
-                section = "models";
-                // We do not generate schema for technical model like Context or SessionCookie
-                if (this.extends(classTree, "@webda/core", "CoreModel")) {
-                  schemaNode = clazz;
-                }
-              } else if (tags["WebdaModda"]) {
-                // Skip as it does not inherite from Service
-                if (!this.extends(classTree, "@webda/core", "Service")) {
-                  this.app.log("WARN", `${jsFile} have a @WebdaModda annotation but does not inherite from Service`);
-                  continue;
-                }
-                schemaNode = this.getSchemaNode(classTree);
-                section = "moddas";
-              } else if (tags["WebdaDeployer"]) {
-                section = "deployers";
-                // DeployerResources
-                // Skip as it does not inherite from Service
-                if (!this.extends(classTree, "@webda/core", "AbstractDeployer")) {
-                  this.app.log(
-                    "WARN",
-                    `${jsFile} have a @WebdaDeployer annotation but does not inherite from AbstractDeployer`
-                  );
-                  continue;
-                }
-                schemaNode = this.getSchemaNode(classTree, "DeployerResources");
-              }
-              // Add to a section and guess name
-              if (section) {
-                originName =
-                  tags[`Webda${section.substring(0, 1).toUpperCase()}${section.substring(1, section.length - 1)}`];
-                name = this.app.completeNamespace(originName);
-                moduleInfo[section][name] = jsFile;
-              }
-              if (!moduleInfo.schemas[name] && schemaNode) {
-                try {
-                  if (section === "models") {
-                    // @ts-ignore
-                    symbolMap.set(classTree[0].id, name);
-                    // @ts-ignore
-                    this.app.log("INFO", "Adding graph for model");
-                    moduleInfo.graph[name] = {};
-                    const type = classTree[0];
-                    this.app.log("INFO", "FIRST CLASS TREE", type.symbol.name, name);
-                    type
-                      .getProperties()
-                      .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
-                      .forEach((prop: ts.Symbol) => {
-                        const pType: ts.TypeReferenceNode = <ts.TypeReferenceNode>prop.valueDeclaration
-                          .getChildren()
-                          .filter(c => c.kind === ts.SyntaxKind.TypeReference)
-                          .shift();
-                        if (pType) {
-                          const addLinkToGraph = (
-                            type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY"
-                          ) => {
-                            moduleInfo.graph[name].links ??= [];
-                            moduleInfo.graph[name].links.push({
-                              attribute: prop.escapedName.toString(),
-                              // @ts-ignore
-                              model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
-                              type
-                            });
-                          };
-                          switch (pType.typeName.getText()) {
-                            case "ModelParent":
-                              moduleInfo.graph[name].parent = {
-                                attribute: prop.escapedName.toString(),
-                                // @ts-ignore
-                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id
-                              };
-                              break;
-                            case "ModelRelated":
-                              moduleInfo.graph[name].queries ??= [];
-                              moduleInfo.graph[name].queries.push({
-                                attribute: prop.escapedName.toString(),
-                                // @ts-ignore
-                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
-                                targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
-                              });
-                              break;
-                            case "ModelsMapped":
-                              moduleInfo.graph[name].maps ??= [];
-                              moduleInfo.graph[name].maps.push({
-                                attribute: prop.escapedName.toString(),
-                                // @ts-ignore
-                                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
-                                targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
-                              });
-                              break;
-                            case "ModelLink":
-                              addLinkToGraph("LINK");
-                              break;
-                            case "ModelLinksMap":
-                              addLinkToGraph("LINKS_MAP");
-                              break;
-                            case "ModelLinksArray":
-                              addLinkToGraph("LINKS_ARRAY");
-                              break;
-                            case "ModelLinksSimpleArray":
-                              addLinkToGraph("LINKS_SIMPLE_ARRAY");
-                              break;
-                          }
-                        }
-                      });
-                  }
-                  let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
-                  let definitionName = schema.$ref.split("/").pop();
-                  moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
-                  moduleInfo.schemas[name].$schema = schema.$schema;
-                  // Should avoid hard-coding by adding a SchemaTypeOverride JSDocs tag
-                  if (section === "beans" || section === "moddas") {
-                    moduleInfo.schemas[name].properties["openapi"] = {
-                      type: "object",
-                      additionalProperties: true
-                    };
-                  }
-                  // Copy sub definition if needed
-                  if (Object.keys(schema.definitions).length > 1) {
-                    moduleInfo.schemas[name].definitions = schema.definitions;
-                    // Avoid cycle ref
-                    delete moduleInfo.schemas[name].definitions[definitionName];
-                  }
-                  moduleInfo.schemas[name].title = originName.split("/").pop();
-                  if ((section === "models" || tags["WebdaSchema"]) && tags["SchemaAdditionalProperties"]) {
-                    moduleInfo.schemas[name].additionalProperties = {
-                      description: tags["SchemaAdditionalProperties"]
-                    };
-                  }
-                } catch (err) {
-                  this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
-                }
-              }
+  /**
+   * Ensure each method that are supposed to have a context have one
+   * And detect their input/output schema
+   * 
+   * @param rootName 
+   * @param method 
+   * @param schemas 
+   * @returns 
+   */
+  checkMethodForContext(rootName: string, method: ts.MethodDeclaration, schemas: WebdaSchemaResults) {
+    const type = <ts.Type>this.typeChecker.getTypeFromTypeNode(method.parameters[0].type);
+    // If first parameter is not a OperationContext, display an error
+    if (!this.extends(this.getClassTree(type), "@webda/core", "OperationContext")) {
+      this.app.log(
+        "ERROR",
+        `${rootName}.${method.name.getText()} does not have a OperationContext as first parameter`
+      );
+      return;
+    } else if (method.parameters.length > 1) { // Warn user if there is more than 1 parameter
+      this.app.log(
+        "WARN",
+        `${rootName}.${method.name.getText()} have more than 1 parameter, only the first one will be used as context`
+      );
+    }
+    let obj = <ts.TypeReferenceNode>method.parameters[0].type;
+    let schemaNode = obj.typeArguments[0];
+    let name = rootName + "." + method.name.getText() + ".input";
+    if (ts.isTypeReferenceNode(schemaNode)) {
+      let decl = schemas.get(this.typeChecker.getTypeFromTypeNode(schemaNode).getSymbol().declarations[0]);
+      if (decl) {
+        schemas.add(name, decl);
+        return;
+      }
+    }
+    schemas.add(name, schemaNode);
+    console.log("Operation", name, schemaNode.getText());
+  }
+
+  /**
+   * Explore models
+   * @param models 
+   * @param schemas 
+   */
+  exploreModelsAction(models: WebdaSearchResults, schemas: WebdaSchemaResults) {
+    let schemaMap = new Map<ts.Node, string>();
+    Object.values(schemas).forEach(schema => {
+      schemaMap.set(schema.schemaNode, schema.name);
+    });
+    Object.values(models)
+      .forEach(model => {
+        model.type
+          .getProperties()
+          .filter(
+            prop =>
+              prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
+              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
+              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
+                // @ts-ignore
+                return ["Action"].includes(annotation.expression.expression && annotation.expression.expression.getText());
+              })
+          )
+          .map(prop => prop.valueDeclaration)
+          .forEach((method: ts.MethodDeclaration) => {
+            this.checkMethodForContext(model.name, method, schemas);
+          });
+      });
+  }
+
+  /**
+   * Generate the graph relationship between models
+   * And the hierarchy tree
+   * @param models
+   */
+  processModels(models: { [key: string]: { name: string; type: ts.Type } }) {
+    let graph: {
+      [key: string]: ModelGraph;
+    } = {};
+    let tree = {};
+    let symbolMap = new Map<number, string>();
+
+    Object.values(models).forEach(({ name, type }) => {
+      // @ts-ignore
+      symbolMap.set(type.id, name);
+      graph[name] ??= {};
+      type
+        .getProperties()
+        .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
+        .forEach((prop: ts.Symbol) => {
+          const pType: ts.TypeReferenceNode = <ts.TypeReferenceNode>prop.valueDeclaration
+            .getChildren()
+            .filter(c => c.kind === ts.SyntaxKind.TypeReference)
+            .shift();
+          if (pType) {
+            const addLinkToGraph = (type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY") => {
+              graph[name].links ??= [];
+              graph[name].links.push({
+                attribute: prop.escapedName.toString(),
+                // @ts-ignore
+                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                type
+              });
+            };
+            switch (pType.typeName.getText()) {
+              case "ModelParent":
+                graph[name].parent = {
+                  attribute: prop.escapedName.toString(),
+                  // @ts-ignore
+                  model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id
+                };
+                break;
+              case "ModelRelated":
+                graph[name].queries ??= [];
+                graph[name].queries.push({
+                  attribute: prop.escapedName.toString(),
+                  // @ts-ignore
+                  model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                  targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
+                });
+                break;
+              case "ModelsMapped":
+                graph[name].maps ??= [];
+                graph[name].maps.push({
+                  attribute: prop.escapedName.toString(),
+                  // @ts-ignore
+                  model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                  targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
+                });
+                break;
+              case "ModelLink":
+                addLinkToGraph("LINK");
+                break;
+              case "ModelLinksMap":
+                addLinkToGraph("LINKS_MAP");
+                break;
+              case "ModelLinksArray":
+                addLinkToGraph("LINKS_ARRAY");
+                break;
+              case "ModelLinksSimpleArray":
+                addLinkToGraph("LINKS_SIMPLE_ARRAY");
+                break;
             }
           }
-
-          const beanExplorer = bean => {
-            const clazz = <ts.ClassDeclaration>this.getParent(bean, ts.SyntaxKind.ClassDeclaration);
-            const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
-            // Skip as it does not inherite from Service
-            if (!this.extends(classTree, "@webda/core", "Service")) {
-              this.app.log(
-                "WARN",
-                `${importTarget} have a @Route or @Bean annotation but does not inherite from Service`
-              );
-              return;
-            }
-            let name = `beans/${clazz.name.escapedText.toString().toLowerCase()}`;
-            let schemaNode = this.getSchemaNode(classTree);
-            if (schemaNode) {
-              try {
-                let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
-                let definitionName = schema.$ref.split("/").pop();
-                moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
-                moduleInfo.schemas[name].$schema = schema.$schema;
-                // Copy sub definition if needed
-                if (Object.keys(schema.definitions).length > 1) {
-                  moduleInfo.schemas[name].definitions = schema.definitions;
-                  // Avoid cycle ref
-                  delete moduleInfo.schemas[name].definitions[definitionName];
-                }
-                moduleInfo.schemas[name].title = clazz.name.escapedText.toString();
-              } catch (err) {
-                this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
-              }
-            }
-            moduleInfo.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()] = importTarget;
-          };
-
-          tsquery(sourceFile, "Decorator [name=Bean]").forEach(beanExplorer);
-        }
-      }
+        });
     });
-
-    moduleInfo.beans = this.sortObject(moduleInfo.beans);
-    moduleInfo.models = this.sortObject(moduleInfo.models);
-    moduleInfo.moddas = this.sortObject(moduleInfo.moddas);
-    moduleInfo.deployers = this.sortObject(moduleInfo.deployers);
-
-    Object.values(moduleInfo.graph).forEach(graph => {
+    Object.values(graph).forEach(graph => {
       if (graph.parent && typeof graph.parent.model === "number") {
         graph.parent.model = symbolMap.get(graph.parent.model) || "unknown";
       }
@@ -694,7 +885,44 @@ export class Compiler {
       });
     });
 
-    return moduleInfo;
+    // Construct the hierarchy tree
+    Object.values(models).forEach(({ type }) => {
+      let root = tree;
+      this.getClassTree(type)
+        .map((t: any) => {
+          // If the reference is not internal to this project
+          if (!symbolMap.has(t.id) && t.symbol?.parent?.escapedName) {
+            // Check the module of the source
+            let sourcePath = t.symbol?.parent?.escapedName.replace(/"/g, "");
+            let dir = sourcePath;
+            while (dir !== "/" && !existsSync(path.join(dir, "webda.module.json"))) {
+              dir = path.dirname(dir);
+            }
+            // If we found a module
+            if (existsSync(path.join(dir, "webda.module.json"))) {
+              let mod = FileUtils.load(path.join(dir, "webda.module.json"));
+              // Find the model in the module
+              return (
+                Object.keys(mod.models.list).find(
+                  key =>
+                    mod.models.list[key].startsWith(sourcePath.substring(dir.length + 1) + ":") &&
+                    t.symbol.parent.exports.get(mod.models.list[key].split(":")[1] || "default") === t.symbol
+                ) || null
+              );
+            }
+            return null;
+          } else {
+            return symbolMap.get(t.id);
+          }
+        })
+        .filter(t => t !== null && t !== undefined)
+        .reverse()
+        .forEach((name: string) => {
+          root[name] ??= {};
+          root = root[name];
+        });
+    });
+    return { graph, tree };
   }
 
   /**

@@ -15,6 +15,11 @@
     "schemas": {
       "WebdaTest/Mailer": "./moddas/debugmailer",
       "WebdaTest/VoidStore": "./moddas/voidstore"
+    },
+    "models": {
+      "list": {},
+      "graph": {},
+      "tree": {}
     }
   },
   "services": {

@@ -58,7 +58,7 @@ class AuthenticationTest extends WebdaTest {
         "Accept-Language": "en-GB,en;q=0.9,fr;q=0.8"
       }
     );
-    ctx.newSession();
+    await ctx.newSession();
     ctx.getExecutor().getParameters().email.postValidation = true;
     await executor.execute(ctx);
   }
@@ -148,7 +148,7 @@ class AuthenticationTest extends WebdaTest {
         "Accept-Language": "en-GB,en;q=0.9,fr;q=0.8"
       }
     );
-    ctx.newSession();
+    await ctx.newSession();
     await executor.execute(ctx);
     // Should not authentified as we need to check email
     assert.strictEqual(ctx.getSession().identUsed, undefined);
@@ -211,7 +211,7 @@ class AuthenticationTest extends WebdaTest {
     match = this.mailer.sent[1].replacements.url.match(validationUrl);
     assert.notStrictEqual(match, undefined);
     assert.strictEqual(match[1], "test2@webda.io");
-    ctx.newSession();
+    await ctx.newSession();
     executor = this.getExecutor(
       ctx,
       "test.webda.io",
@@ -222,7 +222,7 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(ctx.statusCode, 302);
     // Verify the skipEmailValidation parameter
     this.events = 0;
-    ctx.newSession();
+    await ctx.newSession();
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
       login: "test4@webda.io",
       password: "testtest",
@@ -305,7 +305,7 @@ class AuthenticationTest extends WebdaTest {
   @test("login") async login() {
     let ctx = await this.newContext();
     await this.registerTest2(ctx);
-    ctx.newSession();
+    await ctx.newSession();
     this.events = 0;
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
       login: "test3@webda.io",
@@ -322,7 +322,7 @@ class AuthenticationTest extends WebdaTest {
       password: "testtest"
     });
     ctx.reinit();
-    ctx.newSession();
+    await ctx.newSession();
     await executor.execute(ctx);
     assert.strictEqual(this.events, 1); // Login
     assert.notStrictEqual(ctx.getSession().userId, undefined);
@@ -334,7 +334,7 @@ class AuthenticationTest extends WebdaTest {
       password: "bouzouf"
     });
     ctx.reinit();
-    ctx.newSession();
+    await ctx.newSession();
     await assert.rejects(
       () => executor.execute(ctx),
       res => res == 403
@@ -348,7 +348,7 @@ class AuthenticationTest extends WebdaTest {
       password: "testtest"
     });
     ctx.reinit();
-    ctx.newSession();
+    await ctx.newSession();
     await executor.execute(ctx);
     assert.strictEqual(await (await this.identStore.get("test2@webda.io_email"))._failedLogin, 0);
   }
@@ -360,7 +360,7 @@ class AuthenticationTest extends WebdaTest {
     this.mailer.sent = [];
     this.events = 0;
     userId = ctx.getSession().userId;
-    ctx.newSession();
+    await ctx.newSession();
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email/passwordRecovery", {
       login: userId,
       password: "retesttest"
@@ -409,7 +409,7 @@ class AuthenticationTest extends WebdaTest {
     ctx.reinit();
     await executor.execute(ctx);
     // Should be update with password retest now
-    ctx.newSession();
+    await ctx.newSession();
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
       login: "test2@webda.io",
       password: "retesttest"
@@ -505,7 +505,7 @@ class AuthenticationTest extends WebdaTest {
     await assert.rejects(() => executor.execute(ctx), /409/);
 
     // Check register on validated email does not work
-    ctx.newSession();
+    await ctx.newSession();
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
       login: "newtest@webda.io",
       password: "testtest",
@@ -514,7 +514,7 @@ class AuthenticationTest extends WebdaTest {
     await assert.rejects(() => executor.execute(ctx), /409/);
 
     // Validation with no user
-    ctx.newSession();
+    await ctx.newSession();
     executor = this.getExecutor(
       ctx,
       "test.webda.io",

@@ -7,6 +7,7 @@ import {
   Authentication,
   Bean,
   ConsoleLoggerService,
+  ContextProvider,
   CoreModel,
   MemoryStore,
   Route,
@@ -547,6 +548,14 @@ class CoreTest extends WebdaTest {
     assert.ok(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(this.webda.getUuid()) !== null);
     assert.ok(/[0-9a-f]{32}/.exec(this.webda.getUuid("hex")) !== null);
     assert.ok(/[0-9a-zA-Z\-_]{22}/.exec(this.webda.getUuid("base64")) !== null);
+    let provider: ContextProvider = {
+      getContext(info) {
+        return undefined;
+      },
+    } 
+    this.webda.registerContextProvider(provider);
+    // @ts-ignore
+    assert.strictEqual(this.webda._contextProviders[0], provider);
   }
 
   @test

@@ -44,7 +44,7 @@ class MemoryStoreTest extends StoreTest {
 
   @test async deleteAsyncHttp() {
     let executor, ctx;
-    ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/memory/idents/ToDelete"));
+    ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/memory/idents/ToDelete"));
     let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     await identStore.save({
       uuid: "toDelete",

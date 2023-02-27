@@ -607,7 +607,7 @@ class Authentication<
     if (await this._identsStore.exists(`${identId}_${provider}`)) {
       throw new Error("Ident is already known");
     }
-    let ctx = await this._webda.newContext(new HttpContext("fake", "GET", "/"));
+    let ctx = await this._webda.newWebContext(new HttpContext("fake", "GET", "/"));
     // Pretend we logged in with the ident
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
@@ -873,7 +873,7 @@ class Authentication<
     await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
       context: ctx
     });
-    ctx.newSession();
+    await ctx.newSession();
   }
 
   /**

@@ -1,7 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as path from "path";
-import { Application, UnpackedApplication } from "./index";
+import util from "util";
+import { Application, Core, UnpackedApplication } from "./index";
 import { CoreModel } from "./models/coremodel";
 import { User } from "./models/user";
 import { TestApplication, WebdaTest } from "./test";
@@ -43,6 +44,12 @@ class ApplicationTest extends WebdaTest {
         }
       }
     );
+  }
+
+  @test
+  testHierarchy() {
+    let hierarchy = this.webda.getApplication().getModelHierarchy(new CoreModel());
+    console.log(util.inspect(hierarchy, false, 20));
   }
 
   @test
@@ -160,6 +167,8 @@ class ApplicationTest extends WebdaTest {
     assert.deepStrictEqual(unpackedApp.getPackageWebda(), { namespace: "Webda" });
     assert.strictEqual(app.getModelFromInstance(new CoreModel()), "webda/coremodel");
     assert.strictEqual(app.getModelFromInstance(new User()), "webda/user");
+    assert.strictEqual(app.getModelName(CoreModel), "webda/coremodel");
+    assert.strictEqual(app.getModelName(new CoreModel()), "webda/coremodel");
   }
 
   @test
@@ -170,6 +179,8 @@ class ApplicationTest extends WebdaTest {
     let name = Object.keys(services).pop();
     let service: any = services[name].prototype;
     assert.strictEqual(app.getFullNameFromPrototype(service), name);
+    assert.strictEqual(app.getFullNameFromPrototype(CoreModel.prototype), "webda/coremodel");
+    assert.strictEqual(app.getFullNameFromPrototype(undefined), undefined);
     // Cheat for deployer
     services = app.getModels();
     name = Object.keys(services).pop();
@@ -188,18 +199,21 @@ class ApplicationTest extends WebdaTest {
           ReTest: "./notFound.js"
         },
         models: {
-          ReTest: "notFound.js"
+          list: {
+            ReTest: "notFound.js"
+          },
+          graph: {
+            "webdademo/test": {}
+          },
+          tree: {}
         },
         deployers: {
           ReTest: "notFound.js"
-        },
-        graph: {
-          "webdademo/test": {}
         }
       },
       ""
     );
-    await app.loadModule({});
+    await app.loadModule({ models: { list: {}, graph: {}, tree: {} } }, "");
     await app.importFile("./../test/moddas/fakeservice.js");
     let cwd = process.cwd();
     try {

@@ -1,16 +1,30 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { Readable } from "stream";
+import { Core } from "../core";
 import { Service } from "../services/service";
 import { WebdaTest } from "../test";
 import { OperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
+
+export class WebContextMock extends WebContext {
+  constructor(webda: Core, httpContext: HttpContext, stream?: any) {
+    super(webda, httpContext, stream);
+  }
+}
+
+export class OperationContextMock extends OperationContext {
+  public constructor(webda: Core) {
+    super(webda);
+  }
+}
+
 @suite
 class ContextTest extends WebdaTest {
   ctx: WebContext;
   async before() {
     await super.before();
-    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/"));
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/"));
   }
 
   @test
@@ -48,7 +62,7 @@ class ContextTest extends WebdaTest {
     this.ctx.getRoute();
     assert.notStrictEqual(this.ctx.getService("Users"), undefined);
     assert.notStrictEqual(this.ctx.getService<Service>("Users"), undefined);
-    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setPathParameters({ id: "plop" });
     this.ctx.setServiceParameters({ id: "service" });
     assert.strictEqual(this.ctx.getServiceParameters().id, "service");
@@ -182,11 +196,11 @@ class ContextTest extends WebdaTest {
 
   @test
   expressCompatibility() {
-    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.status(403), this.ctx);
     assert.strictEqual(this.ctx.statusCode, 403);
-    this.ctx = new WebContext(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.json({ plop: "test" }), this.ctx);
     assert.strictEqual(this.ctx.getResponseBody(), '{"plop":"test"}');
@@ -271,7 +285,7 @@ class ContextTest extends WebdaTest {
 
   @test
   async operationContext() {
-    let ctx = new OperationContext(this.webda);
+    let ctx = new OperationContextMock(this.webda);
     assert.strictEqual(ctx.getCurrentUserId(), undefined);
     assert.strictEqual(await ctx.getRawInputAsString(), "");
     assert.strictEqual((await ctx.getRawInput()).toString(), "");
@@ -284,7 +298,7 @@ class ContextTest extends WebdaTest {
 
     // cov
     let http = new HttpContext("test.webda.io", "GET", "/");
-    ctx = new WebContext(this.webda, http);
+    ctx = new WebContextMock(this.webda, http);
     await ctx.getRawInput();
     ctx.getRawStream();
   }

@@ -21,6 +21,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
 import {
   ConfigurationService,
+  ContextProvider,
+  ContextProviderInfo,
   HttpContext,
   Logger,
   OperationContext,
@@ -237,7 +239,10 @@ export type CoreEvents = {
   /**
    * Emitted whenever a new Context is created
    */
-  "Webda.NewContext": OperationContext;
+  "Webda.NewContext": {
+    context: OperationContext
+    info: ContextProviderInfo
+  };
   [key: string]: unknown;
 };
 
@@ -368,6 +373,19 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   private _dualImportWarn: boolean = false;
   /**
+   * Registered context providers
+   */
+  private _contextProviders: ContextProvider[] = [{
+    getContext: (info: ContextProviderInfo) => {
+      // If http is defined, return a WebContext
+      if (info.http) {
+        return new WebContext(this, info.http, info.stream);
+      }
+      return new OperationContext(this, info.stream);
+    }
+  }];
+
+  /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
   constructor(application?: Application) {
@@ -387,10 +405,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     // Load the configuration and migrate
     this.configuration = this.application.getCurrentConfiguration();
-    // Set the global context
-    OperationContext.setGlobalContext(
-      <OperationContext>new (this.getModel(this.parameter("contextModel") || "Webda/WebContext"))(this)
-    );
+    
     // Init default values for configuration
     this.configuration.parameters ??= {};
     this.configuration.parameters.apiUrl ??= "http://localhost:18080";
@@ -549,6 +564,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     if (this._init) {
       return this._init;
     }
+    
+    // Set the global context
+    OperationContext.setGlobalContext(await this.newContext({global: true}));
     if (this.configuration.parameters.configurationService) {
       try {
         this.log("INFO", "Create and init ConfigurationService", this.configuration.parameters.configurationService);
@@ -678,6 +696,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Register a new context provider
+   * @param provider 
+   */
+  registerContextProvider(provider: ContextProvider) {
+    this._contextProviders.unshift(provider);
+  }
+
+  /**
    * Validate the object with schema
    *
    * @param schema path to use
@@ -691,7 +717,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     let name =
       typeof webdaObject === "string"
         ? webdaObject
-        : this.application.getFullNameFromPrototype(Object.getPrototypeOf(webdaObject));
+        : this.application.getModelFromInstance(webdaObject);
     let cacheName = name;
     if (ignoreRequired) {
       cacheName += "_noRequired";
@@ -1113,6 +1139,21 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Get a context based on the info
+   * @param info 
+   * @returns 
+   */
+  public async newContext<T extends OperationContext>(info: ContextProviderInfo, noInit: boolean = false) : Promise<OperationContext> {
+    let context: OperationContext;
+    this._contextProviders.find(provider => (context = provider.getContext(info)) !== undefined);
+    if (!noInit) {
+      await context.init();
+    }
+    await this.emitSync("Webda.NewContext", {context, info});
+    return <T>context;
+  }
+  
+  /**
    * Create a new context for a request
    *
    * @class Service
@@ -1120,19 +1161,12 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param stream - The request output stream if any
    * @return A new context object to pass along
    */
-  public async newContext<T extends WebContext>(
+  public async newWebContext<T extends WebContext>(
     httpContext: HttpContext,
     stream: Writable = undefined,
     noInit: boolean = false
   ): Promise<T> {
-    let res: OperationContext = <OperationContext>(
-      new (this.getModel(this.parameter("contextModel") || "Webda/WebContext"))(this, httpContext, stream)
-    );
-    if (!noInit) {
-      await res.init();
-    }
-    await this.emitSync("Webda.NewContext", res);
-    return <T>res;
+    return <T>await this.newContext({http: httpContext, stream: stream});
   }
 
   /**
@@ -1239,6 +1273,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
   }
 
+  /**
+   * Export OpenAPI
+   * @param skipHidden 
+   * @returns 
+   */
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
     let packageInfo = this.application.getPackageDescription();
     let contact: OpenAPIV3.ContactObject;

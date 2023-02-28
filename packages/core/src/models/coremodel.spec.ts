@@ -251,8 +251,8 @@ class CoreModelTest extends WebdaTest {
     task.setUuid("task#1");
     let memoryStore = this.getService<Store>("MemoryUsers");
     task = await memoryStore.save({ ...task, test: false });
-    assert.strictEqual(task.getFullUuid(), "MemoryUsers$task#1");
-    let taskB = await this.webda.getModelObject("MemoryUsers$task#1");
+    assert.strictEqual(task.getFullUuid(), "webda/coremodel$task#1");
+    let taskB = await this.webda.getModelObject("webda/coremodel$task#1");
     // @ts-ignore
     assert.strictEqual(taskB.test, false);
     taskB = await this.webda.getModelObject(task.getFullUuid(), { test: true });

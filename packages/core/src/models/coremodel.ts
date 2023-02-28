@@ -580,7 +580,7 @@ class CoreModel {
    * @returns
    */
   getFullUuid() {
-    return `${this.__class.prototype.name}$${this.getUuid()}`;
+    return `${this.__type}$${this.getUuid()}`;
   }
 
   /**

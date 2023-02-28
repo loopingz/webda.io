@@ -4,7 +4,7 @@ import {
   OAuthServiceParameters,
   OAuthSession,
   RequestFilter,
-  WebContext
+  WebContext,
 } from "@webda/core";
 import { Credentials, OAuth2Client } from "google-auth-library";
 import * as http from "http";
@@ -69,7 +69,9 @@ type GoogleAuthEvents = OAuthEvents & {
  *
  * @WebdaModda
  */
-export default class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
+export default class GoogleAuthentication<
+    T extends GoogleParameters = GoogleParameters
+  >
   extends OAuthService<T, GoogleAuthEvents>
   implements RequestFilter<WebContext>
 {
@@ -124,7 +126,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
       redirect_uri,
       response_type: "code",
       state,
-      ...this.parameters.auth_options
+      ...this.parameters.auth_options,
     });
   }
 
@@ -133,7 +135,11 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    * @param redirect_uri
    */
   getOAuthClient(redirect_uri?: string): OAuth2Client {
-    return new OAuth2Client(this.parameters.client_id, this.parameters.client_secret, redirect_uri);
+    return new OAuth2Client(
+      this.parameters.client_id,
+      this.parameters.client_secret,
+      redirect_uri
+    );
   }
 
   /**
@@ -141,15 +147,22 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    */
   async handleCallback(ctx: WebContext) {
     // Verify state are equal
-    if (ctx.getRequestParameters().state !== ctx.getSession<OAuthSession>().oauth?.state) {
+    if (
+      ctx.getRequestParameters().state !==
+      ctx.getSession<OAuthSession>().oauth?.state
+    ) {
       this.log(
         "WARN",
-        `Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth?.state}`
+        `Bad State ${ctx.getRequestParameters().state} !== ${
+          ctx.getSession<OAuthSession>().oauth?.state
+        }`
       );
       throw 403;
     }
     let code: string = ctx.getRequestParameters().code;
-    let redirect_uri = ctx.getHttpContext().getAbsoluteUrl(`${this.parameters.url}/callback`);
+    let redirect_uri = ctx
+      .getHttpContext()
+      .getAbsoluteUrl(`${this.parameters.url}/callback`);
     let oauthClient = this.getOAuthClient(redirect_uri);
     let profile, identId;
     // Now that we have the code, use that to acquire tokens.
@@ -164,7 +177,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     }
     return {
       identId,
-      profile
+      profile,
     };
   }
 
@@ -177,7 +190,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     const oauthClient = this.getOAuthClient();
     const ticket = await oauthClient.verifyIdToken({
       idToken: token,
-      audience: this.parameters.client_id
+      audience: this.parameters.client_id,
     });
     return ticket.getPayload();
   }
@@ -193,7 +206,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     const profile = await this.getUserInfo(tokens.id_token);
     return {
       identId: profile.sub,
-      profile
+      profile,
     };
   }
 
@@ -223,7 +236,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     const authorizeUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
       scope: this.parameters.scope,
-      redirect_uri: "http://localhost:3000/oauth2callback"
+      redirect_uri: "http://localhost:3000/oauth2callback",
     });
 
     // Open an http server to accept the oauth callback. In this simple example, the
@@ -234,11 +247,18 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
           if (req.url.indexOf("/oauth2callback") > -1) {
             try {
               // acquire the code from the querystring, and close the web server.
-              const code = new URL(req.url, `http://localhost:3000`).searchParams.get("code");
+              const code = new URL(
+                req.url,
+                `http://localhost:3000`
+              ).searchParams.get("code");
               if (code) {
-                res.end("Authentication successful! Please return to the console.");
+                res.end(
+                  "Authentication successful! Please return to the console."
+                );
               } else {
-                res.end("Authentication unsuccessful! Please return to the console.");
+                res.end(
+                  "Authentication unsuccessful! Please return to the console."
+                );
                 return reject("Failed");
               }
 

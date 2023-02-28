@@ -8,7 +8,7 @@ import {
   WaitDelayerFactories,
   WaitExponentialDelay,
   WaitFor,
-  WaitLinearDelay
+  WaitLinearDelay,
 } from "./waiter";
 
 @suite
@@ -37,17 +37,33 @@ class WaiterTest {
     sinon.stub(logger, "logProgressStart");
     sinon.stub(logger, "logProgressUpdate");
     WaitDelayerFactories.registerFactory("static", () => {
-      return t => t;
+      return (t) => t;
     });
     try {
       await assert.rejects(
-        async () => await WaitFor(async () => false, 3, "title", logger, WaitExponentialDelay(1)),
+        async () =>
+          await WaitFor(
+            async () => false,
+            3,
+            "title",
+            logger,
+            WaitExponentialDelay(1)
+          ),
         /Timeout while waiting for title/g
       );
       assert.strictEqual(consoleSpy.callCount, 3);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), true);
+      assert.strictEqual(
+        consoleSpy.calledWith("DEBUG", "[1/3]", "title"),
+        true
+      );
+      assert.strictEqual(
+        consoleSpy.calledWith("DEBUG", "[2/3]", "title"),
+        true
+      );
+      assert.strictEqual(
+        consoleSpy.calledWith("DEBUG", "[3/3]", "title"),
+        true
+      );
       consoleSpy.resetHistory();
       let res = await WaitFor(
         async (resolve, reject) => {
@@ -62,9 +78,18 @@ class WaiterTest {
         WaitLinearDelay(1)
       );
       assert.strictEqual(consoleSpy.callCount, 2);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), false);
+      assert.strictEqual(
+        consoleSpy.calledWith("DEBUG", "[1/3]", "title"),
+        true
+      );
+      assert.strictEqual(
+        consoleSpy.calledWith("DEBUG", "[2/3]", "title"),
+        true
+      );
+      assert.strictEqual(
+        consoleSpy.calledWith("DEBUG", "[3/3]", "title"),
+        false
+      );
       assert.deepStrictEqual(res, { myobject: "test" });
       let time = Date.now();
       consoleSpy.resetHistory();
@@ -107,7 +132,7 @@ class WaiterTest {
   async loopPromise() {
     let i = 0;
     await new CancelableLoopPromise(
-      async canceller => {
+      async (canceller) => {
         i++;
         if (i > 10) {
           await canceller();

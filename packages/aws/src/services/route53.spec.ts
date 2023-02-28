@@ -1,4 +1,8 @@
-import { ChangeResourceRecordSetsCommand, ListResourceRecordSetsCommand, Route53 } from "@aws-sdk/client-route-53";
+import {
+  ChangeResourceRecordSetsCommand,
+  ListResourceRecordSetsCommand,
+  Route53,
+} from "@aws-sdk/client-route-53";
 import { suite, test } from "@testdeck/mocha";
 import { JSONUtils } from "@webda/core";
 import * as assert from "assert";
@@ -14,14 +18,15 @@ class Route53Test {
     var callSpy2 = sinon.stub().callsFake(async () => {
       if (callSpy2.callCount == 1) {
         return {
-          ResourceRecordSets: JSONUtils.loadFile("./test/zone-export.json").entries,
+          ResourceRecordSets: JSONUtils.loadFile("./test/zone-export.json")
+            .entries,
           IsTruncated: true,
-          NextRecordIdentifier: "plop"
+          NextRecordIdentifier: "plop",
         };
       } else {
         return {
           ResourceRecordSets: [],
-          IsTruncated: false
+          IsTruncated: false,
         };
       }
     });
@@ -32,14 +37,19 @@ class Route53Test {
       .on(ChangeResourceRecordSetsCommand)
       .callsFake(spyChanges);
     try {
-      let stub = sinon.stub(Route53Service, "getZoneForDomainName").callsFake(() => {
-        return undefined;
-      });
+      let stub = sinon
+        .stub(Route53Service, "getZoneForDomainName")
+        .callsFake(() => {
+          return undefined;
+        });
       await assert.rejects(
         () => Route53Service.createDNSEntry("test.com", "A", "1.1.1.1"),
         /Domain 'test.com.?' is not handled on AWS/
       );
-      await assert.rejects(() => Route53Service.getEntries("test.com"), /Domain 'test.com.?' is not handled on AWS/);
+      await assert.rejects(
+        () => Route53Service.getEntries("test.com"),
+        /Domain 'test.com.?' is not handled on AWS/
+      );
       await assert.rejects(
         () => Route53Service.import("./test/zone-export.json", undefined),
         /Domain 'webda.io.?' is not handled on AWS/
@@ -51,8 +61,15 @@ class Route53Test {
 
       await Route53Service.createDNSEntry("test.com", "A", "1.1.1.1");
 
-      await Route53Service.shell(undefined, { _: ["export"], domain: "webda.io", file: "./myzone.json" });
-      await Route53Service.shell(undefined, { _: ["import"], file: "./test/zone-export.json" });
+      await Route53Service.shell(undefined, {
+        _: ["export"],
+        domain: "webda.io",
+        file: "./myzone.json",
+      });
+      await Route53Service.shell(undefined, {
+        _: ["import"],
+        file: "./test/zone-export.json",
+      });
 
       spyChanges.callsFake(() => {
         throw new Error("Cannot do this");
@@ -61,9 +78,12 @@ class Route53Test {
       await Route53Service.import("./test/zone-export.json", {
         log: (...args) => {
           logs = args;
-        }
+        },
       });
-      assert.deepStrictEqual([logs[0], logs[1].toString()], ["ERROR", "Error: Cannot do this"]);
+      assert.deepStrictEqual(
+        [logs[0], logs[1].toString()],
+        ["ERROR", "Error: Cannot do this"]
+      );
     } finally {
       mock.restore();
     }

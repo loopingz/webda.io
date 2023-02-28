@@ -29,7 +29,9 @@ class FileQueueTest extends QueueTest {
     msg2 = await queue.receiveMessage();
     assert.strictEqual(msg2.length, 1);
     assert.deepStrictEqual(msg2[0], msg[0]);
-    unlinkSync(`${queue.getParameters().folder}/${msg[0].ReceiptHandle}.json.lock`);
+    unlinkSync(
+      `${queue.getParameters().folder}/${msg[0].ReceiptHandle}.json.lock`
+    );
     await queue.deleteMessage(msg[0].ReceiptHandle);
     msg2 = await queue.receiveMessage();
     unlinkSync(`${queue.getParameters().folder}/${msg2[0].ReceiptHandle}.json`);

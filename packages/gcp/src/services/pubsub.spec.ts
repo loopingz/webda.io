@@ -9,24 +9,25 @@ import { GCPPubSubService } from "./pubsub";
 class GCPPubSubTest extends WebdaTest {
   @test
   async basic() {
-    let pubsub: GCPPubSubService = this.webda.getService<GCPPubSubService>("pubsub");
+    let pubsub: GCPPubSubService =
+      this.webda.getService<GCPPubSubService>("pubsub");
     let counter = 0;
     let consumers: CancelablePromise[] = [];
     let subscription;
     await new Promise<void>((resolve, reject) => {
       consumers.push(
-        pubsub.consume(async evt => {
+        pubsub.consume(async (evt) => {
           counter++;
         })
       );
       consumers.push(
         pubsub.consume(
-          async evt => {
+          async (evt) => {
             counter++;
             throw new Error("Should not fail");
           },
           undefined,
-          sub => {
+          (sub) => {
             subscription = sub;
             resolve();
           }
@@ -35,7 +36,7 @@ class GCPPubSubTest extends WebdaTest {
     });
     await pubsub.sendMessage("plop");
     await WaitFor(
-      async resolve => {
+      async (resolve) => {
         if (counter === 2) {
           resolve();
           return true;
@@ -59,7 +60,7 @@ class GCPPubSubTest extends WebdaTest {
     // Should reject
     await assert.rejects(
       () =>
-        pubsub.consume(async evt => {
+        pubsub.consume(async (evt) => {
           counter++;
         }),
       /Bad code\?/

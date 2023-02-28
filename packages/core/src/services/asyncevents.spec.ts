@@ -11,12 +11,20 @@ import { AsyncEvent, EventService } from "./asyncevents";
 class AsyncEventsTest extends WebdaTest {
   @test
   async simple() {
-    var users: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("users");
+    var users: Store<CoreModel> = <Store<CoreModel>>(
+      this.webda.getService("users")
+    );
     var eventsCount = 0;
     var priorityEventsCount = 0;
-    var defaultQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("EventQueue");
-    var priorityQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("PriorityEventQueue");
-    var eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
+    var defaultQueue: Queue = <Queue<AsyncEvent>>(
+      this.webda.getService("EventQueue")
+    );
+    var priorityQueue: Queue = <Queue<AsyncEvent>>(
+      this.webda.getService("PriorityEventQueue")
+    );
+    var eventService: EventService = <EventService>(
+      this.webda.getService("AsyncEvents")
+    );
     users.onAsync("Store.Saved", () => {
       eventsCount++;
     });
@@ -29,7 +37,7 @@ class AsyncEventsTest extends WebdaTest {
     );
     await users.save({
       uuid: "test",
-      type: 1
+      type: 1,
     });
     let size = await defaultQueue.size();
     assert.strictEqual(size, 1);
@@ -58,7 +66,7 @@ class AsyncEventsTest extends WebdaTest {
     eventService._async = false;
     await users.save({
       uuid: "test",
-      type: 1
+      type: 1,
     });
     assert.strictEqual(eventsCount, 2);
     assert.strictEqual(priorityEventsCount, 1);
@@ -68,16 +76,18 @@ class AsyncEventsTest extends WebdaTest {
   }
 
   @test worker() {
-    let eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
+    let eventService: EventService = <EventService>(
+      this.webda.getService("AsyncEvents")
+    );
     eventService._queues = {
       plop: {
         // @ts-ignore
-        consume: () => "ploper"
+        consume: () => "ploper",
       },
       default: {
         // @ts-ignore
-        consume: () => "default"
-      }
+        consume: () => "default",
+      },
     };
     assert.strictEqual(eventService.worker("plop"), "ploper");
     assert.strictEqual(eventService.worker(), "default");
@@ -85,7 +95,10 @@ class AsyncEventsTest extends WebdaTest {
 
   @test async computeParameters() {
     let evt = new EventService(this.webda, "none", { sync: false });
-    await assert.rejects(() => evt.computeParameters(), /Need at least one queue for async to be ready/);
+    await assert.rejects(
+      () => evt.computeParameters(),
+      /Need at least one queue for async to be ready/
+    );
   }
 
   @test async cov() {
@@ -102,8 +115,18 @@ class AsyncEventsTest extends WebdaTest {
     evt._async = true;
     let stub = sinon.spy(this.webda.getService("users"), "on");
     try {
-      evt.bindAsyncListener(this.webda.getService("users"), "plop", () => {}, "priority");
-      evt.bindAsyncListener(this.webda.getService("users"), "plop", () => {}, "priority");
+      evt.bindAsyncListener(
+        this.webda.getService("users"),
+        "plop",
+        () => {},
+        "priority"
+      );
+      evt.bindAsyncListener(
+        this.webda.getService("users"),
+        "plop",
+        () => {},
+        "priority"
+      );
       // Should call 'on' only once
       assert.strictEqual(stub.callCount, 1);
     } finally {

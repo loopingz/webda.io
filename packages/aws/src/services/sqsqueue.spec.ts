@@ -1,4 +1,8 @@
-import { GetQueueUrlCommandOutput, PurgeQueueCommand, SQS } from "@aws-sdk/client-sqs";
+import {
+  GetQueueUrlCommandOutput,
+  PurgeQueueCommand,
+  SQS,
+} from "@aws-sdk/client-sqs";
 import { suite, test, timeout } from "@testdeck/mocha";
 import { getCommonJS } from "@webda/core";
 import { QueueTest } from "@webda/core/lib/queues/queue.spec";
@@ -26,7 +30,11 @@ class SQSQueueTest extends QueueTest {
     super.tweakApp(app);
     app.addService(
       "test/awsevents",
-      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).default
+      (
+        await import(
+          path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/"))
+        )
+      ).default
     );
   }
 
@@ -34,37 +42,37 @@ class SQSQueueTest extends QueueTest {
     var sqs = new SQS({
       endpoint: "http://localhost:4566",
       credentials: defaultCreds,
-      region: "us-east-1"
+      region: "us-east-1",
     });
     try {
       this.info = await sqs.getQueueUrl({
         QueueName: "webda-test",
-        QueueOwnerAWSAccountId: "000000000000"
+        QueueOwnerAWSAccountId: "000000000000",
       });
     } catch (err) {
       await sqs.createQueue({
-        QueueName: "webda-test"
+        QueueName: "webda-test",
       });
       this.info = await sqs.getQueueUrl({
         QueueName: "webda-test",
-        QueueOwnerAWSAccountId: "000000000000"
+        QueueOwnerAWSAccountId: "000000000000",
       });
     }
     try {
       this.info = await sqs.getQueueUrl({
         QueueName: "webda-test2.fifo",
-        QueueOwnerAWSAccountId: "000000000000"
+        QueueOwnerAWSAccountId: "000000000000",
       });
     } catch (err) {
       await sqs.createQueue({
         QueueName: "webda-test2.fifo",
         Attributes: {
-          FifoQueue: "true"
-        }
+          FifoQueue: "true",
+        },
       });
       this.info = await sqs.getQueueUrl({
         QueueName: "webda-test2.fifo",
-        QueueOwnerAWSAccountId: "000000000000"
+        QueueOwnerAWSAccountId: "000000000000",
       });
     }
   }
@@ -73,7 +81,8 @@ class SQSQueueTest extends QueueTest {
   @timeout(80000)
   async basic() {
     let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
-    queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test";
+    queue.getParameters().queue =
+      "http://localhost:4566/000000000000/webda-test";
     await queue.__clean();
     // Update timeout to 80000ms as Purge can only be sent once every 60s
     await this.simple(queue, true);
@@ -84,7 +93,8 @@ class SQSQueueTest extends QueueTest {
   @test
   async fifo() {
     let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
-    queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test2.fifo";
+    queue.getParameters().queue =
+      "http://localhost:4566/000000000000/webda-test2.fifo";
     queue.getParameters().MessageGroupId = "myGroup";
     await queue.sendMessage({});
   }
@@ -94,7 +104,10 @@ class SQSQueueTest extends QueueTest {
     let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
     let arn = queue.getARNPolicy();
     assert.strictEqual(arn.Action.indexOf("sqs:SendMessage") >= 0, true);
-    assert.strictEqual(arn.Resource[0], "arn:aws:sqs:us-east-1:000000000000:webda-test");
+    assert.strictEqual(
+      arn.Resource[0],
+      "arn:aws:sqs:us-east-1:000000000000:webda-test"
+    );
   }
 
   @test
@@ -116,12 +129,17 @@ class SQSQueueTest extends QueueTest {
     let mock = mockClient(SQS)
       .on(PurgeQueueCommand)
       .callsFake(async () => {
-        let error: any = new Error("AWS.SimpleQueueService.PurgeQueueInProgress");
+        let error: any = new Error(
+          "AWS.SimpleQueueService.PurgeQueueInProgress"
+        );
         error.name = "AWS.SimpleQueueService.PurgeQueueInProgress";
         error.retryDelay = 1;
         throw error;
       });
-    await assert.rejects(() => queue.__clean(), /AWS.SimpleQueueService.PurgeQueueInProgress/);
+    await assert.rejects(
+      () => queue.__clean(),
+      /AWS.SimpleQueueService.PurgeQueueInProgress/
+    );
     mock.restore();
     mock = mockClient(SQS)
       .on(PurgeQueueCommand)

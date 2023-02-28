@@ -18,7 +18,7 @@ class SecretsManagerTest extends WebdaAwsTest {
     try {
       await this.service.create("webda-test-manual", {
         "webda-test-1": "Test1",
-        "webda-test-2": "Test2"
+        "webda-test-2": "Test2",
       });
     } catch (err) {
       // Skip as it will fail if it already exists
@@ -37,21 +37,27 @@ class SecretsManagerTest extends WebdaAwsTest {
     assert.strictEqual(config["webda-test-1"], result["webda-test-1"]);
     assert.strictEqual(config["webda-test-2"], result["webda-test-2"]);
     await this.service.create("webda-test-unit-test", {
-      "Authentication.providers.email.text": "Bouzouf"
+      "Authentication.providers.email.text": "Bouzouf",
     });
     result = await this.service.get("webda-test-unit-test");
-    assert.strictEqual(result["Authentication.providers.email.text"], "Bouzouf");
+    assert.strictEqual(
+      result["Authentication.providers.email.text"],
+      "Bouzouf"
+    );
     await this.service.put("webda-test-unit-test", {
-      "Authentication.providers.email.text": "Bouzouf2"
+      "Authentication.providers.email.text": "Bouzouf2",
     });
     result = await this.service.get("webda-test-unit-test");
-    assert.strictEqual(result["Authentication.providers.email.text"], "Bouzouf2");
+    assert.strictEqual(
+      result["Authentication.providers.email.text"],
+      "Bouzouf2"
+    );
     assert.ok(!this.service.canTriggerConfiguration(undefined, undefined));
     assert.deepStrictEqual(this.service.getARNPolicy("plop"), {
       Action: ["secretsmanager:*"],
       Effect: "Allow",
       Resource: ["arn:aws:secretsmanager:us-east-1:plop:secret:*"],
-      Sid: "AWSSecretsManagerAWSSecretsManager"
+      Sid: "AWSSecretsManagerAWSSecretsManager",
     });
   }
 }

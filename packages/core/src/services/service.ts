@@ -1,7 +1,15 @@
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
-import { Constructor, Core, Counter, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
+import {
+  Constructor,
+  Core,
+  Counter,
+  Gauge,
+  Histogram,
+  Logger,
+  MetricConfiguration,
+} from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
 import { HttpMethodType } from "../utils/httpcontext";
 import { EventService } from "./asyncevents";
@@ -24,7 +32,12 @@ class Injector {
    * @param defaultValue in case of a parameter
    * @param optional if set to true, won't throw an error if not found
    */
-  constructor(property: string, parameterOrName: string, defaultValue?: string, optional: boolean = false) {
+  constructor(
+    property: string,
+    parameterOrName: string,
+    defaultValue?: string,
+    optional: boolean = false
+  ) {
     this.property = property;
     this.optional = optional;
     if (!defaultValue) {
@@ -53,10 +66,14 @@ class Injector {
     if (!service[this.property] && !this.optional) {
       if (this.parameter) {
         throw new Error(
-          `Injector did not found bean '${name}'(parameter:${this.parameter}) for '${service.getName()}'`
+          `Injector did not found bean '${name}'(parameter:${
+            this.parameter
+          }) for '${service.getName()}'`
         );
       }
-      throw new Error(`Injector did not found bean '${name}' for '${service.getName()}'`);
+      throw new Error(
+        `Injector did not found bean '${name}' for '${service.getName()}'`
+      );
     }
   }
 
@@ -66,7 +83,9 @@ class Injector {
    * @param service to inject to
    */
   static resolveAll(service: Service) {
-    (Object.getPrototypeOf(service).Injectors || []).forEach(injector => injector.resolve(service));
+    (Object.getPrototypeOf(service).Injectors || []).forEach((injector) =>
+      injector.resolve(service)
+    );
   }
 }
 
@@ -83,13 +102,31 @@ class Injector {
  *
  * Might consider to split into two annotations
  */
-export function Inject(parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) {
+export function Inject(
+  parameterOrName?: string,
+  defaultValue?: string | boolean,
+  optional?: boolean
+) {
   return function (target: any, propertyName: string): void {
     target.Injectors = target.Injectors || [];
     if (typeof defaultValue === "boolean") {
-      target.Injectors.push(new Injector(propertyName, parameterOrName || propertyName, undefined, defaultValue));
+      target.Injectors.push(
+        new Injector(
+          propertyName,
+          parameterOrName || propertyName,
+          undefined,
+          defaultValue
+        )
+      );
     } else {
-      target.Injectors.push(new Injector(propertyName, parameterOrName || propertyName, defaultValue, optional));
+      target.Injectors.push(
+        new Injector(
+          propertyName,
+          parameterOrName || propertyName,
+          defaultValue,
+          optional
+        )
+      );
     }
   };
 }
@@ -143,7 +180,7 @@ export function Operation(
     }
     target.constructor.operations[id] ??= {
       method: executor,
-      ...properties
+      ...properties,
     };
     // If url is specified define the openapi
     if (route) {
@@ -155,7 +192,12 @@ export function Operation(
       def.schemas ??= {};
       def.schemas.input ??= properties.input;
       def.schemas.output ??= properties.output;
-      Route(route.url, route.method, route.allowPath, route.openapi)(target, executor);
+      Route(
+        route.url,
+        route.method,
+        route.allowPath,
+        route.openapi
+      )(target, executor);
     }
   };
 }
@@ -174,7 +216,7 @@ export function Route(
       methods: Array.isArray(methods) ? methods : [methods],
       executor,
       allowPath,
-      openapi
+      openapi,
     });
   };
 }
@@ -215,7 +257,11 @@ export type DeepPartial<T> = {
 };
 
 export type PartialModel<T> = {
-  [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel<T[P]> : T[P] | null;
+  [P in keyof T]: T[P] extends Function
+    ? T[P]
+    : T[P] extends object
+    ? null | PartialModel<T[P]>
+    : T[P] | null;
 };
 
 export type Events = {
@@ -397,7 +443,7 @@ abstract class Service<
       allowPath,
       openapi: deepmerge(openapi, this.parameters.openapi || {}),
       methods,
-      override
+      override,
     });
   }
 
@@ -417,8 +463,14 @@ abstract class Service<
     let routes = this.constructor.routes || {};
     for (let j in routes) {
       this.log("TRACE", "Adding route", j, "for bean", this.getName());
-      routes[j].forEach(route => {
-        this.addRoute(j, route.methods, this[route.executor], route.openapi, route.allowPath || false);
+      routes[j].forEach((route) => {
+        this.addRoute(
+          j,
+          route.methods,
+          this[route.executor],
+          route.openapi,
+          route.allowPath || false
+        );
       });
     }
   }
@@ -431,7 +483,10 @@ abstract class Service<
     let operations = this.constructor.operations || {};
     for (let j in operations) {
       this.log("TRACE", "Adding operation", j, "for bean", this.getName());
-      this._webda.registerOperation(`${this.getName()}.${j}`, { ...operations[j], service: this.getName() });
+      this._webda.registerOperation(`${this.getName()}.${j}`, {
+        ...operations[j],
+        service: this.getName(),
+      });
     }
   }
 
@@ -489,7 +544,7 @@ abstract class Service<
       if (result instanceof Promise) {
         promises.push(
           result
-            .catch(err => {
+            .catch((err) => {
               this.log("ERROR", "Listener error", err);
             })
             .then(() => {
@@ -523,7 +578,10 @@ abstract class Service<
    * @param queue
    * @returns
    */
-  on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void): this {
+  on<Key extends keyof E>(
+    event: Key | symbol,
+    listener: (evt: E[Key]) => void
+  ): this {
     super.on(<string>event, listener);
     return this;
   }
@@ -534,8 +592,14 @@ abstract class Service<
    * @param callback
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
-  onAsync<Key extends keyof E>(event: Key, listener: (evt: E[Key]) => void, queue: string = undefined) {
-    this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
+  onAsync<Key extends keyof E>(
+    event: Key,
+    listener: (evt: E[Key]) => void,
+    queue: string = undefined
+  ) {
+    this._webda
+      .getService<EventService>("AsyncEvents")
+      .bindAsyncListener(this, <string>event, listener, queue);
   }
 
   /**

@@ -1,10 +1,14 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/googleauthentication": "lib/google-auth:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/googleauthentication": {
       "type": "object",
@@ -97,10 +101,6 @@
             "whitelist",
             "defaults"
           ]
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -113,8 +113,7 @@
       ],
       "description": "Credentials to manage Google Auth https://developers.google.com/identity/protocols/oauth2",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GoogleAuthentication"
+      "title": "webda/googleauthentication"
     }
-  },
-  "graph": {}
+  }
 }

@@ -28,7 +28,10 @@ export class MemoryQueueParameters extends QueueParameters {
  * @category CoreServices
  * @WebdaModda
  */
-export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<T, K> {
+export class MemoryQueue<
+  T = any,
+  K extends MemoryQueueParameters = MemoryQueueParameters
+> extends Queue<T, K> {
   private _queue: QueueMap = {};
 
   /**
@@ -57,7 +60,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
     this._queue[uid] = {
       Body: JSONUtils.stringify(params, undefined, 0),
       Claimed: 0,
-      ReceiptHandle: uid
+      ReceiptHandle: uid,
     };
   }
 
@@ -66,13 +69,16 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     for (let i in this._queue) {
-      if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
+      if (
+        this._queue[i].Claimed <
+        new Date().getTime() - this.parameters.expire
+      ) {
         this._queue[i].Claimed = new Date().getTime();
         return [
           {
             ReceiptHandle: this._queue[i].ReceiptHandle,
-            Message: this.unserialize(this._queue[i].Body, proto)
-          }
+            Message: this.unserialize(this._queue[i].Body, proto),
+          },
         ];
       }
     }

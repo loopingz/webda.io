@@ -22,12 +22,12 @@ class FileConfigurationServiceTest extends WebdaTest {
               Authentication: {
                 providers: {
                   email: {
-                    text: "Test"
-                  }
-                }
-              }
-            }
-          }
+                    text: "Test",
+                  },
+                },
+              },
+            },
+          },
         },
         undefined,
         2
@@ -43,23 +43,38 @@ class FileConfigurationServiceTest extends WebdaTest {
       /Need a source for FileConfigurationService/
     );
     assert.rejects(
-      () => new FileConfigurationService(this.webda, "except", { source: "/plops" }).init(),
+      () =>
+        new FileConfigurationService(this.webda, "except", {
+          source: "/plops",
+        }).init(),
       /Need a source for FileConfigurationService/
     );
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
-    await new Promise<void>(resolve => {
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
+      "Test"
+    );
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .mailer,
+      "DefinedMailer"
+    );
+    await new Promise<void>((resolve) => {
       let ok = false;
-      this.webda.getService("FileConfigurationService").on("Configuration.Applied", () => {
-        ok = true;
-        resolve();
-      });
+      this.webda
+        .getService("FileConfigurationService")
+        .on("Configuration.Applied", () => {
+          ok = true;
+          resolve();
+        });
       // Github fs watcher seems to have some issue
       setTimeout(async () => {
         if (!ok) {
           console.log("WARN: Bypass the fs.watch");
-          // @ts-ignore
-          await this.webda.getService<FileConfigurationService>("FileConfigurationService").checkUpdate();
+          await this.webda
+            .getService<FileConfigurationService>("FileConfigurationService")
+            // @ts-ignore
+            .checkUpdate();
           resolve();
         }
       }, 30000);
@@ -72,12 +87,12 @@ class FileConfigurationServiceTest extends WebdaTest {
                 Authentication: {
                   providers: {
                     email: {
-                      text: "Plop"
-                    }
-                  }
-                }
-              }
-            }
+                      text: "Plop",
+                    },
+                  },
+                },
+              },
+            },
           },
           undefined,
           2
@@ -85,8 +100,16 @@ class FileConfigurationServiceTest extends WebdaTest {
       );
     });
 
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
+      "Plop"
+    );
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .mailer,
+      "DefinedMailer"
+    );
   }
 }
 
@@ -106,12 +129,12 @@ class FileConfigurationNoReloadServiceTest extends WebdaTest {
               Authentication: {
                 providers: {
                   email: {
-                    text: "Test2"
-                  }
-                }
-              }
-            }
-          }
+                    text: "Test2",
+                  },
+                },
+              },
+            },
+          },
         },
         undefined,
         2
@@ -122,8 +145,16 @@ class FileConfigurationNoReloadServiceTest extends WebdaTest {
 
   @test
   async initialLoad() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test2");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
+      "Test2"
+    );
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .mailer,
+      "DefinedMailer"
+    );
   }
 }
 
@@ -143,8 +174,16 @@ class FileConfigurationNoReloadMissingServiceTest extends WebdaTest {
 
   @test
   async initialLoad() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
+      "Test"
+    );
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .mailer,
+      "DefinedMailer"
+    );
   }
 }
 
@@ -166,7 +205,8 @@ class FileConfigurationMissingFileTest extends WebdaTest {
   async initialLoad() {
     console.log(this.webda.getConfiguration().services.Authentication);
     assert.strictEqual(
-      this.webda.getConfiguration().services.Authentication.providers.email.text,
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
       "MissingTextAutoGenerated"
     );
   }
@@ -188,6 +228,10 @@ class FileConfigurationMissingFileNoDefaultTest extends WebdaTest {
 
   @test
   async initialLoad() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
+      "Test"
+    );
   }
 }

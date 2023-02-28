@@ -9,7 +9,7 @@ import {
   WorkerLogLevel,
   WorkerMessage,
   WorkerOutput,
-  WorkerProgress
+  WorkerProgress,
 } from "../index";
 import { ConsoleLogger } from "../loggers/console";
 
@@ -36,9 +36,16 @@ export class Terminal {
   reset: boolean = false;
   inputValid: boolean = true;
   progressChar: number = 0;
-  progressChars = ["\u287F", "\u28BF", "\u28FB", "\u28FD", "\u28FE", "\u28F7", "\u28EF", "\u28DF"].map(c =>
-    chalk.bold(chalk.yellow(c))
-  );
+  progressChars = [
+    "\u287F",
+    "\u28BF",
+    "\u28FB",
+    "\u28FD",
+    "\u28FE",
+    "\u28F7",
+    "\u28EF",
+    "\u28DF",
+  ].map((c) => chalk.bold(chalk.yellow(c)));
   logo: string[] = [];
   logoWidth: number = 0;
   /**
@@ -48,20 +55,25 @@ export class Terminal {
   _refresh?: NodeJS.Timeout;
   static refreshSpeed = 300;
 
-  constructor(wo: WorkerOutput, level?: WorkerLogLevel, format?: string, tty: boolean = process.stdout.isTTY) {
+  constructor(
+    wo: WorkerOutput,
+    level?: WorkerLogLevel,
+    format?: string,
+    tty: boolean = process.stdout.isTTY
+  ) {
     this.wo = wo;
     this.tty = tty;
     this.format = format;
     this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
     // Fallback on basic ConsoleLogger if no tty
     if (!this.tty) {
-      this.listener = async msg => {
+      this.listener = async (msg) => {
         ConsoleLogger.handleMessage(msg, this.level, this.format);
       };
       this.wo.on("message", this.listener);
       return;
     }
-    this.listener = async msg => this.router(msg);
+    this.listener = async (msg) => this.router(msg);
     this.wo.on("message", this.listener);
     this.resize();
 
@@ -102,7 +114,10 @@ export class Terminal {
       return;
     } else if (str.charCodeAt(0) === 127) {
       if (this.inputValue.length) {
-        this.inputValue = this.inputValue.substring(0, this.inputValue.length - 1);
+        this.inputValue = this.inputValue.substring(
+          0,
+          this.inputValue.length - 1
+        );
       }
     } else if (str === "\u001B\u005B\u0035\u007e") {
       // PageUp
@@ -202,7 +217,7 @@ export class Terminal {
       case "progress.stop":
       case "progress.start":
         this.hasProgress = Object.keys(msg.progresses)
-          .map(i => msg.progresses[i].running)
+          .map((i) => msg.progresses[i].running)
           .reduce((prev, cur) => cur || prev, false);
       case "progress.update":
         this.progresses = msg.progresses;
@@ -216,7 +231,7 @@ export class Terminal {
         this.displayScreen();
         break;
       case "input.received":
-        this.inputs = this.inputs.filter(m => msg.input?.uuid !== m.uuid);
+        this.inputs = this.inputs.filter((m) => msg.input?.uuid !== m.uuid);
         this.displayScreen();
         break;
     }
@@ -232,18 +247,23 @@ export class Terminal {
     if (!LogFilter(level, this.level)) {
       return;
     }
-    const getLevelColor: (lvl: string) => string = ConsoleLogger.getColor(level);
+    const getLevelColor: (lvl: string) => string =
+      ConsoleLogger.getColor(level);
     let levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
-      groupsPart = `[${groups.map(g => getLevelColor(g)).join(chalk.grey(">"))}] `;
+      groupsPart = `[${groups
+        .map((g) => getLevelColor(g))
+        .join(chalk.grey(">"))}] `;
     }
     args
-      .map(a => (typeof a === "object" ? util.inspect(a) : a.toString()))
+      .map((a) => (typeof a === "object" ? util.inspect(a) : a.toString()))
       .join(" ")
       .split("\n")
-      .forEach(info => {
-        let line = `[${getLevelColor(levelColor)}] ${groupsPart}${getLevelColor(info)}`;
+      .forEach((info) => {
+        let line = `[${getLevelColor(levelColor)}] ${groupsPart}${getLevelColor(
+          info
+        )}`;
         this.pushHistory(line);
       });
     this.displayScreen();
@@ -262,7 +282,8 @@ export class Terminal {
 
   stripColorString(str: string, limit: number = -1): string {
     let match;
-    let regexp = /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
+    let regexp =
+      /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
     let originalString = "";
     let fullString = "";
     let noMore = false;
@@ -270,8 +291,13 @@ export class Terminal {
       match.groups ??= {};
       match.groups.before ??= "";
       match.groups.cmd ??= "";
-      if (limit > 0 && originalString.length + match.groups.before.length >= limit) {
-        fullString += match.groups.before.substring(0, limit - originalString.length - 3) + "...";
+      if (
+        limit > 0 &&
+        originalString.length + match.groups.before.length >= limit
+      ) {
+        fullString +=
+          match.groups.before.substring(0, limit - originalString.length - 3) +
+          "...";
         noMore = true;
         continue;
       }
@@ -336,9 +362,9 @@ export class Terminal {
       .padStart(5);
     let numberLength = p.total.toString().length;
     let line = this.displayString(
-      `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${p.total} ${percent}% ${
-        p.title || ""
-      }`.padEnd(this.width - 2)
+      `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${
+        p.total
+      } ${percent}% ${p.title || ""}`.padEnd(this.width - 2)
     );
     if (line.length > this.width - 2) {
       line = line.substring(0, this.width - 2);
@@ -349,7 +375,11 @@ export class Terminal {
   displayFooter() {
     // Separator
 
-    let res = this.progressChars[this.progressChar] + " " + "\u2015".repeat(this.width - 2) + "\n";
+    let res =
+      this.progressChars[this.progressChar] +
+      " " +
+      "\u2015".repeat(this.width - 2) +
+      "\n";
     let values = Object.values(this.progresses);
     let k = values.length;
     if (this.title) {
@@ -424,7 +454,10 @@ export class Terminal {
           continue;
         }
         linesData[i] =
-          this.displayString(linesData[i].trim(), this.width - this.logoWidth - 1) +
+          this.displayString(
+            linesData[i].trim(),
+            this.width - this.logoWidth - 1
+          ) +
           this.logo[y].padEnd(this.logoWidth) +
           " ";
       }
@@ -449,7 +482,9 @@ export class Terminal {
       process.stdout.write(
         "\x1B[?25h" +
           chalk.bold(this.inputs[0].title + ": ") +
-          (this.inputs[0].type === WorkerInputType.PASSWORD ? "*".repeat(this.inputValue.length) : this.inputValue)
+          (this.inputs[0].type === WorkerInputType.PASSWORD
+            ? "*".repeat(this.inputValue.length)
+            : this.inputValue)
       );
     }
   }

@@ -1,7 +1,13 @@
 import * as crypto from "crypto";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { CoreModel } from "../models/coremodel";
-import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
+import {
+  Store,
+  StoreFindResult,
+  StoreNotFoundError,
+  StoreParameters,
+  UpdateConditionFailError,
+} from "./store";
 import { WebdaQL } from "./webdaql/query";
 
 interface StorageMap {
@@ -89,8 +95,16 @@ class MemoryStore<
     }
     // Initialization Vector
     let iv = crypto.randomBytes(16);
-    let cipher = crypto.createCipheriv(this.parameters.persistence.cipher, this.key, iv);
-    return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
+    let cipher = crypto.createCipheriv(
+      this.parameters.persistence.cipher,
+      this.key,
+      iv
+    );
+    return Buffer.concat([
+      iv,
+      cipher.update(Buffer.from(data)),
+      cipher.final(),
+    ]).toString("base64");
   }
 
   /**
@@ -104,8 +118,14 @@ class MemoryStore<
     }
     let input = Buffer.from(data, "base64");
     let iv = input.slice(0, 16);
-    let decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, this.key, iv);
-    return decipher.update(input.slice(16)).toString() + decipher.final().toString();
+    let decipher = crypto.createDecipheriv(
+      this.parameters.persistence.cipher,
+      this.key,
+      iv
+    );
+    return (
+      decipher.update(input.slice(16)).toString() + decipher.final().toString()
+    );
   }
 
   /**
@@ -121,11 +141,18 @@ class MemoryStore<
   async init(): Promise<this> {
     if (this.parameters.persistence) {
       if (this.parameters.persistence.key) {
-        this.key = crypto.createHash("sha256").update(this.parameters.persistence.key).digest();
+        this.key = crypto
+          .createHash("sha256")
+          .update(this.parameters.persistence.key)
+          .digest();
       }
       try {
         if (existsSync(this.parameters.persistence.path)) {
-          this.storage = JSON.parse(this.decrypt(readFileSync(this.parameters.persistence.path).toString()));
+          this.storage = JSON.parse(
+            this.decrypt(
+              readFileSync(this.parameters.persistence.path).toString()
+            )
+          );
         }
       } catch (err) {
         this.log("INFO", "Cannot loaded persisted memory data", err);
@@ -134,9 +161,12 @@ class MemoryStore<
       this.storage = new Proxy(this.storage, {
         set: (target: StorageMap, p: string, value: any): boolean => {
           target[p] = value;
-          this.persistenceTimeout ??= setTimeout(() => this.persist(), this.parameters.persistence.delay);
+          this.persistenceTimeout ??= setTimeout(
+            () => this.persist(),
+            this.parameters.persistence.delay
+          );
           return true;
-        }
+        },
       });
     }
     return super.init();
@@ -145,7 +175,7 @@ class MemoryStore<
   /**
    * @override
    */
-  async exists(uid) {
+  async _exists(uid) {
     return this.storage[uid] !== undefined;
   }
 
@@ -175,9 +205,18 @@ class MemoryStore<
   /**
    * @override
    */
-  async _patch(object: any, uuid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
+  async _patch(
+    object: any,
+    uuid: string,
+    writeCondition?: any,
+    writeConditionField?: string
+  ): Promise<T> {
     let obj = await this._get(uuid, true);
-    this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
+    this.checkUpdateCondition(
+      obj,
+      <keyof T>writeConditionField,
+      writeCondition
+    );
     for (let prop in object) {
       obj[prop] = object[prop];
     }
@@ -188,9 +227,18 @@ class MemoryStore<
   /**
    * @override
    */
-  async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
+  async _update(
+    object: any,
+    uid: string,
+    writeCondition?: any,
+    writeConditionField?: string
+  ): Promise<T> {
     let obj = await this._get(uid, true);
-    this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
+    this.checkUpdateCondition(
+      obj,
+      <keyof T>writeConditionField,
+      writeCondition
+    );
     return this._save(object);
   }
 
@@ -199,7 +247,7 @@ class MemoryStore<
    */
   async getAll(uids?: string[]): Promise<any> {
     if (!uids) {
-      return Object.keys(this.storage).map(key => {
+      return Object.keys(this.storage).map((key) => {
         return this._getSync(key);
       });
     }
@@ -230,9 +278,18 @@ class MemoryStore<
   /**
    * @override
    */
-  async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
+  async _removeAttribute(
+    uuid: string,
+    attribute: string,
+    writeCondition?: any,
+    writeConditionField?: string
+  ) {
     let res = await this._get(uuid, true);
-    this.checkUpdateCondition(res, <keyof T>writeConditionField, writeCondition);
+    this.checkUpdateCondition(
+      res,
+      <keyof T>writeConditionField,
+      writeCondition
+    );
     delete res[attribute];
     this._save(res);
   }
@@ -260,7 +317,11 @@ class MemoryStore<
   /**
    * @override
    */
-  async _incrementAttributes(uid, params: { property: string; value: number }[], updateDate: Date) {
+  async _incrementAttributes(
+    uid,
+    params: { property: string; value: number }[],
+    updateDate: Date
+  ) {
     const res = await this._get(uid, true);
     params.forEach(({ property: prop, value }) => {
       if (!res[prop]) {
@@ -298,10 +359,24 @@ class MemoryStore<
   /**
    * @override
    */
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _deleteItemFromCollection(
+    uid,
+    prop,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     let res = await this._get(uid, true);
-    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+    if (
+      itemWriteCondition &&
+      res[prop][index][itemWriteConditionField] != itemWriteCondition
+    ) {
+      throw new UpdateConditionFailError(
+        uid,
+        itemWriteConditionField,
+        itemWriteCondition
+      );
     }
     res[prop].splice(index, 1);
     res[this._lastUpdateField] = updateDate;

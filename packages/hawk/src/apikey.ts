@@ -1,4 +1,9 @@
-import { HttpContext, NotEnumerable, OperationContext, OwnerModel } from "@webda/core";
+import {
+  HttpContext,
+  NotEnumerable,
+  OperationContext,
+  OwnerModel,
+} from "@webda/core";
 import { createChecker } from "is-in-subnet";
 import { HawkCredentials } from "./hawk";
 
@@ -58,7 +63,7 @@ export default class ApiKey extends OwnerModel {
     return {
       id: this.uuid,
       key: this.__secret,
-      algorithm: this.algorithm
+      algorithm: this.algorithm,
     };
   }
 
@@ -97,7 +102,9 @@ export default class ApiKey extends OwnerModel {
     }
     // Check ip whitelist
     if (this.whitelist) {
-      this.__checker ??= createChecker(this.whitelist.map(c => (c.indexOf("/") < 0 ? `${c}/32` : c)));
+      this.__checker ??= createChecker(
+        this.whitelist.map((c) => (c.indexOf("/") < 0 ? `${c}/32` : c))
+      );
       if (!this.__checker(ctx.getClientIp())) {
         return false;
       }
@@ -135,11 +142,13 @@ export default class ApiKey extends OwnerModel {
     }
     if (this.origins !== undefined && this.origins.length > 0) {
       const updates: any = {
-        uuid: "origins"
+        uuid: "origins",
       };
       updates[`key_${this.uuid}`] = {
         statics: this.origins.filter((l: string) => !l.startsWith("regexp://")),
-        patterns: this.origins.filter((l: string) => l.startsWith("regexp://")).map((l: string) => l.substring(9))
+        patterns: this.origins
+          .filter((l: string) => l.startsWith("regexp://"))
+          .map((l: string) => l.substring(9)),
       };
       await this.getStore().update(updates, false, true);
     } else {

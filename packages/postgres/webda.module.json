@@ -1,10 +1,14 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/postgresstore": "lib/postgresstore:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/postgresstore": {
       "type": "object",
@@ -2126,10 +2130,6 @@
             }
           ],
           "description": "By default use environment variables"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -2230,8 +2230,7 @@
         "LookupFunction": {},
         "PromiseConstructorLike": {}
       },
-      "title": "PostgresStore"
+      "title": "webda/postgresstore"
     }
-  },
-  "graph": {}
+  }
 }

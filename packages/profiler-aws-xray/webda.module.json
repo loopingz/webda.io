@@ -1,10 +1,14 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/awsxrayservice": "lib/services/xray:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/awsxrayservice": {
       "type": "object",
@@ -19,10 +23,6 @@
         },
         "name": {
           "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -30,8 +30,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AWSXRayService"
+      "title": "webda/awsxrayservice"
     }
-  },
-  "graph": {}
+  }
 }

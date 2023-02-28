@@ -30,25 +30,35 @@ class MemoryQueueTest extends QueueTest {
         return [
           {
             ReceiptHandle: "msg1",
-            Message: MemoryQueueTest.queue.unserialize(JSON.stringify({ title: "plop" }), proto)
-          }
+            Message: MemoryQueueTest.queue.unserialize(
+              JSON.stringify({ title: "plop" }),
+              proto
+            ),
+          },
         ];
       case 3:
         throw Error();
       case 4:
         // An error occured it should double the pause
-        // @ts-ignore
-        MemoryQueueTest.failedIterations.push(MemoryQueueTest.queue.failedIterations);
+        MemoryQueueTest.failedIterations.push(
+          // @ts-ignore
+          MemoryQueueTest.queue.failedIterations
+        );
         return Promise.resolve([
           {
             ReceiptHandle: "msg2",
-            Message: MemoryQueueTest.queue.unserialize(JSON.stringify({ title: "plop2" }), proto)
-          }
+            Message: MemoryQueueTest.queue.unserialize(
+              JSON.stringify({ title: "plop2" }),
+              proto
+            ),
+          },
         ]);
       case 5:
         // Error on callback dont generate a double delay
-        // @ts-ignore
-        MemoryQueueTest.failedIterations.push(MemoryQueueTest.queue.failedIterations);
+        MemoryQueueTest.failedIterations.push(
+          // @ts-ignore
+          MemoryQueueTest.queue.failedIterations
+        );
         MemoryQueueTest.resolve(MemoryQueueTest.workerPromise.cancel());
         return [];
     }
@@ -61,12 +71,12 @@ class MemoryQueueTest extends QueueTest {
         return [
           {
             ReceiptHandle: "msg1",
-            Message: { title: "plop" }
+            Message: { title: "plop" },
           },
           {
             ReceiptHandle: "msg2",
-            Message: { title: "plop2" }
-          }
+            Message: { title: "plop2" },
+          },
         ];
       case 2:
         MemoryQueueTest.resolve(MemoryQueueTest.workerPromise.cancel());
@@ -77,10 +87,10 @@ class MemoryQueueTest extends QueueTest {
   @test
   async worker() {
     MemoryQueueTest.failedIterations = [];
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       MemoryQueueTest.resolve = resolve;
       let queue: Queue = new MemoryQueue(this.webda, "q", {
-        workerParallelism: false
+        workerParallelism: false,
       });
       queue.initMetrics();
       MemoryQueueTest.queue = queue;
@@ -89,14 +99,14 @@ class MemoryQueueTest extends QueueTest {
       MemoryQueueTest.seq = 0;
       // @ts-ignore
       queue._webda = <any>{
-        log: () => {}
+        log: () => {},
       };
       queue.receiveMessage = this.receiveMessage.bind(queue);
-      queue.deleteMessage = async handle => {
+      queue.deleteMessage = async (handle) => {
         // Should only have the msg1 handle in deleteMessage as msg2 is fake error
         assert.strictEqual(handle, "msg1");
       };
-      let callback = async event => {
+      let callback = async (event) => {
         switch (MemoryQueueTest.seq) {
           case 2:
             assert.strictEqual(event.title, "plop");
@@ -115,8 +125,10 @@ class MemoryQueueTest extends QueueTest {
   async parallelized() {
     let op = 0;
     const run = async (parallel: boolean) => {
-      await new Promise(resolve => {
-        let queue: Queue = new MemoryQueue(this.webda, "q", { workerParallelism: parallel });
+      await new Promise((resolve) => {
+        let queue: Queue = new MemoryQueue(this.webda, "q", {
+          workerParallelism: parallel,
+        });
         queue.initMetrics();
         MemoryQueueTest.queue = queue;
         MemoryQueueTest.resolve = resolve;
@@ -125,11 +137,11 @@ class MemoryQueueTest extends QueueTest {
         MemoryQueueTest.seq = 0;
         // @ts-ignore
         queue._webda = <any>{
-          log: () => {}
+          log: () => {},
         };
         queue.receiveMessage = this.receiveMessageParallelism.bind(queue);
-        queue.deleteMessage = async handle => {};
-        let callback = async event => {
+        queue.deleteMessage = async (handle) => {};
+        let callback = async (event) => {
           if (event.title === "plop") {
             await this.sleep(300);
             op = 1;
@@ -142,19 +154,35 @@ class MemoryQueueTest extends QueueTest {
       });
     };
     await run(true);
-    assert.strictEqual(op, 1, 'It should have been run in parallel so op=0 as *2 will happen before =1"');
+    assert.strictEqual(
+      op,
+      1,
+      'It should have been run in parallel so op=0 as *2 will happen before =1"'
+    );
     await run(false);
-    assert.strictEqual(op, 2, 'It should have been run in parallel so op=2 as *2 will happen after =1"');
+    assert.strictEqual(
+      op,
+      2,
+      'It should have been run in parallel so op=2 as *2 will happen after =1"'
+    );
   }
 
   @test
   async basic() {
     let queue: MemoryQueue = <MemoryQueue>this.getService("memoryqueue");
     // For coverage
-    assert.strictEqual(queue.getParameters().expire, 1000, "1s should be convert to ms");
+    assert.strictEqual(
+      queue.getParameters().expire,
+      1000,
+      "1s should be convert to ms"
+    );
     queue.getParameters().expire = undefined;
     await queue.reinit({});
-    assert.strictEqual(queue.getParameters().expire, 30000, "default should be 30s");
+    assert.strictEqual(
+      queue.getParameters().expire,
+      30000,
+      "default should be 30s"
+    );
     queue.getParameters().expire = 1000;
     queue.__clean();
     // Should not have issue with unknown receipt
@@ -175,7 +203,7 @@ class MemoryQueueTest extends QueueTest {
         if (callCount === 1) {
           return "plop";
         }
-      }
+      },
     });
     await queue.sendMessage({});
     assert.strictEqual(callCount, 2);

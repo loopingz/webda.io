@@ -1,7 +1,14 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync, unlinkSync } from "fs";
-import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User } from "../index";
+import {
+  AggregatorService,
+  CoreModel,
+  Ident,
+  MemoryStore,
+  Store,
+  User,
+} from "../index";
 import { HttpContext } from "../utils/httpcontext";
 import { JSONUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
@@ -39,35 +46,56 @@ class MemoryStoreTest extends StoreTest {
   async recreateIndex() {
     let store = this.getService<Store>("memoryaggregators");
     await store.__clean();
-    await this.getService<AggregatorService>("memoryidentsindexer").createAggregate();
+    await this.getService<AggregatorService>(
+      "memoryidentsindexer"
+    ).createAggregate();
   }
 
   @test async deleteAsyncHttp() {
     let executor, ctx;
-    ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/memory/idents/ToDelete"));
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    ctx = await this.webda.newWebContext(
+      new HttpContext("test.webda.io", "GET", "/memory/idents/ToDelete")
+    );
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>(
+      this.getIdentStore()
+    );
     await identStore.save({
       uuid: "toDelete",
-      test: "ok"
+      test: "ok",
     });
     await identStore.delete("toDelete");
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/memory/idents/toDelete");
-    assert.notStrictEqual(executor, undefined);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      "/memory/idents/toDelete"
     );
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/memory/idents/toDelete");
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(
       () => executor.execute(ctx),
-      err => err == 404
+      (err) => err == 404
     );
-    executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/memory/idents/toDelete");
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "PUT",
+      "/memory/idents/toDelete"
+    );
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(
       () => executor.execute(ctx),
-      err => err == 404
+      (err) => err == 404
+    );
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "DELETE",
+      "/memory/idents/toDelete"
+    );
+    assert.notStrictEqual(executor, undefined);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      (err) => err == 404
     );
     assert.strictEqual(identStore._getSync("notFound"), null);
   }
@@ -80,15 +108,15 @@ class MemoryStoreTest extends StoreTest {
     userStore.getParameters().forceModel = true;
     // Return undefined as filter to trigger the warning
     let find = userStore.find;
-    userStore.find = async query => {
+    userStore.find = async (query) => {
       let res = await find.bind(userStore)({
         filter: new WebdaQL.AndExpression([]),
         continuationToken: query.continuationToken,
-        limit: query.limit
+        limit: query.limit,
       });
       return {
         ...res,
-        filter: undefined
+        filter: undefined,
       };
     };
     let context = await this.newContext();
@@ -96,54 +124,77 @@ class MemoryStoreTest extends StoreTest {
     let res, offset;
     let total = 0;
     do {
-      res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`, context);
+      res = await userStore.query(
+        `state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`,
+        context
+      );
       offset = res.continuationToken;
       total += res.results.length;
     } while (offset);
     assert.strictEqual(total, 100);
-    assert.rejects(() => userStore.queryAll("state = 'CA' OFFSET 123"), /Cannot contain an OFFSET for queryAll method/);
-    assert.strictEqual((await userStore.queryAll("state = 'CA' LIMIT 50")).length, 250);
+    assert.rejects(
+      () => userStore.queryAll("state = 'CA' OFFSET 123"),
+      /Cannot contain an OFFSET for queryAll method/
+    );
+    assert.strictEqual(
+      (await userStore.queryAll("state = 'CA' LIMIT 50")).length,
+      250
+    );
     return userStore;
   }
 
   @test
   initRoutes() {
     // cov
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>(
+      this.getIdentStore()
+    );
     identStore.getParameters().expose = undefined;
     identStore.initRoutes();
   }
 
   @test
   getSync() {
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>(
+      this.getIdentStore()
+    );
     assert.throws(() => identStore._getSync("plop", true), StoreNotFoundError);
   }
 
   @test
   async badActions() {
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>(
+      this.getIdentStore()
+    );
     // @ts-ignore
     identStore._model = {
       getActions: () => {
         return { test: { global: true } };
-      }
+      },
     };
-    await assert.throws(() => identStore.initRoutes(), /Action static method \/_\?test\/ does not exist/);
+    await assert.throws(
+      () => identStore.initRoutes(),
+      /Action static method \/_\?test\/ does not exist/
+    );
     // @ts-ignore
     identStore._model = {
       // @ts-ignore
       prototype: {},
       getActions: () => {
         return { test: { global: false } };
-      }
+      },
     };
-    await assert.throws(() => identStore.initRoutes(), /Action method \/_\?test\/ does not exist/);
+    await assert.throws(
+      () => identStore.initRoutes(),
+      /Action method \/_\?test\/ does not exist/
+    );
   }
 
   @test
   async multiModel() {
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>(
+      this.getIdentStore()
+    );
     identStore.getParameters().strict = false;
     await identStore.save(new User().load({ uuid: "user" }, true));
     await identStore.save(new Ident().load({ uuid: "ident" }, true));
@@ -151,7 +202,10 @@ class MemoryStoreTest extends StoreTest {
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = true;
     // @ts-ignore
-    identStore.storage["user"] = identStore.storage["user"].replace(/webda\/user/, "webda/user2");
+    identStore.storage["user"] = identStore.storage["user"].replace(
+      /webda\/user/,
+      "webda/user2"
+    );
     assert.ok((await identStore.get("user")).constructor.name === "Ident");
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = false;
@@ -165,10 +219,12 @@ class MemoryStoreTest extends StoreTest {
     if (existsSync(".test.json")) {
       unlinkSync(".test.json");
     }
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>(
+      this.getIdentStore()
+    );
     identStore.getParameters().persistence = {
       path: ".test.json",
-      delay: 10
+      delay: 10,
     };
     await identStore.init();
     await identStore.put("test", {});
@@ -186,7 +242,7 @@ class MemoryStoreTest extends StoreTest {
       path: ".test.json",
       delay: 10,
       key: "test",
-      cipher: "aes-256-ctr"
+      cipher: "aes-256-ctr",
     };
     // Should silently ignore not encrypted file
     await identStore.init();

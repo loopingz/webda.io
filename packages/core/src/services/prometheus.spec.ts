@@ -13,14 +13,17 @@ class PrometheusTest extends WebdaTest {
     let service = new PrometheusService(this.webda, "", {
       portNumber: 9090,
       includeNodeMetrics: false,
-      includeRequestMetrics: false
+      includeRequestMetrics: false,
     });
     try {
       await service.resolve().init();
       // Should be listen on 9090 now
       let res = await axios.get("http://localhost:9090/metrics");
       assert.ok(res.data.includes("webda_store_operations_total"));
-      await assert.rejects(() => axios.get("http://localhost:9090/metrics2"), /Request failed with status code 404/);
+      await assert.rejects(
+        () => axios.get("http://localhost:9090/metrics2"),
+        /Request failed with status code 404/
+      );
     } finally {
       service.http?.close();
     }
@@ -40,6 +43,11 @@ class PrometheusTest extends WebdaTest {
     await this.webda.emitSync("Webda.Result", { context: ctx });
     this.webda.getGlobalParams().metrics = false;
     // Fake metrics should return 0 for timer
-    assert.strictEqual((<Histogram>this.webda.getMetric(Histogram, { name: "test", help: "fake" })).startTimer()(), 0);
+    assert.strictEqual(
+      (<Histogram>(
+        this.webda.getMetric(Histogram, { name: "test", help: "fake" })
+      )).startTimer()(),
+      0
+    );
   }
 }

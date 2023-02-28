@@ -7,7 +7,11 @@ import { OperationContext, Store, StoreParameters, User } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
-import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
+import {
+  StoreEvents,
+  StoreNotFoundError,
+  UpdateConditionFailError,
+} from "./store";
 
 /**
  * Fake model that refuse the half of the items
@@ -25,8 +29,15 @@ export class PermissionModel extends CoreModel {
 class StoreParametersTest {
   @test
   cov() {
-    let params = new StoreParameters({ expose: "/plop", lastUpdateField: "bz", creationDateField: "c" }, undefined);
-    assert.deepStrictEqual(params.expose, { queryMethod: "GET", url: "/plop", restrict: {} });
+    let params = new StoreParameters(
+      { expose: "/plop", lastUpdateField: "bz", creationDateField: "c" },
+      undefined
+    );
+    assert.deepStrictEqual(params.expose, {
+      queryMethod: "GET",
+      url: "/plop",
+      restrict: {},
+    });
     assert.throws(() => new StoreParameters({ map: {} }, undefined), Error);
     assert.throws(() => new StoreParameters({ index: [] }, undefined), Error);
   }
@@ -69,9 +80,9 @@ abstract class StoreTest extends WebdaTest {
         state: ["CA", "OR", "NY", "FL"][i % 4],
         order: i,
         team: {
-          id: i % 20
+          id: i % 20,
         },
-        role: i % 10
+        role: i % 10,
       });
     }
     return docs;
@@ -82,7 +93,7 @@ abstract class StoreTest extends WebdaTest {
    */
   async fillForQuery(): Promise<Store> {
     let userStore = this.getUserStore();
-    await Promise.all(this.getQueryDocuments().map(d => userStore.save(d)));
+    await Promise.all(this.getQueryDocuments().map((d) => userStore.save(d)));
     return userStore;
   }
 
@@ -104,7 +115,7 @@ abstract class StoreTest extends WebdaTest {
       'state LIKE "C__"': 0,
       'state LIKE "C%"': 250,
       'state != "CA"': 750,
-      "": 1000
+      "": 1000,
     };
     for (let i in queries) {
       assert.strictEqual(
@@ -118,21 +129,27 @@ abstract class StoreTest extends WebdaTest {
     let res;
     let i = 0;
     do {
-      res = await userStore.query(`LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
+      res = await userStore.query(
+        `LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`
+      );
       offset = res.continuationToken;
 
       if (i++ > 9) {
         assert.strictEqual(
           res.results.length,
           0,
-          `Query: LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""} should return 0`
+          `Query: LIMIT 100 ${
+            offset ? 'OFFSET "' + offset + '"' : ""
+          } should return 0`
         );
         assert.strictEqual(offset, undefined);
       } else {
         assert.strictEqual(
           res.results.length,
           100,
-          `Query: LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""} should return 0`
+          `Query: LIMIT 100 ${
+            offset ? 'OFFSET "' + offset + '"' : ""
+          } should return 0`
         );
       }
     } while (offset !== undefined);
@@ -171,7 +188,15 @@ abstract class StoreTest extends WebdaTest {
     } while (offset !== undefined);
     assert.strictEqual(total, 400);
     q = "BAD QUERY !";
-    context.setHttpContext(new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443));
+    context.setHttpContext(
+      new HttpContext(
+        "test.webda.io",
+        "PUT",
+        userStore.getParameters().expose.url,
+        "https",
+        443
+      )
+    );
     context.getHttpContext().setBody({ q });
     // @ts-ignore
     await assert.rejects(() => userStore.httpQuery(context), /400/);
@@ -196,7 +221,7 @@ abstract class StoreTest extends WebdaTest {
     return {
       order: model.order,
       teamId: model.team.id,
-      state: model.state
+      state: model.state,
     };
   }
 
@@ -206,12 +231,18 @@ abstract class StoreTest extends WebdaTest {
     let model = await userStore.save({
       order: 996,
       state: "CA",
-      team: { id: 16 }
+      team: { id: 16 },
     });
     try {
-      let res = await userStore.query('state = "CA" ORDER BY order DESC LIMIT 10');
+      let res = await userStore.query(
+        'state = "CA" ORDER BY order DESC LIMIT 10'
+      );
       assert.deepStrictEqual(
-        res.results.map((c: any) => ({ state: c.state, order: c.order, teamId: c.team.id })),
+        res.results.map((c: any) => ({
+          state: c.state,
+          order: c.order,
+          teamId: c.team.id,
+        })),
         [
           { state: "CA", order: 996, teamId: 16 },
           { state: "CA", order: 996, teamId: 16 },
@@ -222,12 +253,18 @@ abstract class StoreTest extends WebdaTest {
           { state: "CA", order: 976, teamId: 16 },
           { state: "CA", order: 972, teamId: 12 },
           { state: "CA", order: 968, teamId: 8 },
-          { state: "CA", order: 964, teamId: 4 }
+          { state: "CA", order: 964, teamId: 4 },
         ]
       );
-      res = await userStore.query("order > 980 ORDER BY state ASC, order DESC LIMIT 10");
+      res = await userStore.query(
+        "order > 980 ORDER BY state ASC, order DESC LIMIT 10"
+      );
       assert.deepStrictEqual(
-        res.results.map((c: any) => ({ state: c.state, order: c.order, teamId: c.team.id })),
+        res.results.map((c: any) => ({
+          state: c.state,
+          order: c.order,
+          teamId: c.team.id,
+        })),
         [
           { state: "CA", order: 996, teamId: 16 },
           { state: "CA", order: 996, teamId: 16 },
@@ -238,7 +275,7 @@ abstract class StoreTest extends WebdaTest {
           { state: "FL", order: 995, teamId: 15 },
           { state: "FL", order: 991, teamId: 11 },
           { state: "FL", order: 987, teamId: 7 },
-          { state: "FL", order: 983, teamId: 3 }
+          { state: "FL", order: 983, teamId: 3 },
         ]
       );
     } finally {
@@ -261,7 +298,7 @@ abstract class StoreTest extends WebdaTest {
       "Store.Update",
       "Store.Updated",
       "Store.Query",
-      "Store.Queried"
+      "Store.Queried",
     ];
     for (let evt in events) {
       identStore.on(events[evt], function (evt) {
@@ -271,7 +308,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(await userStore.get(undefined), undefined);
     user1 = (
       await userStore.save({
-        name: "test"
+        name: "test",
       })
     ).uuid;
     let user = await userStore.get(user1);
@@ -280,7 +317,7 @@ abstract class StoreTest extends WebdaTest {
     user1 = user.uuid;
     ident1 = await identStore.save({
       type: "facebook",
-      _user: user.uuid
+      _user: user.uuid,
     });
     user = await userStore.get(user1);
     // Verify the ident is on the user
@@ -309,7 +346,7 @@ abstract class StoreTest extends WebdaTest {
     await identStore.upsertItemToCollection(ident1.uuid, "actions", {
       uuid: "action_1",
       type: "plop",
-      date: new Date()
+      date: new Date(),
     });
     await user.refresh();
     assert.notStrictEqual(user.idents[0]._lastUpdate.length, 0);
@@ -320,7 +357,13 @@ abstract class StoreTest extends WebdaTest {
     );
     lastUpdate = user.idents[0]._lastUpdate;
     await this.sleep(10);
-    await identStore.deleteItemFromCollection(ident1.uuid, "actions", 0, "plop", "type");
+    await identStore.deleteItemFromCollection(
+      ident1.uuid,
+      "actions",
+      0,
+      "plop",
+      "type"
+    );
     await user.refresh();
     assert.notStrictEqual(user.idents[0]._lastUpdate.length, 0);
     this.assertLastUpdateNotEqual(
@@ -331,7 +374,7 @@ abstract class StoreTest extends WebdaTest {
 
     ident2 = await identStore.save({
       type: "google",
-      _user: user.uuid
+      _user: user.uuid,
     });
     // Ensure Date is returned
     assert.ok(ident2._creationDate instanceof Date);
@@ -352,7 +395,7 @@ abstract class StoreTest extends WebdaTest {
     let res = await identStore.patch(
       {
         uuid: ident2.uuid,
-        type: "google2"
+        type: "google2",
       },
       true,
       null
@@ -376,13 +419,13 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(user.idents[0].type, "google2");
     // Add a second user to play
     user = await userStore.save({
-      name: "test2"
+      name: "test2",
     });
     user2 = user.uuid;
     // Move ident2 from user1 to user2
     await identStore.patch({
       _user: user.uuid,
-      uuid: ident2.uuid
+      uuid: ident2.uuid,
     });
     // Check user1 has no more ident
     user = await userStore.get(user1);
@@ -394,7 +437,7 @@ abstract class StoreTest extends WebdaTest {
     // Verify you cannot update a collection from patch
     await userStore.patch(
       {
-        idents: []
+        idents: [],
       },
       user2
     );
@@ -403,7 +446,7 @@ abstract class StoreTest extends WebdaTest {
     // Verify you cannot update a collection from update
     await userStore.update(
       {
-        idents: []
+        idents: [],
       },
       user2
     );
@@ -440,12 +483,12 @@ abstract class StoreTest extends WebdaTest {
     let identStore = this.getIdentStore();
     var ident;
     ident = await identStore.save({
-      test: "plop"
+      test: "plop",
     });
     await identStore.upsertItemToCollection(ident.uuid, "actions", {
       uuid: "action_1",
       type: "plop",
-      date: new Date()
+      date: new Date(),
     });
     await ident.refresh();
     assert.notStrictEqual(ident.actions, undefined);
@@ -453,7 +496,7 @@ abstract class StoreTest extends WebdaTest {
     await identStore.upsertItemToCollection(ident.uuid, "actions", {
       uuid: "action_2",
       type: "plop",
-      date: new Date()
+      date: new Date(),
     });
     await ident.refresh();
     assert.notStrictEqual(ident.actions, undefined);
@@ -464,7 +507,7 @@ abstract class StoreTest extends WebdaTest {
       {
         uuid: "action_1",
         type: "plop2",
-        date: new Date()
+        date: new Date(),
       },
       0
     );
@@ -482,17 +525,23 @@ abstract class StoreTest extends WebdaTest {
           {
             uuid: "action_1",
             type: "plop2",
-            date: new Date()
+            date: new Date(),
           },
           0,
           "plop",
           "type"
         ),
-      err => true
+      (err) => true
     );
     await assert.rejects(
-      () => identStore.deleteItemFromCollection(ident.uuid, "actions", 0, "action_2"),
-      err => true
+      () =>
+        identStore.deleteItemFromCollection(
+          ident.uuid,
+          "actions",
+          0,
+          "action_2"
+        ),
+      (err) => true
     );
     await ident.refresh();
     assert.strictEqual(ident.actions.length, 2);
@@ -505,19 +554,33 @@ abstract class StoreTest extends WebdaTest {
       {
         uuid: "action_1",
         type: "plop",
-        date: new Date()
+        date: new Date(),
       },
       0,
       "plop2",
       "type"
     );
     await ident.refresh();
-    this.assertLastUpdateNotEqual(ident._lastUpdate, lastUpdate, "lastUpdate after upsertItemToColletion failed");
+    this.assertLastUpdateNotEqual(
+      ident._lastUpdate,
+      lastUpdate,
+      "lastUpdate after upsertItemToColletion failed"
+    );
     lastUpdate = ident._lastUpdate;
     await this.sleep(10);
-    await identStore.deleteItemFromCollection(ident.uuid, "actions", 0, "plop", "type");
+    await identStore.deleteItemFromCollection(
+      ident.uuid,
+      "actions",
+      0,
+      "plop",
+      "type"
+    );
     ident = await identStore.get(ident.uuid);
-    this.assertLastUpdateNotEqual(ident._lastUpdate, lastUpdate, "lastUpdate after deleteItemToColletion failed");
+    this.assertLastUpdateNotEqual(
+      ident._lastUpdate,
+      lastUpdate,
+      "lastUpdate after deleteItemToColletion failed"
+    );
     assert.notStrictEqual(ident.actions, undefined);
     assert.strictEqual(ident.actions.length, 1);
     assert.strictEqual(ident.actions[0].type, "plop");
@@ -530,13 +593,13 @@ abstract class StoreTest extends WebdaTest {
     var user1;
     var user3;
     user1 = await userStore.save({
-      name: "test1"
+      name: "test1",
     });
     await userStore.save({
-      name: "test2"
+      name: "test2",
     });
     user3 = await userStore.save({
-      name: "test3"
+      name: "test3",
     });
     let users = await userStore.getAll();
     assert.strictEqual(users.length, 3);
@@ -565,7 +628,7 @@ abstract class StoreTest extends WebdaTest {
       "Store.PatchUpdated",
       "Store.PartialUpdated",
       "Store.Query",
-      "Store.Queried"
+      "Store.Queried",
     ];
     for (let evt in events) {
       identStore.on(events[evt], function (e) {
@@ -582,8 +645,8 @@ abstract class StoreTest extends WebdaTest {
       details: {
         plop: "plop1",
         clean: undefined,
-        yop: "pouf"
-      }
+        yop: "pouf",
+      },
     });
     assert.strictEqual(eventFired, 2);
     assert.notStrictEqual(ident1, undefined);
@@ -630,14 +693,18 @@ abstract class StoreTest extends WebdaTest {
     let ident = await identStore.get(ident1.uuid);
 
     // Verify lastUpdate is updated too
-    this.assertLastUpdateNotEqual(ident._lastUpdate, ident1._lastUpdate, "lastUpdate after incrementAttribute failed");
+    this.assertLastUpdateNotEqual(
+      ident._lastUpdate,
+      ident1._lastUpdate,
+      "lastUpdate after incrementAttribute failed"
+    );
     assert.strictEqual(ident.counter, 1);
     await identStore.incrementAttribute(ident1.uuid, "counter", 3);
     ident1 = await identStore.get(ident1.uuid);
     assert.strictEqual(ident1.counter, 4);
     await identStore.incrementAttributes(ident1.uuid, [
       { property: "counter", value: -6 },
-      { property: "counter2", value: 10 }
+      { property: "counter2", value: 10 },
     ]);
     let res = await identStore.exists(ident1.uuid);
     assert.strictEqual(res, true);
@@ -675,7 +742,10 @@ abstract class StoreTest extends WebdaTest {
     await model.refresh();
     assert.strictEqual(model.counter, 3);
     assert.strictEqual(model.counter2, 2);
-    await assert.rejects(() => store.incrementAttribute(uuidv4(), "counter", 1), StoreNotFoundError);
+    await assert.rejects(
+      () => store.incrementAttribute(uuidv4(), "counter", 1),
+      StoreNotFoundError
+    );
   }
 
   @test
@@ -685,7 +755,10 @@ abstract class StoreTest extends WebdaTest {
     await store.removeAttribute(model.getUuid(), "counter");
     await model.refresh();
     assert.strictEqual(model.counter, undefined);
-    await assert.rejects(() => store.removeAttribute(uuidv4(), "counter"), StoreNotFoundError);
+    await assert.rejects(
+      () => store.removeAttribute(uuidv4(), "counter"),
+      StoreNotFoundError
+    );
     await assert.rejects(
       () => store.removeAttribute(model.getUuid(), "counter2", 10, "counter3"),
       UpdateConditionFailError
@@ -703,13 +776,19 @@ abstract class StoreTest extends WebdaTest {
     await model.refresh();
     assert.strictEqual(model.counter, 3);
     assert.strictEqual(model.status, "TESTED");
-    await assert.rejects(() => store.setAttribute(uuidv4(), "counter", 4), StoreNotFoundError);
+    await assert.rejects(
+      () => store.setAttribute(uuidv4(), "counter", 4),
+      StoreNotFoundError
+    );
     store.on("Store.PatchUpdate", async () => {
       model._lastUpdate = new Date(100);
       // @ts-ignore
       await store._update(model, model.getUuid());
     });
-    await assert.rejects(() => store.setAttribute(model.getUuid(), "counter", 4), UpdateConditionFailError);
+    await assert.rejects(
+      () => store.setAttribute(model.getUuid(), "counter", 4),
+      UpdateConditionFailError
+    );
     store.removeAllListeners("Store.PatchUpdate");
     store.on("Store.PatchUpdate", async () => {
       // @ts-ignore
@@ -718,11 +797,15 @@ abstract class StoreTest extends WebdaTest {
     });
     await assert.rejects(
       () => store.setAttribute(model.getUuid(), "counter", 4),
-      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+      (err) =>
+        err instanceof StoreNotFoundError ||
+        err instanceof UpdateConditionFailError
     );
     await assert.rejects(
       () => store.setAttribute(uuidv4(), "counter", 4),
-      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+      (err) =>
+        err instanceof StoreNotFoundError ||
+        err instanceof UpdateConditionFailError
     );
   }
 
@@ -731,7 +814,10 @@ abstract class StoreTest extends WebdaTest {
     let store = this.getIdentStore();
     let model = await store.save({ counter: 1 });
     // Delete with condition
-    await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
+    await assert.rejects(
+      () => store.delete(model.getUuid(), 4, "counter"),
+      UpdateConditionFailError
+    );
     await store.delete(model.getUuid(), 1, "counter");
     // Test without condition
     model = await store.save({ counter: 2 });
@@ -747,7 +833,10 @@ abstract class StoreTest extends WebdaTest {
     let store = this.getUserStore();
     let model = await store.save({ counter: 1 });
     // Delete with condition
-    await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
+    await assert.rejects(
+      () => store.delete(model.getUuid(), 4, "counter"),
+      UpdateConditionFailError
+    );
 
     await store.delete(model.getUuid(), 1, "counter");
     // Test without condition
@@ -764,7 +853,10 @@ abstract class StoreTest extends WebdaTest {
     store.addListener("Store.Delete", async () => {
       await store.incrementAttribute(model.getUuid(), "counter", 1);
     });
-    await assert.rejects(() => store.delete(model.getUuid(), 1, "counter"), UpdateConditionFailError);
+    await assert.rejects(
+      () => store.delete(model.getUuid(), 1, "counter"),
+      UpdateConditionFailError
+    );
     store.removeAllListeners();
     await store.delete(model.getUuid(), 2, "counter");
   }
@@ -778,7 +870,7 @@ abstract class StoreTest extends WebdaTest {
         model.getUuid(),
         {
           plop: 12,
-          counter: 2
+          counter: 2,
         },
         "counter",
         1
@@ -789,7 +881,7 @@ abstract class StoreTest extends WebdaTest {
       !(await store.conditionalPatch(
         model.getUuid(),
         {
-          plop: 13
+          plop: 13,
         },
         "counter",
         1
@@ -806,7 +898,7 @@ abstract class StoreTest extends WebdaTest {
           model.getUuid(),
           {
             plop: 12,
-            counter: 2
+            counter: 2,
           },
           "counter",
           1
@@ -841,11 +933,15 @@ abstract class StoreTest extends WebdaTest {
     });
     await assert.rejects(
       () => store.update(model),
-      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+      (err) =>
+        err instanceof StoreNotFoundError ||
+        err instanceof UpdateConditionFailError
     );
     await assert.rejects(
       () => store.update({ uuid: uuidv4(), test: true }),
-      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+      (err) =>
+        err instanceof StoreNotFoundError ||
+        err instanceof UpdateConditionFailError
     );
   }
 
@@ -857,7 +953,9 @@ abstract class StoreTest extends WebdaTest {
     let ps = [];
     this.log("DEBUG", "Upsert 10 lines");
     for (let i = 0; i < 10; i++) {
-      ps.push(store.upsertItemToCollection(model.getUuid(), "logs", `line${i}`));
+      ps.push(
+        store.upsertItemToCollection(model.getUuid(), "logs", `line${i}`)
+      );
     }
     await Promise.all(ps);
     await model.refresh();
@@ -866,13 +964,24 @@ abstract class StoreTest extends WebdaTest {
     this.log("DEBUG", "Upsert on unknown doc");
     await assert.rejects(
       () => store.upsertItemToCollection(uuidv4(), "logs", `line`),
-      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+      (err) =>
+        err instanceof StoreNotFoundError ||
+        err instanceof UpdateConditionFailError
     );
 
     this.log("DEBUG", "Delete on unknown doc");
     await assert.rejects(
-      () => store.deleteItemFromCollection(uuidv4(), "logs", 0, undefined, undefined),
-      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+      () =>
+        store.deleteItemFromCollection(
+          uuidv4(),
+          "logs",
+          0,
+          undefined,
+          undefined
+        ),
+      (err) =>
+        err instanceof StoreNotFoundError ||
+        err instanceof UpdateConditionFailError
     );
   }
 
@@ -898,28 +1007,30 @@ abstract class StoreTest extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "POST", url, {
       type: "CRUD",
       uuid: "PLOP",
-      displayName: "Coucou"
+      displayName: "Coucou",
     });
     assert.notStrictEqual(executor, undefined);
     await executor.execute(ctx);
     ctx.body = undefined;
     assert.strictEqual((await userStore.getAll()).length, 1);
-    await this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`).execute(ctx);
+    await this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`).execute(
+      ctx
+    );
     assert.notStrictEqual(ctx.getResponseBody(), undefined);
     assert.strictEqual(ctx.getResponseBody().indexOf("_lastUpdate") >= 0, true);
     executor = this.getExecutor(ctx, "test.webda.io", "POST", url, {
       type: "CRUD2",
       uuid: "PLOP",
-      displayName: "Coucou 2"
+      displayName: "Coucou 2",
     });
-    await assert.rejects(executor.execute(ctx), err => err == 409);
+    await assert.rejects(executor.execute(ctx), (err) => err == 409);
     // Verify the none overide of UUID
     await this.execute(ctx, "test.webda.io", "PUT", `${url}/PLOP`, {
       type: "CRUD2",
       additional: "field",
       uuid: "PLOP2",
       user: "fake_user",
-      displayName: "Coucou 3"
+      displayName: "Coucou 3",
     });
     let user: any = await userStore.get("PLOP");
     assert.strictEqual(user.uuid, "PLOP");
@@ -940,7 +1051,7 @@ abstract class StoreTest extends WebdaTest {
     await this.execute(ctx, "test.webda.io", "PATCH", `${url}/PLOP`, {
       type: "CRUD3",
       uuid: "PLOP2",
-      _testor: "_ should not be update by client"
+      _testor: "_ should not be update by client",
     });
     user = await userStore.get("PLOP");
     assert.strictEqual(user.uuid, "PLOP");
@@ -954,7 +1065,7 @@ abstract class StoreTest extends WebdaTest {
       type: "CRUD3",
       uuid: "PLOP2",
       _testor: "_ should not be update by client",
-      displayName: "yep"
+      displayName: "yep",
     });
     await executor.execute(ctx);
     user = await userStore.get("PLOP");
@@ -964,24 +1075,29 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(user._testor, undefined);
     assert.deepStrictEqual(user.getRoles(), ["plop"]);
 
-    await this.getExecutor(ctx, "test.webda.io", "DELETE", `${url}/PLOP`).execute(ctx);
+    await this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "DELETE",
+      `${url}/PLOP`
+    ).execute(ctx);
     eventFired = 0;
     executor = this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`);
     await assert.rejects(
       () => executor.execute(ctx),
-      err => err == 404
+      (err) => err == 404
     );
     eventFired++;
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", `${url}/PLOP`);
     await assert.rejects(
       () => executor.execute(ctx),
-      err => err == 404
+      (err) => err == 404
     );
     eventFired++;
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/PLOP`);
     await assert.rejects(
       () => executor.execute(ctx),
-      err => err == 404
+      (err) => err == 404
     );
     eventFired++;
     assert.strictEqual(eventFired, 3);
@@ -992,29 +1108,42 @@ abstract class StoreTest extends WebdaTest {
     assert.notStrictEqual(identStore.getModel(), undefined);
     let eventFired = 0;
     let executor, ctx;
-    identStore.on("Store.Action", evt => {
+    identStore.on("Store.Action", (evt) => {
       eventFired++;
     });
-    identStore.on("Store.Actioned", evt => {
+    identStore.on("Store.Actioned", (evt) => {
       eventFired++;
     });
     ctx = await this.newContext({
       type: "CRUD",
-      uuid: "PLOP"
+      uuid: "PLOP",
     });
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/coucou/plop`);
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "PUT",
+      `${url}/coucou/plop`
+    );
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(executor.execute(ctx), err => err == 404);
+    await assert.rejects(executor.execute(ctx), (err) => err == 404);
     await identStore.save({
-      uuid: "coucou"
+      uuid: "coucou",
     });
     await executor.execute(ctx);
     // Our fake action is pushing true to _plop
     assert.strictEqual(JSON.parse(ctx.getResponseBody())._plop, true);
     assert.strictEqual(eventFired, 2);
 
-    assert.notStrictEqual(this.getExecutor(ctx, "test.webda.io", "POST", `${url}/coucou/yop`), null);
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", `${url}/coucou/yop`);
+    assert.notStrictEqual(
+      this.getExecutor(ctx, "test.webda.io", "POST", `${url}/coucou/yop`),
+      null
+    );
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      `${url}/coucou/yop`
+    );
     assert.notStrictEqual(executor, null);
 
     // Test with action returning the result instead of writing it

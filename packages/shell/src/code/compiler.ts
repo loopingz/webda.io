@@ -45,11 +45,13 @@ type WebdaSearchResults = {
 };
 
 class WebdaSchemaResults {
-  protected store: {[key: string]: {
-    name: string;
-    schemaNode?: ts.Node;
-    link?: string;
-  }} = {};
+  protected store: {
+    [key: string]: {
+      name: string;
+      schemaNode?: ts.Node;
+      link?: string;
+    };
+  } = {};
   protected byNode = new Map<ts.Node, string>();
 
   get(node: ts.Node) {
@@ -58,9 +60,7 @@ class WebdaSchemaResults {
     }
   }
 
-  compute() {
-
-  }
+  compute() {}
 
   /**
    * Generate all schemas
@@ -85,13 +85,13 @@ class WebdaSchemaResults {
       this.store[name] = {
         name: name,
         schemaNode: info
-      }
+      };
       this.byNode.set(info, name);
     } else {
       this.store[name] = {
         name: name,
-        link: info,
-      }
+        link: info
+      };
     }
   }
 }
@@ -649,10 +649,7 @@ export class Compiler {
             )
           };
           if (schemaNode && !result["schemas"][info.name]) {
-            result["schemas"][info.name] = {
-              name: info.name,
-              schemaNode
-            };
+            result["schemas"].add(info.name, schemaNode);
           }
           if (section === "schemas") {
             return;
@@ -687,58 +684,58 @@ export class Compiler {
     this.exploreServices(objects.beans, objects.schemas);
 
     return {
-      schemas: objects.schemas.generateSchemas(this),
       beans: this.sortObject(objects.beans),
-      models: { ...this.processModels(objects.models), list: this.sortObject(objects.models) },
+      deployers: this.sortObject(objects.deployers),
       moddas: this.sortObject(objects.moddas),
-      deployers: this.sortObject(objects.deployers)
+      models: { ...this.processModels(objects.models), list: this.sortObject(objects.models) },
+      schemas: objects.schemas.generateSchemas(this)
     };
   }
 
   /**
    * Explore services or beans for @Operation and @Route methods
-   * @param services 
-   * @param schemas 
+   * @param services
+   * @param schemas
    */
   exploreServices(services: WebdaSearchResults, schemas: WebdaSchemaResults) {
     Object.values(services).forEach(service => {
       service.type
-          .getProperties()
-          .filter(
-            prop =>
-              prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
-              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
-              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
+        .getProperties()
+        .filter(
+          prop =>
+            prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
+            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
+            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
+              return ["Operation"].includes(
                 // @ts-ignore
-                return ["Operation"].includes(annotation.expression.expression && annotation.expression.expression.getText());
-              })
-          )
-          .map(prop => prop.valueDeclaration)
-          .forEach((method: ts.MethodDeclaration) => {
-            this.checkMethodForContext(service.name, method, schemas);
-          });
+                annotation.expression.expression && annotation.expression.expression.getText()
+              );
+            })
+        )
+        .map(prop => prop.valueDeclaration)
+        .forEach((method: ts.MethodDeclaration) => {
+          this.checkMethodForContext(service.name, method, schemas);
+        });
     });
   }
 
   /**
    * Ensure each method that are supposed to have a context have one
    * And detect their input/output schema
-   * 
-   * @param rootName 
-   * @param method 
-   * @param schemas 
-   * @returns 
+   *
+   * @param rootName
+   * @param method
+   * @param schemas
+   * @returns
    */
   checkMethodForContext(rootName: string, method: ts.MethodDeclaration, schemas: WebdaSchemaResults) {
     const type = <ts.Type>this.typeChecker.getTypeFromTypeNode(method.parameters[0].type);
     // If first parameter is not a OperationContext, display an error
     if (!this.extends(this.getClassTree(type), "@webda/core", "OperationContext")) {
-      this.app.log(
-        "ERROR",
-        `${rootName}.${method.name.getText()} does not have a OperationContext as first parameter`
-      );
+      this.app.log("ERROR", `${rootName}.${method.name.getText()} does not have a OperationContext as first parameter`);
       return;
-    } else if (method.parameters.length > 1) { // Warn user if there is more than 1 parameter
+    } else if (method.parameters.length > 1) {
+      // Warn user if there is more than 1 parameter
       this.app.log(
         "WARN",
         `${rootName}.${method.name.getText()} have more than 1 parameter, only the first one will be used as context`
@@ -755,37 +752,37 @@ export class Compiler {
       }
     }
     schemas.add(name, schemaNode);
-    console.log("Operation", name, schemaNode.getText());
   }
 
   /**
    * Explore models
-   * @param models 
-   * @param schemas 
+   * @param models
+   * @param schemas
    */
   exploreModelsAction(models: WebdaSearchResults, schemas: WebdaSchemaResults) {
     let schemaMap = new Map<ts.Node, string>();
     Object.values(schemas).forEach(schema => {
       schemaMap.set(schema.schemaNode, schema.name);
     });
-    Object.values(models)
-      .forEach(model => {
-        model.type
-          .getProperties()
-          .filter(
-            prop =>
-              prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
-              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
-              ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
+    Object.values(models).forEach(model => {
+      model.type
+        .getProperties()
+        .filter(
+          prop =>
+            prop.valueDeclaration?.kind === ts.SyntaxKind.MethodDeclaration &&
+            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
+            ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
+              return ["Action"].includes(
                 // @ts-ignore
-                return ["Action"].includes(annotation.expression.expression && annotation.expression.expression.getText());
-              })
-          )
-          .map(prop => prop.valueDeclaration)
-          .forEach((method: ts.MethodDeclaration) => {
-            this.checkMethodForContext(model.name, method, schemas);
-          });
-      });
+                annotation.expression.expression && annotation.expression.expression.getText()
+              );
+            })
+        )
+        .map(prop => prop.valueDeclaration)
+        .forEach((method: ts.MethodDeclaration) => {
+          this.checkMethodForContext(model.name, method, schemas);
+        });
+    });
   }
 
   /**

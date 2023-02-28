@@ -1,13 +1,20 @@
-import { DeleteSecretRequest, SecretsManager } from "@aws-sdk/client-secrets-manager";
+import {
+  DeleteSecretRequest,
+  SecretsManager,
+} from "@aws-sdk/client-secrets-manager";
 import { ConfigurationProvider, Service, ServiceParameters } from "@webda/core";
 import { AWSServiceParameters } from "./aws-mixin";
 
-export class AWSSecretsManagerParameters extends AWSServiceParameters(ServiceParameters) {}
+export class AWSSecretsManagerParameters extends AWSServiceParameters(
+  ServiceParameters
+) {}
 
 /**
  * @WebdaModda
  */
-export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = AWSSecretsManagerParameters>
+export default class AWSSecretsManager<
+    T extends AWSSecretsManagerParameters = AWSSecretsManagerParameters
+  >
   extends Service<T>
   implements ConfigurationProvider
 {
@@ -61,15 +68,19 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * @param RecoveryWindowInDays
    * @param ForceDeleteWithoutRecovery
    */
-  async delete(SecretId: string, RecoveryWindowInDays: number = 7, ForceDeleteWithoutRecovery: boolean = false) {
+  async delete(
+    SecretId: string,
+    RecoveryWindowInDays: number = 7,
+    ForceDeleteWithoutRecovery: boolean = false
+  ) {
     let params: DeleteSecretRequest = {
       RecoveryWindowInDays,
-      SecretId
+      SecretId,
     };
     if (ForceDeleteWithoutRecovery) {
       params = {
         SecretId,
-        ForceDeleteWithoutRecovery
+        ForceDeleteWithoutRecovery,
       };
     }
     await this._client.deleteSecret(params);
@@ -84,7 +95,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   async put(SecretId: string, value: any) {
     await this._client.putSecretValue({
       SecretId,
-      SecretString: JSON.stringify(value)
+      SecretString: JSON.stringify(value),
     });
   }
 
@@ -96,7 +107,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    */
   async get(SecretId: string) {
     let res = await this._client.getSecretValue({
-      SecretId
+      SecretId,
     });
     return JSON.parse(res.SecretString);
   }
@@ -110,7 +121,9 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
       Sid: this.constructor.name + this._name,
       Effect: "Allow",
       Action: ["secretsmanager:*"],
-      Resource: ["arn:aws:secretsmanager:" + region + ":" + accountId + ":secret:*"]
+      Resource: [
+        "arn:aws:secretsmanager:" + region + ":" + accountId + ":secret:*",
+      ],
     };
   }
 }

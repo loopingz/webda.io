@@ -1,10 +1,14 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/mongostore": "lib/mongodb:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/mongostore": {
       "type": "object",
@@ -247,10 +251,6 @@
             }
           },
           "description": "Mongo Database Options"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -415,8 +415,7 @@
           ]
         }
       },
-      "title": "MongoStore"
+      "title": "webda/mongostore"
     }
-  },
-  "graph": {}
+  }
 }

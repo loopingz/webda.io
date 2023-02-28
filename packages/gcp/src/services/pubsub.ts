@@ -1,5 +1,14 @@
-import { CreateSubscriptionOptions, Message, PubSub, Subscription } from "@google-cloud/pubsub";
-import { CancelablePromise, PubSubService, ServiceParameters } from "@webda/core";
+import {
+  CreateSubscriptionOptions,
+  Message,
+  PubSub,
+  Subscription,
+} from "@google-cloud/pubsub";
+import {
+  CancelablePromise,
+  PubSubService,
+  ServiceParameters,
+} from "@webda/core";
 
 export class GCPPubSubParameters extends ServiceParameters {
   /**
@@ -38,7 +47,9 @@ export default class GCPPubSubService<
    * @override
    */
   async sendMessage(event: T): Promise<void> {
-    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(event)) });
+    await this.pubsub
+      .topic(this.parameters.topic)
+      .publishMessage({ data: Buffer.from(JSON.stringify(event)) });
   }
 
   /**
@@ -53,7 +64,9 @@ export default class GCPPubSubService<
     let subscription: Subscription;
     const messageHandler = async (message: Message) => {
       try {
-        await callback(this.unserialize(message.data.toString(), eventPrototype));
+        await callback(
+          this.unserialize(message.data.toString(), eventPrototype)
+        );
         message.ack();
       } catch (err) {
         this.log("ERROR", `${this.getName()} consume message error`, err);
@@ -65,14 +78,17 @@ export default class GCPPubSubService<
           subscription = this.pubsub.subscription(subscriptionName);
           const [result] = await this.pubsub
             .topic(this.parameters.topic)
-            .createSubscription(subscriptionName, this.parameters.subscriptionOptions);
+            .createSubscription(
+              subscriptionName,
+              this.parameters.subscriptionOptions
+            );
           subscription = result;
 
           // Receive callbacks for new messages on the subscription
           subscription.on("message", messageHandler);
 
           // Receive callbacks for errors on the subscription
-          subscription.on("error", error => {
+          subscription.on("error", (error) => {
             console.error("Received error:", error);
             reject(error);
           });

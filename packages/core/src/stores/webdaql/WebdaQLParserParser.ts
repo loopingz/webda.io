@@ -78,7 +78,7 @@ export class WebdaQLParserParser extends Parser {
     "booleanLiteral",
     "stringLiteral",
     "integerLiteral",
-    "setExpression"
+    "setExpression",
   ];
 
   private static readonly _LITERAL_NAMES: Array<string | undefined> = [
@@ -107,7 +107,7 @@ export class WebdaQLParserParser extends Parser {
     "'OFFSET'",
     "'ORDER BY'",
     "'ASC'",
-    "'DESC'"
+    "'DESC'",
   ];
   private static readonly _SYMBOLIC_NAMES: Array<string | undefined> = [
     undefined,
@@ -141,7 +141,7 @@ export class WebdaQLParserParser extends Parser {
     "INTEGER_LITERAL",
     "IDENTIFIER",
     "IDENTIFIER_WITH_NUMBER",
-    "FUNCTION_IDENTIFIER_WITH_UNDERSCORE"
+    "FUNCTION_IDENTIFIER_WITH_UNDERSCORE",
   ];
   public static readonly VOCABULARY: Vocabulary = new VocabularyImpl(
     WebdaQLParserParser._LITERAL_NAMES,
@@ -171,7 +171,10 @@ export class WebdaQLParserParser extends Parser {
     return WebdaQLParserParser._serializedATN;
   }
 
-  protected createFailedPredicateException(predicate?: string, message?: string): FailedPredicateException {
+  protected createFailedPredicateException(
+    predicate?: string,
+    message?: string
+  ): FailedPredicateException {
     return new FailedPredicateException(this, predicate, message);
   }
 
@@ -257,7 +260,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public limitExpression(): LimitExpressionContext {
-    let _localctx: LimitExpressionContext = new LimitExpressionContext(this._ctx, this.state);
+    let _localctx: LimitExpressionContext = new LimitExpressionContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 2, WebdaQLParserParser.RULE_limitExpression);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -282,7 +288,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public offsetExpression(): OffsetExpressionContext {
-    let _localctx: OffsetExpressionContext = new OffsetExpressionContext(this._ctx, this.state);
+    let _localctx: OffsetExpressionContext = new OffsetExpressionContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 4, WebdaQLParserParser.RULE_offsetExpression);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -307,7 +316,8 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public orderFieldExpression(): OrderFieldExpressionContext {
-    let _localctx: OrderFieldExpressionContext = new OrderFieldExpressionContext(this._ctx, this.state);
+    let _localctx: OrderFieldExpressionContext =
+      new OrderFieldExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 6, WebdaQLParserParser.RULE_orderFieldExpression);
     let _la: number;
     try {
@@ -318,11 +328,19 @@ export class WebdaQLParserParser extends Parser {
         this.state = 48;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if (_la === WebdaQLParserParser.ASC || _la === WebdaQLParserParser.DESC) {
+        if (
+          _la === WebdaQLParserParser.ASC ||
+          _la === WebdaQLParserParser.DESC
+        ) {
           {
             this.state = 47;
             _la = this._input.LA(1);
-            if (!(_la === WebdaQLParserParser.ASC || _la === WebdaQLParserParser.DESC)) {
+            if (
+              !(
+                _la === WebdaQLParserParser.ASC ||
+                _la === WebdaQLParserParser.DESC
+              )
+            ) {
               this._errHandler.recoverInline(this);
             } else {
               if (this._input.LA(1) === Token.EOF) {
@@ -350,7 +368,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public orderExpression(): OrderExpressionContext {
-    let _localctx: OrderExpressionContext = new OrderExpressionContext(this._ctx, this.state);
+    let _localctx: OrderExpressionContext = new OrderExpressionContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 8, WebdaQLParserParser.RULE_orderExpression);
     let _la: number;
     try {
@@ -401,10 +422,18 @@ export class WebdaQLParserParser extends Parser {
 
     let _parentctx: ParserRuleContext = this._ctx;
     let _parentState: number = this.state;
-    let _localctx: ExpressionContext = new ExpressionContext(this._ctx, _parentState);
+    let _localctx: ExpressionContext = new ExpressionContext(
+      this._ctx,
+      _parentState
+    );
     let _prevctx: ExpressionContext = _localctx;
     let _startState: number = 10;
-    this.enterRecursionRule(_localctx, 10, WebdaQLParserParser.RULE_expression, _p);
+    this.enterRecursionRule(
+      _localctx,
+      10,
+      WebdaQLParserParser.RULE_expression,
+      _p
+    );
     let _la: number;
     try {
       let _alt: number;
@@ -515,14 +544,24 @@ export class WebdaQLParserParser extends Parser {
             {
               this.state = 85;
               this._errHandler.sync(this);
-              switch (this.interpreter.adaptivePredict(this._input, 7, this._ctx)) {
+              switch (
+                this.interpreter.adaptivePredict(this._input, 7, this._ctx)
+              ) {
                 case 1:
                   {
-                    _localctx = new AndLogicExpressionContext(new ExpressionContext(_parentctx, _parentState));
-                    this.pushNewRecursionContext(_localctx, _startState, WebdaQLParserParser.RULE_expression);
+                    _localctx = new AndLogicExpressionContext(
+                      new ExpressionContext(_parentctx, _parentState)
+                    );
+                    this.pushNewRecursionContext(
+                      _localctx,
+                      _startState,
+                      WebdaQLParserParser.RULE_expression
+                    );
                     this.state = 79;
                     if (!this.precpred(this._ctx, 4)) {
-                      throw this.createFailedPredicateException("this.precpred(this._ctx, 4)");
+                      throw this.createFailedPredicateException(
+                        "this.precpred(this._ctx, 4)"
+                      );
                     }
                     this.state = 80;
                     this.match(WebdaQLParserParser.AND);
@@ -533,11 +572,19 @@ export class WebdaQLParserParser extends Parser {
 
                 case 2:
                   {
-                    _localctx = new OrLogicExpressionContext(new ExpressionContext(_parentctx, _parentState));
-                    this.pushNewRecursionContext(_localctx, _startState, WebdaQLParserParser.RULE_expression);
+                    _localctx = new OrLogicExpressionContext(
+                      new ExpressionContext(_parentctx, _parentState)
+                    );
+                    this.pushNewRecursionContext(
+                      _localctx,
+                      _startState,
+                      WebdaQLParserParser.RULE_expression
+                    );
                     this.state = 82;
                     if (!this.precpred(this._ctx, 3)) {
-                      throw this.createFailedPredicateException("this.precpred(this._ctx, 3)");
+                      throw this.createFailedPredicateException(
+                        "this.precpred(this._ctx, 3)"
+                      );
                     }
                     this.state = 83;
                     this.match(WebdaQLParserParser.OR);
@@ -663,7 +710,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public identifier(): IdentifierContext {
-    let _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
+    let _localctx: IdentifierContext = new IdentifierContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 16, WebdaQLParserParser.RULE_identifier);
     let _la: number;
     try {
@@ -671,7 +721,12 @@ export class WebdaQLParserParser extends Parser {
       {
         this.state = 99;
         _la = this._input.LA(1);
-        if (!(_la === WebdaQLParserParser.IDENTIFIER || _la === WebdaQLParserParser.IDENTIFIER_WITH_NUMBER)) {
+        if (
+          !(
+            _la === WebdaQLParserParser.IDENTIFIER ||
+            _la === WebdaQLParserParser.IDENTIFIER_WITH_NUMBER
+          )
+        ) {
           this._errHandler.recoverInline(this);
         } else {
           if (this._input.LA(1) === Token.EOF) {
@@ -697,7 +752,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public booleanLiteral(): BooleanLiteralContext {
-    let _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
+    let _localctx: BooleanLiteralContext = new BooleanLiteralContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 18, WebdaQLParserParser.RULE_booleanLiteral);
     let _la: number;
     try {
@@ -705,7 +763,12 @@ export class WebdaQLParserParser extends Parser {
       {
         this.state = 101;
         _la = this._input.LA(1);
-        if (!(_la === WebdaQLParserParser.TRUE || _la === WebdaQLParserParser.FALSE)) {
+        if (
+          !(
+            _la === WebdaQLParserParser.TRUE ||
+            _la === WebdaQLParserParser.FALSE
+          )
+        ) {
           this._errHandler.recoverInline(this);
         } else {
           if (this._input.LA(1) === Token.EOF) {
@@ -731,7 +794,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public stringLiteral(): StringLiteralContext {
-    let _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
+    let _localctx: StringLiteralContext = new StringLiteralContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 20, WebdaQLParserParser.RULE_stringLiteral);
     let _la: number;
     try {
@@ -740,7 +806,10 @@ export class WebdaQLParserParser extends Parser {
         this.state = 103;
         _la = this._input.LA(1);
         if (
-          !(_la === WebdaQLParserParser.DQUOTED_STRING_LITERAL || _la === WebdaQLParserParser.SQUOTED_STRING_LITERAL)
+          !(
+            _la === WebdaQLParserParser.DQUOTED_STRING_LITERAL ||
+            _la === WebdaQLParserParser.SQUOTED_STRING_LITERAL
+          )
         ) {
           this._errHandler.recoverInline(this);
         } else {
@@ -767,7 +836,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public integerLiteral(): IntegerLiteralContext {
-    let _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
+    let _localctx: IntegerLiteralContext = new IntegerLiteralContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 22, WebdaQLParserParser.RULE_integerLiteral);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -790,7 +862,10 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public setExpression(): SetExpressionContext {
-    let _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
+    let _localctx: SetExpressionContext = new SetExpressionContext(
+      this._ctx,
+      this.state
+    );
     this.enterRule(_localctx, 24, WebdaQLParserParser.RULE_setExpression);
     let _la: number;
     try {
@@ -833,14 +908,24 @@ export class WebdaQLParserParser extends Parser {
     return _localctx;
   }
 
-  public sempred(_localctx: RuleContext, ruleIndex: number, predIndex: number): boolean {
+  public sempred(
+    _localctx: RuleContext,
+    ruleIndex: number,
+    predIndex: number
+  ): boolean {
     switch (ruleIndex) {
       case 5:
-        return this.expression_sempred(_localctx as ExpressionContext, predIndex);
+        return this.expression_sempred(
+          _localctx as ExpressionContext,
+          predIndex
+        );
     }
     return true;
   }
-  private expression_sempred(_localctx: ExpressionContext, predIndex: number): boolean {
+  private expression_sempred(
+    _localctx: ExpressionContext,
+    predIndex: number
+  ): boolean {
     switch (predIndex) {
       case 0:
         return this.precpred(this._ctx, 4);
@@ -1074,7 +1159,9 @@ export class OrderExpressionContext extends ParserRuleContext {
   }
   public orderFieldExpression(): OrderFieldExpressionContext[];
   public orderFieldExpression(i: number): OrderFieldExpressionContext;
-  public orderFieldExpression(i?: number): OrderFieldExpressionContext | OrderFieldExpressionContext[] {
+  public orderFieldExpression(
+    i?: number
+  ): OrderFieldExpressionContext | OrderFieldExpressionContext[] {
     if (i === undefined) {
       return this.getRuleContexts(OrderFieldExpressionContext);
     } else {

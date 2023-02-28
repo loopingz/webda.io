@@ -16,7 +16,11 @@ class MailerTest extends WebdaTest {
   ctx: WebContext;
   async before() {
     await super.before();
-    this.lastLevel = this.lastInfo = this.lastOptions = this.lastCallback = undefined;
+    this.lastLevel =
+      this.lastInfo =
+      this.lastOptions =
+      this.lastCallback =
+        undefined;
     this.ctx = await this.newContext();
     this.mailer = this.getService("TrueMailer");
     // Mocking the transporter
@@ -35,7 +39,10 @@ class MailerTest extends WebdaTest {
 
   @test
   params() {
-    let params = new MailerParameters({ templates: "ts", templatesEngine: "b" });
+    let params = new MailerParameters({
+      templates: "ts",
+      templatesEngine: "b",
+    });
     assert.strictEqual(params.templates, "ts/");
     assert.strictEqual(params.templatesEngine, "b");
   }
@@ -51,7 +58,7 @@ class MailerTest extends WebdaTest {
         this.mailer.send({
           template: "plop",
           from: "test@webda.io",
-          replacements: {}
+          replacements: {},
         }),
       /Unknown mail template/
     );
@@ -66,7 +73,7 @@ class MailerTest extends WebdaTest {
   @test
   async knownTemplateOnSend() {
     await this.mailer.send({
-      template: "PASSPORT_EMAIL_RECOVERY"
+      template: "PASSPORT_EMAIL_RECOVERY",
     });
     assert.notStrictEqual(this.lastOptions, undefined);
     assert.notStrictEqual(this.lastOptions.subject, undefined);
@@ -87,7 +94,7 @@ class MailerTest extends WebdaTest {
       return {
         renderAll: async () => {
           return {};
-        }
+        },
       };
     };
     await this.mailer.send({ template: "mine" });
@@ -102,7 +109,7 @@ class MailerTest extends WebdaTest {
       () =>
         this.mailer.send({
           template: "PASSPORT_EMAIL_RECOVERY",
-          from: "test@webda.io"
+          from: "test@webda.io",
         }),
       /Cannot send email as no transporter is defined/
     );
@@ -134,7 +141,13 @@ class MailerTest extends WebdaTest {
       throw new Error("Fake");
     });
     await assert.rejects(
-      () => this.mailer.sendNotification(new User().load({ email: "test@test.com" }), "", undefined, undefined),
+      () =>
+        this.mailer.sendNotification(
+          new User().load({ email: "test@test.com" }),
+          "",
+          undefined,
+          undefined
+        ),
       /Fake/
     );
     stub.restore();

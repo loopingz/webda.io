@@ -1,5 +1,14 @@
-import { Core as Webda, HttpContext, HttpMethodType, WebContext } from "@webda/core";
-import { APIGatewayProxyEvent, Context as LambdaContext, S3Event } from "aws-lambda";
+import {
+  Core as Webda,
+  HttpContext,
+  HttpMethodType,
+  WebContext,
+} from "@webda/core";
+import {
+  APIGatewayProxyEvent,
+  Context as LambdaContext,
+  S3Event,
+} from "aws-lambda";
 import { serialize as cookieSerialize } from "cookie";
 import { LambdaCommandEvent } from "./lambdacaller";
 
@@ -31,7 +40,12 @@ export interface AWSEventsHandler {
  * @class
  */
 export default class LambdaServer extends Webda {
-  _result: { headers?: any; statusCode?: number; multiValueHeaders?: any; body?: any };
+  _result: {
+    headers?: any;
+    statusCode?: number;
+    multiValueHeaders?: any;
+    body?: any;
+  };
   _awsEventsHandlers: AWSEventsHandler[] = [];
 
   /**
@@ -42,13 +56,17 @@ export default class LambdaServer extends Webda {
 
     this._result = {
       headers,
-      statusCode: ctx.statusCode
+      statusCode: ctx.statusCode,
     };
     let cookies = ctx.getResponseCookies();
     this._result.multiValueHeaders = { "Set-Cookie": [] };
     for (let i in cookies) {
       this._result.multiValueHeaders["Set-Cookie"].push(
-        cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options || {})
+        cookieSerialize(
+          cookies[i].name,
+          cookies[i].value,
+          cookies[i].options || {}
+        )
       );
     }
   }
@@ -129,17 +147,35 @@ export default class LambdaServer extends Webda {
       return;
     }
     // Manual launch of webda
-    if (sourceEvent.command === "launch" && sourceEvent.service && sourceEvent.method) {
+    if (
+      sourceEvent.command === "launch" &&
+      sourceEvent.service &&
+      sourceEvent.method
+    ) {
       let commandEvent: LambdaCommandEvent = sourceEvent;
       let args = commandEvent.args || [];
-      this.log("INFO", "Executing", commandEvent.method, "on", commandEvent.service, "with", args);
+      this.log(
+        "INFO",
+        "Executing",
+        commandEvent.method,
+        "on",
+        commandEvent.service,
+        "with",
+        args
+      );
       let service = this.getService(commandEvent.service);
       if (!service) {
         this.log("ERROR", "Cannot find", commandEvent.service);
         return;
       }
       if (typeof service[commandEvent.method] !== "function") {
-        this.log("ERROR", "Cannot find method", commandEvent.method, "on", commandEvent.service);
+        this.log(
+          "ERROR",
+          "Cannot find method",
+          commandEvent.method,
+          "on",
+          commandEvent.service
+        );
         return;
       }
       await service[commandEvent.method](...args);
@@ -149,7 +185,9 @@ export default class LambdaServer extends Webda {
 
     let event: APIGatewayProxyEvent = <APIGatewayProxyEvent>sourceEvent;
     context.callbackWaitsForEmptyEventLoop =
-      (this.getConfiguration().parameters && this.getConfiguration().parameters.waitForEmptyEventLoop) || false;
+      (this.getConfiguration().parameters &&
+        this.getConfiguration().parameters.waitForEmptyEventLoop) ||
+      false;
     this._result = {};
     let vhost: string;
     let i: any;
@@ -189,14 +227,17 @@ export default class LambdaServer extends Webda {
       httpContext.setBody(event.body);
     }
     this.computePrefix(event, httpContext);
-    let ctx = await this.newContext(httpContext);
+    let ctx = await this.newWebContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
 
     // Debug mode
     await this.emitSync("Webda.Request", { context: ctx });
     if (this.getConfiguration().parameters.lambdaRequestHeader) {
-      ctx.setHeader(this.getConfiguration().parameters.lambdaRequestHeader, context.awsRequestId);
+      ctx.setHeader(
+        this.getConfiguration().parameters.lambdaRequestHeader,
+        context.awsRequestId
+      );
     }
     let origin = headers.Origin || headers.origin;
     try {
@@ -225,15 +266,23 @@ export default class LambdaServer extends Webda {
     }
     if (protocol === "https") {
       // Add the HSTS header
-      ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+      ctx.setHeader(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains; preload"
+      );
     }
     // Might want to customize this one
     ctx.setHeader("Access-Control-Max-Age", 3600);
     ctx.setHeader("Access-Control-Allow-Credentials", "true");
-    ctx.setHeader("Access-Control-Allow-Headers", headers["access-control-request-headers"] || "content-type");
+    ctx.setHeader(
+      "Access-Control-Allow-Headers",
+      headers["access-control-request-headers"] || "content-type"
+    );
     if (method === "OPTIONS") {
       // Return allow all methods for now
-      let routes = this.router.getRouteMethodsFromUrl(ctx.getHttpContext().getRelativeUri());
+      let routes = this.router.getRouteMethodsFromUrl(
+        ctx.getHttpContext().getRelativeUri()
+      );
       if (routes.length == 0) {
         ctx.statusCode = 404;
         return this.handleLambdaReturn(ctx);
@@ -272,10 +321,15 @@ export default class LambdaServer extends Webda {
     if (event.path !== event.resource) {
       let relativeUri = event.resource;
       for (let j in event.pathParameters) {
-        relativeUri = relativeUri.replace(new RegExp(`\\{${j}\\+?\\}`), event.pathParameters[j]);
+        relativeUri = relativeUri.replace(
+          new RegExp(`\\{${j}\\+?\\}`),
+          event.pathParameters[j]
+        );
       }
       if (relativeUri !== event.path) {
-        httpContext.setPrefix(event.path.substr(0, event.path.length - relativeUri.length));
+        httpContext.setPrefix(
+          event.path.substr(0, event.path.length - relativeUri.length)
+        );
       }
     }
   }

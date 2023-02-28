@@ -6,7 +6,7 @@ import {
   Service,
   ServiceParameters,
   Store,
-  WebContext
+  WebContext,
 } from "@webda/core";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
@@ -68,7 +68,10 @@ export class HawkServiceParameters extends ServiceParameters {
  *
  * @WebdaModda Hawk
  */
-export default class HawkService extends Service<HawkServiceParameters> implements RequestFilter {
+export default class HawkService
+  extends Service<HawkServiceParameters>
+  implements RequestFilter
+{
   /**
    *
    */
@@ -109,7 +112,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       port: http.getPortNumber(),
       authorization: http.getUniqueHeader("authorization"),
       payload: (await http.getRawBody()) || "",
-      contentType: http.getUniqueHeader("content-type") || ""
+      contentType: http.getUniqueHeader("content-type") || "",
     };
   }
 
@@ -132,13 +135,20 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
 
     // Solution to get an CSRF token
     if (this.parameters.redirectUrl) {
-      this.addRoute(this.parameters.redirectUrl + "{?url}", ["GET"], this._redirect);
+      this.addRoute(
+        this.parameters.redirectUrl + "{?url}",
+        ["GET"],
+        this._redirect
+      );
     }
     // Manage hawk server signature
     this.getWebda().on("Webda.Result", async ({ context }) => {
       try {
         const headers = context.getResponseHeaders();
-        const contentType = headers["Content-Type"] || headers["content-type"] || "application/json";
+        const contentType =
+          headers["Content-Type"] ||
+          headers["content-type"] ||
+          "application/json";
         // Send current time to be able to detect any time synchronization issue
         context.setHeader("x-server-time", Date.now());
 
@@ -146,10 +156,14 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
         if (hawkContext === undefined) {
           return;
         }
-        const header = Hawk.server.header(hawkContext.credentials, hawkContext.artifacts, {
-          payload: context.getResponseBody(),
-          contentType
-        });
+        const header = Hawk.server.header(
+          hawkContext.credentials,
+          hawkContext.artifacts,
+          {
+            payload: context.getResponseBody(),
+            contentType,
+          }
+        );
         // LambdaServer behave a bit different
         context.setHeader("Server-Authorization", header);
       } catch (err) {
@@ -171,15 +185,20 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    * Redirect to a website with CSRF
    */
   async redirectWithCSRF(context: WebContext, url: string) {
-    if (!this.parameters.redirectUris.some(u => url.startsWith(u))) {
+    if (!this.parameters.redirectUris.some((u) => url.startsWith(u))) {
       throw 403;
     }
     context.getSession()[this.parameters.dynamicSessionKey] ??= `${
       this.cryptoService.current
     }.${this.getWebda().getUuid("base64")}`;
     let updatedUrl = new URL(url);
-    const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
-    updatedUrl.searchParams.set("csrf", await this.cryptoService.hmac(data, key));
+    const [key, data] = context
+      .getSession()
+      [this.parameters.dynamicSessionKey].split(".");
+    updatedUrl.searchParams.set(
+      "csrf",
+      await this.cryptoService.hmac(data, key)
+    );
     context.redirect(updatedUrl.toString());
   }
 
@@ -196,7 +215,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   async checkOPTIONS(origin: string) {
     let origins = await this.getOrigins();
 
-    for (let key of Object.keys(origins).filter(n => n.startsWith("key_"))) {
+    for (let key of Object.keys(origins).filter((n) => n.startsWith("key_"))) {
       // Origin is strictly matched by string search
       if (origins[key].statics.indexOf(origin) > -1) {
         return true;
@@ -219,11 +238,15 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   async checkRequest(context: WebContext): Promise<boolean> {
     // Authorize the options
     if (context.getHttpContext().getMethod() === "OPTIONS") {
-      return this.checkOPTIONS(context.getHttpContext().getUniqueHeader("origin") || "");
+      return this.checkOPTIONS(
+        context.getHttpContext().getUniqueHeader("origin") || ""
+      );
     }
 
     // Only check Hawk
-    let authorization = context.getHttpContext().getUniqueHeader("authorization");
+    let authorization = context
+      .getHttpContext()
+      .getUniqueHeader("authorization");
     if (!authorization || !authorization.startsWith("Hawk id=")) {
       return false;
     }
@@ -235,18 +258,23 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     context.setExtension("HawkReviewed", true);
     const hawkRequest = await this.getHawkRequest(context);
     // Specific dynamic session checks (useful for CSRF token)
-    if (this.parameters.dynamicSessionKey && authorization.startsWith('Hawk id="session"')) {
+    if (
+      this.parameters.dynamicSessionKey &&
+      authorization.startsWith('Hawk id="session"')
+    ) {
       try {
         if (!context.getSession()[this.parameters.dynamicSessionKey]) {
           throw 403;
         }
-        const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
+        const [key, data] = context
+          .getSession()
+          [this.parameters.dynamicSessionKey].split(".");
         context.setExtension(
           "hawk",
           await Hawk.server.authenticate(hawkRequest, async () => ({
             id: "session",
             key: await this.cryptoService.hmac(data, key),
-            algorithm: "sha256"
+            algorithm: "sha256",
           }))
         );
       } catch (err) {
@@ -258,8 +286,13 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     } else if (this.store) {
       // We have an Api Key store
       try {
-        context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
-        let fullKey = await this.store.get(context.getExtension("hawk").credentials.id);
+        context.setExtension(
+          "hawk",
+          await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this))
+        );
+        let fullKey = await this.store.get(
+          context.getExtension("hawk").credentials.id
+        );
         if (!fullKey.canRequest(context.getHttpContext())) {
           throw 403;
         }

@@ -36,20 +36,35 @@ class ConsoleLoggerTest {
 
   @test
   cov() {
-    ConsoleLogger.display(new WorkerMessage("log", undefined, { log: new WorkerLog("INFO", undefined, {}, "plop") }));
-    const msg = new WorkerMessage("log", undefined, { log: new WorkerLog("INFO", undefined, {}, "plop") });
-    msg.timestamp = Date.now();
-    assert.strictEqual(ConsoleLogger.format(msg, "%5$r"), "bad log format: %5$r");
-    assert.ok(
-      ConsoleLogger.format(msg).match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z \[ INFO\] undefined \{\} plop/) !==
-        null
+    ConsoleLogger.display(
+      new WorkerMessage("log", undefined, {
+        log: new WorkerLog("INFO", undefined, {}, "plop"),
+      })
     );
-    ConsoleLogger.format(new WorkerMessage("title.set", undefined, { title: "plop" }));
+    const msg = new WorkerMessage("log", undefined, {
+      log: new WorkerLog("INFO", undefined, {}, "plop"),
+    });
+    msg.timestamp = Date.now();
+    assert.strictEqual(
+      ConsoleLogger.format(msg, "%5$r"),
+      "bad log format: %5$r"
+    );
+    assert.ok(
+      ConsoleLogger.format(msg).match(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z \[ INFO\] undefined \{\} plop/
+      ) !== null
+    );
+    ConsoleLogger.format(
+      new WorkerMessage("title.set", undefined, { title: "plop" })
+    );
   }
 
   @test
   titleSet() {
     this.output = new WorkerOutput();
-    ConsoleLogger.handleMessage(new WorkerMessage("title.set", this.output, {}), "TRACE");
+    ConsoleLogger.handleMessage(
+      new WorkerMessage("title.set", this.output, {}),
+      "TRACE"
+    );
   }
 }

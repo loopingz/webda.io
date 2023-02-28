@@ -1,5 +1,10 @@
 import { Core, Counter } from "../core";
-import { EventWithContext, OperationContext, RequestFilter, WebContext } from "../index";
+import {
+  EventWithContext,
+  OperationContext,
+  RequestFilter,
+  WebContext,
+} from "../index";
 import { Authentication } from "./authentication";
 import { Service, ServiceParameters } from "./service";
 
@@ -144,7 +149,7 @@ export abstract class OAuthService<
     this.metrics.login = this.getMetric(Counter, {
       name: "oauth_login",
       help: "count the number of login",
-      labelNames: ["method"]
+      labelNames: ["method"],
     });
   }
 
@@ -168,7 +173,9 @@ export abstract class OAuthService<
    */
   async checkRequest(context: WebContext): Promise<boolean> {
     // Only authorize url from this service
-    if (!context.getHttpContext().getRelativeUri().startsWith(this.parameters.url)) {
+    if (
+      !context.getHttpContext().getRelativeUri().startsWith(this.parameters.url)
+    ) {
       return false;
     }
     let regexps = this.getCallbackReferer();
@@ -191,7 +198,9 @@ export abstract class OAuthService<
    */
   resolve(): this {
     super.resolve();
-    this._authenticationService = this.getService(this.parameters.authenticationService);
+    this._authenticationService = this.getService(
+      this.parameters.authenticationService
+    );
     return this;
   }
 
@@ -202,24 +211,30 @@ export abstract class OAuthService<
     super.initRoutes();
     let name = this.getName();
 
-    this.addRoute(`${this.parameters.url}{?redirect}`, ["GET"], this._redirect, {
-      get: {
-        description: `Log with a ${name} account`,
-        summary: `Redirect to ${name}`,
-        operationId: `logInWith${name}`,
-        responses: {
-          "302": {
-            description: ""
+    this.addRoute(
+      `${this.parameters.url}{?redirect}`,
+      ["GET"],
+      this._redirect,
+      {
+        get: {
+          description: `Log with a ${name} account`,
+          summary: `Redirect to ${name}`,
+          operationId: `logInWith${name}`,
+          responses: {
+            "302": {
+              description: "",
+            },
+            "400": {
+              description: "Missing token",
+            },
           },
-          "400": {
-            description: "Missing token"
-          }
-        }
+        },
       }
-    });
+    );
 
     this.addRoute(
-      this.parameters.url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}",
+      this.parameters.url +
+        "/callback{?code,oauth_token,oauth_verifier,*otherQuery}",
       ["GET"],
       this._callback,
       {
@@ -229,13 +244,13 @@ export abstract class OAuthService<
           operationId: `callbackFrom${name}`,
           responses: {
             "204": {
-              description: ""
+              description: "",
             },
             "400": {
-              description: "Missing token"
-            }
-          }
-        }
+              description: "Missing token",
+            },
+          },
+        },
       }
     );
 
@@ -247,13 +262,13 @@ export abstract class OAuthService<
           operationId: `verify${name}Token`,
           responses: {
             "204": {
-              description: ""
+              description: "",
             },
             "400": {
-              description: "Missing token"
-            }
-          }
-        }
+              description: "Missing token",
+            },
+          },
+        },
       });
     }
 
@@ -265,13 +280,13 @@ export abstract class OAuthService<
           operationId: `get${name}Scope`,
           responses: {
             "204": {
-              description: ""
+              description: "",
             },
             "400": {
-              description: "Missing token"
-            }
-          }
-        }
+              description: "Missing token",
+            },
+          },
+        },
       });
     }
   }
@@ -300,13 +315,19 @@ export abstract class OAuthService<
    */
   _redirect(ctx: WebContext) {
     // implement default behavior
-    let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
-    let redirect = ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
+    let redirect_uri =
+      this.parameters.redirect_uri ||
+      `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
+    let redirect =
+      ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
 
     if (this.parameters.authorized_uris) {
       // Might want to use regexp here
       if (this.parameters.authorized_uris.indexOf(redirect) < 0) {
-        if (ctx.getHttpContext().getHeaders().referer || !this.parameters.no_referer) {
+        if (
+          ctx.getHttpContext().getHeaders().referer ||
+          !this.parameters.no_referer
+        ) {
           // The redirect_uri is not authorized , might be forging HOST request
           throw 401;
         }
@@ -334,7 +355,7 @@ export abstract class OAuthService<
       ...res,
       type: "token",
       provider: this.getName(),
-      context
+      context,
     });
     this.metrics.login.inc({ method: "token" });
   }
@@ -352,7 +373,7 @@ export abstract class OAuthService<
       ...res,
       type: "callback",
       provider: this.getName(),
-      context: ctx
+      context: ctx,
     });
     this.metrics.login.inc({ method: "callback" });
   }
@@ -363,7 +384,12 @@ export abstract class OAuthService<
    * @param identId
    * @param profile
    */
-  async handleReturn(ctx: WebContext, identId: string, profile: any, _tokens: any = undefined) {
+  async handleReturn(
+    ctx: WebContext,
+    identId: string,
+    profile: any,
+    _tokens: any = undefined
+  ) {
     // If no identId has been provided error
     if (!identId) {
       throw 403;
@@ -374,7 +400,12 @@ export abstract class OAuthService<
     // If authentication service then create a User/Ident couple
     if (this._authenticationService) {
       // Should call the onIdentLogin()
-      await this._authenticationService.onIdentLogin(ctx, this.getName().toLowerCase(), identId, profile);
+      await this._authenticationService.onIdentLogin(
+        ctx,
+        this.getName().toLowerCase(),
+        identId,
+        profile
+      );
     } else {
       // Login in session
       ctx.getSession().login(identId, identId);
@@ -415,7 +446,11 @@ export abstract class OAuthService<
    * @param state random state
    * @param ctx Context of request
    */
-  abstract generateAuthUrl(redirect_uri: string, state: string, ctx: WebContext);
+  abstract generateAuthUrl(
+    redirect_uri: string,
+    state: string,
+    ctx: WebContext
+  );
 
   /**
    * Verify a token from a provider

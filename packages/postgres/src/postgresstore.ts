@@ -1,4 +1,8 @@
-import { CoreModel, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
+import {
+  CoreModel,
+  StoreNotFoundError,
+  UpdateConditionFailError,
+} from "@webda/core";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 
@@ -74,8 +78,8 @@ export default class PostgresStore<
     this.log("DEBUG", "Query", query);
     let res = await this.client.query(query);
     return {
-      rows: res.rows.map(r => this.initModel(r.data)),
-      rowCount: res.rowCount
+      rows: res.rows.map((r) => this.initModel(r.data)),
+      rowCount: res.rowCount,
     };
   }
 
@@ -89,16 +93,30 @@ export default class PostgresStore<
   /**
    * @override
    */
-  async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
-    let query = `UPDATE ${this.parameters.table} SET data = data || '${JSON.stringify(
+  async _patch(
+    object: any,
+    uid: string,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<any> {
+    let query = `UPDATE ${
+      this.parameters.table
+    } SET data = data || '${JSON.stringify(
       object
     )}'::jsonb WHERE uuid = '${this.getUuid(uid)}'`;
     if (itemWriteCondition) {
-      query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField);
+      query += this.getQueryCondition(
+        itemWriteCondition,
+        itemWriteConditionField
+      );
     }
     let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
-      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+      throw new UpdateConditionFailError(
+        uid,
+        itemWriteConditionField,
+        itemWriteCondition
+      );
     }
   }
 
@@ -111,14 +129,23 @@ export default class PostgresStore<
     itemWriteCondition?: any,
     itemWriteConditionField?: string
   ): Promise<void> {
-    let query = `UPDATE ${this.parameters.table} SET data = data - '${attribute}' WHERE uuid = '${this.getUuid(uuid)}'`;
+    let query = `UPDATE ${
+      this.parameters.table
+    } SET data = data - '${attribute}' WHERE uuid = '${this.getUuid(uuid)}'`;
     if (itemWriteCondition) {
-      query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField);
+      query += this.getQueryCondition(
+        itemWriteCondition,
+        itemWriteConditionField
+      );
     }
     let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
-        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
+        throw new UpdateConditionFailError(
+          uuid,
+          itemWriteConditionField,
+          itemWriteCondition
+        );
       } else {
         throw new StoreNotFoundError(uuid, this.getName());
       }
@@ -129,7 +156,10 @@ export default class PostgresStore<
    * @override
    */
   getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string) {
-    let condition = itemWriteCondition instanceof Date ? itemWriteCondition.toISOString() : itemWriteCondition;
+    let condition =
+      itemWriteCondition instanceof Date
+        ? itemWriteCondition.toISOString()
+        : itemWriteCondition;
     return ` AND data->>'${itemWriteConditionField}'='${condition}'`;
   }
 
@@ -142,7 +172,7 @@ export default class PostgresStore<
     updateDate: Date
   ): Promise<any> {
     let data = "data";
-    params.forEach(p => {
+    params.forEach((p) => {
       data = `jsonb_set(${data}, '{${p.property}}', (COALESCE(data->>'${p.property}','0')::int + ${p.value})::text::jsonb)::jsonb`;
     });
     let query = `UPDATE ${
@@ -170,20 +200,28 @@ export default class PostgresStore<
   ): Promise<any> {
     let query = `UPDATE ${this.parameters.table} SET data = jsonb_set(jsonb_set(data::jsonb, array['${attribute}'],`;
     if (index === undefined) {
-      query += `COALESCE((data->'${attribute}')::jsonb, '[]'::jsonb) || '[${JSON.stringify(item)}]'::jsonb)::jsonb`;
+      query += `COALESCE((data->'${attribute}')::jsonb, '[]'::jsonb) || '[${JSON.stringify(
+        item
+      )}]'::jsonb)::jsonb`;
     } else {
       query += `jsonb_set(COALESCE((data->'${attribute}')::jsonb, '[]'::jsonb), '{${index}}', '${JSON.stringify(
         item
       )}'::jsonb)::jsonb)`;
     }
-    query += `, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(uuid)}'`;
+    query += `, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(
+      uuid
+    )}'`;
     if (itemWriteCondition) {
       query += ` AND (data#>>'{${attribute}, ${index}}')::jsonb->>'${itemWriteConditionField}'='${itemWriteCondition}'`;
     }
     let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
-        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
+        throw new UpdateConditionFailError(
+          uuid,
+          itemWriteConditionField,
+          itemWriteCondition
+        );
       } else {
         throw new StoreNotFoundError(uuid, this.getName());
       }
@@ -212,7 +250,11 @@ export default class PostgresStore<
     let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
-        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
+        throw new UpdateConditionFailError(
+          uuid,
+          itemWriteConditionField,
+          itemWriteCondition
+        );
       } else {
         throw new StoreNotFoundError(uuid, this.getName());
       }

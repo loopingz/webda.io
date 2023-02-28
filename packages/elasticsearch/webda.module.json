@@ -1,10 +1,14 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/elasticsearchservice": "lib/elasticsearchservice:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/elasticsearchservice": {
       "type": "object",
@@ -62,10 +66,6 @@
               "url"
             ]
           }
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -74,8 +74,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ElasticSearchService"
+      "title": "webda/elasticsearchservice"
     }
-  },
-  "graph": {}
+  }
 }

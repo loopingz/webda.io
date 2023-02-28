@@ -51,7 +51,7 @@ export interface ContextProviderInfo {
 export interface ContextProvider {
   /**
    * Info can contain any type of information
-   * @param info 
+   * @param info
    */
   getContext(info: ContextProviderInfo): OperationContext;
 }
@@ -63,7 +63,6 @@ export interface ContextProvider {
  * @param U type of output for this context
  */
 export class OperationContext<T = any, U = any> extends EventEmitter {
-
   protected static __globalContext: OperationContext;
   private global: boolean = false;
   /**
@@ -175,7 +174,10 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * @returns
    */
   getOutput(): string {
-    if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
+    if (
+      this._stream instanceof WritableStreamBuffer &&
+      (<WritableStreamBuffer>this._stream).size()
+    ) {
       return (<WritableStreamBuffer>this._stream).getContents().toString();
     }
     return this._body;
@@ -193,7 +195,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   async getInput(
     sanitizedOptions: any = {
       allowedTags: [],
-      allowedAttributes: {}
+      allowedAttributes: {},
     }
   ): Promise<T> {
     if (this._sanitized) {
@@ -204,7 +206,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
         return sanitizeHtml(obj, options);
       }
       if (typeof obj === "object") {
-        Object.keys(obj).forEach(key => {
+        Object.keys(obj).forEach((key) => {
           obj[key] = recursiveSanitize(obj[key], options);
         });
       }
@@ -241,7 +243,10 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   /**
    * @override
    */
-  async getRawInput(_limit: number = 1024 * 1024 * 10, _timeout: number = 60000): Promise<Buffer> {
+  async getRawInput(
+    _limit: number = 1024 * 1024 * 10,
+    _timeout: number = 60000
+  ): Promise<Buffer> {
     return Buffer.from("");
   }
 
@@ -284,7 +289,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   createStream() {
     this._stream = new WritableStreamBuffer({
       initialSize: 100 * 1024,
-      incrementAmount: 100 * 1024
+      incrementAmount: 100 * 1024,
     });
   }
 
@@ -302,7 +307,9 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * @returns
    */
   async newSession() {
-    this.session = await this._webda.getService<SessionManager>("SessionManager").newSession(this);
+    this.session = await this._webda
+      .getService<SessionManager>("SessionManager")
+      .newSession(this);
     return this.session;
   }
 
@@ -322,7 +329,11 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * @param output If it is an object it will be serialized with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
    */
-  public write(output: U, _encoding?: string, _cb?: (error: Error) => void): boolean {
+  public write(
+    output: U,
+    _encoding?: string,
+    _cb?: (error: Error) => void
+  ): boolean {
     if (!output) {
       return false;
     }
@@ -376,7 +387,9 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     }
     // Caching the answer
     if (!this.user || refresh) {
-      this.user = await this._webda.getService<Store<K, any>>("Users").get(this.getCurrentUserId());
+      this.user = await this._webda
+        .getService<Store<K, any>>("Users")
+        .get(this.getCurrentUserId());
     }
     return <K>this.user;
   }
@@ -406,7 +419,10 @@ export class SimpleOperationContext extends OperationContext {
   /**
    * @override
    */
-  async getRawInput(limit: number = 1024 * 1024 * 10, _timeout: number = 60000): Promise<Buffer> {
+  async getRawInput(
+    limit: number = 1024 * 1024 * 10,
+    _timeout: number = 60000
+  ): Promise<Buffer> {
     return this.input.slice(0, limit);
   }
 }
@@ -546,7 +562,11 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    * @param ...args any arguments to pass to the toPublicJSON method
    */
   // @ts-ignore
-  public write(output: U, encoding?: string, cb?: (error: Error) => void): boolean {
+  public write(
+    output: U,
+    encoding?: string,
+    cb?: (error: Error) => void
+  ): boolean {
     if (this.statusCode === 204) {
       this.statusCode = 200;
     }
@@ -576,7 +596,10 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    * @param {Number} statusCode to return to the client
    * @param {Object} headers to add to the response
    */
-  writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
+  writeHead(
+    statusCode: number,
+    headers: http.OutgoingHttpHeaders = undefined
+  ): this {
     this._outputHeaders = { ...this._outputHeaders, ...headers };
     if (statusCode !== undefined) {
       this.statusCode = statusCode;
@@ -653,14 +676,21 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     if (this._ended) {
       return this._ended;
     }
-    this._ended = new Promise<void>(async resolve => {
+    this._ended = new Promise<void>(async (resolve) => {
       this.emit("end");
       if (this.getExtension("http")) {
-        await this._webda.getService<SessionManager>("SessionManager").save(this, this.session);
+        await this._webda
+          .getService<SessionManager>("SessionManager")
+          .save(this, this.session);
       }
       await Promise.all(this._promises);
-      if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
-        this._body = (<WritableStreamBuffer>this._stream).getContents().toString();
+      if (
+        this._stream instanceof WritableStreamBuffer &&
+        (<WritableStreamBuffer>this._stream).size()
+      ) {
+        this._body = (<WritableStreamBuffer>this._stream)
+          .getContents()
+          .toString();
         this.statusCode = 200;
       }
       if (!this.headersFlushed) {
@@ -681,7 +711,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   async getRequestBody(
     sanitizedOptions: any = {
       allowedTags: [],
-      allowedAttributes: {}
+      allowedAttributes: {},
     }
   ): Promise<T> {
     return this.getInput(sanitizedOptions);
@@ -722,7 +752,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
       trailers: {},
       url: this.getHttpContext().getUrl(),
       connection: undefined,
-      ...stream
+      ...stream,
     });
   }
 
@@ -766,7 +796,9 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    */
   async execute() {
     if (this.getExecutor() && typeof this._route._method === "function") {
-      return Promise.resolve(this.getExecutor()[this._route._method.name](this));
+      return Promise.resolve(
+        this.getExecutor()[this._route._method.name](this)
+      );
     }
     return Promise.reject(Error("Not implemented"));
   }
@@ -831,7 +863,11 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(webda: Core, httpContext: HttpContext, stream: Writable = undefined) {
+  constructor(
+    webda: Core,
+    httpContext: HttpContext,
+    stream: Writable = undefined
+  ) {
     super(webda, stream);
     this.setHttpContext(httpContext);
     this._outputHeaders = {};
@@ -848,7 +884,11 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
       this.headersFlushed = true;
     });
     if (this.getExtension("http")) {
-      this.session = (await this._webda.getService<SessionManager>("SessionManager").load(this)).getProxy();
+      this.session = (
+        await this._webda
+          .getService<SessionManager>("SessionManager")
+          .load(this)
+      ).getProxy();
     }
     return super.init();
   }

@@ -1,16 +1,29 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/asyncjobservice": "lib/services/asyncjobservice:default",
     "webda/localrunner": "lib/services/localrunner:default",
     "webda/servicerunner": "lib/services/servicerunner:default"
   },
-  "beans": {},
   "models": {
-    "webda/asyncaction": "lib/models:default",
-    "webda/asyncoperationaction": "lib/models:AsyncOperationAction",
-    "webda/asyncwebdaaction": "lib/models:AsyncWebdaAction"
+    "graph": {
+      "webda/asyncaction": {},
+      "webda/asyncwebdaaction": {},
+      "webda/asyncoperationaction": {}
+    },
+    "tree": {
+      "webda/asyncaction": {
+        "webda/asyncwebdaaction": {},
+        "webda/asyncoperationaction": {}
+      }
+    },
+    "list": {
+      "webda/asyncaction": "lib/models:default",
+      "webda/asyncoperationaction": "lib/models:AsyncOperationAction",
+      "webda/asyncwebdaaction": "lib/models:AsyncWebdaAction"
+    }
   },
-  "deployers": {},
   "schemas": {
     "webda/asyncaction": {
       "type": "object",
@@ -97,119 +110,92 @@
       ],
       "description": "Define here a model that can be used along with Store service",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AsyncAction"
+      "title": "webda/asyncaction"
     },
-    "webda/asyncwebdaaction": {
+    "webda/asyncjobservice": {
       "type": "object",
       "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "uuid": {
-          "type": "string",
-          "description": "Action uuid"
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "RUNNING",
-            "SUCCESS",
-            "ERROR",
-            "QUEUED",
-            "STARTING",
-            "TIMEOUT",
-            "SCHEDULED"
-          ],
-          "description": "Current status"
-        },
-        "scheduled": {
-          "type": "number",
-          "description": "Timestamp when the action was scheduled"
-        },
-        "errorMessage": {
-          "type": "string",
-          "description": "If an error occured it should contain the message"
-        },
-        "job": {
-          "type": "object",
-          "description": "Job information"
-        },
-        "_lastJobUpdate": {
-          "type": "number",
-          "description": "Last time the job was updated",
-          "readOnly": true
-        },
-        "results": {
-          "description": "Results from the job"
-        },
-        "statusDetails": {
-          "description": "Job current status"
-        },
         "type": {
-          "type": "string"
+          "type": "string",
+          "description": "Type of the service"
         },
-        "arguments": {
-          "type": "array",
-          "items": {}
+        "url": {
+          "type": "string",
+          "description": "URL to expose job status report hook",
+          "default": "/async/jobs"
         },
-        "logs": {
+        "store": {
+          "type": "string",
+          "description": "Store name to use for async actions",
+          "default": "AsyncActions"
+        },
+        "binaryStore": {
+          "type": "string",
+          "description": "If we want to expose a way to upload/download binary for the job\n\nIt will expose a /download and /upload additional url"
+        },
+        "localLaunch": {
+          "type": "boolean",
+          "description": "If set runner will be called without queue",
+          "default": false
+        },
+        "queue": {
+          "type": "string",
+          "description": "Queue to post execution to",
+          "default": "AsyncActionsQueue"
+        },
+        "fallbackOnFirst": {
+          "type": "boolean",
+          "description": "Fallback on first runner if none match",
+          "default": false
+        },
+        "runners": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Current logs"
+          "description": "Runners to use"
         },
-        "action": {
+        "concurrencyLimit": {
+          "type": "number",
+          "description": "Limit the maximum number of jobs running in //"
+        },
+        "onlyHttpHook": {
+          "type": "boolean",
+          "description": "Define if we should only use an http hook and not rely on store for AsyncOperation",
+          "default": false
+        },
+        "includeCron": {
+          "type": "boolean",
+          "description": "Include Cron annotation to launch them as AsyncOperationAction",
+          "default": true
+        },
+        "schedulerResolution": {
+          "type": "number",
+          "description": "Schedule action resolution\n\nIf set to 1000ms, you can schedule action per second by default it resolve per minute",
+          "default": 60000
+        },
+        "logsLimit": {
+          "type": "number",
+          "description": "Limit the number of lines of logs available for an async action\n\nIf you need to store large amount of logs then you should use the CloudWatchLogger or similar logger",
+          "default": 500
+        },
+        "asyncActionModel": {
           "type": "string",
-          "description": "Expected action for the job\n\nIt should be a verb"
-        },
-        "logLevel": {
-          "$ref": "#/definitions/WorkerLogLevel"
-        },
-        "serviceName": {
-          "type": "string",
-          "description": "service to call"
-        },
-        "method": {
-          "type": "string",
-          "description": "method to call"
+          "description": "Model to use when launching async action",
+          "default": "Webda/AsyncWebdaAction"
         }
       },
       "required": [
-        "job",
-        "logLevel",
-        "logs",
-        "results",
-        "status",
-        "statusDetails",
+        "fallbackOnFirst",
+        "logsLimit",
+        "queue",
+        "runners",
+        "store",
         "type",
-        "uuid"
+        "url"
       ],
-      "description": "Define a Webda Async Action",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "WorkerLogLevel": {
-          "type": "string",
-          "enum": [
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE"
-          ],
-          "description": "LogLevel as intersection to compare with integer values"
-        }
-      },
-      "title": "AsyncWebdaAction"
+      "title": "webda/asyncjobservice"
     },
     "webda/asyncoperationaction": {
       "type": "object",
@@ -371,137 +357,119 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "AsyncOperationAction"
+      "title": "webda/asyncoperationaction"
     },
-    "webda/servicerunner": {
+    "webda/asyncwebdaaction": {
       "type": "object",
       "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "description": "Action uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RUNNING",
+            "SUCCESS",
+            "ERROR",
+            "QUEUED",
+            "STARTING",
+            "TIMEOUT",
+            "SCHEDULED"
+          ],
+          "description": "Current status"
+        },
+        "scheduled": {
+          "type": "number",
+          "description": "Timestamp when the action was scheduled"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "If an error occured it should contain the message"
+        },
+        "job": {
+          "type": "object",
+          "description": "Job information"
+        },
+        "_lastJobUpdate": {
+          "type": "number",
+          "description": "Last time the job was updated",
+          "readOnly": true
+        },
+        "results": {
+          "description": "Results from the job"
+        },
+        "statusDetails": {
+          "description": "Job current status"
+        },
         "type": {
-          "type": "string",
-          "description": "Type of the service"
+          "type": "string"
         },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
+        "arguments": {
+          "type": "array",
+          "items": {}
         },
-        "actions": {
+        "logs": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Actions managed by the runner",
-          "default": []
+          "description": "Current logs"
         },
-        "logFormat": {
+        "action": {
           "type": "string",
-          "description": "Define the log format",
-          "default": "ConsoleLoggerDefaultFormat"
+          "description": "Expected action for the job\n\nIt should be a verb"
         },
-        "logSaveDelay": {
-          "type": "number",
-          "description": "How long before saving logs (in ms)",
-          "default": 5000
+        "logLevel": {
+          "$ref": "#/definitions/WorkerLogLevel"
         },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
+        "serviceName": {
+          "type": "string",
+          "description": "service to call"
+        },
+        "method": {
+          "type": "string",
+          "description": "method to call"
         }
       },
       "required": [
-        "type"
-      ],
-      "description": "Add the log format to capture",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ServiceRunner"
-    },
-    "webda/asyncjobservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL to expose job status report hook",
-          "default": "/async/jobs"
-        },
-        "store": {
-          "type": "string",
-          "description": "Store name to use for async actions",
-          "default": "AsyncActions"
-        },
-        "binaryStore": {
-          "type": "string",
-          "description": "If we want to expose a way to upload/download binary for the job\n\nIt will expose a /download and /upload additional url"
-        },
-        "localLaunch": {
-          "type": "boolean",
-          "description": "If set runner will be called without queue",
-          "default": false
-        },
-        "queue": {
-          "type": "string",
-          "description": "Queue to post execution to",
-          "default": "AsyncActionsQueue"
-        },
-        "fallbackOnFirst": {
-          "type": "boolean",
-          "description": "Fallback on first runner if none match",
-          "default": false
-        },
-        "runners": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Runners to use"
-        },
-        "concurrencyLimit": {
-          "type": "number",
-          "description": "Limit the maximum number of jobs running in //"
-        },
-        "onlyHttpHook": {
-          "type": "boolean",
-          "description": "Define if we should only use an http hook and not rely on store for AsyncOperation",
-          "default": false
-        },
-        "includeCron": {
-          "type": "boolean",
-          "description": "Include Cron annotation to launch them as AsyncOperationAction",
-          "default": true
-        },
-        "schedulerResolution": {
-          "type": "number",
-          "description": "Schedule action resolution\n\nIf set to 1000ms, you can schedule action per second by default it resolve per minute",
-          "default": 60000
-        },
-        "logsLimit": {
-          "type": "number",
-          "description": "Limit the number of lines of logs available for an async action\n\nIf you need to store large amount of logs then you should use the CloudWatchLogger or similar logger",
-          "default": 500
-        },
-        "asyncActionModel": {
-          "type": "string",
-          "description": "Model to use when launching async action",
-          "default": "Webda/AsyncWebdaAction"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "fallbackOnFirst",
-        "logsLimit",
-        "queue",
-        "runners",
-        "store",
+        "job",
+        "logLevel",
+        "logs",
+        "results",
+        "status",
+        "statusDetails",
         "type",
-        "url"
+        "uuid"
       ],
+      "description": "Define a Webda Async Action",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AsyncJobService"
+      "definitions": {
+        "WorkerLogLevel": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
+          "description": "LogLevel as intersection to compare with integer values"
+        }
+      },
+      "title": "webda/asyncwebdaaction"
     },
     "webda/localrunner": {
       "type": "object",
@@ -586,10 +554,6 @@
         "autoStatus": {
           "type": "boolean",
           "description": "Use the observability of ChildProcess to update status accordingly"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -658,12 +622,44 @@
           ]
         }
       },
-      "title": "LocalRunner"
+      "title": "webda/localrunner"
+    },
+    "webda/servicerunner": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actions managed by the runner",
+          "default": []
+        },
+        "logFormat": {
+          "type": "string",
+          "description": "Define the log format",
+          "default": "ConsoleLoggerDefaultFormat"
+        },
+        "logSaveDelay": {
+          "type": "number",
+          "description": "How long before saving logs (in ms)",
+          "default": 5000
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Add the log format to capture",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webda/servicerunner"
     }
-  },
-  "graph": {
-    "webda/asyncaction": {},
-    "webda/asyncwebdaaction": {},
-    "webda/asyncoperationaction": {}
   }
 }

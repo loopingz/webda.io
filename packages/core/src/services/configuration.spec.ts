@@ -20,7 +20,9 @@ class ConfigurationServiceTest extends WebdaTest {
   }
   async after() {
     await this.webda.getService("ConfigurationStore").__clean();
-    (<ConfigurationService>this.webda.getService("ConfigurationService")).stop();
+    (<ConfigurationService>(
+      this.webda.getService("ConfigurationService")
+    )).stop();
   }
 
   @test
@@ -30,9 +32,15 @@ class ConfigurationServiceTest extends WebdaTest {
     // @ts-ignore
     service.configuration = { test: "plop" };
     assert.deepStrictEqual(service.getConfiguration(), { test: "plop" });
-    await assert.rejects(() => service.init(), /Need a source for ConfigurationService/);
+    await assert.rejects(
+      () => service.init(),
+      /Need a source for ConfigurationService/
+    );
     service.getParameters().source = "none:plopId";
-    await assert.rejects(() => service.init(), /Need a valid service for source/);
+    await assert.rejects(
+      () => service.init(),
+      /Need a valid service for source/
+    );
     service.getParameters().source = "DefinedMailer";
     await assert.rejects(() => service.init(), /Need a valid source/);
     service.getParameters().source = "DefinedMailer:none";
@@ -40,13 +48,24 @@ class ConfigurationServiceTest extends WebdaTest {
       () => service.init(),
       /Service 'DefinedMailer' is not implementing ConfigurationProvider interface/
     );
-    await assert.rejects(() => service.initConfiguration(), /ConfigurationService with dependencies cannot be used/);
+    await assert.rejects(
+      () => service.initConfiguration(),
+      /ConfigurationService with dependencies cannot be used/
+    );
   }
 
   @test
   async initialLoad() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
+      "Test"
+    );
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .mailer,
+      "DefinedMailer"
+    );
     let test = {
       uuid: "test",
       webda: {
@@ -54,21 +73,35 @@ class ConfigurationServiceTest extends WebdaTest {
           Authentication: {
             providers: {
               email: {
-                text: "Plop"
-              }
-            }
-          }
-        }
-      }
+                text: "Plop",
+              },
+            },
+          },
+        },
+      },
     };
-    let store: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("ConfigurationStore");
-    await new Promise(async resolve => {
-      this.webda.getService("ConfigurationService").on("Configuration.Applied", resolve);
+    let store: Store<CoreModel> = <Store<CoreModel>>(
+      this.webda.getService("ConfigurationStore")
+    );
+    await new Promise(async (resolve) => {
+      this.webda
+        .getService("ConfigurationService")
+        .on("Configuration.Applied", resolve);
       await store.save(test);
     });
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
-    let service = this.webda.getService<ConfigurationService>("ConfigurationService");
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .text,
+      "Plop"
+    );
+    assert.strictEqual(
+      this.webda.getConfiguration().services.Authentication.providers.email
+        .mailer,
+      "DefinedMailer"
+    );
+    let service = this.webda.getService<ConfigurationService>(
+      "ConfigurationService"
+    );
     // @ts-ignore
     await service.checkUpdate();
     // @ts-ignore

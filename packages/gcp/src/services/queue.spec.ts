@@ -17,11 +17,17 @@ class GCPQueueTest extends QueueTest {
   @test
   async basic() {
     let queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
-    queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
-    await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
-      ackDeadlineSeconds: 10,
-      enableExactlyOnceDelivery: true
-    });
+    queue.getParameters().subscription = `${
+      queue.getParameters().subscription
+    }_${this.webda.getUuid()}`;
+    await queue.pubsub.createSubscription(
+      queue.getParameters().topic,
+      queue.getParameters().subscription,
+      {
+        ackDeadlineSeconds: 10,
+        enableExactlyOnceDelivery: true,
+      }
+    );
     try {
       await this.simple(queue, true, 12000);
       // Seems to be penalized by no promise on ACK
@@ -30,26 +36,37 @@ class GCPQueueTest extends QueueTest {
       queue.getParameters().timeout = 3000;
       // TODO Investigate this one
       if ((await queue.receiveMessage()).length > 0) {
-        this.log("ERROR", "Queue should be empty - not an assert to avoid random");
+        this.log(
+          "ERROR",
+          "Queue should be empty - not an assert to avoid random"
+        );
       }
     } finally {
-      await queue.pubsub.subscription(queue.getParameters().subscription).delete();
+      await queue.pubsub
+        .subscription(queue.getParameters().subscription)
+        .delete();
     }
   }
 
   @test
   async consumers() {
     let queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
-    queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
-    await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
-      ackDeadlineSeconds: 10,
-      enableMessageOrdering: true
-    });
+    queue.getParameters().subscription = `${
+      queue.getParameters().subscription
+    }_${this.webda.getUuid()}`;
+    await queue.pubsub.createSubscription(
+      queue.getParameters().topic,
+      queue.getParameters().subscription,
+      {
+        ackDeadlineSeconds: 10,
+        enableMessageOrdering: true,
+      }
+    );
     try {
       // Test consumer
       let msg;
       let consumed = 0;
-      let consumer = queue.consume(async dt => {
+      let consumer = queue.consume(async (dt) => {
         consumed++;
         if (msg) {
           throw new Error();
@@ -72,7 +89,9 @@ class GCPQueueTest extends QueueTest {
       await queue.receiveMessage();
       await queue.receiveMessage();
     } finally {
-      await queue.pubsub.subscription(queue.getParameters().subscription).delete();
+      await queue.pubsub
+        .subscription(queue.getParameters().subscription)
+        .delete();
     }
   }
 

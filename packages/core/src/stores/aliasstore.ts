@@ -36,7 +36,9 @@ export abstract class AbstractAliasStore<
    * @override
    */
   find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
-    let expr = new WebdaQL.AndExpression([new WebdaQL.ComparisonExpression("=", "__type", this._modelType)]);
+    let expr = new WebdaQL.AndExpression([
+      new WebdaQL.ComparisonExpression("=", "__type", this._modelType),
+    ]);
     // Will need to check for uuid query
     if (query.filter) {
       expr.children.push(query.filter);
@@ -48,8 +50,8 @@ export abstract class AbstractAliasStore<
   /**
    * @override
    */
-  exists(uid: string): Promise<boolean> {
-    return this._targetStore.exists(this.generateUuidFromPublicId(uid));
+  _exists(uid: string): Promise<boolean> {
+    return this._targetStore._exists(this.generateUuidFromPublicId(uid));
   }
 
   /**
@@ -57,7 +59,9 @@ export abstract class AbstractAliasStore<
    */
   async getAll(list?: string[]): Promise<T[]> {
     if (list) {
-      return this._targetStore.getAll(list.map(id => this.generateUuidFromPublicId(id)));
+      return this._targetStore.getAll(
+        list.map((id) => this.generateUuidFromPublicId(id))
+      );
     } else {
       // Get all from find
       return this._targetStore.queryAll(`__type = '${this._modelType}'`);
@@ -124,15 +128,26 @@ export abstract class AbstractAliasStore<
    */
   async _get(uid: string, raiseIfNotFound?: boolean | undefined): Promise<T> {
     // @ts-ignore
-    return this._targetStore._get(this.generateUuidFromPublicId(uid), raiseIfNotFound);
+    return this._targetStore._get(
+      this.generateUuidFromPublicId(uid),
+      raiseIfNotFound
+    );
   }
 
   /**
    * @override
    */
-  async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string | undefined): Promise<void> {
+  async _delete(
+    uid: string,
+    writeCondition?: any,
+    itemWriteConditionField?: string | undefined
+  ): Promise<void> {
     // @ts-ignore
-    return this._targetStore._delete(this.generateUuidFromPublicId(uid), writeCondition, itemWriteConditionField);
+    return this._targetStore._delete(
+      this.generateUuidFromPublicId(uid),
+      writeCondition,
+      itemWriteConditionField
+    );
   }
 
   /**
@@ -162,7 +177,11 @@ export abstract class AbstractAliasStore<
    */
   async _incrementAttributes(uid: string, ...args): Promise<any> {
     // @ts-ignore
-    return this._targetStore._incrementAttributes(this.generateUuidFromPublicId(uid), ...args);
+    return this._targetStore._incrementAttributes(
+      this.generateUuidFromPublicId(uid),
+      // @ts-ignore
+      ...args
+    );
   }
 
   /**
@@ -205,7 +224,9 @@ export abstract class AbstractAliasStore<
    * @override
    */
   httpGet(ctx: WebContext<any, any>): Promise<void> {
-    ctx.getParameters().id = this.generateUuidFromPublicId(ctx.getParameters().id);
+    ctx.getParameters().id = this.generateUuidFromPublicId(
+      ctx.getParameters().id
+    );
     return super.httpGet(ctx);
   }
 
@@ -213,7 +234,9 @@ export abstract class AbstractAliasStore<
    * @override
    */
   httpAction(ctx: WebContext<any, any>): Promise<void> {
-    ctx.getParameters().id = this.generateUuidFromPublicId(ctx.getParameters().id);
+    ctx.getParameters().id = this.generateUuidFromPublicId(
+      ctx.getParameters().id
+    );
     return super.httpAction(ctx);
   }
 }

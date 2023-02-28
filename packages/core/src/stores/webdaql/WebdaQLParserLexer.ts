@@ -43,7 +43,10 @@ export class WebdaQLParserLexer extends Lexer {
   public static readonly FUNCTION_IDENTIFIER_WITH_UNDERSCORE = 31;
 
   // tslint:disable:no-trailing-whitespace
-  public static readonly channelNames: string[] = ["DEFAULT_TOKEN_CHANNEL", "HIDDEN"];
+  public static readonly channelNames: string[] = [
+    "DEFAULT_TOKEN_CHANNEL",
+    "HIDDEN",
+  ];
 
   // tslint:disable:no-trailing-whitespace
   public static readonly modeNames: string[] = ["DEFAULT_MODE"];
@@ -85,7 +88,7 @@ export class WebdaQLParserLexer extends Lexer {
     "INTEGER_LITERAL",
     "IDENTIFIER",
     "IDENTIFIER_WITH_NUMBER",
-    "FUNCTION_IDENTIFIER_WITH_UNDERSCORE"
+    "FUNCTION_IDENTIFIER_WITH_UNDERSCORE",
   ];
 
   private static readonly _LITERAL_NAMES: Array<string | undefined> = [
@@ -114,7 +117,7 @@ export class WebdaQLParserLexer extends Lexer {
     "'OFFSET'",
     "'ORDER BY'",
     "'ASC'",
-    "'DESC'"
+    "'DESC'",
   ];
   private static readonly _SYMBOLIC_NAMES: Array<string | undefined> = [
     undefined,
@@ -148,7 +151,7 @@ export class WebdaQLParserLexer extends Lexer {
     "INTEGER_LITERAL",
     "IDENTIFIER",
     "IDENTIFIER_WITH_NUMBER",
-    "FUNCTION_IDENTIFIER_WITH_UNDERSCORE"
+    "FUNCTION_IDENTIFIER_WITH_UNDERSCORE",
   ];
   public static readonly VOCABULARY: Vocabulary = new VocabularyImpl(
     WebdaQLParserLexer._LITERAL_NAMES,

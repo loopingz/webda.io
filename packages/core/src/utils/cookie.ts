@@ -116,9 +116,18 @@ export class SecureCookie {
     }
 
     try {
-      return Object.assign(session, await context.getWebda().getCrypto().jwtVerify(raw, options));
+      return Object.assign(
+        session,
+        await context.getWebda().getCrypto().jwtVerify(raw, options)
+      );
     } catch (err) {
-      context.log("WARN", "Ignoring bad cookie", `'${raw}'`, "from", context.getHttpContext());
+      context.log(
+        "WARN",
+        "Ignoring bad cookie",
+        `'${raw}'`,
+        "from",
+        context.getHttpContext()
+      );
       return session;
     }
   }
@@ -138,8 +147,16 @@ export class SecureCookie {
     options?: JWTOptions,
     cookieOptions?: Partial<CookieOptions>
   ) {
-    let value = await context.getWebda().getCrypto().jwtSign(Object.assign({}, data), options);
-    this.sendCookie(context, name, value, new CookieOptions(cookieOptions, context.getHttpContext()));
+    let value = await context
+      .getWebda()
+      .getCrypto()
+      .jwtSign(Object.assign({}, data), options);
+    this.sendCookie(
+      context,
+      name,
+      value,
+      new CookieOptions(cookieOptions, context.getHttpContext())
+    );
   }
 
   /**
@@ -152,7 +169,12 @@ export class SecureCookie {
    * @param value of the cookie
    * @param params for the cookie
    */
-  static sendCookie(ctx: WebContext, name: string, value: string, params: CookieOptions) {
+  static sendCookie(
+    ctx: WebContext,
+    name: string,
+    value: string,
+    params: CookieOptions
+  ) {
     let j = 1;
     let cookieName = name;
     let limit;

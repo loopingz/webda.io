@@ -1,11 +1,15 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/websocketsclientservice": "lib/client:WebSocketsClientService",
     "webda/websocketsservice": "lib/server:WebSocketsService"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/websocketsclientservice": {
       "type": "object",
@@ -56,10 +60,6 @@
         "frontend": {
           "type": "string",
           "description": "Make frontend mandatory for client"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -67,7 +67,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "WebSocketsClientService"
+      "title": "webda/websocketsclientservice"
     },
     "webda/websocketsservice": {
       "type": "object",
@@ -114,18 +114,13 @@
           "default": {
             "type": "JWT"
           }
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "WebSocketsService"
+      "title": "webda/websocketsservice"
     }
-  },
-  "graph": {}
+  }
 }

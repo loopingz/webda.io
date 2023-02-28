@@ -1,10 +1,14 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/kuberunner": "lib/services/kuberunner:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/kuberunner": {
       "type": "object",
@@ -70,10 +74,6 @@
         "jobImage": {
           "type": "string",
           "description": "If default template, use this image"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -103,8 +103,7 @@
           ]
         }
       },
-      "title": "KubeRunner"
+      "title": "webda/kuberunner"
     }
-  },
-  "graph": {}
+  }
 }

@@ -1,55 +1,23 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/hawk": "lib/hawk:default"
   },
-  "beans": {},
   "models": {
-    "webda/apikey": "lib/apikey:default"
-  },
-  "deployers": {},
-  "schemas": {
-    "webda/hawk": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "keysStore": {
-          "type": "string",
-          "description": "Key store name",
-          "default": "apikeys"
-        },
-        "dynamicSessionKey": {
-          "type": "string",
-          "description": "If specified will verify the signature match the key store in session"
-        },
-        "redirectUrl": {
-          "type": "string",
-          "description": "redirect endpoint"
-        },
-        "redirectUris": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Allowed redirection with CSRF"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Hawk"
+    "graph": {
+      "webda/apikey": {}
     },
+    "tree": {
+      "webda/ownermodel": {
+        "webda/apikey": {}
+      }
+    },
+    "list": {
+      "webda/apikey": "lib/apikey:default"
+    }
+  },
+  "schemas": {
     "webda/apikey": {
       "type": "object",
       "properties": {
@@ -145,10 +113,45 @@
       ],
       "description": "Api Key to use with hawk",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ApiKey"
+      "title": "webda/apikey"
+    },
+    "webda/hawk": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "keysStore": {
+          "type": "string",
+          "description": "Key store name",
+          "default": "apikeys"
+        },
+        "dynamicSessionKey": {
+          "type": "string",
+          "description": "If specified will verify the signature match the key store in session"
+        },
+        "redirectUrl": {
+          "type": "string",
+          "description": "redirect endpoint"
+        },
+        "redirectUris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Allowed redirection with CSRF"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "webda/hawk"
     }
-  },
-  "graph": {
-    "webda/apikey": {}
   }
 }

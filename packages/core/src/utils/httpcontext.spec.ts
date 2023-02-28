@@ -13,7 +13,7 @@ class HttpContextTest {
     let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
       "X-Test": "weBda",
       other: ["head1", "head2"],
-      cookie: ["", ""]
+      cookie: ["", ""],
     });
     assert.strictEqual(ctx.getHeader("X-Test"), "weBda");
     assert.strictEqual(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
@@ -23,7 +23,9 @@ class HttpContextTest {
 
   @test
   async stream() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, { "X-Test": "weBda" });
+    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
+      "X-Test": "weBda",
+    });
     ctx.setBody("Test");
     // Next line is just for cov
     ctx.setClientIp("127.0.0.1").getClientIp();
@@ -36,12 +38,17 @@ class HttpContextTest {
     assert.strictEqual(await ctx.getRawBodyAsString(), "Test");
     // @ts-ignore
     ctx.getHeaders()["content-type"] = "application/json; charset=iso-8859-1";
-    await assert.rejects(() => ctx.getRawBodyAsString(), /Only UTF-8 is currently managed/);
+    await assert.rejects(
+      () => ctx.getRawBodyAsString(),
+      /Only UTF-8 is currently managed/
+    );
   }
 
   @test
   async oversize() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, { "X-Test": "weBda" });
+    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
+      "X-Test": "weBda",
+    });
     ctx.setBody("Test".repeat(1024));
     let stream = ctx.getRawStream();
     ctx.setBody(stream);
@@ -50,9 +57,14 @@ class HttpContextTest {
 
   @test
   async timeout() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, { "X-Test": "weBda" });
+    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
+      "X-Test": "weBda",
+    });
     let str = new FakeReadable();
     ctx.setBody(str);
-    await assert.rejects(() => ctx.getRawBody(undefined, 100), /Request timeout/);
+    await assert.rejects(
+      () => ctx.getRawBody(undefined, 100),
+      /Request timeout/
+    );
   }
 }

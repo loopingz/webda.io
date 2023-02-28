@@ -1,13 +1,17 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "webda/googlecloudfirestore": "lib/services/firestore:default",
     "webda/googlecloudpubsub": "lib/services/pubsub:default",
     "webda/googlecloudqueue": "lib/services/queue:default",
     "webda/googlecloudstorage": "lib/services/storage:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
   "schemas": {
     "webda/googlecloudfirestore": {
       "type": "object",
@@ -90,10 +94,6 @@
             "$ref": "#/definitions/FireStoreIndex"
           },
           "description": "To allow efficient query on several fields"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -164,7 +164,7 @@
           "description": "Definition of a FireStore index"
         }
       },
-      "title": "GoogleCloudFireStore"
+      "title": "webda/googlecloudfirestore"
     },
     "webda/googlecloudpubsub": {
       "type": "object",
@@ -184,10 +184,6 @@
         "subscriptionOptions": {
           "$ref": "#/definitions/CreateSubscriptionOptions",
           "description": "Subscription options to pass to GCP"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1023,7 +1019,7 @@
           "description": "Properties of an OidcToken."
         }
       },
-      "title": "GoogleCloudPubSub"
+      "title": "webda/googlecloudpubsub"
     },
     "webda/googlecloudqueue": {
       "type": "object",
@@ -1075,10 +1071,6 @@
         "timeout": {
           "type": "number",
           "description": "Timeout when receiveMessage is used before returning empty result (in ms)\n\nIf not define then no timeout is applied and receiveMessage can hang forever"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1089,7 +1081,7 @@
       ],
       "description": "GCPQueue Parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GoogleCloudQueue"
+      "title": "webda/googlecloudqueue"
     },
     "webda/googlecloudstorage": {
       "type": "object",
@@ -1152,10 +1144,6 @@
         },
         "bucket": {
           "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -1164,8 +1152,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GoogleCloudStorage"
+      "title": "webda/googlecloudstorage"
     }
-  },
-  "graph": {}
+  }
 }

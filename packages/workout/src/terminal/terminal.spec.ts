@@ -58,9 +58,17 @@ class TerminalTest {
     this.terminal.onData("\u001B\u005B\u0036\u007e");
     this.terminal.onData("\u001B\u005B\u0042");
     this.terminal.onData("\u001B\u005B\u0041");
-    let uuidP = this.output.requestInput("My Question", undefined, [new RegExp(/\d+/)], true);
-    await new Promise(resolve => nextTick(resolve));
-    assert.ok(this.terminal.inputs.length > 0, `Should have one input ${JSON.stringify(this.output.listeners)}`);
+    let uuidP = this.output.requestInput(
+      "My Question",
+      undefined,
+      [new RegExp(/\d+/)],
+      true
+    );
+    await new Promise((resolve) => nextTick(resolve));
+    assert.ok(
+      this.terminal.inputs.length > 0,
+      `Should have one input ${JSON.stringify(this.output.listeners)}`
+    );
     this.terminal.onData("\x0d");
     this.terminal.onData("\x7f");
     this.terminal.displayFooter();
@@ -94,14 +102,16 @@ class TerminalTest {
     assert.strictEqual(this.terminal.scrollY, -1);
 
     this.terminal.width = 30;
-    this.terminal.displayProgress(new WorkerProgress("uu", 100, [], "longtitle".repeat(100)));
+    this.terminal.displayProgress(
+      new WorkerProgress("uu", 100, [], "longtitle".repeat(100))
+    );
   }
 
   @test
   async progress() {
     this.output.startProgress("mine", 100, "test");
     this.output.incrementProgress(10, "mine");
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     this.terminal.resize();
     this.output.incrementProgress(100, "mine");
   }
@@ -132,7 +142,10 @@ class TerminalTest {
   testDisplayString() {
     let test = this.terminal.displayString("Test" + "plop" + " " + "yep", 50);
     assert.strictEqual(test.length, 50);
-    test = this.terminal.displayString("Test" + chalk.yellow("plop") + " " + chalk.blue("yep"), 50);
+    test = this.terminal.displayString(
+      "Test" + chalk.yellow("plop") + " " + chalk.blue("yep"),
+      50
+    );
     assert.strictEqual(test.length, 70);
   }
 
@@ -149,7 +162,7 @@ class TerminalTest {
   }
 
   async visu() {
-    return new Promise<void>(async resolve => {
+    return new Promise<void>(async (resolve) => {
       let output = new WorkerOutput();
       let terminal = new Terminal(output);
       let i = 1;
@@ -172,10 +185,18 @@ class TerminalTest {
       output.openGroup("Subgroup");
       output.closeGroup();
       let interval2 = setInterval(() => {
-        output.log(<any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)], "This is my log " + i++);
+        output.log(
+          <any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)],
+          "This is my log " + i++
+        );
       }, 500);
 
-      await output.requestInput("What is?", WorkerInputType.STRING, ["\\d+"], true);
+      await output.requestInput(
+        "What is?",
+        WorkerInputType.STRING,
+        ["\\d+"],
+        true
+      );
       setTimeout(() => output.closeGroup(), 5600);
       setTimeout(() => {
         clearInterval(interval);

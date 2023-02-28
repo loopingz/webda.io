@@ -10,7 +10,10 @@ export class AMQPQueueParameters extends QueueParameters {
  *
  * @WebdaModda
  */
-export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueueParameters> extends Queue<T, K> {
+export default class AMQPQueue<
+  T = any,
+  K extends AMQPQueueParameters = AMQPQueueParameters
+> extends Queue<T, K> {
   channel: any;
   conn: any;
   /**
@@ -35,7 +38,10 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    * @override
    */
   async sendMessage(event: T): Promise<void> {
-    await this.channel.sendToQueue(this.parameters.queue, Buffer.from(JSONUtils.stringify(event)));
+    await this.channel.sendToQueue(
+      this.parameters.queue,
+      Buffer.from(JSONUtils.stringify(event))
+    );
   }
 
   /**
@@ -49,8 +55,8 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
     return [
       {
         ReceiptHandle: msg,
-        Message: this.unserialize(msg.content.toString(), proto)
-      }
+        Message: this.unserialize(msg.content.toString(), proto),
+      },
     ];
   }
 

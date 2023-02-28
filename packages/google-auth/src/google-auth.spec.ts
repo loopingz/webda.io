@@ -12,7 +12,7 @@ class GoogleAuthTest extends WebdaTest {
     await super.before();
     this.service = new GoogleAuthentication(this.webda, "google", {
       client_id: "fake",
-      client_secret: "secret"
+      client_secret: "secret",
     });
   }
 
@@ -20,7 +20,9 @@ class GoogleAuthTest extends WebdaTest {
   cov() {
     assert.strictEqual(this.service.getName(), "google");
     assert.strictEqual(this.service.getDefaultUrl(), "/google");
-    assert.deepStrictEqual(this.service.getCallbackReferer(), [/accounts\.google\.[a-z]+$/]);
+    assert.deepStrictEqual(this.service.getCallbackReferer(), [
+      /accounts\.google\.[a-z]+$/,
+    ]);
     assert.strictEqual(this.service.hasToken(), true);
   }
 
@@ -38,25 +40,25 @@ class GoogleAuthTest extends WebdaTest {
     // @ts-ignore
     this.service.getOAuthClient = () => {
       return {
-        getToken: async arg => {
+        getToken: async (arg) => {
           if (arg === "u1") return { tokens: { id_token: arg } };
         },
         generateAuthUrl: () => {
           return "/";
         },
         setCredentials: () => {},
-        verifyIdToken: async args => {
+        verifyIdToken: async (args) => {
           if (args.idToken === "u1") {
             return {
               getPayload: () => {
                 return {
                   sub: "u1",
-                  email: "u1@webda.io"
+                  email: "u1@webda.io",
                 };
-              }
+              },
             };
           }
-        }
+        },
       };
     };
   }
@@ -73,7 +75,7 @@ class GoogleAuthTest extends WebdaTest {
     ctx.getParameters().code = "u1";
     assert.deepStrictEqual(await this.service.handleCallback(ctx), {
       identId: "u1",
-      profile: { sub: "u1", email: "u1@webda.io" }
+      profile: { sub: "u1", email: "u1@webda.io" },
     });
     ctx.getParameters().code = "u2";
     await assert.rejects(() => this.service.handleCallback(ctx), /403/);
@@ -83,7 +85,7 @@ class GoogleAuthTest extends WebdaTest {
     ctx = await this.newContext({ tokens: { id_token: "u1" } });
     assert.deepStrictEqual(await this.service.handleToken(ctx), {
       identId: "u1",
-      profile: { sub: "u1", email: "u1@webda.io" }
+      profile: { sub: "u1", email: "u1@webda.io" },
     });
   }
 
@@ -92,10 +94,17 @@ class GoogleAuthTest extends WebdaTest {
     const fakeClient = {};
     // @ts-ignore
     this.service._client = fakeClient;
-    assert.strictEqual(await this.service.getLocalClient(null, null, null), fakeClient);
+    assert.strictEqual(
+      await this.service.getLocalClient(null, null, null),
+      fakeClient
+    );
     // @ts-ignore
     this.service._client = undefined;
-    let client = await this.service.getLocalClient({ id_token: "mytoken" }, null, null);
+    let client = await this.service.getLocalClient(
+      { id_token: "mytoken" },
+      null,
+      null
+    );
     assert.deepStrictEqual(client.credentials, { id_token: "mytoken" });
     // @ts-ignore
     this.service._client = undefined;
@@ -104,7 +113,7 @@ class GoogleAuthTest extends WebdaTest {
       async () =>
         this.service.getLocalClient(
           null,
-          url => {
+          (url) => {
             calledUrl = url;
             fetch("http://localhost:3000/oauth2callback", undefined);
           },
@@ -118,7 +127,7 @@ class GoogleAuthTest extends WebdaTest {
       async () =>
         this.service.getLocalClient(
           null,
-          url => {
+          (url) => {
             fetch("http://localhost:3000/oauth2callback?code=u2", undefined);
           },
           null
@@ -128,12 +137,12 @@ class GoogleAuthTest extends WebdaTest {
     let token;
     await this.service.getLocalClient(
       null,
-      url => {
+      (url) => {
         // cov only
         fetch("http://localhost:3000/cov", {});
         fetch("http://localhost:3000/oauth2callback?code=u1", {});
       },
-      async t => {
+      async (t) => {
         token = t;
       }
     );

@@ -39,7 +39,10 @@ export interface EventBinaryMetadataUpdate extends EventBinaryUploadSuccess {
  */
 export class BinaryNotFoundError extends WebdaError {
   constructor(hash: string, storeName: string) {
-    super("BINARY_NOTFOUND", `Binary not found ${hash} BinaryService(${storeName})`);
+    super(
+      "BINARY_NOTFOUND",
+      `Binary not found ${hash} BinaryService(${storeName})`
+    );
   }
 }
 
@@ -128,7 +131,7 @@ export abstract class BinaryFile implements BinaryFileInfo {
       mimetype: this.mimetype,
       metadata: this.metadata,
       challenge: this.challenge,
-      name: this.name
+      name: this.name,
     };
   }
 
@@ -147,13 +150,13 @@ export abstract class BinaryFile implements BinaryFileInfo {
       const stream = await this.get();
       challenge.update("WEBDA");
       await new Promise<void>((resolve, reject) => {
-        stream.on("error", err => reject(err));
+        stream.on("error", (err) => reject(err));
         stream.on("end", () => {
           this.hash = hash.digest("hex");
           this.challenge = challenge.digest("hex");
           resolve();
         });
-        stream.on("data", chunk => {
+        stream.on("data", (chunk) => {
           let buffer = Buffer.from(chunk);
           hash.update(buffer);
           challenge.update(buffer);
@@ -162,7 +165,7 @@ export abstract class BinaryFile implements BinaryFileInfo {
     }
     return {
       hash: this.hash,
-      challenge: this.challenge
+      challenge: this.challenge,
     };
   }
 }
@@ -177,7 +180,7 @@ export class LocalBinaryFile extends BinaryFile {
     super({
       name: path.basename(filePath),
       size: fs.statSync(filePath).size,
-      mimetype: mime.lookup(filePath) || "application/octet-stream"
+      mimetype: mime.lookup(filePath) || "application/octet-stream",
     });
     this.path = filePath;
   }
@@ -246,8 +249,8 @@ export class BinaryMap extends BinaryFile {
   toJSON() {
     let res = {};
     Object.keys(this)
-      .filter(k => !k.startsWith("__"))
-      .forEach(k => {
+      .filter((k) => !k.startsWith("__"))
+      .forEach((k) => {
         res[k] = this[k];
       });
     return res;
@@ -370,7 +373,10 @@ export type BinaryModel<T = { [key: string]: BinaryMap[] }> = CoreModel & T;
  * @abstract
  * @class Binary
  */
-abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends BinaryEvents = BinaryEvents>
+abstract class Binary<
+    T extends BinaryParameters = BinaryParameters,
+    E extends BinaryEvents = BinaryEvents
+  >
   extends Service<T, E>
   implements MappingService<BinaryMap>
 {
@@ -390,19 +396,19 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     super.initMetrics();
     this.metrics.upload = this.getMetric(Counter, {
       name: "binary_upload",
-      help: "Number of binary upload"
+      help: "Number of binary upload",
     });
     this.metrics.delete = this.getMetric(Counter, {
       name: "binary_delete",
-      help: "Number of binary deleted"
+      help: "Number of binary deleted",
     });
     this.metrics.download = this.getMetric(Counter, {
       name: "binary_download",
-      help: "Number of binary upload"
+      help: "Number of binary upload",
     });
     this.metrics.metadataUpdate = this.getMetric(Counter, {
       name: "binary_metadata_update",
-      help: "Number of binary metadata updated"
+      help: "Number of binary metadata updated",
     });
   }
 
@@ -430,7 +436,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @emits 'binaryCreate'
    */
 
-  abstract store(object: CoreModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void>;
+  abstract store(
+    object: CoreModel,
+    property: string,
+    file: BinaryFile,
+    metadata?: BinaryMetadata
+  ): Promise<void>;
 
   /**
    * The store can retrieve how many time a binary has been used
@@ -445,7 +456,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(object: CoreModel, property: string, index: number): Promise<void>;
+  abstract delete(
+    object: CoreModel,
+    property: string,
+    index: number
+  ): Promise<void>;
 
   /**
    * Get a binary
@@ -456,7 +471,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   async get(info: BinaryMap): Promise<Readable> {
     await this.emitSync("Binary.Get", {
       object: info,
-      service: this
+      service: this,
     });
     this.metrics.download.inc();
     return this._get(info);
@@ -471,16 +486,16 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   async downloadTo(info: BinaryMap, filename): Promise<void> {
     await this.emitSync("Binary.Get", {
       object: info,
-      service: this
+      service: this,
     });
     this.metrics.download.inc();
     let readStream: any = await this._get(info);
     let writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
-      writeStream.on("finish", _src => {
+      writeStream.on("finish", (_src) => {
         return resolve();
       });
-      writeStream.on("error", src => {
+      writeStream.on("error", (src) => {
         try {
           fs.unlinkSync(filename);
           // Stubing the fs module in ESM seems complicated for now
@@ -515,11 +530,16 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       return;
     }
     this._lowercaseMaps = {};
-    Object.keys(map).forEach(prop => {
+    Object.keys(map).forEach((prop) => {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
       let reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
-        this._webda.log("WARN", "Can't setup mapping as store ", prop, " doesn't exist");
+        this._webda.log(
+          "WARN",
+          "Can't setup mapping as store ",
+          prop,
+          " doesn't exist"
+        );
         map[prop]["-onerror"] = "NoStore";
         return;
       }
@@ -532,7 +552,9 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
         if (evt.object[map[prop]]) {
           infos.push(...evt.object[map[prop]]);
         }
-        await Promise.all(infos.map(info => this.cascadeDelete(info, evt.object.getUuid())));
+        await Promise.all(
+          infos.map((info) => this.cascadeDelete(info, evt.object.getUuid()))
+        );
       });
     });
   }
@@ -556,8 +578,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     // codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer
     const chunks = [];
     return new Promise((resolve, reject) => {
-      stream.on("data", chunk => chunks.push(Buffer.from(chunk)));
-      stream.on("error", err => reject(err));
+      stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      stream.on("error", (err) => reject(err));
       stream.on("end", () => resolve(Buffer.concat(chunks)));
     });
   }
@@ -581,18 +603,22 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    */
-  async uploadSuccess(object: BinaryModel, property: string, file: BinaryFileInfo): Promise<void> {
+  async uploadSuccess(
+    object: BinaryModel,
+    property: string,
+    file: BinaryFileInfo
+  ): Promise<void> {
     let object_uid = object.getUuid();
     await this.emitSync("Binary.UploadSuccess", {
       object: file,
       service: this,
-      target: object
+      target: object,
     });
     await object.getStore().upsertItemToCollection(object_uid, property, file);
     await this.emitSync("Binary.Create", {
       object: file,
       service: this,
-      target: object
+      target: object,
     });
     this.metrics.upload.inc();
   }
@@ -615,10 +641,18 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    */
   async deleteSuccess(object: BinaryModel, property: string, index: number) {
     let info: BinaryMap = object[property][index];
-    let update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
+    let update = object
+      .getStore()
+      .deleteItemFromCollection(
+        object.getUuid(),
+        property,
+        index,
+        info.hash,
+        "hash"
+      );
     await this.emitSync("Binary.Delete", {
       object: info,
-      service: this
+      service: this,
     });
     this.metrics.delete.inc();
     return update;
@@ -633,9 +667,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     let file = await req.getHttpContext().getRawBody(10 * 1024 * 1024);
     // TODO Check if we have other type
     return new MemoryBinaryFile(Buffer.from(file), {
-      mimetype: req.getHttpContext().getUniqueHeader("Content-Type", "application/octet-stream"),
-      size: parseInt(req.getHttpContext().getUniqueHeader("Content-Length")) || file.length,
-      name: ""
+      mimetype: req
+        .getHttpContext()
+        .getUniqueHeader("Content-Type", "application/octet-stream"),
+      size:
+        parseInt(req.getHttpContext().getUniqueHeader("Content-Length")) ||
+        file.length,
+      name: "",
     });
   }
 
@@ -667,19 +705,19 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
           summary: "Download a binary",
           responses: {
             "200": {
-              description: "Binary stream"
+              description: "Binary stream",
             },
             "403": {
-              description: "You don't have permissions"
+              description: "You don't have permissions",
             },
             "404": {
-              description: "Object does not exist or attachment does not exist"
+              description: "Object does not exist or attachment does not exist",
             },
             "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
+              description: "Provided hash does not match",
+            },
+          },
+        },
       });
     }
 
@@ -693,19 +731,19 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
           summary: "Add a binary",
           responses: {
             "200": {
-              description: ""
+              description: "",
             },
             "403": {
-              description: "You don't have permissions"
+              description: "You don't have permissions",
             },
             "404": {
-              description: "Object does not exist or attachment does not exist"
+              description: "Object does not exist or attachment does not exist",
             },
             "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
+              description: "Provided hash does not match",
+            },
+          },
+        },
       });
     }
 
@@ -719,25 +757,26 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
           summary: "Add a binary",
           responses: {
             "204": {
-              description: ""
+              description: "",
             },
             "403": {
-              description: "You don't have permissions"
+              description: "You don't have permissions",
             },
             "404": {
-              description: "Object does not exist or attachment does not exist"
+              description: "Object does not exist or attachment does not exist",
             },
             "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
+              description: "Provided hash does not match",
+            },
+          },
+        },
       });
     }
 
     if (!this.parameters.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+      url =
+        this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
       this.addRoute(url, ["DELETE"], this.httpRoute, {
         delete: {
           operationId: `delete${name}Binary`,
@@ -745,25 +784,26 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
           summary: "Delete a binary",
           responses: {
             "204": {
-              description: ""
+              description: "",
             },
             "403": {
-              description: "You don't have permissions"
+              description: "You don't have permissions",
             },
             "404": {
-              description: "Object does not exist or attachment does not exist"
+              description: "Object does not exist or attachment does not exist",
             },
             "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
+              description: "Provided hash does not match",
+            },
+          },
+        },
       });
     }
 
     if (!this.parameters.expose.restrict.metadata) {
       // Need hash to avoid concurrent delete
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+      url =
+        this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
       this.addRoute(url, ["PUT"], this.httpRoute, {
         delete: {
           operationId: `update${name}BinaryMetadata`,
@@ -771,19 +811,19 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
           summary: "Update a binary metadata",
           responses: {
             "204": {
-              description: ""
+              description: "",
             },
             "403": {
-              description: "You don't have permissions"
+              description: "You don't have permissions",
             },
             "404": {
-              description: "Object does not exist or attachment does not exist"
+              description: "Object does not exist or attachment does not exist",
             },
             "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
+              description: "Provided hash does not match",
+            },
+          },
+        },
       });
     }
   }
@@ -811,7 +851,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     if (map.indexOf(ctx.parameter("property")) == -1) {
       throw 404;
     }
-    let targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(store);
+    let targetStore: Store<CoreModel> =
+      this.getService<Store<CoreModel>>(store);
     if (targetStore === undefined) {
       throw 404;
     }
@@ -823,7 +864,9 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    *
    * @param ctx
    */
-  async putRedirectUrl(_ctx: WebContext): Promise<{ url: string; method?: string }> {
+  async putRedirectUrl(
+    _ctx: WebContext
+  ): Promise<{ url: string; method?: string }> {
     // Dont handle the redirect url
     throw 404;
   }
@@ -849,7 +892,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     ctx.write({
       ...url,
       done: url === undefined,
-      md5: base64String
+      md5: base64String,
     });
   }
 
@@ -889,8 +932,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       // Most implementation override this to do a REDIRECT to a GET url
       let file = object[property][index];
       ctx.writeHead(200, {
-        "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
-        "Content-Length": file.size
+        "Content-Type":
+          file.mimetype === undefined
+            ? "application/octet-steam"
+            : file.mimetype,
+        "Content-Length": file.size,
       });
       let readStream: any = await this.get(file);
       try {
@@ -906,7 +952,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       }
     } else {
       if (ctx.getHttpContext().getMethod() === "POST") {
-        await this.store(object, property, await this._getFile(ctx), await ctx.getRequestBody());
+        await this.store(
+          object,
+          property,
+          await this._getFile(ctx),
+          await ctx.getRequestBody()
+        );
       } else {
         if (object[property][index].hash !== ctx.parameter("hash")) {
           throw 412;
@@ -922,18 +973,20 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
           let evt = {
             service: this,
             object: object[property][index],
-            target: object
+            target: object,
           };
           await this.emitSync("Binary.MetadataUpdate", {
             ...evt,
-            metadata
+            metadata,
           });
           object[property][index].metadata = metadata;
           // Update mapper on purpose
           await object.getStore().patch(
             {
               [object.__class.getUuidField()]: object.getUuid(),
-              [property]: (<BinaryMap[]>object[property]).map(b => b.toJSON())
+              [property]: (<BinaryMap[]>object[property]).map((b) =>
+                b.toJSON()
+              ),
             },
             false
           );

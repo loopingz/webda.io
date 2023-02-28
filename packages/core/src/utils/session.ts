@@ -1,6 +1,11 @@
 import { CoreModel, NotEnumerable } from "../models/coremodel";
 import CryptoService, { JWTOptions } from "../services/cryptoservice";
-import { DeepPartial, Inject, Service, ServiceParameters } from "../services/service";
+import {
+  DeepPartial,
+  Inject,
+  Service,
+  ServiceParameters,
+} from "../services/service";
 import { Store } from "../stores/store";
 import { OperationContext, WebContext } from "./context";
 import { CookieOptions, SecureCookie } from "./cookie";
@@ -8,7 +13,9 @@ import { CookieOptions, SecureCookie } from "./cookie";
 /**
  * Manage load and save of sessions
  */
-export abstract class SessionManager<T extends ServiceParameters = ServiceParameters> extends Service<T> {
+export abstract class SessionManager<
+  T extends ServiceParameters = ServiceParameters
+> extends Service<T> {
   /**
    * Load a session based on context
    * @param context
@@ -23,7 +30,7 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
   /**
    * Create a new session
    */
-  abstract newSession(context: OperationContext) : Promise<Session>;
+  abstract newSession(context: OperationContext): Promise<Session>;
 }
 
 export class CookieSessionParameters extends ServiceParameters {
@@ -85,10 +92,17 @@ export class CookieSessionManager<
       return new Session();
     }
     const session = new Session();
-    let cookie = await SecureCookie.load(this.parameters.cookie.name, context, this.parameters.jwt);
+    let cookie = await SecureCookie.load(
+      this.parameters.cookie.name,
+      context,
+      this.parameters.jwt
+    );
     if (this.sessionStore) {
       if (cookie.sub) {
-        Object.assign(session, (await this.sessionStore.get(cookie.sub))?.session);
+        Object.assign(
+          session,
+          (await this.sessionStore.get(cookie.sub))?.session
+        );
         session.uuid = cookie.sub;
       }
       session.uuid ??= context.getWebda().getUuid("base64");
@@ -117,7 +131,7 @@ export class CookieSessionManager<
       await this.sessionStore.save({
         uuid: session.uuid,
         session,
-        ttl: Date.now() + this.parameters.cookie.maxAge * 1000
+        ttl: Date.now() + this.parameters.cookie.maxAge * 1000,
       });
       SecureCookie.save(
         this.parameters.cookie.name,
@@ -127,7 +141,12 @@ export class CookieSessionManager<
       );
       return;
     }
-    SecureCookie.save(this.parameters.cookie.name, context, session, this.parameters.jwt);
+    SecureCookie.save(
+      this.parameters.cookie.name,
+      context,
+      session,
+      this.parameters.jwt
+    );
   }
 }
 
@@ -204,7 +223,7 @@ export class Session {
           return new Proxy(obj[property], proxyHandler);
         }
         return obj[property];
-      }
+      },
     };
     return new Proxy(this, proxyHandler);
   }

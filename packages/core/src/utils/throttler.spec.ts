@@ -8,13 +8,34 @@ class ThrottlerTest {
   async test() {
     let resolvers: (() => void)[] = [];
     let t = new Throttler(2);
-    t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P1");
-    t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P2");
-    t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P3");
-    t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P4");
-    t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P5");
-    t.queue(() => new Promise<void>((_, reject) => resolvers.push(reject)), "P6");
-    t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P7");
+    t.queue(
+      () => new Promise<void>((resolve) => resolvers.push(resolve)),
+      "P1"
+    );
+    t.queue(
+      () => new Promise<void>((resolve) => resolvers.push(resolve)),
+      "P2"
+    );
+    t.queue(
+      () => new Promise<void>((resolve) => resolvers.push(resolve)),
+      "P3"
+    );
+    t.queue(
+      () => new Promise<void>((resolve) => resolvers.push(resolve)),
+      "P4"
+    );
+    t.queue(
+      () => new Promise<void>((resolve) => resolvers.push(resolve)),
+      "P5"
+    );
+    t.queue(
+      () => new Promise<void>((_, reject) => resolvers.push(reject)),
+      "P6"
+    );
+    t.queue(
+      () => new Promise<void>((resolve) => resolvers.push(resolve)),
+      "P7"
+    );
     assert.strictEqual(t.getSize(), 7);
     // @ts-ignore
     resolvers.shift()();
@@ -22,15 +43,15 @@ class ThrottlerTest {
     t.setConcurrency(1);
     // @ts-ignore
     resolvers.shift()();
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
     let curs = t.getInProgress();
     assert.strictEqual(curs.length, 1, `Currents ${curs}`);
     t.setConcurrency(3);
     assert.strictEqual(t.getInProgress().length, 3);
     let p = t.waitForCompletion();
-    resolvers.forEach(r => r());
-    await new Promise(resolve => setImmediate(resolve));
-    resolvers.forEach(r => r());
+    resolvers.forEach((r) => r());
+    await new Promise((resolve) => setImmediate(resolve));
+    resolvers.forEach((r) => r());
     await p;
     await t.waitForCompletion();
   }

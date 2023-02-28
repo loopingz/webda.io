@@ -1,10 +1,18 @@
 import * as http from "http";
-import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from "prom-client";
+import {
+  collectDefaultMetrics,
+  Counter,
+  Gauge,
+  Histogram,
+  register,
+} from "prom-client";
 import { WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
 interface PrometheusExtension {
-  timer: (labels?: Partial<Record<string, string | number>> | undefined) => number;
+  timer: (
+    labels?: Partial<Record<string, string | number>> | undefined
+  ) => number;
 }
 
 export class PrometheusParameters extends ServiceParameters {
@@ -66,7 +74,9 @@ export class PrometheusParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export class PrometheusService<T extends PrometheusParameters = PrometheusParameters> extends Service<T> {
+export class PrometheusService<
+  T extends PrometheusParameters = PrometheusParameters
+> extends Service<T> {
   /**
    * Metrics registered
    */
@@ -105,47 +115,70 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
     if (this.parameters.includeRequestMetrics) {
       this.metrics = {
         http_request_total:
-          <Counter>register.getSingleMetric(`${this.parameters.prefix}http_request_total`) ||
+          <Counter>(
+            register.getSingleMetric(
+              `${this.parameters.prefix}http_request_total`
+            )
+          ) ||
           new Counter({
             name: `${this.parameters.prefix}http_request_total`,
             help: "metric_help",
-            labelNames: ["method", "statuscode", "handler"]
+            labelNames: ["method", "statuscode", "handler"],
           }),
         http_request_in_flight:
-          <Gauge>register.getSingleMetric(`${this.parameters.prefix}http_request_in_flight`) ||
+          <Gauge>(
+            register.getSingleMetric(
+              `${this.parameters.prefix}http_request_in_flight`
+            )
+          ) ||
           new Gauge({
             name: `${this.parameters.prefix}http_request_in_flight`,
-            help: "in flight"
+            help: "in flight",
           }),
         http_request_duration_milliseconds:
-          <Histogram>register.getSingleMetric(`${this.parameters.prefix}http_request_duration_milliseconds`) ||
+          <Histogram>(
+            register.getSingleMetric(
+              `${this.parameters.prefix}http_request_duration_milliseconds`
+            )
+          ) ||
           new Histogram({
             name: `${this.parameters.prefix}http_request_duration_milliseconds`,
             labelNames: ["method", "statuscode", "handler"],
-            help: "ms"
+            help: "ms",
           }),
         http_request_sizes:
-          <Histogram>register.getSingleMetric(`${this.parameters.prefix}http_request_sizes`) ||
+          <Histogram>(
+            register.getSingleMetric(
+              `${this.parameters.prefix}http_request_sizes`
+            )
+          ) ||
           new Histogram({
             name: `${this.parameters.prefix}http_request_sizes`,
             labelNames: ["method", "statuscode", "handler"],
-            help: "o"
+            help: "o",
           }),
         http_response_sizes:
-          <Histogram>register.getSingleMetric(`${this.parameters.prefix}http_response_sizes`) ||
+          <Histogram>(
+            register.getSingleMetric(
+              `${this.parameters.prefix}http_response_sizes`
+            )
+          ) ||
           new Histogram({
             name: `${this.parameters.prefix}http_response_sizes`,
             labelNames: ["method", "statuscode", "handler"],
-            help: "o"
-          })
+            help: "o",
+          }),
       };
     }
-    if (this.parameters.includeNodeMetrics && !PrometheusService.nodeMetricsRegistered) {
+    if (
+      this.parameters.includeNodeMetrics &&
+      !PrometheusService.nodeMetricsRegistered
+    ) {
       PrometheusService.nodeMetricsRegistered = true;
       collectDefaultMetrics({
         register,
         labels: this.parameters.labels,
-        prefix: this.parameters.prefix
+        prefix: this.parameters.prefix,
       });
     }
   }
@@ -158,7 +191,11 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
     super.resolve();
     register.setDefaultLabels(this.parameters.labels);
     if (!this.parameters.portNumber) {
-      this.addRoute(this.parameters.url || "/metrics", ["GET"], this.serveMetrics);
+      this.addRoute(
+        this.parameters.url || "/metrics",
+        ["GET"],
+        this.serveMetrics
+      );
     } else {
       this.http = http
         .createServer(async (req, res) => {
@@ -180,7 +217,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
         }
         this.metrics.http_request_in_flight.inc();
         context.setExtension("prometheus", <PrometheusExtension>{
-          timer: this.metrics.http_request_duration_milliseconds.startTimer()
+          timer: this.metrics.http_request_duration_milliseconds.startTimer(),
         });
       });
       this.getWebda().on("Webda.Result", ({ context }) => {
@@ -192,16 +229,22 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
           handler: context.getHttpContext().getRelativeUri(),
           method: context.getHttpContext().getMethod(),
           statuscode: context.statusCode,
-          ...staticLabels
+          ...staticLabels,
         };
         context
           .getExtension<PrometheusExtension>("prometheus")
           .timer(this.parameters.partitionHistogram ? labels : staticLabels);
         this.metrics.http_request_total.inc(labels, 1);
-        if (["PUT", "POST", "PATCH"].includes(context.getHttpContext().getMethod())) {
+        if (
+          ["PUT", "POST", "PATCH"].includes(
+            context.getHttpContext().getMethod()
+          )
+        ) {
           this.metrics.http_request_sizes.observe(
             this.parameters.partitionHistogram ? labels : staticLabels,
-            Number.parseInt(context.getHttpContext().getHeaders()["content-length"] || "0")
+            Number.parseInt(
+              context.getHttpContext().getHeaders()["content-length"] || "0"
+            )
           );
           this.metrics.http_response_sizes.observe(
             this.parameters.partitionHistogram ? labels : staticLabels,

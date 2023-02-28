@@ -6,7 +6,11 @@ class ThrottlerItem {
    * Once the promise is in progress
    */
   public promise?: Promise<any>;
-  constructor(public method: () => Promise<any>, public callbacks: ((res?: any) => void)[], public name: string) {}
+  constructor(
+    public method: () => Promise<any>,
+    public callbacks: ((res?: any) => void)[],
+    public name: string
+  ) {}
   toString() {
     return `${this.name}: ${this.promise ? "IN-PROGRESS" : "QUEUED"}`;
   }
@@ -50,7 +54,10 @@ export class Throttler {
    * @param name of the task, usefull when calling getInProgress
    * @returns
    */
-  queue(method: () => Promise<any>, name: string = `Promise_${this.getSize()}`): Promise<any> {
+  queue(
+    method: () => Promise<any>,
+    name: string = `Promise_${this.getSize()}`
+  ): Promise<any> {
     return new Promise<any>((...callbacks) => {
       this._queue.push(new ThrottlerItem(method, callbacks, name));
       this.add();
@@ -79,7 +86,7 @@ export class Throttler {
    * @returns
    */
   getInProgress(): ThrottlerItem[] {
-    return this._queue.filter(p => p.promise);
+    return this._queue.filter((p) => p.promise);
   }
 
   /**
@@ -98,7 +105,7 @@ export class Throttler {
     if (this.current === 0) {
       return;
     }
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this._waiters.push(resolve);
     });
   }
@@ -111,11 +118,11 @@ export class Throttler {
     if (this.current >= this.concurrency) {
       return;
     }
-    const next = this._queue.find(p => !p.promise);
+    const next = this._queue.find((p) => !p.promise);
     if (!next) {
       if (this.current === 0) {
         // Call all waiters
-        this._waiters.forEach(p => p());
+        this._waiters.forEach((p) => p());
         this._waiters = [];
       }
       return;
@@ -123,11 +130,11 @@ export class Throttler {
     this.current++;
     next.promise = next
       .method()
-      .then(res => {
+      .then((res) => {
         // Call the resolve
         next.callbacks[0](res);
       })
-      .catch(err => {
+      .catch((err) => {
         // Call the reject
         next.callbacks[1](err);
       })

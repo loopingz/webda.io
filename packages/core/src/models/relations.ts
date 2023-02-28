@@ -38,7 +38,9 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
    * @param query
    * @returns
    */
-  query: (query?: string) => Promise<{ results: T[]; continuationToken?: string }>;
+  query: (
+    query?: string
+  ) => Promise<{ results: T[]; continuationToken?: string }>;
   /**
    *
    * @param model Iterate through all related objects
@@ -58,19 +60,26 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
  * This is not exported as when mapped the target is always an array
  * TODO Handle 1:1 map
  */
-export type ModelMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<
-  Pick<T, K> & ModelLoader<T> & { uuid: string }
->;
+export type ModelMapped<
+  T extends CoreModel,
+  K extends Attributes<T>
+> = Readonly<Pick<T, K> & ModelLoader<T> & { uuid: string }>;
 
 /**
  * Define a ModelMap attribute
  */
-export type ModelsMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<ModelMapped<T, K>[]>;
+export type ModelsMapped<
+  T extends CoreModel,
+  K extends Attributes<T>
+> = Readonly<ModelMapped<T, K>[]>;
 
 /**
  * Define a link to 1:n relation
  */
-export type ModelLink<T extends CoreModel, _FK extends keyof T = any> = ModelLoader<T> &
+export type ModelLink<
+  T extends CoreModel,
+  _FK extends keyof T = any
+> = ModelLoader<T> &
   String & {
     set: (id: string) => void;
   };
@@ -95,11 +104,16 @@ type ModelCollectionManager<T> = {
 /**
  * Define 1:n relation
  */
-export type ModelLinksSimpleArray<T extends CoreModel> = Readonly<ModelLoader<T>[]> & ModelCollectionManager<string>;
+export type ModelLinksSimpleArray<T extends CoreModel> = Readonly<
+  ModelLoader<T>[]
+> &
+  ModelCollectionManager<string>;
 /**
  * Define 1:n relation with some sort of additional data or duplicated data
  */
-export type ModelLinksArray<T extends CoreModel, K = any> = Readonly<(ModelLoader<T, K> & { uuid: string })[]> &
+export type ModelLinksArray<T extends CoreModel, K = any> = Readonly<
+  (ModelLoader<T, K> & { uuid: string })[]
+> &
   ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
 /**
  * Define 1:n relation with some sort of additional data or duplicated data

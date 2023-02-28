@@ -1,12 +1,35 @@
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
 import { Core } from "../core";
-import { Service } from "../services/service";
+import { DeepPartial, Service } from "../services/service";
 import { Store } from "../stores/store";
 import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
-import { ModelActions } from "./relations";
+import {
+  ModelActions,
+  ModelLink,
+  ModelLinksArray,
+  ModelLinksMap,
+  ModelLinksSimpleArray,
+} from "./relations";
+
+/**
+ * Create a new type with only optional
+ */
+export type ModelPartial<T> = {
+  [P in keyof T]?: T[P] extends ModelLinksSimpleArray<CoreModel>
+    ? Partial<T[P]>
+    : T[P] extends ModelLinksMap<CoreModel>
+    ? Partial<T[P]>
+    : T[P] extends ModelLinksArray<CoreModel>
+    ? Partial<T[P]>
+    : T[P] extends ModelLink<CoreModel>
+    ? Partial<T[P]>
+    : T[P] extends object
+    ? DeepPartial<T[P]>
+    : T[P];
+};
 
 /**
  * Expose the model through API or GraphQL if it exists
@@ -14,14 +37,20 @@ import { ModelActions } from "./relations";
  */
 export function Expose(
   segment?: string,
-  restrict?: { create?: boolean; update?: boolean; list?: boolean; get?: boolean; delete?: boolean }
+  restrict?: {
+    create?: boolean;
+    update?: boolean;
+    list?: boolean;
+    get?: boolean;
+    delete?: boolean;
+  }
 ) {
   return function (target: any): void {
     segment ??= target.constructor.name.toLowerCase();
     // @ts-ignore
     target.Expose ??= {
       segment,
-      restrict
+      restrict,
     };
   };
 }
@@ -51,7 +80,9 @@ class CoreModelQuery {
     results: CoreModel[];
     continuationToken?: string;
   }> {
-    return Core.get().getModelStore(Core.get().getModel(this.type)).query(this.completeQuery(query), context);
+    return Core.get()
+      .getModelStore(Core.get().getModel(this.type))
+      .query(this.completeQuery(query), context);
   }
 
   /**
@@ -80,7 +111,10 @@ class CoreModelQuery {
     throttler.setConcurrency(parallelism);
     let continuationToken: string | undefined;
     do {
-      const result = await this.query(query + continuationToken ? "OFFSET " + continuationToken : "", context);
+      const result = await this.query(
+        query + continuationToken ? "OFFSET " + continuationToken : "",
+        context
+      );
       continuationToken = result.continuationToken;
       for (const model of result.results) {
         throttler.queue(() => callback(model));
@@ -95,7 +129,9 @@ class CoreModelQuery {
    * @returns
    */
   async getAll(query?: string, context?: OperationContext) {
-    return Core.get().getModelStore(Core.get().getModel(this.type)).queryAll(this.completeQuery(query), context);
+    return Core.get()
+      .getModelStore(Core.get().getModel(this.type))
+      .queryAll(this.completeQuery(query), context);
   }
 }
 
@@ -142,7 +178,9 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   getUuidField(): string;
   getLastUpdateField(): string;
   getCreationField(): string;
-  getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
+  getPermissionQuery(
+    context?: OperationContext
+  ): null | { partial: boolean; query: string };
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -158,10 +196,10 @@ export function NotEnumerable(target: any, propertyKey: string) {
       Object.defineProperty(this, propertyKey, {
         value,
         writable: true,
-        configurable: true
+        configurable: true,
       });
     },
-    configurable: true
+    configurable: true,
   });
 }
 
@@ -171,7 +209,9 @@ const ActionsAnnotated: Map<any, ModelActions> = new Map();
  * @param target
  * @param propertyKey
  */
-export function Action(options: { methods?: HttpMethodType[]; openapi?: any } = {}) {
+export function Action(
+  options: { methods?: HttpMethodType[]; openapi?: any } = {}
+) {
   return function (target: any, propertyKey: string) {
     let custom: Record<"Actions", ModelActions> = target;
     const global = typeof target === "function";
@@ -184,7 +224,7 @@ export function Action(options: { methods?: HttpMethodType[]; openapi?: any } = 
     const actions = ActionsAnnotated.get(custom);
     actions[propertyKey] = {
       ...options,
-      global
+      global,
     };
   };
 }
@@ -324,7 +364,12 @@ class CoreModel {
    * @param split
    * @param prefix
    */
-  static flat(target: any, data: any, split: string = "#", prefix: string = ""): any {
+  static flat(
+    target: any,
+    data: any,
+    split: string = "#",
+    prefix: string = ""
+  ): any {
     for (let i in data) {
       if (typeof data[i] === "object") {
         CoreModel.flat(target, data[i], split, i + split);
@@ -356,7 +401,7 @@ class CoreModel {
    * @returns
    */
   getProxy(): this {
-    const subProxier = prop => {
+    const subProxier = (prop) => {
       return {
         set: (target: this, p: string | symbol, value) => {
           this.__dirty.add(prop);
@@ -373,7 +418,7 @@ class CoreModel {
           delete t[property];
           this.__dirty.add(prop);
           return true;
-        }
+        },
       };
     };
     const proxier = {
@@ -397,7 +442,7 @@ class CoreModel {
           return new Proxy(target[p], subProxier(p));
         }
         return target[p];
-      }
+      },
     };
     return new Proxy(this, proxier);
   }
@@ -454,7 +499,9 @@ class CoreModel {
    * @param context of the query
    * @returns
    */
-  static getPermissionQuery(_ctx: OperationContext): null | { partial: boolean; query: string } {
+  static getPermissionQuery(
+    _ctx: OperationContext
+  ): null | { partial: boolean; query: string } {
     return null;
   }
 
@@ -504,7 +551,11 @@ class CoreModel {
    * Create an object
    * @returns
    */
-  static factory(model: new () => CoreModel, object: any, context?: OperationContext): CoreModel {
+  static factory(
+    model: new () => CoreModel,
+    object: any,
+    context?: OperationContext
+  ): CoreModel {
     return new model().setContext(context).load(object, context === undefined);
   }
 
@@ -515,7 +566,10 @@ class CoreModel {
    */
   static instanceOf(object: any): boolean {
     return (
-      typeof object.toStoredJSON === "function" && object.__class && object.__class.factory && object.__class.instanceOf
+      typeof object.toStoredJSON === "function" &&
+      object.__class &&
+      object.__class.factory &&
+      object.__class.instanceOf
     );
   }
 
@@ -526,7 +580,7 @@ class CoreModel {
    * @returns
    */
   getFullUuid() {
-    return `${this.__store.getName()}$${this.getUuid()}`;
+    return `${this.__class.prototype.name}$${this.getUuid()}`;
   }
 
   /**
@@ -576,7 +630,12 @@ class CoreModel {
    * @param context
    * @returns updated value
    */
-  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
+  attributePermission(
+    key: string,
+    value: any,
+    mode: "READ" | "WRITE",
+    context?: OperationContext
+  ): any {
     if (mode === "WRITE") {
       return key.startsWith("_") ? undefined : value;
     } else {
@@ -591,7 +650,7 @@ class CoreModel {
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: Partial<this>, secure: boolean = false): this {
+  load(raw: ModelPartial<this>, secure: boolean = false): this {
     // Object assign with filter
     for (let prop in raw) {
       let val = raw[prop];
@@ -601,6 +660,7 @@ class CoreModel {
           continue;
         }
       }
+      // @ts-ignore
       this[prop] = val;
     }
     if (this._creationDate) {
@@ -630,9 +690,11 @@ class CoreModel {
         this[attr] = new String(this[attr]);
       }
       this[attr].get = async () => {
-        return Core.get().getModelStore(Core.get().getModel(model)).get(this[attr]);
+        return Core.get()
+          .getModelStore(Core.get().getModel(model))
+          .get(this[attr]);
       };
-      this[attr].set = value => {
+      this[attr].set = (value) => {
         if (typeof value === "string") {
           value = new String(value);
         }
@@ -643,14 +705,20 @@ class CoreModel {
 
     const addMapLoader = (attr: string, model) => {
       this[attr] ??= [];
-      this[attr].forEach(el => {
+      this[attr].forEach((el) => {
         el.get = async () => {
-          return Core.get().getModelStore(Core.get().getModel(model)).get(el.uuid);
+          return Core.get()
+            .getModelStore(Core.get().getModel(model))
+            .get(el.uuid);
         };
       });
     };
 
-    const addCollectionLoader = (type: "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY" | "LINKS_MAP", attr: string, model) => {
+    const addCollectionLoader = (
+      type: "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY" | "LINKS_MAP",
+      attr: string,
+      model
+    ) => {
       if (type === "LINKS_MAP") {
         this[attr] ??= {};
       } else {
@@ -658,7 +726,7 @@ class CoreModel {
       }
 
       // Add an item to the collection
-      this[attr].add = value => {
+      this[attr].add = (value) => {
         if (type !== "LINKS_SIMPLE_ARRAY") {
           value.uuid ??= value.getUuid();
         }
@@ -683,7 +751,7 @@ class CoreModel {
         }
         if (Array.isArray(this[attr])) {
           this[attr].splice(
-            this[attr].findIndex(el => el.uuid !== uuid),
+            this[attr].findIndex((el) => el.uuid !== uuid),
             1
           );
         } else {
@@ -706,7 +774,11 @@ class CoreModel {
       addMapLoader(link.attribute, link.model);
     }
     for (let query of rel.queries || []) {
-      this[query.attribute] = new CoreModelQuery(query.model, this, query.targetAttribute);
+      this[query.attribute] = new CoreModelQuery(
+        query.model,
+        this,
+        query.targetAttribute
+      );
     }
     if (rel.parent) {
       addLoader(rel.parent.attribute, rel.parent.model);
@@ -798,7 +870,11 @@ class CoreModel {
    * @param conditionField if null no condition used otherwise fallback to lastUpdate
    * @param conditionValue
    */
-  async patch(obj: Partial<this>, conditionField?: keyof this | null, conditionValue?: any) {
+  async patch(
+    obj: Partial<this>,
+    conditionField?: keyof this | null,
+    conditionValue?: any
+  ) {
     await this.__store.patch(
       { [this.__class.getUuidField()]: this.getUuid(), ...obj },
       true,
@@ -813,7 +889,10 @@ class CoreModel {
    *
    * @throws Error if the object is not coming from a store
    */
-  async save(full?: boolean | keyof this, ...args: (keyof this)[]): Promise<this> {
+  async save(
+    full?: boolean | keyof this,
+    ...args: (keyof this)[]
+  ): Promise<this> {
     // If proxy is not used and not field specified call save
     if ((!util.types.isProxy(this) && full === undefined) || full === true) {
       if (!this._creationDate || !this._lastUpdate) {
@@ -824,10 +903,10 @@ class CoreModel {
       return this;
     }
     const patch: any = {
-      [this.__class.getUuidField()]: this.getUuid()
+      [this.__class.getUuidField()]: this.getUuid(),
     };
     if (typeof full === "string") {
-      [full, ...args].forEach(k => {
+      [full, ...args].forEach((k) => {
         patch[k] = this[k];
       });
     } else {
@@ -846,7 +925,11 @@ class CoreModel {
    * @param ctx
    * @param updates
    */
-  async validate(ctx: OperationContext, updates: any, ignoreRequired: boolean = false): Promise<boolean> {
+  async validate(
+    ctx: OperationContext,
+    updates: any,
+    ignoreRequired: boolean = false
+  ): Promise<boolean> {
     ctx.getWebda().validateSchema(this, updates, ignoreRequired);
     return true;
   }

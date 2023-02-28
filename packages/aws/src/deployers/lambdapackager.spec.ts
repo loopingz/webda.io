@@ -10,13 +10,20 @@ const { __dirname } = getCommonJS(import.meta.url);
 @suite
 class LambdaPackagerTest extends DeployerTest<LambdaPackager> {
   async getDeployer(manager: DeploymentManager): Promise<LambdaPackager> {
-    return new LambdaPackager(manager, { name: "deployer", type: "LambdaPackager", zipPath: "test.zip" });
+    return new LambdaPackager(manager, {
+      name: "deployer",
+      type: "LambdaPackager",
+      zipPath: "test.zip",
+    });
   }
 
   @test
   async loadDefault() {
     await this.deployer.loadDefaults();
-    assert.strictEqual(this.deployer.resources.entrypoint, path.join(__dirname, "lambda-entrypoint.js"));
+    assert.strictEqual(
+      this.deployer.resources.entrypoint,
+      path.join(__dirname, "lambda-entrypoint.js")
+    );
     this.deployer.resources.entrypoint = "mine.js";
     await this.deployer.loadDefaults();
     assert.strictEqual(this.deployer.resources.entrypoint, "mine.js");
@@ -24,7 +31,7 @@ class LambdaPackagerTest extends DeployerTest<LambdaPackager> {
       name: "deployer2",
       type: "LambdaPackager",
       zipPath: "test.zip",
-      customAwsSdk: true
+      customAwsSdk: true,
     });
     await other.loadDefaults();
     assert.ok(!other.resources.package.modules.excludes.includes("aws-sdk"));

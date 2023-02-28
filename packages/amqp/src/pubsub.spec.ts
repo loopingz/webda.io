@@ -12,26 +12,27 @@ class AMQPPubSubTest extends WebdaTest {
     // just for cov
     let p = new AMQPPubSubParameters({
       exchange: {
-        type: "fanout2"
-      }
+        type: "fanout2",
+      },
     });
     assert.strictEqual(p.exchange?.type, "fanout2");
   }
 
   @test
   async basic() {
-    let pubsub: AMQPPubSubService = this.webda.getService<AMQPPubSubService>("pubsub");
+    let pubsub: AMQPPubSubService =
+      this.webda.getService<AMQPPubSubService>("pubsub");
     let counter = 0;
     let consumers: CancelablePromise[] = [];
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       consumers.push(
-        pubsub.consume(async evt => {
+        pubsub.consume(async (evt) => {
           counter++;
         })
       );
       consumers.push(
         pubsub.consume(
-          async evt => {
+          async (evt) => {
             counter++;
           },
           undefined,
@@ -41,7 +42,7 @@ class AMQPPubSubTest extends WebdaTest {
     });
     await pubsub.sendMessage("plop");
     await WaitFor(
-      async resolve => {
+      async (resolve) => {
         if (counter === 2) {
           resolve();
           return true;
@@ -54,7 +55,7 @@ class AMQPPubSubTest extends WebdaTest {
       WaitLinearDelay(10)
     );
     assert.strictEqual(counter, 2);
-    await Promise.all(consumers.map(p => p.cancel()));
+    await Promise.all(consumers.map((p) => p.cancel()));
     // Hack our way to test close by server
     // @ts-ignore
     let stub = sinon.stub(pubsub.channel, "consume").callsFake((ex, call) => {
@@ -63,7 +64,7 @@ class AMQPPubSubTest extends WebdaTest {
     // Should reject
     await assert.rejects(
       () =>
-        pubsub.consume(async evt => {
+        pubsub.consume(async (evt) => {
           counter++;
         }),
       /Cancelled by server/

@@ -5,7 +5,7 @@ import {
   CancelablePromise,
   WaitDelayer,
   WaitDelayerDefinition,
-  WaitDelayerFactories
+  WaitDelayerFactories,
 } from "../utils/waiter";
 import { PubSubService } from "./pubsubservice";
 
@@ -63,7 +63,10 @@ export class QueueParameters extends ServiceParameters {
  *
  * @category CoreServices
  */
-abstract class Queue<T = any, K extends QueueParameters = QueueParameters> extends PubSubService<T, K> {
+abstract class Queue<
+  T = any,
+  K extends QueueParameters = QueueParameters
+> extends PubSubService<T, K> {
   /**
    * Current timeout handler
    */
@@ -96,26 +99,28 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
       help: "Number of item in the queue",
       collect: async () => {
         this.metrics.size.set(await this.size());
-      }
+      },
     });
     this.metrics.consumed = this.getMetric(Gauge, {
       name: "queue_consumed",
-      help: "Number of item consumed by the queue"
+      help: "Number of item consumed by the queue",
     });
     this.metrics.errors = this.getMetric(Gauge, {
       name: "queue_errors",
-      help: "Number of item in error"
+      help: "Number of item in error",
     });
     this.metrics.processing_duration = this.getMetric(Histogram, {
       name: "queue_processing_duration",
-      help: "Time to consume an item"
+      help: "Time to consume an item",
     });
   }
 
   /**
    * Receive one or several messages
    */
-  abstract receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]>;
+  abstract receiveMessage<L>(proto?: {
+    new (): L;
+  }): Promise<MessageReceipt<L>[]>;
 
   /**
    * Delete one message based on its receipt
@@ -142,7 +147,10 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    *
    * @returns
    */
-  protected async consumerReceiveMessage(): Promise<{ speed: number; items: number }> {
+  protected async consumerReceiveMessage(): Promise<{
+    speed: number;
+    items: number;
+  }> {
     try {
       let speed = Date.now();
       let items = await this.receiveMessage(this.eventPrototype);
@@ -152,7 +160,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
       if (items.length === 0) {
         return { speed, items: items.length };
       }
-      const msgWorker = async msg => {
+      const msgWorker = async (msg) => {
         const end = this.metrics.processing_duration.startTimer();
         try {
           await this.callback(msg.Message);
@@ -177,7 +185,9 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     } catch (err) {
       this.failedIterations += 1;
       this.log("ERROR", err);
-      await new Promise(resolve => setTimeout(resolve, this.delayer(this.failedIterations)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.delayer(this.failedIterations))
+      );
       return { speed: 0, items: -1 };
     }
   }
@@ -202,7 +212,10 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    * @param callback
    * @param eventPrototype
    */
-  consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
+  consume(
+    callback: (event: T) => Promise<void>,
+    eventPrototype?: { new (): T }
+  ): CancelablePromise {
     this.failedIterations = 0;
     this.callback = callback;
     this.eventPrototype = eventPrototype;
@@ -216,8 +229,15 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     };
     let parentQueueCallback = async (_canceller: () => Promise<void>) => {
       let res = await this.consumerReceiveMessage();
-      if (res.items > 0 && res.speed < 3000 && consumers.size < this.getMaxConsumers() - 1) {
-        this.log("TRACE", `Launching a new queue consumer for ${this.getName()}`);
+      if (
+        res.items > 0 &&
+        res.speed < 3000 &&
+        consumers.size < this.getMaxConsumers() - 1
+      ) {
+        this.log(
+          "TRACE",
+          `Launching a new queue consumer for ${this.getName()}`
+        );
         let consumer = new CancelableLoopPromise(childQueueCallback);
         // Add consumer to our list
         consumers.add(consumer);
@@ -228,7 +248,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
       }
     };
     return new CancelableLoopPromise(parentQueueCallback, async () => {
-      await Promise.all(Array.from(consumers).map(c => c.cancel()));
+      await Promise.all(Array.from(consumers).map((c) => c.cancel()));
     });
   }
 }

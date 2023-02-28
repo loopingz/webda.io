@@ -20,7 +20,9 @@ export class AggregatorParameters extends MapperParameters {
  *
  * @WebdaModda Aggregator
  */
-export default class AggregatorService<T extends AggregatorParameters = AggregatorParameters> extends MapperService<T> {
+export default class AggregatorService<
+  T extends AggregatorParameters = AggregatorParameters
+> extends MapperService<T> {
   /**
    * Create index if not existing
    *
@@ -44,7 +46,7 @@ export default class AggregatorService<T extends AggregatorParameters = Aggregat
   async createAggregate() {
     if (!(await this.targetStore.exists(this.parameters.key))) {
       await this.targetStore.save({
-        uuid: this.parameters.key
+        uuid: this.parameters.key,
       });
     }
   }
@@ -69,14 +71,17 @@ export default class AggregatorService<T extends AggregatorParameters = Aggregat
         return;
       }
     } else if (updates === "deleted") {
-      await this.targetStore.removeAttribute(this.parameters.key, object.getUuid());
+      await this.targetStore.removeAttribute(
+        this.parameters.key,
+        object.getUuid()
+      );
       return;
     } else if (updates === "created") {
       updates = object;
     }
     // Create mapper
     let mapper = {};
-    this.parameters.fields.forEach(id => {
+    this.parameters.fields.forEach((id) => {
       mapper[id] = updates[id];
     });
     mapUpdates[object.getUuid()] = mapper;

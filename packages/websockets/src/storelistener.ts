@@ -4,7 +4,7 @@ import {
   EventStorePartialUpdated,
   EventStorePatchUpdated,
   EventStoreUpdated,
-  Store
+  Store,
 } from "@webda/core";
 import { WSService } from "./service";
 
@@ -19,7 +19,7 @@ export class StoreListener {
       this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
         type: "Actioned",
         model: evt.object,
-        action: evt.action
+        action: evt.action,
       });
     },
     "Store.Updated": (evt: EventStoreUpdated) => {
@@ -29,7 +29,7 @@ export class StoreListener {
       }
       this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
         type: "Updated",
-        model: evt.object
+        model: evt.object,
       });
     },
     "Store.Deleted": (evt: EventStoreDeleted) => {
@@ -38,7 +38,7 @@ export class StoreListener {
         return;
       }
       this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
-        type: "Deleted"
+        type: "Deleted",
       });
     },
     "Store.PatchUpdated": (evt: EventStorePatchUpdated) => {
@@ -48,7 +48,7 @@ export class StoreListener {
       }
       this.wsclient.sendModelEvent(evt.object.getFullUuid(), {
         model: evt.object,
-        type: "PatchUpdated"
+        type: "PatchUpdated",
       });
     },
     "Store.PartialUpdated": (evt: EventStorePartialUpdated) => {
@@ -58,9 +58,9 @@ export class StoreListener {
       }
       this.wsclient.sendModelEvent(evt.store.getName() + "$" + evt.object_id, {
         type: "PartialUpdated",
-        partial_update: evt.partial_update
+        partial_update: evt.partial_update,
       });
-    }
+    },
   };
 
   constructor(private store: Store, private wsclient: WSService) {
@@ -77,7 +77,10 @@ export class StoreListener {
    * @param uuid
    */
   register(uuid: string) {
-    this.wsclient.log("DEBUG", `WSStoreListener: register ${this.store.getName()}$${uuid}`);
+    this.wsclient.log(
+      "DEBUG",
+      `WSStoreListener: register ${this.store.getName()}$${uuid}`
+    );
     this.uuids.add(uuid);
   }
 
@@ -87,10 +90,16 @@ export class StoreListener {
    * @returns
    */
   unregister(uuid: string): boolean {
-    this.wsclient.log("DEBUG", `WSStoreListener: unregister ${this.store.getName()}$${uuid}`);
+    this.wsclient.log(
+      "DEBUG",
+      `WSStoreListener: unregister ${this.store.getName()}$${uuid}`
+    );
     this.uuids.delete(uuid);
     if (this.uuids.size === 0) {
-      this.wsclient.log("DEBUG", `WSStoreListener: remove listener to store ${this.store.getName()}`);
+      this.wsclient.log(
+        "DEBUG",
+        `WSStoreListener: remove listener to store ${this.store.getName()}`
+      );
       for (let evt in this.listeners) {
         this.store.removeListener(<any>evt, this.listeners[evt]);
       }

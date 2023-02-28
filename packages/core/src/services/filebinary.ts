@@ -3,7 +3,14 @@ import { join } from "path";
 import { Readable } from "stream";
 import { CloudBinary, CloudBinaryParameters, CoreModel } from "../index";
 import { WebContext } from "../utils/context";
-import { Binary, BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
+import {
+  Binary,
+  BinaryFile,
+  BinaryMap,
+  BinaryModel,
+  BinaryNotFoundError,
+  MemoryBinaryFile,
+} from "./binary";
 import CryptoService from "./cryptoservice";
 import { Inject, ServiceParameters } from "./service";
 
@@ -41,7 +48,9 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  * @category CoreServices
  * @WebdaModda
  */
-export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends CloudBinary<T> {
+export class FileBinary<
+  T extends FileBinaryParameters = FileBinaryParameters
+> extends CloudBinary<T> {
   /**
    * Used for hmac
    */
@@ -69,7 +78,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   _initRoutes(): void {
     super._initRoutes();
     // Will redirect to this URL for direct upload
-    let url = this.parameters.expose.url + "/download/data/{hash}{?token,content-disposition,content-type}";
+    let url =
+      this.parameters.expose.url +
+      "/download/data/{hash}{?token,content-disposition,content-type}";
     let name = this.getOperationName();
     if (!this.parameters.expose.restrict.get) {
       this.addRoute(url, ["GET"], this.downloadBinaryLink, {
@@ -79,13 +90,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
           summary: "Download a binary",
           responses: {
             "200": {
-              description: "Content of binary"
+              description: "Content of binary",
             },
             "403": {
-              description: "Wrong hash"
-            }
-          }
-        }
+              description: "Wrong hash",
+            },
+          },
+        },
       });
     }
     if (!this.parameters.expose.restrict.create) {
@@ -97,19 +108,19 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
           summary: "Upload a binary",
           responses: {
             "204": {
-              description: ""
+              description: "",
             },
             "400": {
-              description: "Wrong hash"
+              description: "Wrong hash",
             },
             "404": {
-              description: "Object does not exist or attachment does not exist"
+              description: "Object does not exist or attachment does not exist",
             },
             "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
+              description: "Provided hash does not match",
+            },
+          },
+        },
       });
     }
   }
@@ -130,7 +141,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
     ctx.writeHead(200, {
       "content-disposition": ctx.parameter("content-disposition"),
-      "content-type": ctx.parameter("content-type")
+      "content-type": ctx.parameter("content-type"),
     });
     // Fake a binary map for this case
     return new Promise<void>(async (resolve, reject) => {
@@ -154,14 +165,18 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * Get signed url to download an element
    */
-  async getSignedUrlFromMap(map: BinaryMap, expires: number, context: WebContext): Promise<string> {
+  async getSignedUrlFromMap(
+    map: BinaryMap,
+    expires: number,
+    context: WebContext
+  ): Promise<string> {
     return `${context
       .getHttpContext()
-      .getAbsoluteUrl(this.parameters.expose.url + "/download/data/" + map.hash)}?token=${await this.getToken(
-      map.hash,
-      "GET",
-      expires
-    )}&content-type=${map.mimetype}&content-disposition=attachment`;
+      .getAbsoluteUrl(
+        this.parameters.expose.url + "/download/data/" + map.hash
+      )}?token=${await this.getToken(map.hash, "GET", expires)}&content-type=${
+      map.mimetype
+    }&content-disposition=attachment`;
   }
 
   /**
@@ -179,7 +194,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   _touch(filePath, mode = 0o600) {
     try {
-      const fd = fs.openSync(filePath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_RDWR, mode);
+      const fd = fs.openSync(
+        filePath,
+        fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_RDWR,
+        mode
+      );
       fs.closeSync(fd);
     } catch (e) {
       // file existed
@@ -192,11 +211,15 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param ctx
    * @param expiresIn
    */
-  async getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60): Promise<string> {
+  async getToken(
+    hash: string,
+    method: "PUT" | "GET",
+    expiresIn: number = 60
+  ): Promise<string> {
     return this.cryptoService.jwtSign(
       { hash, method },
       {
-        expiresIn
+        expiresIn,
       }
     );
   }
@@ -213,7 +236,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     let token = await this.getToken(body.hash, "PUT");
     return ctx
       .getHttpContext()
-      .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + body.hash + `?token=${token}`);
+      .getAbsoluteUrl(
+        this.parameters.expose.url +
+          "/upload/data/" +
+          body.hash +
+          `?token=${token}`
+      );
   }
 
   /**
@@ -221,7 +249,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    *
    * @ignore
    */
-  async putRedirectUrl(ctx: WebContext<BinaryFile>): Promise<{ url: string; method: string }> {
+  async putRedirectUrl(
+    ctx: WebContext<BinaryFile>
+  ): Promise<{ url: string; method: string }> {
     let body = await ctx.getRequestBody();
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
@@ -262,19 +292,34 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async storeBinary(ctx: WebContext) {
     let body = await ctx.getHttpContext().getRawBody(this.parameters.maxSize);
     let result = await new MemoryBinaryFile(body, {
-      mimetype: (ctx.getHttpContext().getUniqueHeader("content-type") || "application/json").split(";")[0],
+      mimetype: (
+        ctx.getHttpContext().getUniqueHeader("content-type") ||
+        "application/json"
+      ).split(";")[0],
       name: "",
-      size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length"))
+      size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length")),
     }).getHashes();
     if (ctx.parameter("hash") !== result.hash) {
-      this.log("WARN", "Request hash differ", ctx.parameter("hash"), "!==", result.hash);
+      this.log(
+        "WARN",
+        "Request hash differ",
+        ctx.parameter("hash"),
+        "!==",
+        result.hash
+      );
       throw 400;
     }
     // Verify token
     try {
       let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
       if (dt.hash !== result.hash) {
-        this.log("WARN", "JWT hash differ", ctx.parameter("hash"), "!==", result.hash);
+        this.log(
+          "WARN",
+          "JWT hash differ",
+          ctx.parameter("hash"),
+          "!==",
+          result.hash
+        );
         throw 403;
       }
     } catch (err) {
@@ -317,7 +362,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     if (!fs.existsSync(p)) return;
     try {
       let files = fs.readdirSync(p);
-      files.forEach(file => fs.unlinkSync(join(p, file)));
+      files.forEach((file) => fs.unlinkSync(join(p, file)));
       fs.rmdirSync(p);
     } catch (err) {}
   }
@@ -329,7 +374,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
     let files = fs.readdirSync(p);
-    files.filter(f => f.endsWith(uuid)).forEach(f => fs.unlinkSync(this._getPath(hash, f)));
+    files
+      .filter((f) => f.endsWith(uuid))
+      .forEach((f) => fs.unlinkSync(this._getPath(hash, f)));
 
     if (files.length == 3) {
       await this._cleanHash(hash);
@@ -339,7 +386,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @inheritdoc
    */
-  async delete(object: CoreModel, property: string, index: number): Promise<void> {
+  async delete(
+    object: CoreModel,
+    property: string,
+    index: number
+  ): Promise<void> {
     let hash = object[property][index].hash;
     await this.deleteSuccess(<BinaryModel>object, property, index);
     await this._cleanUsage(hash, object.getUuid());
@@ -368,13 +419,22 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
     // Store the challenge
     this._touch(this._getPath(file.hash, "_" + file.challenge));
-    this._touch(this._getPath(file.hash, object.getStore().getName() + "_" + object.getUuid()));
+    this._touch(
+      this._getPath(
+        file.hash,
+        object.getStore().getName() + "_" + object.getUuid()
+      )
+    );
   }
 
   /**
    * @inheritdoc
    */
-  async store(object: CoreModel, property: string, file: BinaryFile): Promise<any> {
+  async store(
+    object: CoreModel,
+    property: string,
+    file: BinaryFile
+  ): Promise<any> {
     await file.getHashes();
     const storeName = object.getStore().getName();
     const fileInfo = file.toBinaryFileInfo();

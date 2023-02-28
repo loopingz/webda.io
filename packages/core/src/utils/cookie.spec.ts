@@ -16,7 +16,9 @@ class CookieTest extends WebdaTest {
   _ctx: WebContext;
   async before() {
     await super.before();
-    this._ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
+    this._ctx = await this.webda.newWebContext(
+      new HttpContext("test.webda.io", "GET", "/")
+    );
     this.webda.updateContextWithRoute(this._ctx);
   }
 
@@ -31,10 +33,16 @@ class CookieTest extends WebdaTest {
 
   @test
   async cov() {
-    let session = await SecureCookie.load("test", new WebContextMock(this.webda, undefined, undefined), undefined);
+    let session = await SecureCookie.load(
+      "test",
+      new WebContextMock(this.webda, undefined, undefined),
+      undefined
+    );
     assert.strictEqual(Object.keys(session).length, 0);
     assert.strictEqual(
-      await new SimpleOperationContext(this.webda).setInput(Buffer.from("plop")).getRawInputAsString(),
+      await new SimpleOperationContext(this.webda)
+        .setInput(Buffer.from("plop"))
+        .getRawInputAsString(),
       "plop"
     );
     let ctx = await this.newContext();
@@ -51,12 +59,15 @@ class CookieTest extends WebdaTest {
     assert.strictEqual(Object.keys(this._ctx.getResponseCookies()).length, 5);
     for (let i = 1; i < 5; i++) {
       const cookie = this._ctx.getResponseCookies()[`test${i > 1 ? i : ""}`];
-      assert.strictEqual(cookieSerialize(cookie.name, cookie.value, cookie.options || {}).length, 4096);
+      assert.strictEqual(
+        cookieSerialize(cookie.name, cookie.value, cookie.options || {}).length,
+        4096
+      );
     }
     let ctx = await this.newContext();
     let cookies = this._ctx.getResponseCookies();
     ctx.getHttpContext().cookies = {};
-    Object.keys(cookies).forEach(k => {
+    Object.keys(cookies).forEach((k) => {
       ctx.getHttpContext().cookies[k] = cookies[k].value;
     });
     await ctx.init();

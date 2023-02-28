@@ -34,7 +34,9 @@ export class ProxyParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export class ProxyService<T extends ProxyParameters = ProxyParameters> extends Service<T> {
+export class ProxyService<
+  T extends ProxyParameters = ProxyParameters
+> extends Service<T> {
   metrics: {
     http_request_total: Counter;
     http_request_in_flight: Gauge;
@@ -50,22 +52,25 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     this.metrics.http_request_total = this.getMetric(Counter, {
       name: "proxy_request_total",
       help: "number of request",
-      labelNames: ["method", "statuscode", "handler", "host"]
+      labelNames: ["method", "statuscode", "handler", "host"],
     });
     this.metrics.http_request_in_flight = this.getMetric(Gauge, {
       name: "proxy_request_in_flight",
       help: "number of request in flight",
-      labelNames: ["method", "statuscode", "handler", "host"]
+      labelNames: ["method", "statuscode", "handler", "host"],
     });
-    this.metrics.http_request_duration_milliseconds = this.getMetric(Histogram, {
-      name: "proxy_request_duration_milliseconds",
-      help: "request duration",
-      labelNames: ["method", "statuscode", "handler", "host"]
-    });
+    this.metrics.http_request_duration_milliseconds = this.getMetric(
+      Histogram,
+      {
+        name: "proxy_request_duration_milliseconds",
+        help: "request duration",
+        labelNames: ["method", "statuscode", "handler", "host"],
+      }
+    );
     this.metrics.http_errors = this.getMetric(Counter, {
       name: "proxy_request_errors",
       help: "request errors",
-      labelNames: ["method", "statuscode", "handler", "host"]
+      labelNames: ["method", "statuscode", "handler", "host"],
     });
   }
 
@@ -84,7 +89,12 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param callback
    * @returns
    */
-  createRequest(url: string, method: string, headers: any, callback: (response: http.IncomingMessage) => void) {
+  createRequest(
+    url: string,
+    method: string,
+    headers: any,
+    callback: (response: http.IncomingMessage) => void
+  ) {
     let mod: any = http;
     if (url.startsWith("https://")) {
       mod = https;
@@ -93,7 +103,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       url,
       {
         method,
-        headers
+        headers,
       },
       callback
     );
@@ -105,12 +115,14 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param responseHeaders
    * @returns
    */
-  filterHeaders(responseHeaders: http.IncomingHttpHeaders = {}): http.OutgoingHttpHeaders {
+  filterHeaders(
+    responseHeaders: http.IncomingHttpHeaders = {}
+  ): http.OutgoingHttpHeaders {
     const headers = {};
     Object.keys(responseHeaders)
       // Filter all CORS by default
-      .filter(k => !k.startsWith("access") && k !== "")
-      .forEach(k => {
+      .filter((k) => !k.startsWith("access") && k !== "")
+      .forEach((k) => {
         headers[k] = responseHeaders[k];
       });
     return headers;
@@ -124,7 +136,10 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param context
    */
   forwardResponse(response: http.IncomingMessage, context: WebContext) {
-    context.writeHead(response.statusCode, this.filterHeaders(response.headers));
+    context.writeHead(
+      response.statusCode,
+      this.filterHeaders(response.headers)
+    );
     response.pipe(context.getStream());
   }
 
@@ -153,8 +168,17 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param ctx
    * @param url
    */
-  async rawProxy(ctx: WebContext, host: string, url: string, headers: any = {}) {
-    this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${url}`);
+  async rawProxy(
+    ctx: WebContext,
+    host: string,
+    url: string,
+    headers: any = {}
+  ) {
+    this.log(
+      "DEBUG",
+      "Proxying to",
+      `${ctx.getHttpContext().getMethod()} ${url}`
+    );
     this.metrics.http_request_in_flight.inc();
     await new Promise<void>((resolve, reject) => {
       let xff = ctx.getHttpContext().getHeader("x-forwarded-for");
@@ -167,9 +191,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       const labels = {
         method: ctx.getHttpContext().getMethod(),
         host,
-        handler: url
+        handler: url,
       };
-      const onError = e => {
+      const onError = (e) => {
         this.metrics.http_request_in_flight.dec();
         this.metrics.http_errors.inc({ ...labels, statuscode: -1 });
         this.log("ERROR", "Proxying error", e);
@@ -182,20 +206,31 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
           {
             ...this.getRequestHeaders(ctx),
             "X-Rewrite-URL": ctx.getHttpContext().getRelativeUri(),
-            "X-Forwarded-Host": ctx.getHttpContext().getHeader("x-forwarded-host", `${ctx.getHttpContext().getHost()}`),
+            "X-Forwarded-Host": ctx
+              .getHttpContext()
+              .getHeader(
+                "x-forwarded-host",
+                `${ctx.getHttpContext().getHost()}`
+              ),
             "X-Forwarded-Proto": ctx
               .getHttpContext()
-              .getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
+              .getHeader(
+                "x-forwarded-proto",
+                protocol.substring(0, protocol.length - 1)
+              ),
             "X-Forwarded-For": xff,
-            ...headers
+            ...headers,
           },
-          res => {
+          (res) => {
             res.on("end", () => {
               this.metrics.http_request_in_flight.dec();
               resolve();
             });
             res.on("error", onError);
-            this.metrics.http_request_total.inc({ ...labels, statuscode: res.statusCode });
+            this.metrics.http_request_total.inc({
+              ...labels,
+              statuscode: res.statusCode,
+            });
             if (res.statusCode >= 400) {
               this.metrics.http_errors.inc(labels);
             }

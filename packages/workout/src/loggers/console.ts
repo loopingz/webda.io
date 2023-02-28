@@ -1,7 +1,12 @@
 import chalk from "chalk";
 import { sprintf } from "sprintf-js";
 import * as util from "util";
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
+import {
+  LogFilter,
+  WorkerLogLevel,
+  WorkerMessage,
+  WorkerOutput,
+} from "../index";
 import { Logger } from "./index";
 
 interface WorkerLogMessage {
@@ -17,7 +22,11 @@ class ConsoleLogger extends Logger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
   format: string;
 
-  constructor(output: WorkerOutput, level?: WorkerLogLevel, format: string = ConsoleLogger.defaultFormat) {
+  constructor(
+    output: WorkerOutput,
+    level?: WorkerLogLevel,
+    format: string = ConsoleLogger.defaultFormat
+  ) {
     super(output, level);
     this.format = format;
   }
@@ -35,13 +44,13 @@ class ConsoleLogger extends Logger {
    */
   static getColor(level: WorkerLogLevel): (s: string) => string {
     if (level === "ERROR") {
-      return s => chalk.red(s);
+      return (s) => chalk.red(s);
     } else if (level === "WARN") {
-      return s => chalk.yellow(s);
+      return (s) => chalk.yellow(s);
     } else if (level === "DEBUG" || level === "TRACE") {
-      return s => chalk.grey(s);
+      return (s) => chalk.grey(s);
     }
-    return s => s;
+    return (s) => s;
   }
 
   /**
@@ -50,15 +59,19 @@ class ConsoleLogger extends Logger {
    * @param level
    * @param format
    */
-  static handleMessage(msg: WorkerMessage, level: WorkerLogLevel, format: string = ConsoleLogger.defaultFormat) {
+  static handleMessage(
+    msg: WorkerMessage,
+    level: WorkerLogLevel,
+    format: string = ConsoleLogger.defaultFormat
+  ) {
     if (msg.type === "title.set" && LogFilter("INFO", level)) {
       ConsoleLogger.display(
         <any>{
           timestamp: msg.timestamp,
           log: {
             level: "INFO",
-            args: [msg.title]
-          }
+            args: [msg.title],
+          },
         },
         format
       );
@@ -74,7 +87,10 @@ class ConsoleLogger extends Logger {
    * @param msg
    * @param format
    */
-  static display(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
+  static display(
+    msg: WorkerMessage,
+    format: string = ConsoleLogger.defaultFormat
+  ) {
     console.log(this.getColor(msg.log.level)(this.format(msg, format)));
   }
 
@@ -84,13 +100,16 @@ class ConsoleLogger extends Logger {
    * @param msg
    * @param format
    */
-  static format(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat): string {
+  static format(
+    msg: WorkerMessage,
+    format: string = ConsoleLogger.defaultFormat
+  ): string {
     if (!msg.log) {
       return "";
     }
     let info: WorkerLogMessage = {
       m: msg.log.args
-        .map(a => {
+        .map((a) => {
           if (a === undefined) {
             return "undefined";
           } else if (typeof a === "object") {
@@ -101,7 +120,7 @@ class ConsoleLogger extends Logger {
         .join(" "),
       l: msg.log.level.padStart(5),
       t: msg.timestamp,
-      d: () => new Date(msg.timestamp).toISOString()
+      d: () => new Date(msg.timestamp).toISOString(),
       // TODO Add different format of dates
     };
     try {

@@ -1,4 +1,9 @@
 {
+  "beans": {},
+  "deployers": {
+    "webdaawsdeployer/cloudformation": "lib/deployers/cloudformation:default",
+    "webdaawsdeployer/lambdapackager": "lib/deployers/lambdapackager:default"
+  },
   "moddas": {
     "webda/awssecretsmanager": "lib/services/secretsmanager:default",
     "webda/cloudwatchlogger": "lib/services/cloudwatchlogger:default",
@@ -7,38 +12,30 @@
     "webda/s3binary": "lib/services/s3binary:default",
     "webda/sqsqueue": "lib/services/sqsqueue:default"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {
-    "webdaawsdeployer/cloudformation": "lib/deployers/cloudformation:default",
-    "webdaawsdeployer/lambdapackager": "lib/deployers/lambdapackager:default"
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
   },
   "schemas": {
-    "webdaawsdeployer/lambdapackager": {
+    "webda/awssecretsmanager": {
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string"
-        },
         "type": {
-          "type": "string"
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
         }
       },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CloudFormation"
-    },
-    "webdaawsdeployer/cloudformation": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CloudFormation"
+      "title": "webda/cloudwatchlogger"
     },
     "webda/cloudwatchlogger": {
       "type": "object",
@@ -50,10 +47,6 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -61,7 +54,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AWSSecretsManager"
+      "title": "webda/cloudwatchlogger"
     },
     "webda/dynamostore": {
       "type": "object",
@@ -133,10 +126,6 @@
         "graphql": {
           "type": "boolean",
           "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -194,7 +183,7 @@
           }
         }
       },
-      "title": "DynamoStore"
+      "title": "webda/dynamostore"
     },
     "webda/lambdacaller": {
       "type": "object",
@@ -214,17 +203,13 @@
           },
           "description": "Actions managed by the runner",
           "default": []
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LambdaCaller"
+      "title": "webda/lambdacaller"
     },
     "webda/s3binary": {
       "type": "object",
@@ -284,10 +269,6 @@
         },
         "prefix": {
           "type": "string"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -296,30 +277,7 @@
       ],
       "description": "Default binary parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "S3Binary"
-    },
-    "webda/awssecretsmanager": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AWSSecretsManager"
+      "title": "webda/s3binary"
     },
     "webda/sqsqueue": {
       "type": "object",
@@ -359,10 +317,6 @@
           "type": "number",
           "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
           "default": 10
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
         }
       },
       "required": [
@@ -370,8 +324,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SQSQueue"
+      "title": "webda/sqsqueue"
     }
-  },
-  "graph": {}
+  }
 }

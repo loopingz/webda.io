@@ -31,7 +31,9 @@ class ExceptionExecutor extends Service {
 
   @Route("/route/param/{uuid}{?test}")
   async onParamString(ctx) {
-    ctx.write(`CodeCoverage${ctx.getParameters().uuid}${ctx.getParameters().test || ""}`);
+    ctx.write(
+      `CodeCoverage${ctx.getParameters().uuid}${ctx.getParameters().test || ""}`
+    );
   }
 }
 
@@ -46,26 +48,29 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async before() {
     await checkLocalStack();
     let app = new TestApplication(this.getTestConfiguration());
-    app.addService("test/awsevents", (await import("../../test/moddas/awsevents.js")).AWSEventsHandler);
+    app.addService(
+      "test/awsevents",
+      (await import("../../test/moddas/awsevents.js")).AWSEventsHandler
+    );
     await app.load();
     this.webda = this.handler = new LambdaServer(app);
     await this.webda.init();
     this.webda.registerRequestFilter({
-      checkRequest: async () => true
+      checkRequest: async () => true,
     });
     this.evt = {
       httpMethod: "GET",
       headers: {
         Cookie: "webda=plop;",
         "X-Forwarded-Port": "443",
-        "X-Forwarded-Proto": "https"
+        "X-Forwarded-Proto": "https",
       },
       requestContext: {
-        identity: {}
+        identity: {},
       },
       path: "/prefix/route/string",
       resource: "/route/string",
-      body: JSON.stringify({})
+      body: JSON.stringify({}),
     };
     this.debugMailer = this.handler.getService("DebugMailer");
   }
@@ -88,7 +93,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
         command: "launch",
         service: "DebugMailer",
         method: "send",
-        args: ["test"]
+        args: ["test"],
       },
       undefined
     );
@@ -102,7 +107,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
         command: "launch",
         service: "DebugMailers",
         method: "send",
-        args: ["test"]
+        args: ["test"],
       },
       undefined
     );
@@ -115,7 +120,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
       {
         command: "launch",
         service: "DebugMailer",
-        method: "sends"
+        method: "sends",
       },
       undefined
     );
@@ -132,8 +137,12 @@ class LambdaHandlerTest extends WebdaAwsTest {
   @test
   async handleRequestIdHeader() {
     this.ensureGoodCSRF();
-    this.handler.getConfiguration().parameters.lambdaRequestHeader = "x-webda-request-id";
-    let res = await this.handler.handleRequest(this.evt, { ...this.context, awsRequestId: "toto" });
+    this.handler.getConfiguration().parameters.lambdaRequestHeader =
+      "x-webda-request-id";
+    let res = await this.handler.handleRequest(this.evt, {
+      ...this.context,
+      awsRequestId: "toto",
+    });
     assert.strictEqual(res.body, "CodeCoverage");
     assert.strictEqual(res.headers["x-webda-request-id"], "toto");
   }
@@ -200,7 +209,10 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.httpMethod = "OPTIONS";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 204);
-    assert.strictEqual(res.headers["Access-Control-Allow-Methods"], "GET,OPTIONS");
+    assert.strictEqual(
+      res.headers["Access-Control-Allow-Methods"],
+      "GET,OPTIONS"
+    );
   }
 
   @test
@@ -226,7 +238,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestQueryParams() {
     // TODO Check parameter retrieval
     this.evt.queryStringParameters = {
-      test: "plop"
+      test: "plop",
     };
     this.evt.headers.Origin = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
@@ -248,7 +260,10 @@ class LambdaHandlerTest extends WebdaAwsTest {
       });
     });
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Origin);
+    assert.strictEqual(
+      res.headers["Access-Control-Allow-Origin"],
+      this.evt.headers.Origin
+    );
     assert.strictEqual(wait, true);
   }
 
@@ -288,7 +303,10 @@ class LambdaHandlerTest extends WebdaAwsTest {
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 410);
     this.badCheck = true;
-    await assert.rejects(() => this.handler.handleRequest(this.evt, this.context), /Unknown/);
+    await assert.rejects(
+      () => this.handler.handleRequest(this.evt, this.context),
+      /Unknown/
+    );
   }
 
   async checkRequest(): Promise<boolean> {
@@ -309,12 +327,22 @@ class LambdaHandlerTest extends WebdaAwsTest {
     let files = fs.readdirSync(__dirname + "/../../test/aws-events");
     for (let f in files) {
       let file = files[f];
-      let event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
+      let event = JSON.parse(
+        fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString()
+      );
       await this.handler.handleRequest(event, this.context);
       if (file === "api-gateway-aws-proxy.json") {
-        assert.strictEqual(service.getEvents().length, 0, "API Gateway should go through the normal request handling");
+        assert.strictEqual(
+          service.getEvents().length,
+          0,
+          "API Gateway should go through the normal request handling"
+        );
       } else {
-        assert.notStrictEqual(service.getEvents().length, 0, "Should have get some events:" + JSON.stringify(event));
+        assert.notStrictEqual(
+          service.getEvents().length,
+          0,
+          "Should have get some events:" + JSON.stringify(event)
+        );
       }
     }
   }
@@ -326,18 +354,25 @@ class LambdaHandlerTest extends WebdaAwsTest {
    */
   @test
   async computePrefix() {
-    let httpContext = new HttpContext("test.webda.io", "GET", "/prefix/static1234/test/subfolder/index.html");
+    let httpContext = new HttpContext(
+      "test.webda.io",
+      "GET",
+      "/prefix/static1234/test/subfolder/index.html"
+    );
     this.handler.computePrefix(
       {
         path: "/prefix/static1234/test/subfolder/index.html",
         resource: "/static1234/{path+}",
         pathParameters: {
-          path: "test/subfolder/index.html"
-        }
+          path: "test/subfolder/index.html",
+        },
       },
       httpContext
     );
-    assert.strictEqual(httpContext.getRelativeUri(), "/static1234/test/subfolder/index.html");
+    assert.strictEqual(
+      httpContext.getRelativeUri(),
+      "/static1234/test/subfolder/index.html"
+    );
     assert.strictEqual(httpContext.prefix, "/prefix");
   }
 }

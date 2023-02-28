@@ -1,4 +1,10 @@
-import { DocumentReference, FieldValue, Firestore, OrderByDirection, Timestamp } from "@google-cloud/firestore";
+import {
+  DocumentReference,
+  FieldValue,
+  Firestore,
+  OrderByDirection,
+  Timestamp,
+} from "@google-cloud/firestore";
 import {
   CoreModel,
   DeepPartial,
@@ -8,7 +14,7 @@ import {
   StoreNotFoundError,
   StoreParameters,
   UpdateConditionFailError,
-  WebdaQL
+  WebdaQL,
 } from "@webda/core";
 
 /**
@@ -68,11 +74,11 @@ export default class FireStore<
     this.firestore = new Firestore();
     this.firestore.settings({ ignoreUndefinedProperties: true });
     this.compoundIndexes = {};
-    this.parameters.compoundIndexes.forEach(a => {
+    this.parameters.compoundIndexes.forEach((a) => {
       const key = Object.keys(a).join("/");
       // Should contain the array of accessible order
       this.compoundIndexes[key] = {};
-      Object.keys(a).forEach(field => {
+      Object.keys(a).forEach((field) => {
         this.compoundIndexes[key][field] ??= new Set<"asc" | "desc">();
         this.compoundIndexes[key][field].add(a[field]);
       });
@@ -86,7 +92,10 @@ export default class FireStore<
    * @param collection
    * @returns
    */
-  getDocumentRef(uuid: string, collection: string = this.parameters.collection): DocumentReference {
+  getDocumentRef(
+    uuid: string,
+    collection: string = this.parameters.collection
+  ): DocumentReference {
     return this.firestore.doc(`${collection}/${uuid}`);
   }
 
@@ -97,9 +106,8 @@ export default class FireStore<
    */
   async find(parsedQuery: WebdaQL.Query): Promise<StoreFindResult<T>> {
     let offset: number = parseInt(parsedQuery.continuationToken || "0");
-    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = this.firestore.collection(
-      this.parameters.collection
-    );
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
+      this.firestore.collection(this.parameters.collection);
     if (offset) {
       query = query.offset(offset);
     }
@@ -139,7 +147,10 @@ export default class FireStore<
         } else if (child.operator === "IN") {
           operator = "in";
           if ((<any[]>child.value).length > 10) {
-            this.log("WARN", "Firebase cannot have more than 10 values for 'in'");
+            this.log(
+              "WARN",
+              "Firebase cannot have more than 10 values for 'in'"
+            );
             filter.children.push(child);
             return;
           }
@@ -152,7 +163,10 @@ export default class FireStore<
         }
       } else {
         // Requires compoundIndex
-        if (queryAttributes.size > 1 && !this.compoundIndexes[[...queryAttributes.values()].sort().join("/")]) {
+        if (
+          queryAttributes.size > 1 &&
+          !this.compoundIndexes[[...queryAttributes.values()].sort().join("/")]
+        ) {
           this.log("WARN", "Compound index not defined");
           filter.children.push(child);
           return;
@@ -176,9 +190,14 @@ export default class FireStore<
 
     const res = await query.limit(parsedQuery.limit || 0).get();
     return {
-      results: res.docs.map(d => this.initModel(this.giveDatesBack(d.data()))),
+      results: res.docs.map((d) =>
+        this.initModel(this.giveDatesBack(d.data()))
+      ),
       filter: filter.children.length ? filter : true,
-      continuationToken: res.docs.length >= parsedQuery.limit ? (offset + parsedQuery.limit).toString() : undefined
+      continuationToken:
+        res.docs.length >= parsedQuery.limit
+          ? (offset + parsedQuery.limit).toString()
+          : undefined,
     };
   }
 
@@ -198,7 +217,7 @@ export default class FireStore<
     if (!orderBy) {
       return query;
     }
-    let requiredIndex = orderBy.map(order => order.field).sort();
+    let requiredIndex = orderBy.map((order) => order.field).sort();
     let orders;
     // Require index with multiple ORDER BY
     if (requiredIndex.length > 1) {
@@ -211,27 +230,44 @@ export default class FireStore<
     // Range must be the first orderBy
     if (rangeAttribute) {
       if (
-        !orderBy.some(order => {
+        !orderBy.some((order) => {
           // Need to check the permitted orderBy and direction
           if (order.field === rangeAttribute) {
-            query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
+            query = query.orderBy(
+              order.field,
+              <OrderByDirection>order.direction.toLowerCase()
+            );
             return true;
           }
         })
       ) {
-        this.log("WARN", "Skip orderBy as the range attribute is not within ORDER BY expression");
+        this.log(
+          "WARN",
+          "Skip orderBy as the range attribute is not within ORDER BY expression"
+        );
         // If rangeAttribute is not in orderBy then skip the orderBy completely
         return query;
       }
     }
     // Add remaining orderBy from index
     orderBy
-      .filter(order => order.field !== rangeAttribute)
-      .forEach(order => {
-        if (!orders || orders[order.field].has(<OrderByDirection>order.direction.toLowerCase())) {
-          query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
+      .filter((order) => order.field !== rangeAttribute)
+      .forEach((order) => {
+        if (
+          !orders ||
+          orders[order.field].has(
+            <OrderByDirection>order.direction.toLowerCase()
+          )
+        ) {
+          query = query.orderBy(
+            order.field,
+            <OrderByDirection>order.direction.toLowerCase()
+          );
         } else {
-          this.log("WARN", "Skip orderBy as the direction does not match index");
+          this.log(
+            "WARN",
+            "Skip orderBy as the direction does not match index"
+          );
         }
       });
     return query;
@@ -240,19 +276,27 @@ export default class FireStore<
   /**
    * @override
    */
-  async exists(uid: string): Promise<boolean> {
+  async _exists(uid: string): Promise<boolean> {
     return (await this.getDocumentRef(uid).get()).exists;
   }
 
   /**
    * @override
    */
-  async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string): Promise<void> {
-    await this.firestore.runTransaction(async t => {
+  async _delete(
+    uid: string,
+    writeCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<void> {
+    await this.firestore.runTransaction(async (t) => {
       const docRef = this.getDocumentRef(uid);
       const doc = (await t.get(docRef)).data();
       if (writeCondition && doc[itemWriteConditionField] !== writeCondition) {
-        throw new UpdateConditionFailError(uid, itemWriteConditionField, writeCondition);
+        throw new UpdateConditionFailError(
+          uid,
+          itemWriteConditionField,
+          writeCondition
+        );
       }
       t.delete(docRef);
     });
@@ -267,10 +311,10 @@ export default class FireStore<
     if (doc instanceof Timestamp) {
       return doc.toDate();
     } else if (Array.isArray(doc)) {
-      return doc.map(d => this.giveDatesBack(d));
+      return doc.map((d) => this.giveDatesBack(d));
     } else if (doc instanceof Object) {
       let res = {};
-      Object.keys(doc).forEach(k => {
+      Object.keys(doc).forEach((k) => {
         res[k] = this.giveDatesBack(doc[k]);
       });
       return res;
@@ -300,24 +344,53 @@ export default class FireStore<
   async getAll(list?: string[]): Promise<T[]> {
     let res = [];
     if (list) {
-      res = (await this.firestore.collection(this.parameters.collection).where("uuid", "in", list).get()).docs;
+      res = (
+        await this.firestore
+          .collection(this.parameters.collection)
+          .where("uuid", "in", list)
+          .get()
+      ).docs;
     } else {
       // Limit to 1M docs
-      res = (await this.firestore.collection(this.parameters.collection).limit(1000000).get()).docs;
+      res = (
+        await this.firestore
+          .collection(this.parameters.collection)
+          .limit(1000000)
+          .get()
+      ).docs;
     }
-    return res.map(doc => this.initModel(this.giveDatesBack(doc.data())));
+    return res.map((doc) => this.initModel(this.giveDatesBack(doc.data())));
   }
 
   /**
    * @override
    */
-  async _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
-    await this._setDocument(false, object, uid, itemWriteCondition, itemWriteConditionField);
+  async _update(
+    object: any,
+    uid: string,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<any> {
+    await this._setDocument(
+      false,
+      object,
+      uid,
+      itemWriteCondition,
+      itemWriteConditionField
+    );
   }
 
-  protected checkCondition(uid: string, data: any, field: string, condition: any): void {
+  protected checkCondition(
+    uid: string,
+    data: any,
+    field: string,
+    condition: any
+  ): void {
     if (condition) {
-      let current = data[field] instanceof Timestamp ? data[field].toDate().toISOString() : data[field];
+      let current =
+        data[field] instanceof Timestamp
+          ? data[field].toDate().toISOString()
+          : data[field];
       if (condition instanceof Date) {
         condition = condition.toISOString();
       }
@@ -343,15 +416,20 @@ export default class FireStore<
     } else {
       update = JSONUtils.duplicate(object);
     }
-    await this.firestore.runTransaction(async t => {
+    await this.firestore.runTransaction(async (t) => {
       const docRef = this.getDocumentRef(uid);
       const doc = await t.get(docRef);
       if (!doc.exists) {
         throw new StoreNotFoundError(uid, this.getName());
       }
-      this.checkCondition(uid, doc.data(), itemWriteConditionField, itemWriteCondition);
+      this.checkCondition(
+        uid,
+        doc.data(),
+        itemWriteConditionField,
+        itemWriteCondition
+      );
       t.set(docRef, update, {
-        merge
+        merge,
       });
     });
   }
@@ -359,8 +437,19 @@ export default class FireStore<
   /**
    * @override
    */
-  async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
-    await this._setDocument(true, object, uid, itemWriteCondition, itemWriteConditionField);
+  async _patch(
+    object: any,
+    uid: string,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<any> {
+    await this._setDocument(
+      true,
+      object,
+      uid,
+      itemWriteCondition,
+      itemWriteConditionField
+    );
   }
 
   /**
@@ -372,15 +461,20 @@ export default class FireStore<
     itemWriteCondition?: any,
     itemWriteConditionField?: string
   ): Promise<void> {
-    await this.firestore.runTransaction(async t => {
+    await this.firestore.runTransaction(async (t) => {
       const docRef = this.getDocumentRef(uuid);
       const doc = await t.get(docRef);
       if (!doc.exists) {
         throw new StoreNotFoundError(uuid, this.getName());
       }
-      this.checkCondition(uuid, doc.data(), itemWriteConditionField, itemWriteCondition);
+      this.checkCondition(
+        uuid,
+        doc.data(),
+        itemWriteConditionField,
+        itemWriteCondition
+      );
       t.update(docRef, {
-        [attribute]: FieldValue.delete()
+        [attribute]: FieldValue.delete(),
       });
     });
   }
@@ -403,9 +497,9 @@ export default class FireStore<
   ): Promise<any> {
     try {
       const args: any = {
-        [this._lastUpdateField]: updateDate
+        [this._lastUpdateField]: updateDate,
       };
-      params.forEach(p => {
+      params.forEach((p) => {
         args[p.property] = FieldValue.increment(p.value);
       });
       await this.getDocumentRef(uid).update(args);
@@ -430,24 +524,29 @@ export default class FireStore<
     updateDate: Date
   ): Promise<any> {
     if (index !== undefined) {
-      await this.firestore.runTransaction(async t => {
+      await this.firestore.runTransaction(async (t) => {
         const docRef = this.getDocumentRef(uid);
         const doc = await t.get(docRef);
         if (!doc.exists) {
           throw new StoreNotFoundError(uid, this.getName());
         }
         const data = doc.data();
-        this.checkCondition(uid, data[prop][index], itemWriteConditionField, itemWriteCondition);
+        this.checkCondition(
+          uid,
+          data[prop][index],
+          itemWriteConditionField,
+          itemWriteCondition
+        );
         data[prop][index] = item;
         t.update(docRef, {
           [prop]: data[prop],
-          [this._lastUpdateField]: updateDate
+          [this._lastUpdateField]: updateDate,
         });
       });
     } else {
       try {
         await this.getDocumentRef(uid).update({
-          [prop]: FieldValue.arrayUnion(item)
+          [prop]: FieldValue.arrayUnion(item),
         });
       } catch (err) {
         if (err.code === 5) {
@@ -469,18 +568,23 @@ export default class FireStore<
     itemWriteConditionField: string,
     updateDate: Date
   ): Promise<any> {
-    await this.firestore.runTransaction(async t => {
+    await this.firestore.runTransaction(async (t) => {
       const docRef = this.getDocumentRef(uid);
       const doc = await t.get(docRef);
       if (!doc.exists) {
         throw new StoreNotFoundError(uid, this.getName());
       }
       const data = doc.data();
-      this.checkCondition(uid, data[prop][index], itemWriteConditionField, itemWriteCondition);
+      this.checkCondition(
+        uid,
+        data[prop][index],
+        itemWriteConditionField,
+        itemWriteCondition
+      );
       // Get item from doc?
       t.update(docRef, {
         [prop]: FieldValue.arrayRemove(data[prop][index]),
-        [this._lastUpdateField]: updateDate
+        [this._lastUpdateField]: updateDate,
       });
     });
   }

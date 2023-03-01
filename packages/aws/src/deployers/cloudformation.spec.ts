@@ -1,8 +1,4 @@
-import {
-  APIGateway,
-  CreateDeploymentCommand,
-  PutRestApiCommand,
-} from "@aws-sdk/client-api-gateway";
+import { APIGateway, CreateDeploymentCommand, PutRestApiCommand } from "@aws-sdk/client-api-gateway";
 import {
   CloudFormation,
   CreateChangeSetCommand,
@@ -13,7 +9,7 @@ import {
   DescribeStackEventsCommand,
   DescribeStacksCommand,
   ExecuteChangeSetCommand,
-  ListStackResourcesCommand,
+  ListStackResourcesCommand
 } from "@aws-sdk/client-cloudformation";
 import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
 import { suite, test } from "@testdeck/mocha";
@@ -24,19 +20,14 @@ import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import * as sinon from "sinon";
 import { defaultCreds } from "../index.spec";
-import {
-  CloudFormationDeployer,
-  LAMBDA_LATEST_VERSION,
-} from "./cloudformation";
+import { CloudFormationDeployer, LAMBDA_LATEST_VERSION } from "./cloudformation";
 import { MockAWSDeployerMethods } from "./index.spec";
 
 @suite
 class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   mocks: { [key: string]: any } = {};
 
-  async getDeployer(
-    manager: DeploymentManager
-  ): Promise<CloudFormationDeployer> {
+  async getDeployer(manager: DeploymentManager): Promise<CloudFormationDeployer> {
     let deployer = await (<any>manager.getDeployer("WebdaSampleApplication"));
     MockAWSDeployerMethods(deployer, this);
     return <CloudFormationDeployer>deployer;
@@ -54,27 +45,26 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     await this.deployer.defaultResources();
     assert.deepStrictEqual(this.deployer.resources.APIGatewayBasePathMapping, {
       ...resources.APIGatewayDomain,
-      BasePath: "",
+      BasePath: ""
     });
     assert.deepStrictEqual(this.deployer.resources.APIGatewayDomain, {
       ...resources.APIGatewayDomain,
-      SecurityPolicy: "TLS_1_2",
+      SecurityPolicy: "TLS_1_2"
     });
     assert.deepStrictEqual(this.deployer.resources.Lambda, {
       ...resources.Lambda,
       FunctionName: "WebdaSampleApplication",
-      Handler:
-        "node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler",
+      Handler: "node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler",
       MemorySize: 2048,
       Role: { "Fn::GetAtt": ["Role", "Arn"] },
       Runtime: LAMBDA_LATEST_VERSION,
-      Timeout: 30,
+      Timeout: 30
     });
     assert.deepStrictEqual(this.deployer.resources.Policy, {
       ...resources.Policy,
       PolicyDocument: { Statement: [] },
       PolicyName: "WebdaSampleApplicationPolicy",
-      Roles: [{ Ref: "Role" }],
+      Roles: [{ Ref: "Role" }]
     });
     this.deployer.resources.ResourcesToImport = [];
     this.deployer.resources.ChangeSetType = "CREATE";
@@ -90,20 +80,19 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     // @ts-ignore
     this.deployer.resources.Docker = { tag: "plop" };
     this.deployer.getAWSIdentity = async () => ({
-      Account: "mine",
+      Account: "mine"
     });
     this.deployer.resources.APIGatewayBasePathMapping.DomainName = "webda.io.";
     this.deployer.resources.APIGatewayV2ApiMapping = {
-      DomainName: "webda.io.",
+      DomainName: "webda.io."
     };
     // @ts-ignore
     this.deployer.resources.Statics = [{ Source: "/plop" }];
     await this.deployer.defaultResources();
+    this.deployer.resources.Role.Policies = [];
+    await this.deployer.defaultResources();
     this.deployer.resources.AssetsBucket = undefined;
-    await assert.rejects(
-      () => this.deployer.defaultResources(),
-      /AssetsBucket must be defined/
-    );
+    await assert.rejects(() => this.deployer.defaultResources(), /AssetsBucket must be defined/);
   }
 
   @test
@@ -112,12 +101,12 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     this.deployer.resources.AssetsPrefix = "plop/";
     this.deployer.resources.FileName = "123";
     this.deployer.template = {
-      fake: true,
+      fake: true
     };
     await this.deployer.sendCloudFormationTemplate();
     assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.json",
+      Key: "plop/123.json"
     });
     this.deployer.resources.AssetsPrefix = "/plop/";
     this.deployer.resources.FileName = "123.json";
@@ -125,7 +114,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     await this.deployer.sendCloudFormationTemplate();
     assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.json",
+      Key: "plop/123.json"
     });
     this.deployer.resources.FileName = "123";
     this.deployer.resources.Format = "YAML";
@@ -133,21 +122,21 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     await this.deployer.sendCloudFormationTemplate();
     assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.yml",
+      Key: "plop/123.yml"
     });
     this.deployer.resources.FileName = "123.yml";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
     assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.yml",
+      Key: "plop/123.yml"
     });
     this.deployer.resources.FileName = "123.taml";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
     assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.taml.yml",
+      Key: "plop/123.taml.yml"
     });
     this.deployer.resources.FileName = "123.yaml";
     this.deployer.result = {};
@@ -155,7 +144,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     await this.deployer.sendCloudFormationTemplate();
     assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "123.yaml",
+      Key: "123.yaml"
     });
   }
 
@@ -166,38 +155,29 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     resources.Resources = {};
     resources.APIGateway = {};
     resources.APIGatewayDomain = {
-      DomainName: "webda.io",
+      DomainName: "webda.io"
     };
     resources.Policy = {};
     resources.Role = {};
     resources.Fargate = {};
     resources.Tags = [{ Key: "test", Value: "test" }];
     resources.CustomResources = {
-      MyResource: { Type: "Test" },
+      MyResource: { Type: "Test" }
     };
     let uploadStatics = sinon.stub(this.deployer, "uploadStatics");
-    let createCloudFormation = sinon.stub(
-      this.deployer,
-      "createCloudFormation"
-    );
-    let sendCloudFormation = sinon.stub(
-      this.deployer,
-      "sendCloudFormationTemplate"
-    );
-    let generateLambdaPackage = sinon.stub(
-      this.deployer,
-      "generateLambdaPackage"
-    );
+    let createCloudFormation = sinon.stub(this.deployer, "createCloudFormation");
+    let sendCloudFormation = sinon.stub(this.deployer, "sendCloudFormationTemplate");
+    let generateLambdaPackage = sinon.stub(this.deployer, "generateLambdaPackage");
     sendCloudFormation.callsFake(async () => {
       this.deployer.result.CloudFormation = {
         Bucket: "plop",
-        Key: "mycf.json",
+        Key: "mycf.json"
       };
     });
     generateLambdaPackage.callsFake(async () => {
       return {
         S3Bucket: "fake",
-        S3Key: "lambda.zip",
+        S3Key: "lambda.zip"
       };
     });
     await this.deployer.defaultResources();
@@ -207,7 +187,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
 
       this.deployer.resources.Docker = {
         tag: "plop",
-        includeRepository: false,
+        includeRepository: false
       };
       this.deployer.resources.APIGatewayImportOpenApi = "yop";
       sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
@@ -229,12 +209,10 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       }
       return {};
     });
-    this.mocks["waitFor"] = sinon
-      .stub(this.deployer, "waitFor")
-      .callsFake(async (c) => {
-        await c(() => {});
-        await c(() => {});
-      });
+    this.mocks["waitFor"] = sinon.stub(this.deployer, "waitFor").callsFake(async c => {
+      await c(() => {});
+      await c(() => {});
+    });
     const mock = mockClient(CloudFormation)
       .on(DeleteStackCommand)
       .callsFake(this.mocks["deleteStack"])
@@ -257,11 +235,11 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       app: {
         getAppPath: () => {
           return "./noexisting";
-        },
+        }
       },
       log: (...args) => {
         logs.push(args);
-      },
+      }
     };
     let caller = sinon.stub().callsFake(async () => {
       if (caller.callCount === 1) {
@@ -272,40 +250,27 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     let saver = sinon.stub(JSONUtils, "saveFile").callsFake(() => {});
     const mocks = [];
     try {
-      mocks.push(
-        mockClient(STS).on(GetCallerIdentityCommand).callsFake(caller)
-      );
+      mocks.push(mockClient(STS).on(GetCallerIdentityCommand).callsFake(caller));
       let stub = sinon.stub().resolves({});
-      mocks.push(
-        mockClient(CloudFormation).on(CreateStackCommand).callsFake(stub)
-      );
+      mocks.push(mockClient(CloudFormation).on(CreateStackCommand).callsFake(stub));
       assert.ok((await CloudFormationDeployer.init(console)) === -1);
       assert.deepStrictEqual(logs[0], ["ERROR", "package.json not found"]);
       console.app.getAppPath = () => "./test/package.json";
       assert.ok((await CloudFormationDeployer.init(console)) === -1);
       assert.deepStrictEqual(logs[1], [
         "ERROR",
-        "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup",
+        "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup"
       ]);
       logs = [];
       assert.ok((await CloudFormationDeployer.init(console)) === 0);
-      assert.strictEqual(
-        saver.getCall(0).args[0].webda.aws.AssetsBucket,
-        "webda-webda-testor-assets"
-      );
-      assert.strictEqual(
-        saver.getCall(0).args[0].webda.aws.Repository,
-        "webda-webda-testor"
-      );
+      assert.strictEqual(saver.getCall(0).args[0].webda.aws.AssetsBucket, "webda-webda-testor-assets");
+      assert.strictEqual(saver.getCall(0).args[0].webda.aws.Repository, "webda-webda-testor");
       console.app.getAppPath = () => "./test/package-initiated.json";
       logs = [];
       assert.ok((await CloudFormationDeployer.init(console)) === -1);
-      assert.deepStrictEqual(logs[0], [
-        "WARN",
-        "Default information are already in your package.json",
-      ]);
+      assert.deepStrictEqual(logs[0], ["WARN", "Default information are already in your package.json"]);
     } finally {
-      mocks.forEach((m) => m.restore());
+      mocks.forEach(m => m.restore());
     }
   }
 
@@ -317,20 +282,18 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         {
           EventId: "123",
           LogicalResourceId: this.deployer.resources.StackName,
-          ResourceStatus: "IN_PROGRESS",
-        },
-      ],
+          ResourceStatus: "IN_PROGRESS"
+        }
+      ]
     };
     let logs = sinon.stub(this.deployer.logger, "log");
-    sinon.stub(this.deployer, "waitFor").callsFake((callback) => {
+    sinon.stub(this.deployer, "waitFor").callsFake(callback => {
       return new Promise((resolve, reject) => {
         callback(resolve, reject);
       });
     });
     const mocks = [];
-    sinon
-      .stub(this.deployer, "createCloudFormationChangeSet")
-      .callsFake(async () => "mychange");
+    sinon.stub(this.deployer, "createCloudFormationChangeSet").callsFake(async () => "mychange");
     const mock = mockClient(CloudFormation)
       .on(DescribeChangeSetCommand)
       .resolves(describeChangeSetResult)
@@ -340,13 +303,13 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       .callsFake(async () => {
         let res = {
           ...describeStackEventsResult,
-          StackEvents: [...describeStackEventsResult.StackEvents],
+          StackEvents: [...describeStackEventsResult.StackEvents]
         };
         describeStackEventsResult.StackEvents.unshift({
           EventId: "123",
           ResourceType: "any",
           LogicalResourceId: this.deployer.resources.StackName,
-          ResourceStatus: "UPDATE_ROLLBACK_COMPLETE",
+          ResourceStatus: "UPDATE_ROLLBACK_COMPLETE"
         });
         return res;
       })
@@ -358,25 +321,21 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
             PhysicalResourceId: "stage",
             LogicalResourceId: "",
             LastUpdatedTimestamp: new Date(),
-            ResourceStatus: "",
+            ResourceStatus: ""
           },
           {
             ResourceType: "AWS::ApiGateway::RestApi",
             PhysicalResourceId: "restApi",
             LogicalResourceId: "",
             LastUpdatedTimestamp: new Date(),
-            ResourceStatus: "",
-          },
-        ],
+            ResourceStatus: ""
+          }
+        ]
       });
     mocks.push(mock);
     try {
       let createDeployment = sinon.stub().resolves({});
-      mocks.push(
-        mockClient(APIGateway)
-          .on(CreateDeploymentCommand)
-          .callsFake(createDeployment)
-      );
+      mocks.push(mockClient(APIGateway).on(CreateDeploymentCommand).callsFake(createDeployment));
       // First scenario we have a 'ROLLBACK_COMPLETE', an error occured
       await assert.rejects(() => this.deployer.createCloudFormation());
       // 'FAILED' scenario with unknown error
@@ -384,20 +343,13 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       describeChangeSetResult.Status = "FAILED";
       describeChangeSetResult.StatusReason = "plop";
       await this.deployer.createCloudFormation();
-      assert.deepStrictEqual(logs.getCall(1).args, [
-        "ERROR",
-        "Cannot execute ChangeSet:",
-        "plop",
-      ]);
+      assert.deepStrictEqual(logs.getCall(1).args, ["ERROR", "Cannot execute ChangeSet:", "plop"]);
       // 'FAILED' scenario because no changes to be made
       describeChangeSetResult.StatusReason =
         "The submitted information didn't contain changes. Submit different information to create a change set.";
       logs.resetHistory();
       await this.deployer.createCloudFormation();
-      assert.deepStrictEqual(logs.getCall(1).args, [
-        "INFO",
-        "No changes to be made",
-      ]);
+      assert.deepStrictEqual(logs.getCall(1).args, ["INFO", "No changes to be made"]);
       // 'CREATE_COMPLETE' scenario
       logs.resetHistory();
       describeChangeSetResult.Status = "CREATE_COMPLETE";
@@ -407,15 +359,15 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
           ResourceChange: {
             Action: "Create",
             ResourceType: "Fake",
-            LogicalResourceId: "FakeId",
-          },
+            LogicalResourceId: "FakeId"
+          }
         },
-        { Type: "Plop" },
+        { Type: "Plop" }
       ];
       await this.deployer.createCloudFormation();
       assert.deepStrictEqual(createDeployment.getCall(0).args[0], {
         restApiId: "restApi",
-        stageName: "stage",
+        stageName: "stage"
       });
       // 'TIMEOUT'
       this.deployer.sleep = async () => {};
@@ -424,7 +376,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       await this.deployer.createCloudFormation();
       assert.ok(createDeployment.callCount === 1);
     } finally {
-      mocks.forEach((m) => m.restore());
+      mocks.forEach(m => m.restore());
     }
   }
 
@@ -433,16 +385,14 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     sinon.stub(this.deployer, "putFolderOnBucket").callsFake(async () => {});
     this.deployer.resources.Statics = [
       // @ts-ignore
-      { Source: "//", AssetsPath: "//" },
+      { Source: "//", AssetsPath: "//" }
     ];
     await this.deployer.uploadStatics();
   }
 
   @test
   async generateLambdaPackage() {
-    let run = sinon
-      .stub(this.deployer.manager, "run")
-      .callsFake(async () => {});
+    let run = sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
     try {
       this.deployer.resources.KeepPackage = true;
       await this.deployer.generateLambdaPackage();
@@ -454,11 +404,11 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   @test
   async createCloudFormationChangeSet() {
     let describeStacksResult = {
-      Stacks: [{ StackStatus: "ZZ", StackName: "", CreationTime: new Date() }],
+      Stacks: [{ StackStatus: "ZZ", StackName: "", CreationTime: new Date() }]
     };
     this.deployer.result.CloudFormation = {
       Bucket: "Bucket",
-      Key: "mykey",
+      Key: "mykey"
     };
     const mock = mockClient(CloudFormation)
       .on(CreateChangeSetCommand)
@@ -482,15 +432,11 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         }
       });
       mock.on(CreateChangeSetCommand).callsFake(errorFirst);
-      testError = new Error(
-        "plop is in ROLLBACK_COMPLETE state and can not be updated."
-      );
+      testError = new Error("plop is in ROLLBACK_COMPLETE state and can not be updated.");
       // Should still go through with a bugous stack
       await this.deployer.createCloudFormationChangeSet(cloudformation);
       // Non-existing stack
-      testError = new Error(
-        `Stack [${this.deployer.resources.StackName}] does not exist`
-      );
+      testError = new Error(`Stack [${this.deployer.resources.StackName}] does not exist`);
       errorFirst.resetHistory();
       await this.deployer.createCloudFormationChangeSet(cloudformation);
       // Change set exist
@@ -501,13 +447,10 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       // True error
       testError = new Error("Unknown");
       errorFirst.resetHistory();
-      await assert.rejects(
-        () => this.deployer.createCloudFormationChangeSet(cloudformation),
-        /Unknown/
-      );
+      await assert.rejects(() => this.deployer.createCloudFormationChangeSet(cloudformation), /Unknown/);
       // Test with stack status
       testError = new Error("bouzouf state and can not be updated.");
-      sinon.stub(this.deployer, "waitFor").callsFake((callback) => {
+      sinon.stub(this.deployer, "waitFor").callsFake(callback => {
         return new Promise(async (resolve, reject) => {
           if (!(await callback(resolve, reject))) {
             reject("BAD");
@@ -515,18 +458,15 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         });
       });
       errorFirst.resetHistory();
-      await assert.rejects(
-        () => this.deployer.createCloudFormationChangeSet(cloudformation),
-        /BAD/
-      );
+      await assert.rejects(() => this.deployer.createCloudFormationChangeSet(cloudformation), /BAD/);
       describeStacksResult = {
         Stacks: [
           {
             StackStatus: "ANY_COMPLETE",
             StackName: "",
-            CreationTime: new Date(),
-          },
-        ],
+            CreationTime: new Date()
+          }
+        ]
       };
       errorFirst.resetHistory();
       await this.deployer.createCloudFormationChangeSet(cloudformation);
@@ -543,30 +483,27 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     this.deployer.template = { Resources: {} };
     await this.deployer.createStatic({
       Bucket: { Tags: {} },
-      DomainName: "webda.io",
+      DomainName: "webda.io"
     });
-    assert.deepStrictEqual(
-      this.deployer.template.Resources[`StaticwebdaioBucket`],
-      {
-        Type: "AWS::S3::Bucket",
-        Properties: {
-          BucketName: "webda.io",
-          Tags: [
-            {
-              Key: "test",
-              Value: "webda3",
-            },
-          ],
-        },
+    assert.deepStrictEqual(this.deployer.template.Resources[`StaticwebdaioBucket`], {
+      Type: "AWS::S3::Bucket",
+      Properties: {
+        BucketName: "webda.io",
+        Tags: [
+          {
+            Key: "test",
+            Value: "webda3"
+          }
+        ]
       }
-    );
+    });
   }
 
   @test
   async APIGatewayDomain() {
     this.deployer.template = { Resources: {} };
     this.deployer.resources.APIGatewayDomain.EndpointConfiguration = {
-      Types: ["EDGE"],
+      Types: ["EDGE"]
     };
     sinon.stub(this.deployer, "createCloudFormationDNSEntry");
     await this.deployer.APIGatewayDomain();
@@ -577,10 +514,6 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     this.mocks.getZoneForDomainName.callsFake(async () => {
       return undefined;
     });
-    await this.deployer.createCloudFormationDNSEntry(
-      undefined,
-      "plop.com",
-      undefined
-    );
+    await this.deployer.createCloudFormationDNSEntry(undefined, "plop.com", undefined);
   }
 }

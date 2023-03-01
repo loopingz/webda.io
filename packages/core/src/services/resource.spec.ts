@@ -18,16 +18,11 @@ class ResourceTest extends WebdaTest {
 
   @test
   async parentFolder() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/resources/../config.json"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/../config.json");
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(
       () => executor.execute(this.ctx),
-      (err) => err == 401
+      err => err == 401
     );
   }
 
@@ -35,7 +30,7 @@ class ResourceTest extends WebdaTest {
   params() {
     let params = new ResourceServiceParameters({
       url: "/test/",
-      rootRedirect: true,
+      rootRedirect: true
     });
     assert.strictEqual(params.url, "/test/");
     assert.strictEqual(params.folder, "./test/");
@@ -45,128 +40,65 @@ class ResourceTest extends WebdaTest {
   async redirect() {
     this.resource.getParameters().rootRedirect = true;
     this.webda.getRouter().removeRoute("/");
-    assert.ok(
-      this.webda.getRouter().getRouteFromUrl(this.ctx, "GET", "/") === undefined
-    );
+    assert.ok(this.webda.getRouter().getRouteFromUrl(this.ctx, "GET", "/") === undefined);
     this.resource.initRoutes();
-    assert.ok(
-      this.webda.getRouter().getRouteFromUrl(this.ctx, "GET", "/") !== undefined
-    );
+    assert.ok(this.webda.getRouter().getRouteFromUrl(this.ctx, "GET", "/") !== undefined);
     this.resource._redirect(this.ctx);
-    assert.strictEqual(
-      this.ctx.getResponseHeaders().Location,
-      "http://test.webda.io/resources/"
-    );
+    assert.strictEqual(this.ctx.getResponseHeaders().Location, "http://test.webda.io/resources/");
   }
 
   @test
   async index() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/resources/"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/");
     // index.html does not exist in our case
     await assert.rejects(
       () => executor.execute(this.ctx),
-      (err) => err == 404
+      err => err == 404
     );
   }
 
   @test
   async unknownFile() {
-    this.getService<ResourceService>(
-      "ResourceService"
-    ).getParameters().indexFallback = true;
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/resources/config.unknown.json"
-    );
+    this.getService<ResourceService>("ResourceService").getParameters().indexFallback = true;
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.unknown.json");
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(() => executor.execute(this.ctx), /404/);
   }
 
   @test
   async jsonFile() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/resources/config.json"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.json");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.strictEqual(
-      this.ctx.getResponseBody().toString(),
-      fs.readFileSync("./test/config.json").toString()
-    );
-    assert.strictEqual(
-      this.ctx.getResponseHeaders()["content-type"],
-      "application/json"
-    );
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/config.json").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/json");
   }
 
   @test
   async jsFile() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/resources/moddas/voidstore.js"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/moddas/voidstore.js");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.strictEqual(
-      this.ctx.getResponseBody().toString(),
-      fs.readFileSync("./test/moddas/voidstore.js").toString()
-    );
-    assert.strictEqual(
-      this.ctx.getResponseHeaders()["content-type"],
-      "application/javascript"
-    );
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/moddas/voidstore.js").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/javascript");
   }
 
   @test
   async textFile() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/resources/data/test.txt"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.txt");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.strictEqual(
-      this.ctx.getResponseBody().toString(),
-      fs.readFileSync("./test/data/test.txt").toString()
-    );
-    assert.strictEqual(
-      this.ctx.getResponseHeaders()["content-type"],
-      "text/plain; charset=UTF-8"
-    );
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.txt").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "text/plain; charset=UTF-8");
   }
 
   @test
   async pngFile() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/resources/data/test.png"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.png");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.strictEqual(
-      this.ctx.getResponseBody().toString(),
-      fs.readFileSync("./test/data/test.png").toString()
-    );
-    assert.strictEqual(
-      this.ctx.getResponseHeaders()["content-type"],
-      "image/png"
-    );
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.png").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "image/png");
   }
 
   // Check Store HTTP mapping
@@ -182,13 +114,8 @@ class ResourceTest extends WebdaTest {
     await executor.execute(this.ctx);
     assert.strictEqual(
       this.ctx.getResponseBody().toString(),
-      fs
-        .readFileSync("./templates/PASSPORT_EMAIL_RECOVERY/html.mustache")
-        .toString()
+      fs.readFileSync("./templates/PASSPORT_EMAIL_RECOVERY/html.mustache").toString()
     );
-    assert.strictEqual(
-      this.ctx.getResponseHeaders()["content-type"],
-      "application/octet-stream"
-    );
+    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/octet-stream");
   }
 }

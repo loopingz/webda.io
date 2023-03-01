@@ -1,6 +1,7 @@
 import {
   Application,
   Configuration,
+  CoreModel,
   RequestFilter,
   SectionEnum,
   Service,
@@ -27,6 +28,7 @@ export default class ConfigurationService extends Service implements RequestFilt
   resolve(): this {
     super.resolve();
     this._webda.registerCORSFilter(this);
+    this._webda.registerRequestFilter(this);
     this.addRoute("/configuration", ["GET", "PUT"], this.crudConfiguration);
     this.addRoute("/application", ["GET"], this.getApplication);
     this.addRoute("/npm", ["POST"], this.npmSearch);
@@ -76,6 +78,8 @@ export class ConfigApplication extends Application {
   getModel(model: string): any {
     if (model.toLowerCase() === "webdaconfiguration/deployment") {
       return Deployment;
+    } else if (model.toLowerCase() === "webda/coremodel") {
+      return CoreModel;
     }
     return super.getModel(model);
   }
@@ -97,10 +101,7 @@ export class ConfigApplication extends Application {
   getConfiguration(_deploymentName: string = undefined): Configuration {
     return {
       version: 3,
-      parameters: {
-        sessionSecret:
-          "qwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqaz"
-      },
+      parameters: {},
       services: {
         api: {
           type: "WebdaConfiguration/API"

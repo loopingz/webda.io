@@ -1,12 +1,6 @@
 import { CoreModel } from "../models/coremodel";
 import { Inject, Service, ServiceParameters } from "../services/service";
-import {
-  EventStoreDeleted,
-  EventStorePartialUpdated,
-  EventStoreSaved,
-  EventStoreUpdate,
-  Store,
-} from "./store";
+import { EventStoreDeleted, EventStorePartialUpdated, EventStoreSaved, EventStoreUpdate, Store } from "./store";
 
 export type MapUpdates = "created" | "deleted" | { [key: string]: any };
 
@@ -69,9 +63,7 @@ export class MapperParameters extends ServiceParameters {
  * Map object to another object
  * @WebdaModda Mapper
  */
-export default class MapperService<
-  T extends MapperParameters = MapperParameters
-> extends Service<T> {
+export default class MapperService<T extends MapperParameters = MapperParameters> extends Service<T> {
   @Inject("params:target")
   targetStore: Store<CoreModel & { [key: string]: any[] }>;
 
@@ -90,62 +82,40 @@ export default class MapperService<
    */
   resolve(): this {
     super.resolve();
-    this.targetStore.addReverseMap(
-      this.parameters.targetAttribute,
-      this.sourceService
-    );
+    this.targetStore.addReverseMap(this.parameters.targetAttribute, this.sourceService);
     const method = this.parameters.async ? "onAsync" : "on";
-    this.sourceService[method](
-      "Store.PartialUpdated",
-      async (evt: EventStorePartialUpdated) => {
-        let prop;
-        if (evt.partial_update.increments) {
-          prop = evt.partial_update.increments.map((c) => c.property);
-        } else if (evt.partial_update.addItem) {
-          prop = evt.partial_update.addItem.property;
-        } else if (evt.partial_update.deleteItem) {
-          prop = evt.partial_update.deleteItem.property;
-        }
-        await this._handleMapFromPartial(evt.object_id, evt.updateDate, prop);
+    this.sourceService[method]("Store.PartialUpdated", async (evt: EventStorePartialUpdated) => {
+      let prop;
+      if (evt.partial_update.increments) {
+        prop = evt.partial_update.increments.map(c => c.property);
+      } else if (evt.partial_update.addItem) {
+        prop = evt.partial_update.addItem.property;
+      } else if (evt.partial_update.deleteItem) {
+        prop = evt.partial_update.deleteItem.property;
       }
-    );
+      await this._handleMapFromPartial(evt.object_id, evt.updateDate, prop);
+    });
     this.sourceService[method]("Store.Saved", async (evt: EventStoreSaved) => {
       await this.handleMap(evt.object, "created");
     });
-    this.sourceService[method](
-      "Store.Update",
-      async (evt: EventStoreUpdate) => {
-        await this.handleMap(evt.object, evt.update);
-      }
-    );
-    this.sourceService[method](
-      "Store.PatchUpdate",
-      async (evt: EventStoreUpdate) => {
-        await this.handleMap(evt.object, evt.update);
-      }
-    );
-    this.sourceService[method](
-      "Store.Delete",
-      async (evt: EventStoreDeleted) => {
-        await this.handleMap(evt.object, "deleted");
-      }
-    );
+    this.sourceService[method]("Store.Update", async (evt: EventStoreUpdate) => {
+      await this.handleMap(evt.object, evt.update);
+    });
+    this.sourceService[method]("Store.PatchUpdate", async (evt: EventStoreUpdate) => {
+      await this.handleMap(evt.object, evt.update);
+    });
+    this.sourceService[method]("Store.Delete", async (evt: EventStoreDeleted) => {
+      await this.handleMap(evt.object, "deleted");
+    });
     // Cascade delete when target is destroyed
     if (this.parameters.cascade) {
-      this.targetStore[method](
-        "Store.Deleted",
-        async (evt: EventStoreDeleted) => {
-          let maps = evt.object[this.parameters.targetAttribute];
-          if (!maps) {
-            return;
-          }
-          await Promise.all(
-            maps.map((mapper) =>
-              this.sourceService.cascadeDelete(mapper, evt.object.getUuid())
-            )
-          );
+      this.targetStore[method]("Store.Deleted", async (evt: EventStoreDeleted) => {
+        let maps = evt.object[this.parameters.targetAttribute];
+        if (!maps) {
+          return;
         }
-      );
+        await Promise.all(maps.map(mapper => this.sourceService.cascadeDelete(mapper, evt.object.getUuid())));
+      });
     }
     return this;
   }
@@ -173,13 +143,10 @@ export default class MapperService<
    * @param updates to the object being made
    * @returns mapper object and found = true if updates will impact the mapper
    */
-  createMapper(
-    object: CoreModel,
-    updates: any
-  ): [mapper: Mapper, found: boolean] {
+  createMapper(object: CoreModel, updates: any): [mapper: Mapper, found: boolean] {
     let mapper: Mapper = {
       // TODO Move to getFullUuid
-      uuid: object.getUuid(),
+      uuid: object.getUuid()
     };
     let found = false;
     for (let mapperfield of this.parameters.fields) {
@@ -221,23 +188,12 @@ export default class MapperService<
    * @param mapper
    * @returns
    */
-  _handleUpdatedMapMapper(
-    source: CoreModel,
-    target: CoreModel,
-    mapper: Mapper
-  ) {
+  _handleUpdatedMapMapper(source: CoreModel, target: CoreModel, mapper: Mapper) {
     // Remove old reference
-    let i = this.getMapper(
-      target[this.parameters.targetAttribute],
-      source.getUuid()
-    );
+    let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
     // If not found just add it to the collection
     if (i < 0) {
-      return this.targetStore.upsertItemToCollection(
-        target.getUuid(),
-        this.parameters.targetAttribute,
-        mapper
-      );
+      return this.targetStore.upsertItemToCollection(target.getUuid(), this.parameters.targetAttribute, mapper);
     }
     // Else update with a check on the uuid
     return this.targetStore.upsertItemToCollection(
@@ -262,10 +218,7 @@ export default class MapperService<
     if (target[this.parameters.targetAttribute] === undefined) {
       return;
     }
-    let i = this.getMapper(
-      target[this.parameters.targetAttribute],
-      source.getUuid()
-    );
+    let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
     if (i >= 0) {
       return this.targetStore.deleteItemFromCollection(
         target.getUuid(),
@@ -287,11 +240,7 @@ export default class MapperService<
   async _handleCreatedMap(source: CoreModel, target: CoreModel) {
     // Add to the object
     let [mapper] = this.createMapper(source, {});
-    return this.targetStore.upsertItemToCollection(
-      target.getUuid(),
-      this.parameters.targetAttribute,
-      mapper
-    );
+    return this.targetStore.upsertItemToCollection(target.getUuid(), this.parameters.targetAttribute, mapper);
   }
 
   /**
@@ -311,16 +260,9 @@ export default class MapperService<
    * @param updateDate
    * @param prop
    */
-  async _handleMapFromPartial(
-    uid: string,
-    updateDate: Date,
-    property: string | string[] = undefined
-  ) {
+  async _handleMapFromPartial(uid: string, updateDate: Date, property: string | string[] = undefined) {
     const props: string[] = Array.isArray(property) ? property : [property];
-    if (
-      props.find((p) => this.isMapped(p)) ||
-      this.isMapped(this.sourceService.getLastUpdateField())
-    ) {
+    if (props.find(p => this.isMapped(p)) || this.isMapped(this.sourceService.getLastUpdateField())) {
       // Not optimal need to reload the object
       let source = await this.sourceService.getObject(uid);
       let updates = {};
@@ -328,8 +270,8 @@ export default class MapperService<
         updates[this.sourceService.getLastUpdateField()] = updateDate;
       }
       props
-        .filter((prop) => this.isMapped(prop))
-        .forEach((prop) => {
+        .filter(prop => this.isMapped(prop))
+        .forEach(prop => {
           if (this.isMapped(prop)) {
             updates[prop] = source[prop];
           }
@@ -348,18 +290,14 @@ export default class MapperService<
    * @returns
    */
   async handleMap(object: CoreModel, updates: MapUpdates) {
-    let attribute =
-      object[this.parameters.attribute] || updates[this.parameters.attribute];
+    let attribute = object[this.parameters.attribute] || updates[this.parameters.attribute];
     let mappeds = [];
     let toDelete = [];
     let toAdd = [];
     let ids = [];
     // Manage the update of linked object
     if (typeof attribute === "string") {
-      if (
-        updates[this.parameters.attribute] !== undefined &&
-        updates[this.parameters.attribute] !== attribute
-      ) {
+      if (updates[this.parameters.attribute] !== undefined && updates[this.parameters.attribute] !== attribute) {
         toAdd.push(updates[this.parameters.attribute]);
         toDelete.push(attribute);
       } else {
@@ -370,33 +308,30 @@ export default class MapperService<
         ids = attribute;
         if (typeof updates == "object" && updates[this.parameters.attribute]) {
           let refs = updates[this.parameters.attribute];
-          toAdd = refs.filter((id) => !ids.includes(id));
-          toDelete = attribute.filter((id) => !refs.includes(id));
+          toAdd = refs.filter(id => !ids.includes(id));
+          toDelete = attribute.filter(id => !refs.includes(id));
         }
       } else if (typeof attribute === "object") {
         ids = Object.keys(attribute);
         if (typeof updates == "object" && updates[this.parameters.attribute]) {
           let refs = Object.keys(updates[this.parameters.attribute]);
-          toAdd = refs.filter((id) => !ids.includes(id));
-          toDelete = ids.filter((id) => !refs.includes(id));
+          toAdd = refs.filter(id => !ids.includes(id));
+          toDelete = ids.filter(id => !refs.includes(id));
         }
       }
     }
     mappeds = await Promise.all([
-      ...ids.map((i) => this.targetStore.get(i)),
-      ...toDelete.map((i) => this.targetStore.get(i)),
-      ...toAdd.map((i) => this.targetStore.get(i)),
+      ...ids.map(i => this.targetStore.get(i)),
+      ...toDelete.map(i => this.targetStore.get(i)),
+      ...toAdd.map(i => this.targetStore.get(i))
     ]);
     await Promise.all(
       mappeds
-        .filter((a) => a !== undefined)
-        .map((mapped) => {
+        .filter(a => a !== undefined)
+        .map(mapped => {
           if (updates === "created" || toAdd.includes(mapped.getUuid())) {
             return this._handleCreatedMap(object, mapped);
-          } else if (
-            updates == "deleted" ||
-            toDelete.includes(mapped.getUuid())
-          ) {
+          } else if (updates == "deleted" || toDelete.includes(mapped.getUuid())) {
             return this._handleDeletedMap(object, mapped);
           } else if (typeof updates == "object") {
             return this._handleUpdatedMap(object, mapped, updates);

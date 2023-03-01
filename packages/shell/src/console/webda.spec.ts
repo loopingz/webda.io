@@ -71,7 +71,9 @@ class ConsoleTest {
     WebdaConsole.webda = undefined;
     this.logger = new DebugLogger(this.workerOutput, "INFO");
     try {
-      fs.mkdirSync(WebdaSampleApplication.getAppPath("node_modules/@webda"), { recursive: true });
+      fs.mkdirSync(WebdaSampleApplication.getAppPath("node_modules/@webda"), {
+        recursive: true
+      });
       fs.symlinkSync(
         path.join(__dirname, "../../../aws"),
         WebdaSampleApplication.getAppPath("node_modules/@webda/aws")
@@ -160,7 +162,9 @@ class ConsoleTest {
     await WebdaConsole.webda.stop();
     this.commandLine(`serve --devMode --port 28081`);
     await WebdaConsole.webda.stop();
-    let p = WebdaConsole.serve({ port: Math.floor(Math.random() * 10000 + 10000) });
+    let p = WebdaConsole.serve({
+      port: Math.floor(Math.random() * 10000 + 10000)
+    });
     await p.cancel();
   }
 
@@ -222,7 +226,7 @@ class ConsoleTest {
       this.dynamicFile,
       `import { Bean, OperationContext, Route, Service } from "@webda/core";
 @Bean
-class DynamicService extends Service {
+export class DynamicService extends Service {
     @Route("/myNewRoute", ["GET"])
     test(ctx: OperationContext) {
         ctx.write("Debugger Rox!");

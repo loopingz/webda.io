@@ -13,17 +13,17 @@ class AliasStoreTest extends StoreTest {
         model: "webda/user",
         idTemplate: "{id}",
         expose: {
-          url: "/alias/users",
-        },
+          url: "/alias/users"
+        }
       }),
       new AliasStore(this.webda, "aliasIdent", {
         targetStore: "MemoryIdents",
         model: "webdatest/ident",
         idTemplate: "{id}",
         expose: {
-          url: "/alias/idents",
+          url: "/alias/idents"
         },
-        asyncDelete: true,
+        asyncDelete: true
       }),
       new MapperService(this.webda, "aliasMapper", {
         source: "aliasIdent",
@@ -31,10 +31,10 @@ class AliasStoreTest extends StoreTest {
         target: "aliasUser",
         attribute: "_user",
         fields: ["type", "_lastUpdate"],
-        cascade: true,
-      }),
+        cascade: true
+      })
     ];
-    services.forEach((s) => this.registerService(s));
+    services.forEach(s => this.registerService(s));
   }
 
   getIdentStore(): Store<any> {

@@ -1,9 +1,5 @@
 "use strict";
-import {
-  Bucket,
-  GetSignedUrlConfig,
-  Storage as GCS,
-} from "@google-cloud/storage";
+import { Bucket, GetSignedUrlConfig, Storage as GCS } from "@google-cloud/storage";
 import {
   BinaryFile,
   BinaryMap,
@@ -12,7 +8,7 @@ import {
   CoreModel,
   DeepPartial,
   getCommonJS,
-  OperationContext,
+  OperationContext
 } from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
@@ -64,9 +60,7 @@ export class StorageParameters extends BinaryParameters {
  * See Binary the general interface
  * @WebdaModda GoogleCloudStorage
  */
-export default class Storage<
-  T extends StorageParameters = StorageParameters
-> extends CloudBinary<T> {
+export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
   private _storage?: GCS;
   private get storage(): GCS {
     if (!this._storage) {
@@ -95,15 +89,11 @@ export default class Storage<
   /**
    * @override
    */
-  getSignedUrlFromMap(
-    map: BinaryMap,
-    expires: number,
-    _context: OperationContext
-  ): Promise<string> {
+  getSignedUrlFromMap(map: BinaryMap, expires: number, _context: OperationContext): Promise<string> {
     return this.getSignedUrl({
       key: this._getKey(map.hash),
       expires,
-      action: "read",
+      action: "read"
     });
   }
 
@@ -148,7 +138,7 @@ export default class Storage<
       stream
         .pipe(
           file.createWriteStream({
-            contentType,
+            contentType
           })
         )
         .on("error", reject)
@@ -182,37 +172,27 @@ export default class Storage<
    */
   async getUsageCount(hash: string): Promise<number> {
     const [files] = await this.getStorageBucket().getFiles({
-      prefix: this._getKey(hash, ""),
+      prefix: this._getKey(hash, "")
     });
-    return files.filter((n) => !n.name.endsWith("/data")).length;
+    return files.filter(n => !n.name.endsWith("/data")).length;
   }
 
   /**
    * @inheritdoc
    */
-  async store(
-    object: CoreModel,
-    property: string,
-    file: BinaryFile
-  ): Promise<void> {
+  async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
     this.checkMap(object.getStore().getName(), property);
     await file.getHashes();
 
-    const [exists] = await this.getStorageBucket()
-      .file(this._getKey(file.hash))
-      .exists();
+    const [exists] = await this.getStorageBucket().file(this._getKey(file.hash)).exists();
     // If data already exist no need to upload
     if (!exists) {
       await this.putObject(this._getKey(file.hash), await file.get(), {
         ...file.metadata,
-        challenge: file.challenge,
+        challenge: file.challenge
       });
     }
-    await this.putMarker(
-      file.hash,
-      object.getUuid(),
-      object.getStore().getName()
-    );
+    await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
     await this.uploadSuccess(<any>object, property, file);
   }
 
@@ -230,13 +210,8 @@ export default class Storage<
    * @param {StorageObject} source
    * @param {StorageObject} destination
    */
-  async moveObject(
-    source: StorageObject,
-    destination: StorageObject
-  ): Promise<void> {
-    const newFile = this.getStorageBucket(destination.bucket).file(
-      destination.key
-    );
+  async moveObject(source: StorageObject, destination: StorageObject): Promise<void> {
+    const newFile = this.getStorageBucket(destination.bucket).file(destination.key);
     this._webda.log(
       "DEBUG",
       `moveObject gs://${source.bucket}/${source.key} => gs://${destination.bucket}/${destination.key}`
@@ -249,20 +224,13 @@ export default class Storage<
    * @param {GetSignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  async getSignedUrl({
-    bucket,
-    key,
-    action,
-    expires = 3600,
-  }: GetSignedUrlParams): Promise<string> {
+  async getSignedUrl({ bucket, key, action, expires = 3600 }: GetSignedUrlParams): Promise<string> {
     const options: GetSignedUrlConfig = {
       version: "v4",
       action,
-      expires: Date.now() + expires * 1000,
+      expires: Date.now() + expires * 1000
     };
-    const [url] = await this.getStorageBucket(bucket)
-      .file(key)
-      .getSignedUrl(options);
+    const [url] = await this.getStorageBucket(bucket).file(key).getSignedUrl(options);
     this._webda.log("TRACE", `The signed url for ${bucket}/${key} is ${url}.`);
     return url;
   }
@@ -291,12 +259,10 @@ export default class Storage<
    * @returns {any} Metadata
    */
   async getMeta({ bucket, key }: StorageObject): Promise<StorageObjectMeta> {
-    const [metadata] = await this.getStorageBucket(bucket)
-      .file(key)
-      .getMetadata();
+    const [metadata] = await this.getStorageBucket(bucket).file(key).getMetadata();
     return {
       size: parseInt(metadata.size),
-      contentType: metadata.contentType,
+      contentType: metadata.contentType
     };
   }
 
@@ -308,8 +274,8 @@ export default class Storage<
       .file(this._getKey(hash, uuid))
       .save("", {
         metadata: {
-          webdaStore: storeName,
-        },
+          webdaStore: storeName
+        }
       });
   }
 }

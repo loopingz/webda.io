@@ -49,7 +49,7 @@ class FireStoreTest extends StoreTest {
   async cleanCollection() {
     let collections = await this.firestore.listCollections();
     await Promise.all(
-      collections.map((c) => {
+      collections.map(c => {
         return this.deleteCollection(c.id, 1000);
       })
     );
@@ -61,18 +61,15 @@ class FireStoreTest extends StoreTest {
       collection: "webda-query",
       compoundIndexes: [{ state: "asc", "team.id": "asc" }],
       expose: {
-        url: "/query",
-      },
+        url: "/query"
+      }
     });
     store.resolve();
     await store.init();
-    let res = await this.firestore
-      .collection("webda-query")
-      .where("order", "==", 1)
-      .get();
+    let res = await this.firestore.collection("webda-query").where("order", "==", 1).get();
     if (!res.docs.length) {
       console.log("Init the query collection");
-      await Promise.all(this.getQueryDocuments().map((d) => store.save(d)));
+      await Promise.all(this.getQueryDocuments().map(d => store.save(d)));
     }
     return store;
   }
@@ -80,68 +77,38 @@ class FireStoreTest extends StoreTest {
   @test
   async query() {
     let store = await super.query();
-    let exp = new WebdaQL.QueryValidator(
-      'state = "CA" AND role = 4'
-    ).getExpression();
+    let exp = new WebdaQL.QueryValidator('state = "CA" AND role = 4').getExpression();
     let res = await store.find({ filter: exp, limit: 1000 });
-    assert.strictEqual(
-      res.filter,
-      true,
-      `Should not have any post filter ${res.filter.toString()}`
-    );
+    assert.strictEqual(res.filter, true, `Should not have any post filter ${res.filter.toString()}`);
     assert.strictEqual(res.results.length, 50);
-    exp = new WebdaQL.QueryValidator(
-      'state = "CA" AND team.id < 5'
-    ).getExpression();
+    exp = new WebdaQL.QueryValidator('state = "CA" AND team.id < 5').getExpression();
     res = await store.find({ filter: exp, limit: 1000 });
-    assert.strictEqual(
-      res.filter,
-      true,
-      `Should not have post filter ${res.filter.toString()}`
-    );
+    assert.strictEqual(res.filter, true, `Should not have post filter ${res.filter.toString()}`);
     assert.strictEqual(res.results.length, 100);
-    exp = new WebdaQL.QueryValidator(
-      'state = "CA" AND team.id < 5 AND role >= 4'
-    ).getExpression();
+    exp = new WebdaQL.QueryValidator('state = "CA" AND team.id < 5 AND role >= 4').getExpression();
     res = await store.find({ filter: exp, limit: 1000 });
-    assert.notStrictEqual(
-      res.filter,
-      true,
-      `Should have post filter ${res.filter.toString()}`
-    );
+    assert.notStrictEqual(res.filter, true, `Should have post filter ${res.filter.toString()}`);
     assert.strictEqual(res.results.length, 100);
-    assert.strictEqual(
-      res.results.filter((c) => (<WebdaQL.Expression>res.filter).eval(c))
-        .length,
-      50
-    );
-    exp = new WebdaQL.QueryValidator(
-      'state = "CA" AND role <= 4'
-    ).getExpression();
+    assert.strictEqual(res.results.filter(c => (<WebdaQL.Expression>res.filter).eval(c)).length, 50);
+    exp = new WebdaQL.QueryValidator('state = "CA" AND role <= 4').getExpression();
     res = await store.find({ filter: exp, limit: 1000 });
     assert.notStrictEqual(res.filter, true, "Should have post filter");
     assert.strictEqual(res.results.length, 250);
     let items = ["CA", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
     res = await store.find({
-      filter: new WebdaQL.QueryValidator(
-        `state IN [${items.map((i) => `"${i}"`).join(",")}]`
-      ).getExpression(),
-      limit: 1000,
+      filter: new WebdaQL.QueryValidator(`state IN [${items.map(i => `"${i}"`).join(",")}]`).getExpression(),
+      limit: 1000
     });
     // Should be post filtered
     assert.strictEqual(res.results.length, 1000);
     res = await store.find({
-      filter: new WebdaQL.QueryValidator(
-        `state IN ["CA", "OR"] AND team.id IN [4,8]`
-      ).getExpression(),
-      limit: 1000,
+      filter: new WebdaQL.QueryValidator(`state IN ["CA", "OR"] AND team.id IN [4,8]`).getExpression(),
+      limit: 1000
     });
     assert.strictEqual(res.results.length, 500);
     res = await store.find({
-      filter: new WebdaQL.QueryValidator(
-        `team.id < 5 AND state > "CA"`
-      ).getExpression(),
-      limit: 1000,
+      filter: new WebdaQL.QueryValidator(`team.id < 5 AND state > "CA"`).getExpression(),
+      limit: 1000
     });
     assert.strictEqual(res.results.length, 250);
     return store;
@@ -159,12 +126,9 @@ class FireStoreTest extends StoreTest {
     assert.strictEqual((<any>res.results.shift()).order, 999);
     res = await store.query("ORDER BY state ASC, team.id ASC LIMIT 10");
     res.results
-      .map((c) => this.mapQueryModel(c))
-      .forEach((c) => {
-        assert.deepStrictEqual(
-          { teamId: 0, state: "CA" },
-          { teamId: c.teamId, state: c.state }
-        );
+      .map(c => this.mapQueryModel(c))
+      .forEach(c => {
+        assert.deepStrictEqual({ teamId: 0, state: "CA" }, { teamId: c.teamId, state: c.state });
       });
     // It should not fail even if index is not found
     res = await store.query("ORDER BY state ASC, team.id DESC LIMIT 10");
@@ -190,7 +154,7 @@ class FireStoreTest extends StoreTest {
 
     // Delete documents in a batch
     const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
+    snapshot.docs.forEach(doc => {
       batch.delete(doc.ref);
     });
     await batch.commit();
@@ -211,12 +175,9 @@ class FireStoreTest extends StoreTest {
   async deleteCondition() {
     let idents = this.getIdentStore();
     let obj = await idents.save({
-      plop: 3,
+      plop: 3
     });
-    await assert.rejects(
-      () => idents._delete(obj.getUuid(), 2, "plop"),
-      /UpdateCondition not met/
-    );
+    await assert.rejects(() => idents._delete(obj.getUuid(), 2, "plop"), /UpdateCondition not met/);
     await idents._delete(obj.getUuid(), 3, "plop");
   }
 
@@ -230,13 +191,7 @@ class FireStoreTest extends StoreTest {
     sinon.stub(store, "getDocumentRef").callsFake(() => {
       throw new Error("FAKE");
     });
-    await assert.rejects(
-      () => store.upsertItemToCollection("inexisting", <any>"plop", {}),
-      /FAKE/
-    );
-    await assert.rejects(
-      () => store.incrementAttribute("inexisting", <never>"plop", 1),
-      /FAKE/
-    );
+    await assert.rejects(() => store.upsertItemToCollection("inexisting", <any>"plop", {}), /FAKE/);
+    await assert.rejects(() => store.incrementAttribute("inexisting", <never>"plop", 1), /FAKE/);
   }
 }

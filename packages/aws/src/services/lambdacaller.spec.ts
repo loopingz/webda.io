@@ -11,7 +11,7 @@ const jobInfo: JobInfo = {
   JOB_ORCHESTRATOR: "async",
   JOB_ID: "webdaAsync",
   JOB_SECRET_KEY: "",
-  JOB_HOOK: "http",
+  JOB_HOOK: "http"
 };
 @suite
 class LambdaCallerTest extends WebdaTest {
@@ -19,18 +19,18 @@ class LambdaCallerTest extends WebdaTest {
   async call() {
     // CodeCoverage test
     const lambdaCaller = new LambdaCaller(this.webda, "plop", {
-      arn: "testor",
+      arn: "testor"
     });
     const mock = mockClient(Lambda)
       .on(InvokeCommand)
       .resolves({
-        Payload: Buffer.from(JSON.stringify({ plop: true })),
+        Payload: Buffer.from(JSON.stringify({ plop: true }))
       });
     try {
       lambdaCaller.resolve();
       assert.deepStrictEqual(await lambdaCaller.execute(), { plop: true });
       assert.deepStrictEqual(await lambdaCaller.execute({}, true, "myarn"), {
-        plop: true,
+        plop: true
       });
     } finally {
       mock.restore();
@@ -51,9 +51,9 @@ class LambdaCallerTest extends WebdaTest {
         args: [jobInfo],
         action: undefined,
         // We also put the value in JOB_INFO for other type of runner
-        JOB_INFO: jobInfo,
+        JOB_INFO: jobInfo
       },
-      true,
+      true
     ]);
   }
 }

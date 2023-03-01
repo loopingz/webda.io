@@ -1,9 +1,4 @@
-import {
-  CoreModel,
-  DeepPartial,
-  Service,
-  ServiceParameters,
-} from "@webda/core";
+import { CoreModel, DeepPartial, Service, ServiceParameters } from "@webda/core";
 import { createHmac } from "crypto";
 import { StoreListener } from "./storelistener";
 
@@ -25,9 +20,7 @@ export class WebSocketsParameters extends ServiceParameters {
 }
 
 const TOKEN_TIMEOUT = 30000;
-export abstract class WSService<
-  T extends WebSocketsParameters = WebSocketsParameters
-> extends Service<T> {
+export abstract class WSService<T extends WebSocketsParameters = WebSocketsParameters> extends Service<T> {
   storeListeners: {
     [key: string]: StoreListener;
   } = {};
@@ -42,10 +35,7 @@ export abstract class WSService<
    */
   async sendModelEvent(fullUuid: string | CoreModel, evt: any): Promise<void> {
     if (this.hasRoom(fullUuid)) {
-      this._sendModelEvent(
-        fullUuid instanceof CoreModel ? fullUuid.getFullUuid() : fullUuid,
-        evt
-      );
+      this._sendModelEvent(fullUuid instanceof CoreModel ? fullUuid.getFullUuid() : fullUuid, evt);
     }
   }
 
@@ -62,14 +52,12 @@ export abstract class WSService<
   async getAuthToken(): Promise<string> {
     let data = Date.now().toString();
     if (this.parameters.auth.type === "HMAC") {
-      return `${data}:${createHmac("sha256", this.parameters.auth.secret)
-        .update(data)
-        .digest("hex")}`;
+      return `${data}:${createHmac("sha256", this.parameters.auth.secret).update(data).digest("hex")}`;
     } else if (this.parameters.auth.type === "JWT") {
       return this.getWebda().getCrypto().jwtSign(
         { timeout: data },
         {
-          expiresIn: "30000",
+          expiresIn: "30000"
         }
       );
     }
@@ -87,16 +75,10 @@ export abstract class WSService<
     }
     if (this.parameters.auth.type === "HMAC") {
       const [timeout, hmac] = token.split(":");
-      if (
-        parseInt(timeout) < Date.now() - TOKEN_TIMEOUT ||
-        this.usedTokens.has(token)
-      ) {
+      if (parseInt(timeout) < Date.now() - TOKEN_TIMEOUT || this.usedTokens.has(token)) {
         return false;
       }
-      result =
-        createHmac("sha256", this.parameters.auth.secret)
-          .update(timeout)
-          .digest("hex") === hmac;
+      result = createHmac("sha256", this.parameters.auth.secret).update(timeout).digest("hex") === hmac;
     } else if (this.parameters.auth.type === "JWT") {
       result = await this.getWebda().getCrypto().jwtVerify(token);
     }
@@ -115,11 +97,9 @@ export abstract class WSService<
    * @param room
    */
   registerRoom(room: string) {
-    const [storeName, uuid] = room.substring("model_".length).split("$");
-    this.storeListeners[storeName] ??= new StoreListener(
-      this.getService(storeName),
-      this
-    );
+    const [model, uuid] = room.substring("model_".length).split("$");
+    const storeName = this.getStoreName(model);
+    this.storeListeners[storeName] ??= new StoreListener(this.getService(storeName), this);
     this.storeListeners[storeName].register(uuid);
   }
 
@@ -130,13 +110,18 @@ export abstract class WSService<
    * @returns
    */
   hasRoom(fullUuid: string | CoreModel) {
-    const [storeName, uuid] = (
-      fullUuid instanceof CoreModel ? fullUuid.getFullUuid() : fullUuid
-    ).split("$");
-    return (
-      this.storeListeners[storeName] &&
-      this.storeListeners[storeName].uuids.has(uuid)
-    );
+    const [model, uuid] = (fullUuid instanceof CoreModel ? fullUuid.getFullUuid() : fullUuid).split("$");
+    const storeName = this.getStoreName(model);
+    return this.storeListeners[storeName] && this.storeListeners[storeName].uuids.has(uuid);
+  }
+
+  /**
+   * Get the store name from the model
+   * @param model
+   * @returns
+   */
+  getStoreName(model: string) {
+    return this.getWebda().getApplication().getModel(model.replace("-", "/")).store().getName();
   }
 
   /**
@@ -144,7 +129,8 @@ export abstract class WSService<
    * @param room
    */
   unregisterRoom(room: string) {
-    let [storeName, uuid] = room.substring("model_".length).split("$");
+    let [model, uuid] = room.substring("model_".length).split("$");
+    const storeName = this.getStoreName(model);
     const listener = this.storeListeners[storeName];
     if (listener.unregister(uuid)) {
       delete this.storeListeners[storeName];

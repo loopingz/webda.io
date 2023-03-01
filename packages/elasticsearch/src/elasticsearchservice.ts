@@ -1,11 +1,5 @@
 import { Client } from "@elastic/elasticsearch";
-import {
-  CoreModel,
-  Service,
-  ServiceParameters,
-  Store,
-  WebdaError,
-} from "@webda/core";
+import { CoreModel, Service, ServiceParameters, Store, WebdaError } from "@webda/core";
 import dateFormat from "dateformat";
 
 interface IndexParameter {
@@ -58,8 +52,8 @@ class ElasticSearchServiceParameters extends ServiceParameters {
     this.indexes ??= {};
     // Ensure to default to monthly
     Object.values(this.indexes)
-      .filter((i) => i.dateSplit)
-      .forEach((index) => {
+      .filter(i => i.dateSplit)
+      .forEach(index => {
         index.dateSplit.frequency ??= "monthly";
       });
   }
@@ -101,30 +95,18 @@ export default class ElasticSearchService<
       let index = (this.indexes[i] = {
         ...this.parameters.indexes[i],
         name: i,
-        _store: this.getService<Store<CoreModel>>(
-          this.parameters.indexes[i].store
-        ),
+        _store: this.getService<Store<CoreModel>>(this.parameters.indexes[i].store)
       });
       let store = index._store;
       if (!store) {
-        this.log(
-          "ERROR",
-          "Cannot initiate index",
-          index.name,
-          ": missing store",
-          index.store
-        );
+        this.log("ERROR", "Cannot initiate index", index.name, ": missing store", index.store);
         return;
       }
       this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly
-      store.on("Store.PartialUpdated", (evt) => {
+      store.on("Store.PartialUpdated", evt => {
         if (evt.partial_update.increments) {
-          return this._increments(
-            index.name,
-            evt.object_id,
-            evt.partial_update.increments
-          );
+          return this._increments(index.name, evt.object_id, evt.partial_update.increments);
         } else if (evt.partial_update.addItem) {
           return this._addItem(
             index.name,
@@ -140,23 +122,19 @@ export default class ElasticSearchService<
             evt.partial_update.deleteItem.index
           );
         } else if (evt.partial_update.deleteAttribute) {
-          return this._deleteAttribute(
-            index.name,
-            evt.object_id,
-            evt.partial_update.deleteAttribute
-          );
+          return this._deleteAttribute(index.name, evt.object_id, evt.partial_update.deleteAttribute);
         }
       });
-      store.on("Store.Updated", (evt) => {
+      store.on("Store.Updated", evt => {
         return this._update(index.name, evt.object);
       });
-      store.on("Store.PatchUpdated", (evt) => {
+      store.on("Store.PatchUpdated", evt => {
         return this._update(index.name, evt.object);
       });
-      store.on("Store.Saved", async (evt) => {
+      store.on("Store.Saved", async evt => {
         return this._create(index.name, evt.object);
       });
-      store.on("Store.Deleted", (evt) => {
+      store.on("Store.Deleted", evt => {
         return this._delete(index.name, evt.object.getUuid());
       });
     }
@@ -176,9 +154,7 @@ export default class ElasticSearchService<
 
     let continuationToken;
     do {
-      const page = await store.query(
-        continuationToken ? `LIMIT ${continuationToken}, 1000` : ""
-      );
+      const page = await store.query(continuationToken ? `LIMIT ${continuationToken}, 1000` : "");
       for (let object of page.results) {
         try {
           await this._create(index, object);
@@ -198,11 +174,7 @@ export default class ElasticSearchService<
    * @param index
    * @param uuid
    */
-  protected async _increments(
-    index: string,
-    uuid: string,
-    parameters: { property: string; value: number }[]
-  ) {
+  protected async _increments(index: string, uuid: string, parameters: { property: string; value: number }[]) {
     const params = {};
     parameters.forEach(({ value }, i) => {
       params[`count${i}`] = value;
@@ -222,9 +194,9 @@ export default class ElasticSearchService<
 }`
             )
             .join("\n"),
-          params,
-        },
-      },
+          params
+        }
+      }
     });
   }
 
@@ -277,12 +249,7 @@ export default class ElasticSearchService<
    * @param property
    * @param item
    */
-  protected async _addItem(
-    index: string,
-    uuid: string,
-    property: string,
-    item: any
-  ) {
+  protected async _addItem(index: string, uuid: string, property: string, item: any) {
     await this._client.update({
       index,
       id: uuid,
@@ -290,9 +257,9 @@ export default class ElasticSearchService<
         script: {
           lang: "painless",
           source: `ctx._source.${property}.add(params.doc)`,
-          params: { doc: item },
-        },
-      },
+          params: { doc: item }
+        }
+      }
     });
   }
 
@@ -304,12 +271,7 @@ export default class ElasticSearchService<
    * @param property
    * @param element
    */
-  protected async _deleteItem(
-    index: string,
-    uuid: string,
-    property: string,
-    element: number
-  ) {
+  protected async _deleteItem(index: string, uuid: string, property: string, element: number) {
     await this._client.update({
       index,
       id: uuid,
@@ -317,9 +279,9 @@ export default class ElasticSearchService<
         script: {
           lang: "painless",
           source: `ctx._source.${property}.remove(params.idx)`,
-          params: { idx: element },
-        },
-      },
+          params: { idx: element }
+        }
+      }
     });
   }
 
@@ -330,11 +292,7 @@ export default class ElasticSearchService<
    * @param uuid
    * @param property
    */
-  protected async _deleteAttribute(
-    index: string,
-    uuid: string,
-    property: string
-  ) {
+  protected async _deleteAttribute(index: string, uuid: string, property: string) {
     await this._client.update({
       index,
       id: uuid,
@@ -342,9 +300,9 @@ export default class ElasticSearchService<
         script: {
           lang: "painless",
           source: `ctx._source.remove(params.property)`,
-          params: { property },
-        },
-      },
+          params: { property }
+        }
+      }
     });
   }
   /**
@@ -357,7 +315,7 @@ export default class ElasticSearchService<
     await this._client.delete({
       index: index,
       id: uuid,
-      refresh: this._refreshMode,
+      refresh: this._refreshMode
     });
   }
 
@@ -372,7 +330,7 @@ export default class ElasticSearchService<
       index: index,
       id: object.getUuid(),
       refresh: this._refreshMode,
-      body: object.toStoredJSON(false),
+      body: object.toStoredJSON(false)
     });
   }
 
@@ -382,8 +340,8 @@ export default class ElasticSearchService<
       id: object.getUuid(),
       refresh: this._refreshMode,
       body: {
-        doc: object.toStoredJSON(false),
-      },
+        doc: object.toStoredJSON(false)
+      }
     });
   }
 
@@ -407,11 +365,7 @@ export default class ElasticSearchService<
    * @param from
    * @returns
    */
-  async search<T extends CoreModel = CoreModel>(
-    index: string,
-    query: any,
-    from: number = 0
-  ): Promise<T[]> {
+  async search<T extends CoreModel = CoreModel>(index: string, query: any, from: number = 0): Promise<T[]> {
     let idx = this.checkIndex(index);
     // Cannot import type from ES client easily
     let q: any = {};
@@ -444,7 +398,7 @@ export default class ElasticSearchService<
     return (
       await this._client.exists({
         index: index,
-        id: uuid,
+        id: uuid
       })
     ).valueOf();
   }
@@ -477,7 +431,7 @@ export default class ElasticSearchService<
    */
   async flush(index: string): Promise<void> {
     await this._client.indices.flush({
-      index,
+      index
     });
   }
 
@@ -486,15 +440,15 @@ export default class ElasticSearchService<
    */
   async __clean(): Promise<void> {
     await Promise.all(
-      Object.values(this.indexes).map(async (index) => {
+      Object.values(this.indexes).map(async index => {
         await this._client.deleteByQuery({
           index: index.name,
           refresh: true,
           body: {
             query: {
-              match_all: {},
-            },
-          },
+              match_all: {}
+            }
+          }
         });
       })
     );

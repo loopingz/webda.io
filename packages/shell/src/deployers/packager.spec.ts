@@ -117,7 +117,7 @@ class PackagerTest {
       config.cachedModules.moddas["webda/awssecretsmanager"].endsWith("aws/lib/services/secretsmanager:default"),
       true
     );
-    assert.strictEqual(config.cachedModules.models["webdademo/contact"], "lib/models/contact:default");
+    assert.strictEqual(config.cachedModules.models.list["webdademo/contact"], "lib/models/contact:default");
     assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
 
     deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
@@ -195,7 +195,9 @@ class PackagerTest {
           yargs: [{ version: ">=0.9.8" }]
         };
       });
-      assert.deepStrictEqual(Packager.getResolvedDependencies("yargs"), { yargs: ">=0.9.8" });
+      assert.deepStrictEqual(Packager.getResolvedDependencies("yargs"), {
+        yargs: ">=0.9.8"
+      });
     } finally {
       stub.restore();
     }

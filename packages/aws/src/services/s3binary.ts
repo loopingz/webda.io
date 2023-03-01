@@ -1,10 +1,5 @@
 // Load the AWS SDK for Node.js
-import {
-  GetObjectCommand,
-  HeadObjectCommandOutput,
-  PutObjectCommand,
-  S3,
-} from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommandOutput, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   BinaryFile,
@@ -14,7 +9,7 @@ import {
   CoreModel,
   OperationContext,
   WebContext,
-  WebdaError,
+  WebdaError
 } from "@webda/core";
 import bluebird from "bluebird";
 import { Readable } from "stream";
@@ -32,10 +27,7 @@ export class S3BinaryParameters extends AWSServiceParameters(BinaryParameters) {
   constructor(params: any, service: S3Binary) {
     super(params, service);
     if (!this.bucket) {
-      throw new WebdaError(
-        "S3BUCKET_PARAMETER_REQUIRED",
-        "Need to define a bucket at least"
-      );
+      throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this.forcePathStyle ??= false;
     this.prefix = "";
@@ -87,9 +79,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async putRedirectUrl(
-    ctx: WebContext
-  ): Promise<{ url: string; method: string }> {
+  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string }> {
     let body = await ctx.getRequestBody();
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
@@ -101,12 +91,12 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Bucket: this.parameters.bucket,
       Key: this._getKey(body.hash),
       ContentType: "application/octet-stream",
-      ContentMD5: base64String,
+      ContentMD5: base64String
     };
     // List bucket
     let data = await this._s3.listObjectsV2({
       Bucket: this.parameters.bucket,
-      Prefix: this._getKey(body.hash, ""),
+      Prefix: this._getKey(body.hash, "")
     });
     let foundMap = false;
     let foundData = false;
@@ -115,16 +105,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
       if (data.Contents[i].Key.endsWith(uid)) foundMap = true;
       if (data.Contents[i].Key.split("/").pop().startsWith("challenge_")) {
-        challenge = data.Contents[i].Key.split("/")
-          .pop()
-          .substring("challenge_".length);
+        challenge = data.Contents[i].Key.split("/").pop().substring("challenge_".length);
       }
     }
     if (foundMap) {
       if (foundData) return;
       return {
         url: await this.getSignedUrl(params.Key, "putObject", params),
-        method: "PUT",
+        method: "PUT"
       };
     }
     if (foundData) {
@@ -137,17 +125,13 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       }
       // Need to do something?
     } else {
-      await this.putMarker(
-        body.hash,
-        `challenge_${body.challenge}`,
-        "challenge"
-      );
+      await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
     await this.uploadSuccess(object, property, body);
     await this.putMarker(body.hash, uid, store);
     return {
       url: await this.getSignedUrl(params.Key, "putObject", params),
-      method: "PUT",
+      method: "PUT"
     };
   }
 
@@ -160,8 +144,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Bucket: this.parameters.bucket,
       Key: this._getKey(hash, uuid),
       Metadata: {
-        "x-amz-meta-store": storeName,
-      },
+        "x-amz-meta-store": storeName
+      }
     });
   }
 
@@ -173,11 +157,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param params
    * @returns
    */
-  async getSignedUrl(
-    key: string,
-    action: "getObject" | "putObject" = "getObject",
-    params: any = {}
-  ): Promise<string> {
+  async getSignedUrl(key: string, action: "getObject" | "putObject" = "getObject", params: any = {}): Promise<string> {
     params.Bucket = params.Bucket || this.parameters.bucket;
     params.Key = key;
     let command;
@@ -193,16 +173,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @override
    */
-  async getSignedUrlFromMap(
-    binaryMap: BinaryMap,
-    expire: number,
-    _context: OperationContext
-  ) {
+  async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: OperationContext) {
     let params: any = {};
     params.Expires = expire; // A get should not take more than 30s
-    params.ResponseContentDisposition = `attachment; filename=${
-      binaryMap.name || binaryMap.originalname
-    }`;
+    params.ResponseContentDisposition = `attachment; filename=${binaryMap.name || binaryMap.originalname}`;
     params.ResponseContentType = binaryMap.mimetype;
 
     // Access-Control-Allow-Origin
@@ -216,7 +190,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return <Readable>(
       await this._s3.getObject({
         Bucket: this.parameters.bucket,
-        Key: this._getKey(info.hash),
+        Key: this._getKey(info.hash)
       })
     ).Body;
   }
@@ -226,14 +200,11 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param key
    * @param bucket
    */
-  async exists(
-    Key: string,
-    Bucket: string = this.parameters.bucket
-  ): Promise<HeadObjectCommandOutput | null> {
+  async exists(Key: string, Bucket: string = this.parameters.bucket): Promise<HeadObjectCommandOutput | null> {
     try {
       return await this._s3.headObject({
         Bucket,
-        Key,
+        Key
       });
     } catch (err) {
       if (err.name === "NotFound") {
@@ -250,11 +221,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // Not efficient if more than 1000 docs
     let data = await this._s3.listObjects({
       Bucket: this.parameters.bucket,
-      Prefix: this._getKey(hash, ""),
+      Prefix: this._getKey(hash, "")
     });
-    return data.Contents.filter(
-      (k) => !(k.Key.includes("data") || k.Key.includes("challenge"))
-    ).length;
+    return data.Contents.filter(k => !(k.Key.includes("data") || k.Key.includes("challenge"))).length;
   }
 
   /**
@@ -264,18 +233,18 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let files = (
       await this._s3.listObjectsV2({
         Bucket: this.parameters.bucket,
-        Prefix: this._getKey(hash, ""),
+        Prefix: this._getKey(hash, "")
       })
     ).Contents;
     await bluebird.map(
       files,
-      (file) =>
+      file =>
         this._s3.deleteObject({
           Bucket: this.parameters.bucket,
-          Key: file.Key,
+          Key: file.Key
         }),
       {
-        concurrency: 5,
+        concurrency: 5
       }
     );
   }
@@ -287,7 +256,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // Dont clean data for now
     let params = {
       Bucket: this.parameters.bucket,
-      Key: this._getKey(hash, uuid),
+      Key: this._getKey(hash, uuid)
     };
     await this._s3.deleteObject(params);
   }
@@ -299,7 +268,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     try {
       await this._s3.headObject({
         Bucket: this.parameters.bucket,
-        Key: this._getKey(hash),
+        Key: this._getKey(hash)
       });
       return true;
     } catch (err) {
@@ -319,7 +288,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     try {
       return await this._s3.headObject({
         Bucket: this.parameters.bucket,
-        Key: this._getKey(hash),
+        Key: this._getKey(hash)
       });
     } catch (err) {
       if (err.name !== "NotFound") {
@@ -341,7 +310,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return (
       await s3obj.getObject({
         Bucket: bucket,
-        Key: key,
+        Key: key
       })
     ).Body as Readable;
   }
@@ -363,18 +332,16 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let page = 0;
     let s3 = new S3(this.parameters);
     do {
-      await s3
-        .listObjectsV2(params)
-        .then(async ({ Contents, NextContinuationToken }: any) => {
-          params.ContinuationToken = NextContinuationToken;
-          for (let f in Contents) {
-            let { Key } = Contents[f];
-            if (filter && filter.exec(Key) === null) {
-              continue;
-            }
-            await callback(Key, page);
+      await s3.listObjectsV2(params).then(async ({ Contents, NextContinuationToken }: any) => {
+        params.ContinuationToken = NextContinuationToken;
+        for (let f in Contents) {
+          let { Key } = Contents[f];
+          if (filter && filter.exec(Key) === null) {
+            continue;
           }
-        });
+          await callback(Key, page);
+        }
+      });
       page++;
     } while (params.ContinuationToken);
   }
@@ -398,18 +365,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Bucket: bucket,
       Key: key,
       Metadata: metadatas,
-      Body: body,
+      Body: body
     });
   }
 
   /**
    * @inheritdoc
    */
-  async store(
-    object: CoreModel,
-    property: string,
-    file: BinaryFile
-  ): Promise<void> {
+  async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
     this.checkMap(object.getStore().getName(), property);
     await file.getHashes();
     let data = await this._getS3(file.hash);
@@ -421,17 +384,13 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         Bucket: this.parameters.bucket,
         Key: this._getKey(file.hash),
         Metadata: s3metas,
-        Body: await file.get(),
+        Body: await file.get()
       });
     }
     // Set challenge aside for now
     await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
 
-    await this.putMarker(
-      file.hash,
-      object.getUuid(),
-      object.getStore().getName()
-    );
+    await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
     await this.uploadSuccess(<any>object, property, file);
   }
 
@@ -461,12 +420,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         "s3:PutBucketAcl",
         "s3:PutObject",
         "s3:PutObjectAcl",
-        "s3:RestoreObject",
+        "s3:RestoreObject"
       ],
-      Resource: [
-        `arn:aws:s3:::${this.parameters.bucket}`,
-        `arn:aws:s3:::${this.parameters.bucket}/*`,
-      ],
+      Resource: [`arn:aws:s3:::${this.parameters.bucket}`, `arn:aws:s3:::${this.parameters.bucket}/*`]
     };
   }
 
@@ -479,17 +435,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     }
     let resources = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
-    this.parameters.CloudFormation.Bucket =
-      this.parameters.CloudFormation.Bucket || {};
+    this.parameters.CloudFormation.Bucket = this.parameters.CloudFormation.Bucket || {};
     resources[this._name + "Bucket"] = {
       Type: "AWS::S3::Bucket",
       Properties: {
         ...this.parameters.CloudFormation.Bucket,
         BucketName: this.parameters.bucket,
-        Tags: deployer.getDefaultTags(
-          this.parameters.CloudFormation.Bucket.Tags
-        ),
-      },
+        Tags: deployer.getDefaultTags(this.parameters.CloudFormation.Bucket.Tags)
+      }
     };
     // Add any Other resources with prefix of the service
     return resources;

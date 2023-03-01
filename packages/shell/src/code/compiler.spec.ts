@@ -75,6 +75,7 @@ class CompilerTest {
     let compiler = new Compiler(app);
     compiler.compile();
     let mod = compiler.generateModule();
+
     // Goodbean should be use the SubDefinition
     assert.strictEqual(mod.schemas["beans/goodbean"].required.length, 3);
     assert.notStrictEqual(mod.schemas["webda/anotherschema"], undefined);

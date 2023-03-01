@@ -29,9 +29,7 @@ export interface LambdaCommandEvent {
  *
  * @WebdaModda
  */
-class LambdaCaller<
-  T extends LambdaCallerParameters = LambdaCallerParameters
-> extends Runner<T> {
+class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> extends Runner<T> {
   /**
    * @inheritdoc
    */
@@ -46,7 +44,7 @@ class LambdaCaller<
         action,
         args: [info],
         // We also put the value in JOB_INFO for other type of runner
-        JOB_INFO: info,
+        JOB_INFO: info
       },
       true
     );
@@ -80,11 +78,7 @@ class LambdaCaller<
    * @param arn function to call default to the one from configuration
    * @returns
    */
-  async execute(
-    params: any = {},
-    async: boolean = false,
-    arn = this.parameters.arn
-  ): Promise<any> {
+  async execute(params: any = {}, async: boolean = false, arn = this.parameters.arn): Promise<any> {
     return JSON.parse(
       (
         await this.client.invoke({
@@ -92,7 +86,7 @@ class LambdaCaller<
           ClientContext: null,
           InvocationType: async ? "Event" : "RequestResponse",
           LogType: "None",
-          Payload: Buffer.from(JSON.stringify(params)),
+          Payload: Buffer.from(JSON.stringify(params))
         })
       ).Payload.toString()
     );

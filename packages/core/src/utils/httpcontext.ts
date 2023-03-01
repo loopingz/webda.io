@@ -2,13 +2,7 @@ import { parse as cookieParse } from "cookie";
 import { IncomingHttpHeaders } from "http";
 import { Readable } from "stream";
 
-export type HttpMethodType =
-  | "GET"
-  | "OPTIONS"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE";
+export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type HeadersRequest = IncomingHttpHeaders & {
   // Permit any property starting with 'x-'.
@@ -82,7 +76,7 @@ export class HttpContext {
     for (let i in headers) {
       if (i.toLowerCase() === "cookie") {
         this.cookies = Array.isArray(headers[i])
-          ? (<string[]>headers[i]).map((c) => cookieParse(c))
+          ? (<string[]>headers[i]).map(c => cookieParse(c))
           : cookieParse(<string>headers[i]);
       }
       this.headers[i.toLowerCase()] = headers[i];
@@ -90,8 +84,7 @@ export class HttpContext {
     let portUrl = "";
     if (
       port !== undefined &&
-      ((this.port !== "80" && protocol === "http") ||
-        (this.port !== "443" && protocol === "https"))
+      ((this.port !== "80" && protocol === "http") || (this.port !== "443" && protocol === "https"))
     ) {
       portUrl = ":" + port;
     } else {
@@ -230,16 +223,10 @@ export class HttpContext {
    * @param encoding to analyze
    * @returns
    */
-  async getRawBodyAsString(
-    limit: number = 1024 * 1024 * 10,
-    timeout: number = 60000,
-    encoding?: string
-  ) {
+  async getRawBodyAsString(limit: number = 1024 * 1024 * 10, timeout: number = 60000, encoding?: string) {
     // Get charset from header
     if (!encoding) {
-      let match = this.getUniqueHeader("content-type", "charset=utf-8").match(
-        /charset=([^;\s]+)/
-      );
+      let match = this.getUniqueHeader("content-type", "charset=utf-8").match(/charset=([^;\s]+)/);
       if (match) {
         encoding = match[1].trim();
       } else {
@@ -247,13 +234,9 @@ export class HttpContext {
       }
     }
     if (encoding !== "utf-8") {
-      throw new Error(
-        "Only UTF-8 is currently managed: https://github.com/loopingz/webda.io/issues/221"
-      );
+      throw new Error("Only UTF-8 is currently managed: https://github.com/loopingz/webda.io/issues/221");
     }
-    return (
-      (await this.getRawBody(limit, timeout)) || Buffer.from("")
-    ).toString(<BufferEncoding>encoding);
+    return ((await this.getRawBody(limit, timeout)) || Buffer.from("")).toString(<BufferEncoding>encoding);
   }
 
   /**
@@ -263,10 +246,7 @@ export class HttpContext {
    * @param timeout the time to read the request
    * @returns
    */
-  async getRawBody(
-    limit: number = 1024 * 1024 * 10,
-    timeout: number = 60000
-  ): Promise<Buffer | undefined> {
+  async getRawBody(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer | undefined> {
     if (this.body instanceof Readable) {
       return new Promise((resolve, reject) => {
         let req = <Readable>this.body;

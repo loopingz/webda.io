@@ -18,25 +18,17 @@ class CronServiceTest extends WebdaTest {
   @test
   annotations() {
     this.registerService(new MyService(this.webda, "myService", {}));
-    let def = new CronDefinition(
-      "0/15 * * * *",
-      [],
-      "myservice",
-      "test",
-      "plop"
-    );
+    let def = new CronDefinition("0/15 * * * *", [], "myservice", "test", "plop");
     let service = new CronService(this.webda, "cron", {});
     service.schedule("* * * * *", () => {}, "mine");
     assert.deepStrictEqual(service.getCrontab()[1], def);
     // for cov
     assert.deepStrictEqual(service.getCrontab()[1], def);
-    const cron = sinon
-      .stub(service, "crontabSchedule")
-      .callsFake((cron, cb) => {
-        try {
-          cb();
-        } catch (err) {}
-      });
+    const cron = sinon.stub(service, "crontabSchedule").callsFake((cron, cb) => {
+      try {
+        cb();
+      } catch (err) {}
+    });
     try {
       let promise = service.work();
       promise.cancel();
@@ -56,22 +48,10 @@ class CronServiceTest extends WebdaTest {
 class CronDefinitionTest {
   @test
   testString() {
+    assert.strictEqual(new CronDefinition("* * * * *").toString(), "* * * * *: .()");
+    assert.strictEqual(CronService.getCronId(new CronDefinition("* * * * *"), "plop"), "5e281c06");
     assert.strictEqual(
-      new CronDefinition("* * * * *").toString(),
-      "* * * * *: .()"
-    );
-    assert.strictEqual(
-      CronService.getCronId(new CronDefinition("* * * * *"), "plop"),
-      "5e281c06"
-    );
-    assert.strictEqual(
-      new CronDefinition(
-        "* * * * *",
-        [{}, {}],
-        "plop",
-        "method",
-        "desc"
-      ).toString(),
+      new CronDefinition("* * * * *", [{}, {}], "plop", "method", "desc").toString(),
       "* * * * *: plop.method([object Object],[object Object]) # desc"
     );
   }

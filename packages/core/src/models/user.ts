@@ -52,7 +52,7 @@ export class User extends OwnerModel {
    */
   getEmail(): string | null {
     if (this.email === undefined) {
-      (this._idents || []).some((i) => {
+      (this._idents || []).some(i => {
         if (i.email) {
           this.email = i.email;
         }
@@ -70,7 +70,7 @@ export class User extends OwnerModel {
     return {
       displayName: this.displayName,
       uuid: this.getUuid(),
-      avatar: this._avatar,
+      avatar: this._avatar
     };
   }
 

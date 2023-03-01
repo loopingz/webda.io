@@ -60,5 +60,10 @@
   "webda": {
     "randomLink": "./test.json"
   },
-  "type": "module"
+  "type": "module",
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  }
 }

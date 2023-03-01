@@ -1,10 +1,4 @@
-import {
-  ModelAction,
-  OperationContext,
-  Store,
-  User,
-  WebContext,
-} from "../index";
+import { ModelAction, OperationContext, Store, User, WebContext } from "../index";
 import { CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -36,8 +30,8 @@ export default class AclModel extends CoreModel {
     return {
       ...super.getActions(),
       acl: {
-        methods: ["PUT", "GET"],
-      },
+        methods: ["PUT", "GET"]
+      }
     };
   }
 
@@ -98,14 +92,14 @@ export default class AclModel extends CoreModel {
     ctx.write({
       raw: this.__acl,
       resolved: await Promise.all(
-        Object.keys(this.__acl).map(async (ace) => {
+        Object.keys(this.__acl).map(async ace => {
           let user = await this.getService<Store<User>>("Users").get(ace);
           return {
             permission: this.__acl[ace],
-            actor: user?.toPublicEntry(),
+            actor: user?.toPublicEntry()
           };
         })
-      ),
+      )
     });
   }
 
@@ -150,24 +144,17 @@ export default class AclModel extends CoreModel {
     let groups = this.getGroups(ctx, user);
     for (let i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
-        this.__acl[i].split(",").forEach((p) => permissions.add(p));
+        this.__acl[i].split(",").forEach(p => permissions.add(p));
       }
     }
     return [...permissions.values()];
   }
 
-  async hasPermission(
-    ctx: OperationContext,
-    user: User,
-    action: string
-  ): Promise<boolean> {
+  async hasPermission(ctx: OperationContext, user: User, action: string): Promise<boolean> {
     let groups = this.getGroups(ctx, user);
     for (let i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
-        if (
-          this.__acl[i] === "all" ||
-          this.__acl[i].split(",").indexOf(action) >= 0
-        ) {
+        if (this.__acl[i] === "all" || this.__acl[i].split(",").indexOf(action) >= 0) {
           return true;
         }
       }

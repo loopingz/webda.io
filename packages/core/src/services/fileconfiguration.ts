@@ -1,9 +1,7 @@
 import { existsSync, watchFile } from "fs";
 import { WebdaError } from "../core";
 import { FileUtils } from "../utils/serializers";
-import ConfigurationService, {
-  ConfigurationServiceParameters,
-} from "./configuration";
+import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
 
 /**
  * Allow for dynamic configuration from a file
@@ -16,19 +14,13 @@ export class FileConfigurationService<
   async init(): Promise<this> {
     // Do not call super as we diverged
     if (!this.parameters.source) {
-      throw new WebdaError(
-        "FILE_CONFIGURATION_SOURCE_MISSING",
-        "Need a source for FileConfigurationService"
-      );
+      throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
     // Load it from where it should be
     this.parameters.source = this._webda.getAppPath(this.parameters.source);
     if (!existsSync(this.parameters.source)) {
-      throw new WebdaError(
-        "FILE_CONFIGURATION_SOURCE_MISSING",
-        "Need a source for FileConfigurationService"
-      );
+      throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
     watchFile(this.parameters.source, this.checkUpdate.bind(this));

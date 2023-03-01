@@ -52,7 +52,7 @@ export class EchoService extends Service<EchoServiceParameters> {
   async execute(ctx: WebContext): Promise<any> {
     if (this.parameters.mime) {
       ctx.writeHead(200, {
-        "Content-Type": this.parameters.mime,
+        "Content-Type": this.parameters.mime
       });
     }
     if (typeof this.parameters.result != "string") {

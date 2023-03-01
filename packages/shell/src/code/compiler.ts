@@ -50,6 +50,7 @@ class WebdaSchemaResults {
       name: string;
       schemaNode?: ts.Node;
       link?: string;
+      title?: string;
     };
   } = {};
   protected byNode = new Map<ts.Node, string>();
@@ -60,8 +61,6 @@ class WebdaSchemaResults {
     }
   }
 
-  compute() {}
-
   /**
    * Generate all schemas
    * @param info
@@ -70,9 +69,9 @@ class WebdaSchemaResults {
     let schemas = {};
     Object.entries(this.store)
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .forEach(([name, { schemaNode, link }]) => {
+      .forEach(([name, { schemaNode, link, title }]) => {
         if (schemaNode) {
-          schemas[name] = compiler.generateSchema(schemaNode, name);
+          schemas[name] = compiler.generateSchema(schemaNode, title || name);
         } else {
           schemas[name] = link;
         }
@@ -80,17 +79,19 @@ class WebdaSchemaResults {
     return schemas;
   }
 
-  add(name: string, info?: ts.Node | string) {
+  add(name: string, info?: ts.Node | string, title?: string) {
     if (typeof info === "object") {
-      this.store[name] = {
+      this.store[name.toLowerCase()] = {
         name: name,
-        schemaNode: info
+        schemaNode: info,
+        title
       };
       this.byNode.set(info, name);
     } else {
-      this.store[name] = {
+      this.store[name.toLowerCase()] = {
         name: name,
-        link: info
+        link: info,
+        title
       };
     }
   }
@@ -529,8 +530,8 @@ export class Compiler {
     }).forEach(n => {
       const tagName = n.tagName.escapedText.toString();
       if (tagName.startsWith("Webda")) {
-        // @ts-ignore
-        tags[tagName] = n.comment?.toString().trim().split(" ").shift() || node.name?.escapedText;
+        tags[tagName] =
+          n.comment?.toString().trim().split(" ").shift() || (<ts.ClassDeclaration>node).name?.escapedText;
       } else if (tagName.startsWith("Schema")) {
         tags[tagName] = n.comment?.toString().trim() || "";
       }
@@ -572,12 +573,10 @@ export class Compiler {
           const type = this.typeChecker.getTypeAtLocation(node);
           // Manage schemas
           if (tags["WebdaSchema"]) {
-            // @ts-ignore
-            const name = this.app.completeNamespace(tags["WebdaSchema"] || node.name?.escapedText.toString());
-            result["schemas"][name] = {
-              name,
-              schemaNode: node
-            };
+            const name = this.app.completeNamespace(
+              tags["WebdaSchema"] || (<ts.ClassDeclaration>node).name?.escapedText.toString()
+            );
+            result.schemas.add(name, node, (<ts.ClassDeclaration>node).name?.escapedText.toString());
             return;
             // Only Schema work with other than class declaration
           } else if (!ts.isClassDeclaration(node)) {
@@ -618,7 +617,7 @@ export class Compiler {
               return;
             }
             section = "deployers";
-            schemaNode = this.getSchemaNode(classTree, "DeployerParameters");
+            schemaNode = this.getSchemaNode(classTree, "DeployerResources");
           } else if (this.extends(classTree, "@webda/core", "Service")) {
             // Check if a Bean is declared
             if (!ts.getDecorators(classNode)?.find(decorator => decorator.expression.getText() === "Bean")) {
@@ -649,12 +648,16 @@ export class Compiler {
             )
           };
           if (schemaNode && !result["schemas"][info.name]) {
-            result["schemas"].add(info.name, schemaNode);
+            result["schemas"].add(
+              section === "beans" ? `beans/${classNode.name.escapedText}` : info.name,
+              schemaNode,
+              classNode.name?.escapedText.toString()
+            );
           }
           if (section === "schemas") {
             return;
           }
-          result[section][info.name] = info;
+          result[section][info.name.toLowerCase()] = info;
         });
       }
     });
@@ -687,7 +690,10 @@ export class Compiler {
       beans: this.sortObject(objects.beans),
       deployers: this.sortObject(objects.deployers),
       moddas: this.sortObject(objects.moddas),
-      models: { ...this.processModels(objects.models), list: this.sortObject(objects.models) },
+      models: {
+        ...this.processModels(objects.models),
+        list: this.sortObject(objects.models)
+      },
       schemas: objects.schemas.generateSchemas(this)
     };
   }
@@ -707,8 +713,7 @@ export class Compiler {
             ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration) &&
             ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
               return ["Operation"].includes(
-                // @ts-ignore
-                annotation.expression.expression && annotation.expression.expression.getText()
+                (<any>annotation.expression).expression && (<any>annotation.expression).expression.getText()
               );
             })
         )
@@ -729,12 +734,19 @@ export class Compiler {
    * @returns
    */
   checkMethodForContext(rootName: string, method: ts.MethodDeclaration, schemas: WebdaSchemaResults) {
-    const type = <ts.Type>this.typeChecker.getTypeFromTypeNode(method.parameters[0].type);
     // If first parameter is not a OperationContext, display an error
-    if (!this.extends(this.getClassTree(type), "@webda/core", "OperationContext")) {
+    if (
+      method.parameters.length === 0 ||
+      !this.extends(
+        this.getClassTree(<ts.Type>this.typeChecker.getTypeFromTypeNode(method.parameters[0].type)),
+        "@webda/core",
+        "OperationContext"
+      )
+    ) {
       this.app.log("ERROR", `${rootName}.${method.name.getText()} does not have a OperationContext as first parameter`);
       return;
-    } else if (method.parameters.length > 1) {
+    }
+    if (method.parameters.length > 1) {
       // Warn user if there is more than 1 parameter
       this.app.log(
         "WARN",
@@ -742,6 +754,10 @@ export class Compiler {
       );
     }
     let obj = <ts.TypeReferenceNode>method.parameters[0].type;
+    if (!obj.typeArguments) {
+      this.app.log("INFO", `${rootName}.${method.name.getText()} have no input defined, no validation will happen`);
+      return;
+    }
     let schemaNode = obj.typeArguments[0];
     let name = rootName + "." + method.name.getText() + ".input";
     if (ts.isTypeReferenceNode(schemaNode)) {
@@ -760,10 +776,6 @@ export class Compiler {
    * @param schemas
    */
   exploreModelsAction(models: WebdaSearchResults, schemas: WebdaSchemaResults) {
-    let schemaMap = new Map<ts.Node, string>();
-    Object.values(schemas).forEach(schema => {
-      schemaMap.set(schema.schemaNode, schema.name);
-    });
     Object.values(models).forEach(model => {
       model.type
         .getProperties()
@@ -774,7 +786,9 @@ export class Compiler {
             ts.getDecorators(<ts.MethodDeclaration>prop.valueDeclaration).find(annotation => {
               return ["Action"].includes(
                 // @ts-ignore
-                annotation.expression.expression && annotation.expression.expression.getText()
+                annotation.expression.expression &&
+                  // @ts-ignore
+                  annotation.expression.expression.getText()
               );
             })
         )
@@ -783,6 +797,17 @@ export class Compiler {
           this.checkMethodForContext(model.name, method, schemas);
         });
     });
+  }
+
+  /**
+   * Get id from TypeNode
+   *
+   * The id is not exposed in the TypeNode
+   * @param type
+   * @returns
+   */
+  getTypeIdFromTypeNode(type: ts.TypeNode) {
+    return (<any>this.typeChecker.getTypeFromTypeNode(type)).id;
   }
 
   /**
@@ -814,8 +839,7 @@ export class Compiler {
               graph[name].links ??= [];
               graph[name].links.push({
                 attribute: prop.escapedName.toString(),
-                // @ts-ignore
-                model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
                 type
               });
             };
@@ -823,16 +847,14 @@ export class Compiler {
               case "ModelParent":
                 graph[name].parent = {
                   attribute: prop.escapedName.toString(),
-                  // @ts-ignore
-                  model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id
+                  model: this.getTypeIdFromTypeNode(pType.typeArguments[0])
                 };
                 break;
               case "ModelRelated":
                 graph[name].queries ??= [];
                 graph[name].queries.push({
                   attribute: prop.escapedName.toString(),
-                  // @ts-ignore
-                  model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                  model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
                   targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
                 });
                 break;
@@ -841,7 +863,7 @@ export class Compiler {
                 graph[name].maps.push({
                   attribute: prop.escapedName.toString(),
                   // @ts-ignore
-                  model: <any>this.typeChecker.getTypeFromTypeNode(pType.typeArguments[0]).id,
+                  model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
                   targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
                 });
                 break;
@@ -955,6 +977,7 @@ export class Compiler {
         return true;
       }
     }
+    return false;
   }
 
   createSchemaGenerator(program: ts.Program) {
@@ -1144,7 +1167,9 @@ export class Compiler {
       }
       definition.title = serviceType;
       (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
+      (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({
+        $ref: `#/definitions/${key}`
+      });
       delete definition["$schema"];
       // Remove mandatory depending on option
       if (!full) {

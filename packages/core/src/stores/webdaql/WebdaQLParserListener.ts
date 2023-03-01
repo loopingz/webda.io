@@ -26,7 +26,7 @@ import {
   SubExpressionContext,
   ValuesAtomContext,
   ValuesContext,
-  WebdaqlContext,
+  WebdaqlContext
 } from "./WebdaQLParserParser";
 
 /**
@@ -65,17 +65,13 @@ export interface WebdaQLParserListener extends ParseTreeListener {
    * labeled alternative in `WebdaQLParserParser.expression`.
    * @param ctx the parse tree
    */
-  enterBinaryComparisonExpression?: (
-    ctx: BinaryComparisonExpressionContext
-  ) => void;
+  enterBinaryComparisonExpression?: (ctx: BinaryComparisonExpressionContext) => void;
   /**
    * Exit a parse tree produced by the `binaryComparisonExpression`
    * labeled alternative in `WebdaQLParserParser.expression`.
    * @param ctx the parse tree
    */
-  exitBinaryComparisonExpression?: (
-    ctx: BinaryComparisonExpressionContext
-  ) => void;
+  exitBinaryComparisonExpression?: (ctx: BinaryComparisonExpressionContext) => void;
 
   /**
    * Enter a parse tree produced by the `andLogicExpression`

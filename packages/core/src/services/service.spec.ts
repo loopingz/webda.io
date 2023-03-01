@@ -10,9 +10,7 @@ class FakeServiceParameters extends ServiceParameters {
   bean: string;
 }
 
-class FakeService<
-  T extends FakeServiceParameters = FakeServiceParameters
-> extends Service<T> {
+class FakeService<T extends FakeServiceParameters = FakeServiceParameters> extends Service<T> {
   @Inject("Authentication2", true)
   serv: Service;
   @Inject("bean", "Authentication", true)
@@ -63,10 +61,7 @@ class FakeOperationContext extends OperationContext {
   /**
    * @override
    */
-  async getRawInput(
-    limit: number = 1024 * 1024 * 10,
-    timeout: number = 60000
-  ): Promise<Buffer> {
+  async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer> {
     return Buffer.from(this.input);
   }
 }
@@ -76,10 +71,7 @@ class ServiceTest extends WebdaTest {
   @test
   async injector() {
     let service = new FakeService(this.webda, "plop");
-    assert.throws(
-      () => service.resolve(),
-      /Injector did not found bean 'undefined'\(parameter:bean\) for 'plop'/
-    );
+    assert.throws(() => service.resolve(), /Injector did not found bean 'undefined'\(parameter:bean\) for 'plop'/);
     service = new FakeService(this.webda, "plop", { bean: "Authentication" });
     service.resolve();
     assert.strictEqual(service.serv, undefined);
@@ -96,27 +88,22 @@ class ServiceTest extends WebdaTest {
     ctx.setInput(JSON.stringify({ output: "plop" }));
     assert.rejects(() => this.webda.callOperation(ctx, "myOperation2"));
     let service = new FakeService(this.webda, "plop", {
-      bean: "Authentication",
+      bean: "Authentication"
     });
     service.resolve();
     this.registerService(service);
     // @ts-ignore
-    this.webda.getApplication().baseConfiguration.cachedModules.schemas[
-      "test"
-    ] = {
+    this.webda.getApplication().baseConfiguration.cachedModules.schemas["test"] = {
       properties: {
         output: {
           type: "string",
-          minLength: 8,
-        },
+          minLength: 8
+        }
       },
-      required: ["output"],
+      required: ["output"]
     };
 
-    await assert.rejects(
-      () => this.webda.callOperation(ctx, "plop.myOperation"),
-      /validation failed/
-    );
+    await assert.rejects(() => this.webda.callOperation(ctx, "plop.myOperation"), /validation failed/);
     ctx.getInput = () => undefined;
     await assert.rejects(
       () => this.webda.callOperation(ctx, "plop.myOperation"),
@@ -134,8 +121,8 @@ class ServiceTest extends WebdaTest {
       "plop.myOperation": {
         id: "plop.myOperation",
         input: "webda/test",
-        output: "webda/plop",
-      },
+        output: "webda/plop"
+      }
     });
   }
 
@@ -191,13 +178,13 @@ class ServiceTest extends WebdaTest {
       logs.push(args);
     };
     service.on("test", async () => {
-      await new Promise((resolve) => setTimeout(resolve, 140));
+      await new Promise(resolve => setTimeout(resolve, 140));
       throw new Error("My error");
     });
     await service.emitSync("test", undefined);
     assert.strictEqual(logs.length, 2);
     assert.deepStrictEqual(
-      logs.map((l) => `${l[0]}_${l[1]}`),
+      logs.map(l => `${l[0]}_${l[1]}`),
       ["ERROR_Listener error", "INFO_Long listener"]
     );
   }

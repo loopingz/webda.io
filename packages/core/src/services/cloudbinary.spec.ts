@@ -4,25 +4,12 @@ import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { WebContext } from "../utils/context";
-import {
-  Binary,
-  BinaryEvents,
-  BinaryFile,
-  BinaryMap,
-  BinaryMetadata,
-  BinaryModel,
-  BinaryParameters,
-} from "./binary";
+import { Binary, BinaryEvents, BinaryFile, BinaryMap, BinaryMetadata, BinaryModel, BinaryParameters } from "./binary";
 import { BinaryTest } from "./binary.spec";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 
 class CloudBinaryFakeService extends CloudBinary {
-  store(
-    object: CoreModel,
-    property: string,
-    file: BinaryFile,
-    metadata?: BinaryMetadata
-  ): Promise<void> {
+  store(object: CoreModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void> {
     throw new Error("Method not implemented.");
   }
   getUsageCount(hash: string): Promise<number> {
@@ -48,22 +35,13 @@ class CloudBinaryFakeService extends CloudBinary {
 }
 
 export class CloudBinaryTest<
-  T extends Binary<BinaryParameters, BinaryEvents> = Binary<
-    BinaryParameters,
-    BinaryEvents
-  >
+  T extends Binary<BinaryParameters, BinaryEvents> = Binary<BinaryParameters, BinaryEvents>
 > extends BinaryTest<T> {
   @test
   async redirectUrl() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location !== undefined);
   }
@@ -72,19 +50,10 @@ export class CloudBinaryTest<
   async redirectUrlInfo() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0/url`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location === undefined);
-    assert.notStrictEqual(
-      JSON.parse(<string>ctx.getResponseBody()).Location,
-      undefined
-    );
+    assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);
   }
 }
 
@@ -131,7 +100,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
     assert.strictEqual(counter, 0);
     service.getParameters().expose = {
       url: "plop",
-      restrict: {},
+      restrict: {}
     };
     service.initRoutes();
     assert.strictEqual(counter, 7);
@@ -139,8 +108,8 @@ export class FakeCloudBinaryTest extends WebdaTest {
     service.getParameters().expose = {
       url: "plop",
       restrict: {
-        get: true,
-      },
+        get: true
+      }
     };
     service.initRoutes();
     assert.strictEqual(counter, 4);
@@ -152,7 +121,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
     let wrote;
     let wroteHead;
     let context: WebContext = <any>{
-      parameter: (name) => {
+      parameter: name => {
         return name === "index" ? 1 : name;
       },
       write: (...arg) => {
@@ -160,7 +129,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
       },
       writeHead: (...arg) => {
         wroteHead = arg;
-      },
+      }
     };
     let storeGetResult;
     // @ts-ignore
@@ -168,16 +137,16 @@ export class FakeCloudBinaryTest extends WebdaTest {
       return {
         get: async () => {
           return storeGetResult;
-        },
+        }
       };
     });
     await assert.rejects(() => service.getRedirectUrl(context), /404/);
     storeGetResult = {
-      property: "plop",
+      property: "plop"
     };
     await assert.rejects(() => service.getRedirectUrl(context), /404/);
     storeGetResult = {
-      property: [1],
+      property: [1]
     };
     await assert.rejects(() => service.getRedirectUrl(context), /404/);
     let myEvt;
@@ -185,12 +154,12 @@ export class FakeCloudBinaryTest extends WebdaTest {
       property: [
         1,
         {
-          hash: "myhash",
-        },
+          hash: "myhash"
+        }
       ],
       canAct: (ctx, evt) => {
         myEvt = evt;
-      },
+      }
     };
     let counter = 0;
     service.on("Binary.Get", () => {
@@ -204,9 +173,9 @@ export class FakeCloudBinaryTest extends WebdaTest {
       {
         Location: "myhash:30",
         Map: {
-          hash: "myhash",
-        },
-      },
+          hash: "myhash"
+        }
+      }
     ]);
     assert.strictEqual(myEvt, "get_binary");
   }

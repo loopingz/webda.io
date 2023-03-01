@@ -5,16 +5,9 @@ import {
   StoreNotFoundError,
   StoreParameters,
   UpdateConditionFailError,
-  WebdaQL,
+  WebdaQL
 } from "@webda/core";
-import {
-  Collection,
-  Db,
-  DbOptions,
-  Document,
-  MongoClient,
-  ObjectId,
-} from "mongodb";
+import { Collection, Db, DbOptions, Document, MongoClient, ObjectId } from "mongodb";
 
 export class MongoParameters extends StoreParameters {
   constructor(params: any, service: Store) {
@@ -62,10 +55,7 @@ export class MongoParameters extends StoreParameters {
  *
  * @WebdaModda
  */
-export default class MongoStore<
-  T extends CoreModel,
-  K extends MongoParameters
-> extends Store<T, K> {
+export default class MongoStore<T extends CoreModel, K extends MongoParameters> extends Store<T, K> {
   /**
    * Connect promise
    */
@@ -97,14 +87,8 @@ export default class MongoStore<
   async _connect() {
     if (this._connectPromise === undefined) {
       this._connectPromise = (async () => {
-        this._client = await new MongoClient(
-          this.parameters.mongoUrl,
-          this.parameters.options
-        ).connect();
-        this._db = this._client.db(
-          this.parameters.database,
-          this.parameters.databaseOptions
-        );
+        this._client = await new MongoClient(this.parameters.mongoUrl, this.parameters.options).connect();
+        this._db = this._client.db(this.parameters.database, this.parameters.databaseOptions);
         this._collection = this._db.collection(this.parameters.collection);
       })();
     }
@@ -126,13 +110,9 @@ export default class MongoStore<
    * @param itemWriteConditionField
    * @returns
    */
-  protected getFilter(
-    uuid: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ): any {
+  protected getFilter(uuid: string, itemWriteCondition?: any, itemWriteConditionField?: string): any {
     let filter = {
-      _id: uuid,
+      _id: uuid
     };
     if (itemWriteCondition && itemWriteConditionField) {
       filter[itemWriteConditionField] = itemWriteCondition;
@@ -150,25 +130,17 @@ export default class MongoStore<
     itemWriteConditionField?: string
   ): Promise<void> {
     await this._connect();
-    let filter = this.getFilter(
-      uuid,
-      itemWriteCondition,
-      itemWriteConditionField
-    );
+    let filter = this.getFilter(uuid, itemWriteCondition, itemWriteConditionField);
     let params = {
       $unset: {},
-      $set: {},
+      $set: {}
     };
     params["$set"][this._lastUpdateField] = new Date();
     params["$unset"][attribute] = 1;
     let res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
       if (itemWriteCondition) {
-        throw new UpdateConditionFailError(
-          uuid,
-          itemWriteConditionField,
-          itemWriteCondition
-        );
+        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
       } else {
         throw new StoreNotFoundError(uuid, this.getName());
       }
@@ -178,46 +150,34 @@ export default class MongoStore<
   /**
    * @override
    */
-  async _deleteItemFromCollection(
-    uid,
-    prop,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     await this._connect();
 
     let filter = {
-      _id: uid,
+      _id: uid
     };
     if (itemWriteCondition) {
-      filter[prop + "." + index + "." + itemWriteConditionField] =
-        itemWriteCondition;
+      filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
     }
     let params = {
       $unset: {},
-      $set: {},
+      $set: {}
     };
     params["$set"][this._lastUpdateField] = updateDate;
     params["$unset"][prop + "." + index] = 1;
     let res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
-      throw new UpdateConditionFailError(
-        uid,
-        itemWriteConditionField,
-        itemWriteCondition
-      );
+      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
     let remove = {
       $pull: {},
-      $set: {},
+      $set: {}
     };
     remove["$set"][this._lastUpdateField] = updateDate;
     remove["$pull"][prop] = null;
     await this._collection.updateOne(
       {
-        _id: uid,
+        _id: uid
       },
       remove
     );
@@ -226,25 +186,21 @@ export default class MongoStore<
   /**
    * @override
    */
-  async _incrementAttributes(
-    uid: string,
-    parameters: { property: string; value: number }[],
-    updateDate: Date
-  ) {
+  async _incrementAttributes(uid: string, parameters: { property: string; value: number }[], updateDate: Date) {
     await this._connect();
     let params = {
       $inc: {},
-      $set: {},
+      $set: {}
     };
     params["$set"][this._lastUpdateField] = updateDate;
-    parameters.forEach((p) => {
+    parameters.forEach(p => {
       params["$inc"][p.property] = p.value;
     });
     let res = await this._collection.updateOne(
       {
         _id: {
-          $eq: <ObjectId>(<unknown>uid),
-        },
+          $eq: <ObjectId>(<unknown>uid)
+        }
       },
       params
     );
@@ -256,45 +212,32 @@ export default class MongoStore<
   /**
    * @override
    */
-  async _upsertItemToCollection(
-    uid,
-    prop,
-    item,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     await this._connect();
     let filter = {
-      _id: uid,
+      _id: uid
     };
     let params = {};
     if (index === undefined) {
       params = {
         $push: {},
-        $set: {},
+        $set: {}
       };
       params["$set"][this._lastUpdateField] = updateDate;
       params["$push"][prop] = item;
     } else {
       params = {
-        $set: {},
+        $set: {}
       };
       params["$set"][this._lastUpdateField] = updateDate;
       params["$set"][prop + "." + index] = item;
-      filter[prop + "." + index + "." + itemWriteConditionField] =
-        itemWriteCondition;
+      filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
     }
 
     let res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
       if (itemWriteCondition) {
-        throw new UpdateConditionFailError(
-          uid,
-          itemWriteConditionField,
-          itemWriteCondition
-        );
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
       } else {
         throw new StoreNotFoundError(uid, this.getName());
       }
@@ -320,47 +263,46 @@ export default class MongoStore<
   mapExpression(expression: WebdaQL.Expression): any {
     if (expression instanceof WebdaQL.AndExpression) {
       let query: any = {};
-      expression.children.forEach((e) => {
+      expression.children.forEach(e => {
         query = { ...query, ...this.mapExpression(e) };
       });
       return query;
     } else if (expression instanceof WebdaQL.OrExpression) {
       return {
-        $or: expression.children.map((e) => this.mapExpression(e)),
+        $or: expression.children.map(e => this.mapExpression(e))
       };
     } else if (expression instanceof WebdaQL.ComparisonExpression) {
       if (expression.operator === "=") {
         return {
-          [expression.attribute.join(".")]: expression.value,
+          [expression.attribute.join(".")]: expression.value
         };
       } else if (expression.operator === "<") {
         return {
-          [expression.attribute.join(".")]: { $lt: expression.value },
+          [expression.attribute.join(".")]: { $lt: expression.value }
         };
       } else if (expression.operator === ">") {
         return {
-          [expression.attribute.join(".")]: { $gt: expression.value },
+          [expression.attribute.join(".")]: { $gt: expression.value }
         };
       } else if (expression.operator === "<=") {
         return {
-          [expression.attribute.join(".")]: { $lte: expression.value },
+          [expression.attribute.join(".")]: { $lte: expression.value }
         };
       } else if (expression.operator === ">=") {
         return {
-          [expression.attribute.join(".")]: { $gte: expression.value },
+          [expression.attribute.join(".")]: { $gte: expression.value }
         };
       } else if (expression.operator === "!=") {
         return {
-          [expression.attribute.join(".")]: { $ne: expression.value },
+          [expression.attribute.join(".")]: { $ne: expression.value }
         };
       } else if (expression.operator === "IN") {
         return {
-          [expression.attribute.join(".")]: { $in: expression.value },
+          [expression.attribute.join(".")]: { $in: expression.value }
         };
       } else if (expression.operator === "LIKE") {
         return {
-          [expression.attribute.join(".")]:
-            WebdaQL.ComparisonExpression.likeToRegex(<string>expression.value),
+          [expression.attribute.join(".")]: WebdaQL.ComparisonExpression.likeToRegex(<string>expression.value)
         };
       }
     }
@@ -377,7 +319,7 @@ export default class MongoStore<
     }
     let sortObject = {};
     if (query.orderBy) {
-      query.orderBy.forEach((e) => {
+      query.orderBy.forEach(e => {
         sortObject[e.field] = e.direction === "ASC" ? 1 : -1;
       });
     }
@@ -389,84 +331,50 @@ export default class MongoStore<
         .skip(offset)
         .limit(query.limit || 1000)
         .toArray()
-    ).map((doc) => this.initModel(doc));
+    ).map(doc => this.initModel(doc));
     return {
       results,
-      continuationToken:
-        results.length >= query.limit
-          ? (offset + query.limit).toString()
-          : undefined,
-      filter: true,
+      continuationToken: results.length >= query.limit ? (offset + query.limit).toString() : undefined,
+      filter: true
     };
   }
 
   /**
    * @override
    */
-  async _delete(
-    uid: string,
-    writeCondition?: any,
-    itemWriteConditionField?: string
-  ): Promise<void> {
+  async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string): Promise<void> {
     await this._connect();
-    await this._collection.deleteOne(
-      this.getFilter(uid, writeCondition, itemWriteConditionField)
-    );
+    await this._collection.deleteOne(this.getFilter(uid, writeCondition, itemWriteConditionField));
   }
 
   /**
    * @override
    */
-  async _patch(
-    object: any,
-    uid: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ): Promise<void> {
+  async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<void> {
     await this._connect();
-    let res = await this._collection.updateOne(
-      this.getFilter(uid, itemWriteCondition, itemWriteConditionField),
-      {
-        $set: object,
-      }
-    );
+    let res = await this._collection.updateOne(this.getFilter(uid, itemWriteCondition, itemWriteConditionField), {
+      $set: object
+    });
     if (res.matchedCount === 0) {
-      throw new UpdateConditionFailError(
-        uid,
-        itemWriteConditionField,
-        itemWriteCondition
-      );
+      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
   }
 
   /**
    * @override
    */
-  async _update(
-    object: any,
-    uid: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ): Promise<any> {
+  async _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
     if (object instanceof CoreModel) {
       object = object.toStoredJSON();
     }
 
     await this._connect();
-    let filter = this.getFilter(
-      uid,
-      itemWriteCondition,
-      itemWriteConditionField
-    );
+    let filter = this.getFilter(uid, itemWriteCondition, itemWriteConditionField);
     let res = await this._collection.updateOne(filter, {
-      $set: object,
+      $set: object
     });
     if (res.matchedCount === 0) {
-      throw new UpdateConditionFailError(
-        uid,
-        itemWriteConditionField,
-        itemWriteCondition
-      );
+      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
     return object;
   }
@@ -480,12 +388,10 @@ export default class MongoStore<
     let params: any = {};
     if (uids) {
       params._id = {
-        $in: uids,
+        $in: uids
       };
     }
-    return (await this._collection.find(params).toArray()).map((doc) =>
-      this.initModel(doc)
-    );
+    return (await this._collection.find(params).toArray()).map(doc => this.initModel(doc));
   }
 
   /**
@@ -494,7 +400,7 @@ export default class MongoStore<
   async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
     await this._connect();
     let res = await this._collection.findOne({
-      _id: <unknown>uid,
+      _id: <unknown>uid
     });
     if (res === null) {
       if (raiseIfNotFound) {

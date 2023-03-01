@@ -87,15 +87,13 @@ export class OwnerModel extends CoreModel {
    * @param context
    * @returns
    */
-  static getPermissionQuery(
-    context?: OperationContext
-  ): null | { partial: boolean; query: string } {
+  static getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string } {
     if (!context) {
       return null;
     }
     return {
       query: `_user = '${context.getCurrentUserId()}' OR public = TRUE`,
-      partial: false,
+      partial: false
     };
   }
 
@@ -104,10 +102,7 @@ export class OwnerModel extends CoreModel {
    */
   async canUpdate(ctx: OperationContext): Promise<this> {
     // Allow to modify itself by default
-    if (
-      (!this.getOwner() || ctx.getCurrentUserId() !== this.getOwner()) &&
-      ctx.getCurrentUserId() !== this.uuid
-    ) {
+    if ((!this.getOwner() || ctx.getCurrentUserId() !== this.getOwner()) && ctx.getCurrentUserId() !== this.uuid) {
       throw 403;
     }
     return this;

@@ -2,10 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { WebdaError } from "../core";
 import { JSONUtils } from "../utils/serializers";
-import {
-  ConfigurationService,
-  ConfigurationServiceParameters,
-} from "./configuration";
+import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 
 /**
  * Allow for dynamic configuration from ConfigMap or Secrets
@@ -13,35 +10,24 @@ import {
  * Read a ConfigMap from Kubernetes and auto-update
  * @WebdaModda
  */
-export class KubernetesConfigurationService<
-  T extends ConfigurationServiceParameters
-> extends ConfigurationService<T> {
+export class KubernetesConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
   /**
    * @ignore
    */
   async init(): Promise<this> {
     // Do not call super as we diverged
     if (!this.parameters.source) {
-      throw new WebdaError(
-        "KUBE_CONFIGURATION_SOURCE_MISSING",
-        "Need a source for KubernetesConfigurationService"
-      );
+      throw new WebdaError("KUBE_CONFIGURATION_SOURCE_MISSING", "Need a source for KubernetesConfigurationService");
     }
     this.parameters.source = this._webda.getAppPath(this.parameters.source);
     if (!fs.existsSync(this.parameters.source)) {
-      throw new WebdaError(
-        "KUBE_CONFIGURATION_SOURCE_MISSING",
-        "Need a source for KubernetesConfigurationService"
-      );
+      throw new WebdaError("KUBE_CONFIGURATION_SOURCE_MISSING", "Need a source for KubernetesConfigurationService");
     }
 
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
 
-    fs.watchFile(
-      path.join(this.parameters.source, "..data"),
-      this.checkUpdate.bind(this)
-    );
+    fs.watchFile(path.join(this.parameters.source, "..data"), this.checkUpdate.bind(this));
     await this.checkUpdate();
     return this;
   }
@@ -61,14 +47,13 @@ export class KubernetesConfigurationService<
     let result = {};
     let found = 0;
     fs.readdirSync(this.parameters.source)
-      .filter((f) => !f.startsWith("."))
-      .forEach((f) => {
+      .filter(f => !f.startsWith("."))
+      .forEach(f => {
         found++;
         let filePath = path.join(this.parameters.source, f);
         // Auto parse JSON and YAML
         if (f.match(/\.(jsonc?|ya?ml)$/i)) {
-          result[f.replace(/\.(jsonc?|ya?ml)$/i, "")] =
-            JSONUtils.loadFile(filePath);
+          result[f.replace(/\.(jsonc?|ya?ml)$/i, "")] = JSONUtils.loadFile(filePath);
         } else {
           result[f] = fs.readFileSync(filePath, "utf-8");
         }

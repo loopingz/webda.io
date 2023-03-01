@@ -1,9 +1,4 @@
-import {
-  DeleteObjectsCommandInput,
-  HeadObjectCommand,
-  ListObjectsV2Command,
-  S3,
-} from "@aws-sdk/client-s3";
+import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
 import { suite, test } from "@testdeck/mocha";
 import { Binary, getCommonJS } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
@@ -35,11 +30,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     super.tweakApp(app);
     app.addService(
       "test/awsevents",
-      (
-        await import(
-          path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/"))
-        )
-      ).AWSEventsHandler
+      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).AWSEventsHandler
     );
   }
 
@@ -54,22 +45,22 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
         endpoint: "http://localhost:4566",
         credentials: defaultCreds,
         forcePathStyle: true,
-        region: "us-east-1",
+        region: "us-east-1"
       });
 
       // For test we do not have more than 1k objects
       let data = await s3.listObjectsV2({
-        Bucket,
+        Bucket
       });
       var params: DeleteObjectsCommandInput = {
         Bucket,
         Delete: {
-          Objects: [],
-        },
+          Objects: []
+        }
       };
       for (var i in data.Contents) {
         params.Delete.Objects.push({
-          Key: data.Contents[i].Key,
+          Key: data.Contents[i].Key
         });
       }
       if (params.Delete.Objects.length === 0) {
@@ -86,12 +77,12 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       endpoint: "http://localhost:4566",
       forcePathStyle: true,
       credentials: defaultCreds,
-      region: "us-east-1",
+      region: "us-east-1"
     });
     const Bucket = "webda-test";
     try {
       await s3.headBucket({
-        Bucket,
+        Bucket
       });
     } catch (err) {
       if (err.name === "Forbidden") {
@@ -99,7 +90,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       } else if (err.name === "NotFound") {
         this.webda.log("INFO", "Creating S3 Bucket", Bucket);
         return s3.createBucket({
-          Bucket,
+          Bucket
         });
       }
     }
@@ -127,11 +118,11 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
             { Key: "test/test.txt" },
             { Key: "test/test.json" },
             { Key: "test2/test.txt" },
-            { Key: "loop.txt" },
-          ].filter((i) => {
+            { Key: "loop.txt" }
+          ].filter(i => {
             return i.Key.startsWith(p.Prefix);
           }),
-          NextContinuationToken: "2",
+          NextContinuationToken: "2"
         };
       }
       return { Contents: [] };
@@ -146,11 +137,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
         undefined,
         /.*\.txt/
       );
-      assert.deepStrictEqual(keys, [
-        "test/test.txt",
-        "test2/test.txt",
-        "loop.txt",
-      ]);
+      assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
       keys = [];
       spyChanges.resetHistory();
       await this.getBinary().forEachFile(
@@ -168,25 +155,20 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
   @test
   params() {
-    assert.throws(
-      () => new S3BinaryParameters({}, this.getBinary()),
-      /Need to define a bucket at least/
-    );
+    assert.throws(() => new S3BinaryParameters({}, this.getBinary()), /Need to define a bucket at least/);
   }
 
   @test
   async signedUrl() {
     let urls = [
       this.getBinary().getSignedUrl("plop/test", "putObject", {
-        Bucket: "myBuck",
+        Bucket: "myBuck"
       }),
-      this.getBinary().getSignedUrl("plop/test"),
+      this.getBinary().getSignedUrl("plop/test")
     ];
-    (await Promise.all(urls)).forEach((url) => {
+    (await Promise.all(urls)).forEach(url => {
       assert.ok(
-        url.match(
-          /http:\/\/localhost:\d+\/(myBuck|webda-test)\/plop\/test\?.*Signature=.*/
-        ),
+        url.match(/http:\/\/localhost:\d+\/(myBuck|webda-test)\/plop\/test\?.*Signature=.*/),
         `'${url}' does not match expected`
       );
     });
@@ -195,27 +177,16 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async exists() {
     assert.ok(!(await this.getBinary()._exists("bouzouf")));
-    await this.getBinary().putObject(
-      this.getBinary()._getKey("bouzouf"),
-      "plop"
-    );
+    await this.getBinary().putObject(this.getBinary()._getKey("bouzouf"), "plop");
     assert.ok(await this.getBinary()._exists("bouzouf"));
     assert.strictEqual(
-      (
-        await Binary.streamToBuffer(
-          await this.getBinary().getObject(this.getBinary()._getKey("bouzouf"))
-        )
-      ).toString("utf8"),
+      (await Binary.streamToBuffer(await this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))).toString(
+        "utf8"
+      ),
       "plop"
     );
-    assert.notStrictEqual(
-      await this.getBinary().exists(this.getBinary()._getKey("bouzouf")),
-      null
-    );
-    assert.strictEqual(
-      await this.getBinary().exists(this.getBinary()._getKey("bouzouf2")),
-      null
-    );
+    assert.notStrictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf")), null);
+    assert.strictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf2")), null);
   }
 
   @test
@@ -239,11 +210,9 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
   @test
   async cascadeDelete() {
-    let stubDelete = sinon
-      .stub(this.getBinary()._s3, "deleteObject")
-      .callsFake(() => {
-        throw new Error();
-      });
+    let stubDelete = sinon.stub(this.getBinary()._s3, "deleteObject").callsFake(() => {
+      throw new Error();
+    });
     try {
       // @ts-ignore
       await this.getBinary().cascadeDelete({ hash: "pp" }, "pp");
@@ -256,13 +225,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   async redirectUrl() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location !== undefined);
   }
@@ -271,19 +234,10 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   async redirectUrlInfo() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0/url`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location === undefined);
-    assert.notStrictEqual(
-      JSON.parse(<string>ctx.getResponseBody()).Location,
-      undefined
-    );
+    assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);
   }
 
   @test

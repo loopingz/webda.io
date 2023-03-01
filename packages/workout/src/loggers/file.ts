@@ -1,12 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import {
-  ConsoleLogger,
-  LogFilter,
-  WorkerLogLevel,
-  WorkerMessage,
-  WorkerOutput,
-} from "../index";
+import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
 import { Logger } from "./index";
 
 /**
@@ -74,8 +68,8 @@ export class FileLogger extends Logger {
             type: "log",
             log: {
               level: "INFO",
-              args: [msg.title],
-            },
+              args: [msg.title]
+            }
           },
           this.format
         ) + "\n"
@@ -88,8 +82,7 @@ export class FileLogger extends Logger {
     this.outputStream?.close();
     let filename = path.basename(filepath);
     let dirname = path.dirname(filepath);
-    let num =
-      fs.readdirSync(dirname).filter((n) => n.startsWith(filename)).length + 1;
+    let num = fs.readdirSync(dirname).filter(n => n.startsWith(filename)).length + 1;
     fs.renameSync(filepath, path.join(dirname, filename + num));
     this.outputStream = fs.createWriteStream(filepath, { flags: "a" });
     this.outputCount = 0;

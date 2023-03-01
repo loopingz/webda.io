@@ -14,11 +14,7 @@ class QueueItemTest {
 }
 
 class QueueTest extends WebdaTest {
-  async simple(
-    queue,
-    inconsistentSize: boolean = false,
-    ackDelayMs: number = 1000
-  ) {
+  async simple(queue, inconsistentSize: boolean = false, ackDelayMs: number = 1000) {
     var msg;
     this.log("DEBUG", "Send test message 1");
     await queue.sendMessage(new QueueItemTest(1));

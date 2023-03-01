@@ -25,8 +25,9 @@ class SessionStoreTest extends WebdaTest {
   @test
   async sessionStore() {
     // Test MemoryStore
-    const store = (this.webda.getServices()["sessionstore"] =
-      await new MemoryStore(this.webda, "SessionStore", {}).resolve().init());
+    const store = (this.webda.getServices()["sessionstore"] = await new MemoryStore(this.webda, "SessionStore", {})
+      .resolve()
+      .init());
     store.getParameters().expose = { url: "url" };
     assert.throws(
       () => this.getService<CookieSessionManager>("SessionManager").resolve(),
@@ -39,16 +40,14 @@ class SessionStoreTest extends WebdaTest {
     await ctx.end();
     let sessions = await store.getAll();
     assert.strictEqual(sessions.length, 1);
-    let cookie = await this.webda
-      .getCrypto()
-      .jwtVerify(ctx.getResponseCookies()["test"].value);
+    let cookie = await this.webda.getCrypto().jwtVerify(ctx.getResponseCookies()["test"].value);
     assert.strictEqual(cookie.uuid, undefined);
     assert.strictEqual(cookie.identUsed, undefined);
     assert.strictEqual(cookie.sub, sessions[0].getUuid());
 
     let ctx2 = await this.newContext();
     ctx2.getHttpContext().cookies = {
-      test: ctx.getResponseCookies()["test"].value,
+      test: ctx.getResponseCookies()["test"].value
     };
     await ctx2.init();
     let session = ctx2.getSession<UnknownSession>();
@@ -58,9 +57,6 @@ class SessionStoreTest extends WebdaTest {
     let opCtx = new OperationContext(this.webda);
     // cov
     await this.getService<CookieSessionManager>("SessionManager").load(opCtx);
-    await this.getService<CookieSessionManager>("SessionManager").save(
-      opCtx,
-      undefined
-    );
+    await this.getService<CookieSessionManager>("SessionManager").save(opCtx, undefined);
   }
 }

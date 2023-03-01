@@ -81,10 +81,12 @@ class WebdaServerTest {
     assert.strictEqual(await res.text(), "Tested");
 
     // Test errors system
-    // @ts-ignore
-    let stub = sinon.stub(this.server.getService("CustomService"), "test").callsFake(async () => {
-      throw 404;
-    });
+    let stub = sinon
+      // @ts-ignore
+      .stub(this.server.getService("CustomService"), "test")
+      .callsFake(async () => {
+        throw 404;
+      });
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
@@ -206,8 +208,8 @@ class WebdaServerTest {
     });
     await allowRequest(null, callback);
     assert.deepStrictEqual(receivedArgs, ["Plop", null]);
-    let ctx = await this.server.newContext(new HttpContext("test.webda.io", "GET", "/"));
-    stub.callsFake(async () => ctx);
+    let ctx = await this.server.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
+    stub.callsFake(async () => <any>ctx);
     await allowRequest(null, callback);
     assert.deepStrictEqual(receivedArgs, ["Request not allowed", null]);
     // @ts-ignore
@@ -221,7 +223,7 @@ class WebdaServerTest {
   @test
   async flushHeaders() {
     await this.init("Dev", false);
-    let ctx = await this.server.newContext(new HttpContext("test.webda.io", "GET", "/"));
+    let ctx = await this.server.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     ctx.setFlushedHeaders();
     // Test we do not double flush headers
     this.server.flushHeaders(ctx);

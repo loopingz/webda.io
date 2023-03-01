@@ -5,9 +5,7 @@ import { WebSocketsParameters, WSService } from "./service";
 /**
  * @WebdaModda
  */
-export class WebSocketsService<
-    T extends WebSocketsParameters = WebSocketsParameters
-  >
+export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParameters>
   extends WSService<T>
   implements RequestFilter
 {
@@ -39,19 +37,15 @@ export class WebSocketsService<
    * @param socket
    * @param context
    */
-  async onOperation(
-    operation: { id: string; input?: any },
-    socket: Socket,
-    context: WebContext
-  ) {
+  async onOperation(operation: { id: string; input?: any }, socket: Socket, context: WebContext) {
     try {
       socket.emit("operation", {
         status: "SUCCESS",
-        result: await this.getWebda().callOperation(context, operation.id),
+        result: await this.getWebda().callOperation(context, operation.id)
       });
     } catch (err) {
       socket.emit("operation", {
-        status: "ERROR",
+        status: "ERROR"
       });
     }
   }
@@ -63,12 +57,7 @@ export class WebSocketsService<
    * @param context
    * @param method
    */
-  async onSubscribe(
-    fullUuid: string,
-    socket: Socket,
-    context: WebContext,
-    method: "leave" | "join" = "join"
-  ) {
+  async onSubscribe(fullUuid: string, socket: Socket, context: WebContext, method: "leave" | "join" = "join") {
     const result = (method === "leave" ? "un" : "") + "subscribed";
     try {
       this.log("TRACE", "Subscribing to", fullUuid);
@@ -83,33 +72,33 @@ export class WebSocketsService<
       // Join room success
       socket.emit(result, {
         status: "SUCCESS",
-        uuid: fullUuid,
+        uuid: fullUuid
       });
-      const roomSize = this.io.sockets.adapter.rooms.get(roomName).size;
+      const roomSize = this.io.sockets.adapter.rooms.get(roomName)?.size || 0;
       // Now it is worth sending the event for ui
       if (method === "join" && roomSize === 2) {
         this.io.to(roomName).emit("uiroom", {
           model: fullUuid,
-          enable: true,
+          enable: true
         });
       } else if (method === "leave" && roomSize === 1) {
         // Tell remaining client that no one else listen to him
         this.io.to(roomName).emit("uiroom", {
           model: fullUuid,
-          enable: false,
+          enable: false
         });
       }
 
       socket.emit(result, {
         status: "SUCCESS",
-        uuid: fullUuid,
+        uuid: fullUuid
       });
     } catch (err) {
       this.log("ERROR", "Error", err);
       socket.emit(result, {
         status: "ERROR",
         error: "NOT_ALLOWED",
-        uuid: fullUuid,
+        uuid: fullUuid
       });
     }
   }
@@ -121,12 +110,12 @@ export class WebSocketsService<
     super.initMetrics();
     this.metrics.connections = this.getMetric(Gauge, {
       name: "ws_connections",
-      help: "Number of active connections",
+      help: "Number of active connections"
     });
     this.metrics.messages = this.getMetric(Counter, {
       name: "ws_messages",
       help: "Number of messages sent",
-      labelNames: ["type"],
+      labelNames: ["type"]
     });
   }
 
@@ -135,9 +124,7 @@ export class WebSocketsService<
    * @returns
    */
   getRooms() {
-    return [...this.io.sockets.adapter.rooms.keys()].filter((c) =>
-      c.startsWith("model_")
-    );
+    return [...this.io.sockets.adapter.rooms.keys()].filter(c => c.startsWith("model_"));
   }
 
   /**
@@ -145,27 +132,25 @@ export class WebSocketsService<
    */
   resolve(): this {
     this.getWebda().registerRequestFilter(this);
-    this.getWebda().on("Webda.Init.SocketIO", async (evt) => {
+    this.getWebda().on("Webda.Init.SocketIO", async evt => {
       this.io = <Server>evt;
-      this.io.of("/").adapter.on("create-room", (room) => {
+      this.io.of("/").adapter.on("create-room", room => {
         if (room.startsWith("model_")) {
           this.io.to("backend").emit("create-room", room);
           this.registerRoom(room);
         }
       });
-      this.io.of("/").adapter.on("delete-room", (room) => {
+      this.io.of("/").adapter.on("delete-room", room => {
         if (room.startsWith("model_")) {
           this.io.to("backend").emit("delete-room", room);
           this.unregisterRoom(room);
         }
       });
       // On connection
-      this.io.on("connection", async (socket) => {
+      this.io.on("connection", async socket => {
         this.metrics.connections.inc();
         let context = <WebContext>(<any>socket.request).webdaContext;
-        let authToken = <string>(
-          context.getHttpContext().getHeader("x-webda-ws")
-        );
+        let authToken = <string>context.getHttpContext().getHeader("x-webda-ws");
         if (authToken) {
           if (!(await this.verifyAuthToken(authToken))) {
             socket.disconnect();
@@ -173,7 +158,7 @@ export class WebSocketsService<
           // Verify some stuff here
           socket.join("backend");
           socket.emit("registered", {
-            rooms: this.getRooms(),
+            rooms: this.getRooms()
           });
           socket.on("backend-event", (fullUuid, ...args) => {
             this.log("DEBUG", "Forward Model event", fullUuid);
@@ -218,7 +203,7 @@ export class WebSocketsService<
             if (this.io.sockets.adapter.rooms.get(room).size === 1) {
               this.io.to(room).emit("uiroom", {
                 model: room.substring(6),
-                enable: false,
+                enable: false
               });
             }
           }

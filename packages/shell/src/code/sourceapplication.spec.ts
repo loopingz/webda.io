@@ -159,9 +159,10 @@ class SourceApplicationTest extends WebdaTest {
     assert.strictEqual(module.beans["webdademo/sampleappbadbean"], undefined);
 
     // Check for good objects
-    assert.notStrictEqual(module.models["webdademo/subsubproject"], undefined);
-    assert.notStrictEqual(module.models["webdademo/subproject"], undefined);
-    assert.notStrictEqual(module.models["webdademo/project"], undefined);
+    assert.notStrictEqual(module.models.list["webdademo/subsubproject"], undefined);
+    assert.notStrictEqual(module.models.list["webdademo/subproject"], undefined);
+    assert.notStrictEqual(module.models.list["webdademo/project"], undefined);
+    console.log(module);
     assert.notStrictEqual(module.beans["webdademo/beanservice"], undefined);
     assert.notStrictEqual(module.beans["webdademo/sampleappgoodbean"], undefined);
 
@@ -211,11 +212,12 @@ class SourceApplicationTest extends WebdaTest {
     let config: Module = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
     assert.strictEqual(config.moddas["WebdaDemo/CustomReusableService".toLowerCase()], "lib/services/reusable:default");
     // Won't be find as it is in a test context
-    assert.strictEqual(config.models["WebdaDemo/Contact".toLowerCase()], "lib/models/contact:default");
+    assert.strictEqual(config.models.list["WebdaDemo/Contact".toLowerCase()], "lib/models/contact:default");
     assert.strictEqual(
       config.deployers["WebdaDemo/CustomDeployer".toLowerCase()],
       "lib/services/deployer:CustomDeployer"
     );
+    console.log(Object.keys(config.schemas));
     assert.deepStrictEqual(config.schemas["WebdaDemo/CustomDeployer".toLowerCase()].title, "CustomDeployer");
     let app = new BuildSourceApplication(this.sampleApp.getAppPath());
     let stub = sinon.stub(app, "compile").callsFake(() => false);

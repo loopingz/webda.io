@@ -1,9 +1,4 @@
-import {
-  LoggerService,
-  Service,
-  ServiceParameters,
-  WebContext,
-} from "@webda/core";
+import { LoggerService, Service, ServiceParameters, WebContext } from "@webda/core";
 
 /**
  * Profiler Parameters
@@ -29,9 +24,7 @@ export class ProfilerParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export default class Profiler<
-  T extends ProfilerParameters = ProfilerParameters
-> extends Service<T> {
+export default class Profiler<T extends ProfilerParameters = ProfilerParameters> extends Service<T> {
   /**
    * @inheritdoc
    */
@@ -48,12 +41,10 @@ export default class Profiler<
     let currentObj = Object.getPrototypeOf(obj);
     do {
       Object.getOwnPropertyNames(currentObj)
-        .filter((i) => ["constructor", "on", "once"].indexOf(i) < 0)
-        .forEach((item) => properties.add(item));
+        .filter(i => ["constructor", "on", "once"].indexOf(i) < 0)
+        .forEach(item => properties.add(item));
     } while ((currentObj = Object.getPrototypeOf(currentObj)));
-    return [...properties.keys()].filter(
-      (item: string | symbol) => typeof obj[item] === "function"
-    );
+    return [...properties.keys()].filter((item: string | symbol) => typeof obj[item] === "function");
   }
 
   /**
@@ -63,7 +54,7 @@ export default class Profiler<
    */
   preprocessor(_service: Service, _method: string) {
     return {
-      start: Date.now(),
+      start: Date.now()
     };
   }
 
@@ -77,9 +68,7 @@ export default class Profiler<
   postprocessor(service: Service, method: string, data?: any, err?: any) {
     let duration = Date.now() - data.start;
     if (err) {
-      this.logMetrics(
-        `${service.getName()}.${method}: ${duration}ms - ERROR ${err}`
-      );
+      this.logMetrics(`${service.getName()}.${method}: ${duration}ms - ERROR ${err}`);
     } else {
       this.logMetrics(`${service.getName()}.${method}: ${duration}ms`);
     }
@@ -100,11 +89,7 @@ export default class Profiler<
    * @param service to check
    */
   excludeService(service: Service): boolean {
-    return (
-      service instanceof LoggerService ||
-      service instanceof Profiler ||
-      this === service
-    );
+    return service instanceof LoggerService || service instanceof Profiler || this === service;
   }
   /**
    * Patch all services method: interlacing our pre/post processor
@@ -139,17 +124,12 @@ export default class Profiler<
             }
             if (res instanceof Promise) {
               return res
-                .then((r) => {
+                .then(r => {
                   this.postprocessor(services[service], method, data);
                   return r;
                 })
-                .catch((r) => {
-                  this.postprocessor(
-                    services[service],
-                    method,
-                    data,
-                    r.message
-                  );
+                .catch(r => {
+                  this.postprocessor(services[service], method, data, r.message);
                   throw r;
                 });
             }
@@ -187,9 +167,7 @@ export default class Profiler<
         throw err;
       } finally {
         if (error) {
-          this.logMetrics(
-            `Request took ${Date.now() - start}ms - ERROR ${error.message}`
-          );
+          this.logMetrics(`Request took ${Date.now() - start}ms - ERROR ${error.message}`);
         } else {
           this.logMetrics(`Request took ${Date.now() - start}ms`);
         }
@@ -201,10 +179,10 @@ export default class Profiler<
    * Add listeners on `Webda.Init.Services` and `Webda.Request`
    */
   resolve(): this {
-    this._webda.on("Webda.Init.Services", async (services) => {
+    this._webda.on("Webda.Init.Services", async services => {
       this.patchServices(services);
     });
-    this._webda.on("Webda.Request", (evt) => {
+    this._webda.on("Webda.Request", evt => {
       if (!this.isEnabled()) {
         return;
       }

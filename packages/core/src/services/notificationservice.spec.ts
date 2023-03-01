@@ -3,10 +3,7 @@ import * as assert from "assert";
 import { Service } from "..";
 import { User } from "../models/user";
 import { WebdaTest } from "../test";
-import {
-  MultiNotificationService,
-  NotificationService,
-} from "./notificationservice";
+import { MultiNotificationService, NotificationService } from "./notificationservice";
 
 class FakeNotification extends Service implements NotificationService {
   template: boolean = false;
@@ -20,11 +17,7 @@ class FakeNotification extends Service implements NotificationService {
     return this.user;
   }
 
-  async sendNotification(
-    user: User,
-    notification: string,
-    replacements: any
-  ): Promise<void> {
+  async sendNotification(user: User, notification: string, replacements: any): Promise<void> {
     this.sent++;
   }
 }
@@ -42,7 +35,7 @@ class NotificationServiceTest extends WebdaTest {
   async before() {
     await super.before();
     this.service = new MultiNotificationService(this.webda, "notif", {
-      senders: ["notifA", "notifB"],
+      senders: ["notifA", "notifB"]
     });
     this.fakeA = new FakeNotification(this.webda, "notifA", {});
     this.fakeB = new FakeNotification(this.webda, "notifB", {});
@@ -54,17 +47,11 @@ class NotificationServiceTest extends WebdaTest {
 
   @test
   async cov() {
-    assert.strictEqual(
-      await this.service.handleNotificationFor(undefined),
-      false
-    );
+    assert.strictEqual(await this.service.handleNotificationFor(undefined), false);
     assert.strictEqual(await this.service.hasNotification(undefined), false);
 
     this.fakeB.user = true;
-    assert.strictEqual(
-      await this.service.handleNotificationFor(undefined),
-      true
-    );
+    assert.strictEqual(await this.service.handleNotificationFor(undefined), true);
     this.fakeA.template = true;
     assert.strictEqual(await this.service.hasNotification(undefined), true);
 

@@ -1,13 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import {
-  AclModel,
-  Core,
-  HttpContext,
-  Session,
-  User,
-  WebContext,
-} from "../index";
+import { AclModel, Core, HttpContext, Session, User, WebContext } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 
@@ -26,9 +19,7 @@ class AclModelTest {
     await app.load();
     this._webda = new Core(app);
     await this._webda.init();
-    this._ctx = await this._webda.newWebContext(
-      new HttpContext("test.webda.io", "GET", "/")
-    );
+    this._ctx = await this._webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");
     this.model = new AclModel().getProxy();
@@ -47,19 +38,11 @@ class AclModelTest {
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
   }
   @test async multipermissions() {
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "action")
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
     this.model.__acl["gip-123"] = "get,action";
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    assert.strictEqual(
-      await this.model.canAct(this._ctx, "action"),
-      this.model
-    );
-    assert.deepStrictEqual(await this.model.getPermissions(this._ctx), [
-      "get",
-      "action",
-    ]);
+    assert.strictEqual(await this.model.canAct(this._ctx, "action"), this.model);
+    assert.deepStrictEqual(await this.model.getPermissions(this._ctx), ["get", "action"]);
     await this.model._onGet();
     // @ts-ignore
     assert.deepStrictEqual(this.model._permissions, []);
@@ -70,68 +53,43 @@ class AclModelTest {
   }
 
   @test async multigroups() {
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "action")
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
     this.model.__acl["gip-124"] = "get,action";
     this.model.__acl["gip-123"] = "get";
     this.model.__acl["gip-122"] = "get,action";
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "action")
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
     // @ts-ignore
     this._user._groups = undefined;
     await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "get"));
   }
 
   @test async userid() {
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "action")
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
     this.model.__acl["user-uid"] = "get";
     this.model.__acl["gip-122"] = "get,action";
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "action")
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
     this._ctx.getCurrentUserId = () => {
       return undefined;
     };
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "get"),
-      /403/
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "get"), /403/);
     this._ctx.getCurrentUserId = () => {
       return "123";
     };
     this.model.setAcl(undefined);
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "get"),
-      /403/
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "get"), /403/);
   }
 
   @test async all() {
-    await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "action")
-    );
+    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
     this.model.__acl["gip-124"] = "get,action";
     this.model.__acl["user-uid"] = "all";
     this.model.__acl["gip-122"] = "get,action";
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    assert.strictEqual(
-      await this.model.canAct(this._ctx, "action"),
-      this.model
-    );
-    assert.strictEqual(
-      await this.model.canAct(this._ctx, "delete"),
-      this.model
-    );
-    assert.strictEqual(
-      await this.model.canAct(this._ctx, "whatever"),
-      this.model
-    );
+    assert.strictEqual(await this.model.canAct(this._ctx, "action"), this.model);
+    assert.strictEqual(await this.model.canAct(this._ctx, "delete"), this.model);
+    assert.strictEqual(await this.model.canAct(this._ctx, "whatever"), this.model);
   }
 
   @test async httpAcls() {
@@ -146,13 +104,13 @@ class AclModelTest {
             return {
               toPublicEntry: () => {
                 return {
-                  displayName: "Plopi",
+                  displayName: "Plopi"
                 };
-              },
+              }
             };
-          },
+          }
         };
-      },
+      }
     };
     let actions = AclModel.getActions();
     assert.notStrictEqual(actions.acl, undefined);
@@ -168,16 +126,16 @@ class AclModelTest {
     await this.model._acl(this._ctx);
     assert.deepStrictEqual(JSON.parse(<string>this._ctx.getResponseBody()), {
       raw: {
-        acl: "mine",
+        acl: "mine"
       },
       resolved: [
         {
           actor: {
-            displayName: "Plopi",
+            displayName: "Plopi"
           },
-          permission: "mine",
-        },
-      ],
+          permission: "mine"
+        }
+      ]
     });
   }
 

@@ -38,13 +38,7 @@ export class CronDefinition {
    * @param method
    * @param description
    */
-  constructor(
-    cron: string,
-    args: any[] = [],
-    serviceName: string = "",
-    method: string = "",
-    description: string = ""
-  ) {
+  constructor(cron: string, args: any[] = [], serviceName: string = "", method: string = "", description: string = "") {
     this.cron = cron;
     this.serviceName = serviceName;
     this.method = method;
@@ -53,9 +47,9 @@ export class CronDefinition {
   }
 
   toString() {
-    return `${this.cron}: ${this.serviceName}.${this.method}(${this.args
-      .map((a) => a.toString())
-      .join(",")})${this.description !== "" ? ` # ${this.description}` : ""}`;
+    return `${this.cron}: ${this.serviceName}.${this.method}(${this.args.map(a => a.toString()).join(",")})${
+      this.description !== "" ? ` # ${this.description}` : ""
+    }`;
   }
 }
 
@@ -79,9 +73,7 @@ class CronService extends Service {
   static Annotation(cron: string, description: string = "", ...args) {
     return (_target: any, property: string, descriptor: PropertyDescriptor) => {
       descriptor.value.cron = descriptor.value.cron || [];
-      descriptor.value.cron.push(
-        new CronDefinition(cron, args, "", property, description)
-      );
+      descriptor.value.cron.push(new CronDefinition(cron, args, "", property, description));
     };
   }
 
@@ -96,14 +88,12 @@ class CronService extends Service {
   static loadAnnotations(services): CronDefinition[] {
     let cronsResult: CronDefinition[] = [];
     for (let i in services) {
-      let props = Object.getOwnPropertyDescriptors(
-        services[i].constructor.prototype
-      );
+      let props = Object.getOwnPropertyDescriptors(services[i].constructor.prototype);
       for (let method in props) {
         // @ts-ignore
         let crons: CronDefinition[] = props[method].value?.cron;
         if (crons) {
-          crons.forEach((cron) => {
+          crons.forEach(cron => {
             cron.method = method;
             cron.serviceName = i;
             cronsResult.push(cron);
@@ -133,18 +123,14 @@ class CronService extends Service {
   }
 
   run(annotations: boolean = true): CancelablePromise {
-    this.log(
-      "INFO",
-      "Running crontab with" + (annotations ? "" : "out"),
-      "annotations"
-    );
+    this.log("INFO", "Running crontab with" + (annotations ? "" : "out"), "annotations");
     // Load all annotations
     if (annotations) {
       this.addAnnotations();
     }
     this.enable = true;
     // Run schedule
-    this.crons.forEach((i) => {
+    this.crons.forEach(i => {
       if (i.cb) {
         this.schedule(i.cron, i.cb);
       } else {
@@ -156,23 +142,19 @@ class CronService extends Service {
 
     let msgs = [];
     // Display before
-    this.crons.forEach((c) => {
+    this.crons.forEach(c => {
       if (c.cb) {
         msgs.push(`[NativeCode:${c.context || ""}]`);
       } else {
-        msgs.push(
-          `${c.serviceName}.${c.method}(${c.args.length ? "..." + c.args : ""})`
-        );
+        msgs.push(`${c.serviceName}.${c.method}(${c.args.length ? "..." + c.args : ""})`);
       }
     });
-    let cronPad = Math.max(...this.crons.map((c) => c.cron.length));
-    let servicePad = Math.max(...msgs.map((c) => c.length));
+    let cronPad = Math.max(...this.crons.map(c => c.cron.length));
+    let servicePad = Math.max(...msgs.map(c => c.length));
     this.crons.forEach((c, i) => {
       this.log(
         "INFO",
-        `${c.cron.padEnd(cronPad)} : ${msgs[i].padEnd(servicePad)}${
-          c.description ? "  # " + c.description : ""
-        }`
+        `${c.cron.padEnd(cronPad)} : ${msgs[i].padEnd(servicePad)}${c.description ? "  # " + c.description : ""}`
       );
     });
     // Remove from memory

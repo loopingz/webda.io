@@ -106,15 +106,10 @@ export default class ConfigurationService<
     // Check interval by default every hour
 
     if (!this.parameters.source) {
-      throw new WebdaError(
-        "CONFIGURATION_SOURCE_MISSING",
-        "Need a source for ConfigurationService"
-      );
+      throw new WebdaError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
     }
     let source = this.parameters.source.split(":");
-    this.sourceService = <ConfigurationProvider>(
-      (<unknown>this.getService(source[0]))
-    );
+    this.sourceService = <ConfigurationProvider>(<unknown>this.getService(source[0]));
     if (!this.sourceService) {
       throw new WebdaError(
         "CONFIGURATION_SOURCE_INVALID",
@@ -123,10 +118,7 @@ export default class ConfigurationService<
     }
     this.sourceId = source[1];
     if (!this.sourceId) {
-      throw new WebdaError(
-        "CONFIGURATION_SOURCE_INVALID",
-        'Need a valid source ("sourceService:sourceId")'
-      );
+      throw new WebdaError("CONFIGURATION_SOURCE_INVALID", 'Need a valid source ("sourceService:sourceId")');
     }
     if (!this.sourceService.getConfiguration) {
       throw new WebdaError(
@@ -136,12 +128,7 @@ export default class ConfigurationService<
     }
     this.serializedConfiguration = JSON.stringify(this.parameters.default);
     await this.checkUpdate();
-    if (
-      !this.sourceService.canTriggerConfiguration(
-        this.sourceId,
-        this.checkUpdate.bind(this, true)
-      )
-    ) {
+    if (!this.sourceService.canTriggerConfiguration(this.sourceId, this.checkUpdate.bind(this, true))) {
       this.interval = setInterval(this.checkUpdate.bind(this), 1000);
     }
 
@@ -157,11 +144,7 @@ export default class ConfigurationService<
    * @param callback Method to call with the updated version
    * @param defaultValue Default value of the jsonPath if it does not exist
    */
-  watch(
-    jsonPath: string,
-    callback: (update: any) => void | Promise<void>,
-    defaultValue: any = undefined
-  ) {
+  watch(jsonPath: string, callback: (update: any) => void | Promise<void>, defaultValue: any = undefined) {
     this.watchs.push({ path: jsonPath, callback, defaultValue });
   }
 
@@ -219,8 +202,7 @@ export default class ConfigurationService<
     }
 
     this.log("DEBUG", "Refreshing configuration");
-    const newConfig =
-      (await this.loadConfiguration()) || this.parameters.default;
+    const newConfig = (await this.loadConfiguration()) || this.parameters.default;
     const serializedConfig = JSON.stringify(newConfig);
     if (serializedConfig !== this.serializedConfiguration) {
       this.emit("Configuration.Applying", undefined);
@@ -232,21 +214,14 @@ export default class ConfigurationService<
         // Merge parameters with each service
         for (let i in this.configuration.webda.services) {
           if (this.getWebda().getService(i)) {
-            this.configuration.webda.services[i] =
-              this.getWebda().getServiceParams(i, this.configuration.webda);
+            this.configuration.webda.services[i] = this.getWebda().getServiceParams(i, this.configuration.webda);
           }
         }
       }
       let promises = [];
-      this.watchs.forEach((w) => {
-        this.log(
-          "TRACE",
-          "Apply new configuration value",
-          jsonpath.query(newConfig, w.path).pop() || w.defaultValue
-        );
-        let p = w.callback(
-          jsonpath.query(newConfig, w.path).pop() || w.defaultValue
-        );
+      this.watchs.forEach(w => {
+        this.log("TRACE", "Apply new configuration value", jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
+        let p = w.callback(jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
         if (p) {
           promises.push(p);
         }
@@ -257,12 +232,7 @@ export default class ConfigurationService<
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this.interval) {
       this.updateNextCheck();
-      this.log(
-        "DEBUG",
-        "Next configuration refresh in",
-        this.parameters.checkInterval,
-        "s"
-      );
+      this.log("DEBUG", "Next configuration refresh in", this.parameters.checkInterval, "s");
     }
   }
 

@@ -3,7 +3,7 @@ import {
   DynamoDB,
   DynamoDBClient,
   QueryCommandOutput,
-  ScanCommandOutput,
+  ScanCommandOutput
 } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import {
@@ -14,7 +14,7 @@ import {
   StoreParameters,
   UpdateConditionFailError,
   WebdaError,
-  WebdaQL,
+  WebdaQL
 } from "@webda/core";
 import { WorkerOutput } from "@webda/workout";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
@@ -23,9 +23,7 @@ import { AWSServiceParameters, CloudFormationContributor } from "./index";
 /**
  * Define DynamoDB parameters
  */
-export class DynamoStoreParameters extends AWSServiceParameters(
-  StoreParameters
-) {
+export class DynamoStoreParameters extends AWSServiceParameters(StoreParameters) {
   /**
    * Table name
    */
@@ -49,10 +47,7 @@ export class DynamoStoreParameters extends AWSServiceParameters(
   constructor(params: any, service: DynamoStore) {
     super(params, service);
     if (this.table === undefined) {
-      throw new WebdaError(
-        "DYNAMODB_TABLE_PARAMETER_REQUIRED",
-        "Need to define a table at least"
-      );
+      throw new WebdaError("DYNAMODB_TABLE_PARAMETER_REQUIRED", "Need to define a table at least");
     }
     this.globalIndexes ??= {};
   }
@@ -94,8 +89,8 @@ export default class DynamoStore<
     super.resolve();
     this._client = DynamoDBDocument.from(new DynamoDBClient(this.parameters), {
       marshallOptions: {
-        removeUndefinedValues: true,
-      },
+        removeUndefinedValues: true
+      }
     });
     return this;
   }
@@ -107,25 +102,17 @@ export default class DynamoStore<
    * @param source
    * @param target
    */
-  static async copyTable(
-    output: WorkerOutput,
-    source: string,
-    target: string
-  ): Promise<void> {
+  static async copyTable(output: WorkerOutput, source: string, target: string): Promise<void> {
     let db = new DynamoDB({});
     let ExclusiveStartKey;
     let props = await db.describeTable({
-      TableName: source,
+      TableName: source
     });
-    output.startProgress(
-      "copyTable",
-      props.Table.ItemCount,
-      `Copying ${source} to ${target}`
-    );
+    output.startProgress("copyTable", props.Table.ItemCount, `Copying ${source} to ${target}`);
     do {
       let info = await db.scan({
         TableName: source,
-        ExclusiveStartKey,
+        ExclusiveStartKey
       });
       do {
         let items = [];
@@ -136,10 +123,10 @@ export default class DynamoStore<
           break;
         }
         let params = {
-          RequestItems: {},
+          RequestItems: {}
         };
-        params.RequestItems[target] = items.map((Item) => ({
-          PutRequest: { Item },
+        params.RequestItems[target] = items.map(Item => ({
+          PutRequest: { Item }
         }));
         await db.batchWriteItem(params);
         output.incrementProgress(items.length, "copyTable");
@@ -174,7 +161,7 @@ export default class DynamoStore<
     let IndexName = undefined;
     let result: ScanCommandOutput | QueryCommandOutput;
     let primaryKeys = { uuid: null };
-    Object.keys(this.parameters.globalIndexes).forEach((name) => {
+    Object.keys(this.parameters.globalIndexes).forEach(name => {
       primaryKeys[this.parameters.globalIndexes[name].key] = name;
     });
     // We could use PartQL but localstack is not compatible
@@ -194,31 +181,25 @@ export default class DynamoStore<
     }
 
     // Search for the index
-    processingExpression.children.some((child) => {
+    processingExpression.children.some(child => {
       if (child instanceof WebdaQL.ComparisonExpression) {
         // Primary key requires equal operator
-        if (
-          child.operator === "=" &&
-          primaryKeys[child.attribute[0]] !== undefined
-        ) {
+        if (child.operator === "=" && primaryKeys[child.attribute[0]] !== undefined) {
           // Query not scan
           scan = false;
           IndexName = primaryKeys[child.attribute[0]];
           indexNode = child;
           KeyConditionExpression = `#${child.attribute[0]} = :${child.attribute[0]}`;
-          ExpressionAttributeNames[`#${child.attribute[0]}`] =
-            child.attribute[0];
+          ExpressionAttributeNames[`#${child.attribute[0]}`] = child.attribute[0];
           ExpressionAttributeValues[`:${child.attribute[0]}`] = child.value;
           if (
             primaryKeys[child.attribute[0]] !== null &&
             query.orderBy &&
             this.parameters.globalIndexes[primaryKeys[child.attribute[0]]].sort
           ) {
-            const sortKey =
-              this.parameters.globalIndexes[primaryKeys[child.attribute[0]]]
-                .sort;
+            const sortKey = this.parameters.globalIndexes[primaryKeys[child.attribute[0]]].sort;
             // Might update sort order
-            query.orderBy.some((order) => {
+            query.orderBy.some(order => {
               if (order.field === sortKey) {
                 sortOrder = order.direction;
               }
@@ -230,7 +211,7 @@ export default class DynamoStore<
     });
     let count = 1;
     // Build the Query/Filter
-    processingExpression.children.forEach((child) => {
+    processingExpression.children.forEach(child => {
       if (child === indexNode) {
         return;
       }
@@ -255,7 +236,7 @@ export default class DynamoStore<
         // Subfields like team.id needs to be #a1.#a2
         let attr = `a${count++}`;
         let fullAttr = `#${attr}`;
-        child.attribute.splice(1).forEach((v) => {
+        child.attribute.splice(1).forEach(v => {
           let subAttr = `#a${count++}`;
           fullAttr += `.${subAttr}`;
           ExpressionAttributeNames[subAttr] = v;
@@ -268,7 +249,7 @@ export default class DynamoStore<
           // Need to follow `a IN (b, c, d)
           valueExpression = "(" + valueExpression;
           ExpressionAttributeValues[`:${attr}`] = child.value[0];
-          (<any[]>child.value).splice(1).forEach((v) => {
+          (<any[]>child.value).splice(1).forEach(v => {
             let subAttr = `:a${count++}`;
             valueExpression += `, ${subAttr}`;
             ExpressionAttributeValues[subAttr] = v;
@@ -280,10 +261,7 @@ export default class DynamoStore<
         }
 
         // If this is a sort key
-        if (
-          IndexName &&
-          this.parameters.globalIndexes[IndexName].sort === child.attribute[0]
-        ) {
+        if (IndexName && this.parameters.globalIndexes[IndexName].sort === child.attribute[0]) {
           // Sort key
           KeyConditionExpression += ` AND ${fullAttr} ${operator} ${valueExpression}`;
           return;
@@ -309,13 +287,11 @@ export default class DynamoStore<
       // SHould log bad query
       result = await this._client.scan({
         TableName: this.parameters.table,
-        FilterExpression: FilterExpression.length
-          ? FilterExpression.join(" AND ")
-          : undefined,
+        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
         ExclusiveStartKey,
         ExpressionAttributeNames,
         ExpressionAttributeValues,
-        Limit: query.limit,
+        Limit: query.limit
       });
     } else {
       result = await this._client.query({
@@ -323,24 +299,20 @@ export default class DynamoStore<
         IndexName,
         ExclusiveStartKey,
         KeyConditionExpression,
-        FilterExpression: FilterExpression.length
-          ? FilterExpression.join(" AND ")
-          : undefined,
+        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
         ExpressionAttributeNames,
         ExpressionAttributeValues,
         Limit: query.limit,
-        ScanIndexForward: sortOrder === "ASC" ? true : false,
+        ScanIndexForward: sortOrder === "ASC" ? true : false
       });
     }
     return {
-      results: result.Items.map((c) => this.initModel(c)),
+      results: result.Items.map(c => this.initModel(c)),
       filter,
       continuationToken:
         result.Items.length >= query.limit
-          ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString(
-              "base64"
-            )
-          : undefined,
+          ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
+          : undefined
     };
   }
 
@@ -385,17 +357,12 @@ export default class DynamoStore<
   /**
    * @inheritdoc
    */
-  async _removeAttribute(
-    uuid: string,
-    attribute: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ) {
+  async _removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
     let params: any = {
       TableName: this.parameters.table,
       Key: {
-        uuid,
-      },
+        uuid
+      }
     };
     let attrs = {};
     attrs["#attr"] = attribute;
@@ -403,15 +370,11 @@ export default class DynamoStore<
     params.ExpressionAttributeNames = attrs;
     params.ConditionExpression = "attribute_exists(#uu)";
     params.ExpressionAttributeValues = {
-      ":lastUpdate": this._serializeDate(new Date()),
+      ":lastUpdate": this._serializeDate(new Date())
     };
     params.UpdateExpression = "REMOVE #attr SET #lastUpdate = :lastUpdate";
     if (itemWriteCondition) {
-      this.setWriteCondition(
-        params,
-        itemWriteCondition,
-        itemWriteConditionField
-      );
+      this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     } else {
       attrs["#uu"] = "uuid";
       params.ConditionExpression = "attribute_exists(#uu)";
@@ -424,11 +387,7 @@ export default class DynamoStore<
         if (!itemWriteConditionField) {
           throw new StoreNotFoundError(uuid, this.getName());
         }
-        throw new UpdateConditionFailError(
-          uuid,
-          itemWriteConditionField,
-          itemWriteCondition
-        );
+        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
       }
       throw err;
     }
@@ -437,45 +396,32 @@ export default class DynamoStore<
   /**
    * @inheritdoc
    */
-  async _deleteItemFromCollection(
-    uid,
-    prop,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     let params: any = {
       TableName: this.parameters.table,
       Key: {
-        uuid: uid,
-      },
+        uuid: uid
+      }
     };
     let attrs = {};
     attrs["#" + prop] = prop;
     attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
-      ":lastUpdate": this._serializeDate(updateDate),
+      ":lastUpdate": this._serializeDate(updateDate)
     };
-    params.UpdateExpression =
-      "REMOVE #" + prop + "[" + index + "] SET #lastUpdate = :lastUpdate";
+    params.UpdateExpression = "REMOVE #" + prop + "[" + index + "] SET #lastUpdate = :lastUpdate";
     if (itemWriteCondition) {
       params.ExpressionAttributeValues[":condValue"] = itemWriteCondition;
       attrs["#condName"] = prop;
       attrs["#field"] = itemWriteConditionField;
-      params.ConditionExpression =
-        "#condName[" + index + "].#field = :condValue";
+      params.ConditionExpression = "#condName[" + index + "].#field = :condValue";
     }
     try {
       await this._client.update(params);
     } catch (err) {
       if (err instanceof ConditionalCheckFailedException) {
-        throw new UpdateConditionFailError(
-          uid,
-          itemWriteConditionField,
-          itemWriteCondition
-        );
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
       } else if (err.name === "ValidationException") {
         throw new StoreNotFoundError(uid, this.getName());
       }
@@ -498,8 +444,8 @@ export default class DynamoStore<
     let params: any = {
       TableName: this.parameters.table,
       Key: {
-        uuid,
-      },
+        uuid
+      }
     };
     let attrValues = {};
     let attrs = {};
@@ -527,31 +473,19 @@ export default class DynamoStore<
       attrValues[":" + prop] = [attrValues[":" + prop]];
       attrValues[":empty_list"] = [];
     } else {
-      params.UpdateExpression =
-        "SET #" +
-        prop +
-        "[" +
-        index +
-        "] = :" +
-        prop +
-        ", #lastUpdate = :lastUpdate";
+      params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop + ", #lastUpdate = :lastUpdate";
       if (itemWriteCondition) {
         attrValues[":condValue"] = itemWriteCondition;
         attrs["#condName"] = prop;
         attrs["#field"] = itemWriteConditionField;
-        params.ConditionExpression =
-          "#condName[" + index + "].#field = :condValue and #uuid = :uuid";
+        params.ConditionExpression = "#condName[" + index + "].#field = :condValue and #uuid = :uuid";
       }
     }
     try {
       await this._client.update(params);
     } catch (err) {
       if (err instanceof ConditionalCheckFailedException) {
-        throw new UpdateConditionFailError(
-          uuid,
-          itemWriteConditionField,
-          itemWriteCondition
-        );
+        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
       } else if (err.name === "ValidationException") {
         throw new StoreNotFoundError(uuid, this.getName());
       }
@@ -565,11 +499,7 @@ export default class DynamoStore<
    * @param field
    * @returns
    */
-  setWriteCondition(
-    params: any,
-    writeCondition: any,
-    field: string = this._lastUpdateField
-  ): void {
+  setWriteCondition(params: any, writeCondition: any, field: string = this._lastUpdateField): void {
     params.ExpressionAttributeNames ??= {};
     params.ExpressionAttributeValues ??= {};
     params.ExpressionAttributeNames["#cf"] = field;
@@ -583,16 +513,12 @@ export default class DynamoStore<
   /**
    * @inheritdoc
    */
-  async _delete(
-    uid: string,
-    writeCondition?: any,
-    itemWriteConditionField?: string
-  ) {
+  async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string) {
     let params: any = {
       TableName: this.parameters.table,
       Key: {
-        uuid: uid,
-      },
+        uuid: uid
+      }
     };
     if (writeCondition) {
       this.setWriteCondition(params, writeCondition, itemWriteConditionField);
@@ -601,11 +527,7 @@ export default class DynamoStore<
       await this._client.delete(params);
     } catch (err) {
       if (err instanceof ConditionalCheckFailedException) {
-        throw new UpdateConditionFailError(
-          uid,
-          itemWriteConditionField,
-          writeCondition
-        );
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, writeCondition);
       }
       throw err;
     }
@@ -614,12 +536,7 @@ export default class DynamoStore<
   /**
    * @inheritdoc
    */
-  async _patch(
-    object: any,
-    uid: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ) {
+  async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
     object = this._cleanObject(object);
     let expr = "SET ";
     let sep = "";
@@ -644,29 +561,21 @@ export default class DynamoStore<
     let params: any = {
       TableName: this.parameters.table,
       Key: {
-        uuid: uid,
+        uuid: uid
       },
       UpdateExpression: expr,
       ExpressionAttributeValues: attrValues,
-      ExpressionAttributeNames: attrs,
+      ExpressionAttributeNames: attrs
     };
     // The Write Condition checks the value before writing
     if (itemWriteCondition) {
-      this.setWriteCondition(
-        params,
-        itemWriteCondition,
-        itemWriteConditionField
-      );
+      this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     }
     try {
       await this._client.update(params);
     } catch (err) {
       if (err instanceof ConditionalCheckFailedException) {
-        throw new UpdateConditionFailError(
-          uid,
-          itemWriteConditionField,
-          itemWriteCondition
-        );
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
       }
       throw err;
     }
@@ -675,36 +584,23 @@ export default class DynamoStore<
   /**
    * @inheritdoc
    */
-  async _update(
-    object: any,
-    uid: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ): Promise<any> {
+  async _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
     object = this._cleanObject(object);
     object.uuid = uid;
     let params: any = {
       TableName: this.parameters.table,
-      Item: object,
+      Item: object
     };
     // The Write Condition checks the value before writing
     if (itemWriteCondition) {
-      this.setWriteCondition(
-        params,
-        itemWriteCondition,
-        itemWriteConditionField
-      );
+      this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     }
     try {
       await this._client.put(params);
       return object;
     } catch (err) {
       if (err instanceof ConditionalCheckFailedException) {
-        throw new UpdateConditionFailError(
-          uid,
-          itemWriteConditionField,
-          itemWriteCondition
-        );
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
       }
       throw err;
     }
@@ -717,7 +613,7 @@ export default class DynamoStore<
     let data = await this._client.scan({
       TableName: this.parameters.table,
       Limit: this.parameters.scanPage,
-      ExclusiveStartKey: paging,
+      ExclusiveStartKey: paging
     });
     for (let i in data.Items) {
       items.push(this.initModel(data.Items[i]));
@@ -736,14 +632,14 @@ export default class DynamoStore<
       return this._scan([]);
     }
     let params = {
-      RequestItems: {},
+      RequestItems: {}
     };
     params["RequestItems"][this.parameters.table] = {
-      Keys: uids.map((value) => {
+      Keys: uids.map(value => {
         return {
-          uuid: value,
+          uuid: value
         };
-      }),
+      })
     };
     let result = await this._client.batchGet(params);
     return result.Responses[this.parameters.table].map(this.initModel, this);
@@ -756,8 +652,8 @@ export default class DynamoStore<
     let params = {
       TableName: this.parameters.table,
       Key: {
-        uuid: uid,
-      },
+        uuid: uid
+      }
     };
     let item = (await this._client.get(params)).Item;
     if (!item) {
@@ -772,33 +668,27 @@ export default class DynamoStore<
   /**
    * @inheritdoc
    */
-  async _incrementAttributes(
-    uid,
-    parameters: { property: string; value: number }[],
-    updateDate: Date
-  ) {
+  async _incrementAttributes(uid, parameters: { property: string; value: number }[], updateDate: Date) {
     let params = {
       TableName: this.parameters.table,
       Key: {
-        uuid: uid,
+        uuid: uid
       },
       UpdateExpression: "SET #ud = :ud ADD ",
       ConditionExpression: "attribute_exists(#uu)",
       ExpressionAttributeValues: {
-        ":ud": this._serializeDate(updateDate),
+        ":ud": this._serializeDate(updateDate)
       },
       ExpressionAttributeNames: {
         "#ud": this._lastUpdateField,
-        "#uu": "uuid",
-      },
+        "#uu": "uuid"
+      }
     };
     parameters.forEach((p, i) => {
       params.ExpressionAttributeValues[`:v${i}`] = p.value;
       params.ExpressionAttributeNames[`#a${i}`] = p.property;
     });
-    params.UpdateExpression += parameters
-      .map((_, i) => `#a${i} :v${i}`)
-      .join(",");
+    params.UpdateExpression += parameters.map((_, i) => `#a${i} :v${i}`).join(",");
     try {
       return await this._client.update(params);
     } catch (err) {
@@ -827,16 +717,9 @@ export default class DynamoStore<
         "dynamodb:PutItem",
         "dynamodb:Query",
         "dynamodb:Scan",
-        "dynamodb:UpdateItem",
+        "dynamodb:UpdateItem"
       ],
-      Resource: [
-        "arn:aws:dynamodb:" +
-          region +
-          ":" +
-          accountId +
-          ":table/" +
-          this.parameters.table,
-      ],
+      Resource: ["arn:aws:dynamodb:" + region + ":" + accountId + ":table/" + this.parameters.table]
     };
   }
 
@@ -845,7 +728,7 @@ export default class DynamoStore<
    */
   async __clean() {
     let params = {
-      TableName: this.parameters.table,
+      TableName: this.parameters.table
     };
     let result = await this._client.scan(params);
     let promises = [];
@@ -864,13 +747,9 @@ export default class DynamoStore<
     }
     let resources = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
-    this.parameters.CloudFormation.Table =
-      this.parameters.CloudFormation.Table || {};
-    let KeySchema = this.parameters.CloudFormation.KeySchema || [
-      { KeyType: "HASH", AttributeName: "uuid" },
-    ];
-    let AttributeDefinitions =
-      this.parameters.CloudFormation.AttributeDefinitions || [];
+    this.parameters.CloudFormation.Table = this.parameters.CloudFormation.Table || {};
+    let KeySchema = this.parameters.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: "uuid" }];
+    let AttributeDefinitions = this.parameters.CloudFormation.AttributeDefinitions || [];
     this.parameters.CloudFormation.Table.BillingMode =
       this.parameters.CloudFormation.Table.BillingMode || "PAY_PER_REQUEST";
     AttributeDefinitions.push({ AttributeName: "uuid", AttributeType: "S" });
@@ -881,10 +760,8 @@ export default class DynamoStore<
         TableName: this.parameters.table,
         KeySchema,
         AttributeDefinitions,
-        Tags: deployer.getDefaultTags(
-          this.parameters.CloudFormation.Table.Tags
-        ),
-      },
+        Tags: deployer.getDefaultTags(this.parameters.CloudFormation.Table.Tags)
+      }
     };
     // Add any Other resources with prefix of the service
     return resources;

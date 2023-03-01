@@ -1,9 +1,11 @@
 {
-  "moddas": {},
   "beans": {},
-  "models": {},
   "deployers": {},
-  "schemas": {},
-  "graph": {},
-  "tree": {}
+  "moddas": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "list": {}
+  },
+  "schemas": {}
 }

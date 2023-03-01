@@ -1,13 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import {
-  CoreModel,
-  HttpContext,
-  Session,
-  Store,
-  User,
-  WebContext,
-} from "../index";
+import { CoreModel, HttpContext, Session, Store, User, WebContext } from "../index";
 import { WebdaTest } from "../test";
 
 @suite
@@ -20,9 +13,7 @@ class OwnerModelTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this._ctx = await this.webda.newWebContext(
-      new HttpContext("test.webda.io", "GET", "/")
-    );
+    this._ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = await this._ctx.newSession();
     this._session.login("none", "none");
     // @ts-ignore
@@ -44,44 +35,32 @@ class OwnerModelTest extends WebdaTest {
     await this._taskStore.save({
       _user: "fake_user",
       uuid: "task_user1",
-      name: "for_schema",
+      name: "for_schema"
     });
     await this._taskStore.save({
       _user: "fake_user2",
-      uuid: "task_user2",
+      uuid: "task_user2"
     });
     await this._taskStore.save({
       _user: "fake_user3",
       uuid: "task_public",
-      public: true,
+      public: true
     });
   }
 
   @test("POST - not logged") async postNotLogged() {
     await this.beforeEach();
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "POST",
-      "/tasks",
-      {
-        name: "Task #1",
-      }
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "POST", "/tasks", {
+      name: "Task #1"
+    });
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(() => executor.execute(this._ctx), /403/);
   }
 
   @test("POST") async post() {
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "POST",
-      "/tasks",
-      {
-        name: "Task #1",
-      }
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "POST", "/tasks", {
+      name: "Task #1"
+    });
     this._session.login("fake_user", "fake_ident");
     await executor.execute(this._ctx);
     let task = JSON.parse(<string>this._ctx.getResponseBody());
@@ -91,25 +70,13 @@ class OwnerModelTest extends WebdaTest {
   @test("GET - wrong owner") async getWrongOwner() {
     await this.beforeEach();
     this._ctx.getSession().login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "GET",
-      "/tasks/task_user1",
-      {}
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_user1", {});
     await assert.rejects(() => executor.execute(this._ctx), /403/);
   }
   @test("PUT - wrong owner") async putWrongOwner() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "PUT",
-      "/tasks/task_user1",
-      {}
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/tasks/task_user1", {});
     await assert.rejects(() => executor.execute(this._ctx), /403/);
   }
   @test("PUT") async put() {
@@ -117,7 +84,7 @@ class OwnerModelTest extends WebdaTest {
     this._session.login("fake_user", "fake_ident");
     await this.execute(this._ctx, "test.webda.io", "PUT", "/tasks/task_user1", {
       public: true,
-      name: "needed",
+      name: "needed"
     });
     let result = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(result.uuid, "task_user1");
@@ -126,12 +93,7 @@ class OwnerModelTest extends WebdaTest {
   @test("GET - public") async getPublic() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "GET",
-      "/tasks/task_public"
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_public");
     await executor.execute(this._ctx);
     let result = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(result.uuid, "task_public");
@@ -141,10 +103,7 @@ class OwnerModelTest extends WebdaTest {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
     let res = await this._taskStore.query("", this._ctx);
-    assert.deepStrictEqual(res.results.map((r) => r.getUuid()).sort(), [
-      "task_public",
-      "task_user2",
-    ]);
+    assert.deepStrictEqual(res.results.map(r => r.getUuid()).sort(), ["task_public", "task_user2"]);
     res = await this._taskStore.query("");
     assert.deepStrictEqual(res.results.length, 3);
     res = await this._taskStore.query("uuid = 'task_user1'", this._ctx);
@@ -156,63 +115,33 @@ class OwnerModelTest extends WebdaTest {
   @test("Actions") async actions() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "GET",
-      "/tasks/task_user1/actionable"
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_user1/actionable");
     await executor.execute(this._ctx);
-    executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "PUT",
-      "/tasks/task_user1/impossible"
-    );
+    executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/tasks/task_user1/impossible");
     await assert.rejects(() => executor.execute(this._ctx), /403/);
   }
   @test("DELETE") async delete() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "DELETE",
-      "/tasks/task_user2"
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/tasks/task_user2");
     await executor.execute(this._ctx);
   }
   @test("DELETE - wrong owner") async deleteWrongOwner() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "DELETE",
-      "/tasks/task_user1"
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/tasks/task_user1");
     await assert.rejects(() => executor.execute(this._ctx), /403/);
   }
   @test("DELETE - wrong owner - public") async deleteWrongOwnerPublic() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "DELETE",
-      "/tasks/task_public"
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/tasks/task_public");
     await assert.rejects(() => executor.execute(this._ctx), /403/);
   }
   @test("DELETE - unknown") async deleteUnknown() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(
-      this._ctx,
-      "test.webda.io",
-      "DELETE",
-      "/tasks/task_unknown"
-    );
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/tasks/task_unknown");
     await assert.rejects(() => executor.execute(this._ctx), /404/);
   }
 }

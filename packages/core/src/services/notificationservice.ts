@@ -22,11 +22,7 @@ export interface NotificationService {
    * @param notification
    * @param replacements
    */
-  sendNotification(
-    user: User | Ident,
-    notification: string,
-    replacements: any
-  ): Promise<void>;
+  sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void>;
 }
 
 /**
@@ -61,9 +57,7 @@ export class MultiNotificationParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export default class MultiNotificationService<
-    T extends MultiNotificationParameters = MultiNotificationParameters
-  >
+export default class MultiNotificationService<T extends MultiNotificationParameters = MultiNotificationParameters>
   extends Service<T>
   implements NotificationService
 {
@@ -81,7 +75,7 @@ export default class MultiNotificationService<
    */
   resolve(): this {
     super.resolve();
-    this.senders = this.parameters.senders.map((s) => {
+    this.senders = this.parameters.senders.map(s => {
       let service = <NotificationService>(<unknown>this.getService(s));
       if (!service) {
         throw new Error(`Unknown service '${s}'`);
@@ -94,56 +88,37 @@ export default class MultiNotificationService<
   /**
    * @override
    */
-  async sendNotification(
-    user: User | Ident,
-    notification: string,
-    replacements: any
-  ): Promise<void> {
+  async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
     const selectedSenders = (
       await Promise.all(
-        this.senders.map(async (s) => {
-          if (
-            (await s.hasNotification(notification)) &&
-            (await s.handleNotificationFor(user))
-          ) {
+        this.senders.map(async s => {
+          if ((await s.hasNotification(notification)) && (await s.handleNotificationFor(user))) {
             return s;
           }
         })
       )
-    ).filter((s) => s !== undefined);
+    ).filter(s => s !== undefined);
     if (!selectedSenders.length) {
       return;
     }
     if (!this.parameters.multiple) {
-      return selectedSenders
-        .shift()
-        .sendNotification(user, notification, replacements);
+      return selectedSenders.shift().sendNotification(user, notification, replacements);
     }
-    await Promise.all(
-      selectedSenders.map((s) =>
-        s.sendNotification(user, notification, replacements)
-      )
-    );
+    await Promise.all(selectedSenders.map(s => s.sendNotification(user, notification, replacements)));
   }
 
   /**
    * @override
    */
   async handleNotificationFor(user: User | Ident): Promise<boolean> {
-    return (
-      await Promise.all(this.senders.map((s) => s.handleNotificationFor(user)))
-    ).some((s) => s);
+    return (await Promise.all(this.senders.map(s => s.handleNotificationFor(user)))).some(s => s);
   }
 
   /**
    * @override
    */
   async hasNotification(notification: string): Promise<boolean> {
-    return (
-      await Promise.all(
-        this.senders.map((s) => s.hasNotification(notification))
-      )
-    ).some((s) => s);
+    return (await Promise.all(this.senders.map(s => s.hasNotification(notification)))).some(s => s);
   }
 }
 

@@ -8,9 +8,7 @@ export class AWSXRayServiceParameters extends ServiceParameters {
 /**
  * @WebdaModda
  */
-export default class AWSXRayService<
-  T extends AWSXRayServiceParameters = AWSXRayServiceParameters
-> extends Service<T> {
+export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRayServiceParameters> extends Service<T> {
   /**
    *
    * @param params
@@ -25,19 +23,17 @@ export default class AWSXRayService<
   }
 
   resolve(): this {
-    const getMethods = (obj) => {
+    const getMethods = obj => {
       let properties = new Set();
       let currentObj = Object.getPrototypeOf(obj);
       do {
         Object.getOwnPropertyNames(currentObj)
-          .filter((i) => ["constructor", "on", "once"].indexOf(i) < 0)
-          .forEach((item) => properties.add(item));
+          .filter(i => ["constructor", "on", "once"].indexOf(i) < 0)
+          .forEach(item => properties.add(item));
       } while ((currentObj = Object.getPrototypeOf(currentObj)));
-      return [...properties.keys()].filter(
-        (item: string | symbol) => typeof obj[item] === "function"
-      );
+      return [...properties.keys()].filter((item: string | symbol) => typeof obj[item] === "function");
     };
-    this._webda.addListener("Webda.Init.Services", async (services) => {
+    this._webda.addListener("Webda.Init.Services", async services => {
       AWSXRay.captureAWS(require("aws-sdk"));
       AWSXRay.captureHTTPsGlobal(require("http"), true);
       AWSXRay.captureHTTPsGlobal(require("https"), true);
@@ -54,7 +50,7 @@ export default class AWSXRayService<
               let subsegment = {
                 close: () => {
                   // Do not do anything on close
-                },
+                }
               };
               try {
                 subsegment = AWSXRay.getSegment().addNewSubsegment(name);
@@ -64,11 +60,11 @@ export default class AWSXRayService<
               let res = originalMethod.bind(services[service], ...args)();
               if (res instanceof Promise) {
                 return res
-                  .then((r) => {
+                  .then(r => {
                     subsegment.close();
                     return r;
                   })
-                  .catch((r) => {
+                  .catch(r => {
                     subsegment.close();
                     throw r;
                   });
@@ -80,11 +76,9 @@ export default class AWSXRayService<
         }
       }
     });
-    this._webda.addListener("Webda.Request", async (ctx) => {
+    this._webda.addListener("Webda.Request", async ctx => {
       let segment = new AWSXRay.Segment(
-        this.parameters.name ||
-          this._webda.getApplication().getPackageDescription().name ||
-          "Webda.Request"
+        this.parameters.name || this._webda.getApplication().getPackageDescription().name || "Webda.Request"
       );
 
       let ns = AWSXRay.getNamespace();
@@ -112,13 +106,13 @@ export default class AWSXRayService<
                 user_agent: ctx.clientInfo.userAgent,
                 client_ip: ctx.clientInfo.ip,
                 url,
-                x_forwarded_for: http.getHeader("x-forwarded-for"),
+                x_forwarded_for: http.getHeader("x-forwarded-for")
               },
               // @ts-ignore
               response: {
                 status: ctx.statusCode,
-                content_length: ctx.getResponseBody().length,
-              },
+                content_length: ctx.getResponseBody().length
+              }
             });
             segment.close();
           }

@@ -32,8 +32,7 @@ export interface EventAuthenticationLogout extends EventWithContext {}
 /**
  * Sent when a user update his password
  */
-export interface EventAuthenticationPasswordUpdate
-  extends EventAuthenticationGetMe {
+export interface EventAuthenticationPasswordUpdate extends EventAuthenticationGetMe {
   password: string;
 }
 
@@ -50,8 +49,7 @@ export interface EventAuthenticationLogin extends EventWithContext {
 /**
  * Export when a user failed to authenticate with his password
  */
-export interface EventAuthenticationLoginFailed
-  extends EventAuthenticationGetMe {}
+export interface EventAuthenticationLoginFailed extends EventAuthenticationGetMe {}
 
 /**
  * Implement a PasswordVerifier so you can implement
@@ -188,7 +186,7 @@ export class AuthenticationParameters extends ServiceParameters {
     this.userStore ??= "users";
     this.url ??= "/auth";
     this.password ??= {
-      regexp: ".{8,}",
+      regexp: ".{8,}"
     };
     if (this.email) {
       this.email.delay ??= 3600000 * 4;
@@ -295,9 +293,7 @@ class Authentication<
     super.computeParameters();
 
     if (this.parameters.password.verifier) {
-      this._passwordVerifier = this.getService<PasswordVerifier>(
-        this.parameters.password.verifier
-      );
+      this._passwordVerifier = this.getService<PasswordVerifier>(this.parameters.password.verifier);
     }
 
     if (this.parameters.email && this.getMailMan() === undefined) {
@@ -306,75 +302,64 @@ class Authentication<
     // Add email provider
     if (this.parameters.email) {
       this.addProvider("email");
-      this.addRoute(
-        "./email/{email}/recover",
-        ["GET"],
-        this._passwordRecoveryEmail,
-        {
-          get: {
-            description: "The password reset process will be start",
-            summary: "Start password recovery",
-            operationId: "startEmailRecovery",
-            responses: {
-              "204": {
-                description: "",
-              },
-              "404": {
-                description: "Email does not exist",
-              },
-              "429": {
-                description: "Recovery has been initiated in the last 4 hours",
-              },
+      this.addRoute("./email/{email}/recover", ["GET"], this._passwordRecoveryEmail, {
+        get: {
+          description: "The password reset process will be start",
+          summary: "Start password recovery",
+          operationId: "startEmailRecovery",
+          responses: {
+            "204": {
+              description: ""
             },
-          },
+            "404": {
+              description: "Email does not exist"
+            },
+            "429": {
+              description: "Recovery has been initiated in the last 4 hours"
+            }
+          }
         }
-      );
-      this.addRoute(
-        "./email/passwordRecovery",
-        ["POST"],
-        this._passwordRecovery,
-        {
-          post: {
-            schemas: {
-              input: {
-                type: "object",
-                properties: {
-                  token: {
-                    type: "string",
-                  },
-                  expire: {
-                    type: "number",
-                  },
-                  password: {
-                    type: "string",
-                  },
-                  login: {
-                    type: "string",
-                  },
+      });
+      this.addRoute("./email/passwordRecovery", ["POST"], this._passwordRecovery, {
+        post: {
+          schemas: {
+            input: {
+              type: "object",
+              properties: {
+                token: {
+                  type: "string"
                 },
-              },
-            },
-            description:
-              "Reinit the password if we have the right token, expire",
-            summary: "Reinit password",
-            operationId: "reinitPassword",
-            responses: {
-              "204": {
-                description: "",
-              },
-              "403": {
-                description: "Wrong Token",
-              },
-            },
+                expire: {
+                  type: "number"
+                },
+                password: {
+                  type: "string"
+                },
+                login: {
+                  type: "string"
+                }
+              }
+            }
           },
+          description: "Reinit the password if we have the right token, expire",
+          summary: "Reinit password",
+          operationId: "reinitPassword",
+          responses: {
+            "204": {
+              description: ""
+            },
+            "403": {
+              description: "Wrong Token"
+            }
+          }
         }
-      );
+      });
       this.addRoute("./email", ["POST"], this._handleEmail, {
         post: {
           description: "Authenticate with an email and password",
           summary: "Authenticate with email",
-          operationId: `authWithEmail`,
-        },
+          operationId: `authWithEmail`
+        }
       });
     }
   }
@@ -387,29 +372,29 @@ class Authentication<
     this.metrics.login = this.getMetric(Counter, {
       name: "auth_login",
       help: "Counter number of login per provider",
-      labelNames: ["provider"],
+      labelNames: ["provider"]
     });
     this.metrics.logout = this.getMetric(Counter, {
       name: "auth_logout",
-      help: "Counter number of logout",
+      help: "Counter number of logout"
     });
     this.metrics.registration = this.getMetric(Counter, {
       name: "auth_registration",
       help: "Counter number of registration per provider",
-      labelNames: ["provider"],
+      labelNames: ["provider"]
     });
     if (this.parameters.email) {
       this.metrics.loginFailed = this.getMetric(Counter, {
         name: "auth_login_failed",
-        help: "Counter number of login failed with password",
+        help: "Counter number of login failed with password"
       });
       this.metrics.recovery = this.getMetric(Counter, {
         name: "auth_login_recovery",
-        help: "Counter number of password lost process initiated",
+        help: "Counter number of password lost process initiated"
       });
       this.metrics.recovered = this.getMetric(Counter, {
         name: "auth_login_recovered",
-        help: "Counter number of password lost process successful",
+        help: "Counter number of password lost process successful"
       });
     }
   }
@@ -448,19 +433,19 @@ class Authentication<
       operationId: "startEmailRecovery",
       responses: {
         "204": {
-          description: "",
+          description: ""
         },
         "409": {
-          description: "Email already verified for another user",
+          description: "Email already verified for another user"
         },
         "412": {
-          description: "Email already verified for current user",
+          description: "Email already verified for current user"
         },
         "429": {
-          description: "Validation has been initiated in the last 4 hours",
-        },
-      },
-    },
+          description: "Validation has been initiated in the last 4 hours"
+        }
+      }
+    }
   })
   async _sendEmailValidation(ctx) {
     let identKey = ctx.parameters.email + "_email";
@@ -469,7 +454,7 @@ class Authentication<
       await this._identsStore.save({
         uuid: `${ctx.parameters.email}_email`,
         _lastValidationEmail: Date.now(),
-        _type: "email",
+        _type: "email"
       });
     } else {
       // If the ident is linked to someone else - might want to remove it
@@ -481,15 +466,12 @@ class Authentication<
         throw 412;
       }
       //
-      if (
-        ident._lastValidationEmail >=
-        Date.now() - this.parameters.email.delay
-      ) {
+      if (ident._lastValidationEmail >= Date.now() - this.parameters.email.delay) {
         throw 429;
       }
       await this._identsStore.patch({
         _lastValidationEmail: Date.now(),
-        uuid: identKey,
+        uuid: identKey
       });
     }
     await this.sendValidationEmail(ctx, ctx.parameters.email);
@@ -503,8 +485,8 @@ class Authentication<
     get: {
       description: "Retrieve the current user from the session",
       summary: "Get current user",
-      operationId: "getCurrentUser",
-    },
+      operationId: "getCurrentUser"
+    }
   })
   async _getMe(ctx: OperationContext) {
     let user = await ctx.getCurrentUser();
@@ -513,7 +495,7 @@ class Authentication<
     }
     await this.emitSync("Authentication.GetMe", <EventAuthenticationGetMe>{
       context: ctx,
-      user,
+      user
     });
     ctx.write(user);
   }
@@ -532,18 +514,18 @@ class Authentication<
       operationId: `getAuthenticationMethods`,
       responses: {
         "200": {
-          description: "List of authentication",
-        },
-      },
+          description: "List of authentication"
+        }
+      }
     },
     delete: {
       description: "Logout current user",
       summary: "Logout",
       operationId: `logout`,
       responses: {
-        "200": {},
-      },
-    },
+        "200": {}
+      }
+    }
   })
   async _listAuthentications(ctx: WebContext) {
     if (ctx.getHttpContext().getMethod() === "DELETE") {
@@ -555,13 +537,7 @@ class Authentication<
     ctx.write(Array.from(this.providers));
   }
 
-  async onIdentLogin(
-    ctx: WebContext,
-    provider: string,
-    identId: string,
-    profile: any,
-    tokens: any = undefined
-  ) {
+  async onIdentLogin(ctx: WebContext, provider: string, identId: string, profile: any, tokens: any = undefined) {
     // Auto postifx with provider name
     const postfix = `_${provider}`;
     if (!identId.endsWith(postfix)) {
@@ -575,7 +551,7 @@ class Authentication<
       await this._identsStore.patch({
         _lastUsed: new Date(),
         __tokens: tokens,
-        uuid: ident.uuid,
+        uuid: ident.uuid
       });
       // Redirect to?
       return;
@@ -603,7 +579,7 @@ class Authentication<
       // Save additional email
       ident = this._identsStore.newModel({
         uuid: `${profile.email}_email`,
-        provider: "email",
+        provider: "email"
       });
       ident.setUser(user.getUuid());
       await ident.save(true);
@@ -613,7 +589,7 @@ class Authentication<
       uuid: identId,
       profile,
       __tokens: tokens,
-      provider,
+      provider
     });
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
@@ -627,17 +603,11 @@ class Authentication<
    * Create a new User with the link ident
    * @param ident
    */
-  async createUserWithIdent(
-    provider: string,
-    identId: string,
-    profile: any = {}
-  ) {
+  async createUserWithIdent(provider: string, identId: string, profile: any = {}) {
     if (await this._identsStore.exists(`${identId}_${provider}`)) {
       throw new Error("Ident is already known");
     }
-    let ctx = await this._webda.newWebContext(
-      new HttpContext("fake", "GET", "/")
-    );
+    let ctx = await this._webda.newWebContext(new HttpContext("fake", "GET", "/"));
     // Pretend we logged in with the ident
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
@@ -651,13 +621,11 @@ class Authentication<
     user.email = data.email;
     user.locale = ctx.getLocale();
     this.metrics.registration.inc();
-    await this.emitSync("Authentication.Register", <
-      EventAuthenticationRegister
-    >{
+    await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
       data: data,
       context: ctx,
-      identId,
+      identId
     });
     return user;
   }
@@ -679,10 +647,8 @@ class Authentication<
     return {
       expire: expire,
       // Might want to add more alea not coming from the db to avoid exploitation of stolen db
-      token: await this.cryptoService.hmac(
-        user.uuid + expire + user.getPassword()
-      ),
-      login: user.uuid,
+      token: await this.cryptoService.hmac(user.uuid + expire + user.getPassword()),
+      login: user.uuid
     };
   }
 
@@ -698,15 +664,13 @@ class Authentication<
     }
     let user: User = await this._usersStore.get(ident.getUser());
     // Dont allow to do too many request
-    if (
-      !user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)
-    ) {
+    if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
       throw 429;
     }
     await this._usersStore.patch(
       {
         _lastPasswordRecovery: Date.now(),
-        uuid: user.uuid,
+        uuid: user.uuid
       },
       true,
       null
@@ -743,10 +707,7 @@ class Authentication<
       throw 403;
     }
     if (
-      !(await this.cryptoService.hmacVerify(
-        body.login.toLowerCase() + body.expire + user.getPassword(),
-        body.token
-      ))
+      !(await this.cryptoService.hmacVerify(body.login.toLowerCase() + body.expire + user.getPassword(), body.token))
     ) {
       throw 403;
     }
@@ -758,18 +719,16 @@ class Authentication<
     await this._usersStore.patch(
       {
         __password: password,
-        uuid: body.login.toLowerCase(),
+        uuid: body.login.toLowerCase()
       },
       true,
       null
     );
     this.metrics.recovered.inc();
-    await this.emitSync("Authentication.PasswordUpdate", <
-      EventAuthenticationPasswordUpdate
-    >{
+    await this.emitSync("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
       user,
       password,
-      context: ctx,
+      context: ctx
     });
   }
 
@@ -779,7 +738,7 @@ class Authentication<
    * @returns
    */
   @Route("./email/callback{?email,token,user}", ["GET"], false, {
-    hidden: true,
+    hidden: true
   })
   async _handleEmailCallback(ctx: WebContext) {
     if (!ctx.parameter("token")) {
@@ -792,7 +751,7 @@ class Authentication<
       ))
     ) {
       ctx.writeHead(302, {
-        Location: this.parameters.failureRedirect + "?reason=badToken",
+        Location: this.parameters.failureRedirect + "?reason=badToken"
       });
       return;
     }
@@ -803,16 +762,14 @@ class Authentication<
       ctx.getCurrentUserId() !== undefined
     ) {
       ctx.writeHead(302, {
-        Location: this.parameters.failureRedirect + "?reason=badUser",
+        Location: this.parameters.failureRedirect + "?reason=badUser"
       });
       return;
     }
 
     if (!ctx.parameter("user")) {
       ctx.writeHead(302, {
-        Location: `${this.parameters.registerRedirect}?token=${ctx.parameter(
-          "token"
-        )}&email=${ctx.parameter("email")}`,
+        Location: `${this.parameters.registerRedirect}?token=${ctx.parameter("token")}&email=${ctx.parameter("email")}`
       });
       return;
     }
@@ -822,7 +779,7 @@ class Authentication<
     // Would mean the ident got delete in the mean time... hyper low likely hood
     if (ident === undefined) {
       ident = this._identsStore.newModel({
-        uuid,
+        uuid
       });
     }
     ident._type = "email";
@@ -831,7 +788,7 @@ class Authentication<
     await ident.save(true);
     ctx.writeHead(302, {
       Location: this.parameters.successRedirect + "?validation=email",
-      "X-Webda-Authentication": "success",
+      "X-Webda-Authentication": "success"
     });
   }
 
@@ -855,8 +812,8 @@ class Authentication<
         ...this.parameters.email,
         infos,
         to: email,
-        context: ctx,
-      },
+        context: ctx
+      }
     };
     return mailer.send(mailOptions);
   }
@@ -877,13 +834,11 @@ class Authentication<
       url: ctx
         .getHttpContext()
         .getAbsoluteUrl(
-          `${
-            this.parameters.url
-          }/email/callback?email=${email}&token=${await this.generateEmailValidationToken(
+          `${this.parameters.url}/email/callback?email=${email}&token=${await this.generateEmailValidationToken(
             ctx.getCurrentUserId(),
             email
           )}`
-        ),
+        )
     };
     let userId = ctx.getCurrentUserId();
     if (userId && userId.length > 0) {
@@ -893,7 +848,7 @@ class Authentication<
       to: email,
       locale: ctx.getLocale(),
       template: "EMAIL_REGISTER",
-      replacements: replacements,
+      replacements: replacements
     };
     return mailer.send(mailOptions);
   }
@@ -921,7 +876,7 @@ class Authentication<
    */
   async logout(ctx: WebContext) {
     await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
-      context: ctx,
+      context: ctx
     });
     await ctx.newSession();
   }
@@ -934,17 +889,12 @@ class Authentication<
    * @param ident
    * @returns
    */
-  async login(
-    ctx: WebContext,
-    user: User | string,
-    ident: Ident,
-    provider: string
-  ) {
+  async login(ctx: WebContext, user: User | string, ident: Ident, provider: string) {
     const event: EventAuthenticationLogin = {
       context: ctx,
       userId: "",
       identId: ident.uuid,
-      ident,
+      ident
     };
 
     if (typeof user == "object") {
@@ -961,9 +911,7 @@ class Authentication<
   }
 
   getMailMan(): Mailer {
-    return this.getService<Mailer>(
-      this.parameters.email.mailer ? this.parameters.email.mailer : "Mailer"
-    );
+    return this.getService<Mailer>(this.parameters.email.mailer ? this.parameters.email.mailer : "Mailer");
   }
 
   /**
@@ -976,12 +924,7 @@ class Authentication<
     let updates: any = {};
     let user: User = await this._usersStore.get(ident.getUser());
     // Check password
-    if (
-      this.checkPassword(
-        user.getPassword(),
-        (await ctx.getRequestBody()).password
-      )
-    ) {
+    if (this.checkPassword(user.getPassword(), (await ctx.getRequestBody()).password)) {
       if (ident._failedLogin > 0) {
         ident._failedLogin = 0;
       }
@@ -994,11 +937,9 @@ class Authentication<
       ctx.write(user);
     } else {
       this.metrics.loginFailed.inc();
-      await this.emitSync("Authentication.LoginFailed", <
-        EventAuthenticationLoginFailed
-      >{
+      await this.emitSync("Authentication.LoginFailed", <EventAuthenticationLoginFailed>{
         user,
-        context: ctx,
+        context: ctx
       });
       ident._failedLogin ??= 0;
       updates._failedLogin = ident._failedLogin + 1;
@@ -1052,13 +993,7 @@ class Authentication<
       let validation = undefined;
       // Need to check email before creation
       if (!mailConfig.postValidation) {
-        if (
-          body.token &&
-          (await this.cryptoService.hmacVerify(
-            `${email}_${ctx.getCurrentUserId()}`,
-            body.token
-          ))
-        ) {
+        if (body.token && (await this.cryptoService.hmacVerify(`${email}_${ctx.getCurrentUserId()}`, body.token))) {
           validation = new Date();
         } else {
           ctx.write({});
@@ -1078,20 +1013,18 @@ class Authentication<
       delete body.token;
       let user = await this.registerUser(ctx, {}, uuid, {
         ...body,
-        __password,
+        __password
       });
-      await this.emitSync("Authentication.PasswordCreate", <
-        EventAuthenticationPasswordUpdate
-      >{
+      await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,
         password: __password,
-        context: ctx,
+        context: ctx
       });
       user = await this._usersStore.save(user);
       const newIdent: any = this._identsStore.newModel({
         uuid: uuid,
         _type: "email",
-        email: email,
+        email: email
       });
       newIdent.setUser(user.uuid);
       if (validation) {
@@ -1110,10 +1043,7 @@ class Authentication<
     throw 404;
   }
 
-  async generateEmailValidationToken(
-    user: string,
-    email: string
-  ): Promise<string> {
+  async generateEmailValidationToken(user: string, email: string): Promise<string> {
     return this.cryptoService.hmac(email + "_" + user);
   }
 }

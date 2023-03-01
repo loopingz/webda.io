@@ -42,26 +42,26 @@ export class WebSocketsClientService<
   async init() {
     this.socket = io(this.parameters.frontend, {
       extraHeaders: {
-        "X-Webda-WS": await this.getAuthToken(),
-      },
+        "X-Webda-WS": await this.getAuthToken()
+      }
     });
     /**
      * Get the list of all rooms on connection
      */
     this.socket.on("registered", ({ rooms }) => {
-      rooms.forEach((c) => this.registerRoom(c));
+      rooms.forEach(c => this.registerRoom(c));
     });
     /**
      * New room created
      */
-    this.socket.on("create-room", (room) => {
+    this.socket.on("create-room", room => {
       this.log("DEBUG", "Adding channel", room);
       this.registerRoom(room);
     });
     /**
      * Delete room
      */
-    this.socket.on("delete-room", (room) => {
+    this.socket.on("delete-room", room => {
       this.log("DEBUG", "Deleting channel", room);
       this.unregisterRoom(room);
     });

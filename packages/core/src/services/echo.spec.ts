@@ -10,7 +10,7 @@ class EchoTest extends WebdaTest {
   async cov() {
     let service = new EchoService(this.webda, "test", {
       url: "/bouzouf",
-      result: "plop",
+      result: "plop"
     });
     // @ts-ignore
     let stub = sinon.spy(service, "addRoute");
@@ -26,7 +26,7 @@ class EchoTest extends WebdaTest {
     service = new EchoService(this.webda, "test", {
       url: "/bouzouf",
       mime: "mine/json",
-      result: { obj: "plop" },
+      result: { obj: "plop" }
     });
     ctx = await this.newContext();
     await service.execute(ctx);

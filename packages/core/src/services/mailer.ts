@@ -105,14 +105,11 @@ export class MailerParameters extends ServiceParameters {
     this.emailTemplateOptions ??= {};
     this.emailTemplateOptions.juiceResources ??= {};
     this.emailTemplateOptions.juiceResources.webResources ??= {};
-    this.emailTemplateOptions.juiceResources.webResources.relativeTo ??=
-      path.resolve(this.templates);
+    this.emailTemplateOptions.juiceResources.webResources.relativeTo ??= path.resolve(this.templates);
   }
 }
 
-export abstract class AbstractMailer<
-    T extends ServiceParameters = ServiceParameters
-  >
+export abstract class AbstractMailer<T extends ServiceParameters = ServiceParameters>
   extends Service<T>
   implements MailerService
 {
@@ -128,21 +125,18 @@ export abstract class AbstractMailer<
     super.initMetrics();
     this.metrics.sent = this.getMetric(Counter, {
       name: "mailer_sent",
-      help: "Number of emails sent",
+      help: "Number of emails sent"
     });
     this.metrics.errors ??= this.getMetric(Counter, {
       name: "mailer_errors",
-      help: "Number of emails in error",
+      help: "Number of emails in error"
     });
   }
 
   /**
    * @inheritdoc
    */
-  abstract send(
-    options: MailerSendOptions,
-    callback?: () => void
-  ): Promise<any>;
+  abstract send(options: MailerSendOptions, callback?: () => void): Promise<any>;
   /**
    * @inheritdoc
    */
@@ -160,25 +154,19 @@ export abstract class AbstractMailer<
   /**
    * @override
    */
-  async sendNotification(
-    user: User | Ident,
-    notification: string,
-    replacements: any
-  ): Promise<void> {
+  async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
     let email = user.getEmail();
     if (!email) {
-      throw new Error(
-        `Cannot find a valid email for ${user.__type} '${user.getUuid()}'`
-      );
+      throw new Error(`Cannot find a valid email for ${user.__type} '${user.getUuid()}'`);
     }
     this.metrics.sent.inc();
     try {
       await this.send({
         template: notification,
         replacements: {
-          ...replacements,
+          ...replacements
         },
-        to: email,
+        to: email
       });
     } catch (err) {
       this.metrics.errors.inc();
@@ -199,9 +187,7 @@ export abstract class AbstractMailer<
  * @category CoreServices
  * @WebdaModda
  */
-class Mailer<
-  T extends MailerParameters = MailerParameters
-> extends AbstractMailer<T> {
+class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMailer<T> {
   _transporter: any;
   _templates: TemplatesMap = {};
 
@@ -240,9 +226,9 @@ class Mailer<
         views: {
           root: this.parameters.templates,
           options: {
-            extension: this.parameters.templatesEngine,
-          },
-        },
+            extension: this.parameters.templatesEngine
+          }
+        }
       });
     }
     return this._templates[name];
@@ -266,10 +252,7 @@ class Mailer<
    */
   async send(options: MailerSendOptions, callback = undefined): Promise<any> {
     if (this._transporter === undefined) {
-      this._webda.log(
-        "ERROR",
-        "Cannot send email as no transporter is defined"
-      );
+      this._webda.log("ERROR", "Cannot send email as no transporter is defined");
       return Promise.reject("Cannot send email as no transporter is defined");
     }
     if (!options.from) {
@@ -282,10 +265,7 @@ class Mailer<
       options.replacements.now = new Date();
       let template = this._getTemplate(options.template);
       if (template) {
-        let result = await template.renderAll(
-          options.template,
-          options.replacements
-        );
+        let result = await template.renderAll(options.template, options.replacements);
         if (result.subject) {
           options.subject = result.subject;
         }

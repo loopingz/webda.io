@@ -18,8 +18,8 @@ class FileConsoleTest {
   }
 
   clean() {
-    let files = readdirSync(".").filter((f) => f.startsWith("test-file"));
-    files.forEach((f) => unlinkSync(f));
+    let files = readdirSync(".").filter(f => f.startsWith("test-file"));
+    files.forEach(f => unlinkSync(f));
     return files.length;
   }
 
@@ -28,22 +28,14 @@ class FileConsoleTest {
     let logger = new FileLogger(this.output, "TRACE", "./test-file.log");
     writeFileSync("./test-file2.log", "PAD\n".repeat(50));
 
-    let logger2 = new FileLogger(
-      this.output,
-      "DEBUG",
-      "./test-file2.log",
-      5000,
-      "%(d)s [%(l)s] %(m)s"
-    );
+    let logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 5000, "%(d)s [%(l)s] %(m)s");
     for (let i = 0; i < 200; i++) {
       this.output.log("DEBUG", `Test ${i}`);
     }
     this.output.log("TRACE", `Trace`);
     await WaitFor<void>(
-      async (resolve) => {
-        if (
-          readdirSync(".").filter((f) => f.startsWith("test-file")).length === 3
-        ) {
+      async resolve => {
+        if (readdirSync(".").filter(f => f.startsWith("test-file")).length === 3) {
           resolve();
         }
         return false;
@@ -54,12 +46,10 @@ class FileConsoleTest {
       WaitLinearDelay(200)
     );
 
-    logger.onMessage(
-      new WorkerMessage("title.set", undefined, { title: "Title" })
-    );
+    logger.onMessage(new WorkerMessage("title.set", undefined, { title: "Title" }));
     logger.onMessage(
       new WorkerMessage("log", undefined, {
-        log: new WorkerLog("INFO", "test"),
+        log: new WorkerLog("INFO", "test")
       })
     );
     logger.onMessage(new WorkerMessage("group.open", undefined, {}));
@@ -77,12 +67,10 @@ class FileConsoleTest {
     assert.notStrictEqual(
       logger
         .getLine(new WorkerMessage("log", this.output, {}))
-        .match(
-          /log:\d+:\{"progresses":\{\},"groups":\[\],"type":"log","timestamp":\d+}\n/
-        ),
+        .match(/log:\d+:\{"progresses":\{\},"groups":\[\],"type":"log","timestamp":\d+}\n/),
       undefined
     );
-    await new Promise((resolve) => process.nextTick(resolve));
+    await new Promise(resolve => process.nextTick(resolve));
     this.clean();
   }
 }

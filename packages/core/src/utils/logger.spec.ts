@@ -15,7 +15,7 @@ class LoggerTest extends WebdaTest {
       startProgress: (...args) => {},
       incrementProgress: (...args) => {},
       updateProgress: (...args) => {},
-      setTitle: (...args) => {},
+      setTitle: (...args) => {}
     };
     let logger = new Logger(<WorkerOutput>output, "plop");
     logger.log("DEBUG", "test");

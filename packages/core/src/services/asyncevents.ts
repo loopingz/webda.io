@@ -49,7 +49,7 @@ export class AsyncEvent {
           return `${AsyncEvent.ServiceTag}${value.getName()}`;
         }
         return value;
-      }),
+      })
     };
   }
 
@@ -65,13 +65,8 @@ export class AsyncEvent {
       data.service,
       data.type,
       JSON.parse(data.payload, (_key: string, value: any) => {
-        if (
-          typeof value === "string" &&
-          value.startsWith(AsyncEvent.ServiceTag)
-        ) {
-          return service.getService(
-            value.substring(AsyncEvent.ServiceTag.length)
-          );
+        if (typeof value === "string" && value.startsWith(AsyncEvent.ServiceTag)) {
+          return service.getService(value.substring(AsyncEvent.ServiceTag.length));
         }
         return value;
       })
@@ -120,9 +115,7 @@ export class EventServiceParameters extends ServiceParameters {
  * @category CoreServices
  * @WebdaModda AsyncEvents
  */
-class EventService<
-  T extends EventServiceParameters = EventServiceParameters
-> extends Service<T> {
+class EventService<T extends EventServiceParameters = EventServiceParameters> extends Service<T> {
   _callbacks: any = {};
   _queues: QueueMap = {};
   _defaultQueue: string = "";
@@ -143,7 +136,7 @@ class EventService<
    * Setup the default routes
    */
   async computeParameters(): Promise<void> {
-    Object.keys(this.parameters.queues).forEach((key) => {
+    Object.keys(this.parameters.queues).forEach(key => {
       // Define default as first queue
       if (!this._defaultQueue) {
         this._defaultQueue = key;
@@ -154,11 +147,7 @@ class EventService<
     this._async = !this.parameters.sync;
     // Check we have at least one queue to handle asynchronous
     if (this._async && Object.keys(this._queues).length < 1) {
-      this._webda.log(
-        "ERROR",
-        "Need at least one queue for async to be ready",
-        this.parameters
-      );
+      this._webda.log("ERROR", "Need at least one queue for async to be ready", this.parameters);
       throw Error("Need at least one queue for async to be ready");
     }
   }
@@ -233,7 +222,7 @@ class EventService<
       );
     }
     let promises = [];
-    this._callbacks[event.getMapper()].map((executor) => {
+    this._callbacks[event.getMapper()].map(executor => {
       promises.push(executor(event.payload, event));
     });
     // Need to handle the failure

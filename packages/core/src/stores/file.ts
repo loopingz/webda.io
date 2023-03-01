@@ -3,12 +3,7 @@ import * as path from "path";
 import { CoreModel, FilterKeys } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { MemoryStore } from "./memory";
-import {
-  Store,
-  StoreFindResult,
-  StoreNotFoundError,
-  StoreParameters,
-} from "./store";
+import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
 import { WebdaQL } from "./webdaql/query";
 
 class FileStoreParameters extends StoreParameters {
@@ -43,10 +38,7 @@ class FileStoreParameters extends StoreParameters {
  * @category CoreServices
  * @WebdaModda
  */
-class FileStore<
-  T extends CoreModel,
-  K extends FileStoreParameters = FileStoreParameters
-> extends Store<T, K> {
+class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStoreParameters> extends Store<T, K> {
   static EXTENSION = ".json";
 
   /**
@@ -62,13 +54,9 @@ class FileStore<
   computeParameters() {
     super.computeParameters();
     if (!this.parameters.noCache) {
-      this._cacheStore = new MemoryStore(
-        this._webda,
-        `_${this.getName()}_cache`,
-        {
-          model: this.parameters.model,
-        }
-      );
+      this._cacheStore = new MemoryStore(this._webda, `_${this.getName()}_cache`, {
+        model: this.parameters.model
+      });
       this._cacheStore.computeParameters();
       this._cacheStore.initMetrics();
       this.cacheStorePatchException();
@@ -100,12 +88,10 @@ class FileStore<
   async find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
     const files = fs
       .readdirSync(this.parameters.folder)
-      .filter((file) => {
-        return !fs
-          .statSync(path.join(this.parameters.folder, file))
-          .isDirectory();
+      .filter(file => {
+        return !fs.statSync(path.join(this.parameters.folder, file)).isDirectory();
       })
-      .map((f) => f.substring(0, f.length - FileStore.EXTENSION.length))
+      .map(f => f.substring(0, f.length - FileStore.EXTENSION.length))
       .sort();
     return this.simulateFind(query, files);
   }
@@ -152,18 +138,9 @@ class FileStore<
   /**
    * @inheritdoc
    */
-  async _removeAttribute(
-    uuid: string,
-    attribute: string,
-    writeCondition?: any,
-    writeConditionField?: string
-  ) {
+  async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
     let res = await this._get(uuid, true);
-    this.checkUpdateCondition(
-      res,
-      <keyof T>writeConditionField,
-      writeCondition
-    );
+    this.checkUpdateCondition(res, <keyof T>writeConditionField, writeCondition);
     delete res[attribute];
     await this._save(res);
   }
@@ -205,18 +182,9 @@ class FileStore<
   /**
    * @inheritdoc
    */
-  async _patch(
-    object: any,
-    uid: string,
-    writeCondition?: any,
-    writeConditionField?: string
-  ): Promise<any> {
+  async _patch(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     let stored = await this._get(uid, true);
-    this.checkUpdateCondition(
-      stored,
-      <keyof T>writeConditionField,
-      writeCondition
-    );
+    this.checkUpdateCondition(stored, <keyof T>writeConditionField, writeCondition);
     for (let prop in object) {
       stored[prop] = object[prop];
     }
@@ -226,18 +194,9 @@ class FileStore<
   /**
    * @override
    */
-  async _update(
-    object: any,
-    uid: string,
-    writeCondition?: any,
-    writeConditionField?: string
-  ): Promise<any> {
+  async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     let stored = await this._get(uid, true);
-    this.checkUpdateCondition(
-      stored,
-      <keyof T>writeConditionField,
-      writeCondition
-    );
+    this.checkUpdateCondition(stored, <keyof T>writeConditionField, writeCondition);
     return this._save(this.initModel(object));
   }
 
@@ -249,12 +208,7 @@ class FileStore<
       uids = [];
       let files = fs.readdirSync(this.parameters.folder);
       for (let file in files) {
-        uids.push(
-          files[file].substring(
-            0,
-            files[file].length - FileStore.EXTENSION.length
-          )
-        );
+        uids.push(files[file].substring(0, files[file].length - FileStore.EXTENSION.length));
       }
     }
     let result = [];
@@ -262,7 +216,7 @@ class FileStore<
       let model = this._get(uids[i]);
       result.push(model);
     }
-    return (await Promise.all(result)).filter((f) => f !== undefined);
+    return (await Promise.all(result)).filter(f => f !== undefined);
   }
 
   /**

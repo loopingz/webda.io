@@ -24,24 +24,13 @@ class ContextTest extends WebdaTest {
   ctx: WebContext;
   async before() {
     await super.before();
-    this.ctx = new WebContextMock(
-      this.webda,
-      new HttpContext("test.webda.io", "GET", "/")
-    );
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/"));
   }
 
   @test
   async urlObject() {
-    let urlObject = new URL(
-      "https://test.webda.io/mypath/is/long?search=1&test=2"
-    );
-    let ctx = new HttpContext(
-      "test.webda.io",
-      "GET",
-      "/mypath/is/long?search=1&test=2",
-      "https",
-      443
-    );
+    let urlObject = new URL("https://test.webda.io/mypath/is/long?search=1&test=2");
+    let ctx = new HttpContext("test.webda.io", "GET", "/mypath/is/long?search=1&test=2", "https", 443);
     assert.strictEqual(ctx.getHost(), urlObject.host);
     assert.strictEqual(ctx.getHostName(), urlObject.hostname);
     assert.strictEqual(ctx.getPathName(), urlObject.pathname);
@@ -73,10 +62,7 @@ class ContextTest extends WebdaTest {
     this.ctx.getRoute();
     assert.notStrictEqual(this.ctx.getService("Users"), undefined);
     assert.notStrictEqual(this.ctx.getService<Service>("Users"), undefined);
-    this.ctx = new WebContextMock(
-      this.webda,
-      new HttpContext("test.webda.io", "GET", "/uritemplate/plop")
-    );
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setPathParameters({ id: "plop" });
     this.ctx.setServiceParameters({ id: "service" });
     assert.strictEqual(this.ctx.getServiceParameters().id, "service");
@@ -108,12 +94,12 @@ class ContextTest extends WebdaTest {
       // @ts-ignore
       plop: () => {
         called = true;
-      },
+      }
     };
 
     this.ctx._route = {
       // @ts-ignore
-      _method: this.ctx._executor.plop,
+      _method: this.ctx._executor.plop
     };
     await this.ctx.execute();
     assert.ok(called);
@@ -157,15 +143,9 @@ class ContextTest extends WebdaTest {
     });
     stream.pipe(this.ctx.getStream());
     await prom;
-    assert.throws(
-      () => this.ctx.setHeader("x-plop", "2"),
-      /Headers have been sent already/
-    );
+    assert.throws(() => this.ctx.setHeader("x-plop", "2"), /Headers have been sent already/);
     await this.ctx.end();
-    assert.throws(
-      () => this.ctx.setHeader("x-plop", "3"),
-      /Headers have been sent already/
-    );
+    assert.throws(() => this.ctx.setHeader("x-plop", "3"), /Headers have been sent already/);
     assert.strictEqual(this.ctx.statusCode, 200);
     assert.strictEqual(this.ctx.getResponseBody().toString(), "Plop");
   }
@@ -190,95 +170,37 @@ class ContextTest extends WebdaTest {
 
   @test
   getAbsoluteUrl() {
-    let ctx = new HttpContext(
-      "test.webda.io",
-      "GET",
-      "/uritemplate/plop",
-      "http",
-      80,
-      {
-        cookie: "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1",
-      }
-    );
-    assert.strictEqual(
-      ctx.getAbsoluteUrl("/test"),
-      "http://test.webda.io/test"
-    );
+    let ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 80, {
+      cookie: "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1"
+    });
+    assert.strictEqual(ctx.getAbsoluteUrl("/test"), "http://test.webda.io/test");
     assert.deepStrictEqual(ctx.getCookies(), {
       PHPSESSID: "298zf09hf012fh2",
       csrftoken: "u32t4o3tb3gg43",
-      _gat: "1",
+      _gat: "1"
     });
-    ctx = new HttpContext(
-      "test.webda.io",
-      "GET",
-      "/uritemplate/plop",
-      "https",
-      80
-    );
-    assert.strictEqual(
-      ctx.getAbsoluteUrl(),
-      "https://test.webda.io:80/uritemplate/plop"
-    );
-    ctx = new HttpContext(
-      "test.webda.io",
-      "GET",
-      "/uritemplate/plop",
-      "http",
-      443
-    );
-    assert.strictEqual(
-      ctx.getAbsoluteUrl("/test"),
-      "http://test.webda.io:443/test"
-    );
-    ctx = new HttpContext(
-      "test.webda.io",
-      "GET",
-      "/uritemplate/plop",
-      "http",
-      18080
-    );
-    assert.strictEqual(
-      ctx.getAbsoluteUrl(),
-      "http://test.webda.io:18080/uritemplate/plop"
-    );
-    ctx = new HttpContext(
-      "test.webda.io",
-      "GET",
-      "/uritemplate/plop",
-      "https",
-      443
-    );
-    assert.strictEqual(
-      ctx.getAbsoluteUrl("/test"),
-      "https://test.webda.io/test"
-    );
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 80);
+    assert.strictEqual(ctx.getAbsoluteUrl(), "https://test.webda.io:80/uritemplate/plop");
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 443);
+    assert.strictEqual(ctx.getAbsoluteUrl("/test"), "http://test.webda.io:443/test");
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 18080);
+    assert.strictEqual(ctx.getAbsoluteUrl(), "http://test.webda.io:18080/uritemplate/plop");
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 443);
+    assert.strictEqual(ctx.getAbsoluteUrl("/test"), "https://test.webda.io/test");
     assert.strictEqual(ctx.getAbsoluteUrl("ftp://test"), "ftp://test");
-    assert.strictEqual(
-      ctx.getAbsoluteUrl("test/ftp://test"),
-      "https://test.webda.io/test/ftp://test"
-    );
-    assert.strictEqual(
-      ctx.getAbsoluteUrl("https://www.loopingz.com"),
-      "https://www.loopingz.com"
-    );
+    assert.strictEqual(ctx.getAbsoluteUrl("test/ftp://test"), "https://test.webda.io/test/ftp://test");
+    assert.strictEqual(ctx.getAbsoluteUrl("https://www.loopingz.com"), "https://www.loopingz.com");
     ctx.setPrefix("/plop/");
     assert.strictEqual(ctx.prefix, "/plop");
   }
 
   @test
   expressCompatibility() {
-    this.ctx = new WebContextMock(
-      this.webda,
-      new HttpContext("test.webda.io", "GET", "/uritemplate/plop")
-    );
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.status(403), this.ctx);
     assert.strictEqual(this.ctx.statusCode, 403);
-    this.ctx = new WebContextMock(
-      this.webda,
-      new HttpContext("test.webda.io", "GET", "/uritemplate/plop")
-    );
+    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.json({ plop: "test" }), this.ctx);
     assert.strictEqual(this.ctx.getResponseBody(), '{"plop":"test"}');
@@ -289,10 +211,7 @@ class ContextTest extends WebdaTest {
   async redirect() {
     this.ctx.init();
     this.ctx.redirect("https://www.loopingz.com");
-    assert.strictEqual(
-      this.ctx.getResponseHeaders().Location,
-      "https://www.loopingz.com"
-    );
+    assert.strictEqual(this.ctx.getResponseHeaders().Location, "https://www.loopingz.com");
     assert.strictEqual(this.ctx.statusCode, 302);
   }
   @test
@@ -309,7 +228,7 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(this.ctx._cookie["test"].value, "plop");
     assert.strictEqual(this.ctx._cookie["test2"].value, "plop2");
     this.ctx.writeHead(undefined, {
-      test: "plop",
+      test: "plop"
     });
     assert.strictEqual(this.ctx.getResponseHeaders()["test"], "plop");
     this.ctx.setHeader("X-Webda", "HEAD");
@@ -320,15 +239,15 @@ class ContextTest extends WebdaTest {
     Object.observe = (obj, callback) => {
       callback([
         {
-          name: "_changed",
-        },
+          name: "_changed"
+        }
       ]);
       // @ts-ignore
       assert.strictEqual(this.ctx.session.changed, false);
       callback([
         {
-          name: "zzz",
-        },
+          name: "zzz"
+        }
       ]);
       // @ts-ignore
       assert.strictEqual(this.ctx.session.changed, true);
@@ -346,24 +265,21 @@ class ContextTest extends WebdaTest {
   @test
   approxLocale() {
     // @ts-ignore
-    this.ctx.getHttpContext().getHeaders()["accept-language"] =
-      "en-US;q=0.6,en;q=0.4,es;q=0.2";
+    this.ctx.getHttpContext().getHeaders()["accept-language"] = "en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "en");
   }
 
   @test
   exactLocale() {
     // @ts-ignore
-    this.ctx.getHttpContext().getHeaders()["accept-language"] =
-      "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
+    this.ctx.getHttpContext().getHeaders()["accept-language"] = "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "fr-FR");
   }
 
   @test
   fallbackLocale() {
     // @ts-ignore
-    this.ctx.getHttpContext().getHeaders()["accept-language"] =
-      "zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
+    this.ctx.getHttpContext().getHeaders()["accept-language"] = "zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "en");
   }
 

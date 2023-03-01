@@ -106,16 +106,16 @@ export default class ResourceService<
         operationId: "getResource",
         responses: {
           "200": {
-            description: "",
+            description: ""
           },
           "401": {
-            description: "Illegal resource",
+            description: "Illegal resource"
           },
           "404": {
-            description: "File not found",
-          },
-        },
-      },
+            description: "File not found"
+          }
+        }
+      }
     });
     this.addRoute(
       this.parameters.url + "{resource}",
@@ -128,16 +128,16 @@ export default class ResourceService<
           operationId: "getResources",
           responses: {
             "200": {
-              description: "",
+              description: ""
             },
             "401": {
-              description: "Illegal resource",
+              description: "Illegal resource"
             },
             "404": {
-              description: "File not found",
-            },
-          },
-        },
+              description: "File not found"
+            }
+          }
+        }
       },
       true
     );
@@ -149,10 +149,10 @@ export default class ResourceService<
           operationId: "redirectRoottoResources",
           responses: {
             "302": {
-              description: "",
-            },
-          },
-        },
+              description: ""
+            }
+          }
+        }
       });
     }
   }
@@ -175,10 +175,7 @@ export default class ResourceService<
     let file = this._resolved;
     // If resource is not a file
     if (!this.fileOnly) {
-      file = path.join(
-        this._resolved,
-        ctx.parameter("resource") || this.parameters.index
-      );
+      file = path.join(this._resolved, ctx.parameter("resource") || this.parameters.index);
     }
 
     // Avoid path transversal
@@ -199,7 +196,7 @@ export default class ResourceService<
     }
     ctx.writeHead(200, {
       "content-type": mimetype,
-      "content-length": fs.lstatSync(file).size,
+      "content-length": fs.lstatSync(file).size
     });
     const stream = fs.createReadStream(file);
     return new Promise((resolve, reject) => {

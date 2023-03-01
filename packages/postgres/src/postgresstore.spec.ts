@@ -35,10 +35,10 @@ export class PostgresTest extends StoreTest {
   @test
   async stoppedPostgres() {
     let obj = await this.getIdentStore().save({
-      test: 0,
+      test: 0
     });
     await obj.patch({ test: 1 });
-    await new Promise((resolve) => setTimeout(resolve, 20000));
+    await new Promise(resolve => setTimeout(resolve, 20000));
     await obj.patch({ test: 2 });
   }
 }

@@ -13,32 +13,20 @@ import {
   BinaryMap,
   BinaryNotFoundError,
   LocalBinaryFile,
-  MemoryBinaryFile,
+  MemoryBinaryFile
 } from "./binary";
 export class ImageUser extends User {
   images: BinaryMap[];
 }
 
 class TestBinaryService extends Binary {
-  store(
-    object: CoreModel,
-    property: string,
-    file: any,
-    metadatas: any,
-    index?: number
-  ): Promise<any> {
+  store(object: CoreModel, property: string, file: any, metadatas: any, index?: number): Promise<any> {
     throw new Error("Method not implemented.");
   }
   getUsageCount(hash: any): Promise<number> {
     throw new Error("Method not implemented.");
   }
-  update(
-    object: any,
-    property: any,
-    index: any,
-    file: any,
-    metadatas: any
-  ): Promise<void> {
+  update(object: any, property: any, index: any, file: any, metadatas: any): Promise<void> {
     throw new Error("Method not implemented.");
   }
   delete(object: CoreModel, property: string, index: number): Promise<void> {
@@ -93,11 +81,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let map = this.getMap();
     let exposePath = this.getExposePath();
     var eventFired = 0;
-    var events: (keyof BinaryEvents)[] = [
-      "Binary.Get",
-      "Binary.Create",
-      "Binary.Delete",
-    ];
+    var events: (keyof BinaryEvents)[] = ["Binary.Get", "Binary.Create", "Binary.Delete"];
     for (let evt in events) {
       binary.on(events[evt], function () {
         eventFired++;
@@ -111,10 +95,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     var ctx;
     this.log("DEBUG", "Initializing users");
     user1 = await userStore.save({
-      test: "plop",
+      test: "plop"
     });
     user2 = await userStore.save({
-      test: "plop",
+      test: "plop"
     });
     this.log("DEBUG", "Store a local file");
     await binary.store(user1, map, new LocalBinaryFile(this.getTestFile()), {});
@@ -145,7 +129,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     // Try to get images on user1 as user2
     ctx = await this.newContext({
       type: "CRUD",
-      uuid: "PLOP",
+      uuid: "PLOP"
     });
     ctx.session.userId = user2.uuid;
     let executor = this.getExecutor(
@@ -155,15 +139,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       exposePath + "/users/" + user1.uuid + "/" + map + "/0"
     );
     this.log("DEBUG", "Verify permission check on HTTP GET");
-    await assert.rejects(executor.execute(ctx), (res) => res == 403);
+    await assert.rejects(executor.execute(ctx), res => res == 403);
     ctx.session.userId = user1.uuid;
     this.log("DEBUG", "Verify valid permission check on HTTP GET");
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      exposePath + "/users/" + user1.uuid + "/" + map + "/0"
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
     await executor.execute(ctx);
     // We dont check for result as FileBinary will return datas and S3 a redirect
     if (fs.existsSync("./downloadTo.tmp")) {
@@ -172,33 +151,25 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     this.log("DEBUG", "BinaryMap downloadTo");
     await binary.downloadTo(user1[map][0], "./downloadTo.tmp");
     // Check the result is the same
-    assert.strictEqual(
-      fs.readFileSync("./downloadTo.tmp").toString(),
-      fs.readFileSync(this.getTestFile()).toString()
-    );
+    assert.strictEqual(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
     fs.unlinkSync("./downloadTo.tmp");
     this.log("DEBUG", "BinaryMap downloadTo from CoreModel");
     await user1[map][0].downloadTo("./downloadTo.tmp");
-    assert.strictEqual(
-      fs.readFileSync("./downloadTo.tmp").toString(),
-      fs.readFileSync(this.getTestFile()).toString()
-    );
+    assert.strictEqual(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
     fs.unlinkSync("./downloadTo.tmp");
 
     // Fake IO issue
     let stub = sinon.stub(binary, "_get").callsFake(() => {
       return {
-        pipe: (stream) => {
+        pipe: stream => {
           stream.emit("error", "bad read");
-        },
+        }
       };
     });
     let stub2;
     try {
       this.log("DEBUG", "BinaryMap downloadTo with I/O issues");
-      await assert.rejects(() =>
-        binary.downloadTo(user1[map][0], "./downloadTo.tmp")
-      );
+      await assert.rejects(() => binary.downloadTo(user1[map][0], "./downloadTo.tmp"));
       assert.ok(!fs.existsSync("./downloadTo.tmp"));
     } finally {
       stub.restore();
@@ -224,17 +195,11 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let userStore = this.getUserStore();
     let binary = this.getBinary();
     let user1 = await userStore.save({
-      test: "plop",
+      test: "plop"
     });
     await assert.rejects(
-      () =>
-        binary.store(
-          user1,
-          "images2",
-          new LocalBinaryFile(this.getTestFile()),
-          {}
-        ),
-      (err) => true
+      () => binary.store(user1, "images2", new LocalBinaryFile(this.getTestFile()), {}),
+      err => true
     );
   }
 
@@ -247,7 +212,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     var user;
     let hash;
     user1 = await userStore.save({
-      test: "plop",
+      test: "plop"
     });
     await binary.store(user1, map, new LocalBinaryFile(this.getTestFile()), {});
     user = await userStore.get(user1.uuid);
@@ -268,16 +233,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
   async httpCreate() {
     let userStore = this.getUserStore();
     let user1 = await userStore.save({
-      test: "plop",
+      test: "plop"
     });
     let ctx = await this.newContext();
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "POST",
-      `/binary/users/${user1.getUuid()}/images`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "POST", `/binary/users/${user1.getUuid()}/images`, {});
     await assert.rejects(() => executor.execute(ctx), /403/);
 
     /**
@@ -302,20 +261,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/${user1.getUuid()}/images/0/myhash`,
       {}
     );
-    await assert.rejects(
-      () => executor.execute(ctx),
-      /403/,
-      "DELETE binary w/o permission"
-    );
+    await assert.rejects(() => executor.execute(ctx), /403/, "DELETE binary w/o permission");
     // Now login
     ctx.getSession().login(user1.getUuid(), "fake");
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "DELETE",
-      `/binary/users/${user1.getUuid()}/images/0/myhash`,
-      {}
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "DELETE", `/binary/users/${user1.getUuid()}/images/0/myhash`, {});
     await assert.rejects(() => executor.execute(ctx), /412/);
     executor = this.getExecutor(
       ctx,
@@ -346,27 +295,19 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     // @ts-ignore
     let stub = sinon.stub(binary, "get").callsFake(() => {
       return {
-        pipe: (stream) => {
+        pipe: stream => {
           stream.emit("error", new Error("I/O"));
-        },
+        }
       };
     });
-    await this.execute(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0`,
-      {}
-    );
+    await this.execute(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await assert.rejects(
       () =>
         this.execute(
           ctx,
           "test.webda.io",
           "GET",
-          ctx
-            .getResponseHeaders()
-            .Location.substring("http://test.webda.io".length)
+          ctx.getResponseHeaders().Location.substring("http://test.webda.io".length)
         ),
       /500/,
       "GET binary with I/O"
@@ -377,54 +318,22 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
   @test
   async httpGet() {
     let { binary, user1, ctx } = await this.setupDefault(false);
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     // If not logged in
-    await assert.rejects(
-      () => executor.execute(ctx),
-      /403/,
-      "GET binary w/o permission"
-    );
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/unknown/images/0`,
-      {}
-    );
-    await assert.rejects(
-      () => executor.execute(ctx),
-      /404/,
-      "GET binary on unknown object"
-    );
+    await assert.rejects(() => executor.execute(ctx), /403/, "GET binary w/o permission");
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/unknown/images/0`, {});
+    await assert.rejects(() => executor.execute(ctx), /404/, "GET binary on unknown object");
 
     // Login
     ctx.getSession().login(user1.getUuid(), "fake");
 
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0`,
-      {}
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await executor.execute(ctx);
 
     await binary.delete(user1, "images", 0);
 
     // Check 404 now it is gone
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0`,
-      {}
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await assert.rejects(() => executor.execute(ctx), /404/);
   }
 
@@ -438,11 +347,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/${user1.getUuid()}/images/0/${user1.images[0].hash}`,
       {}
     ); // If not logged in
-    await assert.rejects(
-      () => executor.execute(ctx),
-      /403/,
-      "PUT metadata w/o permission"
-    );
+    await assert.rejects(() => executor.execute(ctx), /403/, "PUT metadata w/o permission");
     executor = this.getExecutor(
       ctx,
       "test.webda.io",
@@ -450,11 +355,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/unknown/images/0/${user1.images[0].hash}`,
       {}
     );
-    await assert.rejects(
-      () => executor.execute(ctx),
-      /404/,
-      "GET binary on unknown object"
-    );
+    await assert.rejects(() => executor.execute(ctx), /404/, "GET binary on unknown object");
 
     // Login
     ctx.getSession().login(user1.getUuid(), "fake");
@@ -466,7 +367,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/${user1.getUuid()}/images/0/${user1.images[0].hash}`,
       {
         "my-metadata": "updated",
-        "my-other-metadata": true,
+        "my-other-metadata": true
       }
     );
     await executor.execute(ctx);
@@ -481,14 +382,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/${user1.getUuid()}/images/0/${user1.images[0].hash}`,
       {
         "my-metadata": "updated".repeat(4096),
-        "my-other-metadata": true,
+        "my-other-metadata": true
       }
     );
-    await assert.rejects(
-      () => executor.execute(ctx),
-      /400/,
-      "PUT metadata with big content should fail"
-    );
+    await assert.rejects(() => executor.execute(ctx), /400/, "PUT metadata with big content should fail");
   }
 
   @test
@@ -499,7 +396,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
         this.getBinary().get({
           hash: "none",
           mimetype: "",
-          size: 10,
+          size: 10
         }),
       BinaryNotFoundError
     );
@@ -514,13 +411,9 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let userStore = this.getUserStore();
     let binary = this.getBinary();
     let user1: ImageUser = await userStore.save({
-      test: "plop",
+      test: "plop"
     });
-    await binary.store(
-      user1,
-      "images",
-      new LocalBinaryFile(this.getTestFile())
-    );
+    await binary.store(user1, "images", new LocalBinaryFile(this.getTestFile()));
     await user1.refresh();
     let ctx = await this.newContext();
     if (withLogin) {
@@ -537,19 +430,13 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       <BinaryFileInfo>(<unknown>{})
     ).getHashes();
     let metadata = {
-      plop: "test",
+      plop: "test"
     };
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PUT",
-      `/binary/upload/users/${user1.getUuid()}/images`,
-      {
-        hash,
-        challenge,
-        metadata,
-      }
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user1.getUuid()}/images`, {
+      hash,
+      challenge,
+      metadata
+    });
     await assert.rejects(() => executor.execute(ctx), /403/);
     ctx.getSession().login(user1.getUuid(), "fake");
     await executor.execute(ctx);
@@ -560,60 +447,32 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let url = new URL(info.url);
 
     if (url.host === "test.webda.io") {
-      executor = this.getExecutor(
-        ctx,
-        "test.webda.io",
-        info.method || "PUT",
-        url.pathname + url.search,
-        "PLOP2",
-        {
-          "Content-MD5": info.md5,
-          "Content-Type": "application/octet-stream",
-        }
-      );
+      executor = this.getExecutor(ctx, "test.webda.io", info.method || "PUT", url.pathname + url.search, "PLOP2", {
+        "Content-MD5": info.md5,
+        "Content-Type": "application/octet-stream"
+      });
       await assert.rejects(() => executor.execute(ctx));
-      executor = this.getExecutor(
-        ctx,
-        "test.webda.io",
-        info.method || "PUT",
-        url.pathname + url.search,
-        "PLOP",
-        {
-          "Content-MD5": info.md5,
-          "Content-Type": "application/octet-stream",
-        }
-      );
+      executor = this.getExecutor(ctx, "test.webda.io", info.method || "PUT", url.pathname + url.search, "PLOP", {
+        "Content-MD5": info.md5,
+        "Content-Type": "application/octet-stream"
+      });
       await executor.execute(ctx);
     } else {
       if (remoteCheckHash) {
-        await assert.rejects(
-          () => this.sendChallengeData(info, "PLOP2"),
-          "Should check content"
-        );
+        await assert.rejects(() => this.sendChallengeData(info, "PLOP2"), "Should check content");
       }
       await this.sendChallengeData(info, "PLOP");
     }
 
     await user1.refresh();
     assert.strictEqual(user1.images.length, 2);
-    assert.strictEqual(
-      (
-        await Binary.streamToBuffer(await binary.get(user1.images[1]))
-      ).toString(),
-      "PLOP"
-    );
+    assert.strictEqual((await Binary.streamToBuffer(await binary.get(user1.images[1]))).toString(), "PLOP");
     // If we try to re upload it should be already up
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PUT",
-      `/binary/upload/users/${user1.getUuid()}/images`,
-      {
-        hash,
-        challenge,
-        metadata,
-      }
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user1.getUuid()}/images`, {
+      hash,
+      challenge,
+      metadata
+    });
     await executor.execute(ctx);
     info = JSON.parse(<string>ctx.getResponseBody());
     assert.ok(info.done, "should be done");
@@ -622,17 +481,11 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     // Use another user to try adding same binary
     let user2 = await userStore.save({});
     ctx.getSession().login(user2.getUuid(), "fake");
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PUT",
-      `/binary/upload/users/${user2.getUuid()}/images`,
-      {
-        hash,
-        challenge,
-        metadata,
-      }
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user2.getUuid()}/images`, {
+      hash,
+      challenge,
+      metadata
+    });
     await executor.execute(ctx);
     info = JSON.parse(<string>ctx.getResponseBody());
     assert.ok(info.done, "should be done");
@@ -646,8 +499,8 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       data,
       headers: {
         "Content-MD5": info.md5,
-        "Content-Type": "application/octet-stream",
-      },
+        "Content-Type": "application/octet-stream"
+      }
     });
   }
 }
@@ -660,12 +513,12 @@ class BinaryAbstractTest extends WebdaTest {
     let ctx = await this.newContext();
     await assert.rejects(() => service.putRedirectUrl(undefined), /404/);
     ctx.getHttpContext().setBody({
-      hash: "plop",
+      hash: "plop"
     });
     await assert.rejects(() => service.httpChallenge(ctx), /400/);
     ctx = await this.newContext();
     ctx.getHttpContext().setBody({
-      challenge: "plop",
+      challenge: "plop"
     });
     await assert.rejects(() => service.httpChallenge(ctx), /400/);
     ctx = await this.newContext();
@@ -674,11 +527,11 @@ class BinaryAbstractTest extends WebdaTest {
       property: "images",
       store: "users",
       uid: "notfound",
-      index: 0,
+      index: 0
     });
     ctx.getHttpContext().setBody({
       hash: "p",
-      challenge: "z",
+      challenge: "z"
     });
     await assert.rejects(() => binary.httpChallenge(ctx), /404/);
 
@@ -690,7 +543,7 @@ class BinaryAbstractTest extends WebdaTest {
           return {
             get: async (uuid: string, ctx: WebContext) => {
               return model as CoreModel;
-            },
+            }
           } as Store<CoreModel>;
         })
       );
@@ -698,24 +551,24 @@ class BinaryAbstractTest extends WebdaTest {
       model = {
         images: [
           {
-            size: 10,
-          },
+            size: 10
+          }
         ],
-        canAct: async () => true,
+        canAct: async () => true
       };
       stubs.push(
         // @ts-ignore
         sinon.stub(binary, "get").callsFake(async () => {
           return {
-            pipe: (stream) => {
+            pipe: stream => {
               stream.emit("error", new Error("I/O"));
-            },
+            }
           };
         })
       );
       await assert.rejects(() => binary.httpRoute(ctx), /500/);
     } finally {
-      stubs.forEach((stub) => stub.restore());
+      stubs.forEach(stub => stub.restore());
     }
   }
 

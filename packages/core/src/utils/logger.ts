@@ -4,7 +4,7 @@ import {
   Logger as WorkoutLogger,
   MemoryLogger,
   WorkerLogLevel,
-  WorkerOutput,
+  WorkerOutput
 } from "@webda/workout";
 import { Core } from "../core";
 import { Service, ServiceParameters } from "../services/service";
@@ -28,9 +28,7 @@ export class LoggerServiceParameters extends ServiceParameters {
 /**
  * LoggerService is useful for inheritance
  */
-export class LoggerService<
-  T extends LoggerServiceParameters = LoggerServiceParameters
-> extends Service<T> {}
+export class LoggerService<T extends LoggerServiceParameters = LoggerServiceParameters> extends Service<T> {}
 
 export class MemoryLoggerServiceParameters extends LoggerServiceParameters {
   limit?: number;
@@ -47,11 +45,7 @@ export class MemoryLoggerService<
   workoutLogger: MemoryLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
-    this.workoutLogger = new MemoryLogger(
-      webda.getWorkerOutput(),
-      this.parameters.logLevel,
-      this.parameters.limit
-    );
+    this.workoutLogger = new MemoryLogger(webda.getWorkerOutput(), this.parameters.logLevel, this.parameters.limit);
   }
 
   /**
@@ -80,11 +74,7 @@ export class ConsoleLoggerService<
   workoutLogger: ConsoleLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
-    this.workoutLogger = new ConsoleLogger(
-      webda.getWorkerOutput(),
-      this.parameters.logLevel,
-      this.parameters.format
-    );
+    this.workoutLogger = new ConsoleLogger(webda.getWorkerOutput(), this.parameters.logLevel, this.parameters.format);
   }
 
   /**
@@ -169,11 +159,7 @@ export class Logger implements WorkoutLogger {
   logProgressIncrement(inc: number = 1, uid: string = undefined) {
     this.output.incrementProgress(inc, uid);
   }
-  logProgressUpdate(
-    current: number,
-    uid: string = undefined,
-    title: string = undefined
-  ) {
+  logProgressUpdate(current: number, uid: string = undefined, title: string = undefined) {
     this.output.updateProgress(current, uid, title);
   }
 

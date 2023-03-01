@@ -29,10 +29,7 @@ export class FileQueueParameters extends QueueParameters {
  * @category CoreServices
  * @WebdaModda
  */
-export class FileQueue<
-  T = any,
-  K extends FileQueueParameters = FileQueueParameters
-> extends Queue<T, K> {
+export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> extends Queue<T, K> {
   /**
    * @inheritdoc
    */
@@ -54,9 +51,7 @@ export class FileQueue<
    * @inheritdoc
    */
   async size(): Promise<number> {
-    return fs
-      .readdirSync(this.parameters.folder)
-      .filter((f) => f.endsWith(".json")).length;
+    return fs.readdirSync(this.parameters.folder).filter(f => f.endsWith(".json")).length;
   }
 
   /**
@@ -88,14 +83,14 @@ export class FileQueue<
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     const files = fs
       .readdirSync(this.parameters.folder)
-      .filter((f) => f.endsWith(".json"))
-      .map((f) => {
+      .filter(f => f.endsWith(".json"))
+      .map(f => {
         const lockFile = join(this.parameters.folder, f + ".lock");
         let res = {
           ...fs.lstatSync(join(this.parameters.folder, f)),
           path: join(this.parameters.folder, f),
           hasLock: fs.existsSync(lockFile),
-          uid: f.substring(0, f.length - 5),
+          uid: f.substring(0, f.length - 5)
         };
         if (res.hasLock) {
           const lock = fs.lstatSync(lockFile);
@@ -106,7 +101,7 @@ export class FileQueue<
         }
         return res;
       })
-      .filter((f) => !f.hasLock)
+      .filter(f => !f.hasLock)
       .sort((a, b) => {
         // It is not relevant as it is fs based
         /* c8 ignore next 4 */
@@ -122,11 +117,11 @@ export class FileQueue<
       return [
         {
           ReceiptHandle: el.uid,
-          Message: this.unserialize(fs.readFileSync(el.path).toString(), proto),
-        },
+          Message: this.unserialize(fs.readFileSync(el.path).toString(), proto)
+        }
       ];
     } else {
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise(resolve => setTimeout(resolve, 10000));
     }
     return [];
   }

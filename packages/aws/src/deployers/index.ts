@@ -1,19 +1,9 @@
-import {
-  ACM,
-  CertificateDetail,
-  ListCertificatesResponse,
-} from "@aws-sdk/client-acm";
+import { ACM, CertificateDetail, ListCertificatesResponse } from "@aws-sdk/client-acm";
 import { EC2 } from "@aws-sdk/client-ec2";
 import { HostedZone, Route53 } from "@aws-sdk/client-route-53";
 import { NotFound, S3 } from "@aws-sdk/client-s3";
 import { GetCallerIdentityResponse, STS } from "@aws-sdk/client-sts";
-import {
-  Cache,
-  DeployerResources,
-  WaitFor,
-  WaitLinearDelay,
-  WebdaError,
-} from "@webda/core";
+import { Cache, DeployerResources, WaitFor, WaitLinearDelay, WebdaError } from "@webda/core";
 import { Deployer, DeploymentManager } from "@webda/shell";
 import bluebird from "bluebird";
 import * as crypto from "crypto";
@@ -26,9 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IAMPolicyContributor } from "../services";
 import { Route53Service } from "../services/route53";
 
-export type TagsDefinition =
-  | { Key: string; Value: string }[]
-  | { [key: string]: string };
+export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]: string };
 
 /**
  * Common resources for all AWS Deployers
@@ -109,20 +97,14 @@ export interface AWSDeployerResources extends DeployerResources {
  * It includes some basic utilities methods to be used by
  * final deployers
  */
-export abstract class AWSDeployer<
-  T extends AWSDeployerResources
-> extends Deployer<T> {
+export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deployer<T> {
   constructor(manager: DeploymentManager, resources: any) {
     super(manager, resources);
 
-    this.resources.accessKeyId =
-      this.resources.accessKeyId || process.env["AWS_ACCESS_KEY_ID"];
-    this.resources.secretAccessKey =
-      this.resources.secretAccessKey || process.env["AWS_SECRET_ACCESS_KEY"];
-    this.resources.sessionToken =
-      this.resources.sessionToken || process.env["AWS_SESSION_TOKEN"];
-    this.resources.region =
-      this.resources.region || process.env["AWS_DEFAULT_REGION"] || "us-east-1";
+    this.resources.accessKeyId = this.resources.accessKeyId || process.env["AWS_ACCESS_KEY_ID"];
+    this.resources.secretAccessKey = this.resources.secretAccessKey || process.env["AWS_SECRET_ACCESS_KEY"];
+    this.resources.sessionToken = this.resources.sessionToken || process.env["AWS_SESSION_TOKEN"];
+    this.resources.region = this.resources.region || process.env["AWS_DEFAULT_REGION"] || "us-east-1";
     this.resources.endpoints = this.resources.endpoints || {};
     this.resources.Tags = this.resources.Tags || {};
     if (!Array.isArray(this.resources.Tags)) {
@@ -143,7 +125,7 @@ export abstract class AWSDeployer<
   @Cache()
   async getAWSIdentity(): Promise<GetCallerIdentityResponse> {
     let sts = new STS({
-      endpoint: this.resources.endpoints.STS,
+      endpoint: this.resources.endpoints.STS
     });
     return sts.getCallerIdentity({});
   }
@@ -155,11 +137,11 @@ export abstract class AWSDeployer<
   async getDefaultVpc() {
     let defaultVpc = {
       Id: "",
-      Subnets: [],
+      Subnets: []
     };
     let vpcFilter;
     let ec2 = new EC2({
-      endpoint: this.resources.endpoints.EC2,
+      endpoint: this.resources.endpoints.EC2
     });
     let res = await ec2.describeVpcs({});
     for (let i in res.Vpcs) {
@@ -175,9 +157,9 @@ export abstract class AWSDeployer<
       Filters: [
         {
           Name: "vpc-id",
-          Values: [defaultVpc.Id],
-        },
-      ],
+          Values: [defaultVpc.Id]
+        }
+      ]
     };
     let res2 = await ec2.describeSubnets(vpcFilter);
     for (let i in res2.Subnets) {
@@ -201,11 +183,7 @@ export abstract class AWSDeployer<
    * @param type of hash
    * @param format hex or b64
    */
-  protected hash(
-    str: string,
-    type: string = "md5",
-    format: "hex" | "base64" = "hex"
-  ): string {
+  protected hash(str: string, type: string = "md5", format: "hex" | "base64" = "hex"): string {
     return crypto.createHash(type).update(str).digest(format);
   }
 
@@ -230,26 +208,21 @@ export abstract class AWSDeployer<
     }
     let acm: ACM = new ACM({
       endpoint: this.resources.endpoints.ACM,
-      region,
+      region
     });
     let params: any = {};
     let res: ListCertificatesResponse;
     let certificate;
     do {
       res = await acm.listCertificates(params);
-      certificate = res.CertificateSummaryList.filter(
-        (cert) => cert.DomainName === domain
-      ).pop();
+      certificate = res.CertificateSummaryList.filter(cert => cert.DomainName === domain).pop();
       params.NextToken = res.NextToken;
     } while (!certificate && res.NextToken);
     // We did not find the certificate need to create one
     if (!certificate) {
       let zone = await this.getZoneForDomainName(domain);
       if (!zone) {
-        throw new WebdaError(
-          "ROUTE53_NOTFOUND",
-          "Cannot create certificate as Route53 Zone was not found"
-        );
+        throw new WebdaError("ROUTE53_NOTFOUND", "Cannot create certificate as Route53 Zone was not found");
       }
       this.logger.log("INFO", "Creating a certificate for", domain);
       certificate = await this.doCreateCertificate(domain, zone);
@@ -273,9 +246,7 @@ export abstract class AWSDeployer<
    *
    * @param tags
    */
-  transformMapTagsToArray(
-    tags: TagsDefinition
-  ): { Key: string; Value: string }[] {
+  transformMapTagsToArray(tags: TagsDefinition): { Key: string; Value: string }[] {
     if (Array.isArray(tags)) {
       return tags;
     }
@@ -296,7 +267,7 @@ export abstract class AWSDeployer<
       return tags;
     }
     let res = {};
-    tags.forEach((t) => (res[t.Key] = t.Value));
+    tags.forEach(t => (res[t.Key] = t.Value));
     return res;
   }
 
@@ -305,24 +276,16 @@ export abstract class AWSDeployer<
    *
    * @param key of the resources to add
    */
-  getDefaultTags(
-    key: string | TagsDefinition = undefined
-  ): { Key: string; Value: string }[] {
+  getDefaultTags(key: string | TagsDefinition = undefined): { Key: string; Value: string }[] {
     let Tags;
     if (typeof key === "string") {
-      Tags = this.resources[key]
-        ? this.transformMapTagsToArray(this.resources[key].Tags) || []
-        : [];
+      Tags = this.resources[key] ? this.transformMapTagsToArray(this.resources[key].Tags) || [] : [];
     } else {
       Tags = this.transformMapTagsToArray(key) || [];
     }
     if (this.resources.Tags.length) {
-      let TagKeys = Tags.map((t) => t.Key);
-      Tags.push(
-        ...(<any[]>this.resources.Tags).filter(
-          (t) => TagKeys.indexOf(t.Key) < 0
-        )
-      );
+      let TagKeys = Tags.map(t => t.Key);
+      Tags.push(...(<any[]>this.resources.Tags).filter(t => TagKeys.indexOf(t.Key) < 0));
     }
     return Tags;
   }
@@ -344,29 +307,17 @@ export abstract class AWSDeployer<
    */
   getDefaultTagsAsS3Tagging(key: string | TagsDefinition = undefined) {
     return this.getDefaultTags(key)
-      .map(
-        (tag) =>
-          `${encodeURIComponent(tag.Key)}=${encodeURIComponent(tag.Value)}`
-      )
+      .map(tag => `${encodeURIComponent(tag.Key)}=${encodeURIComponent(tag.Value)}`)
       .join("&");
   }
 
   async waitFor(
-    callback: (
-      resolve?: (value?: any) => void,
-      reject?: (reason?: any) => void
-    ) => Promise<boolean>,
+    callback: (resolve?: (value?: any) => void, reject?: (reason?: any) => void) => Promise<boolean>,
     retries: number,
     title: string,
     delay: number
   ) {
-    return WaitFor(
-      callback,
-      retries,
-      title,
-      this.logger,
-      WaitLinearDelay(delay)
-    );
+    return WaitFor(callback, retries, title, this.logger, WaitLinearDelay(delay));
   }
   /**
    * Create a certificate for a domain
@@ -377,7 +328,7 @@ export abstract class AWSDeployer<
    */
   async doCreateCertificate(domain: string, zone: HostedZone) {
     let acm: ACM = new ACM({
-      endpoint: this.resources.endpoints.S3,
+      endpoint: this.resources.endpoints.S3
     });
     if (domain.endsWith(".")) {
       domain = domain.substring(0, domain.length - 1);
@@ -387,22 +338,19 @@ export abstract class AWSDeployer<
       DomainValidationOptions: [
         {
           DomainName: domain,
-          ValidationDomain: domain,
-        },
+          ValidationDomain: domain
+        }
       ],
       ValidationMethod: "DNS",
-      IdempotencyToken: "Webda_" + this.md5(domain).substring(0, 26),
+      IdempotencyToken: "Webda_" + this.md5(domain).substring(0, 26)
     };
     let certificate = await acm.requestCertificate(params);
     let cert: CertificateDetail = await this.waitFor(
-      async (resolve) => {
+      async resolve => {
         let res = await acm.describeCertificate({
-          CertificateArn: certificate.CertificateArn,
+          CertificateArn: certificate.CertificateArn
         });
-        if (
-          res.Certificate.DomainValidationOptions &&
-          res.Certificate.DomainValidationOptions[0].ResourceRecord
-        ) {
+        if (res.Certificate.DomainValidationOptions && res.Certificate.DomainValidationOptions[0].ResourceRecord) {
           resolve(res.Certificate);
           return true;
         }
@@ -413,25 +361,18 @@ export abstract class AWSDeployer<
       10000
     );
     if (cert === undefined || cert.Status === "FAILED") {
-      throw new WebdaError(
-        "ACM_VALIDATION_FAILED",
-        "Certificate validation has failed"
-      );
+      throw new WebdaError("ACM_VALIDATION_FAILED", "Certificate validation has failed");
     }
     if (cert.Status === "PENDING_VALIDATION") {
       // On create need to wait
       let record = cert.DomainValidationOptions[0].ResourceRecord;
-      this.logger.log(
-        "INFO",
-        "Need to validate certificate",
-        cert.CertificateArn
-      );
+      this.logger.log("INFO", "Need to validate certificate", cert.CertificateArn);
       await this.createDNSEntry(record.Name, "CNAME", record.Value, zone);
       // Waiting for certificate validation
       cert = await this.waitFor(
         async (resolve, reject) => {
           let res = await acm.describeCertificate({
-            CertificateArn: cert.CertificateArn,
+            CertificateArn: cert.CertificateArn
           });
           if (res.Certificate.Status === "ISSUED") {
             resolve(res.Certificate);
@@ -467,7 +408,7 @@ export abstract class AWSDeployer<
   ): Promise<void> {
     this.logger.log("INFO", `Creating DNS entry ${domain} ${type} ${value}`);
     let r53 = new Route53({
-      endpoint: this.resources.endpoints.S3,
+      endpoint: this.resources.endpoints.S3
     });
     if (!domain.endsWith(".")) {
       domain = domain + ".";
@@ -488,16 +429,16 @@ export abstract class AWSDeployer<
               Name: domain,
               ResourceRecords: [
                 {
-                  Value: value,
-                },
+                  Value: value
+                }
               ],
               TTL: 360,
-              Type: type,
-            },
-          },
+              Type: type
+            }
+          }
         ],
-        Comment: "webda-automated-deploiement",
-      },
+        Comment: "webda-automated-deploiement"
+      }
     });
   }
 
@@ -506,13 +447,9 @@ export abstract class AWSDeployer<
       {
         Sid: "WebdaLog",
         Effect: "Allow",
-        Action: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ],
-        Resource: ["arn:aws:logs:" + region + ":" + accountId + ":*"],
-      },
+        Action: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+        Resource: ["arn:aws:logs:" + region + ":" + accountId + ":*"]
+      }
     ];
   }
 
@@ -532,10 +469,7 @@ export abstract class AWSDeployer<
     for (let i in services) {
       if ("getARNPolicy" in services[i]) {
         // Update to match recuring policy - might need to split if policy too big
-        let res = (<IAMPolicyContributor>(<any>services[i])).getARNPolicy(
-          me.Account,
-          this.getRegion()
-        );
+        let res = (<IAMPolicyContributor>(<any>services[i])).getARNPolicy(me.Account, this.getRegion());
         if (Array.isArray(res)) {
           statements.push(...res);
         } else {
@@ -546,7 +480,7 @@ export abstract class AWSDeployer<
     statements.push(...this.getARNPolicy(me.Account, this.getRegion()));
     let policyDocument = {
       Version: "2012-10-17",
-      Statement: [...statements, ...additionalStatements],
+      Statement: [...statements, ...additionalStatements]
     };
 
     // @ts-ignore
@@ -561,31 +495,28 @@ export abstract class AWSDeployer<
   async createBucket(Bucket: string): Promise<void> {
     let s3 = new S3({
       endpoint: this.resources.endpoints.S3,
-      forcePathStyle: this.resources.endpoints.S3 !== undefined,
+      forcePathStyle: this.resources.endpoints.S3 !== undefined
     });
     try {
       await s3.headBucket({
-        Bucket,
+        Bucket
       });
     } catch (err) {
       if (err.name === "Forbidden") {
-        this.logger.log(
-          "ERROR",
-          "S3 bucket already exists in another account or you do not have permissions on it"
-        );
+        this.logger.log("ERROR", "S3 bucket already exists in another account or you do not have permissions on it");
       } else if (err instanceof NotFound) {
         this.logger.log("INFO", "\tCreating S3 Bucket", Bucket);
         // Setup www permission on it
         await s3.createBucket({
-          Bucket: Bucket,
+          Bucket: Bucket
         });
         let Tags = this.getDefaultTags([]);
         if (Tags.length) {
           await s3.putBucketTagging({
             Bucket,
             Tagging: {
-              TagSet: Tags,
-            },
+              TagSet: Tags
+            }
           });
         }
       }
@@ -605,9 +536,9 @@ export abstract class AWSDeployer<
     await this.putFilesOnBucket(
       bucket,
       // Replace \ by / for Windows system
-      files.map((f) => ({
+      files.map(f => ({
         key: `${prefix}${path.relative(absFolder, f).replace(/\\/g, "/")}`,
-        src: f,
+        src: f
       }))
     );
   }
@@ -647,18 +578,15 @@ export abstract class AWSDeployer<
    * @param bucket to send bucket
    * @param files to send
    */
-  async putFilesOnBucket(
-    bucket: string,
-    files: { key?: string; src: any; mimetype?: string }[]
-  ) {
+  async putFilesOnBucket(bucket: string, files: { key?: string; src: any; mimetype?: string }[]) {
     let s3 = new S3({
       endpoint: this.resources.endpoints.S3,
-      forcePathStyle: this.resources.endpoints.S3 !== undefined,
+      forcePathStyle: this.resources.endpoints.S3 !== undefined
     });
     if (!files.length) {
       return;
     }
-    files.forEach((f) => {
+    files.forEach(f => {
       if (f.src === undefined) {
         throw Error("Should have src and key defined");
       } else if (!f.key) {
@@ -670,19 +598,16 @@ export abstract class AWSDeployer<
     await this.createBucket(bucket);
     // Retrieve current files to only upload the one we do not have
     let currentFiles = {};
-    let Prefix = files.reduce(
-      (prev, cur) => this.commonPrefix(prev, cur.key),
-      files[0].key
-    );
+    let Prefix = files.reduce((prev, cur) => this.commonPrefix(prev, cur.key), files[0].key);
     let Params = {
       Bucket: bucket,
       Prefix,
       MaxKeys: 1000,
-      ContinuationToken: undefined,
+      ContinuationToken: undefined
     };
     do {
       let res = await s3.listObjectsV2(Params);
-      res.Contents.forEach((obj) => {
+      res.Contents.forEach(obj => {
         currentFiles[obj.Key] = obj;
       });
       Params.ContinuationToken = res.NextContinuationToken;
@@ -690,23 +615,14 @@ export abstract class AWSDeployer<
     // Should implement multithread here - cleaning too
     let uuid = uuidv4();
     let fullSize = 0;
-    files = files.filter((info) => {
+    files = files.filter(info => {
       if (typeof info.src === "string") {
         let s3obj = currentFiles[info.key];
         let stat = fs.statSync(info.src);
         if (s3obj && stat.size === s3obj.Size) {
-          let md5 = `"${this.hash(
-            fs.readFileSync(info.src).toString(),
-            "md5",
-            "hex"
-          )}"`;
+          let md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
           if (md5 === s3obj.ETag) {
-            this.logger.log(
-              "TRACE",
-              "Skipping upload of",
-              info.src,
-              "file with same hash already on bucket"
-            );
+            this.logger.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
             return false;
           }
         }
@@ -714,29 +630,19 @@ export abstract class AWSDeployer<
       }
       return true;
     });
-    this.logger.logProgressStart(
-      uuid,
-      files.length,
-      "Uploading to S3 bucket " + bucket
-    );
+    this.logger.logProgressStart(uuid, files.length, "Uploading to S3 bucket " + bucket);
     await bluebird.map(
       files,
-      async (info) => {
+      async info => {
         // Need to have mimetype to serve the content correctly
-        let mimetype =
-          info.mimetype ||
-          mime.contentType(path.extname(info.key)) ||
-          "application/octet-stream";
+        let mimetype = info.mimetype || mime.contentType(path.extname(info.key)) || "application/octet-stream";
         // use of upload and get size length
         await s3.putObject({
           Bucket: bucket,
-          Body:
-            typeof info.src === "string"
-              ? fs.createReadStream(info.src)
-              : info.src,
+          Body: typeof info.src === "string" ? fs.createReadStream(info.src) : info.src,
           Key: info.key,
           ContentType: mimetype,
-          Tagging: this.getDefaultTagsAsS3Tagging(),
+          Tagging: this.getDefaultTagsAsS3Tagging()
         });
         this.logger.logProgressIncrement(1, uuid);
         this.logger.log(

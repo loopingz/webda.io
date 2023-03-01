@@ -14,14 +14,10 @@ class CryptoServiceTest extends WebdaTest {
   @test
   async hmac() {
     let hmac = await this.webda.getCrypto().hmac({ test: "plop" });
-    let hmacString = await this.webda
-      .getCrypto()
-      .hmac(JSONUtils.stringify({ test: "plop" }));
+    let hmacString = await this.webda.getCrypto().hmac(JSONUtils.stringify({ test: "plop" }));
     assert.strictEqual(hmac, hmacString);
     await this.webda.getCrypto().hmacVerify({ test: "plop" }, hmac);
-    await this.webda
-      .getCrypto()
-      .hmacVerify(JSONUtils.stringify({ test: "plop" }), hmac);
+    await this.webda.getCrypto().hmacVerify(JSONUtils.stringify({ test: "plop" }), hmac);
   }
 
   @test
@@ -60,7 +56,7 @@ class CryptoServiceTest extends WebdaTest {
       let age = parseInt(crypto.current, 36) + 10;
       return {
         id: age.toString(36),
-        age,
+        age
       };
     };
   }
@@ -101,21 +97,13 @@ class CryptoServiceTest extends WebdaTest {
     crypto.current = oldKey;
     crypto.age = parseInt(oldKey, 36); // It should be reloaded
 
-    assert.strictEqual(
-      (await this.webda.getCrypto().decrypt(encrypted)).test,
-      "plop"
-    );
+    assert.strictEqual((await this.webda.getCrypto().decrypt(encrypted)).test, "plop");
     // Remove again but remove it from the registry now
-    await this.webda
-      .getRegistry()
-      .removeAttribute("keys", `key_${crypto.current}`);
+    await this.webda.getRegistry().removeAttribute("keys", `key_${crypto.current}`);
     delete crypto.keys[crypto.current];
     crypto.current = oldKey;
     crypto.age = parseInt(oldKey, 36);
-    await assert.rejects(
-      () => this.webda.getCrypto().decrypt(encrypted),
-      /err/
-    );
+    await assert.rejects(() => this.webda.getCrypto().decrypt(encrypted), /err/);
   }
 
   @test
@@ -133,9 +121,6 @@ class CryptoServiceTest extends WebdaTest {
   @test
   async cov() {
     this.webda.getCrypto().keys = undefined;
-    await assert.rejects(
-      () => this.webda.getCrypto().getCurrentKeys(),
-      /not initialized/
-    );
+    await assert.rejects(() => this.webda.getCrypto().getCurrentKeys(), /not initialized/);
   }
 }

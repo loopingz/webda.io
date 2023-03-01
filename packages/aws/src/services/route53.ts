@@ -1,9 +1,4 @@
-import {
-  HostedZone,
-  ListHostedZonesRequest,
-  ListHostedZonesResponse,
-  Route53,
-} from "@aws-sdk/client-route-53";
+import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, Route53 } from "@aws-sdk/client-route-53";
 import { JSONUtils, Service } from "@webda/core";
 
 export class Route53Service extends Service {
@@ -77,16 +72,16 @@ export class Route53Service extends Service {
               Name: domain,
               ResourceRecords: [
                 {
-                  Value: value,
-                },
+                  Value: value
+                }
               ],
               TTL: 360,
-              Type: type,
-            },
-          },
+              Type: type
+            }
+          }
         ],
-        Comment,
-      },
+        Comment
+      }
     });
   }
 
@@ -106,7 +101,7 @@ export class Route53Service extends Service {
     do {
       res = await r53.listResourceRecordSets({
         HostedZoneId: zone.Id,
-        StartRecordIdentifier: res ? res.NextRecordIdentifier : undefined,
+        StartRecordIdentifier: res ? res.NextRecordIdentifier : undefined
       });
       result.push(...res.ResourceRecordSets);
     } while (res.IsTruncated);
@@ -129,18 +124,18 @@ export class Route53Service extends Service {
         HostedZoneId: targetZone.Id,
         ChangeBatch: {
           Changes: data.entries
-            .filter((r) => !(r.Type === "NS" && r.Name === targetZone.Name))
-            .map((r) => {
+            .filter(r => !(r.Type === "NS" && r.Name === targetZone.Name))
+            .map(r => {
               if (!r.ResourceRecords.length) {
                 delete r.ResourceRecords;
               }
               return r;
             })
-            .map((r) => ({
+            .map(r => ({
               Action: "UPSERT",
-              ResourceRecordSet: r,
-            })),
-        },
+              ResourceRecordSet: r
+            }))
+        }
       });
     } catch (err) {
       Console.log("ERROR", err);
@@ -157,7 +152,7 @@ export class Route53Service extends Service {
     JSONUtils.saveFile(
       {
         domain,
-        entries: await Route53Service.getEntries(domain),
+        entries: await Route53Service.getEntries(domain)
       },
       file
     );

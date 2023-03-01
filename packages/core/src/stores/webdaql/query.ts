@@ -1,15 +1,5 @@
-import {
-  CharStreams,
-  CommonTokenStream,
-  RecognitionException,
-  Recognizer,
-  Token,
-} from "antlr4ts";
-import {
-  AbstractParseTreeVisitor,
-  ParseTree,
-  TerminalNode,
-} from "antlr4ts/tree/index.js";
+import { CharStreams, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
+import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree/index.js";
 import { WebdaQLLexer } from "./WebdaQLLexer";
 import {
   AndLogicExpressionContext,
@@ -27,7 +17,7 @@ import {
   StringLiteralContext,
   SubExpressionContext,
   WebdaqlContext,
-  WebdaQLParserParser,
+  WebdaQLParserParser
 } from "./WebdaQLParserParser";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 
@@ -49,10 +39,7 @@ export namespace WebdaQL {
    *
    * Expression allow to optimize and split between Query and Filter
    */
-  export class ExpressionBuilder
-    extends AbstractParseTreeVisitor<Query>
-    implements WebdaQLParserVisitor<any>
-  {
+  export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implements WebdaQLParserVisitor<any> {
     /**
      * Contain the parsed limit
      */
@@ -70,7 +57,7 @@ export namespace WebdaQL {
     protected defaultResult(): Query {
       // An empty AND return true
       return {
-        filter: new AndExpression([]),
+        filter: new AndExpression([])
       };
     }
 
@@ -95,9 +82,7 @@ export namespace WebdaQL {
      * @param ctx
      */
     visitLimitExpression(ctx: LimitExpressionContext) {
-      this.limit = this.visitIntegerLiteral(
-        <IntegerLiteralContext>ctx.getChild(1)
-      );
+      this.limit = this.visitIntegerLiteral(<IntegerLiteralContext>ctx.getChild(1));
     }
 
     /**
@@ -105,9 +90,7 @@ export namespace WebdaQL {
      * @param ctx
      */
     visitOffsetExpression(ctx: OffsetExpressionContext) {
-      this.offset = this.visitStringLiteral(
-        <StringLiteralContext>ctx.getChild(1)
-      );
+      this.offset = this.visitStringLiteral(<StringLiteralContext>ctx.getChild(1));
     }
 
     /**
@@ -116,7 +99,7 @@ export namespace WebdaQL {
     visitOrderFieldExpression(ctx: OrderFieldExpressionContext): OrderBy {
       return {
         field: ctx.getChild(0).text,
-        direction: ctx.childCount > 1 ? <any>ctx.getChild(1).text : "ASC",
+        direction: ctx.childCount > 1 ? <any>ctx.getChild(1).text : "ASC"
       };
     }
 
@@ -125,10 +108,8 @@ export namespace WebdaQL {
      */
     visitOrderExpression(ctx: OrderExpressionContext): void {
       this.orderBy = ctx.children
-        ?.filter((c) => c instanceof OrderFieldExpressionContext)
-        .map((c: OrderFieldExpressionContext) =>
-          this.visitOrderFieldExpression(c)
-        );
+        ?.filter(c => c instanceof OrderFieldExpressionContext)
+        .map((c: OrderFieldExpressionContext) => this.visitOrderFieldExpression(c));
     }
 
     /**
@@ -140,7 +121,7 @@ export namespace WebdaQL {
       if (ctx.childCount === 1) {
         // An empty AND return true
         return {
-          filter: new AndExpression([]),
+          filter: new AndExpression([])
         };
       }
 
@@ -151,12 +132,10 @@ export namespace WebdaQL {
 
       // Go down one level - if expression empty it means no expression were provided
       return {
-        filter:
-          <Expression>(<unknown>this.visit(ctx.getChild(0))) ||
-          new AndExpression([]),
+        filter: <Expression>(<unknown>this.visit(ctx.getChild(0))) || new AndExpression([]),
         limit: this.limit,
         continuationToken: this.offset,
-        orderBy: this.orderBy,
+        orderBy: this.orderBy
       };
     }
 
@@ -165,9 +144,7 @@ export namespace WebdaQL {
      * @param ctx
      * @returns
      */
-    getComparison(
-      ctx: AndLogicExpressionContext | OrLogicExpressionContext
-    ): any[] {
+    getComparison(ctx: AndLogicExpressionContext | OrLogicExpressionContext): any[] {
       const res = [];
       let [left, _, right] = ctx.children;
       if (right instanceof SubExpressionContext) {
@@ -177,24 +154,12 @@ export namespace WebdaQL {
         left = left.getChild(1);
       }
       if (left instanceof ctx.constructor) {
-        res.push(
-          ...this.getComparison(
-            <AndLogicExpressionContext | OrLogicExpressionContext>(
-              (<unknown>left)
-            )
-          )
-        );
+        res.push(...this.getComparison(<AndLogicExpressionContext | OrLogicExpressionContext>(<unknown>left)));
       } else {
         res.push(left);
       }
       if (right instanceof ctx.constructor) {
-        res.push(
-          ...this.getComparison(
-            <AndLogicExpressionContext | OrLogicExpressionContext>(
-              (<unknown>right)
-            )
-          )
-        );
+        res.push(...this.getComparison(<AndLogicExpressionContext | OrLogicExpressionContext>(<unknown>right)));
       } else {
         res.push(right);
       }
@@ -208,9 +173,7 @@ export namespace WebdaQL {
      * This visitor simplify to a AND b AND c AND d with only one Expression
      */
     visitAndLogicExpression(ctx: AndLogicExpressionContext): AndExpression {
-      return new AndExpression(
-        this.getComparison(ctx).map((c) => <Expression>(<unknown>this.visit(c)))
-      );
+      return new AndExpression(this.getComparison(ctx).map(c => <Expression>(<unknown>this.visit(c))));
     }
 
     /**
@@ -226,11 +189,7 @@ export namespace WebdaQL {
      * Visit each value of the [..., ..., ...] set
      */
     visitSetExpression(ctx: SetExpressionContext): value[] {
-      return <value[]>(
-        (<unknown>(
-          ctx.children.filter((_i, id) => id % 2).map((c) => this.visit(c))
-        ))
-      );
+      return <value[]>(<unknown>ctx.children.filter((_i, id) => id % 2).map(c => this.visit(c)));
     }
 
     /**
@@ -260,9 +219,7 @@ export namespace WebdaQL {
      * This visitor simplify to a OR b OR c OR d with only one Expression
      */
     visitOrLogicExpression(ctx: OrLogicExpressionContext) {
-      return new OrExpression(
-        this.getComparison(ctx).map((c) => <Expression>(<unknown>this.visit(c)))
-      );
+      return new OrExpression(this.getComparison(ctx).map(c => <Expression>(<unknown>this.visit(c))));
     }
 
     /**
@@ -331,21 +288,11 @@ export namespace WebdaQL {
     abstract toString(depth?: number): string;
   }
 
-  type ComparisonOperator =
-    | "="
-    | "<="
-    | ">="
-    | "<"
-    | ">"
-    | "!="
-    | "LIKE"
-    | "IN";
+  type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN";
   /**
    * Comparison expression
    */
-  export class ComparisonExpression<
-    T extends ComparisonOperator = ComparisonOperator
-  > extends Expression<T> {
+  export class ComparisonExpression<T extends ComparisonOperator = ComparisonOperator> extends Expression<T> {
     /**
      * Right side of the comparison
      */
@@ -424,10 +371,7 @@ export namespace WebdaQL {
      * @override
      */
     eval(target: any): boolean {
-      const left = ComparisonExpression.getAttributeValue(
-        target,
-        this.attribute
-      );
+      const left = ComparisonExpression.getAttributeValue(target, this.attribute);
       switch (this.operator) {
         case "=":
           // ignore strong type on purpose
@@ -445,18 +389,9 @@ export namespace WebdaQL {
         case "LIKE":
           if (typeof left === "string") {
             // Grammar definie value as stringLiteral
-            return (
-              left.match(
-                ComparisonExpression.likeToRegex(<string>this.value)
-              ) !== null
-            );
+            return left.match(ComparisonExpression.likeToRegex(<string>this.value)) !== null;
           }
-          return (
-            left
-              .toString()
-              .match(ComparisonExpression.likeToRegex(<string>this.value)) !==
-            null
-          );
+          return left.toString().match(ComparisonExpression.likeToRegex(<string>this.value)) !== null;
         case "IN":
           return (<value[]>this.value).includes(left);
       }
@@ -467,7 +402,7 @@ export namespace WebdaQL {
      */
     toStringValue(value: value | value[]): string {
       if (Array.isArray(value)) {
-        return `[${value.map((v) => this.toStringValue(v)).join(", ")}]`;
+        return `[${value.map(v => this.toStringValue(v)).join(", ")}]`;
       }
       switch (typeof value) {
         case "string":
@@ -496,9 +431,7 @@ export namespace WebdaQL {
      * @override
      */
     toString() {
-      return `${this.toStringAttribute()} ${this.toStringOperator()} ${this.toStringValue(
-        this.value
-      )}`;
+      return `${this.toStringAttribute()} ${this.toStringOperator()} ${this.toStringValue(this.value)}`;
     }
   }
 
@@ -527,17 +460,9 @@ export namespace WebdaQL {
      */
     toString(depth: number = 0) {
       if (depth) {
-        return (
-          "( " +
-          this.children
-            .map((c) => c.toString(depth + 1))
-            .join(` ${this.operator} `) +
-          " )"
-        );
+        return "( " + this.children.map(c => c.toString(depth + 1)).join(` ${this.operator} `) + " )";
       }
-      return this.children
-        .map((c) => c.toString(depth + 1))
-        .join(` ${this.operator} `);
+      return this.children.map(c => c.toString(depth + 1)).join(` ${this.operator} `);
     }
   }
 
@@ -613,7 +538,7 @@ export namespace WebdaQL {
           _e: RecognitionException
         ) => {
           throw new SyntaxError(`${msg} (Query: ${sql})`);
-        },
+        }
       });
       // Parse the input, where `compilationUnit` is whatever entry point you defined
       this.tree = parser.webdaql();
@@ -703,16 +628,11 @@ export namespace WebdaQL {
 
     assign(target: any, expression: Expression) {
       if (expression instanceof AndExpression) {
-        expression.children.forEach((c) => this.assign(target, c));
-      } else if (
-        expression instanceof ComparisonExpression &&
-        (<ComparisonExpression>expression).operator === "="
-      ) {
+        expression.children.forEach(c => this.assign(target, c));
+      } else if (expression instanceof ComparisonExpression && (<ComparisonExpression>expression).operator === "=") {
         expression.setAttributeValue(target);
       } else {
-        throw new SyntaxError(
-          `Set Expression can only contain And and assignment expression '='`
-        );
+        throw new SyntaxError(`Set Expression can only contain And and assignment expression '='`);
       }
     }
   }

@@ -1,21 +1,9 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHmac,
-  generateKeyPairSync,
-  randomBytes,
-} from "crypto";
+import { createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import { OperationContext, RegistryEntry, Store } from "../index";
 import { JSONUtils } from "../utils/serializers";
-import {
-  DeepPartial,
-  Inject,
-  Route,
-  Service,
-  ServiceParameters,
-} from "./service";
+import { DeepPartial, Inject, Route, Service, ServiceParameters } from "./service";
 export interface KeysRegistry {
   /**
    * Contains the instanceId of the last
@@ -117,15 +105,7 @@ export class CryptoServiceParameters extends ServiceParameters {
    * https://nodejs.org/api/crypto.html#cryptogeneratekeypairsynctype-options
    * https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_crypto_generatekeypairsync_type_options
    */
-  asymetricType:
-    | "rsa"
-    | "dsa"
-    | "ec"
-    | "ed25519"
-    | "ed448"
-    | "x25519"
-    | "x448"
-    | "dh";
+  asymetricType: "rsa" | "dsa" | "ec" | "ed25519" | "ed448" | "x25519" | "x448" | "dh";
   /**
    * Options for asymetric generation
    */
@@ -196,9 +176,7 @@ interface KeysDefinition {
 /**
  * @WebdaModda
  */
-export default class CryptoService<
-  T extends CryptoServiceParameters = CryptoServiceParameters
-> extends Service<T> {
+export default class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters> extends Service<T> {
   currentSymetricKey: string;
   currentAsymetricKey: { publicKey: string; privateKey: string };
   current: string;
@@ -244,12 +222,12 @@ export default class CryptoService<
   @Route(".", ["GET"], false, {
     description: "Serve JWKS keys",
     get: {
-      operationId: "getJWKS",
-    },
+      operationId: "getJWKS"
+    }
   })
   async serveJWKS(context: OperationContext) {
     context.write({
-      keys: Object.keys(this.keys).map((k) => {
+      keys: Object.keys(this.keys).map(k => {
         if (!this.jwks[k]) {
           /*
             when Node >= 16
@@ -262,9 +240,9 @@ export default class CryptoService<
           kty: "RSA",
           kid: k,
           n: this.jwks[k].n,
-          e: this.jwks[k].e,
+          e: this.jwks[k].e
         };
-      }),
+      })
     });
   }
 
@@ -278,8 +256,8 @@ export default class CryptoService<
     }
     this.keys = {};
     Object.keys(load)
-      .filter((k) => k.startsWith("key_"))
-      .forEach((k) => {
+      .filter(k => k.startsWith("key_"))
+      .forEach(k => {
         this.keys[k.substring(4)] = load[k];
       });
     this.current = load.current.startsWith("init-") ? undefined : load.current;
@@ -305,9 +283,7 @@ export default class CryptoService<
    * @returns
    */
   generateSymetricKey(): string {
-    return randomBytes(this.parameters.symetricKeyLength / 8).toString(
-      "base64"
-    );
+    return randomBytes(this.parameters.symetricKeyLength / 8).toString("base64");
   }
 
   /**
@@ -330,14 +306,8 @@ export default class CryptoService<
     if (typeof data !== "string") {
       data = JSONUtils.stringify(data);
     }
-    let key = keyId
-      ? { id: keyId, keys: this.keys[keyId] }
-      : await this.getCurrentKeys();
-    return (
-      key.id +
-      "." +
-      createHmac("sha256", key.keys.symetric).update(data).digest("hex")
-    );
+    let key = keyId ? { id: keyId, keys: this.keys[keyId] } : await this.getCurrentKeys();
+    return key.id + "." + createHmac("sha256", key.keys.symetric).update(data).digest("hex");
   }
 
   /**
@@ -353,11 +323,7 @@ export default class CryptoService<
     if (!(await this.checkKey(keyId))) {
       return false;
     }
-    return (
-      createHmac("sha256", this.keys[keyId].symetric)
-        .update(data)
-        .digest("hex") === mac
-    );
+    return createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex") === mac;
   }
 
   /**
@@ -427,17 +393,14 @@ export default class CryptoService<
   /**
    * JWT token verification
    */
-  public async jwtVerify(
-    token: string,
-    options?: JWTOptions
-  ): Promise<string | any> {
+  public async jwtVerify(token: string, options?: JWTOptions): Promise<string | any> {
     return new Promise((resolve, reject) => {
       jwt.verify(
         token,
         options?.secretOrPublicKey || this.getJWTKey.bind(this),
         {
           ...options,
-          secretOrPublicKey: undefined,
+          secretOrPublicKey: undefined
         },
         (err, result) => {
           if (err) {
@@ -457,19 +420,13 @@ export default class CryptoService<
     let key = await this.getCurrentKeys();
     // Initialization Vector
     let iv = randomBytes(16);
-    let cipher = createCipheriv(
-      this.parameters.symetricCipher,
-      Buffer.from(key.keys.symetric, "base64"),
-      iv
+    let cipher = createCipheriv(this.parameters.symetricCipher, Buffer.from(key.keys.symetric, "base64"), iv);
+    let encrypted = Buffer.concat([iv, cipher.update(Buffer.from(JSON.stringify(data))), cipher.final()]).toString(
+      "base64"
     );
-    let encrypted = Buffer.concat([
-      iv,
-      cipher.update(Buffer.from(JSON.stringify(data))),
-      cipher.final(),
-    ]).toString("base64");
     return this.jwtSign(encrypted, {
       keyid: `S${key.id}`,
-      secretOrPublicKey: key.keys.symetric,
+      secretOrPublicKey: key.keys.symetric
     });
   }
 
@@ -492,9 +449,7 @@ export default class CryptoService<
       Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64"),
       iv
     );
-    return JSON.parse(
-      decipher.update(input.slice(16)).toString() + decipher.final().toString()
-    );
+    return JSON.parse(decipher.update(input.slice(16)).toString() + decipher.final().toString());
   }
 
   /**
@@ -513,24 +468,17 @@ export default class CryptoService<
     const { age, id } = this.getNextId();
     let next: KeysRegistry = {
       current: id,
-      rotationInstance: this.getWebda().getInstanceId(),
+      rotationInstance: this.getWebda().getInstanceId()
     };
     next[`key_${id}`] = {
       ...this.generateAsymetricKeys(),
-      symetric: this.generateSymetricKey(),
+      symetric: this.generateSymetricKey()
     };
     if (!(await this.registry.exists("keys"))) {
       this.current = `init-${this.getWebda().getInstanceId()}`;
       await this.registry.put("keys", { current: this.current });
     }
-    if (
-      await this.registry.conditionalPatch(
-        "keys",
-        next,
-        "current",
-        this.current
-      )
-    ) {
+    if (await this.registry.conditionalPatch("keys", next, "current", this.current)) {
       this.keys ??= {};
       this.keys[id] = next[`key_${id}`];
       this.current = id;

@@ -1,9 +1,4 @@
-import {
-  CancelablePromise,
-  JSONUtils,
-  PubSubService,
-  ServiceParameters,
-} from "@webda/core";
+import { CancelablePromise, JSONUtils, PubSubService, ServiceParameters } from "@webda/core";
 import * as amqplib from "amqplib";
 
 export class AMQPPubSubParameters extends ServiceParameters {
@@ -73,11 +68,7 @@ export default class AMQPPubSubService<
    * @override
    */
   async sendMessage(event: T, routingKey: string = ""): Promise<void> {
-    await this.channel.publish(
-      this.parameters.channel,
-      routingKey,
-      Buffer.from(JSONUtils.stringify(event))
-    );
+    await this.channel.publish(this.parameters.channel, routingKey, Buffer.from(JSONUtils.stringify(event)));
   }
 
   /**
@@ -114,17 +105,15 @@ export default class AMQPPubSubService<
         let queue = await this.channel.assertQueue("", {
           exclusive: true,
           durable: false,
-          autoDelete: true,
+          autoDelete: true
         });
         await this.channel.bindQueue(queue.queue, this.parameters.channel, "*");
         consumerTag = (
-          await this.channel.consume(queue.queue, (msg) => {
+          await this.channel.consume(queue.queue, msg => {
             if (msg === null) {
               reject("Cancelled by server");
             }
-            callback(
-              this.unserialize(msg?.content.toString() || "", eventPrototype)
-            );
+            callback(this.unserialize(msg?.content.toString() || "", eventPrototype));
           })
         ).consumerTag;
         if (onBind) {

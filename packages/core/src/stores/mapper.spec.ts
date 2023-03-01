@@ -30,9 +30,7 @@ class MapperTest extends WebdaTest {
       undefined
     );
 
-    let stb = sinon
-      .stub(service.targetStore, "upsertItemToCollection")
-      .callsFake(async () => {});
+    let stb = sinon.stub(service.targetStore, "upsertItemToCollection").callsFake(async () => {});
     await service._handleUpdatedMapMapper(
       ident,
       // @ts-ignore
@@ -43,20 +41,20 @@ class MapperTest extends WebdaTest {
 
     await this.getService<Store>("MemoryUsers").emitSync("Store.Deleted", {
       // @ts-ignore
-      object: {},
+      object: {}
     });
   }
 
   @test
   async n_n_mapping_array() {
-    return this.n_n_mapping((args) => args);
+    return this.n_n_mapping(args => args);
   }
 
   @test
   async n_n_mapping_object() {
-    return this.n_n_mapping((args) => {
+    return this.n_n_mapping(args => {
       let res = {};
-      args.forEach((i) => (res[i] = true));
+      args.forEach(i => (res[i] = true));
       return res;
     });
   }
@@ -67,11 +65,10 @@ class MapperTest extends WebdaTest {
       target: "MemoryUsers",
       attribute: "test",
       targetAttribute: "otherIdents",
-      fields: ["email"],
+      fields: ["email"]
     });
     let identStore = this.getService<Store<Ident>>("MemoryIdents");
-    let userStore =
-      this.getService<Store<User & { otherIdents: any[] }>>("MemoryUsers");
+    let userStore = this.getService<Store<User & { otherIdents: any[] }>>("MemoryUsers");
     this.registerService(mapper);
     mapper.resolve();
     await mapper.init();
@@ -81,33 +78,33 @@ class MapperTest extends WebdaTest {
     let ident1 = await identStore.save({
       uuid: "ident1",
       test: generatorAttribute(["user1", "user2"]),
-      email: "test@webda.io",
+      email: "test@webda.io"
     });
     await user1.refresh();
     await user2.refresh();
     await user3.refresh();
     assert.deepStrictEqual(
-      user1.otherIdents.map((i) => ({
+      user1.otherIdents.map(i => ({
         email: i.email,
-        uuid: i.uuid,
+        uuid: i.uuid
       })),
       [
         {
           email: "test@webda.io",
-          uuid: "ident1",
-        },
+          uuid: "ident1"
+        }
       ]
     );
     assert.deepStrictEqual(
-      user2.otherIdents.map((i) => ({
+      user2.otherIdents.map(i => ({
         email: i.email,
-        uuid: i.uuid,
+        uuid: i.uuid
       })),
       [
         {
           email: "test@webda.io",
-          uuid: "ident1",
-        },
+          uuid: "ident1"
+        }
       ]
     );
     assert.deepStrictEqual(user3.otherIdents.length, 0);
@@ -116,27 +113,27 @@ class MapperTest extends WebdaTest {
     await user2.refresh();
     await user3.refresh();
     assert.deepStrictEqual(
-      user1.otherIdents.map((i) => ({
+      user1.otherIdents.map(i => ({
         email: i.email,
-        uuid: i.uuid,
+        uuid: i.uuid
       })),
       [
         {
           email: "newtest@webda.io",
-          uuid: "ident1",
-        },
+          uuid: "ident1"
+        }
       ]
     );
     assert.deepStrictEqual(
-      user2.otherIdents.map((i) => ({
+      user2.otherIdents.map(i => ({
         email: i.email,
-        uuid: i.uuid,
+        uuid: i.uuid
       })),
       [
         {
           email: "newtest@webda.io",
-          uuid: "ident1",
-        },
+          uuid: "ident1"
+        }
       ]
     );
     assert.deepStrictEqual(user3.otherIdents.length, 0);
@@ -147,28 +144,28 @@ class MapperTest extends WebdaTest {
     await user2.refresh();
     await user3.refresh();
     assert.deepStrictEqual(
-      user1.otherIdents.map((i) => ({
+      user1.otherIdents.map(i => ({
         email: i.email,
-        uuid: i.uuid,
+        uuid: i.uuid
       })),
       [
         {
           email: "newtest@webda.io",
-          uuid: "ident1",
-        },
+          uuid: "ident1"
+        }
       ]
     );
     assert.deepStrictEqual(user2.otherIdents.length, 0);
     assert.deepStrictEqual(
-      user3.otherIdents.map((i) => ({
+      user3.otherIdents.map(i => ({
         email: i.email,
-        uuid: i.uuid,
+        uuid: i.uuid
       })),
       [
         {
           email: "newtest@webda.io",
-          uuid: "ident1",
-        },
+          uuid: "ident1"
+        }
       ]
     );
     await ident1.delete();

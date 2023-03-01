@@ -18,9 +18,7 @@ export class VersionServiceParameters extends ServiceParameters {
  * Display the version of the app on a route
  * @WebdaModda VersionService
  */
-export class VersionService<
-  T extends VersionServiceParameters = VersionServiceParameters
-> extends Service<T> {
+export class VersionService<T extends VersionServiceParameters = VersionServiceParameters> extends Service<T> {
   /**
    * @inheritdoc
    */
@@ -33,9 +31,7 @@ export class VersionService<
    * @inheritdoc
    */
   loadParameters(params: any) {
-    params.version =
-      params.version ||
-      this.getWebda().getApplication().getPackageDescription().version;
+    params.version = params.version || this.getWebda().getApplication().getPackageDescription().version;
     params.url = params.url || "/version";
     return new VersionServiceParameters(params);
   }

@@ -8,9 +8,7 @@ import { AWSServiceParameters } from "./aws-mixin";
 /**
  * Send webda log to CloudWatch
  */
-export class CloudWatchLoggerParameters extends AWSServiceParameters(
-  ServiceParameters
-) {
+export class CloudWatchLoggerParameters extends AWSServiceParameters(ServiceParameters) {
   /**
    * logGroupName to send logStream to
    */
@@ -29,9 +27,7 @@ export class CloudWatchLoggerParameters extends AWSServiceParameters(
  *
  * @WebdaModda
  */
-export default class CloudWatchLogger<
-    T extends CloudWatchLoggerParameters = CloudWatchLoggerParameters
-  >
+export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchLoggerParameters>
   extends Service<T>
   implements CloudFormationContributor
 {
@@ -60,22 +56,21 @@ export default class CloudWatchLogger<
     if (!this._logGroupName) {
       throw Error("Require a log group `logGroupName` parameter");
     }
-    this._logStreamName =
-      (this.parameters.logStreamNamePrefix || "") + uuid.v4();
+    this._logStreamName = (this.parameters.logStreamNamePrefix || "") + uuid.v4();
     this._cloudwatch = new CloudWatchLogs(this.parameters);
     let res = await this._cloudwatch.describeLogGroups({
-      logGroupNamePrefix: this._logGroupName,
+      logGroupNamePrefix: this._logGroupName
     });
     if (!res.logGroups.length) {
       await this._cloudwatch.createLogGroup({
         logGroupName: this._logGroupName,
         kmsKeyId: this.parameters.kmsKeyId,
-        tags: this.parameters.tags,
+        tags: this.parameters.tags
       });
     }
     this._logStream = await this._cloudwatch.createLogStream({
       logGroupName: this._logGroupName,
-      logStreamName: this._logStreamName,
+      logStreamName: this._logStreamName
     });
     this._webda.getWorkerOutput().on("message", (msg: WorkerMessage) => {
       if (msg.type !== "log") {
@@ -110,7 +105,7 @@ export default class CloudWatchLogger<
       logEvents: toSend,
       logGroupName: this._logGroupName,
       logStreamName: this._logStreamName,
-      sequenceToken: this._seqToken,
+      sequenceToken: this._seqToken
     };
     let res = await this._cloudwatch.putLogEvents(params);
     this._seqToken = res.nextSequenceToken;
@@ -124,10 +119,8 @@ export default class CloudWatchLogger<
    */
   _log(level, ...args): void {
     this._bufferedLogs.push({
-      message:
-        `[${level}] ` +
-        args.map((p) => (p ? p.toString() : "undefined")).join(" "),
-      timestamp: new Date().getTime(),
+      message: `[${level}] ` + args.map(p => (p ? p.toString() : "undefined")).join(" "),
+      timestamp: new Date().getTime()
     });
     if (this.parameters.singlePush) {
       this.sendLogs(true);
@@ -144,20 +137,9 @@ export default class CloudWatchLogger<
       Effect: "Allow",
       Action: ["logs:*"],
       Resource: [
-        "arn:aws:logs:" +
-          region +
-          ":" +
-          accountId +
-          ":log-group:" +
-          this.parameters.logGroupName,
-        "arn:aws:logs:" +
-          region +
-          ":" +
-          accountId +
-          ":log-group:" +
-          this.parameters.logGroupName +
-          ":*:*",
-      ],
+        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this.parameters.logGroupName,
+        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this.parameters.logGroupName + ":*:*"
+      ]
     };
   }
 
@@ -174,8 +156,8 @@ export default class CloudWatchLogger<
       Type: "AWS::Logs::LogGroup",
       Properties: {
         ...this.parameters.CloudFormation.LogGroup,
-        LogGroupName: this.parameters.logGroupName,
-      },
+        LogGroupName: this.parameters.logGroupName
+      }
     };
     // Add any Other resources with prefix of the service
     return resources;

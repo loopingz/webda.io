@@ -1,12 +1,6 @@
 import { Counter, EventWithContext, Histogram, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
-import {
-  Constructor,
-  CoreModel,
-  CoreModelDefinition,
-  FilterKeys,
-  ModelAction,
-} from "../models/coremodel";
+import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
 import { OperationContext, WebContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
@@ -438,7 +432,7 @@ export class StoreParameters extends ServiceParameters {
       expose.url = "/" + service.getName().toLowerCase();
     } else if (typeof expose == "string") {
       expose = {
-        url: expose,
+        url: expose
       };
     } else if (typeof expose == "object" && expose.url == undefined) {
       expose.url = "/" + service.getName().toLowerCase();
@@ -594,23 +588,14 @@ abstract class Store<
     super.computeParameters();
     const p = this.parameters;
     this._model = <CoreModelDefinition<T>>this._webda.getModel(p.model);
-    this._models = [
-      this._model,
-      ...this.parameters.models.map(
-        (m) => this._webda.getModel(m) as CoreModelDefinition<T>
-      ),
-    ];
-    this._modelType = this._webda
-      .getApplication()
-      .getModelFromConstructor(this._model);
+    this._models = [this._model, ...this.parameters.models.map(m => this._webda.getModel(m) as CoreModelDefinition<T>)];
+    this._modelType = this._webda.getApplication().getModelFromConstructor(this._model);
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
     this.cacheStorePatchException();
-    this.parent = this.parameters.parent
-      ? this.getService(this.parameters.parent.name)
-      : undefined;
+    this.parent = this.parameters.parent ? this.getService(this.parameters.parent.name) : undefined;
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -625,15 +610,15 @@ abstract class Store<
     this.metrics.operations_total = this.getMetric(Counter, {
       name: "store_operations_total",
       help: "Operations counter for this store",
-      labelNames: ["operation"],
+      labelNames: ["operation"]
     });
     this.metrics.slow_queries_total = this.getMetric(Counter, {
       name: "store_slow_queries",
-      help: "Number of slow queries encountered",
+      help: "Number of slow queries encountered"
     });
     this.metrics.queries = this.getMetric(Histogram, {
       name: "store_queries",
-      help: "Query duration",
+      help: "Query duration"
     });
   }
 
@@ -660,14 +645,13 @@ abstract class Store<
     // @ts-ignore
     let inst = model.__class ? model : new model();
     this._models
-      .filter((m) => inst instanceof m)
-      .forEach((m) => {
+      .filter(m => inst instanceof m)
+      .forEach(m => {
         let next = model instanceof CoreModel ? model.__class : model;
         let depth = 0;
         while (next && next.name !== "") {
           if (next === m) {
-            finalDepth =
-              finalDepth !== undefined ? Math.min(depth, finalDepth) : depth;
+            finalDepth = finalDepth !== undefined ? Math.min(depth, finalDepth) : depth;
             return;
           }
           // If Store strictly managed one Model
@@ -687,10 +671,7 @@ abstract class Store<
    * @param raiseIfNotFound
    * @returns
    */
-  async _getFromCache(
-    uid: string,
-    raiseIfNotFound: boolean = false
-  ): Promise<T> {
+  async _getFromCache(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
     let res = await this._cacheStore?._get(uid);
     if (!res) {
       res = await this._get(uid, raiseIfNotFound);
@@ -741,15 +722,9 @@ abstract class Store<
     if (
       !expose.url ||
       (url === "." && methods.includes("POST") && expose.restrict.create) ||
-      (url === "./{uuid}" &&
-        methods.includes("DELETE") &&
-        expose.restrict.delete) ||
-      (url === "./{uuid}" &&
-        methods.includes("PATCH") &&
-        expose.restrict.update) ||
-      (url === "./{uuid}" &&
-        methods.includes("PUT") &&
-        expose.restrict.update) ||
+      (url === "./{uuid}" && methods.includes("DELETE") && expose.restrict.delete) ||
+      (url === "./{uuid}" && methods.includes("PATCH") && expose.restrict.update) ||
+      (url === "./{uuid}" && methods.includes("PUT") && expose.restrict.update) ||
       (url === "./{uuid}" && methods.includes("GET") && expose.restrict.get) ||
       (url === ".{?q}" && methods.includes("GET") && expose.restrict.query) ||
       (url === "." && methods.includes("PUT") && expose.restrict.query)
@@ -781,62 +756,57 @@ abstract class Store<
               schema: {
                 properties: {
                   q: {
-                    type: "string",
-                  },
-                },
-              },
-            },
-          },
+                    type: "string"
+                  }
+                }
+              }
+            }
+          }
         };
       }
-      this.addRoute(
-        expose.queryMethod === "GET" ? `.{?q}` : ".",
-        [expose.queryMethod],
-        this.httpQuery,
-        {
-          model: this._model.name,
-          [expose.queryMethod.toLowerCase()]: {
-            description: `Query on ${this._model.name} model with WebdaQL`,
-            summary: "Query " + this._model.name,
-            operationId: `query${this._model.name}`,
-            requestBody,
-            responses: {
-              "200": {
-                description: "Retrieve models",
-                content: {
-                  "application/json": {
-                    schema: {
-                      properties: {
-                        contiuationToken: {
-                          type: "string",
-                        },
-                        results: {
-                          type: "array",
-                          items: {
-                            $ref: `#/components/schemas/${this._model.name}`,
-                          },
-                        },
+      this.addRoute(expose.queryMethod === "GET" ? `.{?q}` : ".", [expose.queryMethod], this.httpQuery, {
+        model: this._model.name,
+        [expose.queryMethod.toLowerCase()]: {
+          description: `Query on ${this._model.name} model with WebdaQL`,
+          summary: "Query " + this._model.name,
+          operationId: `query${this._model.name}`,
+          requestBody,
+          responses: {
+            "200": {
+              description: "Retrieve models",
+              content: {
+                "application/json": {
+                  schema: {
+                    properties: {
+                      contiuationToken: {
+                        type: "string"
                       },
-                    },
-                  },
-                },
-              },
-              "400": {
-                description: "Query is invalid",
-              },
-              "403": {
-                description: "You don't have permissions",
-              },
+                      results: {
+                        type: "array",
+                        items: {
+                          $ref: `#/components/schemas/${this._model.name}`
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             },
-          },
+            "400": {
+              description: "Query is invalid"
+            },
+            "403": {
+              description: "You don't have permissions"
+            }
+          }
         }
-      );
+      });
     }
 
     // Model actions
     if (this._model && this._model.getActions) {
       let actions = this._model.getActions();
-      Object.keys(actions).forEach((name) => {
+      Object.keys(actions).forEach(name => {
         let action: ModelAction = actions[name];
         if (!action.methods) {
           action.methods = ["PUT"];
@@ -852,20 +822,12 @@ abstract class Store<
           this.addRoute(`./${name}`, action.methods, executer, action.openapi);
         } else {
           // By default will grab the object and then call the action
-          if (
-            !this._model.prototype[name] &&
-            !this._model.prototype["_" + name]
-          ) {
+          if (!this._model.prototype[name] && !this._model.prototype["_" + name]) {
             throw Error("Action method /_?" + name + "/ does not exist");
           }
           executer = this.httpAction;
 
-          this.addRoute(
-            `./{uuid}/${name}`,
-            action.methods,
-            executer,
-            action.openapi
-          );
+          this.addRoute(`./{uuid}/${name}`, action.methods, executer, action.openapi);
         }
       });
     }
@@ -888,15 +850,12 @@ abstract class Store<
     if (!this._cacheStore) {
       return;
     }
-    const replacer = (original) => {
+    const replacer = original => {
       return (...args) => {
         return original
           .bind(this._cacheStore, ...args)()
-          .catch((err) => {
-            this.log(
-              "TRACE",
-              `Ignoring cache exception ${this._name}: ${err.message}`
-            );
+          .catch(err => {
+            this.log("TRACE", `Ignoring cache exception ${this._name}: ${err.message}`);
           });
       };
     };
@@ -908,7 +867,7 @@ abstract class Store<
       "_incrementAttributes",
       "_upsertItemToCollection",
       "_deleteItemFromCollection",
-      "_removeAttribute",
+      "_removeAttribute"
     ]) {
       this._cacheStore[i] = replacer(this._cacheStore[i]);
     }
@@ -924,9 +883,7 @@ abstract class Store<
    */
   protected initModel(object: any = {}): T {
     if (object instanceof CoreModel) {
-      object.__type =
-        this.getWebda().getApplication().getModelFromInstance(object) ||
-        this._modelType;
+      object.__type = this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
     } else {
       object.__type ??= this._modelType;
     }
@@ -936,17 +893,11 @@ abstract class Store<
       // Dynamic load type
       if (object.__type && !this.getParameters().forceModel) {
         try {
-          const modelType = this.getWebda()
-            .getApplication()
-            .getModel(object.__type);
+          const modelType = this.getWebda().getApplication().getModel(object.__type);
           object = new modelType().load(object, true);
         } catch (err) {
           if (!this.parameters.defaultModel) {
-            throw new Error(
-              `Unknown model ${
-                object.__type
-              } found for Store(${this.getName()})`
-            );
+            throw new Error(`Unknown model ${object.__type} found for Store(${this.getName()})`);
           }
           object = this._model.factory(this._model, object);
         }
@@ -962,9 +913,9 @@ abstract class Store<
       object[this._reverseMap[i].property] ??= [];
       for (let j in object[this._reverseMap[i].property]) {
         // Use Partial
-        object[this._reverseMap[i].property][j] = this._reverseMap[
-          i
-        ].mapper.newModel(object[this._reverseMap[i].property][j]);
+        object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.newModel(
+          object[this._reverseMap[i].property][j]
+        );
         object[this._reverseMap[i].property][j].setContext(object.getContext());
       }
     }
@@ -978,7 +929,7 @@ abstract class Store<
    */
   newModel(object: any = {}) {
     let result = this.initModel(object);
-    Object.keys(object).forEach((k) => result.__dirty.add(k));
+    Object.keys(object).forEach(k => result.__dirty.add(k));
     return result;
   }
 
@@ -992,7 +943,7 @@ abstract class Store<
   addReverseMap(prop: string, store: MappingService) {
     this._reverseMap.push({
       property: prop,
-      mapper: store,
+      mapper: store
     });
   }
 
@@ -1003,13 +954,8 @@ abstract class Store<
    * @param info
    * @returns
    */
-  async incrementAttributes<FK extends FilterKeys<T, number>>(
-    uid: string,
-    info: { property: FK; value: number }[]
-  ) {
-    let params = <{ property: string; value: number }[]>(
-      info.filter((i) => i.value !== 0)
-    );
+  async incrementAttributes<FK extends FilterKeys<T, number>>(uid: string, info: { property: FK; value: number }[]) {
+    let params = <{ property: string; value: number }[]>info.filter(i => i.value !== 0);
     // If value === 0 no need to update anything
     if (params.length === 0) {
       return Promise.resolve();
@@ -1023,8 +969,8 @@ abstract class Store<
       store: this,
       updateDate,
       partial_update: {
-        increments: params,
-      },
+        increments: params
+      }
     });
   }
 
@@ -1035,11 +981,7 @@ abstract class Store<
    * @param value
    * @returns
    */
-  async incrementAttribute<FK extends FilterKeys<T, number>>(
-    uid: string,
-    prop: FK,
-    value: number
-  ) {
+  async incrementAttribute<FK extends FilterKeys<T, number>>(uid: string, prop: FK, value: number) {
     return this.incrementAttributes(uid, [{ property: prop, value }]);
   }
 
@@ -1090,9 +1032,9 @@ abstract class Store<
         addItem: {
           value: item,
           property: <string>prop,
-          index: index,
-        },
-      },
+          index: index
+        }
+      }
     });
   }
 
@@ -1137,9 +1079,9 @@ abstract class Store<
       partial_update: {
         deleteItem: {
           property: <string>prop,
-          index: index,
-        },
-      },
+          index: index
+        }
+      }
     });
   }
 
@@ -1158,11 +1100,7 @@ abstract class Store<
     }
     let continuationToken;
     do {
-      let q =
-        query +
-        (continuationToken !== undefined
-          ? ` OFFSET "${continuationToken}"`
-          : "");
+      let q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
       let page = await this.query(q, context);
       continuationToken = page.continuationToken;
       res.push(...page.results);
@@ -1175,10 +1113,7 @@ abstract class Store<
    * @param query
    * @param context to apply permission
    */
-  async query(
-    query: string,
-    context?: OperationContext
-  ): Promise<{ results: T[]; continuationToken?: string }> {
+  async query(query: string, context?: OperationContext): Promise<{ results: T[]; continuationToken?: string }> {
     let permissionQuery = this._model.getPermissionQuery(context);
     let partialPermission = true;
     let fullQuery;
@@ -1201,11 +1136,11 @@ abstract class Store<
       query,
       parsedQuery,
       store: this,
-      context,
+      context
     });
     const result = {
       results: [],
-      continuationToken: undefined,
+      continuationToken: undefined
     };
     /*
       Offset are split in two with _
@@ -1225,7 +1160,7 @@ abstract class Store<
     while (result.results.length < limit) {
       let tmpResults = await this.find({
         ...parsedQuery,
-        continuationToken: mainOffset,
+        continuationToken: mainOffset
       });
       // If no filter is returned assume it is by mistake and apply filtering
       if (tmpResults.filter === undefined) {
@@ -1280,7 +1215,7 @@ abstract class Store<
       store: this,
       continuationToken: result.continuationToken,
       results: result.results,
-      context,
+      context
     });
     return result;
   }
@@ -1342,7 +1277,7 @@ abstract class Store<
     await this.emitSync("Store.Save", {
       object: object,
       store: this,
-      context: ctx,
+      context: ctx
     });
     // Handle object auto listener
     await object._onSave();
@@ -1353,7 +1288,7 @@ abstract class Store<
     await this.emitSync("Store.Saved", {
       object: object,
       store: this,
-      context: ctx,
+      context: ctx
     });
     await object._onSaved();
 
@@ -1373,13 +1308,7 @@ abstract class Store<
     conditionField?: FK | null,
     conditionValue?: any
   ): Promise<T | undefined> {
-    return this.update(
-      object,
-      reverseMap,
-      true,
-      conditionField,
-      conditionValue
-    );
+    return this.update(object, reverseMap, true, conditionField, conditionValue);
   }
 
   /**
@@ -1389,20 +1318,11 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkUpdateCondition<CK extends keyof T>(
-    model: T,
-    conditionField?: CK,
-    condition?: any,
-    uid?: string
-  ) {
+  checkUpdateCondition<CK extends keyof T>(model: T, conditionField?: CK, condition?: any, uid?: string) {
     if (conditionField) {
       // Add toString to manage Date object
       if (model[conditionField].toString() !== condition.toString()) {
-        throw new UpdateConditionFailError(
-          uid ? uid : model.getUuid(),
-          <string>conditionField,
-          condition
-        );
+        throw new UpdateConditionFailError(uid ? uid : model.getUuid(), <string>conditionField, condition);
       }
     }
   }
@@ -1414,10 +1334,7 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkCollectionUpdateCondition<
-    FK extends FilterKeys<T, Array<any>>,
-    CK extends keyof T
-  >(
+  checkCollectionUpdateCondition<FK extends FilterKeys<T, Array<any>>, CK extends keyof T>(
     model: T,
     collection: FK,
     conditionField?: CK,
@@ -1427,20 +1344,10 @@ abstract class Store<
     // No index so addition to collection
     if (index === null) {
       // The condition must be length of the collection
-      if (
-        !model[collection] ||
-        (<any[]>model[collection]).length !== condition
-      ) {
-        throw new UpdateConditionFailError(
-          model.getUuid(),
-          <string>collection,
-          condition
-        );
+      if (!model[collection] || (<any[]>model[collection]).length !== condition) {
+        throw new UpdateConditionFailError(model.getUuid(), <string>collection, condition);
       }
-    } else if (
-      condition &&
-      model[collection][index][conditionField] !== condition
-    ) {
+    } else if (condition && model[collection][index][conditionField] !== condition) {
       throw new UpdateConditionFailError(
         model.getUuid(),
         `${<string>collection}[${index}].${<string>conditionField}`,
@@ -1494,17 +1401,9 @@ abstract class Store<
     itemWriteConditionField?: string
   ) {
     if (prop === "__proto__") {
-      throw new Error(
-        "Cannot update __proto__: js/prototype-polluting-assignment"
-      );
+      throw new Error("Cannot update __proto__: js/prototype-polluting-assignment");
     }
-    this.checkCollectionUpdateCondition(
-      model,
-      prop,
-      <keyof T>itemWriteConditionField,
-      itemWriteCondition,
-      index
-    );
+    this.checkCollectionUpdateCondition(model, prop, <keyof T>itemWriteConditionField, itemWriteCondition, index);
     if (index === undefined) {
       if (model[prop] === undefined) {
         (<any[]>model[prop]) = [item];
@@ -1555,9 +1454,7 @@ abstract class Store<
     if (load.__type !== this._modelType && this.parameters.strict) {
       this.log(
         "WARN",
-        `Object '${object[this._uuidField]}' was not created by this store ${
-          load.__type
-        }:${this._modelType}`
+        `Object '${object[this._uuidField]}' was not created by this store ${load.__type}:${this._modelType}`
       );
       throw new StoreNotFoundError(object[this._uuidField], this.getName());
     }
@@ -1569,13 +1466,13 @@ abstract class Store<
       await this.emitSync(`Store.PatchUpdate`, {
         object: loaded,
         store: this,
-        update: object,
+        update: object
       });
     } else {
       await this.emitSync(`Store.Update`, {
         object: loaded,
         store: this,
-        update: object,
+        update: object
       });
     }
 
@@ -1587,12 +1484,7 @@ abstract class Store<
     }
     if (partial) {
       this.metrics.operations_total.inc({ operation: "partialUpdate" });
-      await this._patch(
-        object,
-        object[this._uuidField],
-        conditionValue,
-        <string>conditionField
-      );
+      await this._patch(object, object[this._uuidField], conditionValue, <string>conditionField);
       await this._cacheStore?._patch(
         object,
         object[this._uuidField],
@@ -1603,17 +1495,11 @@ abstract class Store<
     } else {
       // Copy back the mappers
       for (let i in this._reverseMap) {
-        object[this._reverseMap[i].property] =
-          loaded[this._reverseMap[i].property];
+        object[this._reverseMap[i].property] = loaded[this._reverseMap[i].property];
       }
       object = this.initModel(object);
       this.metrics.operations_total.inc({ operation: "update" });
-      res = await this._update(
-        object,
-        object[this._uuidField],
-        conditionValue,
-        <string>conditionField
-      );
+      res = await this._update(object, object[this._uuidField], conditionValue, <string>conditionField);
       await this._cacheStore?._update(
         object,
         object[this._uuidField],
@@ -1632,12 +1518,12 @@ abstract class Store<
     if (partial) {
       await this.emitSync(`Store.PatchUpdated`, {
         object: saved,
-        store: this,
+        store: this
       });
     } else {
       await this.emitSync(`Store.Updated`, {
         object: saved,
-        store: this,
+        store: this
       });
     }
 
@@ -1659,12 +1545,7 @@ abstract class Store<
     itemWriteConditionField?: CK
   ) {
     this.metrics.operations_total.inc({ operation: "attributeDelete" });
-    await this._removeAttribute(
-      uuid,
-      <string>attribute,
-      itemWriteCondition,
-      <string>itemWriteConditionField
-    );
+    await this._removeAttribute(uuid, <string>attribute, itemWriteCondition, <string>itemWriteConditionField);
     await this._cacheStore?._removeAttribute(
       uuid,
       <string>attribute,
@@ -1674,9 +1555,9 @@ abstract class Store<
     await this.emitSync("Store.PartialUpdated", {
       object_id: uuid,
       partial_update: {
-        deleteAttribute: <string>attribute,
+        deleteAttribute: <string>attribute
       },
-      store: this,
+      store: this
     });
   }
 
@@ -1726,10 +1607,7 @@ abstract class Store<
         return;
       }
       if (to_delete.__type !== this._modelType && this.parameters.strict) {
-        this.log(
-          "WARN",
-          `Object '${uid}' was not created by this store ${to_delete.__type}:${this._modelType}`
-        );
+        this.log("WARN", `Object '${uid}' was not created by this store ${to_delete.__type}:${this._modelType}`);
         return;
       }
       to_delete = this.initModel(to_delete);
@@ -1738,17 +1616,13 @@ abstract class Store<
     // Check condition as we have the object
     if (writeCondition) {
       if (to_delete[writeConditionField] !== writeCondition) {
-        throw new UpdateConditionFailError(
-          to_delete.getUuid(),
-          <string>writeConditionField,
-          writeCondition
-        );
+        throw new UpdateConditionFailError(to_delete.getUuid(), <string>writeConditionField, writeCondition);
       }
     }
     // Send preevent
     await this.emitSync("Store.Delete", {
       object: to_delete,
-      store: this,
+      store: this
     });
     await to_delete._onDelete();
 
@@ -1757,35 +1631,27 @@ abstract class Store<
       this.metrics.operations_total.inc({ operation: "partialUpdate" });
       await this._patch(
         {
-          __deleted: true,
+          __deleted: true
         },
         to_delete.getUuid()
       );
       await this._cacheStore?._patch(
         {
-          __deleted: true,
+          __deleted: true
         },
         to_delete.getUuid()
       );
     } else {
       this.metrics.operations_total.inc({ operation: "delete" });
       // Delete from the DB for real
-      await this._delete(
-        to_delete.getUuid(),
-        writeCondition,
-        <string>writeConditionField
-      );
-      await this._cacheStore?._delete(
-        to_delete.getUuid(),
-        writeCondition,
-        <string>writeConditionField
-      );
+      await this._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
+      await this._cacheStore?._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
     }
 
     // Send post event
     await this.emitSync("Store.Deleted", {
       object: to_delete,
-      store: this,
+      store: this
     });
     await to_delete._onDeleted();
   }
@@ -1813,11 +1679,7 @@ abstract class Store<
     }
     let result: { [key: string]: any } = {};
     for (let i in object) {
-      if (
-        i === this._uuidField ||
-        i === this._lastUpdateField ||
-        i.startsWith("_")
-      ) {
+      if (i === this._uuidField || i === this._lastUpdateField || i.startsWith("_")) {
         continue;
       }
       result[i] = object[i];
@@ -1834,9 +1696,7 @@ abstract class Store<
     if (await this.exists(uuid)) {
       return this.update({ ...data, uuid });
     }
-    return this.save(
-      data instanceof CoreModel ? data.setUuid(uuid) : { ...data, uuid }
-    );
+    return this.save(data instanceof CoreModel ? data.setUuid(uuid) : { ...data, uuid });
   }
 
   /**
@@ -1845,11 +1705,7 @@ abstract class Store<
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(
-    uid: string,
-    ctx: OperationContext = undefined,
-    defaultValue: any = undefined
-  ): Promise<T> {
+  async get(uid: string, ctx: OperationContext = undefined, defaultValue: any = undefined): Promise<T> {
     /** @ignore */
     if (!uid) {
       return undefined;
@@ -1857,15 +1713,10 @@ abstract class Store<
     this.metrics.operations_total.inc({ operation: "get" });
     let object = await this._getFromCache(uid);
     if (!object) {
-      return defaultValue
-        ? this.initModel(defaultValue).setUuid(uid)
-        : undefined;
+      return defaultValue ? this.initModel(defaultValue).setUuid(uid) : undefined;
     }
     if (object.__type !== this._modelType && this.parameters.strict) {
-      this.log(
-        "WARN",
-        `Object '${uid}' was not created by this store ${object.__type}:${this._modelType}`
-      );
+      this.log("WARN", `Object '${uid}' was not created by this store ${object.__type}:${this._modelType}`);
       return undefined;
     }
     object = this.initModel(object);
@@ -1873,7 +1724,7 @@ abstract class Store<
     await this.emitSync("Store.Get", {
       object: object,
       store: this,
-      context: ctx,
+      context: ctx
     });
     await object._onGet();
     return object;
@@ -1889,11 +1740,7 @@ abstract class Store<
    * @param value new value
    * @returns
    */
-  async setAttribute<CK extends keyof T>(
-    uid: string,
-    property: CK,
-    value: any
-  ): Promise<void> {
+  async setAttribute<CK extends keyof T>(uid: string, property: CK, value: any): Promise<void> {
     let patch: any = {};
     patch[property] = value;
     patch[this.getUuidField()] = uid;
@@ -1903,14 +1750,11 @@ abstract class Store<
   /**
    * @override
    */
-  protected async simulateFind(
-    query: WebdaQL.Query,
-    uuids: string[]
-  ): Promise<StoreFindResult<T>> {
+  protected async simulateFind(query: WebdaQL.Query, uuids: string[]): Promise<StoreFindResult<T>> {
     let result: StoreFindResult<T> = {
       results: [],
       continuationToken: undefined,
-      filter: true,
+      filter: true
     };
     let count = 0;
     let limit = query.limit;
@@ -1946,14 +1790,8 @@ abstract class Store<
         let valA, valB;
         for (let orderBy of query.orderBy) {
           let invert = orderBy.direction === "ASC" ? 1 : -1;
-          valA = WebdaQL.ComparisonExpression.getAttributeValue(
-            a,
-            orderBy.field.split(".")
-          );
-          valB = WebdaQL.ComparisonExpression.getAttributeValue(
-            b,
-            orderBy.field.split(".")
-          );
+          valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.field.split("."));
+          valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.field.split("."));
           if (valA === valB) {
             continue;
           }
@@ -1964,10 +1802,7 @@ abstract class Store<
         }
         return -1;
       });
-      result.results = result.results.slice(
-        originalOffset,
-        query.limit + originalOffset
-      );
+      result.results = result.results.slice(originalOffset, query.limit + originalOffset);
       if (result.results.length >= query.limit) {
         result.continuationToken = (query.limit + originalOffset).toString();
       }
@@ -1978,7 +1813,7 @@ abstract class Store<
 
   getOpenApiReplacements() {
     return {
-      modelName: this._model.name,
+      modelName: this._model.name
     };
   }
 
@@ -1995,10 +1830,10 @@ abstract class Store<
         content: {
           "application/json": {
             schema: {
-              $ref: "#/components/schemas/${modelName}",
-            },
-          },
-        },
+              $ref: "#/components/schemas/${modelName}"
+            }
+          }
+        }
       },
       responses: {
         "200": {
@@ -2006,22 +1841,22 @@ abstract class Store<
           content: {
             "application/json": {
               schema: {
-                $ref: "#/components/schemas/${modelName}",
-              },
-            },
-          },
+                $ref: "#/components/schemas/${modelName}"
+              }
+            }
+          }
         },
         "400": {
-          description: "Object is invalid",
+          description: "Object is invalid"
         },
         "403": {
-          description: "You don't have permissions",
+          description: "You don't have permissions"
         },
         "409": {
-          description: "Object already exists",
-        },
-      },
-    },
+          description: "Object already exists"
+        }
+      }
+    }
   })
   async httpCreate(ctx: WebContext) {
     let body = await ctx.getRequestBody();
@@ -2034,10 +1869,7 @@ abstract class Store<
       this.log("INFO", "Object is not valid", err);
       throw 400;
     }
-    if (
-      object[this._uuidField] &&
-      (await this.exists(object[this._uuidField]))
-    ) {
+    if (object[this._uuidField] && (await this.exists(object[this._uuidField]))) {
       throw 409;
     }
     await this.save(object, ctx);
@@ -2046,7 +1878,7 @@ abstract class Store<
       context: ctx,
       values: body,
       object: object,
-      store: this,
+      store: this
     });
   }
 
@@ -2065,7 +1897,7 @@ abstract class Store<
       action: action,
       object: object,
       store: this,
-      context: ctx,
+      context: ctx
     });
     const res = await object[action](ctx);
     if (res) {
@@ -2076,7 +1908,7 @@ abstract class Store<
       object: object,
       store: this,
       context: ctx,
-      result: res,
+      result: res
     });
   }
 
@@ -2089,7 +1921,7 @@ abstract class Store<
     await this.emitSync("Store.Action", {
       action: action,
       store: this,
-      context: ctx,
+      context: ctx
     });
     const res = await this._model[action](ctx);
     if (res) {
@@ -2099,7 +1931,7 @@ abstract class Store<
       action: action,
       store: this,
       context: ctx,
-      result: res,
+      result: res
     });
   }
 
@@ -2115,43 +1947,43 @@ abstract class Store<
       operationId: "update${modelName}",
       schemas: {
         input: "${modelName}",
-        output: "${modelName}",
+        output: "${modelName}"
       },
       responses: {
         "200": {},
         "400": {
-          description: "Object is invalid",
+          description: "Object is invalid"
         },
         "403": {
-          description: "You don't have permissions",
+          description: "You don't have permissions"
         },
         "404": {
-          description: "Unknown object",
-        },
-      },
+          description: "Unknown object"
+        }
+      }
     },
     patch: {
       description: "Patch a ${modelName} if the permissions allow",
       summary: "Patch a ${modelName}",
       operationId: "partialUpdatet${modelName}",
       schemas: {
-        input: "${modelName}",
+        input: "${modelName}"
       },
       responses: {
         "204": {
-          description: "",
+          description: ""
         },
         "400": {
-          description: "Object is invalid",
+          description: "Object is invalid"
         },
         "403": {
-          description: "You don't have permissions",
+          description: "You don't have permissions"
         },
         "404": {
-          description: "Unknown object",
-        },
-      },
-    },
+          description: "Unknown object"
+        }
+      }
+    }
   })
   async httpUpdate(ctx: WebContext) {
     let body = await ctx.getRequestBody();
@@ -2170,8 +2002,8 @@ abstract class Store<
       let updateObject: any = new this._model();
       // Clean any default attributes from the model
       Object.keys(updateObject)
-        .filter((i) => i !== "__class")
-        .forEach((i) => {
+        .filter(i => i !== "__class")
+        .forEach(i => {
           delete updateObject[i];
         });
       updateObject.setContext(ctx);
@@ -2184,8 +2016,8 @@ abstract class Store<
       updateObject.load(body);
       // Copy back the _ attributes
       Object.keys(object)
-        .filter((i) => i.startsWith("_"))
-        .forEach((i) => {
+        .filter(i => i.startsWith("_"))
+        .forEach(i => {
           updateObject[i] = object[i];
         });
       try {
@@ -2204,7 +2036,7 @@ abstract class Store<
       updates: body,
       object: object,
       store: this,
-      method: <"PATCH" | "PUT">ctx.getHttpContext().getMethod(),
+      method: <"PATCH" | "PUT">ctx.getHttpContext().getMethod()
     });
   }
 
@@ -2219,21 +2051,21 @@ abstract class Store<
       summary: "Retrieve a ${modelName}",
       operationId: "get${modelName}",
       schemas: {
-        output: "${modelName}",
+        output: "${modelName}"
       },
       responses: {
         "200": {},
         "400": {
-          description: "Object is invalid",
+          description: "Object is invalid"
         },
         "403": {
-          description: "You don't have permissions",
+          description: "You don't have permissions"
         },
         "404": {
-          description: "Unknown object",
-        },
-      },
-    },
+          description: "Unknown object"
+        }
+      }
+    }
   })
   async httpGet(ctx: WebContext) {
     let uuid = ctx.parameter("uuid");
@@ -2241,7 +2073,7 @@ abstract class Store<
     await this.emitSync("Store.WebGetNotFound", {
       context: ctx,
       uuid,
-      store: this,
+      store: this
     });
     if (object === undefined || object.__deleted) {
       throw 404;
@@ -2251,7 +2083,7 @@ abstract class Store<
     await this.emitSync("Store.WebGet", {
       context: ctx,
       object: object,
-      store: this,
+      store: this
     });
     ctx.write(object);
   }
@@ -2269,16 +2101,16 @@ abstract class Store<
       summary: "Delete a ${modelName}",
       responses: {
         "204": {
-          description: "",
+          description: ""
         },
         "403": {
-          description: "You don't have permissions",
+          description: "You don't have permissions"
         },
         "404": {
-          description: "Unknown object",
-        },
-      },
-    },
+          description: "Unknown object"
+        }
+      }
+    }
   })
   async httpRoute(ctx: WebContext) {
     let uuid = ctx.parameter("uuid");
@@ -2293,7 +2125,7 @@ abstract class Store<
     await this.emitSync("Store.WebDelete", {
       context: ctx,
       object_id: uuid,
-      store: this,
+      store: this
     });
   }
 
@@ -2310,7 +2142,7 @@ abstract class Store<
    * @params {String} uuid of the object or the object
    */
   async exists(uid: string | CoreModel): Promise<boolean> {
-    if (uid instanceof CoreModel) {
+    if (typeof uid !== "string") {
       uid = uid.getUuid();
     }
     return this._exists(uid);
@@ -2335,11 +2167,7 @@ abstract class Store<
    * @param writeCondition
    * @param itemWriteConditionField
    */
-  protected abstract _delete(
-    uid: string,
-    writeCondition?: any,
-    itemWriteConditionField?: string
-  ): Promise<void>;
+  protected abstract _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string): Promise<void>;
 
   /**
    * Retrieve an element from the store

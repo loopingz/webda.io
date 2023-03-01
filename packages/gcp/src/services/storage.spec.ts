@@ -56,7 +56,7 @@ class StorageTest extends BinaryTest<Storage> {
       if (!metadata) {
         await storage.createBucket(BUCKET, {
           location: "US-WEST2",
-          storageClass: "COLDLINE",
+          storageClass: "COLDLINE"
         });
         await storage.bucket(BUCKET).getMetadata();
       }
@@ -69,7 +69,7 @@ class StorageTest extends BinaryTest<Storage> {
   async cleanData() {
     var storage = new GCS();
     const [files] = await storage.bucket(BUCKET).getFiles({
-      prefix: this.prefix,
+      prefix: this.prefix
     });
     for (let file of files) {
       await file.delete();
@@ -84,16 +84,11 @@ class StorageTest extends BinaryTest<Storage> {
   async putObject() {
     const body = `RAW Body: ${new Date()}`;
     const name = `${this.prefix}/plop/test`;
-    await this.getBinary().putObject(
-      name,
-      Buffer.from(body),
-      { meta1: "meta1" },
-      BUCKET
-    );
+    await this.getBinary().putObject(name, Buffer.from(body), { meta1: "meta1" }, BUCKET);
     let getFile = this.getBinary().getStorageBucket().file(name);
 
     assert.deepStrictEqual((await getFile.getMetadata())[0].metadata, {
-      meta1: "meta1",
+      meta1: "meta1"
     });
   }
 
@@ -111,13 +106,7 @@ class StorageTest extends BinaryTest<Storage> {
   async redirectUrl() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location !== undefined);
   }
@@ -126,28 +115,17 @@ class StorageTest extends BinaryTest<Storage> {
   async redirectUrlInfo() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/binary/users/${user1.getUuid()}/images/0/url`,
-      {}
-    );
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location === undefined);
-    assert.notStrictEqual(
-      JSON.parse(<string>ctx.getResponseBody()).Location,
-      undefined
-    );
+    assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);
   }
 
   @test
   async cascadeDelete() {
-    let stubDelete = sinon
-      .stub(this.getBinary(), "_cleanUsage")
-      .callsFake(() => {
-        throw new Error();
-      });
+    let stubDelete = sinon.stub(this.getBinary(), "_cleanUsage").callsFake(() => {
+      throw new Error();
+    });
     try {
       // @ts-ignore
       await this.getBinary().cascadeDelete({ hash: "pp" }, "pp");
@@ -163,18 +141,13 @@ class StorageTest extends BinaryTest<Storage> {
     const binary = this.getBinary();
     const from = `${this.prefix}/rawAccess`;
     const to = `${this.prefix}/movedAccess`;
-    await binary.putObject(
-      from,
-      path.join(__dirname, "..", "..", "test", "Dockerfile.txt")
-    );
+    await binary.putObject(from, path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
     await binary.moveObject({ key: from }, { key: to });
     assert.deepStrictEqual(binary.getSignedUrlHeaders(), {});
     const meta = await binary.getMeta({ bucket: "webda-dev", key: to });
     assert.deepStrictEqual(meta, { size: 311, contentType: "text/plain" });
     assert.ok(
-      /https:\/\/storage\.googleapis\.com\/webda-dev\/webda-dev/.exec(
-        await binary.getPublicUrl({ key: "webda-dev" })
-      )
+      /https:\/\/storage\.googleapis\.com\/webda-dev\/webda-dev/.exec(await binary.getPublicUrl({ key: "webda-dev" }))
     );
     await binary.deleteObject({ key: to });
   }

@@ -6,7 +6,7 @@ import {
   Route,
   Service,
   ServiceParameters,
-  WebContext
+  WebContext,
 } from "@webda/core";
 
 /**
@@ -39,7 +39,10 @@ class CustomParameters extends ServiceParameters {
 }
 
 @Bean
-class CustomService<T extends CustomParameters = CustomParameters> extends Service<T> implements RequestFilter {
+export class CustomService<T extends CustomParameters = CustomParameters>
+  extends Service<T>
+  implements RequestFilter
+{
   /**
    * @override
    */
@@ -75,7 +78,7 @@ class CustomService<T extends CustomParameters = CustomParameters> extends Servi
   autoDocs(plop: WebContext<CustomBody>) {
     plop.getRequestBody();
     let res: DefinedOutput = {
-      plop: true
+      plop: true,
     };
     plop.write(res);
   }

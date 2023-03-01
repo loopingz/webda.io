@@ -17,9 +17,7 @@ export class CloudBinaryParameters extends BinaryParameters {
 /**
  * CloudBinary abstraction
  */
-export abstract class CloudBinary<
-  T extends CloudBinaryParameters = CloudBinaryParameters
-> extends Binary<T> {
+export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryParameters> extends Binary<T> {
   /**
    * @inheritdoc
    */
@@ -40,26 +38,24 @@ export abstract class CloudBinary<
             operationId: `get${name}Binary`,
             responses: {
               "302": {
-                description: "Redirect to download url",
+                description: "Redirect to download url"
               },
               "403": {
-                description: "You don't have permissions",
+                description: "You don't have permissions"
               },
               "404": {
-                description:
-                  "Object does not exist or attachment does not exist",
+                description: "Object does not exist or attachment does not exist"
               },
               "412": {
-                description: "Provided hash does not match",
-              },
-            },
-          },
+                description: "Provided hash does not match"
+              }
+            }
+          }
         },
         false,
         true
       );
-      url =
-        this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";
+      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";
       name = this._name === "Binary" ? "" : this._name;
       this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {
         get: {
@@ -68,19 +64,19 @@ export abstract class CloudBinary<
           operationId: `get${name}BinaryURL`,
           responses: {
             "200": {
-              description: "Containing the URL",
+              description: "Containing the URL"
             },
             "403": {
-              description: "You don't have permissions",
+              description: "You don't have permissions"
             },
             "404": {
-              description: "Object does not exist or attachment does not exist",
+              description: "Object does not exist or attachment does not exist"
             },
             "412": {
-              description: "Provided hash does not match",
-            },
-          },
-        },
+              description: "Provided hash does not match"
+            }
+          }
+        }
       });
     }
   }
@@ -98,11 +94,7 @@ export abstract class CloudBinary<
     let property = ctx.parameter("property");
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(uid);
-    if (
-      !object ||
-      !Array.isArray(object[property]) ||
-      object[property].length <= index
-    ) {
+    if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
       throw 404;
     }
     await object.canAct(ctx, "get_binary");
@@ -111,7 +103,7 @@ export abstract class CloudBinary<
       ctx.write({ Location: url, Map: object[property][index] });
     } else {
       ctx.writeHead(302, {
-        Location: url,
+        Location: url
       });
     }
   }
@@ -139,7 +131,7 @@ export abstract class CloudBinary<
     await this.emitSync("Binary.Get", {
       object: binaryMap,
       service: this,
-      context: context,
+      context: context
     });
     return this.getSignedUrlFromMap(binaryMap, expires, context);
   }
@@ -184,9 +176,5 @@ export abstract class CloudBinary<
    * @param {GetSignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  abstract getSignedUrlFromMap(
-    map: BinaryMap,
-    expires: number,
-    context: OperationContext
-  ): Promise<string>;
+  abstract getSignedUrlFromMap(map: BinaryMap, expires: number, context: OperationContext): Promise<string>;
 }

@@ -49,7 +49,7 @@ export interface WaitDelayerDefinition {
 export class WaitDelayerFactories {
   static registry: { [key: string]: WaitDelayerFactory } = {
     linear: WaitLinearDelay,
-    exponential: WaitExponentialDelay,
+    exponential: WaitExponentialDelay
   };
 
   /**
@@ -75,12 +75,8 @@ export class WaitDelayerFactories {
    * @param definition to get delayer from
    * @returns
    */
-  static get(
-    definition: WaitDelayerDefinition = { interval: 1000, type: "exponential" }
-  ): WaitDelayer {
-    return WaitDelayerFactories.getFactory(definition.type)(
-      definition.interval
-    );
+  static get(definition: WaitDelayerDefinition = { interval: 1000, type: "exponential" }): WaitDelayer {
+    return WaitDelayerFactories.getFactory(definition.type)(definition.interval);
   }
 }
 
@@ -102,10 +98,7 @@ export class WaitDelayerFactories {
  * @param delayer function that return pause between each call default to WaitExponential(1000)
  */
 export async function WaitFor<T = any>(
-  callback: (
-    resolve: (value?: T) => void,
-    reject?: (reason?: any) => void
-  ) => Promise<boolean>,
+  callback: (resolve: (value?: T) => void, reject?: (reason?: any) => void) => Promise<boolean>,
   retries: number,
   title?: string,
   logger?: Logger,
@@ -133,7 +126,7 @@ export async function WaitFor<T = any>(
         }
         return;
       }
-      await new Promise<void>((resolve) => setTimeout(resolve, delayer(tries)));
+      await new Promise<void>(resolve => setTimeout(resolve, delayer(tries)));
     }
     mainReject("Timeout while waiting for " + title);
   });
@@ -145,10 +138,7 @@ export async function WaitFor<T = any>(
 export class CancelablePromise<T = void> extends Promise<T> {
   cancel: () => Promise<void>;
   constructor(
-    callback: (
-      resolve: (res: T) => void,
-      reject: (err: any) => void
-    ) => void = () => {
+    callback: (resolve: (res: T) => void, reject: (err: any) => void) => void = () => {
       // noop
     },
     onCancel: () => Promise<void> = undefined
@@ -172,13 +162,10 @@ export class CancelablePromise<T = void> extends Promise<T> {
  */
 export class CancelableLoopPromise extends Promise<void> {
   cancel: () => Promise<void>;
-  constructor(
-    callback: (canceller: () => Promise<void>) => Promise<void>,
-    onCancel: () => Promise<void> = undefined
-  ) {
+  constructor(callback: (canceller: () => Promise<void>) => Promise<void>, onCancel: () => Promise<void> = undefined) {
     let localReject;
     let shouldRun = true;
-    super((resolve) => {
+    super(resolve => {
       localReject = async () => {
         if (onCancel) {
           await onCancel();

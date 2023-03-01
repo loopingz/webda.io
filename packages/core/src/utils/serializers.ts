@@ -7,7 +7,7 @@ import {
   readFileSync,
   realpathSync,
   unlinkSync,
-  writeFileSync,
+  writeFileSync
 } from "fs";
 import * as jsonc from "jsonc-parser";
 import { join } from "path";
@@ -66,7 +66,7 @@ export const FileUtils: StorageFinder & {
     options: { followSymlinks?: boolean; includeDir?: boolean } = {}
   ): void => {
     let files = readdirSync(path);
-    const fileItemCallback = (p) => {
+    const fileItemCallback = p => {
       try {
         const stat = lstatSync(p);
         if (stat.isDirectory()) {
@@ -83,17 +83,13 @@ export const FileUtils: StorageFinder & {
         } else if (stat.isFile()) {
           processor(p);
         }
-        /* c8 ignore next 3 */
+        /* c8 ignore start */
       } catch (err) {
-        Core.get().log(
-          "ERROR",
-          "FileUtils.find: Error while reading file",
-          p,
-          err
-        );
+        Core.get().log("ERROR", "FileUtils.find: Error while reading file", p, err);
       }
+      /* c8 ignore stop */
     };
-    files.map((f) => join(path, f)).forEach(fileItemCallback);
+    files.map(f => join(path, f)).forEach(fileItemCallback);
   },
   /**
    * Load a YAML or JSON file based on its extension
@@ -101,7 +97,7 @@ export const FileUtils: StorageFinder & {
    * @param filename to load
    * @returns
    */
-  load: (filename) => {
+  load: filename => {
     if (!existsSync(filename)) {
       throw new Error(`File '${filename}' does not exist.`);
     }
@@ -111,7 +107,7 @@ export const FileUtils: StorageFinder & {
       if (res.length === 1) {
         return res.pop().toJSON();
       }
-      return res.map((d) => d.toJSON());
+      return res.map(d => d.toJSON());
     } else if (filename.match(/\.jsonc?$/i)) {
       if (filename.endsWith("c")) {
         return jsonc.parse(content);
@@ -131,15 +127,10 @@ export const FileUtils: StorageFinder & {
     if (filename.match(/\.ya?ml$/i)) {
       return writeFileSync(
         filename,
-        yaml.stringify(
-          JSON.parse(JSONUtils.stringify(object, undefined, 0, publicAudience))
-        )
+        yaml.stringify(JSON.parse(JSONUtils.stringify(object, undefined, 0, publicAudience)))
       );
     } else if (filename.match(/\.json$/i)) {
-      return writeFileSync(
-        filename,
-        JSONUtils.stringify(object, undefined, 2, publicAudience)
-      );
+      return writeFileSync(filename, JSONUtils.stringify(object, undefined, 2, publicAudience));
     }
     throw new Error("Unknown format");
   },
@@ -148,8 +139,8 @@ export const FileUtils: StorageFinder & {
    * @param files
    */
   clean: (...files: string[]) => {
-    files.filter((f) => existsSync(f)).forEach((f) => unlinkSync(f));
-  },
+    files.filter(f => existsSync(f)).forEach(f => unlinkSync(f));
+  }
 };
 
 /**
@@ -175,10 +166,7 @@ export const JSONUtils = {
     return JSON.stringify(
       value,
       function (key: string, val: any): any {
-        if (
-          (stringified.indexOf(val) >= 0 && typeof val === "object") ||
-          (key.startsWith("__") && publicAudience)
-        ) {
+        if ((stringified.indexOf(val) >= 0 && typeof val === "object") || (key.startsWith("__") && publicAudience)) {
           return undefined;
         }
         stringified.push(val);
@@ -226,10 +214,7 @@ export const JSONUtils = {
         space
       );
     } catch (err) {
-      if (
-        err.message &&
-        err.message.startsWith("Converting circular structure to JSON")
-      ) {
+      if (err.message && err.message.startsWith("Converting circular structure to JSON")) {
         return JSONUtils.safeStringify(value, replacer, space, publicAudience);
       }
       throw err;
@@ -241,14 +226,14 @@ export const JSONUtils = {
    * @param value to parse
    * @returns object parsed
    */
-  parse: (value) => {
+  parse: value => {
     // Auto clean any noise
     return JSON.parse(value);
   },
   /**
    * Duplicate an object using serializer
    */
-  duplicate: (value) => {
+  duplicate: value => {
     return JSON.parse(JSONUtils.stringify(value));
   },
   /**
@@ -258,7 +243,7 @@ export const JSONUtils = {
   /**
    * Helper to FileUtils.save
    */
-  saveFile: FileUtils.save,
+  saveFile: FileUtils.save
 };
 
 /**
@@ -283,7 +268,7 @@ export const YAMLUtils = {
    * @param value to parse
    * @returns object parsed
    */
-  parse: (value) => {
+  parse: value => {
     return yaml.parse(value);
   },
   /**
@@ -294,5 +279,5 @@ export const YAMLUtils = {
    */
   stringify: (value, options = undefined) => {
     return yaml.stringify(value, options);
-  },
+  }
 };

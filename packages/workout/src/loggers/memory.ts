@@ -1,9 +1,4 @@
-import {
-  LogFilter,
-  WorkerLogLevel,
-  WorkerMessage,
-  WorkerOutput,
-} from "../index";
+import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
 import { Logger } from "./index";
 
 /**
@@ -23,12 +18,7 @@ export class MemoryLogger extends Logger {
    */
   protected limit: number;
 
-  constructor(
-    output: WorkerOutput,
-    level: WorkerLogLevel = "DEBUG",
-    limit = 2000,
-    includeAll: boolean = false
-  ) {
+  constructor(output: WorkerOutput, level: WorkerLogLevel = "DEBUG", limit = 2000, includeAll: boolean = false) {
     super(output, level);
     this.includeAll = includeAll;
     this.limit = limit;
@@ -67,7 +57,7 @@ export class MemoryLogger extends Logger {
   getLogs(): WorkerMessage[] {
     // If includeAll we need to filter
     if (this.includeAll) {
-      return this.messages.filter((t) => t.type === "log");
+      return this.messages.filter(t => t.type === "log");
     }
     return this.messages;
   }

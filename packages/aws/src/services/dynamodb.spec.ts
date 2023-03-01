@@ -3,7 +3,7 @@ import {
   DescribeTableCommand,
   DynamoDB,
   DynamoDBClient,
-  ScanCommand,
+  ScanCommand
 } from "@aws-sdk/client-dynamodb";
 import { suite, test } from "@testdeck/mocha";
 import {
@@ -13,7 +13,7 @@ import {
   Store,
   StoreEvents,
   StoreParameters,
-  UpdateConditionFailError,
+  UpdateConditionFailError
 } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import { TestApplication } from "@webda/core/lib/test";
@@ -43,11 +43,7 @@ export class DynamoDBTest extends StoreTest {
     super.tweakApp(app);
     app.addService(
       "test/awsevents",
-      (
-        await import(
-          path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/"))
-        )
-      ).AWSEventsHandler
+      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).AWSEventsHandler
     );
   }
 
@@ -67,19 +63,15 @@ export class DynamoDBTest extends StoreTest {
     // Disable default ordering query as it is not possible with Dynamo
   }
 
-  static async install(
-    TableName: string,
-    GlobalSecondaryIndexes?,
-    attrs: any[] = []
-  ) {
+  static async install(TableName: string, GlobalSecondaryIndexes?, attrs: any[] = []) {
     var dynamodb = new DynamoDB({
       endpoint: "http://localhost:4566",
       credentials: defaultCreds,
-      region: "us-east-1",
+      region: "us-east-1"
     });
     try {
       await dynamodb.describeTable({
-        TableName,
+        TableName
       });
     } catch (err) {
       if (err.name === "ResourceNotFoundException") {
@@ -87,22 +79,22 @@ export class DynamoDBTest extends StoreTest {
           TableName,
           ProvisionedThroughput: {
             ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5,
+            WriteCapacityUnits: 5
           },
           GlobalSecondaryIndexes,
           KeySchema: [
             {
               AttributeName: "uuid",
-              KeyType: "HASH",
-            },
+              KeyType: "HASH"
+            }
           ],
           AttributeDefinitions: [
             {
               AttributeName: "uuid",
-              AttributeType: "S",
+              AttributeType: "S"
             },
-            ...attrs,
-          ],
+            ...attrs
+          ]
         };
         let table = dynamodb.createTable(createTable);
         return table;
@@ -110,9 +102,7 @@ export class DynamoDBTest extends StoreTest {
     }
   }
 
-  async fillForQuery(): Promise<
-    Store<CoreModel, StoreParameters, StoreEvents>
-  > {
+  async fillForQuery(): Promise<Store<CoreModel, StoreParameters, StoreEvents>> {
     await DynamoDBTest.install(
       "webda-test-query",
       [
@@ -121,29 +111,29 @@ export class DynamoDBTest extends StoreTest {
           KeySchema: [
             {
               AttributeName: "state",
-              KeyType: "HASH",
+              KeyType: "HASH"
             },
             {
               AttributeName: "order",
-              KeyType: "RANGE",
-            },
+              KeyType: "RANGE"
+            }
           ],
           Projection: { ProjectionType: "ALL" },
           ProvisionedThroughput: {
             ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5,
-          },
-        },
+            WriteCapacityUnits: 5
+          }
+        }
       ],
       [
         {
           AttributeName: "state",
-          AttributeType: "S",
+          AttributeType: "S"
         },
         {
           AttributeName: "order",
-          AttributeType: "N",
-        },
+          AttributeType: "N"
+        }
       ]
     );
     let store = new DynamoStore(this.webda, "queryStore", {
@@ -151,20 +141,20 @@ export class DynamoDBTest extends StoreTest {
       globalIndexes: {
         States: {
           key: "state",
-          sort: "order",
-        },
+          sort: "order"
+        }
       },
       expose: {
-        url: "/none",
+        url: "/none"
       },
       credentials: defaultCreds,
       endpoint: "http://localhost:4566",
-      region: "us-east-1",
+      region: "us-east-1"
     });
     store.resolve();
     await store.init();
     if ((await store.getAll()).length < 1000) {
-      await Promise.all(this.getQueryDocuments().map((d) => store.save(d)));
+      await Promise.all(this.getQueryDocuments().map(d => store.save(d)));
     }
     return store;
   }
@@ -173,19 +163,13 @@ export class DynamoDBTest extends StoreTest {
   async query() {
     // Run default query
     let store = await super.query();
-    let res = await store.query(
-      'state = "CA" AND order < 100 ORDER BY team.id ASC, order DESC'
-    );
+    let res = await store.query('state = "CA" AND order < 100 ORDER BY team.id ASC, order DESC');
     assert.strictEqual((<any>res.results.shift()).order, 96);
     let set = ["CA"];
     for (let i = 1; i < 150; i++) {
       set.push(i.toString(16));
     }
-    assert.strictEqual(
-      (await store.query(`state IN [${set.map((e) => `"${e}"`).join(",")}]`))
-        .results.length,
-      250
-    );
+    assert.strictEqual((await store.query(`state IN [${set.map(e => `"${e}"`).join(",")}]`)).results.length, 250);
     // Add more test here
     return store;
   }
@@ -198,10 +182,10 @@ export class DynamoDBTest extends StoreTest {
       subobject: {
         empty: "",
         t: {
-          plop: "",
+          plop: ""
         },
-        date: new Date(),
-      },
+        date: new Date()
+      }
     });
     let user = await userStore.get("testUpdate");
     assert.notStrictEqual(user.date, {});
@@ -210,28 +194,26 @@ export class DynamoDBTest extends StoreTest {
   @test
   bodyCleaning() {
     //var parse = require("./data/to_clean.json");
-    let identStore: DynamoStore<Ident> = <DynamoStore<Ident>>(
-      this.getIdentStore()
-    );
+    let identStore: DynamoStore<Ident> = <DynamoStore<Ident>>this.getIdentStore();
     let ident = new Ident();
     ident.load(
       <any>{
         arr: [
           {
             value: "",
-            test: "oki",
+            test: "oki"
           },
           {
-            value: "",
+            value: ""
           },
           {
-            value: "Test",
-          },
+            value: "Test"
+          }
         ],
         sub: {
-          value: "",
+          value: ""
         },
-        __store: identStore,
+        __store: identStore
       },
       true
     );
@@ -246,9 +228,7 @@ export class DynamoDBTest extends StoreTest {
 
   @test
   ARNPolicy() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>(
-      this.getService("users")
-    );
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
     userStore.getParameters().region = "eu-west-1";
     assert.strictEqual(
       userStore.getARNPolicy("666").Resource[0],
@@ -265,9 +245,7 @@ export class DynamoDBTest extends StoreTest {
 
   @test
   async patchSkip() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>(
-      this.getService("users")
-    );
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
     let s = sinon.spy(userStore._client, "update");
     try {
       await userStore._patch({ uuid: "test" }, "test");
@@ -280,12 +258,7 @@ export class DynamoDBTest extends StoreTest {
   @test
   async deleteWithCondition() {
     await assert.rejects(
-      () =>
-        (<DynamoStore<any>>this.getService("users"))._delete(
-          "nop",
-          new Date(),
-          "p"
-        ),
+      () => (<DynamoStore<any>>this.getService("users"))._delete("nop", new Date(), "p"),
       UpdateConditionFailError
     );
   }
@@ -293,11 +266,7 @@ export class DynamoDBTest extends StoreTest {
   @test
   params() {
     assert.throws(
-      () =>
-        new DynamoStoreParameters(
-          {},
-          <DynamoStore<any>>this.getService("users")
-        ),
+      () => new DynamoStoreParameters({}, <DynamoStore<any>>this.getService("users")),
       /Need to define a table at least/
     );
   }
@@ -309,23 +278,12 @@ export class DynamoDBTest extends StoreTest {
       const faultyMethod = () => {
         throw new Error("Unknown");
       };
-      let userStore: DynamoStore<any> = <DynamoStore<any>>(
-        this.getService("users")
-      );
+      let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
       await assert.rejects(
-        () =>
-          userStore._upsertItemToCollection(
-            "plop2",
-            "test",
-            "plop",
-            1,
-            2,
-            "",
-            new Date()
-          ),
+        () => userStore._upsertItemToCollection("plop2", "test", "plop", 1, 2, "", new Date()),
         /Item not found plop2 Store/
       );
-      stubs = ["update", "delete", "put"].map((method) => {
+      stubs = ["update", "delete", "put"].map(method => {
         // @ts-ignore
         return sinon.stub(userStore._client, method).callsFake(faultyMethod);
       });
@@ -335,64 +293,31 @@ export class DynamoDBTest extends StoreTest {
           throw new Error("Unknown");
         })
       );
+      await assert.rejects(() => userStore._removeAttribute("plop", "test"), /Unknown/);
       await assert.rejects(
-        () => userStore._removeAttribute("plop", "test"),
+        () => userStore._deleteItemFromCollection("plop", "test", 1, "plop", 2, new Date()),
         /Unknown/
       );
       await assert.rejects(
-        () =>
-          userStore._deleteItemFromCollection(
-            "plop",
-            "test",
-            1,
-            "plop",
-            2,
-            new Date()
-          ),
-        /Unknown/
-      );
-      await assert.rejects(
-        () =>
-          userStore._upsertItemToCollection(
-            "plop",
-            "test",
-            "plop",
-            1,
-            2,
-            "",
-            new Date()
-          ),
+        () => userStore._upsertItemToCollection("plop", "test", "plop", 1, 2, "", new Date()),
         /Unknown/
       );
       await assert.rejects(() => userStore._delete("plop"), /Unknown/);
-      await assert.rejects(
-        () => userStore._patch({ t: "l" }, "plop"),
-        /Unknown/
-      );
-      await assert.rejects(
-        () => userStore._update({ t: "l" }, "plop"),
-        /Unknown/
-      );
+      await assert.rejects(() => userStore._patch({ t: "l" }, "plop"), /Unknown/);
+      await assert.rejects(() => userStore._update({ t: "l" }, "plop"), /Unknown/);
       await assert.rejects(() => userStore._scan([]), /Unknown/);
       await assert.rejects(
-        () =>
-          userStore._incrementAttributes(
-            "plop",
-            [{ property: "t", value: 1 }],
-            new Date()
-          ),
+        () => userStore._incrementAttributes("plop", [{ property: "t", value: 1 }], new Date()),
         /Unknown/
       );
     } finally {
-      stubs.forEach((s) => s.restore());
+      stubs.forEach(s => s.restore());
     }
   }
 
   @test
   async patch() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>(
-      this.getService("users")
-    );
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
     let stub = sinon.stub(userStore._client, "update").callsFake(() => {
       let err = new Error();
       // @ts-ignore
@@ -400,10 +325,7 @@ export class DynamoDBTest extends StoreTest {
       throw err;
     });
     try {
-      assert.rejects(
-        () => userStore._patch({ t: "l" }, "plop"),
-        UpdateConditionFailError
-      );
+      assert.rejects(() => userStore._patch({ t: "l" }, "plop"), UpdateConditionFailError);
     } finally {
       stub.restore();
     }
@@ -415,8 +337,8 @@ export class DynamoDBTest extends StoreTest {
     try {
       mock.on(DescribeTableCommand).resolves({
         Table: {
-          ItemCount: 50,
-        },
+          ItemCount: 50
+        }
       });
       const results = [];
       let output = new WorkerOutput();
@@ -424,7 +346,7 @@ export class DynamoDBTest extends StoreTest {
         results.push({ Item: { S: `Title ${i}` } });
       }
 
-      mock.on(ScanCommand).callsFake(async (p) => {
+      mock.on(ScanCommand).callsFake(async p => {
         let offset = 0;
         let LastEvaluatedKey;
         if (p.ExclusiveStartKey) {
@@ -436,13 +358,11 @@ export class DynamoDBTest extends StoreTest {
 
         return {
           Items: results.slice(offset, 35),
-          LastEvaluatedKey,
+          LastEvaluatedKey
         };
       });
       mock.on(BatchWriteItemCommand).resolves({});
-      let userStore: DynamoStore<any> = <DynamoStore<any>>(
-        this.getService("users")
-      );
+      let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
       await DynamoStore.copyTable(output, "table1", "table2");
     } finally {
       mock.restore();

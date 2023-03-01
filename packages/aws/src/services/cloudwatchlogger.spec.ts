@@ -17,11 +17,11 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     let cloudwatch = new CloudWatchLogs({
       credentials: defaultCreds,
       endpoint: "http://localhost:4566",
-      region: "us-east-1",
+      region: "us-east-1"
     });
     try {
       await cloudwatch.deleteLogGroup({
-        logGroupName: "webda-test",
+        logGroupName: "webda-test"
       });
     } catch (err) {
       // Skip bad delete
@@ -41,15 +41,12 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
     let res = await this.service._cloudwatch.describeLogStreams({
-      logGroupName: "webda-test",
+      logGroupName: "webda-test"
     });
     assert.strictEqual(res.logStreams.length, 1);
     assert.notStrictEqual(res.logStreams[0].lastEventTimestamp, undefined);
     this.service.getParameters().logGroupName = undefined;
-    await assert.rejects(
-      () => this.service.init(),
-      /Require a log group `logGroupName` parameter/
-    );
+    await assert.rejects(() => this.service.init(), /Require a log group `logGroupName` parameter/);
   }
 
   @test
@@ -59,17 +56,17 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
       Effect: "Allow",
       Resource: [
         "arn:aws:logs:us-east-1:plop:log-group:webda-test",
-        "arn:aws:logs:us-east-1:plop:log-group:webda-test:*:*",
+        "arn:aws:logs:us-east-1:plop:log-group:webda-test:*:*"
       ],
-      Sid: "CloudWatchLoggerCloudWatchLogger",
+      Sid: "CloudWatchLoggerCloudWatchLogger"
     });
     assert.deepStrictEqual(this.service.getCloudFormation(), {
       CloudWatchLoggerLogGroup: {
         Properties: {
-          LogGroupName: "webda-test",
+          LogGroupName: "webda-test"
         },
-        Type: "AWS::Logs::LogGroup",
-      },
+        Type: "AWS::Logs::LogGroup"
+      }
     });
     this.service.getParameters().CloudFormationSkip = true;
     assert.deepStrictEqual(this.service.getCloudFormation(), {});
@@ -83,7 +80,7 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     this.webda.log("DEBUG", "Plop 1", "Test");
     await this.sleep(1000);
     let res = await this.service._cloudwatch.describeLogStreams({
-      logGroupName: "webda-test",
+      logGroupName: "webda-test"
     });
     assert.strictEqual(res.logStreams.length, 1);
     assert.notStrictEqual(res.logStreams[0].lastEventTimestamp, undefined);
@@ -92,7 +89,7 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
     res = await this.service._cloudwatch.describeLogStreams({
-      logGroupName: "webda-test",
+      logGroupName: "webda-test"
     });
     assert.strictEqual(res.logStreams.length, 1);
   }

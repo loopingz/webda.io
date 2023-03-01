@@ -1,11 +1,5 @@
 import { Message, PubSub } from "@google-cloud/pubsub";
-import {
-  CancelablePromise,
-  DeepPartial,
-  MessageReceipt,
-  Queue,
-  QueueParameters,
-} from "@webda/core";
+import { CancelablePromise, DeepPartial, MessageReceipt, Queue, QueueParameters } from "@webda/core";
 
 /**
  * GCPQueue Parameters
@@ -34,10 +28,7 @@ export class GCPQueueParameters extends QueueParameters {
  *
  * @WebdaModda GoogleCloudQueue
  */
-export default class GCPQueue<
-  T = any,
-  K extends GCPQueueParameters = GCPQueueParameters
-> extends Queue<T, K> {
+export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueueParameters> extends Queue<T, K> {
   /**
    * Main api object
    */
@@ -80,11 +71,12 @@ export default class GCPQueue<
   async deleteMessage(id: string) {
     await this.pubsub.auth.request({
       method: "POST",
-      url: `https://pubsub.googleapis.com/v1/projects/${await this
-        .projectId}/subscriptions/${this.parameters.subscription}:acknowledge`,
+      url: `https://pubsub.googleapis.com/v1/projects/${await this.projectId}/subscriptions/${
+        this.parameters.subscription
+      }:acknowledge`,
       body: JSON.stringify({
-        ackIds: [id],
-      }),
+        ackIds: [id]
+      })
     });
     this.messages[id].ack();
     delete this.messages[id];
@@ -95,9 +87,7 @@ export default class GCPQueue<
    * @param msg
    */
   async sendMessage(msg: T) {
-    await this.pubsub
-      .topic(this.parameters.topic)
-      .publishMessage({ data: Buffer.from(JSON.stringify(msg)) });
+    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(msg)) });
   }
 
   /**
@@ -109,20 +99,17 @@ export default class GCPQueue<
     let timeoutId;
     let errorHandler;
     let msgHandler;
-    const subscription = this.pubsub.subscription(
-      this.parameters.subscription,
-      {
-        flowControl: {
-          maxMessages: 1,
-        },
+    const subscription = this.pubsub.subscription(this.parameters.subscription, {
+      flowControl: {
+        maxMessages: 1
       }
-    );
+    });
     try {
       return await new Promise<MessageReceipt<L>[]>((resolve, reject) => {
         if (this.parameters.timeout) {
           timeoutId = setTimeout(() => resolve([]), this.parameters.timeout);
         }
-        errorHandler = (err) => {
+        errorHandler = err => {
           reject(err);
         };
         msgHandler = (message: Message) => {
@@ -130,8 +117,8 @@ export default class GCPQueue<
           resolve([
             {
               Message: this.unserialize(message.data.toString(), proto),
-              ReceiptHandle: message.ackId,
-            },
+              ReceiptHandle: message.ackId
+            }
           ]);
         };
         subscription.on("error", errorHandler);
@@ -151,25 +138,17 @@ export default class GCPQueue<
    * @param callback
    * @param eventPrototype
    */
-  consume(
-    callback: (event: T) => Promise<void>,
-    eventPrototype?: { new (): T }
-  ): CancelablePromise {
-    const subscription = this.pubsub.subscription(
-      this.parameters.subscription,
-      {
-        flowControl: {
-          maxMessages: this.getMaxConsumers(),
-        },
+  consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
+    const subscription = this.pubsub.subscription(this.parameters.subscription, {
+      flowControl: {
+        maxMessages: this.getMaxConsumers()
       }
-    );
+    });
     return new CancelablePromise(
       async () => {
         subscription.on("message", async (message: Message) => {
           try {
-            await callback(
-              this.unserialize(message.data.toString(), eventPrototype)
-            );
+            await callback(this.unserialize(message.data.toString(), eventPrototype));
             message.ack();
           } catch (err) {
             this.log("ERROR", `Message ${message.ackId}`, err);

@@ -177,12 +177,16 @@ export class UnpackedApplication extends Application {
       if (!fs.existsSync(nodeModules)) {
         return;
       }
-      FileUtils.find(nodeModules, filepath => {
-        // We filter out the cache of nx
-        if (filepath.endsWith("webda.module.json") && !filepath.includes("node_modules/.cache/nx")) {
-          files.push(filepath);
-        }
-      });
+      FileUtils.walk(
+        nodeModules,
+        filepath => {
+          // We filter out the cache of nx
+          if (filepath.endsWith("webda.module.json") && !filepath.includes("node_modules/.cache/nx")) {
+            files.push(filepath);
+          }
+        },
+        { followSymlinks: true }
+      );
     };
 
     findModuleFiles(this.getAppPath("node_modules"));
@@ -226,15 +230,14 @@ export class UnpackedApplication extends Application {
             module[SectionEnum[p]][key]
           );
         }
-
       });
 
-      for (let key in module.models.list) {
-        module.models.list[key] = path.join(
-          path.relative(this.getAppPath(), path.dirname(moduleFile)),
-          module.models.list[key]
-        );
-      }
+    for (let key in module.models.list) {
+      module.models.list[key] = path.join(
+        path.relative(this.getAppPath(), path.dirname(moduleFile)),
+        module.models.list[key]
+      );
+    }
     return module;
   }
 

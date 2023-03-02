@@ -15,6 +15,9 @@ import { Readable, Writable } from "stream";
 import * as yaml from "yaml";
 import { Core } from "../core";
 
+type WalkerOptionsType = { followSymlinks?: boolean; includeDir?: boolean; maxDepth?: number };
+type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor?: (filepath: string) => void };
+
 /**
  * Define a Finder that can be use
  */
@@ -22,11 +25,16 @@ export interface StorageFinder {
   /**
    * Recursively browse the path and call processor on each
    */
-  find(
+  walk(
     path: string,
     processor: (filepath: string) => void,
-    options?: { followSymlinks?: boolean; includeDir?: boolean }
+    options?: WalkerOptionsType,
+    state?: { depth: number }
   ): void;
+  /**
+   * Find
+   */
+  find(currentPath: string, options?: FinderOptionsType): string[];
   /**
    * Get a write stream based on the id return by the finder
    */
@@ -55,16 +63,23 @@ export const FileUtils: StorageFinder & {
     return createReadStream(path);
   },
   /**
-   * Recursively run a process
+   * Recursively run a process through all descendant files under a path
    *
-   * @param path
-   * @param processor
+   * @param {string} path
+   * @param {Function} processor Processing function, eg: (filepath: string) => void
+   * @param {string} currentPath Path to dig
+   * @param {boolean} options.followSymlinks Follow symlinks which targets a folder
+   * @param {boolean} options.includeDir Include folders to results transmitted to the processor function
+   * @param {number} options.maxDepth Maximum depth level to investigate, default is 100 to prevent infinite loops
+   * @param {number} state.depth Starting level counter
    */
-  find: (
+  walk: (
     path: string,
     processor: (filepath: string) => void,
-    options: { followSymlinks?: boolean; includeDir?: boolean } = {}
+    options: WalkerOptionsType = { maxDepth: 100 },
+    state: { depth: number } = { depth: 0 }
   ): void => {
+    state.depth++;
     let files = readdirSync(path);
     const fileItemCallback = p => {
       try {
@@ -73,13 +88,27 @@ export const FileUtils: StorageFinder & {
           if (options.includeDir) {
             processor(p);
           }
-          FileUtils.find(p, processor, options);
-        } else if (stat.isSymbolicLink()) {
-          const newpath = realpathSync(p);
-          if (options.includeDir) {
-            processor(newpath);
+          // folder found, trying to dig further
+          if (!options.maxDepth || state.depth < options.maxDepth) {
+            // unless we reached the maximum depth
+            FileUtils.walk(p, processor, options, state);
           }
-          fileItemCallback(newpath);
+        } else if (stat.isSymbolicLink()) {
+          const realPath = realpathSync(p);
+          const stat = lstatSync(realPath);
+          if (stat.isDirectory()) {
+            // symlink targets a folder
+            if (options.followSymlinks) {
+              // following below
+              if (!options.maxDepth || state.depth < options.maxDepth) {
+                // unless we reached the maximum depth
+                FileUtils.walk(realPath, processor, options, state);
+              }
+            }
+          } else {
+            // symlink targets a file
+            processor(realPath);
+          }
         } else if (stat.isFile()) {
           processor(p);
         }
@@ -90,6 +119,28 @@ export const FileUtils: StorageFinder & {
       /* c8 ignore stop */
     };
     files.map(f => join(path, f)).forEach(fileItemCallback);
+  },
+  /**
+   * Find files below a provided path, optionally filtered by a RegExp pattern
+   * Without pattern provided, ALL FOUND FILES will be returned by default
+   *
+   * @param {string} currentPath Path to explore
+   * @param {boolean} options.followSymlinks Follow symlinks which targets a folder
+   * @param {boolean} options.includeDir Include folders to results transmitted to the processor function
+   * @param {number} options.maxDepth Maximum depth level to investigate
+   * @param {RegExp} options.filterPattern RegExp pattern to filter, no filter will find all files
+   * @returns
+   */
+  find: (currentPath: string, options: FinderOptionsType = { maxDepth: 3 }): string[] => {
+    let found = [];
+    const processor = (filepath: string) => {
+      if (!options.filterPattern || options.filterPattern.test(filepath)) {
+        // unless an existing regexp filter forces to skip
+        found.push(filepath);
+      }
+    };
+    FileUtils.walk(currentPath, processor, options);
+    return found;
   },
   /**
    * Load a YAML or JSON file based on its extension

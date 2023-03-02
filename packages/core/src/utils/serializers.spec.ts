@@ -169,20 +169,20 @@ plop: test
   }
 
   @test
-  finder() {
+  walker() {
     try {
       let res = [];
       if (!existsSync("./test/link")) {
         symlinkSync("../templates", "test/link");
       }
-      FileUtils.find("test", f => res.push(f));
+      FileUtils.walk("test", f => res.push(f));
       assert.ok(
         ["test/models/ident.js", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
           .map(c => res.includes(c))
           .reduce((v, c) => v && c, true)
       );
       res = [];
-      FileUtils.find("test", f => res.push(f), {
+      FileUtils.walk("test", f => res.push(f), {
         includeDir: true,
         followSymlinks: true
       });
@@ -190,6 +190,12 @@ plop: test
     } finally {
       FileUtils.clean("test/link");
     }
+  }
+
+  @test
+  finder() {
+    let res = FileUtils.find("test", { filterPattern: /Dockerfile/ });
+    assert.ok(res.includes("test/Dockerfile"));
   }
 
   @test

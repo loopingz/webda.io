@@ -1,7 +1,7 @@
 import { Configuration, DeployerResources, JSONUtils } from "@webda/core";
 import * as crypto from "crypto";
 import * as fs from "fs";
-import glob from "glob";
+import { globSync } from "glob";
 import * as path from "path";
 import * as semver from "semver";
 import { intersect } from "semver-intersect";
@@ -42,7 +42,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     }
     let result = this.loadPackageInfo(dir).workspaces || ["packages/*"];
     return result
-      .map(r => glob.sync(path.join(dir, r)))
+      .map(r => globSync(path.join(dir, r)))
       .flat()
       .map(r => path.relative(dir, r));
   }
@@ -93,10 +93,10 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     main.files.forEach(p => {
       let includeDir = path.join(pkg, p);
       if (fs.existsSync(includeDir)) {
-        glob.sync(includeDir).forEach(src => {
+        globSync(includeDir).forEach(src => {
           let stat = fs.lstatSync(src);
           if (stat.isDirectory()) {
-            return glob.sync(src + "/**").forEach(f => hash.update(fs.lstatSync(f).mtime + f));
+            return globSync(src + "/**").forEach(f => hash.update(fs.lstatSync(f).mtime + f));
           } else {
             hash.update(stat.mtime + src);
           }

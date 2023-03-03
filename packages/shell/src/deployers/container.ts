@@ -1,6 +1,6 @@
 import { DeployerResources, getCommonJS, JSONUtils } from "@webda/core";
 import fs from "fs-extra";
-import glob from "glob";
+import { globSync } from "glob";
 import * as path from "path";
 import { Packager } from "../index";
 import { Deployer } from "./deployer";
@@ -200,7 +200,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
     }
     includes.forEach(p => {
       let includeDir = path.join(pkg, p);
-      glob.sync(includeDir).forEach(src => {
+      globSync(includeDir).forEach(src => {
         let rel = path.relative(pkg, src);
         this.logger.log("INFO", "Copying", src, `link_modules/${packageInfo.name}/${rel}`);
         fs.copySync(src, `link_modules/${packageInfo.name}/${rel}`, {

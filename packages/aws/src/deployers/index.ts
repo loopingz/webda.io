@@ -8,7 +8,7 @@ import { Deployer, DeploymentManager } from "@webda/shell";
 import bluebird from "bluebird";
 import * as crypto from "crypto";
 import * as fs from "fs";
-import glob from "glob";
+import { globSync } from "glob";
 import IamPolicyOptimizer from "iam-policy-optimizer";
 import * as mime from "mime-types";
 import * as path from "path";
@@ -532,7 +532,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    */
   async putFolderOnBucket(bucket: string, folder: string, prefix: string = "") {
     let absFolder = path.resolve(folder);
-    let files = glob.sync(`${absFolder}/**/*`);
+    let files = globSync(`${absFolder}/**/*`);
     await this.putFilesOnBucket(
       bucket,
       // Replace \ by / for Windows system

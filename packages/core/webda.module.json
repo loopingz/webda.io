@@ -117,7 +117,7 @@
       },
       "description": "Object that contains ACL to define its own permissions",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/aclmodel"
+      "title": "AclModel"
     },
     "webda/aggregator": {
       "type": "object",
@@ -165,6 +165,10 @@
         "key": {
           "type": "string",
           "default": "index"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -179,7 +183,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/aggregator"
+      "title": "AggregatorService"
     },
     "webda/aliasstore": {
       "type": "object",
@@ -259,6 +263,10 @@
         "idTemplate": {
           "type": "string",
           "description": "Store to alias"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -317,7 +325,7 @@
           }
         }
       },
-      "title": "webda/aliasstore"
+      "title": "AliasStore"
     },
     "webda/asyncevents": {
       "type": "object",
@@ -340,13 +348,17 @@
         "sync": {
           "type": "boolean",
           "description": "Make the event sending asynchronous"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/asyncevents"
+      "title": "EventService"
     },
     "webda/authentication": {
       "type": "object",
@@ -433,6 +445,10 @@
         "registerRedirect": {
           "type": "string",
           "description": "Redirect to this page once email is validate to finish the registration process"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -444,7 +460,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/authentication"
+      "title": "Authentication"
     },
     "webda/comment": {
       "type": "object",
@@ -484,7 +500,7 @@
       ],
       "description": "Generic comment class",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/comment"
+      "title": "Comment"
     },
     "webda/configurationservice": {
       "type": "object",
@@ -507,6 +523,10 @@
         },
         "default": {
           "description": "Default configuration to use"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -515,7 +535,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/configurationservice"
+      "title": "ConfigurationService"
     },
     "webda/consolelogger": {
       "type": "object",
@@ -534,6 +554,10 @@
         },
         "format": {
           "type": "string"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -554,7 +578,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "webda/consolelogger"
+      "title": "ConsoleLoggerService"
     },
     "webda/cookiesessionmanager": {
       "type": "object",
@@ -712,6 +736,10 @@
             }
           },
           "description": "Cookie configuration for session"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -736,7 +764,7 @@
           ]
         }
       },
-      "title": "webda/cookiesessionmanager"
+      "title": "CookieSessionManager"
     },
     "webda/coremodel": {
       "type": "object",
@@ -756,7 +784,7 @@
       },
       "description": "Basic Object in Webda\n\nIt is used to define a data stored Any variable starting with _ can only be set by the server Any variable starting with __ won't be exported outside of the server",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/coremodel"
+      "title": "CoreModel"
     },
     "webda/cronservice": {
       "type": "object",
@@ -768,6 +796,10 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -775,7 +807,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/cronservice"
+      "title": "CronService"
     },
     "webda/cryptoservice": {
       "type": "object",
@@ -977,6 +1009,10 @@
             "keyid": {}
           },
           "description": "Default JWT options"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1004,7 +1040,7 @@
           ]
         }
       },
-      "title": "webda/cryptoservice"
+      "title": "CryptoService"
     },
     "webda/debugmailer": {
       "type": "object",
@@ -1016,6 +1052,10 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1023,7 +1063,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/debugmailer"
+      "title": "DebugMailer"
     },
     "webda/echoservice": {
       "type": "object",
@@ -1048,6 +1088,10 @@
             {}
           ],
           "description": "result to write on the url"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1056,7 +1100,7 @@
         "url"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/echoservice"
+      "title": "EchoService"
     },
     "webda/filebinary": {
       "type": "object",
@@ -1125,6 +1169,10 @@
           "type": "number",
           "description": "Maximum size to handle",
           "default": "10Mb"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1133,7 +1181,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/filebinary"
+      "title": "FileBinary"
     },
     "webda/fileconfiguration": {
       "type": "object",
@@ -1156,6 +1204,10 @@
         },
         "default": {
           "description": "Default configuration to use"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1164,7 +1216,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/fileconfiguration"
+      "title": "FileConfigurationService"
     },
     "webda/filelogger": {
       "type": "object",
@@ -1189,6 +1241,10 @@
         },
         "sizeLimit": {
           "type": "number"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1210,7 +1266,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "webda/filelogger"
+      "title": "FileLoggerService"
     },
     "webda/filequeue": {
       "type": "object",
@@ -1259,6 +1315,10 @@
         "folder": {
           "type": "string",
           "description": "Where to store the queue"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1267,7 +1327,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/filequeue"
+      "title": "FileQueue"
     },
     "webda/filestore": {
       "type": "object",
@@ -1355,6 +1415,10 @@
           "type": "boolean",
           "description": "Disable memory cache\n\nUseful if several process update storage files",
           "default": false
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1412,7 +1476,7 @@
           }
         }
       },
-      "title": "webda/filestore"
+      "title": "FileStore"
     },
     "webda/ident": {
       "type": "object",
@@ -1481,7 +1545,7 @@
       ],
       "description": "First basic model for Ident",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/ident"
+      "title": "Ident"
     },
     "webda/invitationservice": {
       "type": "object",
@@ -1542,6 +1606,10 @@
         "notification": {
           "type": "string",
           "description": "Email template to send to the user"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1557,7 +1625,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/invitationservice"
+      "title": "InvitationService"
     },
     "webda/kubernetesconfigurationservice": {
       "type": "object",
@@ -1580,6 +1648,10 @@
         },
         "default": {
           "description": "Default configuration to use"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1588,7 +1660,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/kubernetesconfigurationservice"
+      "title": "KubernetesConfigurationService"
     },
     "webda/mailer": {
       "type": "object",
@@ -1622,6 +1694,10 @@
         },
         "SES": {
           "description": "SES AWS Bean if transport === \"ses\""
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1630,7 +1706,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/mailer"
+      "title": "Mailer"
     },
     "webda/mapper": {
       "type": "object",
@@ -1674,6 +1750,10 @@
         "cascade": {
           "type": "boolean",
           "description": "Delete source if target object is deleted"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1688,7 +1768,7 @@
       ],
       "description": "Mapper configuration",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/mapper"
+      "title": "MapperService"
     },
     "webda/memorylogger": {
       "type": "object",
@@ -1707,6 +1787,10 @@
         },
         "limit": {
           "type": "number"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1727,7 +1811,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "webda/memorylogger"
+      "title": "MemoryLoggerService"
     },
     "webda/memoryqueue": {
       "type": "object",
@@ -1772,6 +1856,10 @@
           "type": "number",
           "description": "Number of seconds before droping message",
           "default": 30
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1779,7 +1867,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/memoryqueue"
+      "title": "MemoryQueue"
     },
     "webda/memorystore": {
       "type": "object",
@@ -1877,6 +1965,10 @@
             "path"
           ],
           "description": "Persist the data in a file"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1934,7 +2026,7 @@
           }
         }
       },
-      "title": "webda/memorystore"
+      "title": "MemoryStore"
     },
     "webda/multinotificationservice": {
       "type": "object",
@@ -1958,6 +2050,10 @@
           "type": "boolean",
           "description": "Define if it sends one or several notification per user",
           "default": false
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -1966,7 +2062,7 @@
       ],
       "description": "Parameters for multi notification service",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/multinotificationservice"
+      "title": "MultiNotificationService"
     },
     "webda/ownermodel": {
       "type": "object",
@@ -2002,7 +2098,7 @@
         "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/ownermodel"
+      "title": "OwnerModel"
     },
     "webda/prometheusservice": {
       "type": "object",
@@ -2048,6 +2144,10 @@
         "prefix": {
           "type": "string",
           "description": "Prefix to add to metrics"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -2056,7 +2156,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/prometheusservice"
+      "title": "PrometheusService"
     },
     "webda/proxyservice": {
       "type": "object",
@@ -2076,6 +2176,10 @@
         "requireAuthentication": {
           "type": "boolean",
           "description": "Helper to refuse any request if user is not auth"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -2085,7 +2189,7 @@
       ],
       "description": "Proxy to a backend service",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/proxyservice"
+      "title": "ProxyService"
     },
     "webda/registryentry": {
       "type": "object",
@@ -2104,7 +2208,7 @@
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/registryentry"
+      "title": "RegistryEntry"
     },
     "webda/resourceservice": {
       "type": "object",
@@ -2137,6 +2241,10 @@
           "type": "boolean",
           "description": "Return the index file for any unfound resource Useful for single page application",
           "default": true
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -2144,7 +2252,7 @@
       ],
       "description": "ResourceService parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/resourceservice"
+      "title": "ResourceService"
     },
     "webda/rolemodel": {
       "type": "object",
@@ -2163,7 +2271,7 @@
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/rolemodel"
+      "title": "RoleModel"
     },
     "webda/user": {
       "type": "object",
@@ -2239,7 +2347,7 @@
       ],
       "description": "First basic model for User",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/user"
+      "title": "User"
     },
     "webda/versionservice": {
       "type": "object",
@@ -2256,6 +2364,10 @@
         "version": {
           "type": "string",
           "description": "To force version otherwise would read from package.json"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -2263,7 +2375,7 @@
       ],
       "description": "Version parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/versionservice"
+      "title": "VersionService"
     }
   }
 }

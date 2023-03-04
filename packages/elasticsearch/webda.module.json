@@ -66,6 +66,10 @@
               "url"
             ]
           }
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -74,7 +78,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/elasticsearchservice"
+      "title": "ElasticSearchService"
     }
   }
 }

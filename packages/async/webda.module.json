@@ -110,7 +110,7 @@
       ],
       "description": "Define here a model that can be used along with Store service",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/asyncaction"
+      "title": "AsyncAction"
     },
     "webda/asyncjobservice": {
       "type": "object",
@@ -183,6 +183,10 @@
           "type": "string",
           "description": "Model to use when launching async action",
           "default": "Webda/AsyncWebdaAction"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -195,7 +199,7 @@
         "url"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/asyncjobservice"
+      "title": "AsyncJobService"
     },
     "webda/asyncoperationaction": {
       "type": "object",
@@ -357,7 +361,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "webda/asyncoperationaction"
+      "title": "AsyncOperationAction"
     },
     "webda/asyncwebdaaction": {
       "type": "object",
@@ -469,7 +473,7 @@
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
-      "title": "webda/asyncwebdaaction"
+      "title": "AsyncWebdaAction"
     },
     "webda/localrunner": {
       "type": "object",
@@ -554,6 +558,10 @@
         "autoStatus": {
           "type": "boolean",
           "description": "Use the observability of ChildProcess to update status accordingly"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -622,7 +630,7 @@
           ]
         }
       },
-      "title": "webda/localrunner"
+      "title": "LocalRunner"
     },
     "webda/servicerunner": {
       "type": "object",
@@ -652,6 +660,10 @@
           "type": "number",
           "description": "How long before saving logs (in ms)",
           "default": 5000
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -659,7 +671,7 @@
       ],
       "description": "Add the log format to capture",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/servicerunner"
+      "title": "ServiceRunner"
     }
   }
 }

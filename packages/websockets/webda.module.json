@@ -60,6 +60,10 @@
         "frontend": {
           "type": "string",
           "description": "Make frontend mandatory for client"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -67,7 +71,7 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/websocketsclientservice"
+      "title": "WebSocketsClientService"
     },
     "webda/websocketsservice": {
       "type": "object",
@@ -114,13 +118,17 @@
           "default": {
             "type": "JWT"
           }
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/websocketsservice"
+      "title": "WebSocketsService"
     }
   }
 }

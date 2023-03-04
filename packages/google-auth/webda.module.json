@@ -101,6 +101,10 @@
             "whitelist",
             "defaults"
           ]
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -113,7 +117,7 @@
       ],
       "description": "Credentials to manage Google Auth https://developers.google.com/identity/protocols/oauth2",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/googleauthentication"
+      "title": "GoogleAuthentication"
     }
   }
 }

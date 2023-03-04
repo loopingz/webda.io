@@ -24,6 +24,10 @@
         "disabled": {
           "type": "boolean",
           "description": "Disable the service"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -31,7 +35,7 @@
       ],
       "description": "Profiler Parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/profiler"
+      "title": "Profiler"
     }
   }
 }

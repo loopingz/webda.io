@@ -113,7 +113,7 @@
       ],
       "description": "Api Key to use with hawk",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/apikey"
+      "title": "ApiKey"
     },
     "webda/hawk": {
       "type": "object",
@@ -145,13 +145,17 @@
             "type": "string"
           },
           "description": "Allowed redirection with CSRF"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/hawk"
+      "title": "HawkService"
     }
   }
 }

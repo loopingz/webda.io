@@ -2130,6 +2130,10 @@
             }
           ],
           "description": "By default use environment variables"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -2230,7 +2234,7 @@
         "LookupFunction": {},
         "PromiseConstructorLike": {}
       },
-      "title": "webda/postgresstore"
+      "title": "PostgresStore"
     }
   }
 }

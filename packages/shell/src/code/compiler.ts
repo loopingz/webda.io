@@ -51,6 +51,7 @@ class WebdaSchemaResults {
       schemaNode?: ts.Node;
       link?: string;
       title?: string;
+      addOpenApi: boolean;
     };
   } = {};
   protected byNode = new Map<ts.Node, string>();
@@ -69,9 +70,15 @@ class WebdaSchemaResults {
     let schemas = {};
     Object.entries(this.store)
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .forEach(([name, { schemaNode, link, title }]) => {
+      .forEach(([name, { schemaNode, link, title, addOpenApi }]) => {
         if (schemaNode) {
           schemas[name] = compiler.generateSchema(schemaNode, title || name);
+          if (addOpenApi) {
+            schemas[name].properties["openapi"] = {
+              type: "object",
+              additionalProperties: true
+            };
+          }
         } else {
           schemas[name] = link;
         }
@@ -79,19 +86,21 @@ class WebdaSchemaResults {
     return schemas;
   }
 
-  add(name: string, info?: ts.Node | string, title?: string) {
+  add(name: string, info?: ts.Node | string, title?: string, addOpenApi: boolean = false) {
     if (typeof info === "object") {
       this.store[name.toLowerCase()] = {
         name: name,
         schemaNode: info,
-        title
+        title,
+        addOpenApi
       };
       this.byNode.set(info, name);
     } else {
       this.store[name.toLowerCase()] = {
         name: name,
         link: info,
-        title
+        title,
+        addOpenApi
       };
     }
   }
@@ -651,7 +660,8 @@ export class Compiler {
             result["schemas"].add(
               section === "beans" ? `beans/${classNode.name.escapedText}` : info.name,
               schemaNode,
-              classNode.name?.escapedText.toString()
+              classNode.name?.escapedText.toString(),
+              section === "beans" || section === "moddas"
             );
           }
           if (section === "schemas") {

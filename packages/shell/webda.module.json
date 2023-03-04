@@ -58,7 +58,72 @@
         "callback"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webdademo/deployment"
+      "title": "Deployment"
+    },
+    "webdadeployer/chaindeployer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ShellDeployer"
+    },
+    "webdadeployer/container": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ShellDeployer"
+    },
+    "webdadeployer/kubernetes": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ShellDeployer"
+    },
+    "webdadeployer/packager": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ShellDeployer"
+    },
+    "webdadeployer/shelldeployer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ShellDeployer"
     },
     "webdashell/configuration": {
       "type": "object",
@@ -70,6 +135,10 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -77,7 +146,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webdashell/configuration"
+      "title": "ConfigurationService"
     }
   }
 }

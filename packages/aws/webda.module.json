@@ -28,6 +28,10 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -35,7 +39,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/cloudwatchlogger"
+      "title": "CloudWatchLogger"
     },
     "webda/cloudwatchlogger": {
       "type": "object",
@@ -47,6 +51,10 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -54,7 +62,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/cloudwatchlogger"
+      "title": "CloudWatchLogger"
     },
     "webda/dynamostore": {
       "type": "object",
@@ -126,6 +134,10 @@
         "graphql": {
           "type": "boolean",
           "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -183,7 +195,7 @@
           }
         }
       },
-      "title": "webda/dynamostore"
+      "title": "DynamoStore"
     },
     "webda/lambdacaller": {
       "type": "object",
@@ -203,13 +215,17 @@
           },
           "description": "Actions managed by the runner",
           "default": []
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/lambdacaller"
+      "title": "LambdaCaller"
     },
     "webda/s3binary": {
       "type": "object",
@@ -269,6 +285,10 @@
         },
         "prefix": {
           "type": "string"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -277,7 +297,7 @@
       ],
       "description": "Default binary parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/s3binary"
+      "title": "S3Binary"
     },
     "webda/sqsqueue": {
       "type": "object",
@@ -317,6 +337,10 @@
           "type": "number",
           "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
           "default": 10
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -324,7 +348,33 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webda/sqsqueue"
+      "title": "SQSQueue"
+    },
+    "webdaawsdeployer/cloudformation": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LambdaPackager"
+    },
+    "webdaawsdeployer/lambdapackager": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LambdaPackager"
     }
   }
 }

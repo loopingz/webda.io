@@ -74,6 +74,10 @@
         "jobImage": {
           "type": "string",
           "description": "If default template, use this image"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -103,7 +107,7 @@
           ]
         }
       },
-      "title": "webda/kuberunner"
+      "title": "KubeRunner"
     }
   }
 }

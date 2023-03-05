@@ -68,6 +68,7 @@ class WebdaConfigurationServerTest {
     cfg.imports = ["./webda.import.jsonc", "./webda.import2.jsonc"];
     assert.deepStrictEqual(res, cfg);
     res = await this.fetch("/configuration", { method: "PUT" });
+    assert.throws(() => this.server.getModel("unknown"), /Undefined model/);
   }
 
   @test

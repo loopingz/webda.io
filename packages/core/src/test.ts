@@ -10,8 +10,6 @@ import { UnpackedApplication } from "./unpackedapplication";
 import { FileUtils, JSONUtils } from "./utils/serializers";
 import { PrometheusService } from "./services/prometheus";
 import { register } from "prom-client";
-import { WebContextMock } from "./utils/context.spec";
-
 
 export class Executor {
   /**
@@ -247,7 +245,7 @@ class WebdaTest {
     httpContext.setClientIp("127.0.0.1");
     if (!ctx) {
       // @ts-ignore
-      ctx = new WebContext(this.webda, httpContext) ;
+      ctx = new WebContext(this.webda, httpContext);
     } else {
       ctx.setHttpContext(httpContext);
     }

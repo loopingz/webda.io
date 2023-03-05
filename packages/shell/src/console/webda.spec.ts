@@ -392,16 +392,23 @@ class DynamicService extend Service {
     let stub;
     try {
       let moduleFile = WebdaSampleApplication.getAppPath("webda.module.json");
+      let configSchemaFile = WebdaSampleApplication.getAppPath(".webda-config-schema.json");
       if (fs.existsSync(moduleFile)) {
         fs.unlinkSync(moduleFile);
       }
       await this.commandLine(`build`);
       assert.strictEqual(fs.existsSync(moduleFile), true);
-      let module: Module = JSON.parse(fs.readFileSync(moduleFile).toString());
+      assert.strictEqual(fs.existsSync(moduleFile), true);
+      let module: Module = FileUtils.load(moduleFile);
       assert.ok(Object.keys(module.schemas).length >= 9);
       assert.deepStrictEqual(module.schemas["webdademo/customdeployer"].title, "CustomDeployer");
       assert.notStrictEqual(module.schemas["webdademo/customreusableservice"], undefined);
       assert.notStrictEqual(module.schemas["webdademo/contact"], undefined);
+      assert.notStrictEqual(module.beans["webdademo/beanservice"], undefined);
+      assert.notStrictEqual(module.beans["webdademo/sampleappgoodbean"], undefined);
+
+      const info = FileUtils.load(configSchemaFile);
+      assert.notStrictEqual(info.definitions["ServiceType$webdademo$customreusableservice"], undefined);
       WebdaConsole.build({ watch: true });
       WebdaConsole.app.getCompiler().stopWatch();
       stub = sinon.stub(WebdaConsole.app, "generateModule").callsFake(async () => false);
@@ -499,7 +506,7 @@ class DynamicService extend Service {
   @test
   async types() {
     await this.commandLine("types");
-    let logs = this.logger.getLogs();
+    let logs = this.logger.getLogs().filter(l => !l.log?.args[0].startsWith("Cannot find logo"));
     console.log(logs.map(l => l.log?.level + ": " + l.log?.args.join(" ")).join("\n"));
     assert.strictEqual(
       logs.length,

@@ -8,6 +8,7 @@ import * as path from "path";
 import {
   AnnotatedNodeParser,
   AnnotatedType,
+  ArrayType,
   BaseType,
   ChainNodeParser,
   CircularReferenceNodeParser,
@@ -20,6 +21,7 @@ import {
   FunctionType,
   InterfaceAndClassNodeParser,
   ObjectProperty,
+  ObjectType,
   ReferenceType,
   SchemaGenerator,
   StringType,
@@ -73,7 +75,7 @@ class WebdaSchemaResults {
       .forEach(([name, { schemaNode, link, title, addOpenApi }]) => {
         if (schemaNode) {
           schemas[name] = compiler.generateSchema(schemaNode, title || name);
-          if (addOpenApi) {
+          if (addOpenApi && schemas[name]) {
             schemas[name].properties["openapi"] = {
               type: "object",
               additionalProperties: true
@@ -305,14 +307,37 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         let typeName = member.type?.typeName?.escapedText;
         if (typeName === "ModelParent" || typeName === "ModelLink") {
           return new ObjectProperty(this.getPropertyName(member.name), new StringType(), true);
-        } else if (
-          typeName === "ModelLinksMap" ||
-          typeName === "ModelLinksSimpleArray" ||
-          typeName === "ModelLinksArray"
-        ) {
-          return undefined;
-          return new ObjectProperty(this.getPropertyName(member.name), new StringType(), true);
-        } else if (typeName === "ModelMapped") {
+        } else if (typeName === "ModelLinksSimpleArray") {
+          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(new StringType()), true);
+        } else if (typeName === "ModelLinksArray") {
+          let type = (<any>this.childNodeParser.createType(member.type, context)).type.type.type.types[0].type.type.item
+            .types[0].type.type.type.types[1];
+          type.type.type.properties.push(new ObjectProperty("uuid", new StringType(), true));
+          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(type), false);
+        } else if (typeName === "ModelLinksMap") {
+          let type = (<any>this.childNodeParser.createType(member.type, context)).type.type.type.types[0].type.type
+            .additionalProperties.types[0].type.type.type.types[1];
+          return new ObjectProperty(
+            this.getPropertyName(member.name),
+            new ObjectType("modellinksmap-test", [], [], type),
+            false
+          );
+        } else if (typeName === "ModelsMapped") {
+          let type = (<any>this.childNodeParser.createType(member.type, context)).type.type.type.type.type.item.type
+            .type.type.type.type;
+          return new ObjectProperty(
+            this.getPropertyName(member.name),
+            new ArrayType(
+              new ObjectType(
+                "modelmapped-test",
+                [],
+                type.properties.filter(o => !["get", "set", "toString"].includes(o.name)),
+                false
+              )
+            ),
+            false
+          );
+        } else if (typeName === "ModelRelated") {
           return undefined;
         }
         let type = this.childNodeParser.createType(member.type, context);
@@ -658,14 +683,11 @@ export class Compiler {
           };
           if (schemaNode && !result["schemas"][info.name]) {
             result["schemas"].add(
-              section === "beans" ? `beans/${classNode.name.escapedText}` : info.name,
+              info.name,
               schemaNode,
               classNode.name?.escapedText.toString(),
               section === "beans" || section === "moddas"
             );
-          }
-          if (section === "schemas") {
-            return;
           }
           result[section][info.name.toLowerCase()] = info;
         });
@@ -695,7 +717,6 @@ export class Compiler {
     // Check for @Operation and @Route methods
     this.exploreServices(objects.moddas, objects.schemas);
     this.exploreServices(objects.beans, objects.schemas);
-
     return {
       beans: this.sortObject(objects.beans),
       deployers: this.sortObject(objects.deployers),
@@ -939,7 +960,6 @@ export class Compiler {
                 ) || null
               );
             }
-            return null;
           } else {
             return symbolMap.get(t.id);
           }
@@ -1267,10 +1287,11 @@ export class Compiler {
         } else {
           if ((<string>diagnostic.messageText).match(/Found [1-9]\d* error/)) {
             logger.log("ERROR", diagnostic.messageText);
-            /* c8 ignore next 3 */
+            /* c8 ignore start */
           } else if (!diagnostic.messageText.toString().startsWith("Found 0 errors")) {
             logger.log("INFO", diagnostic.messageText);
           }
+          /* c8 ignore stop */
           // Compilation is successful, start schemas generation
           if (diagnostic.messageText.toString().startsWith("Found 0 errors")) {
             this.compiled = true;
@@ -1280,11 +1301,12 @@ export class Compiler {
             }
           }
         }
-        /* c8 ignore next 4 */
+        /* c8 ignore start */
       } else {
         // Haven't seen other code yet so display them but cannot reproduce
         logger.log("INFO", diagnostic, ts.formatDiagnostic(diagnostic, formatHost));
       }
+      /* c8 ignore stop */
       callback(diagnostic);
     };
     const host = ts.createWatchCompilerHost(

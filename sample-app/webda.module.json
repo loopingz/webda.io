@@ -189,81 +189,6 @@
     }
   },
   "schemas": {
-    "beans/beanservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
-    },
-    "beans/customservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1971-2455-1131383939-0-8116976353190%3E"
-        }
-      },
-      "required": [
-        "introspection",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Partial<class-1131383939-1971-2455-1131383939-0-8116976353190>": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "description": "Type of the service"
-            },
-            "url": {
-              "type": "string",
-              "description": "URL on which to serve the content"
-            }
-          }
-        }
-      },
-      "title": "CustomService"
-    },
-    "beans/sampleappgoodbean": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Interface to specify the Service parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
-    },
     "webdademo/abstractproject": {
       "type": "object",
       "properties": {
@@ -306,6 +231,10 @@
         "interfaceParam": {
           "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -369,6 +298,29 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AnotherSubProject"
     },
+    "webdademo/beanservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
     "webdademo/classroom": {
       "type": "object",
       "properties": {
@@ -391,38 +343,65 @@
           "type": "string"
         },
         "courses": {
-          "$ref": "#/definitions/ModelsMapped%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E"
-        },
-        "hardware": {
-          "$ref": "#/definitions/ModelRelated%3Cclass-models_relations.ts-985-1060-models_relations.ts-0-1213%2C%22classroom%22%3E"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [
         "uuid",
-        "name",
-        "courses",
-        "hardware"
+        "name"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Classroom"
+    },
+    "webdademo/company": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_projects": {
+          "$ref": "#/definitions/ModelMapped%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E",
+          "readOnly": true
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelsMapped<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">": {
-          "$ref": "#/definitions/Readonly%3Cdef-alias-2050059695-1182-1469-2050059695-0-3192%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E755539556%5B%5D%3E",
-          "description": "Define a ModelMap attribute"
-        },
-        "Readonly<def-alias-2050059695-1182-1469-2050059695-0-3192<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">755539556[]>": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ModelMapped%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E"
-          }
-        },
-        "ModelMapped<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">": {
-          "$ref": "#/definitions/Readonly%3C(def-alias-930307918-75027-75168-930307918-0-217681%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E%26def-alias-2050059695-396-590-2050059695-0-3192%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%3E365806895%26structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E)%3E",
+        "ModelMapped<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>": {
+          "$ref": "#/definitions/Readonly%3C(def-alias-930307918-75027-75168-930307918-0-217681%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E%26def-alias-2050059695-396-590-2050059695-0-3192%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%3E365806895%26structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E)%3E",
           "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array TODO Handle 1:1 map"
         },
-        "Readonly<(def-alias-930307918-75027-75168-930307918-0-217681<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">&def-alias-2050059695-396-590-2050059695-0-3192<class-models_relations.ts-560-824-models_relations.ts-0-1213>365806895&structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">)>": {
+        "Readonly<(def-alias-930307918-75027-75168-930307918-0-217681<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>&def-alias-2050059695-396-590-2050059695-0-3192<class-models_project.ts-493-1236-models_project.ts-0-2192>365806895&structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>)>": {
           "type": "object",
           "properties": {
             "name": {
+              "type": "string"
+            },
+            "type": {
               "type": "string"
             },
             "get": {
@@ -443,74 +422,12 @@
           },
           "required": [
             "name",
+            "type",
             "get",
             "set",
             "toString",
             "uuid"
           ]
-        },
-        "ModelRelated<class-models_relations.ts-985-1060-models_relations.ts-0-1213,\"classroom\">": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "description": "Query the related objects"
-            },
-            "forEach": {},
-            "getAll": {
-              "description": "Get all object linked"
-            }
-          },
-          "required": [
-            "query",
-            "forEach",
-            "getAll"
-          ],
-          "description": "Load related objects\n\n_K is not used but is required to complete the graph"
-        }
-      },
-      "title": "Classroom"
-    },
-    "webdademo/company": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "users": {
-          "$ref": "#/definitions/ModelRelated%3Cclass-models_user.ts-109-223-models_user.ts-0-336%2C%22_company%22%3E"
-        }
-      },
-      "required": [
-        "users"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelRelated<class-models_user.ts-109-223-models_user.ts-0-336,\"_company\">": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "description": "Query the related objects"
-            },
-            "forEach": {},
-            "getAll": {
-              "description": "Get all object linked"
-            }
-          },
-          "required": [
-            "query",
-            "forEach",
-            "getAll"
-          ],
-          "description": "Load related objects\n\n_K is not used but is required to complete the graph"
         }
       },
       "title": "Company"
@@ -658,6 +575,12 @@
         },
         "teacher": {
           "type": "string"
+        },
+        "students": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-754-837-models_relations.ts-724-841-models_relations.ts-712-842-models_relations.ts-580-844-models_relations.ts-0-1246%3E"
+          }
         }
       },
       "required": [
@@ -667,6 +590,31 @@
         "teacher"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Readonly<structure-models_relations.ts-754-837-models_relations.ts-724-841-models_relations.ts-712-842-models_relations.ts-580-844-models_relations.ts-0-1246>": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "firstName": {
+              "type": "string"
+            },
+            "lastName": {
+              "type": "string"
+            },
+            "uuid": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "firstName",
+            "uuid",
+            "uuid"
+          ]
+        }
+      },
       "title": "Course"
     },
     "webdademo/customdeployer": {
@@ -695,6 +643,10 @@
         },
         "mandatoryField": {
           "type": "string"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -703,6 +655,47 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CustomReusableService"
+    },
+    "webdademo/customservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "introspection": {
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1971-2455-1131383939-0-8116976353190%3E"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "introspection",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<class-1131383939-1971-2455-1131383939-0-8116976353190>": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Type of the service"
+            },
+            "url": {
+              "type": "string",
+              "description": "URL on which to serve the content"
+            }
+          }
+        }
+      },
+      "title": "CustomService"
     },
     "webdademo/fourthotherservice": {
       "type": "object",
@@ -726,6 +719,10 @@
           "type": "number",
           "minimum": 100,
           "maximum": 1000
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -878,6 +875,10 @@
         "folder": {
           "type": "string",
           "description": "Where to store the queue"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -887,6 +888,29 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "QueueService"
+    },
+    "webdademo/sampleappgoodbean": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
     },
     "webdademo/sampleappgoodbean.operation.input": {
       "type": "object",
@@ -918,6 +942,10 @@
         "interfaceParam": {
           "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -948,6 +976,10 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [
@@ -980,14 +1012,48 @@
         },
         "lastName": {
           "type": "string"
+        },
+        "friends": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-349-404-models_relations.ts-326-405-models_relations.ts-315-406-models_relations.ts-222-502-models_relations.ts-0-1246%3E"
+          }
+        },
+        "teachers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
         "email",
         "firstName",
-        "lastName"
+        "lastName",
+        "teachers"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Readonly<structure-models_relations.ts-349-404-models_relations.ts-326-405-models_relations.ts-315-406-models_relations.ts-222-502-models_relations.ts-0-1246>": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "firstName": {
+              "type": "string"
+            },
+            "lastName": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "firstName",
+            "lastName"
+          ]
+        }
+      },
       "title": "Student"
     },
     "webdademo/subproject": {
@@ -1136,59 +1202,26 @@
           "readOnly": true
         },
         "courses": {
-          "$ref": "#/definitions/ModelsMapped%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E"
-        }
-      },
-      "required": [
-        "courses"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelsMapped<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">": {
-          "$ref": "#/definitions/Readonly%3Cdef-alias-2050059695-1182-1469-2050059695-0-3192%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E755539556%5B%5D%3E",
-          "description": "Define a ModelMap attribute"
-        },
-        "Readonly<def-alias-2050059695-1182-1469-2050059695-0-3192<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">755539556[]>": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/ModelMapped%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E"
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
           }
-        },
-        "ModelMapped<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">": {
-          "$ref": "#/definitions/Readonly%3C(def-alias-930307918-75027-75168-930307918-0-217681%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E%26def-alias-2050059695-396-590-2050059695-0-3192%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%3E365806895%26structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192%3Cclass-models_relations.ts-560-824-models_relations.ts-0-1213%2C%22name%22%3E)%3E",
-          "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array TODO Handle 1:1 map"
-        },
-        "Readonly<(def-alias-930307918-75027-75168-930307918-0-217681<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">&def-alias-2050059695-396-590-2050059695-0-3192<class-models_relations.ts-560-824-models_relations.ts-0-1213>365806895&structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192<class-models_relations.ts-560-824-models_relations.ts-0-1213,\"name\">)>": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "get": {
-              "type": "object",
-              "properties": {}
-            },
-            "set": {
-              "type": "object",
-              "properties": {}
-            },
-            "toString": {
-              "type": "object",
-              "properties": {}
-            },
-            "uuid": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "name",
-            "get",
-            "set",
-            "toString",
-            "uuid"
-          ]
         }
       },
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Teacher"
     },
     "webdademo/testinput": {
@@ -1230,6 +1263,10 @@
         "url": {
           "type": "string",
           "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "required": [

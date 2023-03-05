@@ -94,3 +94,9 @@ export class SchemaTest2 {
    */
   uuid: string;
 }
+
+/**
+ * This service is neither defined as a bean nor a modda
+ * So it should just display a warning
+ */
+export class NoBeanNoModdaService extends Service {}

@@ -780,7 +780,7 @@ class CoreModel {
 
       // Add an item to the collection
       this[attr].add = value => {
-        if (type !== "LINKS_SIMPLE_ARRAY") {
+        if (type === "LINKS_ARRAY") {
           value.uuid ??= value.getUuid();
         }
         if (typeof value === "string") {
@@ -789,12 +789,12 @@ class CoreModel {
         value.get = async () => {
           return Core.get()
             .getModelStore(Core.get().getModel(model))
-            .get(type !== "LINKS_SIMPLE_ARRAY" ? value.uuid : value);
+            .get(type !== "LINKS_SIMPLE_ARRAY" ? value.uuid || value.getUuid() : value);
         };
         if (Array.isArray(this[attr])) {
           this[attr].push(value);
         } else {
-          this[attr][value.uuid] = value;
+          this[attr][value.uuid || value.getUuid()] = value;
         }
       };
       // Remove an item from the collection

@@ -62,9 +62,6 @@ export class WebSocketsService<T extends WebSocketsParameters = WebSocketsParame
     try {
       this.log("TRACE", "Subscribing to", fullUuid);
       let model = await this.getWebda().getModelObject(fullUuid);
-      if (!model) {
-        throw new Error("Not found");
-      }
       await model.canAct(context, "subscribe");
 
       const roomName = `model_${fullUuid}`;

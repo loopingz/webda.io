@@ -3,15 +3,7 @@ import * as fs from "fs";
 import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
-import {
-  Constructor,
-  Core,
-  CoreModel,
-  CoreModelDefinition,
-  OperationContext,
-  Service,
-  WebdaError,
-} from "./index";
+import { Constructor, Core, CoreModel, CoreModelDefinition, OperationContext, Service, WebdaError } from "./index";
 import { getCommonJS } from "./utils/esm";
 import { FileUtils } from "./utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -337,7 +329,7 @@ export interface ServiceConstructor<T extends Service> {
 export enum SectionEnum {
   Moddas = "moddas",
   Deployers = "deployers",
-  Beans = "beans",
+  Beans = "beans"
 }
 
 /**
@@ -443,9 +435,9 @@ export class Application {
     models: {
       list: {},
       graph: {},
-      tree: {},
+      tree: {}
     },
-    deployers: {},
+    deployers: {}
   };
 
   /**
@@ -554,16 +546,10 @@ export class Application {
       this.baseConfiguration.parameters ??= {};
       this.baseConfiguration.parameters.defaultStore ??= "Registry";
       if (this.baseConfiguration.version !== 3) {
-        this.log(
-          "ERROR",
-          "Your configuration file should use version 3, see https://docs.webda.io/"
-        );
+        this.log("ERROR", "Your configuration file should use version 3, see https://docs.webda.io/");
       }
     } catch (err) {
-      throw new WebdaError(
-        "INVALID_WEBDA_CONFIG",
-        `Cannot parse JSON of: ${file}`
-      );
+      throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
     }
   }
 
@@ -574,10 +560,7 @@ export class Application {
   getFullNameFromPrototype(proto): string {
     for (let section in SectionEnum) {
       for (let i in this[SectionEnum[section]]) {
-        if (
-          this[SectionEnum[section]][i] &&
-          this[SectionEnum[section]][i].prototype === proto
-        ) {
+        if (this[SectionEnum[section]][i] && this[SectionEnum[section]][i].prototype === proto) {
           return i;
         }
       }
@@ -605,11 +588,7 @@ export class Application {
    * Get model graph
    */
   getRelations(model: string | Constructor<CoreModel>) {
-    return (
-      this.getGraph()[
-        typeof model === "string" ? model : this.getModelFromConstructor(model)
-      ] || {}
-    );
+    return this.getGraph()[typeof model === "string" ? model : this.getModelFromConstructor(model)] || {};
   }
 
   /**
@@ -639,7 +618,7 @@ export class Application {
   getPackageWebda(): WebdaPackageDescriptor {
     return (
       this.baseConfiguration.cachedModules.project?.webda || {
-        namespace: "Webda",
+        namespace: "Webda"
       }
     );
   }
@@ -710,10 +689,9 @@ export class Application {
     }
     if (!this[section][objectName]) {
       throw Error(
-        `Undefined ${section.substring(
-          0,
-          section.length - 1
-        )} ${name} or ${objectName} (${Object.keys(this[section]).join(", ")})`
+        `Undefined ${section.substring(0, section.length - 1)} ${name} or ${objectName} (${Object.keys(
+          this[section]
+        ).join(", ")})`
       );
     }
     return this[section][objectName];
@@ -747,9 +725,7 @@ export class Application {
    *
    * @param name model to retrieve
    */
-  getModel<
-    T extends CoreModelDefinition | Constructor<any> = CoreModelDefinition
-  >(name: string): T {
+  getModel<T extends CoreModelDefinition | Constructor<any> = CoreModelDefinition>(name: string): T {
     return this.getWebdaObject("models", name);
   }
 
@@ -768,7 +744,7 @@ export class Application {
    */
   getModelFromInstance(object: CoreModel): string | undefined {
     return Object.keys(this.models)
-      .filter((k) => this.models[k] === object.constructor)
+      .filter(k => this.models[k] === object.constructor)
       .pop();
   }
 
@@ -778,7 +754,7 @@ export class Application {
    */
   getModelFromConstructor(model: Constructor<CoreModel>): string | undefined {
     return Object.keys(this.models)
-      .filter((k) => this.models[k] === model)
+      .filter(k => this.models[k] === model)
       .pop();
   }
 
@@ -844,9 +820,7 @@ export class Application {
    * @since 0.4.0
    */
   getWebdaVersion(): string {
-    return JSON.parse(
-      fs.readFileSync(__dirname + "/../package.json").toString()
-    ).version;
+    return JSON.parse(fs.readFileSync(__dirname + "/../package.json").toString()).version;
   }
 
   /**
@@ -884,24 +858,18 @@ export class Application {
       let variable = scan.substring(index + 2, next);
       scan = scan.substring(next);
       if (variable.match(/[|&;<>\\\{]/)) {
-        throw new Error(
-          `Variable cannot use every javascript features found ${variable}`
-        );
+        throw new Error(`Variable cannot use every javascript features found ${variable}`);
       }
       if (i++ > 10) {
         throw new Error("Too many variables");
       }
     }
     return new Function(
-      "return `" +
-        (" " + templateString)
-          .replace(/([^\\])\$\{([^\}\{]+)}/g, "$1${this.$2}")
-          .substring(1) +
-        "`;"
+      "return `" + (" " + templateString).replace(/([^\\])\$\{([^\}\{]+)}/g, "$1${this.$2}").substring(1) + "`;"
     ).call({
       ...this.baseConfiguration.cachedModules.project,
       now: this.initTime,
-      ...replacements,
+      ...replacements
     });
   }
 
@@ -1017,10 +985,7 @@ export class Application {
       }
       const importObject = importedFile[importName];
       if (!importObject) {
-        this.log(
-          "WARN",
-          `Module ${importFilename} does not have export named ${importName}`
-        );
+        this.log("WARN", `Module ${importFilename} does not have export named ${importName}`);
       }
       return importObject;
     } catch (err) {
@@ -1048,13 +1013,11 @@ export class Application {
     const info: Omit<CachedModule, "project"> = { beans: {}, ...module };
     const sectionLoader = async (section: Section) => {
       for (let key in info[section]) {
-        this[section][key.toLowerCase()] ??= await this.importFile(
-          path.join(parent, info[section][key])
-        );
+        this[section][key.toLowerCase()] ??= await this.importFile(path.join(parent, info[section][key]));
       }
     };
     // Merging graph from different modules
-    Object.keys(module.models.graph || {}).forEach((k) => {
+    Object.keys(module.models.graph || {}).forEach(k => {
       this.graph[k] = module.models.graph[k];
     });
 
@@ -1065,17 +1028,13 @@ export class Application {
       // Load models
       (async () => {
         for (let key in info.models.list) {
-          this.models[key.toLowerCase()] ??= await this.importFile(
-            path.join(parent, info.models.list[key])
-          );
+          this.models[key.toLowerCase()] ??= await this.importFile(path.join(parent, info.models.list[key]));
         }
       })(),
-      ...Object.keys(info.beans).map((f) => {
+      ...Object.keys(info.beans).map(f => {
         this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
-        return this.importFile(path.join(parent, info.beans[f]), false).catch(
-          this.log.bind(this, "WARN")
-        );
-      }),
+        return this.importFile(path.join(parent, info.beans[f]), false).catch(this.log.bind(this, "WARN"));
+      })
     ]);
   }
 
@@ -1093,9 +1052,7 @@ export class Application {
     if (name.indexOf("/") >= 0) {
       return name.toLowerCase();
     }
-    return `${
-      this.baseConfiguration.cachedModules.project?.webda?.namespace || "webda"
-    }/${name}`.toLowerCase();
+    return `${this.baseConfiguration?.cachedModules?.project?.webda?.namespace || "webda"}/${name}`.toLowerCase();
   }
 
   /**

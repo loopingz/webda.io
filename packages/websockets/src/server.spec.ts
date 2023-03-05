@@ -234,6 +234,9 @@ class FullTest extends WebdaTest {
 
     this.log("INFO", "Testing channels and server events");
     this.uiSocket.emit("subscribe", "webdatest-fake$test2");
+    // Test with good model and bad uid
+    this.uiSocket.emit("subscribe", "webdatest-fake$test-notfound");
+    // Test with bad model and good uid
     this.uiSocket.emit("subscribe", "Registry2$test");
     this.uiSocket.emit("unsubscribe", "webdatest-fake$test");
     reinitPromise();

@@ -17,7 +17,7 @@ class Student extends CoreModel {
   email: string;
   firstName: string;
   lastName: string;
-  friends: ModelLinksMap<Student, "email" | "firstName" | "lastName">;
+  friends: ModelLinksMap<Student, { email: string; firstName: string; lastName: string }>;
   teachers: ModelLinksSimpleArray<Teacher>;
 
   getUuid(): string {
@@ -49,6 +49,8 @@ class Classroom extends CoreModel {
   name: string;
   courses: ModelsMapped<Course, "name">;
   hardware: ModelRelated<Hardware, "classroom">;
+
+  test() {}
 }
 
 class Hardware extends CoreModel {

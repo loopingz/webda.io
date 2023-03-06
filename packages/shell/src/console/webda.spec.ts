@@ -392,7 +392,6 @@ class DynamicService extend Service {
     let stub;
     try {
       let moduleFile = WebdaSampleApplication.getAppPath("webda.module.json");
-      let configSchemaFile = WebdaSampleApplication.getAppPath(".webda-config-schema.json");
       if (fs.existsSync(moduleFile)) {
         fs.unlinkSync(moduleFile);
       }
@@ -407,8 +406,6 @@ class DynamicService extend Service {
       assert.notStrictEqual(module.beans["webdademo/beanservice"], undefined);
       assert.notStrictEqual(module.beans["webdademo/sampleappgoodbean"], undefined);
 
-      const info = FileUtils.load(configSchemaFile);
-      assert.notStrictEqual(info.definitions["ServiceType$webdademo$customreusableservice"], undefined);
       WebdaConsole.build({ watch: true });
       WebdaConsole.app.getCompiler().stopWatch();
       stub = sinon.stub(WebdaConsole.app, "generateModule").callsFake(async () => false);

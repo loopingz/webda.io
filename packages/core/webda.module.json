@@ -71,16 +71,14 @@
       }
     },
     "tree": {
-      "webda/coremodel": {
-        "webda/ownermodel": {
-          "webda/ident": {},
-          "webda/user": {}
-        },
-        "webda/registryentry": {},
-        "webda/aclmodel": {},
-        "webda/rolemodel": {},
-        "webda/comment": {}
-      }
+      "webda/ownermodel": {
+        "webda/ident": {},
+        "webda/user": {}
+      },
+      "webda/registryentry": {},
+      "webda/aclmodel": {},
+      "webda/rolemodel": {},
+      "webda/comment": {}
     },
     "list": {
       "webda/aclmodel": "lib/models/aclmodel:default",

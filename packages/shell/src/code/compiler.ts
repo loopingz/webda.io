@@ -789,16 +789,18 @@ export class Compiler {
       this.app.log("INFO", `${rootName}.${method.name.getText()} have no input defined, no validation will happen`);
       return;
     }
-    let schemaNode = obj.typeArguments[0];
-    let name = rootName + "." + method.name.getText() + ".input";
-    if (ts.isTypeReferenceNode(schemaNode)) {
-      let decl = schemas.get(this.typeChecker.getTypeFromTypeNode(schemaNode).getSymbol().declarations[0]);
-      if (decl) {
-        schemas.add(name, decl);
-        return;
+    const infos = [".input", ".output"];
+    obj.typeArguments.slice(0, 2).forEach((schemaNode, index) => {
+      let name = rootName + "." + method.name.getText() + infos[index];
+      if (ts.isTypeReferenceNode(schemaNode)) {
+        let decl = schemas.get(this.typeChecker.getTypeFromTypeNode(schemaNode).getSymbol().declarations[0]);
+        if (decl) {
+          schemas.add(name, decl);
+          return;
+        }
       }
-    }
-    schemas.add(name, schemaNode);
+      schemas.add(name, schemaNode);
+    });
   }
 
   /**

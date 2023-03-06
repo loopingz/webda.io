@@ -481,6 +481,11 @@ export class Application {
   protected initTime: number;
 
   /**
+   * Direct parent of a model
+   */
+  protected flatHierarchy: { [key: string]: string } = {};
+
+  /**
    * Configuration file
    */
   readonly configurationFile: string;
@@ -524,6 +529,14 @@ export class Application {
   async load(): Promise<this> {
     this.loadConfiguration(this.configurationFile);
     await this.loadModule(this.baseConfiguration.cachedModules);
+    // Flat the model tree
+    const addParent = (parent: string, tree: ModelGraph) => {
+      for (let key in tree) {
+        this.flatHierarchy[key] = parent;
+        addParent(key, tree[key]);
+      }
+    };
+    addParent("webda/coremodel", this.baseConfiguration.cachedModules.models.tree);
     return this;
   }
 
@@ -775,11 +788,28 @@ export class Application {
    * Get the model hierarchy
    * @param model
    */
-  getModelHierarchy(model: CoreModel | Constructor<CoreModel> | string) {
+  getModelHierarchy(model: CoreModel | Constructor<CoreModel> | string): { ancestors: string[]; children: ModelGraph } {
     if (typeof model !== "string") {
       model = this.getModelName(model);
     }
-    return null;
+    if (model === "webda/coremodel") {
+      return { ancestors: [], children: this.baseConfiguration.cachedModules.models.tree };
+    }
+
+    let ancestors: string[] = [];
+    let modelInfo = model;
+    while ((this.flatHierarchy[modelInfo] || "webda/coremodel") !== "webda/coremodel") {
+      modelInfo = this.flatHierarchy[modelInfo];
+      ancestors.unshift(modelInfo);
+    }
+    let tree = this.baseConfiguration.cachedModules.models.tree;
+    ancestors.forEach(ancestor => {
+      tree = tree[ancestor];
+    });
+    ancestors.unshift("webda/coremodel");
+    ancestors.reverse();
+
+    return { ancestors, children: tree[model] };
   }
 
   /**

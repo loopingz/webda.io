@@ -964,7 +964,7 @@ export class Compiler {
             return symbolMap.get(t.id);
           }
         })
-        .filter(t => t !== null && t !== undefined)
+        .filter(t => t !== null && t !== undefined && t !== "webda/coremodel")
         .reverse()
         .forEach((name: string) => {
           root[name] ??= {};

@@ -1,8 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as path from "path";
-import util from "util";
-import { Application, Core, UnpackedApplication } from "./index";
+import { Application, UnpackedApplication } from "./index";
 import { CoreModel } from "./models/coremodel";
 import { User } from "./models/user";
 import { TestApplication, WebdaTest } from "./test";
@@ -47,9 +46,17 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
-  testHierarchy() {
-    let hierarchy = this.webda.getApplication().getModelHierarchy(new CoreModel());
-    console.log(util.inspect(hierarchy, false, 20));
+  async testHierarchy() {
+    let hierarchy = this.sampleApp.getModelHierarchy(new CoreModel());
+    assert.strictEqual(hierarchy.ancestors.length, 0);
+    assert.notStrictEqual(hierarchy.children["webdademo/computer"], undefined);
+    assert.notStrictEqual(hierarchy.children["webda/ownermodel"], undefined);
+    hierarchy = this.sampleApp.getModelHierarchy("webdademo/user");
+    assert.strictEqual(hierarchy.ancestors.length, 3);
+    assert.strictEqual(Object.keys(hierarchy.children).length, 0);
+    hierarchy = this.sampleApp.getModelHierarchy("webdademo/abstractproject");
+    assert.strictEqual(hierarchy.ancestors.length, 2);
+    assert.strictEqual(Object.keys(hierarchy.children).length, 1);
   }
 
   @test

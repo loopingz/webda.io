@@ -6,8 +6,9 @@ import {
   Route,
   Service,
   ServiceParameters,
-  WebContext,
+  WebContext
 } from "@webda/core";
+import { MyInterface } from "./compiler";
 
 /**
  * @WebdaSchema testInput
@@ -39,10 +40,7 @@ class CustomParameters extends ServiceParameters {
 }
 
 @Bean
-export class CustomService<T extends CustomParameters = CustomParameters>
-  extends Service<T>
-  implements RequestFilter
-{
+export class CustomService<T extends CustomParameters = CustomParameters> extends Service<T> implements RequestFilter {
   /**
    * @override
    */
@@ -66,11 +64,21 @@ export class CustomService<T extends CustomParameters = CustomParameters>
     ctx.write("Tested");
   }
 
-  @Operation({ input: "testInput" })
-  testOperation(ctx: OperationContext) {}
+  @Operation()
+  testOperation(ctx: OperationContext<MyInterface>) {}
 
-  @Operation({ input: "testInput", output: "testOutput" })
-  testOperationWithOutput(ctx: OperationContext) {}
+  @Operation()
+  testOperationWithOutput(
+    ctx: OperationContext<
+      {
+        test: string;
+      },
+      {
+        result: string;
+      }
+    >
+  ) {}
+
   /**
    * @MMD {seq:MyGraph} My step 1
    */
@@ -78,7 +86,7 @@ export class CustomService<T extends CustomParameters = CustomParameters>
   autoDocs(plop: WebContext<CustomBody>) {
     plop.getRequestBody();
     let res: DefinedOutput = {
-      plop: true,
+      plop: true
     };
     plop.write(res);
   }

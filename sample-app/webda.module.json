@@ -189,6 +189,62 @@
     }
   },
   "schemas": {
+    "customservice.testoperation.input": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "num": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "test",
+        "num"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "customservice.testoperation.input"
+    },
+    "customservice.testoperationwithoutput.input": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "customservice.testoperationwithoutput.input"
+    },
+    "customservice.testoperationwithoutput.output": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "customservice.testoperationwithoutput.output"
+    },
+    "sampleappgoodbean.operation.input": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "projectId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "sampleappgoodbean.operation.input"
+    },
     "webdademo/abstractproject": {
       "type": "object",
       "properties": {
@@ -229,7 +285,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -244,7 +300,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -385,17 +441,17 @@
           "readOnly": true
         },
         "_projects": {
-          "$ref": "#/definitions/ModelMapped%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E",
+          "$ref": "#/definitions/ModelMapped%3Cclass-2044884786-493-1236-2044884786-0-2192%2C(%22name%22%7C%22type%22)%3E",
           "readOnly": true
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ModelMapped<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>": {
-          "$ref": "#/definitions/Readonly%3C(def-alias-930307918-75027-75168-930307918-0-217681%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E%26def-alias-2050059695-396-590-2050059695-0-3192%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%3E365806895%26structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E)%3E",
+        "ModelMapped<class-2044884786-493-1236-2044884786-0-2192,(\"name\"|\"type\")>": {
+          "$ref": "#/definitions/Readonly%3C(def-alias-1921653759-75027-75168-1921653759-0-217681%3Cclass-2044884786-493-1236-2044884786-0-2192%2C(%22name%22%7C%22type%22)%3E%26def-alias-934762737-396-590-934762737-0-3192%3Cclass-2044884786-493-1236-2044884786-0-2192%3E365806895%26structure-934762737-1445-1467-934762737-1416-1467-934762737-1406-1468-934762737-1182-1469-934762737-0-3192%3Cclass-2044884786-493-1236-2044884786-0-2192%2C(%22name%22%7C%22type%22)%3E)%3E",
           "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array TODO Handle 1:1 map"
         },
-        "Readonly<(def-alias-930307918-75027-75168-930307918-0-217681<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>&def-alias-2050059695-396-590-2050059695-0-3192<class-models_project.ts-493-1236-models_project.ts-0-2192>365806895&structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>)>": {
+        "Readonly<(def-alias-1921653759-75027-75168-1921653759-0-217681<class-2044884786-493-1236-2044884786-0-2192,(\"name\"|\"type\")>&def-alias-934762737-396-590-934762737-0-3192<class-2044884786-493-1236-2044884786-0-2192>365806895&structure-934762737-1445-1467-934762737-1416-1467-934762737-1406-1468-934762737-1182-1469-934762737-0-3192<class-2044884786-493-1236-2044884786-0-2192,(\"name\"|\"type\")>)>": {
           "type": "object",
           "properties": {
             "name": {
@@ -579,7 +635,7 @@
         "students": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-754-837-models_relations.ts-724-841-models_relations.ts-712-842-models_relations.ts-580-844-models_relations.ts-0-1246%3E"
+            "$ref": "#/definitions/Readonly%3Cstructure-804506288-754-837-804506288-724-841-804506288-712-842-804506288-580-844-804506288-0-1246%3E"
           }
         }
       },
@@ -591,7 +647,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Readonly<structure-models_relations.ts-754-837-models_relations.ts-724-841-models_relations.ts-712-842-models_relations.ts-580-844-models_relations.ts-0-1246>": {
+        "Readonly<structure-804506288-754-837-804506288-724-841-804506288-712-842-804506288-580-844-804506288-0-1246>": {
           "type": "object",
           "properties": {
             "email": {
@@ -668,7 +724,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1971-2455-1131383939-0-8116976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-1971-2455-178760925-0-8116976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -681,7 +737,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-1971-2455-1131383939-0-8116976353190>": {
+        "Partial<class-178760925-1971-2455-178760925-0-8116976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -712,7 +768,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -733,7 +789,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -912,19 +968,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
     },
-    "webdademo/sampleappgoodbean.operation.input": {
-      "type": "object",
-      "properties": {
-        "projectId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "projectId"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webdademo/sampleappgoodbean.operation.input"
-    },
     "webdademo/secondotherservice": {
       "type": "object",
       "properties": {
@@ -940,7 +983,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -955,7 +998,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -1016,7 +1059,7 @@
         "friends": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-349-404-models_relations.ts-326-405-models_relations.ts-315-406-models_relations.ts-222-502-models_relations.ts-0-1246%3E"
+            "$ref": "#/definitions/Readonly%3Cstructure-804506288-349-404-804506288-326-405-804506288-315-406-804506288-222-502-804506288-0-1246%3E"
           }
         },
         "teachers": {
@@ -1034,7 +1077,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Readonly<structure-models_relations.ts-349-404-models_relations.ts-326-405-models_relations.ts-315-406-models_relations.ts-222-502-models_relations.ts-0-1246>": {
+        "Readonly<structure-804506288-349-404-804506288-326-405-804506288-315-406-804506288-222-502-804506288-0-1246>": {
           "type": "object",
           "properties": {
             "email": {

@@ -20,7 +20,7 @@
     "sinon": "^15.0.0",
     "ts-node": "^10.1.0",
     "typedoc": "~0.23.24",
-    "typedoc-plugin-mermaid": "~1.9.0",
+    "typedoc-plugin-mermaid": "~1.10.0",
     "typescript": "~4.9.3"
   },
   "resolutions": {

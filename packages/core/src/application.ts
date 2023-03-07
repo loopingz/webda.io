@@ -598,6 +598,15 @@ export class Application {
   }
 
   /**
+   * Check if a schema exists
+   * @param type
+   * @returns schema name if it exists
+   */
+  hasSchema(type: string): string | undefined {
+    return this.baseConfiguration.cachedModules.schemas[type] !== undefined ? type : undefined;
+  }
+
+  /**
    * Get model graph
    */
   getRelations(model: string | Constructor<CoreModel>) {

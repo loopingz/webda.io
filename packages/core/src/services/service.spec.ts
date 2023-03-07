@@ -21,7 +21,7 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
   serv4: Service;
 
   // Set to undefined to ensure fallback on method name
-  @Operation({ input: "test", output: "plop" }, { url: "/operation/plop" })
+  @Operation({}, { url: "/operation/plop" })
   async myOperation(ctx: OperationContext<{ output: string }>) {
     ctx.write((await ctx.getInput()).output);
   }

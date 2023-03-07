@@ -750,7 +750,7 @@ export class Compiler {
         )
         .map(prop => prop.valueDeclaration)
         .forEach((method: ts.MethodDeclaration) => {
-          this.checkMethodForContext(service.name, method, schemas);
+          this.checkMethodForContext(service.type.getSymbol().getName(), method, schemas);
         });
     });
   }

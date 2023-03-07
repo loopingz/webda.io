@@ -113,14 +113,6 @@ export function Operation(
      */
     id?: string;
     /**
-     * Input schema name
-     */
-    input?: string;
-    /**
-     * Output schema name
-     */
-    output?: string;
-    /**
      * WebdaQL to execute on session object to ensure it can access
      */
     permission?: string;
@@ -153,8 +145,8 @@ export function Operation(
       let def = route.openapi[route.method.toLowerCase()];
       def.operationId = id;
       def.schemas ??= {};
-      def.schemas.input ??= properties.input;
-      def.schemas.output ??= properties.output;
+      def.schemas.input ??= properties.id.toLowerCase() + ".input";
+      def.schemas.output ??= properties.id.toLowerCase() + ".output";
       Route(route.url, route.method, route.allowPath, route.openapi)(target, executor);
     }
   };

@@ -1,6 +1,6 @@
 {
   "name": "@webda/gcp",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "Webda GCP Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -56,7 +56,7 @@
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "14.6.0",
     "@webda/async": "^2.4.2",
-    "@webda/shell": "^2.4.2",
+    "@webda/shell": "^2.4.3",
     "sinon": "^15.0.0"
   },
   "type": "module",

@@ -3,22 +3,28 @@ import {
   CloudBinary,
   Constructor,
   Core,
-  CoreModel,
-  CoreModelDefinition,
   CronDefinition,
   CronService,
+  FileUtils,
+  JSONUtils,
+  OperationContext,
+  OperationError,
   Queue,
   RequestFilter,
   Service,
   ServiceParameters,
+  SimpleOperationContext,
   Store,
-  WebContext
+  WebContext,
+  WebdaQL
 } from "@webda/core";
+import { WorkerLogLevel } from "@webda/workout";
 import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";
+import { JSONSchema7 } from "json-schema";
 import { schedule as crontabSchedule } from "node-cron";
 import { v4 as uuidv4 } from "uuid";
-import { AsyncAction, AsyncActionQueueItem, AsyncWebdaAction } from "../models";
+import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction, AsyncWebdaAction } from "../models";
 import { Runner } from "./runner";
 import ServiceRunner from "./servicerunner";
 
@@ -116,6 +122,19 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    */
   asyncActionModel?: string;
 
+  /**
+   * Model to use when launching async operation
+   *
+   * @default Webda/AsyncOperationAction
+   */
+  asyncOperationModel?: string;
+  /**
+   * JSON file of the AsyncOperation definition
+   *
+   * Generated with `webda operations operations.json`
+   */
+  asyncOperationDefinition?: string;
+
   constructor(params: any) {
     super(params);
     this.url ??= "/async/jobs";
@@ -127,6 +146,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
     this.includeCron ??= true;
     this.logsLimit ??= 500;
     this.asyncActionModel ??= "Webda/AsyncWebdaAction";
+    this.asyncOperationModel ??= "Webda/AsyncOperationAction";
   }
 }
 
@@ -163,7 +183,23 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Model to use when launching action
    */
-  model: CoreModelDefinition<CoreModel> | Constructor<any>;
+  model: Constructor<AsyncWebdaAction, [string, string, ...any[]]>;
+  /**
+   * Model to use when launching action
+   */
+  operationModel: Constructor<AsyncOperationAction, [string, OperationContext, WorkerLogLevel?]>;
+  /**
+   * Operations definition
+   */
+  protected operations: {
+    application: { name: string; version: string };
+    operations: { [key: string]: { id: string; input: string; output?: string; permission?: string } };
+    schemas: { [key: string]: JSONSchema7 };
+  };
+  /**
+   * Validator of sessions
+   */
+  protected operationsQueries: { [key: string]: WebdaQL.QueryValidator } = {};
 
   /**
    * @inheritdoc
@@ -176,7 +212,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   resolve(): this {
     super.resolve();
-    this.model = this.getWebda().getModel(this.parameters.asyncActionModel);
+    this.model = <any>this.getWebda().getModel(this.parameters.asyncActionModel);
     this.queue = this.getService(this.parameters.queue);
     if (!this.queue && !this.parameters.localLaunch) {
       throw new Error(`AsyncService requires a valid queue. '${this.parameters.queue}' is invalid`);
@@ -195,6 +231,29 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         return res;
       })
       .filter(r => r !== undefined);
+
+    // Add route for operations launch
+    if (this.parameters.asyncOperationDefinition) {
+      this.log("INFO", "Loading operations", this.parameters.asyncOperationDefinition);
+      this.operations = FileUtils.load(this.parameters.asyncOperationDefinition);
+      this.addRoute(`${this.parameters.url}{?full}`, ["GET"], this.listOperations);
+      this.addRoute(`${this.parameters.url}/{operationId}{?schedule}`, ["PUT"], this.launchOperation);
+      this.operationModel = <any>this.getWebda().getModel(this.parameters.asyncOperationModel);
+      // Register all schemas
+      Object.keys(this.operations?.schemas || {})
+        .filter(key => !this.getWebda().getApplication().hasSchema(key))
+        .forEach(key => {
+          this.getWebda().getApplication().registerSchema(key, this.operations.schemas[key]);
+        });
+      // Register all operations now
+      Object.keys(this.operations?.operations || {}).forEach(key => {
+        this.getWebda().registerOperation(key, {
+          ...this.operations.operations[key],
+          method: "callOperation",
+          service: this.getName()
+        });
+      });
+    }
 
     // This is internal job reporting so no need to document the api
     this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, {
@@ -381,6 +440,80 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
+   * List available operations through this service
+   * @param context
+   */
+  async listOperations(context: WebContext): Promise<void> {
+    let filtered: typeof this.operations = JSONUtils.duplicate(this.operations);
+    // Filter operations based on permissions
+    Object.keys(filtered.operations)
+      .filter(key => filtered.operations[key].permission && !this.getWebda().checkOperationPermission(context, key))
+      .forEach(key => delete filtered.operations[key]);
+
+    if (!context.getParameters().full) {
+      context.write(Object.keys(filtered.operations));
+      return;
+    }
+    const schemas = [];
+    Object.values(filtered.operations).forEach((operation: any) => {
+      if (operation.input) {
+        schemas.push(operation.input);
+      }
+      if (operation.output) {
+        schemas.push(operation.output);
+      }
+    });
+    // Filter schemas
+    Object.keys(filtered.schemas)
+      .filter(key => !schemas.includes(key))
+      .forEach(key => {
+        delete filtered.schemas[key];
+      });
+    context.write(this.operations);
+  }
+
+  /**
+   * Call an operation for an external system
+   * @param context
+   * @returns
+   */
+  async callOperation(context: OperationContext) {
+    return await this.launchAction(new this.operationModel(context.getExtension("operation"), context));
+  }
+
+  /**
+   * Launch an operation through this service
+   */
+  async launchOperation(context: WebContext) {
+    const { operationId, schedule } = context.getParameters();
+    try {
+      await this.getWebda().checkOperation(context, operationId);
+    } catch (err) {
+      if (err instanceof OperationError) {
+        if (err.type === "InvalidInput") {
+          throw 400;
+        } else if (err.type === "PermissionDenied") {
+          throw 403;
+        } else if (err.type === "Unknown") {
+          throw 404;
+        }
+      } else {
+        throw err;
+      }
+    }
+    if (schedule) {
+      await this.scheduleAction(
+        new this.operationModel(operationId, await SimpleOperationContext.fromContext(context)),
+        schedule
+      );
+    } else {
+      await this.callOperation(
+        (await SimpleOperationContext.fromContext(context)).setExtension("operation", operationId)
+      );
+    }
+  }
+
+  /**
    * Launch the action asynchronously
    * @param action
    * @returns
@@ -454,10 +587,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param method
    * @param args
    */
-  async launchAsAsyncAction(serviceName: string, method: string, ...args) {
-    return this.launchAction(
-      new (<Constructor<AsyncWebdaAction, [string, string, ...any[]]>>this.model)(serviceName, method, ...args)
-    );
+  async launchAsAsyncAction(serviceName: string, method: string, ...args: any[]) {
+    return this.launchAction(new this.model(serviceName, method, ...args));
   }
 
   /**

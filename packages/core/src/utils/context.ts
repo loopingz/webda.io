@@ -150,8 +150,9 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * @param name to add
    * @param extension object to store
    */
-  public setExtension(name: string, extension: any): void {
+  public setExtension(name: string, extension: any): this {
     this.extensions[name] = extension;
+    return this;
   }
 
   /**
@@ -396,6 +397,18 @@ export class SimpleOperationContext extends OperationContext {
     super(webda);
   }
   input: Buffer;
+
+  /**
+   * Create another context from an existing one
+   * @param context
+   * @returns
+   */
+  static async fromContext(context: OperationContext): Promise<SimpleOperationContext> {
+    const ctx = new SimpleOperationContext(context.getWebda());
+    ctx.setSession(context.getSession());
+    ctx.setInput(Buffer.from(JSONUtils.stringify(await context.getInput())));
+    return ctx;
+  }
 
   /**
    * Set the input

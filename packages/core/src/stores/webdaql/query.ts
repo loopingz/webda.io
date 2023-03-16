@@ -5,6 +5,7 @@ import {
   AndLogicExpressionContext,
   BinaryComparisonExpressionContext,
   BooleanLiteralContext,
+  ContainsExpressionContext,
   InExpressionContext,
   IntegerLiteralContext,
   LikeExpressionContext,
@@ -213,6 +214,15 @@ export namespace WebdaQL {
     }
 
     /**
+     * Map the a CONTAINS 'b'
+     */
+    visitContainsExpression(ctx: ContainsExpressionContext) {
+      const [left, _, right] = ctx.children;
+      let value = <any[]>(<unknown>this.visit(right));
+      return new ComparisonExpression("CONTAINS", left.text, value);
+    }
+
+    /**
      * Get the OrExpression, regrouping all the parameters
      *
      * By default the parser is doing a OR (b OR (c OR d)) creating 3 depth expressions
@@ -288,7 +298,7 @@ export namespace WebdaQL {
     abstract toString(depth?: number): string;
   }
 
-  type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN";
+  type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS";
   /**
    * Comparison expression
    */
@@ -394,6 +404,11 @@ export namespace WebdaQL {
           return left.toString().match(ComparisonExpression.likeToRegex(<string>this.value)) !== null;
         case "IN":
           return (<value[]>this.value).includes(left);
+        case "CONTAINS":
+          if (Array.isArray(left)) {
+            return left.includes(this.value);
+          }
+          return false;
       }
     }
 

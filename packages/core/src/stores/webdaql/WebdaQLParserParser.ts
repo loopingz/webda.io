@@ -4,18 +4,20 @@ import { ATN } from "antlr4ts/atn/ATN";
 import { ATNDeserializer } from "antlr4ts/atn/ATNDeserializer";
 import { ParserATNSimulator } from "antlr4ts/atn/ParserATNSimulator";
 import { FailedPredicateException } from "antlr4ts/FailedPredicateException";
-import * as Utils from "antlr4ts/misc/Utils";
 import { NoViableAltException } from "antlr4ts/NoViableAltException";
 import { Parser } from "antlr4ts/Parser";
 import { ParserRuleContext } from "antlr4ts/ParserRuleContext";
 import { RecognitionException } from "antlr4ts/RecognitionException";
 import { RuleContext } from "antlr4ts/RuleContext";
+//import { RuleVersion } from "antlr4ts/RuleVersion";
 import { Token } from "antlr4ts/Token";
 import { TokenStream } from "antlr4ts/TokenStream";
-//import { RuleVersion } from "antlr4ts/RuleVersion";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { Vocabulary } from "antlr4ts/Vocabulary";
 import { VocabularyImpl } from "antlr4ts/VocabularyImpl";
+
+import * as Utils from "antlr4ts/misc/Utils";
+
 import { WebdaQLParserListener } from "./WebdaQLParserListener";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 
@@ -38,19 +40,20 @@ export class WebdaQLParserParser extends Parser {
   public static readonly LESS_OR_EQUAL = 16;
   public static readonly LIKE = 17;
   public static readonly IN = 18;
-  public static readonly TRUE = 19;
-  public static readonly FALSE = 20;
-  public static readonly LIMIT = 21;
-  public static readonly OFFSET = 22;
-  public static readonly ORDER_BY = 23;
-  public static readonly ASC = 24;
-  public static readonly DESC = 25;
-  public static readonly DQUOTED_STRING_LITERAL = 26;
-  public static readonly SQUOTED_STRING_LITERAL = 27;
-  public static readonly INTEGER_LITERAL = 28;
-  public static readonly IDENTIFIER = 29;
-  public static readonly IDENTIFIER_WITH_NUMBER = 30;
-  public static readonly FUNCTION_IDENTIFIER_WITH_UNDERSCORE = 31;
+  public static readonly CONTAINS = 19;
+  public static readonly TRUE = 20;
+  public static readonly FALSE = 21;
+  public static readonly LIMIT = 22;
+  public static readonly OFFSET = 23;
+  public static readonly ORDER_BY = 24;
+  public static readonly ASC = 25;
+  public static readonly DESC = 26;
+  public static readonly DQUOTED_STRING_LITERAL = 27;
+  public static readonly SQUOTED_STRING_LITERAL = 28;
+  public static readonly INTEGER_LITERAL = 29;
+  public static readonly IDENTIFIER = 30;
+  public static readonly IDENTIFIER_WITH_NUMBER = 31;
+  public static readonly FUNCTION_IDENTIFIER_WITH_UNDERSCORE = 32;
   public static readonly RULE_webdaql = 0;
   public static readonly RULE_limitExpression = 1;
   public static readonly RULE_offsetExpression = 2;
@@ -101,6 +104,7 @@ export class WebdaQLParserParser extends Parser {
     "'<='",
     "'LIKE'",
     "'IN'",
+    "'CONTAINS'",
     "'TRUE'",
     "'FALSE'",
     "'LIMIT'",
@@ -129,6 +133,7 @@ export class WebdaQLParserParser extends Parser {
     "LESS_OR_EQUAL",
     "LIKE",
     "IN",
+    "CONTAINS",
     "TRUE",
     "FALSE",
     "LIMIT",
@@ -410,7 +415,7 @@ export class WebdaQLParserParser extends Parser {
       let _alt: number;
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 77;
+        this.state = 81;
         this._errHandler.sync(this);
         switch (this.interpreter.adaptivePredict(this._input, 6, this._ctx)) {
           case 1:
@@ -444,12 +449,26 @@ export class WebdaQLParserParser extends Parser {
 
           case 3:
             {
-              _localctx = new BinaryComparisonExpressionContext(_localctx);
+              _localctx = new ContainsExpressionContext(_localctx);
               this._ctx = _localctx;
               _prevctx = _localctx;
               this.state = 68;
               this.identifier();
               this.state = 69;
+              this.match(WebdaQLParserParser.CONTAINS);
+              this.state = 70;
+              this.stringLiteral();
+            }
+            break;
+
+          case 4:
+            {
+              _localctx = new BinaryComparisonExpressionContext(_localctx);
+              this._ctx = _localctx;
+              _prevctx = _localctx;
+              this.state = 72;
+              this.identifier();
+              this.state = 73;
               _la = this._input.LA(1);
               if (
                 !(
@@ -473,37 +492,37 @@ export class WebdaQLParserParser extends Parser {
                 this._errHandler.reportMatch(this);
                 this.consume();
               }
-              this.state = 70;
-              this.values();
-            }
-            break;
-
-          case 4:
-            {
-              _localctx = new SubExpressionContext(_localctx);
-              this._ctx = _localctx;
-              _prevctx = _localctx;
-              this.state = 72;
-              this.match(WebdaQLParserParser.LR_BRACKET);
-              this.state = 73;
-              this.expression(0);
               this.state = 74;
-              this.match(WebdaQLParserParser.RR_BRACKET);
+              this.values();
             }
             break;
 
           case 5:
             {
-              _localctx = new AtomExpressionContext(_localctx);
+              _localctx = new SubExpressionContext(_localctx);
               this._ctx = _localctx;
               _prevctx = _localctx;
               this.state = 76;
+              this.match(WebdaQLParserParser.LR_BRACKET);
+              this.state = 77;
+              this.expression(0);
+              this.state = 78;
+              this.match(WebdaQLParserParser.RR_BRACKET);
+            }
+            break;
+
+          case 6:
+            {
+              _localctx = new AtomExpressionContext(_localctx);
+              this._ctx = _localctx;
+              _prevctx = _localctx;
+              this.state = 80;
               this.atom();
             }
             break;
         }
         this._ctx._stop = this._input.tryLT(-1);
-        this.state = 87;
+        this.state = 91;
         this._errHandler.sync(this);
         _alt = this.interpreter.adaptivePredict(this._input, 8, this._ctx);
         while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
@@ -513,20 +532,20 @@ export class WebdaQLParserParser extends Parser {
             }
             _prevctx = _localctx;
             {
-              this.state = 85;
+              this.state = 89;
               this._errHandler.sync(this);
               switch (this.interpreter.adaptivePredict(this._input, 7, this._ctx)) {
                 case 1:
                   {
                     _localctx = new AndLogicExpressionContext(new ExpressionContext(_parentctx, _parentState));
                     this.pushNewRecursionContext(_localctx, _startState, WebdaQLParserParser.RULE_expression);
-                    this.state = 79;
+                    this.state = 83;
                     if (!this.precpred(this._ctx, 4)) {
                       throw this.createFailedPredicateException("this.precpred(this._ctx, 4)");
                     }
-                    this.state = 80;
+                    this.state = 84;
                     this.match(WebdaQLParserParser.AND);
-                    this.state = 81;
+                    this.state = 85;
                     this.expression(5);
                   }
                   break;
@@ -535,20 +554,20 @@ export class WebdaQLParserParser extends Parser {
                   {
                     _localctx = new OrLogicExpressionContext(new ExpressionContext(_parentctx, _parentState));
                     this.pushNewRecursionContext(_localctx, _startState, WebdaQLParserParser.RULE_expression);
-                    this.state = 82;
+                    this.state = 86;
                     if (!this.precpred(this._ctx, 3)) {
                       throw this.createFailedPredicateException("this.precpred(this._ctx, 3)");
                     }
-                    this.state = 83;
+                    this.state = 87;
                     this.match(WebdaQLParserParser.OR);
-                    this.state = 84;
+                    this.state = 88;
                     this.expression(4);
                   }
                   break;
               }
             }
           }
-          this.state = 89;
+          this.state = 93;
           this._errHandler.sync(this);
           _alt = this.interpreter.adaptivePredict(this._input, 8, this._ctx);
         }
@@ -571,7 +590,7 @@ export class WebdaQLParserParser extends Parser {
     let _localctx: ValuesContext = new ValuesContext(this._ctx, this.state);
     this.enterRule(_localctx, 12, WebdaQLParserParser.RULE_values);
     try {
-      this.state = 93;
+      this.state = 97;
       this._errHandler.sync(this);
       switch (this._input.LA(1)) {
         case WebdaQLParserParser.TRUE:
@@ -579,7 +598,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new BooleanAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 1);
           {
-            this.state = 90;
+            this.state = 94;
             this.booleanLiteral();
           }
           break;
@@ -587,7 +606,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new IntegerAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 2);
           {
-            this.state = 91;
+            this.state = 95;
             this.integerLiteral();
           }
           break;
@@ -596,7 +615,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new StringAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 3);
           {
-            this.state = 92;
+            this.state = 96;
             this.stringLiteral();
           }
           break;
@@ -621,7 +640,7 @@ export class WebdaQLParserParser extends Parser {
     let _localctx: AtomContext = new AtomContext(this._ctx, this.state);
     this.enterRule(_localctx, 14, WebdaQLParserParser.RULE_atom);
     try {
-      this.state = 97;
+      this.state = 101;
       this._errHandler.sync(this);
       switch (this._input.LA(1)) {
         case WebdaQLParserParser.TRUE:
@@ -632,7 +651,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new ValuesAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 1);
           {
-            this.state = 95;
+            this.state = 99;
             this.values();
           }
           break;
@@ -641,7 +660,7 @@ export class WebdaQLParserParser extends Parser {
           _localctx = new IdentifierAtomContext(_localctx);
           this.enterOuterAlt(_localctx, 2);
           {
-            this.state = 96;
+            this.state = 100;
             this.identifier();
           }
           break;
@@ -669,7 +688,7 @@ export class WebdaQLParserParser extends Parser {
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 99;
+        this.state = 103;
         _la = this._input.LA(1);
         if (!(_la === WebdaQLParserParser.IDENTIFIER || _la === WebdaQLParserParser.IDENTIFIER_WITH_NUMBER)) {
           this._errHandler.recoverInline(this);
@@ -703,7 +722,7 @@ export class WebdaQLParserParser extends Parser {
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 101;
+        this.state = 105;
         _la = this._input.LA(1);
         if (!(_la === WebdaQLParserParser.TRUE || _la === WebdaQLParserParser.FALSE)) {
           this._errHandler.recoverInline(this);
@@ -737,7 +756,7 @@ export class WebdaQLParserParser extends Parser {
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 103;
+        this.state = 107;
         _la = this._input.LA(1);
         if (
           !(_la === WebdaQLParserParser.DQUOTED_STRING_LITERAL || _la === WebdaQLParserParser.SQUOTED_STRING_LITERAL)
@@ -772,7 +791,7 @@ export class WebdaQLParserParser extends Parser {
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 105;
+        this.state = 109;
         this.match(WebdaQLParserParser.INTEGER_LITERAL);
       }
     } catch (re) {
@@ -796,27 +815,27 @@ export class WebdaQLParserParser extends Parser {
     try {
       this.enterOuterAlt(_localctx, 1);
       {
-        this.state = 107;
+        this.state = 111;
         this.match(WebdaQLParserParser.LR_SQ_BRACKET);
-        this.state = 108;
+        this.state = 112;
         this.values();
-        this.state = 113;
+        this.state = 117;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === WebdaQLParserParser.COMMA) {
           {
             {
-              this.state = 109;
+              this.state = 113;
               this.match(WebdaQLParserParser.COMMA);
-              this.state = 110;
+              this.state = 114;
               this.values();
             }
           }
-          this.state = 115;
+          this.state = 119;
           this._errHandler.sync(this);
           _la = this._input.LA(1);
         }
-        this.state = 116;
+        this.state = 120;
         this.match(WebdaQLParserParser.RR_SQ_BRACKET);
       }
     } catch (re) {
@@ -852,54 +871,56 @@ export class WebdaQLParserParser extends Parser {
   }
 
   public static readonly _serializedATN: string =
-    "\x03\uC91D\uCABA\u058D\uAFBA\u4F53\u0607\uEA8B\uC241\x03!y\x04\x02\t\x02" +
-    "\x04\x03\t\x03\x04\x04\t\x04\x04\x05\t\x05\x04\x06\t\x06\x04\x07\t\x07" +
-    "\x04\b\t\b\x04\t\t\t\x04\n\t\n\x04\v\t\v\x04\f\t\f\x04\r\t\r\x04\x0E\t" +
-    "\x0E\x03\x02\x05\x02\x1E\n\x02\x03\x02\x05\x02!\n\x02\x03\x02\x05\x02" +
+    '\x03\uC91D\uCABA\u058D\uAFBA\u4F53\u0607\uEA8B\uC241\x03"}\x04\x02\t' +
+    "\x02\x04\x03\t\x03\x04\x04\t\x04\x04\x05\t\x05\x04\x06\t\x06\x04\x07\t" +
+    "\x07\x04\b\t\b\x04\t\t\t\x04\n\t\n\x04\v\t\v\x04\f\t\f\x04\r\t\r\x04\x0E" +
+    "\t\x0E\x03\x02\x05\x02\x1E\n\x02\x03\x02\x05\x02!\n\x02\x03\x02\x05\x02" +
     "$\n\x02\x03\x02\x05\x02'\n\x02\x03\x02\x03\x02\x03\x03\x03\x03\x03\x03" +
     "\x03\x04\x03\x04\x03\x04\x03\x05\x03\x05\x05\x053\n\x05\x03\x06\x03\x06" +
     "\x03\x06\x03\x06\x07\x069\n\x06\f\x06\x0E\x06<\v\x06\x03\x07\x03\x07\x03" +
     "\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03" +
-    "\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x05\x07P\n\x07\x03" +
-    "\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x07\x07X\n\x07\f\x07\x0E" +
-    "\x07[\v\x07\x03\b\x03\b\x03\b\x05\b`\n\b\x03\t\x03\t\x05\td\n\t\x03\n" +
-    "\x03\n\x03\v\x03\v\x03\f\x03\f\x03\r\x03\r\x03\x0E\x03\x0E\x03\x0E\x03" +
-    "\x0E\x07\x0Er\n\x0E\f\x0E\x0E\x0Eu\v\x0E\x03\x0E\x03\x0E\x03\x0E\x02\x02" +
-    "\x03\f\x0F\x02\x02\x04\x02\x06\x02\b\x02\n\x02\f\x02\x0E\x02\x10\x02\x12" +
-    "\x02\x14\x02\x16\x02\x18\x02\x1A\x02\x02\x07\x03\x02\x1A\x1B\x03\x02\r" +
-    "\x12\x03\x02\x1F \x03\x02\x15\x16\x03\x02\x1C\x1D\x02{\x02\x1D\x03\x02" +
-    "\x02\x02\x04*\x03\x02\x02\x02\x06-\x03\x02\x02\x02\b0\x03\x02\x02\x02" +
-    "\n4\x03\x02\x02\x02\fO\x03\x02\x02\x02\x0E_\x03\x02\x02\x02\x10c\x03\x02" +
-    "\x02\x02\x12e\x03\x02\x02\x02\x14g\x03\x02\x02\x02\x16i\x03\x02\x02\x02" +
-    "\x18k\x03\x02\x02\x02\x1Am\x03\x02\x02\x02\x1C\x1E\x05\f\x07\x02\x1D\x1C" +
-    "\x03\x02\x02\x02\x1D\x1E\x03\x02\x02\x02\x1E \x03\x02\x02\x02\x1F!\x05" +
-    '\n\x06\x02 \x1F\x03\x02\x02\x02 !\x03\x02\x02\x02!#\x03\x02\x02\x02"' +
-    '$\x05\x04\x03\x02#"\x03\x02\x02\x02#$\x03\x02\x02\x02$&\x03\x02\x02\x02' +
-    "%'\x05\x06\x04\x02&%\x03\x02\x02\x02&'\x03\x02\x02\x02'(\x03\x02\x02" +
-    "\x02()\x07\x02\x02\x03)\x03\x03\x02\x02\x02*+\x07\x17\x02\x02+,\x05\x18" +
-    "\r\x02,\x05\x03\x02\x02\x02-.\x07\x18\x02\x02./\x05\x16\f\x02/\x07\x03" +
-    "\x02\x02\x0202\x05\x12\n\x0213\t\x02\x02\x0221\x03\x02\x02\x0223\x03\x02" +
-    "\x02\x023\t\x03\x02\x02\x0245\x07\x19\x02\x025:\x05\b\x05\x0267\x07\x06" +
-    "\x02\x0279\x05\b\x05\x0286\x03\x02\x02\x029<\x03\x02\x02\x02:8\x03\x02" +
-    "\x02\x02:;\x03\x02\x02\x02;\v\x03\x02\x02\x02<:\x03\x02\x02\x02=>\b\x07" +
-    "\x01\x02>?\x05\x12\n\x02?@\x07\x13\x02\x02@A\x05\x16\f\x02AP\x03\x02\x02" +
-    "\x02BC\x05\x12\n\x02CD\x07\x14\x02\x02DE\x05\x1A\x0E\x02EP\x03\x02\x02" +
-    "\x02FG\x05\x12\n\x02GH\t\x03\x02\x02HI\x05\x0E\b\x02IP\x03\x02\x02\x02" +
-    "JK\x07\x04\x02\x02KL\x05\f\x07\x02LM\x07\x05\x02\x02MP\x03\x02\x02\x02" +
-    "NP\x05\x10\t\x02O=\x03\x02\x02\x02OB\x03\x02\x02\x02OF\x03\x02\x02\x02" +
-    "OJ\x03\x02\x02\x02ON\x03\x02\x02\x02PY\x03\x02\x02\x02QR\f\x06\x02\x02" +
-    "RS\x07\v\x02\x02SX\x05\f\x07\x07TU\f\x05\x02\x02UV\x07\f\x02\x02VX\x05" +
-    "\f\x07\x06WQ\x03\x02\x02\x02WT\x03\x02\x02\x02X[\x03\x02\x02\x02YW\x03" +
-    "\x02\x02\x02YZ\x03\x02\x02\x02Z\r\x03\x02\x02\x02[Y\x03\x02\x02\x02\\" +
-    "`\x05\x14\v\x02]`\x05\x18\r\x02^`\x05\x16\f\x02_\\\x03\x02\x02\x02_]\x03" +
-    "\x02\x02\x02_^\x03\x02\x02\x02`\x0F\x03\x02\x02\x02ad\x05\x0E\b\x02bd" +
-    "\x05\x12\n\x02ca\x03\x02\x02\x02cb\x03\x02\x02\x02d\x11\x03\x02\x02\x02" +
-    "ef\t\x04\x02\x02f\x13\x03\x02\x02\x02gh\t\x05\x02\x02h\x15\x03\x02\x02" +
-    "\x02ij\t\x06\x02\x02j\x17\x03\x02\x02\x02kl\x07\x1E\x02\x02l\x19\x03\x02" +
-    "\x02\x02mn\x07\t\x02\x02ns\x05\x0E\b\x02op\x07\x06\x02\x02pr\x05\x0E\b" +
-    "\x02qo\x03\x02\x02\x02ru\x03\x02\x02\x02sq\x03\x02\x02\x02st\x03\x02\x02" +
-    "\x02tv\x03\x02\x02\x02us\x03\x02\x02\x02vw\x07\n\x02\x02w\x1B\x03\x02" +
-    "\x02\x02\x0E\x1D #&2:OWY_cs";
+    "\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03" +
+    "\x07\x03\x07\x05\x07T\n\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03\x07\x03" +
+    "\x07\x07\x07\\\n\x07\f\x07\x0E\x07_\v\x07\x03\b\x03\b\x03\b\x05\bd\n\b" +
+    "\x03\t\x03\t\x05\th\n\t\x03\n\x03\n\x03\v\x03\v\x03\f\x03\f\x03\r\x03" +
+    "\r\x03\x0E\x03\x0E\x03\x0E\x03\x0E\x07\x0Ev\n\x0E\f\x0E\x0E\x0Ey\v\x0E" +
+    "\x03\x0E\x03\x0E\x03\x0E\x02\x02\x03\f\x0F\x02\x02\x04\x02\x06\x02\b\x02" +
+    "\n\x02\f\x02\x0E\x02\x10\x02\x12\x02\x14\x02\x16\x02\x18\x02\x1A\x02\x02" +
+    "\x07\x03\x02\x1B\x1C\x03\x02\r\x12\x03\x02 !\x03\x02\x16\x17\x03\x02\x1D" +
+    "\x1E\x02\x80\x02\x1D\x03\x02\x02\x02\x04*\x03\x02\x02\x02\x06-\x03\x02" +
+    "\x02\x02\b0\x03\x02\x02\x02\n4\x03\x02\x02\x02\fS\x03\x02\x02\x02\x0E" +
+    "c\x03\x02\x02\x02\x10g\x03\x02\x02\x02\x12i\x03\x02\x02\x02\x14k\x03\x02" +
+    "\x02\x02\x16m\x03\x02\x02\x02\x18o\x03\x02\x02\x02\x1Aq\x03\x02\x02\x02" +
+    "\x1C\x1E\x05\f\x07\x02\x1D\x1C\x03\x02\x02\x02\x1D\x1E\x03\x02\x02\x02" +
+    "\x1E \x03\x02\x02\x02\x1F!\x05\n\x06\x02 \x1F\x03\x02\x02\x02 !\x03\x02" +
+    '\x02\x02!#\x03\x02\x02\x02"$\x05\x04\x03\x02#"\x03\x02\x02\x02#$\x03' +
+    "\x02\x02\x02$&\x03\x02\x02\x02%'\x05\x06\x04\x02&%\x03\x02\x02\x02&'" +
+    "\x03\x02\x02\x02'(\x03\x02\x02\x02()\x07\x02\x02\x03)\x03\x03\x02\x02" +
+    "\x02*+\x07\x18\x02\x02+,\x05\x18\r\x02,\x05\x03\x02\x02\x02-.\x07\x19" +
+    "\x02\x02./\x05\x16\f\x02/\x07\x03\x02\x02\x0202\x05\x12\n\x0213\t\x02" +
+    "\x02\x0221\x03\x02\x02\x0223\x03\x02\x02\x023\t\x03\x02\x02\x0245\x07" +
+    "\x1A\x02\x025:\x05\b\x05\x0267\x07\x06\x02\x0279\x05\b\x05\x0286\x03\x02" +
+    "\x02\x029<\x03\x02\x02\x02:8\x03\x02\x02\x02:;\x03\x02\x02\x02;\v\x03" +
+    "\x02\x02\x02<:\x03\x02\x02\x02=>\b\x07\x01\x02>?\x05\x12\n\x02?@\x07\x13" +
+    "\x02\x02@A\x05\x16\f\x02AT\x03\x02\x02\x02BC\x05\x12\n\x02CD\x07\x14\x02" +
+    "\x02DE\x05\x1A\x0E\x02ET\x03\x02\x02\x02FG\x05\x12\n\x02GH\x07\x15\x02" +
+    "\x02HI\x05\x16\f\x02IT\x03\x02\x02\x02JK\x05\x12\n\x02KL\t\x03\x02\x02" +
+    "LM\x05\x0E\b\x02MT\x03\x02\x02\x02NO\x07\x04\x02\x02OP\x05\f\x07\x02P" +
+    "Q\x07\x05\x02\x02QT\x03\x02\x02\x02RT\x05\x10\t\x02S=\x03\x02\x02\x02" +
+    "SB\x03\x02\x02\x02SF\x03\x02\x02\x02SJ\x03\x02\x02\x02SN\x03\x02\x02\x02" +
+    "SR\x03\x02\x02\x02T]\x03\x02\x02\x02UV\f\x06\x02\x02VW\x07\v\x02\x02W" +
+    "\\\x05\f\x07\x07XY\f\x05\x02\x02YZ\x07\f\x02\x02Z\\\x05\f\x07\x06[U\x03" +
+    "\x02\x02\x02[X\x03\x02\x02\x02\\_\x03\x02\x02\x02][\x03\x02\x02\x02]^" +
+    "\x03\x02\x02\x02^\r\x03\x02\x02\x02_]\x03\x02\x02\x02`d\x05\x14\v\x02" +
+    "ad\x05\x18\r\x02bd\x05\x16\f\x02c`\x03\x02\x02\x02ca\x03\x02\x02\x02c" +
+    "b\x03\x02\x02\x02d\x0F\x03\x02\x02\x02eh\x05\x0E\b\x02fh\x05\x12\n\x02" +
+    "ge\x03\x02\x02\x02gf\x03\x02\x02\x02h\x11\x03\x02\x02\x02ij\t\x04\x02" +
+    "\x02j\x13\x03\x02\x02\x02kl\t\x05\x02\x02l\x15\x03\x02\x02\x02mn\t\x06" +
+    "\x02\x02n\x17\x03\x02\x02\x02op\x07\x1F\x02\x02p\x19\x03\x02\x02\x02q" +
+    "r\x07\t\x02\x02rw\x05\x0E\b\x02st\x07\x06\x02\x02tv\x05\x0E\b\x02us\x03" +
+    "\x02\x02\x02vy\x03\x02\x02\x02wu\x03\x02\x02\x02wx\x03\x02\x02\x02xz\x03" +
+    "\x02\x02\x02yw\x03\x02\x02\x02z{\x07\n\x02\x02{\x1B\x03\x02\x02\x02\x0E" +
+    "\x1D #&2:S[]cgw";
   public static __ATN: ATN;
   public static get _ATN(): ATN {
     if (!WebdaQLParserParser.__ATN) {
@@ -1196,6 +1217,41 @@ export class InExpressionContext extends ExpressionContext {
   public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
     if (visitor.visitInExpression) {
       return visitor.visitInExpression(this);
+    } else {
+      return visitor.visitChildren(this);
+    }
+  }
+}
+export class ContainsExpressionContext extends ExpressionContext {
+  public identifier(): IdentifierContext {
+    return this.getRuleContext(0, IdentifierContext);
+  }
+  public CONTAINS(): TerminalNode {
+    return this.getToken(WebdaQLParserParser.CONTAINS, 0);
+  }
+  public stringLiteral(): StringLiteralContext {
+    return this.getRuleContext(0, StringLiteralContext);
+  }
+  constructor(ctx: ExpressionContext) {
+    super(ctx.parent, ctx.invokingState);
+    this.copyFrom(ctx);
+  }
+  // @Override
+  public enterRule(listener: WebdaQLParserListener): void {
+    if (listener.enterContainsExpression) {
+      listener.enterContainsExpression(this);
+    }
+  }
+  // @Override
+  public exitRule(listener: WebdaQLParserListener): void {
+    if (listener.exitContainsExpression) {
+      listener.exitContainsExpression(this);
+    }
+  }
+  // @Override
+  public accept<Result>(visitor: WebdaQLParserVisitor<Result>): Result {
+    if (visitor.visitContainsExpression) {
+      return visitor.visitContainsExpression(this);
     } else {
       return visitor.visitChildren(this);
     }

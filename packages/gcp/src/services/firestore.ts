@@ -115,6 +115,7 @@ export default class FireStore<
     const queryAttributes = new Set<string>();
     let count = 0;
     let hasIn = false;
+    let hasContains = false;
     toProcess.children.forEach((child: WebdaQL.Expression) => {
       if (!(child instanceof WebdaQL.ComparisonExpression) || count) {
         // Do not manage OR yet
@@ -130,8 +131,9 @@ export default class FireStore<
       let operator: FirebaseFirestore.WhereFilterOp;
       let attribute = child.attribute.join(".");
       queryAttributes.add(attribute);
+      // CONTAINS -> array_contains
       // Translate operators
-      if (["=", "IN"].includes(child.operator)) {
+      if (["=", "IN", "CONTAINS"].includes(child.operator)) {
         // = is permitted on every fields
         // if rangeQuery then need to check indexes
         if (child.operator === "=") {
@@ -144,11 +146,19 @@ export default class FireStore<
             return;
           }
           if (hasIn) {
-            this.log("WARN", "Firebase cannot have two 'in' clause");
+            this.log("WARN", "Firebase cannot have two 'in' (IN) clause");
             filter.children.push(child);
             return;
           }
           hasIn = true;
+        } else if (child.operator === "CONTAINS") {
+          operator = "array-contains";
+          if (hasContains) {
+            this.log("WARN", "Firebase cannot have two 'array-contains' (CONTAINS) clause");
+            filter.children.push(child);
+            return;
+          }
+          hasContains = true;
         }
       } else {
         // Requires compoundIndex

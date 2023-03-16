@@ -1,6 +1,7 @@
 // Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
+
 import {
   AndLogicExpressionContext,
   AtomContext,
@@ -8,6 +9,7 @@ import {
   BinaryComparisonExpressionContext,
   BooleanAtomContext,
   BooleanLiteralContext,
+  ContainsExpressionContext,
   ExpressionContext,
   IdentifierAtomContext,
   IdentifierContext,
@@ -59,6 +61,19 @@ export interface WebdaQLParserListener extends ParseTreeListener {
    * @param ctx the parse tree
    */
   exitInExpression?: (ctx: InExpressionContext) => void;
+
+  /**
+   * Enter a parse tree produced by the `containsExpression`
+   * labeled alternative in `WebdaQLParserParser.expression`.
+   * @param ctx the parse tree
+   */
+  enterContainsExpression?: (ctx: ContainsExpressionContext) => void;
+  /**
+   * Exit a parse tree produced by the `containsExpression`
+   * labeled alternative in `WebdaQLParserParser.expression`.
+   * @param ctx the parse tree
+   */
+  exitContainsExpression?: (ctx: ContainsExpressionContext) => void;
 
   /**
    * Enter a parse tree produced by the `binaryComparisonExpression`
@@ -258,13 +273,13 @@ export interface WebdaQLParserListener extends ParseTreeListener {
 
   /**
    * Enter a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    */
   enterValues?: (ctx: ValuesContext) => void;
   /**
    * Exit a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    */
   exitValues?: (ctx: ValuesContext) => void;

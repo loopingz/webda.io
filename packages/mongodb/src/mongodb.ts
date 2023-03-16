@@ -272,7 +272,8 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
         $or: expression.children.map(e => this.mapExpression(e))
       };
     } else if (expression instanceof WebdaQL.ComparisonExpression) {
-      if (expression.operator === "=") {
+      if (expression.operator === "=" || expression.operator === "CONTAINS") {
+        // MongoDB use same syntax for exact match or contains for an array
         return {
           [expression.attribute.join(".")]: expression.value
         };

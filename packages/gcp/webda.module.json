@@ -44,6 +44,10 @@
           "$ref": "#/definitions/ExposeParameters",
           "description": "Expose the service to an urls"
         },
+        "operationPrefix": {
+          "type": "string",
+          "description": "Register routes as operation with `${operationPrefix}.${routeType}`\n\nIf not defined it will be removed"
+        },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",

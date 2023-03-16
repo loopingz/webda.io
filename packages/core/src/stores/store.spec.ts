@@ -71,6 +71,7 @@ abstract class StoreTest extends WebdaTest {
     for (let i = 0; i < 1000; i++) {
       docs.push({
         state: ["CA", "OR", "NY", "FL"][i % 4],
+        states: [["CA", "OR", "NY", "FL"][i % 4], ["CA", "OR", "NY", "FL"][(i + 1) % 4]],
         order: i,
         team: {
           id: i % 20
@@ -108,6 +109,7 @@ abstract class StoreTest extends WebdaTest {
       'state LIKE "C__"': 0,
       'state LIKE "C%"': 250,
       'state != "CA"': 750,
+      'states CONTAINS "CA"': 500,
       "": 1000
     };
     for (let i in queries) {

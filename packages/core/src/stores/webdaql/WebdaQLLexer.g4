@@ -50,6 +50,7 @@ LESS_OR_EQUAL:                '<=';
 
 LIKE: 'LIKE';
 IN: 'IN';
+CONTAINS: 'CONTAINS';
 
 // Booleans
 

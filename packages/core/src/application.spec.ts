@@ -176,6 +176,10 @@ class ApplicationTest extends WebdaTest {
     assert.strictEqual(app.getModelFromInstance(new User()), "webda/user");
     assert.strictEqual(app.getModelName(CoreModel), "webda/coremodel");
     assert.strictEqual(app.getModelName(new CoreModel()), "webda/coremodel");
+
+    app.registerSchema("testor", {});
+    assert.deepStrictEqual(app.getSchema("testor"), {});
+    assert.throws(() => app.registerSchema("testor", {}), /Schema testor already registered/);
   }
 
   @test

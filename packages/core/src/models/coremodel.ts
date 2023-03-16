@@ -34,9 +34,10 @@ export function Expose(
   restrict?: {
     create?: boolean;
     update?: boolean;
-    list?: boolean;
+    query?: boolean;
     get?: boolean;
     delete?: boolean;
+    operation?: boolean;
   }
 ) {
   return function (target: any): void {
@@ -151,6 +152,10 @@ export interface ModelAction {
 
 export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   new (): T;
+  /**
+   * If the model have some Expose annotation
+   */
+  Expose?: any;
   /**
    * Create a CoreModel object loaded with the content of object
    *
@@ -670,21 +675,6 @@ class CoreModel {
   }
 
   /**
-   * Remove all the attribute starting with __
-   * @param key
-   * @param value
-   * @returns
-   *
-   * @deprecated
-   */
-  _jsonFilter(key, value): any {
-    if (key[0] === "_" && key.length > 1 && key[1] === "_") {
-      return undefined;
-    }
-    return value;
-  }
-
-  /**
    * Allow to define custom permission per attribute
    *
    * This method allows you to do permission based attribute
@@ -700,8 +690,7 @@ class CoreModel {
     if (mode === "WRITE") {
       return key.startsWith("_") ? undefined : value;
     } else {
-      // Will be replaced by this !key.startsWith("__") in 3.0.0
-      return this._jsonFilter(key, value);
+      return !key.startsWith("__") ? value : undefined;
     }
   }
 

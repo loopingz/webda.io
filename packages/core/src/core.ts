@@ -20,6 +20,7 @@ import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
 import {
+  AliasStore,
   ConfigurationService,
   ContextProvider,
   ContextProviderInfo,
@@ -29,7 +30,8 @@ import {
   Service,
   Store,
   UnpackedApplication,
-  WebContext
+  WebContext,
+  WebdaQL
 } from "./index";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
@@ -50,6 +52,15 @@ export class ValidationError extends Error {
     super("validation failed");
     this.errors = errors;
     this.ajv = this.validation = true;
+  }
+}
+
+/**
+ * Operation
+ */
+export class OperationError extends Error {
+  constructor(public operation: string, public type: "Unknown" | "PermissionDenied" | "InvalidInput") {
+    super(`Operation ${operation} ${type}`);
   }
 }
 
@@ -84,6 +95,15 @@ export interface OperationDefinition {
   method: string;
 }
 
+/**
+ * Define an operation within webda app
+ */
+export interface OperationDefinitionInfo extends OperationDefinition {
+  /**
+   * Contains the parse permission query
+   */
+  permissionQuery?: WebdaQL.QueryValidator;
+}
 /**
  *
  */
@@ -356,7 +376,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   /**
    * Contains all operations defined by services
    */
-  protected operations: { [key: string]: OperationDefinition } = {};
+  protected operations: { [key: string]: OperationDefinitionInfo } = {};
   /**
    * Cache for model to store resolution
    */
@@ -633,20 +653,62 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Check if an operation can be executed with the current context
+   * Not checking the input use `checkOperation` instead to check everything
+   * @param context
+   * @param operationId
+   * @throws OperationError if operation is unknown
+   * @returns true if operation can be executed
+   */
+  checkOperationPermission(context: OperationContext, operationId: string): boolean {
+    if (!this.operations[operationId]) {
+      throw new OperationError(operationId, "Unknown");
+    }
+    if (this.operations[operationId].permission) {
+      this.operations[operationId].permissionQuery ??= new WebdaQL.QueryValidator(
+        this.operations[operationId].permission
+      );
+      return this.operations[operationId].permissionQuery.eval(context.getSession());
+    }
+    return true;
+  }
+
+  /**
+   * Check if an operation can be executed with the current context
+   * @param context
+   * @param operationId
+   */
+  async checkOperation(context: OperationContext, operationId: string) {
+    if (!this.checkOperationPermission(context, operationId)) {
+      throw new OperationError(operationId, "PermissionDenied");
+    }
+    let input = await context.getInput();
+    this.log(
+      "TRACE",
+      `Operation ${operationId} input is '${JSONUtils.safeStringify(input, undefined, 2)}' (schema: ${
+        this.operations[operationId].input
+      })`
+    );
+    try {
+      if (
+        this.operations[operationId].input &&
+        (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true)
+      ) {
+        throw new OperationError(operationId, "InvalidInput");
+      }
+    } catch (err) {
+      if (err.message === "validation failed") {
+        throw new OperationError(operationId, "InvalidInput");
+      }
+      throw err;
+    }
+  }
+
+  /**
    * Call an operation within the framework
    */
   async callOperation(context: OperationContext, operationId: string) {
-    if (!this.operations[operationId]) {
-      throw new Error(`Unknown Operation Id: ${operationId}`);
-    }
-    let input = await context.getInput();
-    this.log("TRACE", `Operation ${operationId} input is '${JSONUtils.safeStringify(input, undefined, 2)}'`);
-    if (
-      this.operations[operationId].input &&
-      (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true)
-    ) {
-      throw new Error("Input does not fit the operation input");
-    }
+    await this.checkOperation(context, operationId);
     return this.getService(this.operations[operationId].service)[this.operations[operationId].method](context);
   }
 
@@ -676,9 +738,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     ["input", "output"]
       .filter(key => this.operations[operationId][key])
       .forEach(key => {
-        this.operations[operationId][key] = this.getApplication().hasSchema(
-          this.operations[operationId][key].toLowerCase()
-        );
+        if (this.getApplication().hasSchema(this.operations[operationId][key].toLowerCase())) {
+          this.operations[operationId][key] = this.operations[operationId][key].toLowerCase();
+        } else {
+          delete this.operations[operationId][key];
+        }
       });
   }
 
@@ -870,8 +934,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @param {String} name The model name to retrieve
    */
-  getModel<T = any, K extends Array<any> = any[]>(name): Constructor<T, K> | CoreModelDefinition {
-    return this.application.getModel(name);
+  getModel<T extends CoreModelDefinition = CoreModelDefinition>(name): CoreModelDefinition {
+    return this.application.getModel<T>(name);
   }
 
   /**
@@ -1032,10 +1096,33 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       this.createService(services, service);
     }
 
+    // Create Alias store as needed by the Expose
+    this.createModelAliasStores();
+
     this.autoConnectServices();
     this.emit("Webda.Create.Services", this.services);
   }
 
+  /**
+   * Create alias stores for models
+   */
+  protected createModelAliasStores(): void {
+    const models = this.application.getModels();
+    for (let name in models) {
+      let model = models[name];
+      if (model?.Expose) {
+        this.log("DEBUG", "Creating alias store for", name);
+        this.services["auto/" + name.toLowerCase()] = new AliasStore(this, name, {
+          model: name,
+          targetStore: model.store().getName(),
+          expose: {
+            url: model.Expose.segment || model.prototype.name.toLowerCase(),
+            restrict: model.Expose.restrict
+          }
+        });
+      }
+    }
+  }
   /**
    * Return all methods that are setters (startsWith("set"))
    * @param obj service get setter from

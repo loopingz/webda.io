@@ -182,6 +182,13 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 
   /**
+   * Get current http context
+   */
+  public getHttpContext(): HttpContext | undefined {
+    return this.getExtension<HttpContext>("http");
+  }
+
+  /**
    * Ensure the whole execution is finished
    */
   async end() {
@@ -480,13 +487,6 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   public setHttpContext(httpContext: HttpContext) {
     this.extensions["http"] = httpContext;
     this.reinit();
-  }
-
-  /**
-   * Get current http context
-   */
-  public getHttpContext() {
-    return this.getExtension<HttpContext>("http");
   }
 
   /**

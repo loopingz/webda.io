@@ -190,7 +190,6 @@ export class UnpackedApplication extends Application {
     };
 
     findModuleFiles(this.getAppPath("node_modules"));
-
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
       findModuleFiles(path.join(module.project.webda.workspaces.path, "node_modules"));

@@ -1,6 +1,7 @@
 // Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
+
 import {
   AndLogicExpressionContext,
   AtomContext,
@@ -8,6 +9,7 @@ import {
   BinaryComparisonExpressionContext,
   BooleanAtomContext,
   BooleanLiteralContext,
+  ContainsExpressionContext,
   ExpressionContext,
   IdentifierAtomContext,
   IdentifierContext,
@@ -52,6 +54,14 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
    * @return the visitor result
    */
   visitInExpression?: (ctx: InExpressionContext) => Result;
+
+  /**
+   * Visit a parse tree produced by the `containsExpression`
+   * labeled alternative in `WebdaQLParserParser.expression`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitContainsExpression?: (ctx: ContainsExpressionContext) => Result;
 
   /**
    * Visit a parse tree produced by the `binaryComparisonExpression`
@@ -177,7 +187,7 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
 
   /**
    * Visit a parse tree produced by the `values`
-   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
+   * labeled alternative in `WebdaQLParserParser.expressionexpressionexpressionexpressionexpressionexpressionexpressionexpressionvaluesvaluesvaluesatomatom`.
    * @param ctx the parse tree
    * @return the visitor result
    */

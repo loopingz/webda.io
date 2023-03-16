@@ -377,6 +377,13 @@ export class StoreParameters extends ServiceParameters {
    * Expose the service to an urls
    */
   expose?: ExposeParameters;
+
+  /**
+   * Register routes as operation with `${operationPrefix}.${routeType}`
+   *
+   * If not defined it will be removed
+   */
+  operationPrefix?: string;
   /**
    * Allow to load object that does not have the type data
    *
@@ -1169,6 +1176,7 @@ abstract class Store<
       }
       let subOffsetCount = 0;
       for (let item of tmpResults.results) {
+        item.setContext(context);
         // Because of dynamic filter and permission we need to suboffset the pagination
         subOffsetCount++;
         if (subOffsetCount <= secondOffset) {

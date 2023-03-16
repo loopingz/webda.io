@@ -791,6 +791,7 @@ export class Compiler {
     }
     const infos = [".input", ".output"];
     obj.typeArguments.slice(0, 2).forEach((schemaNode, index) => {
+      // TODO Check if id is overriden and use it or fallback to method.name
       let name = rootName + "." + method.name.getText() + infos[index];
       if (ts.isTypeReferenceNode(schemaNode)) {
         let decl = schemas.get(this.typeChecker.getTypeFromTypeNode(schemaNode).getSymbol().declarations[0]);

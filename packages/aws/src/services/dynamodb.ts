@@ -223,6 +223,7 @@ export default class DynamoStore<
           filter.children.push(child);
           return;
         }
+        // CONTAINS -> contains (category, :category1)
         // != is <> in Dynamo
         if (operator === "!=") {
           operator = "<>";
@@ -258,6 +259,12 @@ export default class DynamoStore<
         } else {
           // For all other just give the value
           ExpressionAttributeValues[`:${attr}`] = child.value;
+        }
+
+        // Manage CONTAINS
+        if (child.operator === "CONTAINS") {
+          FilterExpression.push(`contains(${fullAttr}, :${attr})`);
+          return;
         }
 
         // If this is a sort key

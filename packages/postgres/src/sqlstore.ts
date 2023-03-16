@@ -85,6 +85,14 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
           (<string[]>expression.value).map(v => new SQLComparisonExpression("=", attr, v))
         );
       }
+      if (expression.operator === "CONTAINS") {
+        return new SQLComparisonExpression(
+          // Small hack
+          <any>"?",
+          "(" + this.mapExpressionAttribute(expression.attribute) + ")::jsonb",
+          expression.value
+        );
+      }
       return new SQLComparisonExpression(
         expression.operator,
         this.mapExpressionAttribute(expression.attribute),

@@ -673,8 +673,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   registerOperation(operationId: string, definition: OperationDefinition) {
     this.operations[operationId] = { ...definition, id: operationId };
-    this.operations[operationId].input = this.application.hasSchema(operationId.toLowerCase() + ".input");
-    this.operations[operationId].output = this.application.hasSchema(operationId.toLowerCase() + ".output");
+    ["input", "output"]
+      .filter(key => this.operations[operationId][key])
+      .forEach(key => {
+        this.operations[operationId][key] = this.getApplication().hasSchema(
+          this.operations[operationId][key].toLowerCase()
+        );
+      });
   }
 
   /**

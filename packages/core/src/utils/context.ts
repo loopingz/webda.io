@@ -397,8 +397,21 @@ export class SimpleOperationContext extends OperationContext {
   }
   input: Buffer;
 
+  /**
+   * Set the input
+   */
   setInput(input: Buffer): this {
     this.input = input;
+    return this;
+  }
+
+  /**
+   * Set the session
+   * @param session
+   * @returns
+   */
+  setSession(session: Session): this {
+    this.session = session;
     return this;
   }
 

@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
-import { Constructor, Core, CoreModel, CoreModelDefinition, OperationContext, Service, WebdaError } from "./index";
+import { Constructor, Core, CoreModel, CoreModelDefinition, Service, WebdaError } from "./index";
 import { getCommonJS } from "./utils/esm";
 import { FileUtils } from "./utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -602,8 +602,8 @@ export class Application {
    * @param type
    * @returns schema name if it exists
    */
-  hasSchema(type: string): string | undefined {
-    return this.baseConfiguration.cachedModules.schemas[type] !== undefined ? type : undefined;
+  hasSchema(type: string): boolean {
+    return this.baseConfiguration.cachedModules.schemas[type] !== undefined;
   }
 
   /**
@@ -698,6 +698,18 @@ export class Application {
   }
 
   /**
+   * Register a new schema in the application
+   * @param name
+   * @param schema
+   */
+  registerSchema(name: string, schema: JSONSchema7): void {
+    if (this.hasSchema(name)) {
+      throw new Error(`Schema ${name} already registered`);
+    }
+    this.baseConfiguration.cachedModules.schemas[name] = schema;
+  }
+
+  /**
    *
    * @param section
    * @param name
@@ -747,7 +759,7 @@ export class Application {
    *
    * @param name model to retrieve
    */
-  getModel<T extends CoreModelDefinition | Constructor<any> = CoreModelDefinition>(name: string): T {
+  getModel<T extends CoreModelDefinition = CoreModelDefinition>(name: string): T {
     return this.getWebdaObject("models", name);
   }
 
@@ -755,7 +767,7 @@ export class Application {
    * Get all models definitions
    */
   getModels(): {
-    [key: string]: Constructor<OperationContext> | CoreModelDefinition;
+    [key: string]: CoreModelDefinition;
   } {
     return this.models;
   }

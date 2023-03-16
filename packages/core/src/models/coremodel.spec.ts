@@ -3,6 +3,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import {
   Action,
+  AliasStore,
   Core,
   CoreModel,
   Expose,
@@ -232,6 +233,19 @@ class CoreModelTest extends WebdaTest {
     // @ts-ignore
     process.webda = Core.singleton = undefined;
     assert.throws(() => CoreModel.store(), /Webda not initialized/);
+  }
+
+  @test
+  async expose() {
+    let memoryStore = this.getService<Store>("MemoryUsers");
+    memoryStore._models.push(TestMask);
+    this.webda.getApplication().addModel("webdatest", TestMask);
+    // @ts-ignore
+    this.webda.createModelAliasStores();
+    assert.notStrictEqual(
+      Object.values(this.webda.getStores()).find(store => store instanceof AliasStore),
+      undefined
+    );
   }
 
   @test async ref() {

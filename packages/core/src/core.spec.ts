@@ -12,7 +12,7 @@ import {
   MemoryStore,
   Route,
   Service,
-  WebContext,
+  WebContext
 } from "./index";
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
@@ -85,12 +85,12 @@ class ModelDomainTest extends WebdaTest {
     await super.buildWebda();
     this.registerService(
       new MemoryStore(this.webda, "classa", {
-        model: "webdatest/classa",
+        model: "webdatest/classa"
       })
     );
     this.registerService(
       new MemoryStore(this.webda, "childclassa", {
-        model: "webdatest/childclassa",
+        model: "webdatest/childclassa"
       })
     );
   }
@@ -98,32 +98,20 @@ class ModelDomainTest extends WebdaTest {
   @test
   async mainTest() {
     assert.strictEqual(this.webda.getModelStore(ClassA)?.getName(), "classa");
-    assert.strictEqual(
-      this.webda.getModelStore(ChildClassA)?.getName(),
-      "childclassa"
-    );
-    assert.strictEqual(
-      this.webda.getModelStore(SubChildClassA)?.getName(),
-      "childclassa"
-    );
+    assert.strictEqual(this.webda.getModelStore(ChildClassA)?.getName(), "childclassa");
+    assert.strictEqual(this.webda.getModelStore(SubChildClassA)?.getName(), "childclassa");
 
     await ChildClassA.store().save({ uuid: "test", plop: true });
     assert.notStrictEqual(await ChildClassA.ref("test").get(), undefined);
     assert.notStrictEqual(await ChildClassA.ref("est").get(), undefined);
-    assert.strictEqual(
-      (await ChildClassA.query("plop = TRUE")).results.length,
-      1
-    );
+    assert.strictEqual((await ChildClassA.query("plop = TRUE")).results.length, 1);
   }
 
   @test
   async autoAttach() {
     await new ChildClassA().load({ counter: 1 }).save();
     await new ChildClassA().load({ counter: 10 }).save();
-    assert.strictEqual(
-      (await ChildClassA.query("counter > 5")).results.length,
-      1
-    );
+    assert.strictEqual((await ChildClassA.query("counter > 5")).results.length, 1);
   }
 }
 
@@ -143,31 +131,15 @@ class CSRFTest extends WebdaTest {
   @test
   async csrfRegExp() {
     this.webda.getConfiguration().parameters.website = "http://localhost:18181";
-    this.ctx.setHttpContext(
-      new HttpContext("accounts.google.fr", "GET", "/", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("accounts.google.fr", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(
-      new HttpContext("accounts.google.com", "GET", "/", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("accounts.google.com", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(
-      new HttpContext(
-        "accounts.google.fr.loopingz.com",
-        "GET",
-        "/",
-        "https",
-        443
-      )
-    );
+    this.ctx.setHttpContext(new HttpContext("accounts.google.fr.loopingz.com", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
-    this.ctx.setHttpContext(
-      new HttpContext("www.facebook.com", "GET", "/", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("www.facebook.com", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(
-      new HttpContext("www.facebook.com.eu", "GET", "/", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("www.facebook.com.eu", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
   }
 
@@ -178,7 +150,7 @@ class CSRFTest extends WebdaTest {
       checkRequest: async () => {
         calls++;
         return true;
-      },
+      }
     });
     // @ts-ignore
     await this.webda.checkRequest(this.ctx);
@@ -190,92 +162,60 @@ class CSRFTest extends WebdaTest {
 
   @test
   getApiUrl() {
-    assert.strictEqual(
-      this.webda.getApiUrl("/plop"),
-      "http://localhost:18080/plop"
-    );
-    assert.strictEqual(
-      this.webda.getApiUrl("plop"),
-      "http://localhost:18080/plop"
-    );
+    assert.strictEqual(this.webda.getApiUrl("/plop"), "http://localhost:18080/plop");
+    assert.strictEqual(this.webda.getApiUrl("plop"), "http://localhost:18080/plop");
   }
 
   @test
   async websiteString() {
     this.filter = new WebsiteOriginFilter("http://localhost:18181");
     // Exact match
-    this.ctx.setHttpContext(
-      new HttpContext("localhost:18181", "GET", "/", "http", 80)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "http", 80));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Bad protocol
-    this.ctx.setHttpContext(
-      new HttpContext("localhost:18181", "GET", "/", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "https", 443));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad port
-    this.ctx.setHttpContext(
-      new HttpContext("localhost:18181", "GET", "/", "http", 18182)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "http", 18182));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad host
-    this.ctx.setHttpContext(
-      new HttpContext("localhost2:18181", "GET", "/", "http", 18181)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost2:18181", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
   }
 
   @test
   async websiteArray() {
-    this.filter = new WebsiteOriginFilter([
-      "http://localhost:18181",
-      "http://localhost2:18181",
-    ]);
-    this.ctx.setHttpContext(
-      new HttpContext("localhost", "GET", "/", "http", 18181)
-    );
+    this.filter = new WebsiteOriginFilter(["http://localhost:18181", "http://localhost2:18181"]);
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Just host headers
-    this.webda.getConfiguration().parameters.website = [
-      "http://localhost:18181",
-      "http://localhost2:18181",
-    ];
+    this.webda.getConfiguration().parameters.website = ["http://localhost:18181", "http://localhost2:18181"];
 
     // First host
-    this.ctx.setHttpContext(
-      new HttpContext("localhost", "GET", "/", "http", 18181)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Second host
-    this.ctx.setHttpContext(
-      new HttpContext("localhost2", "GET", "/", "http", 18181)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost2", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Bad port
-    this.ctx.setHttpContext(
-      new HttpContext("localhost", "GET", "/", "http", 18182)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18182));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad host
-    this.ctx.setHttpContext(
-      new HttpContext("localhost3", "GET", "/", "http", 18181)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
   }
 
   @test
   async originFilter() {
     let filter = new OriginFilter(["https://localhost3"]);
-    this.ctx.setHttpContext(
-      new HttpContext("localhost3", "GET", "/", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "https", 443));
     assert.strictEqual(await filter.checkRequest(this.ctx), true);
   }
 
@@ -283,24 +223,18 @@ class CSRFTest extends WebdaTest {
   async websiteObject() {
     // Use object
     this.filter = new WebsiteOriginFilter({
-      url: "localhost:18181",
+      url: "localhost:18181"
     });
     // Good host
-    this.ctx.setHttpContext(
-      new HttpContext("localhost", "GET", "/", "http", 18181)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Bad host
-    this.ctx.setHttpContext(
-      new HttpContext("localhost2", "GET", "/", "http", 18181)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost2", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad port
-    this.ctx.setHttpContext(
-      new HttpContext("localhost", "GET", "/", "http", 18182)
-    );
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18182));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
   }
 
@@ -311,17 +245,11 @@ class CSRFTest extends WebdaTest {
         url: "localhost:18181"
       }
      */
-    this.ctx.setHttpContext(
-      new HttpContext("csrf.com", "GET", "/bouzouf/route", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("csrf.com", "GET", "/bouzouf/route", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(
-      new HttpContext("csrf.com", "GET", "/bouzouf2/route", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("csrf.com", "GET", "/bouzouf2/route", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
-    this.ctx.setHttpContext(
-      new HttpContext("csrfs.com", "GET", "/bouzouf/route", "https", 443)
-    );
+    this.ctx.setHttpContext(new HttpContext("csrfs.com", "GET", "/bouzouf/route", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
   }
 }
@@ -336,18 +264,12 @@ class CoreTest extends WebdaTest {
 
   @test
   async exportOpenAPI() {
-    let app = new TestApplication(
-      path.join(__dirname, "..", "..", "..", "sample-app")
-    );
+    let app = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
     await app.load();
 
     let webda = new Core(app);
     // @ts-ignore
-    webda.services["ConsoleLogger"] = new ConsoleLoggerService(
-      webda,
-      "ConsoleLogger",
-      {}
-    );
+    webda.services["ConsoleLogger"] = new ConsoleLoggerService(webda, "ConsoleLogger", {});
     await webda.init();
     let openapi = webda.exportOpenAPI();
 
@@ -355,22 +277,22 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(openapi.paths["/contacts/{uuid}"], undefined);
     app.addModel("webda/anotherContext", WebContext);
     app.getConfiguration().openapi = {
-      tags: [{ name: "Zzzz" }, { name: "Aaaaa" }],
+      tags: [{ name: "Zzzz" }, { name: "Aaaaa" }]
     };
     app.getPackageDescription = () => ({
       license: "GPL",
       author: {
-        name: "Test",
-      },
+        name: "Test"
+      }
     });
-    app.getSchema = (type) => {
+    app.getSchema = type => {
       let res = {
         definitions: {},
         properties: {},
-        title: type,
+        title: type
       };
       res.definitions[`other$${type}`] = {
-        description: `Fake ${type}`,
+        description: `Fake ${type}`
       };
       return res;
     };
@@ -382,14 +304,14 @@ class CoreTest extends WebdaTest {
       { name: "contacts" },
       { name: "ExceptionExecutor" },
       { name: "ImplicitBean" },
-      { name: "Zzzz" },
+      { name: "Zzzz" }
     ]);
     assert.ok(Object.keys(openapi.components.schemas).length > 10);
     app.getPackageDescription = () => ({
       license: {
-        name: "GPL",
+        name: "GPL"
       },
-      author: "Test",
+      author: "Test"
     });
     openapi = webda.exportOpenAPI();
     assert.strictEqual(openapi.info.contact.name, "Test");
@@ -419,10 +341,7 @@ class CoreTest extends WebdaTest {
   @test
   async registry() {
     await this.webda.getRegistry().put("test", { anyData: "plop" });
-    assert.strictEqual(
-      (await this.webda.getRegistry().get("test")).anyData,
-      "plop"
-    );
+    assert.strictEqual((await this.webda.getRegistry().get("test")).anyData, "plop");
   }
 
   @test
@@ -444,10 +363,7 @@ class CoreTest extends WebdaTest {
 
   @test
   getVersion() {
-    assert.strictEqual(
-      this.webda.getVersion(),
-      JSONUtils.loadFile("package.json").version
-    );
+    assert.strictEqual(this.webda.getVersion(), JSONUtils.loadFile("package.json").version);
   }
 
   @test
@@ -458,14 +374,8 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["TEST_ADD"], undefined);
     let service = this.ctx.getExecutor();
-    assert.strictEqual(
-      service.getParameters()["accessKeyId"],
-      "LOCAL_ACCESS_KEY"
-    );
-    assert.strictEqual(
-      service.getParameters()["secretAccessKey"],
-      "LOCAL_SECRET_KEY"
-    );
+    assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
@@ -474,58 +384,35 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx["parameters"]["TEST_ADD"], undefined);
     let service = this.ctx.getExecutor();
-    assert.strictEqual(
-      service.getParameters()["accessKeyId"],
-      "LOCAL_ACCESS_KEY"
-    );
-    assert.strictEqual(
-      service.getParameters()["secretAccessKey"],
-      "LOCAL_SECRET_KEY"
-    );
+    assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
   knownPageUnknownMethod() {
-    assert.strictEqual(
-      this.getExecutor(this.ctx, "test.webda.io", "PUT", "/"),
-      undefined
-    );
+    assert.strictEqual(this.getExecutor(this.ctx, "test.webda.io", "PUT", "/"), undefined);
   }
 
   @test
   unknownPage() {
-    assert.strictEqual(
-      this.getExecutor(this.ctx, "test.webda.io", "GET", "/test"),
-      undefined
-    );
+    assert.strictEqual(this.getExecutor(this.ctx, "test.webda.io", "GET", "/test"), undefined);
   }
 
   @test
   knownTemplatePage() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/urltemplate/666"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/urltemplate/666");
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["id"], "666");
     let service = this.ctx.getExecutor();
-    assert.strictEqual(
-      service.getParameters()["accessKeyId"],
-      "LOCAL_ACCESS_KEY"
-    );
-    assert.strictEqual(
-      service.getParameters()["secretAccessKey"],
-      "LOCAL_SECRET_KEY"
-    );
+    assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
   slashInQueryString() {
     this.webda.addRoute("/callback{?code}", {
       methods: ["GET"],
-      executor: "DefinedMailer",
+      executor: "DefinedMailer"
     });
     let executor = this.getExecutor(
       this.ctx,
@@ -534,42 +421,26 @@ class CoreTest extends WebdaTest {
       "/urltemplate/callback?code=4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8"
     );
     assert.notStrictEqual(executor, undefined);
-    assert.strictEqual(
-      this.ctx.getParameters().code,
-      "4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8"
-    );
+    assert.strictEqual(this.ctx.getParameters().code, "4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8");
     executor = this.getExecutor(
       this.ctx,
       "test.webda.io",
       "GET",
       "/urltemplate/callback?code=4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#"
     );
-    assert.strictEqual(
-      this.ctx.getParameters().code,
-      "4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#"
-    );
+    assert.strictEqual(this.ctx.getParameters().code, "4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#");
   }
 
   @test
   slashInPath() {
-    let executor = this.getExecutor(
-      undefined,
-      "test.webda.io",
-      "GET",
-      "/urltemplate/666/test"
-    );
+    let executor = this.getExecutor(undefined, "test.webda.io", "GET", "/urltemplate/666/test");
     assert.notStrictEqual(executor, undefined);
     assert.notStrictEqual(this.ctx.getParameters().id, "666/test");
   }
 
   @test
   me() {
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/auth/me"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/auth/me");
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters().provider, undefined);
   }
@@ -578,10 +449,7 @@ class CoreTest extends WebdaTest {
   covValidateSchema() {
     assert.strictEqual(this.webda.validateSchema("test", {}), null);
     assert.strictEqual(this.webda.validateSchema("test", {}, true), null);
-    assert.strictEqual(
-      this.webda.validateSchema("webda/fileconfiguration", {}, true),
-      true
-    );
+    assert.strictEqual(this.webda.validateSchema("webda/fileconfiguration", {}, true), true);
   }
 
   @test
@@ -592,12 +460,7 @@ class CoreTest extends WebdaTest {
   @test
   covRemoveRoute() {
     this.webda.removeRoute("/urltemplate/{id}");
-    let executor = this.getExecutor(
-      this.ctx,
-      "test.webda.io",
-      "GET",
-      "/urltemplate/666"
-    );
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/urltemplate/666");
     assert.strictEqual(executor, undefined);
   }
 
@@ -605,13 +468,10 @@ class CoreTest extends WebdaTest {
   toPublicJson() {
     let obj = {
       _title: "private",
-      title: "public",
+      title: "public"
     };
     this.webda.isDebug(); // Just for CodeCoverage
-    assert.strictEqual(
-      JSON.parse(this.webda.toPublicJSON(obj))._title,
-      undefined
-    );
+    assert.strictEqual(JSON.parse(this.webda.toPublicJSON(obj))._title, undefined);
   }
 
   @test
@@ -620,18 +480,15 @@ class CoreTest extends WebdaTest {
     assert.strictEqual(service.getParameters().password.regexp, ".{8,}");
     assert.strictEqual(service.getParameters().email.mailer, "DefinedMailer");
     await this.webda.reinit({
-      "Authentication.password.regexp": ".{12,}",
+      "Authentication.password.regexp": ".{12,}"
     });
     let newService = this.webda.getService<Authentication>("Authentication");
     assert.strictEqual(newService.getParameters().password.regexp, ".{12,}");
-    assert.strictEqual(
-      newService.getParameters().email.mailer,
-      "DefinedMailer"
-    );
+    assert.strictEqual(newService.getParameters().email.mailer, "DefinedMailer");
     await assert.rejects(
       () =>
         this.webda.reinit({
-          "Bouzouf.plop": "Testor",
+          "Bouzouf.plop": "Testor"
         }),
       Error
     );
@@ -639,8 +496,8 @@ class CoreTest extends WebdaTest {
       () =>
         this.webda.reinit({
           "$.Bouzouf": {
-            Testor: "plop",
-          },
+            Testor: "plop"
+          }
         }),
       /Configuration is not designed to add dynamically services/
     );
@@ -648,15 +505,8 @@ class CoreTest extends WebdaTest {
 
   assertInitError(service, msg) {
     let serviceBean = this.webda.getService(service);
-    assert.notStrictEqual(
-      serviceBean._initException,
-      undefined,
-      `${service} should have failed init with ${msg}`
-    );
-    assert.strictEqual(
-      serviceBean._initException.message.indexOf(msg) >= 0,
-      true
-    );
+    assert.notStrictEqual(serviceBean._initException, undefined, `${service} should have failed init with ${msg}`);
+    assert.strictEqual(serviceBean._initException.message.indexOf(msg) >= 0, true);
   }
 
   @test
@@ -667,7 +517,7 @@ class CoreTest extends WebdaTest {
     assert.strictEqual(this.webda.getService(), undefined);
     // @ts-ignore
     this.webda._currentExecutor = {
-      session: "test",
+      session: "test"
     };
     let local = this.webda.getConfiguration().parameters.locales;
     this.webda.getConfiguration().parameters.locales = undefined;
@@ -706,16 +556,13 @@ class CoreTest extends WebdaTest {
     this.webda.getUuid();
     this.webda.getInstanceId();
     // a8b7f4a4-62aa-4b2a-b6a8-0ffdc0d82c96
-    assert.ok(
-      /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(this.webda.getUuid()) !==
-        null
-    );
+    assert.ok(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(this.webda.getUuid()) !== null);
     assert.ok(/[0-9a-f]{32}/.exec(this.webda.getUuid("hex")) !== null);
     assert.ok(/[0-9a-zA-Z\-_]{22}/.exec(this.webda.getUuid("base64")) !== null);
     let provider: ContextProvider = {
       getContext(info) {
         return undefined;
-      },
+      }
     };
     this.webda.registerContextProvider(provider);
     // @ts-ignore
@@ -741,7 +588,7 @@ class CoreTest extends WebdaTest {
     let method = this.webda.createServices.bind(this.webda);
     method(["definedmailer"]);
     // @ts-ignore
-    this.webda.getApplication().getModda = (type) => {
+    this.webda.getApplication().getModda = type => {
       if (type === "Test/VoidStore") {
         throw new Error();
       } else {

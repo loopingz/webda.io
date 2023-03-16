@@ -4,8 +4,9 @@ import { Readable } from "stream";
 import { Core } from "../core";
 import { Service } from "../services/service";
 import { WebdaTest } from "../test";
-import { OperationContext, WebContext } from "./context";
+import { OperationContext, SimpleOperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
+import { Session } from "./session";
 
 export class WebContextMock extends WebContext {
   constructor(webda: Core, httpContext: HttpContext, stream?: any) {
@@ -129,6 +130,14 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(this.ctx.hasFlushedHeaders(), true);
     this.ctx.setFlushedHeaders(false);
     assert.strictEqual(this.ctx.hasFlushedHeaders(), false);
+  }
+
+  @test
+  simpleOperationContext() {
+    const ctx = new SimpleOperationContext(this.webda);
+    const session = new Session();
+    ctx.setSession(session);
+    assert.strictEqual(session, ctx.getSession());
   }
 
   @test

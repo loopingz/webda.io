@@ -87,13 +87,8 @@ class ServiceTest extends WebdaTest {
     await ctx.init();
     ctx.setInput(JSON.stringify({ output: "plop" }));
     assert.rejects(() => this.webda.callOperation(ctx, "myOperation2"));
-    let service = new FakeService(this.webda, "plop", {
-      bean: "Authentication"
-    });
-    service.resolve();
-    this.registerService(service);
     // @ts-ignore
-    this.webda.getApplication().baseConfiguration.cachedModules.schemas["test"] = {
+    this.webda.getApplication().baseConfiguration.cachedModules.schemas["plop.myoperation.input"] = {
       properties: {
         output: {
           type: "string",
@@ -102,12 +97,22 @@ class ServiceTest extends WebdaTest {
       },
       required: ["output"]
     };
+    let service = new FakeService(this.webda, "plop", {
+      bean: "Authentication"
+    });
+    service.resolve();
+    this.registerService(service);
+    // @ts-ignore
+    this.webda.operations["plop.myOperation"].input = "plop.myoperation.input";
 
-    await assert.rejects(() => this.webda.callOperation(ctx, "plop.myOperation"), /validation failed/);
+    await assert.rejects(
+      () => this.webda.callOperation(ctx, "plop.myOperation"),
+      /Operation plop.myOperation InvalidInput/
+    );
     ctx.getInput = () => undefined;
     await assert.rejects(
       () => this.webda.callOperation(ctx, "plop.myOperation"),
-      /Input does not fit the operation input/
+      /Operation plop.myOperation InvalidInput/
     );
     ctx = new FakeOperationContext(this.webda);
     await ctx.init();
@@ -120,10 +125,20 @@ class ServiceTest extends WebdaTest {
     assert.deepStrictEqual(this.webda.listOperations(), {
       "plop.myOperation": {
         id: "plop.myOperation",
-        input: "webda/test",
-        output: "webda/plop"
+        input: "plop.myoperation.input"
       }
     });
+
+    // Check with permission
+    // @ts-ignore
+    this.webda.operations["plop.myOperation"].permission = "role = 'test'";
+    await assert.rejects(
+      () => this.webda.callOperation(ctx, "plop.myOperation"),
+      /Operation plop.myOperation PermissionDenied/
+    );
+    await ctx.newSession();
+    ctx.getSession<any>().role = "test";
+    await this.webda.callOperation(ctx, "plop.myOperation");
   }
 
   @test

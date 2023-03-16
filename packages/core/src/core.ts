@@ -708,6 +708,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Call an operation within the framework
    */
   async callOperation(context: OperationContext, operationId: string) {
+    context.setExtension("operation", operationId);
     await this.checkOperation(context, operationId);
     return this.getService(this.operations[operationId].service)[this.operations[operationId].method](context);
   }

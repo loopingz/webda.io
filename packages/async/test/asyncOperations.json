@@ -1,0 +1,53 @@
+{
+  "application": {
+    "name": "fake",
+    "version": "0.1.0"
+  },
+  "operations": {
+    "User.Revoke": {
+      "id": "User.Revoke",
+      "input": "userservice.revoke.input"
+    },
+    "User.Onboard": {
+      "id": "User.Onboard",
+      "input": "userservice.onboard.input",
+      "output": "userservice.onboard.output",
+      "permission": "role = 'hr'"
+    }
+  },
+  "schemas": {
+    "userservice.onboard.input": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "userservice.onboard.output": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["id"]
+    },
+    "userservice.revoke.input": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["id"]
+    }
+  }
+}

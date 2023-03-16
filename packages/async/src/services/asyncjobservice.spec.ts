@@ -595,4 +595,51 @@ class AsyncJobServiceTest extends WebdaTest {
     await p.cancel();
     assert.strictEqual(stubExec.getCalls().length, 2);
   }
+
+  @test
+  async operations() {
+    const service = new AsyncJobService(this.webda, "async", {
+      queue: "AsyncQueue",
+      store: "AsyncJobs",
+      runners: ["LocalRunner"],
+      asyncOperationDefinition: "./test/asyncOperations.json"
+    });
+    service.resolve();
+    assert.ok(this.webda.getApplication().hasSchema("userservice.revoke.input"));
+    let context = await this.newContext();
+    await service.listOperations(context);
+    let res = JSON.parse(context.getOutput());
+    assert.deepStrictEqual(res, ["User.Revoke"]);
+    context.getParameters().full = true;
+    await service.listOperations(context);
+    res = JSON.parse(context.getOutput());
+    assert.notStrictEqual(res.schemas["userservice.revoke.input"], undefined);
+    assert.notStrictEqual(res.operations["User.Revoke"], undefined);
+    await context.newSession();
+    context.getSession<any>().role = "hr";
+    context.getParameters().full = false;
+    await service.listOperations(context);
+    res = JSON.parse(context.getOutput());
+    assert.deepStrictEqual(res, ["User.Revoke", "User.Onboard"]);
+    context.getParameters().full = true;
+    await service.listOperations(context);
+    context.getSession<any>().role = "no-hr";
+    context.getParameters().operationId = "User.Onboard";
+    await assert.rejects(() => service.launchOperation(context), /403/);
+    context.getParameters().operationId = "User.Onboard2";
+    await assert.rejects(() => service.launchOperation(context), /404/);
+    context.getSession<any>().role = "hr";
+    context.getParameters().operationId = "User.Revoke";
+    await assert.rejects(() => service.launchOperation(context), /400/);
+    context = await this.newContext({ id: "my-id" });
+    context.getSession<any>().role = "hr";
+    context.getParameters().operationId = "User.Revoke";
+    await service.launchOperation(context);
+    context.getParameters().schedule = Date.now() + 86400000;
+    await service.launchOperation(context);
+    sinon.stub(service.getWebda(), "checkOperation").callsFake(async () => {
+      throw new Error("Plop");
+    });
+    await assert.rejects(() => service.launchOperation(context), /Plop/);
+  }
 }

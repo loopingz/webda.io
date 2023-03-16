@@ -567,6 +567,7 @@ class CoreTest extends WebdaTest {
     this.webda.registerContextProvider(provider);
     // @ts-ignore
     assert.strictEqual(this.webda._contextProviders[0], provider);
+    assert.throws(() => this.webda.registerOperation("__proto__", undefined), Error);
   }
 
   @test

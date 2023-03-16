@@ -735,6 +735,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param definition
    */
   registerOperation(operationId: string, definition: OperationDefinition) {
+    if (operationId.match(/[^a-zA-Z0-9\.]/)) {
+      throw new Error("OperationId can only contain [a-zA-Z0-9.]");
+    }
     this.operations[operationId] = { ...definition, id: operationId };
     ["input", "output"]
       .filter(key => this.operations[operationId][key])

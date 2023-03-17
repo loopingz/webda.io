@@ -388,6 +388,15 @@ class DynamicService extend Service {
   }
 
   @test
+  async modelsExporter() {
+    this.cleanFiles.push("exportModels.json");
+    this.cleanFiles.push("exportModels.ts");
+    // Define what to check
+    await this.commandLine("models exportModels.json");
+    await this.commandLine("models exportModels.ts");
+  }
+
+  @test
   async build() {
     let stub;
     try {

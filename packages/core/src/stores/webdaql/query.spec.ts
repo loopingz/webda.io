@@ -90,6 +90,12 @@ class QueryTest {
     assert.strictEqual(new WebdaQL.QueryValidator("test.attr1 = 'plop'").eval(targets[0]), true);
     assert.strictEqual(new WebdaQL.QueryValidator("test.attr1 = 'plop2'").eval(targets[0]), false);
   }
+
+  @test
+  contains() {
+    assert.strictEqual(new WebdaQL.QueryValidator("test.attr1 CONTAINS 'plop2'").eval(targets[0]), false);
+  }
+
   @test
   andQuery() {
     assert.strictEqual(

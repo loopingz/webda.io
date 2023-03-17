@@ -57,6 +57,12 @@ class ContextTest extends WebdaTest {
   }
 
   @test
+  async copyContext() {
+    let context = await this.newContext();
+    await SimpleOperationContext.fromContext(context);
+  }
+
+  @test
   async cov() {
     // Get the last lines
     this.ctx.logIn();

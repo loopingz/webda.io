@@ -184,6 +184,15 @@
           "description": "Model to use when launching async action",
           "default": "Webda/AsyncWebdaAction"
         },
+        "asyncOperationModel": {
+          "type": "string",
+          "description": "Model to use when launching async operation",
+          "default": "Webda/AsyncOperationAction"
+        },
+        "asyncOperationDefinition": {
+          "type": "string",
+          "description": "JSON file of the AsyncOperation definition\n\nGenerated with `webda operations operations.json`"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true

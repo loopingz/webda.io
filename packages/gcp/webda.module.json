@@ -46,7 +46,7 @@
         },
         "operationPrefix": {
           "type": "string",
-          "description": "Register routes as operation with `${operationPrefix}.${routeType}`\n\nIf not defined it will be removed"
+          "description": "Register routes as operation with {operationPrefix}.{routeType}\n\nIf not defined it will be removed"
         },
         "strict": {
           "type": "boolean",

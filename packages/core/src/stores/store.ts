@@ -379,7 +379,7 @@ export class StoreParameters extends ServiceParameters {
   expose?: ExposeParameters;
 
   /**
-   * Register routes as operation with `${operationPrefix}.${routeType}`
+   * Register routes as operation with {operationPrefix}.{routeType}
    *
    * If not defined it will be removed
    */

@@ -111,6 +111,10 @@ class FireStoreTest extends StoreTest {
       limit: 1000
     });
     assert.strictEqual(res.results.length, 250);
+    // Test double CONTAINS
+    exp = new WebdaQL.QueryValidator('states CONTAINS "CA" AND states CONTAINS "OR"').getExpression();
+    res = await store.find({ filter: exp, limit: 1000 });
+    assert.notStrictEqual(res.filter, true, `Should have post filter as CONTAINS cannot be used twice`);
     return store;
   }
 

@@ -18,4 +18,6 @@ export class SampleAppBadBean {
 export class SampleAppGoodBean extends BeanService {
   @Operation()
   operation(context: OperationContext<{ projectId: string }>) {}
+  @Operation()
+  operation2(context: OperationContext) {}
 }

@@ -50,7 +50,7 @@ class FireStoreTest extends StoreTest {
     let collections = await this.firestore.listCollections();
     await Promise.all(
       collections.map(c => {
-        return this.deleteCollection(c.id, 1000);
+        return this.deleteCollection(c.id, 500);
       })
     );
   }

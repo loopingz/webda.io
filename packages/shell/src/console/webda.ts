@@ -957,7 +957,12 @@ ${Object.keys(operationsExport.operations)
     }
 
     let logger;
-    if (argv.notty || process.env.NO_TTY || !process.stdout.isTTY || ["init", "build"].includes(<string>argv._[0])) {
+    if (
+      argv.notty ||
+      process.env.NO_TTY ||
+      !process.stdout.isTTY ||
+      ["init", "build", "openapi", "models", "operations"].includes(<string>argv._[0])
+    ) {
       logger = new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
     } else {
       if (extension && extension.terminal) {

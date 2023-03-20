@@ -2,30 +2,31 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/asyncjobservice": "lib/services/asyncjobservice:default",
-    "webda/localrunner": "lib/services/localrunner:default",
-    "webda/servicerunner": "lib/services/servicerunner:default"
+    "Webda/AsyncJobService": "lib/services/asyncjobservice:default",
+    "Webda/LocalRunner": "lib/services/localrunner:default",
+    "Webda/ServiceRunner": "lib/services/servicerunner:default"
   },
   "models": {
     "graph": {
-      "webda/asyncaction": {},
-      "webda/asyncwebdaaction": {},
-      "webda/asyncoperationaction": {}
+      "Webda/AsyncAction": {},
+      "Webda/AsyncOperationAction": {},
+      "Webda/AsyncWebdaAction": {}
     },
     "tree": {
-      "webda/asyncaction": {
-        "webda/asyncwebdaaction": {},
-        "webda/asyncoperationaction": {}
+      "Webda/AsyncAction": {
+        "Webda/AsyncWebdaAction": {},
+        "Webda/AsyncOperationAction": {}
       }
     },
+    "plurals": {},
     "list": {
-      "webda/asyncaction": "lib/models:default",
-      "webda/asyncoperationaction": "lib/models:AsyncOperationAction",
-      "webda/asyncwebdaaction": "lib/models:AsyncWebdaAction"
+      "Webda/AsyncAction": "lib/models:default",
+      "Webda/AsyncOperationAction": "lib/models:AsyncOperationAction",
+      "Webda/AsyncWebdaAction": "lib/models:AsyncWebdaAction"
     }
   },
   "schemas": {
-    "webda/asyncaction": {
+    "Webda/AsyncAction": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -112,7 +113,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AsyncAction"
     },
-    "webda/asyncjobservice": {
+    "Webda/AsyncJobService": {
       "type": "object",
       "properties": {
         "type": {
@@ -210,7 +211,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AsyncJobService"
     },
-    "webda/asyncoperationaction": {
+    "Webda/AsyncOperationAction": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -372,7 +373,7 @@
       },
       "title": "AsyncOperationAction"
     },
-    "webda/asyncwebdaaction": {
+    "Webda/AsyncWebdaAction": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -484,7 +485,7 @@
       },
       "title": "AsyncWebdaAction"
     },
-    "webda/localrunner": {
+    "Webda/LocalRunner": {
       "type": "object",
       "properties": {
         "type": {
@@ -641,7 +642,7 @@
       },
       "title": "LocalRunner"
     },
-    "webda/servicerunner": {
+    "Webda/ServiceRunner": {
       "type": "object",
       "properties": {
         "type": {

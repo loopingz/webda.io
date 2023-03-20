@@ -89,6 +89,15 @@ class UtilsTest {
     );
   }
 
+  @test
+  sortObject() {
+    assert.deepStrictEqual(JSONUtils.sortObject({ a: 1, c: 2, b: 3 }), { a: 1, b: 3, c: 2 });
+    assert.deepStrictEqual(
+      JSONUtils.sortObject({ a: 1, c: 2, b: 3 }, p => (p < 3 ? p + 2 : undefined)),
+      { a: 3, c: 4 }
+    );
+  }
+
   @test("Write JSON/YAML")
   writeJSON() {
     try {

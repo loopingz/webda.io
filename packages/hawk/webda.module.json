@@ -2,23 +2,24 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/hawk": "lib/hawk:default"
+    "Webda/Hawk": "lib/hawk:default"
   },
   "models": {
     "graph": {
-      "webda/apikey": {}
+      "Webda/ApiKey": {}
     },
     "tree": {
-      "webda/ownermodel": {
-        "webda/apikey": {}
+      "Webda/OwnerModel": {
+        "Webda/ApiKey": {}
       }
     },
+    "plurals": {},
     "list": {
-      "webda/apikey": "lib/apikey:default"
+      "Webda/ApiKey": "lib/apikey:default"
     }
   },
   "schemas": {
-    "webda/apikey": {
+    "Webda/ApiKey": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -115,7 +116,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApiKey"
     },
-    "webda/hawk": {
+    "Webda/Hawk": {
       "type": "object",
       "properties": {
         "type": {

@@ -226,7 +226,7 @@ const beans = {};
 
 // @Bean to declare as a Singleton service
 export function Bean(constructor: Function) {
-  let name = constructor.name.toLowerCase();
+  let name = constructor.name;
   beans[name] = beans[name] || { constructor };
   beans[name] = { ...beans[name], bean: true };
 }
@@ -431,6 +431,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     // Init default values for configuration
     this.configuration.parameters ??= {};
     this.configuration.parameters.apiUrl ??= "http://localhost:18080";
+    this.configuration.parameters.defaultStore ??= "Registry";
     this.configuration.parameters.metrics ??= {};
     if (this.configuration.parameters.metrics) {
       this.configuration.parameters.metrics.labels ??= {};
@@ -468,33 +469,33 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param model
    * @returns
    */
-  getModelStore(model: Constructor<CoreModel> | CoreModel) {
+  getModelStore<T extends CoreModel>(model: Constructor<T> | T): Store<T> {
     if (model instanceof CoreModel) {
       if (this._modelStoresCache.has(model.__class)) {
-        return this._modelStoresCache.get(model.__class);
+        return <Store<T>>this._modelStoresCache.get(model.__class);
       }
     } else if (this._modelStoresCache.has(model)) {
-      return this._modelStoresCache.get(model);
+      return <Store<T>>this._modelStoresCache.get(model);
     }
     const setCache = store => {
       this._modelStoresCache.set(model instanceof CoreModel ? model.__class : model, store);
     };
     const stores = this.getStores();
     let actualScore: number;
-    let actualStore: Store = this.getService(this.parameter("defaultStore"));
+    let actualStore: Store = this.getService(this.parameter("defaultStore") || "Registry");
     for (let store in stores) {
       let score = stores[store].handleModel(model);
       // As 0 mean exact match we stop there
       if (score === 0) {
         setCache(stores[store]);
-        return stores[store];
+        return <Store<T>>stores[store];
       } else if (score > 0 && (actualScore === undefined || actualScore > score)) {
         actualScore = score;
         actualStore = stores[store];
       }
     }
     setCache(actualStore);
-    return actualStore;
+    return <Store<T>>actualStore;
   }
 
   /**
@@ -619,8 +620,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     this.initStatics();
     this.log("TRACE", "Create Webda init promise");
     this._init = new Promise(async resolve => {
-      await this.initService("registry");
-      await this.initService("cryptoservice");
+      await this.initService("Registry");
+      await this.initService("CryptoService");
 
       // Init services
       let service;
@@ -791,6 +792,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   ): NoSchemaResult | SchemaValidResult {
     let name = typeof webdaObject === "string" ? webdaObject : this.application.getModelFromInstance(webdaObject);
     let cacheName = name;
+    if (name?.endsWith("?")) {
+      name = name.substring(0, name.length - 1);
+      ignoreRequired = true;
+    }
     if (ignoreRequired) {
       cacheName += "_noRequired";
     }
@@ -885,7 +890,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param {String} name The service name to retrieve
    */
   getService<T extends Service>(name: string = ""): T {
-    name = name.toLowerCase();
     return <T>this.services[name];
   }
 
@@ -1066,11 +1070,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     try {
       this.log("TRACE", "Constructing service", service);
-      this.services[service.toLowerCase()] = new serviceConstructor(this, service, this.getServiceParams(service));
+      this.services[service] = new serviceConstructor(this, service, this.getServiceParams(service));
     } catch (err) {
       this.log("ERROR", "Cannot create service", service, err);
       // @ts-ignore
-      this.failedServices[service.toLowerCase()] = { _createException: err };
+      this.failedServices[service] = { _createException: err };
     }
   }
 
@@ -1094,7 +1098,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     // Construct services
     for (let service in services) {
-      if (excludes.indexOf(service.toLowerCase()) >= 0) {
+      if (excludes.indexOf(service) >= 0) {
         continue;
       }
       this.createService(services, service);
@@ -1115,17 +1119,21 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     for (let name in models) {
       let model = models[name];
       if (model?.Expose) {
-        this.log("DEBUG", "Creating alias store for", name);
-        this.services["auto/" + name.toLowerCase()] = new AliasStore(this, name, {
+        const storeName = "Auto/" + name.split("/").pop();
+        this.log("DEBUG", `Creating alias store (${storeName}) for ${name}, aliasing ${model.store().getName()}}`);
+        this.services[storeName] = new AliasStore(this, storeName, {
           model: name,
           targetStore: model.store().getName(),
+          operationPrefix: model.Expose.restrict?.operations ? undefined : model.constructor.name.toLowerCase(),
           expose: {
-            url: model.Expose.segment || model.prototype.name.toLowerCase(),
-            restrict: model.Expose.restrict
+            url: model.Expose.segment || this.application.getModelPlural(name).toLowerCase(),
+            restrict: model.Expose.restrict || {}
           }
         });
       }
     }
+    // Clear model store cache
+    this._modelStoresCache.clear();
   }
   /**
    * Return all methods that are setters (startsWith("set"))
@@ -1171,7 +1179,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         serviceBean.resolve();
         let setters = this._getSetters(serviceBean);
         setters.forEach(setter => {
-          let targetService = this.services[setter.substr(3).toLowerCase()];
+          let targetService = this.services[setter.substr(3)];
           if (targetService) {
             this.log("TRACE", "Auto-connecting", serviceBean.getName(), targetService.getName());
             serviceBean[setter](targetService);
@@ -1195,7 +1203,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     // Init the registry
     const autoRegistry = this.configuration.services["Registry"] === undefined;
     this.configuration.services["Registry"] ??= {
-      type: "webda/memorystore",
+      type: "Webda/MemoryStore",
       persistence: {
         path: ".registry",
         key: machineIdSync()
@@ -1206,7 +1214,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     // Init the key service
     this.configuration.services["CryptoService"] ??= {
-      type: "webda/cryptoservice",
+      type: "Webda/CryptoService",
       autoRotate: autoRegistry ? 30 : undefined,
       autoCreate: true
     };
@@ -1215,13 +1223,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     // Session Manager
     this.configuration.services["SessionManager"] ??= {
-      type: "webda/cookiesessionmanager"
+      type: "Webda/CookieSessionManager"
     };
 
     if (this.configuration.services !== undefined) {
-      let excludes = ["registry", "cryptoservice"];
+      let excludes = ["Registry", "CryptoService"];
       if (this.configuration.parameters.configurationService) {
-        excludes.push(this.configuration.parameters.configurationService.toLowerCase());
+        excludes.push(this.configuration.parameters.configurationService);
       }
       // Do not recreate the configuration services
       this.createServices(excludes);
@@ -1423,7 +1431,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       let desc: JSONSchema7 = {
         type: "object"
       };
-      let modelDescription = this.getModel(i);
+      let modelDescription;
+      try {
+        modelDescription = this.getModel(i);
+      } catch (err) {
+        this.log("WARN", "Cannot find model", i);
+        // Ignore
+        continue;
+      }
       let modelName = (<CoreModelDefinition>model).name || i.split("/").pop();
       // Only export CoreModel info
       if (!this.application.extends(modelDescription, CoreModel)) {

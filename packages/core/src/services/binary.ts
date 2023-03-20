@@ -73,6 +73,11 @@ export interface BinaryFileInfo {
 }
 
 /**
+ * Represent files attached to a model
+ */
+export type BinaryFiles = BinaryFileInfo[];
+
+/**
  * Represent a file to store
  */
 export abstract class BinaryFile implements BinaryFileInfo {
@@ -803,15 +808,15 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    */
   _verifyMapAndStore(ctx: WebContext): Store<CoreModel> {
     let store = ctx.parameter("store").toLowerCase();
-    // To avoid any probleme lowercase everything
+    // To avoid any problem lowercase everything
     let map = this.parameters.map[this._lowercaseMaps[store]];
     if (map === undefined) {
       throw 404;
     }
-    if (map.indexOf(ctx.parameter("property")) == -1) {
+    if (!map.includes(ctx.parameter("property"))) {
       throw 404;
     }
-    let targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(store);
+    let targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(this._lowercaseMaps[store]);
     if (targetStore === undefined) {
       throw 404;
     }

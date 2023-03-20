@@ -125,7 +125,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     });
     try {
       // @ts-ignore
-      this.manager.getWebda().getServices()["beanservice"].getARNPolicy = () => {
+      this.manager.getWebda().getServices()["BeanService"].getARNPolicy = () => {
         return [
           { Sid: "", Effect: "Allow", Action: [], Resource: "*" },
           { Sid: "", Effect: "Allow", Action: [], Resource: "*" }

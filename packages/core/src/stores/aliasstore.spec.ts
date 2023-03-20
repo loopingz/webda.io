@@ -10,7 +10,7 @@ class AliasStoreTest extends StoreTest {
     let services = [
       new AliasStore(this.webda, "aliasUser", {
         targetStore: "MemoryIdents",
-        model: "webda/user",
+        model: "Webda/User",
         idTemplate: "{id}",
         expose: {
           url: "/alias/users"
@@ -18,7 +18,7 @@ class AliasStoreTest extends StoreTest {
       }),
       new AliasStore(this.webda, "aliasIdent", {
         targetStore: "MemoryIdents",
-        model: "webdatest/ident",
+        model: "WebdaTest/Ident",
         idTemplate: "{id}",
         expose: {
           url: "/alias/idents"

@@ -294,7 +294,25 @@ export const JSONUtils = {
   /**
    * Helper to FileUtils.save
    */
-  saveFile: FileUtils.save
+  saveFile: FileUtils.save,
+
+  /**
+   * Sort object keys
+   * @param unordered
+   * @returns
+   */
+  sortObject: (unordered: any, transformer: (obj: any) => any = a => a): any => {
+    return Object.keys(unordered)
+      .sort()
+      .reduce((obj, key) => {
+        let res = transformer(unordered[key]);
+        if (!res) {
+          return obj;
+        }
+        obj[key] = res;
+        return obj;
+      }, {});
+  }
 };
 
 /**

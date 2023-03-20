@@ -2,15 +2,16 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/profiler": "lib/profiler:default"
+    "Webda/Profiler": "lib/profiler:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/profiler": {
+    "Webda/Profiler": {
       "type": "object",
       "properties": {
         "type": {

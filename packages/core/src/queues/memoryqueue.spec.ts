@@ -155,7 +155,7 @@ class MemoryQueueTest extends QueueTest {
 
   @test
   async basic() {
-    let queue: MemoryQueue = <MemoryQueue>this.getService("memoryqueue");
+    let queue: MemoryQueue = <MemoryQueue>this.getService("MemoryQueue");
     // For coverage
     assert.strictEqual(queue.getParameters().expire, 1000, "1s should be convert to ms");
     queue.getParameters().expire = undefined;
@@ -171,7 +171,7 @@ class MemoryQueueTest extends QueueTest {
 
   @test
   async uuid() {
-    let queue: MemoryQueue = <MemoryQueue>this.getService("memoryqueue");
+    let queue: MemoryQueue = <MemoryQueue>this.getService("MemoryQueue");
     let first = true;
     let callCount = 0;
     // @ts-ignore

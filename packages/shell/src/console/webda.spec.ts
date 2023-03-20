@@ -409,11 +409,11 @@ class DynamicService extend Service {
       assert.strictEqual(fs.existsSync(moduleFile), true);
       let module: Module = FileUtils.load(moduleFile);
       assert.ok(Object.keys(module.schemas).length >= 9);
-      assert.deepStrictEqual(module.schemas["webdademo/customdeployer"].title, "CustomDeployer");
-      assert.notStrictEqual(module.schemas["webdademo/customreusableservice"], undefined);
-      assert.notStrictEqual(module.schemas["webdademo/contact"], undefined);
-      assert.notStrictEqual(module.beans["webdademo/beanservice"], undefined);
-      assert.notStrictEqual(module.beans["webdademo/sampleappgoodbean"], undefined);
+      assert.deepStrictEqual(module.schemas["WebdaDemo/CustomDeployer"].title, "CustomDeployer");
+      assert.notStrictEqual(module.schemas["WebdaDemo/CustomReusableService"], undefined);
+      assert.notStrictEqual(module.schemas["WebdaDemo/Contact"], undefined);
+      assert.notStrictEqual(module.beans["WebdaDemo/BeanService"], undefined);
+      assert.notStrictEqual(module.beans["WebdaDemo/SampleAppGoodBean"], undefined);
 
       WebdaConsole.build({ watch: true });
       WebdaConsole.app.getCompiler().stopWatch();
@@ -539,10 +539,10 @@ class DynamicService extend Service {
     if (fs.existsSync(f)) {
       fs.unlinkSync(f);
     }
-    await this.commandLine("schema Authentication authentication.json");
+    await this.commandLine("schema AuthenticationParameters authentication.json");
     assert.strictEqual(true, fs.existsSync(f));
     // Send it to output
-    await this.commandLine("schema Authentication");
+    await this.commandLine("schema AuthenticationParameters");
   }
 
   @test

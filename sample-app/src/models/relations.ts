@@ -4,6 +4,7 @@
 
 import {
   CoreModel,
+  Expose,
   ModelLink,
   ModelLinksArray,
   ModelLinksMap,
@@ -13,6 +14,7 @@ import {
   ModelsMapped
 } from "@webda/core";
 
+@Expose()
 class Student extends CoreModel {
   email: string;
   firstName: string;
@@ -25,10 +27,12 @@ class Student extends CoreModel {
   }
 }
 
+@Expose()
 class Teacher extends CoreModel {
   courses: ModelsMapped<Course, "name">;
 }
 
+@Expose()
 class Course extends CoreModel {
   uuid: string;
   name: string;
@@ -43,16 +47,17 @@ class Course extends CoreModel {
     }
   >;
 }
-
+@Expose()
 class Classroom extends CoreModel {
   uuid: string;
   name: string;
   courses: ModelsMapped<Course, "name">;
-  hardware: ModelRelated<Hardware, "classroom">;
+  hardwares: ModelRelated<Hardware, "classroom">;
 
   test() {}
 }
 
+@Expose()
 class Hardware extends CoreModel {
   classroom: ModelParent<Classroom>;
 }

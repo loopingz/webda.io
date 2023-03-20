@@ -48,10 +48,10 @@ export class DynamoDBTest extends StoreTest {
   }
 
   getIdentStore(): Store<any> {
-    return <Store<any>>this.getService("idents");
+    return <Store<any>>this.getService("Idents");
   }
   getUserStore(): Store<any> {
-    return <Store<any>>this.getService("users");
+    return <Store<any>>this.getService("Users");
   }
 
   getModelClass() {
@@ -228,7 +228,7 @@ export class DynamoDBTest extends StoreTest {
 
   @test
   ARNPolicy() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("Users");
     userStore.getParameters().region = "eu-west-1";
     assert.strictEqual(
       userStore.getARNPolicy("666").Resource[0],
@@ -245,7 +245,7 @@ export class DynamoDBTest extends StoreTest {
 
   @test
   async patchSkip() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("Users");
     let s = sinon.spy(userStore._client, "update");
     try {
       await userStore._patch({ uuid: "test" }, "test");
@@ -258,7 +258,7 @@ export class DynamoDBTest extends StoreTest {
   @test
   async deleteWithCondition() {
     await assert.rejects(
-      () => (<DynamoStore<any>>this.getService("users"))._delete("nop", new Date(), "p"),
+      () => (<DynamoStore<any>>this.getService("Users"))._delete("nop", new Date(), "p"),
       UpdateConditionFailError
     );
   }
@@ -266,7 +266,7 @@ export class DynamoDBTest extends StoreTest {
   @test
   params() {
     assert.throws(
-      () => new DynamoStoreParameters({}, <DynamoStore<any>>this.getService("users")),
+      () => new DynamoStoreParameters({}, <DynamoStore<any>>this.getService("Users")),
       /Need to define a table at least/
     );
   }
@@ -278,7 +278,7 @@ export class DynamoDBTest extends StoreTest {
       const faultyMethod = () => {
         throw new Error("Unknown");
       };
-      let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+      let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("Users");
       await assert.rejects(
         () => userStore._upsertItemToCollection("plop2", "test", "plop", 1, 2, "", new Date()),
         /Item not found plop2 Store/
@@ -317,7 +317,7 @@ export class DynamoDBTest extends StoreTest {
 
   @test
   async patch() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("Users");
     let stub = sinon.stub(userStore._client, "update").callsFake(() => {
       let err = new Error();
       // @ts-ignore

@@ -1,28 +1,29 @@
 {
   "beans": {},
   "deployers": {
-    "webdadeployer/chaindeployer": "lib/deployers/chaindeployer:default",
-    "webdadeployer/container": "lib/deployers/container:Container",
-    "webdadeployer/kubernetes": "lib/deployers/kubernetes:Kubernetes",
-    "webdadeployer/packager": "lib/deployers/packager:default",
-    "webdadeployer/shelldeployer": "lib/deployers/shell:default"
+    "WebdaDeployer/ChainDeployer": "lib/deployers/chaindeployer:default",
+    "WebdaDeployer/Container": "lib/deployers/container:Container",
+    "WebdaDeployer/Kubernetes": "lib/deployers/kubernetes:Kubernetes",
+    "WebdaDeployer/Packager": "lib/deployers/packager:default",
+    "WebdaDeployer/ShellDeployer": "lib/deployers/shell:default"
   },
   "moddas": {
     "webdashell/configuration": "lib/handlers/config:default"
   },
   "models": {
     "graph": {
-      "webdademo/deployment": {}
+      "WebdaDemo/Deployment": {}
     },
     "tree": {
-      "webdademo/deployment": {}
+      "WebdaDemo/Deployment": {}
     },
+    "plurals": {},
     "list": {
-      "webdademo/deployment": "lib/models/deployment:default"
+      "WebdaDemo/Deployment": "lib/models/deployment:default"
     }
   },
   "schemas": {
-    "webdademo/deployment": {
+    "WebdaDemo/Deployment": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -60,7 +61,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Deployment"
     },
-    "webdadeployer/chaindeployer": {
+    "WebdaDeployer/ChainDeployer": {
       "type": "object",
       "properties": {
         "name": {
@@ -73,7 +74,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ShellDeployer"
     },
-    "webdadeployer/container": {
+    "WebdaDeployer/Container": {
       "type": "object",
       "properties": {
         "name": {
@@ -86,7 +87,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ShellDeployer"
     },
-    "webdadeployer/kubernetes": {
+    "WebdaDeployer/Kubernetes": {
       "type": "object",
       "properties": {
         "name": {
@@ -99,7 +100,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ShellDeployer"
     },
-    "webdadeployer/packager": {
+    "WebdaDeployer/Packager": {
       "type": "object",
       "properties": {
         "name": {
@@ -112,7 +113,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ShellDeployer"
     },
-    "webdadeployer/shelldeployer": {
+    "WebdaDeployer/ShellDeployer": {
       "type": "object",
       "properties": {
         "name": {

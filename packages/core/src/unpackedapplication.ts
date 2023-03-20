@@ -53,6 +53,34 @@ export class UnpackedApplication extends Application {
   }
 
   /**
+   * Compute short ids
+   * @returns
+   */
+  async load(): Promise<this> {
+    await super.load();
+    const keys = Object.keys(this.getModels());
+    const namespace = this.getNamespace() + "/";
+    // All models from current namespace should have a short id
+    keys
+      .filter(key => key.startsWith(namespace))
+      .forEach(key => {
+        this.baseConfiguration.cachedModules.models.shortIds[key.substring(namespace.length)] = key;
+        this.baseConfiguration.cachedModules.models.shortIds[key] = key.substring(namespace.length);
+      });
+    // If models from other namespaces have no local ones then they have short id too
+    keys
+      .filter(key => !key.startsWith(namespace))
+      .forEach(key => {
+        const shortId = key.split("/")[1];
+        if (!this.baseConfiguration.cachedModules.models.shortIds[shortId]) {
+          this.baseConfiguration.cachedModules.models.shortIds[shortId] = key;
+          this.baseConfiguration.cachedModules.models.shortIds[key] = shortId;
+        }
+      });
+    return this;
+  }
+
+  /**
    * Add Moddas, Models and Deployers definitions
    * It also add the project metadata
    *
@@ -85,7 +113,9 @@ export class UnpackedApplication extends Application {
         models: {
           list: {},
           graph: {},
-          tree: {}
+          tree: {},
+          plurals: {},
+          shortIds: {}
         },
         schemas: {},
         moddas: {}

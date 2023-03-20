@@ -365,6 +365,15 @@ abstract class Service<
   }
 
   /**
+   * If undefined is returned it cancel the operation registration
+   * @param id
+   * @returns
+   */
+  getOperationId(id: string): string | undefined {
+    return id;
+  }
+
+  /**
    * Add a route dynamicaly
    *
    * @param {String} url of the route can contains dynamic part like {uuid}
@@ -422,12 +431,15 @@ abstract class Service<
     // @ts-ignore
     let operations = this.constructor.operations || {};
     for (let j in operations) {
-      this.log("TRACE", "Adding operation", j, "for bean", this.getName());
+      const id = this.getOperationId(j);
+      if (!id) continue;
+      this.log("TRACE", "Adding operation", id, "for bean", this.getName());
       this._webda.registerOperation(j.includes(".") ? j : `${this.getName()}.${j}`, {
         ...operations[j],
         service: this.getName(),
         input: `${this.getName()}.${operations[j].method}.input`,
-        output: `${this.getName()}.${operations[j].method}.output`
+        output: `${this.getName()}.${operations[j].method}.output`,
+        id
       });
     }
   }

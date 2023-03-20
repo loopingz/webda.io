@@ -74,32 +74,36 @@ class ImplicitBean extends Service {
 @suite
 class ModelDomainTest extends WebdaTest {
   public async tweakApp(app: TestApplication): Promise<void> {
-    app.addModel("webdatest/classa", ClassA);
-    app.addModel("webdatest/classb", ClassB);
-    app.addModel("webdatest/childclassa", ChildClassA);
-    app.addModel("webdatest/subchildclassa", SubChildClassA);
+    app.addModel("WebdaTest/ClassA", ClassA);
+    app.addModel("WebdaTest/ClassB", ClassB);
+    app.addModel("WebdaTest/ChildClassA", ChildClassA);
+    app.addModel("WebdaTest/SubChildClassA", SubChildClassA);
     super.tweakApp(app);
   }
 
   protected async buildWebda(): Promise<void> {
     await super.buildWebda();
-    this.registerService(
-      new MemoryStore(this.webda, "classa", {
-        model: "webdatest/classa"
+    await this.registerService(
+      new MemoryStore(this.webda, "ClassA", {
+        model: "WebdaTest/ClassA"
       })
-    );
-    this.registerService(
-      new MemoryStore(this.webda, "childclassa", {
-        model: "webdatest/childclassa"
+    )
+      .resolve()
+      .init();
+    await this.registerService(
+      new MemoryStore(this.webda, "ChildClassA", {
+        model: "WebdaTest/ChildClassA"
       })
-    );
+    )
+      .resolve()
+      .init();
   }
 
   @test
   async mainTest() {
-    assert.strictEqual(this.webda.getModelStore(ClassA)?.getName(), "classa");
-    assert.strictEqual(this.webda.getModelStore(ChildClassA)?.getName(), "childclassa");
-    assert.strictEqual(this.webda.getModelStore(SubChildClassA)?.getName(), "childclassa");
+    assert.strictEqual(this.webda.getModelStore(ClassA)?.getName(), "ClassA");
+    assert.strictEqual(this.webda.getModelStore(ChildClassA)?.getName(), "ChildClassA");
+    assert.strictEqual(this.webda.getModelStore(SubChildClassA)?.getName(), "ChildClassA");
 
     await ChildClassA.store().save({ uuid: "test", plop: true });
     assert.notStrictEqual(await ChildClassA.ref("test").get(), undefined);
@@ -299,13 +303,16 @@ class CoreTest extends WebdaTest {
     openapi = webda.exportOpenAPI();
     assert.strictEqual(openapi.info.contact.name, "Test");
     assert.strictEqual(openapi.info.license.name, "GPL");
-    assert.deepStrictEqual(openapi.tags, [
-      { name: "Aaaaa" },
-      { name: "contacts" },
-      { name: "ExceptionExecutor" },
-      { name: "ImplicitBean" },
-      { name: "Zzzz" }
-    ]);
+    assert.deepStrictEqual(
+      openapi.tags.filter(p => !p.name.startsWith("Auto/")),
+      [
+        { name: "Aaaaa" },
+        { name: "contacts" },
+        { name: "ExceptionExecutor" },
+        { name: "ImplicitBean" },
+        { name: "Zzzz" }
+      ]
+    );
     assert.ok(Object.keys(openapi.components.schemas).length > 10);
     app.getPackageDescription = () => ({
       license: {
@@ -347,18 +354,18 @@ class CoreTest extends WebdaTest {
   @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesOfType();
-    assert.strictEqual(Object.keys(moddas).length, 30);
+    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 30);
   }
 
   @test
   getStores() {
     let moddas = this.webda.getStores();
-    assert.strictEqual(Object.keys(moddas).length, 7);
+    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 7);
   }
   @test
   getServicesImplementationsWithType() {
     let stores = this.webda.getServicesOfType(<any>Store);
-    assert.strictEqual(Object.keys(stores).length, 7);
+    assert.strictEqual(Object.keys(stores).filter(k => !k.startsWith("Auto/")).length, 7);
   }
 
   @test
@@ -449,7 +456,7 @@ class CoreTest extends WebdaTest {
   covValidateSchema() {
     assert.strictEqual(this.webda.validateSchema("test", {}), null);
     assert.strictEqual(this.webda.validateSchema("test", {}, true), null);
-    assert.strictEqual(this.webda.validateSchema("webda/fileconfiguration", {}, true), true);
+    assert.strictEqual(this.webda.validateSchema("Webda/FileConfiguration", {}, true), true);
   }
 
   @test
@@ -526,10 +533,6 @@ class CoreTest extends WebdaTest {
     assert.strictEqual(this.webda.getService("plop"), undefined);
     assert.strictEqual(JSON.stringify(this.webda.getModels()), "{}");
     process.env.WEBDA_CONFIG = __dirname + "/../test/config.broken.json";
-    // assertInitError("ConfigurationService", "Need a source for");
-    // assertInitError("ConfigurationServiceBadSource", "Need a valid service");
-    // assertInitError("ConfigurationServiceBadSourceNoId", "Need a valid source");
-    // assertInitError("ConfigurationServiceBadSourceWithId", "is not implementing ConfigurationProvider interface");
     let err = new WebdaError("CODE", "");
     assert.strictEqual(err.getCode(), "CODE");
   }
@@ -540,12 +543,12 @@ class CoreTest extends WebdaTest {
     await app.load();
     let core = new Core(app);
     await core.init();
-    core.getServices()["implicitbean"].resolve = () => {
+    core.getServices()["ImplicitBean"].resolve = () => {
       throw new Error();
     };
     // @ts-ignore
     core.autoConnectServices();
-    core.getServices()["implicitbean"].resolve = undefined;
+    core.getServices()["ImplicitBean"].resolve = undefined;
     // @ts-ignore
     core.autoConnectServices();
   }
@@ -601,7 +604,7 @@ class CoreTest extends WebdaTest {
 
   @test
   async badInit() {
-    let service = this.webda.getService("definedmailer");
+    let service = this.webda.getService("DefinedMailer");
     service.init = async () => {
       throw new Error("Not happy");
     };
@@ -609,9 +612,9 @@ class CoreTest extends WebdaTest {
       throw new Error("Not happy");
     };
     // @ts-ignore
-    await this.webda.initService("definedmailer");
+    await this.webda.initService("DefinedMailer");
     assert.notStrictEqual(service._initException, undefined);
     // @ts-ignore
-    await this.webda.reinitService("definedmailer");
+    await this.webda.reinitService("DefinedMailer");
   }
 }

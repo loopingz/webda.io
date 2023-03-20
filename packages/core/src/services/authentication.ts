@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Counter, EventWithContext } from "../core";
+import { CoreModelDefinition } from "../models/coremodel";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Route, Service, ServiceParameters } from "../services/service";
@@ -110,15 +111,15 @@ export class AuthenticationParameters extends ServiceParameters {
   /**
    * Idents store for authentication identifiers
    *
-   * @default "idents"
+   * @default "Webda/Ident"
    */
-  identStore?: string;
+  identModel?: string;
   /**
    * User store for authentication users
    *
-   * @default "users"
+   * @default "Webda/User"
    */
-  userStore?: string;
+  userModel?: string;
   /**
    * @default "/auth"
    */
@@ -182,8 +183,8 @@ export class AuthenticationParameters extends ServiceParameters {
 
   constructor(params: any) {
     super(params);
-    this.identStore ??= "idents";
-    this.userStore ??= "users";
+    this.identModel ??= "Webda/Ident";
+    this.userModel ??= "Webda/User";
     this.url ??= "/auth";
     this.password ??= {
       regexp: ".{8,}"
@@ -233,10 +234,8 @@ class Authentication<
   T extends AuthenticationParameters = AuthenticationParameters,
   E extends AuthenticationEvents = AuthenticationEvents
 > extends Service<T, E> {
-  @Inject("identStore", "idents")
-  _identsStore: Store<Ident>;
-  @Inject("userStore", "users")
-  _usersStore: Store<User>;
+  _identModel: CoreModelDefinition<Ident>;
+  _userModel: CoreModelDefinition<User>;
   /**
    * Used for hmac
    */
@@ -266,7 +265,7 @@ class Authentication<
    * @returns
    */
   getUserStore<K extends User = User>(): Store<K> {
-    return <Store<K>>this._usersStore;
+    return <Store<K>>this._userModel.store();
   }
 
   /**
@@ -274,15 +273,7 @@ class Authentication<
    * @returns
    */
   getIdentStore<K extends Ident = Ident>(): Store<K> {
-    return <Store<K>>this._identsStore;
-  }
-
-  setIdents(identStore) {
-    this._identsStore = identStore;
-  }
-
-  setUsers(userStore) {
-    this._usersStore = userStore;
+    return <Store<K>>this._identModel.store();
   }
 
   /**
@@ -291,6 +282,9 @@ class Authentication<
    */
   computeParameters(): void {
     super.computeParameters();
+
+    this._identModel = <CoreModelDefinition<Ident>>this.getWebda().getModel(this.parameters.identModel);
+    this._userModel = <CoreModelDefinition<User>>this.getWebda().getModel(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {
       this._passwordVerifier = this.getService<PasswordVerifier>(this.parameters.password.verifier);
@@ -449,10 +443,9 @@ class Authentication<
   })
   async _sendEmailValidation(ctx) {
     let identKey = ctx.parameters.email + "_email";
-    let ident = await this._identsStore.get(identKey);
+    let ident = await this._identModel.ref(identKey).get();
     if (!ident) {
-      await this._identsStore.save({
-        uuid: `${ctx.parameters.email}_email`,
+      await this._identModel.ref(`${ctx.parameters.email}_email`).create({
         _lastValidationEmail: Date.now(),
         _type: "email"
       });
@@ -469,10 +462,7 @@ class Authentication<
       if (ident._lastValidationEmail >= Date.now() - this.parameters.email.delay) {
         throw 429;
       }
-      await this._identsStore.patch({
-        _lastValidationEmail: Date.now(),
-        uuid: identKey
-      });
+      await this._identModel.ref(ident.getUuid()).setAttribute("_lastValidationEmail", Date.now());
     }
     await this.sendValidationEmail(ctx, ctx.parameters.email);
   }
@@ -544,21 +534,20 @@ class Authentication<
       identId += postfix;
     }
 
-    let ident: Ident = await this._identsStore.get(identId);
+    let ident: Ident = await this._identModel.ref(identId).get();
     // Ident is known
     if (ident) {
       await this.login(ctx, ident.getUser(), ident, provider);
-      await this._identsStore.patch({
+      await ident.patch({
         _lastUsed: new Date(),
-        __tokens: tokens,
-        uuid: ident.uuid
+        __tokens: tokens
       });
       // Redirect to?
       return;
     }
     let user;
     if (profile.email) {
-      ident = await this._identsStore.get(`${profile.email}_email`);
+      ident = await this._identModel.ref(`${profile.email}_email`).get();
     }
     // If already login
     if (ctx.getCurrentUserId()) {
@@ -566,35 +555,42 @@ class Authentication<
     } else {
       // If an email in profile try to find the ident
       if (ident) {
-        user = await this._usersStore.get(ident.getUser());
+        user = await this._userModel.ref(ident.getUser()).get();
       }
 
       if (!user) {
         // If no user, register a new user automatically
         user = await this.registerUser(ctx, profile, identId);
-        await this._usersStore.save(user);
+        await user.save();
       }
     }
     if (profile.email && !ident) {
       // Save additional email
-      ident = this._identsStore.newModel({
-        uuid: `${profile.email}_email`,
-        provider: "email"
-      });
-      ident.setUser(user.getUuid());
-      await ident.save(true);
+      await new this._identModel()
+        .load(
+          {
+            uuid: `${profile.email}_email`,
+            provider: "email",
+            _user: user.getUuid()
+          },
+          true
+        )
+        .save();
     }
     // Work directly on ident argument
-    ident = this._identsStore.newModel({
-      uuid: identId,
-      profile,
-      __tokens: tokens,
-      provider
-    });
+    ident = new this._identModel().load(
+      {
+        uuid: identId,
+        profile,
+        __tokens: tokens,
+        provider
+      },
+      true
+    );
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
     ident.setType(provider);
-    await ident.save(true);
+    await ident.save();
     ident.__new = true;
     await this.login(ctx, user, ident, provider);
   }
@@ -604,7 +600,7 @@ class Authentication<
    * @param ident
    */
   async createUserWithIdent(provider: string, identId: string, profile: any = {}) {
-    if (await this._identsStore.exists(`${identId}_${provider}`)) {
+    if (await this._identModel.ref(`${identId}_${provider}`).exists()) {
       throw new Error("Ident is already known");
     }
     let ctx = await this._webda.newWebContext(new HttpContext("fake", "GET", "/"));
@@ -612,14 +608,14 @@ class Authentication<
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
 
-  async registerUser(
-    ctx: WebContext,
-    data: any,
-    identId: string,
-    user: any = this._usersStore.newModel()
-  ): Promise<any> {
-    user.email = data.email;
-    user.locale = ctx.getLocale();
+  async registerUser(ctx: WebContext, data: any, identId: string, user: User = new this._userModel()): Promise<User> {
+    user.load(
+      {
+        email: data.email,
+        locale: ctx.getLocale()
+      },
+      true
+    );
     this.metrics.registration.inc();
     await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
@@ -637,7 +633,7 @@ class Authentication<
     const expire = Date.now() + interval;
     let user;
     if (typeof uuid === "string") {
-      user = await this._usersStore.get(uuid);
+      user = await this._userModel.ref(uuid).get();
     } else {
       user = uuid;
     }
@@ -658,21 +654,19 @@ class Authentication<
    */
   async _passwordRecoveryEmail(ctx: WebContext) {
     let email = ctx.parameter("email");
-    let ident: Ident = await this._identsStore.get(email + "_email");
+    let ident: Ident = await this._identModel.ref(email + "_email").get();
     if (!ident) {
       throw 404;
     }
-    let user: User = await this._usersStore.get(ident.getUser());
+    let user: User = await this._userModel.ref(ident.getUser()).get();
     // Dont allow to do too many request
     if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
       throw 429;
     }
-    await this._usersStore.patch(
+    await user.patch(
       {
-        _lastPasswordRecovery: Date.now(),
-        uuid: user.uuid
+        _lastPasswordRecovery: Date.now()
       },
-      true,
       null
     );
     this.metrics.recovery.inc();
@@ -702,7 +696,7 @@ class Authentication<
     ) {
       throw 400;
     }
-    let user: User = await this._usersStore.get(body.login.toLowerCase());
+    let user: User = await this._userModel.ref(body.login.toLowerCase()).get();
     if (!user) {
       throw 403;
     }
@@ -716,12 +710,11 @@ class Authentication<
     }
     await this._verifyPassword(body.password, user);
     let password = this.hashPassword(body.password);
-    await this._usersStore.patch(
+    await user.patch(
       {
         __password: password,
         uuid: body.login.toLowerCase()
       },
-      true,
       null
     );
     this.metrics.recovered.inc();
@@ -775,17 +768,15 @@ class Authentication<
     }
 
     const uuid = ctx.parameter("email") + "_email";
-    let ident = await this._identsStore.get(uuid);
+    let ident = await this._identModel.ref(uuid).get();
     // Would mean the ident got delete in the mean time... hyper low likely hood
     if (ident === undefined) {
-      ident = this._identsStore.newModel({
-        uuid
-      });
+      ident = new this._identModel().setUuid(uuid);
     }
     ident._type = "email";
     ident._validation = new Date();
     ident.setUser(ctx.parameter("user"));
-    await ident.save(true);
+    await ident.save();
     ctx.writeHead(302, {
       Location: this.parameters.successRedirect + "?validation=email",
       "X-Webda-Authentication": "success"
@@ -922,7 +913,7 @@ class Authentication<
    */
   protected async handleLogin(ctx: WebContext<LoginBody>, ident: Ident) {
     let updates: any = {};
-    let user: User = await this._usersStore.get(ident.getUser());
+    let user: User = await this._userModel.ref(ident.getUser()).get();
     // Check password
     if (this.checkPassword(user.getPassword(), (await ctx.getRequestBody()).password)) {
       if (ident._failedLogin > 0) {
@@ -930,9 +921,8 @@ class Authentication<
       }
       updates._lastUsed = new Date();
       updates._failedLogin = 0;
-      updates.uuid = ident.uuid;
 
-      await this._identsStore.patch(updates, true, null);
+      await this._identModel.ref(ident.uuid).patch(updates);
       await this.login(ctx, ident.getUser(), ident, "email");
       ctx.write(user);
     } else {
@@ -944,9 +934,8 @@ class Authentication<
       ident._failedLogin ??= 0;
       updates._failedLogin = ident._failedLogin + 1;
       updates._lastFailedLogin = new Date();
-      updates.uuid = ident.uuid;
       // Swalow exeception issue to double check !
-      await this._identsStore.patch(updates, true, null);
+      await this._identModel.ref(ident.uuid).patch(updates);
       // Allows to auto redirect user to a oauth if needed
       if (!ctx.isEnded()) {
         throw 403;
@@ -973,7 +962,7 @@ class Authentication<
     }
     const mailConfig = this.parameters.email;
     const uuid = body.login.toLowerCase() + "_email";
-    let ident: Ident = await this._identsStore.get(uuid);
+    let ident: Ident = await this._identModel.ref(uuid).get();
     if (ident !== undefined && ident.getUser() !== undefined) {
       // Register on an known user
       if (!body.register) {
@@ -1011,28 +1000,39 @@ class Authentication<
       delete body.password;
       delete body.register;
       delete body.token;
-      let user = await this.registerUser(ctx, {}, uuid, {
-        ...body,
-        __password
-      });
+      let user = await this.registerUser(
+        ctx,
+        {},
+        uuid,
+        new this._userModel().load(
+          {
+            ...body,
+            __password
+          },
+          true
+        )
+      );
       await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,
         password: __password,
         context: ctx
       });
-      user = await this._usersStore.save(user);
-      const newIdent: any = this._identsStore.newModel({
-        uuid: uuid,
-        _type: "email",
-        email: email
-      });
-      newIdent.setUser(user.uuid);
+      await user.save();
+      const newIdent: any = new this._identModel().load(
+        {
+          uuid: uuid,
+          _type: "email",
+          email: email
+        },
+        true
+      );
+      newIdent.setUser(user.getUuid());
       if (validation) {
         newIdent._validation = validation;
       } else if (!mailConfig.skipEmailValidation) {
         newIdent._lastValidationEmail = Date.now();
       }
-      ident = await newIdent.save(true);
+      ident = await newIdent.save();
       await this.login(ctx, user, ident, "email");
       ctx.write(user);
       if (!validation && !mailConfig.skipEmailValidation) {

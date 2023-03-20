@@ -112,12 +112,11 @@ class PackagerTest {
     let config = JSON.parse(captureFiles["webda.config.json"]);
     // Ensure CachedModules are generated for packages
     assert.notStrictEqual(config.cachedModules, undefined);
-    assert.strictEqual(config.cachedModules.moddas["webdademo/customreusableservice"], "lib/services/reusable:default");
     assert.strictEqual(
-      config.cachedModules.moddas["webda/awssecretsmanager"].endsWith("aws/lib/services/secretsmanager:default"),
+      config.cachedModules.moddas["Webda/AWSSecretsManager"].endsWith("aws/lib/services/secretsmanager:default"),
       true
     );
-    assert.strictEqual(config.cachedModules.models.list["webdademo/contact"], "lib/models/contact:default");
+    assert.strictEqual(config.cachedModules.models.list["WebdaDemo/Contact"], "lib/models/contact:default");
     assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
 
     deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
@@ -129,6 +128,7 @@ class PackagerTest {
     });
     await deployer.loadDefaults();
     await assert.rejects(() => deployer.deploy(), /Cannot find the entrypoint for Packager: /);
+    assert.strictEqual(config.cachedModules.moddas["WebdaDemo/CustomReusableService"], "lib/services/reusable:default");
   }
 
   @test

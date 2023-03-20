@@ -10,7 +10,7 @@
       "type": "Webda/MemoryStore"
     },
     "version": {
-      "type": "Webda/versionservice"
+      "type": "Webda/VersionService"
     }
   }
 }

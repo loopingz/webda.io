@@ -2,15 +2,16 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/mongostore": "lib/mongodb:default"
+    "Webda/MongoStore": "lib/mongodb:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/mongostore": {
+    "Webda/MongoStore": {
       "type": "object",
       "properties": {
         "type": {

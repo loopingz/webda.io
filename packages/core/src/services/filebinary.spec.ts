@@ -99,7 +99,7 @@ class FileBinaryTest extends CloudBinaryTest {
     ctx.setPathParameters({ store: "Store", property: "images" });
     assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
     ctx.setPathParameters({ store: "users", property: "images" });
-    assert.strictEqual(binary._verifyMapAndStore(ctx), this.getService("users"));
+    assert.strictEqual(binary._verifyMapAndStore(ctx), this.getService("Users"));
     ctx.setPathParameters({ store: "users", property: "images2" });
     assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
     ctx.setPathParameters({ store: "notexisting", property: "images" });

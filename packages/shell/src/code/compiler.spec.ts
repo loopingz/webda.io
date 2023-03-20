@@ -37,11 +37,8 @@ class CompilerTest {
     assert.strictEqual(compiler.getParent(node, ts.SyntaxKind.AnyKeyword), node.parent);
     assert.strictEqual(compiler.getParent(node, ts.SyntaxKind.AmpersandAmpersandEqualsToken), undefined);
     Compiler.displayTree(node);
-    assert.strictEqual(compiler.getServiceTypePattern("Webda/Test"), "^([wW][eE][bB][dD][aA]/)?[tT][eE][sS][tT]$");
-    assert.strictEqual(
-      compiler.getServiceTypePattern("ReTest"),
-      "^([wW][eE][bB][dD][aA][dD][eE][mM][oO]/)?[rR][eE][tT][eE][sS][tT]$"
-    );
+    assert.strictEqual(compiler.getServiceTypePattern("Webda/Test"), "^(Webda/)?Test$");
+    assert.strictEqual(compiler.getServiceTypePattern("ReTest"), "^(WebdaDemo/)?ReTest$");
 
     compiler.getPackageFromType({
       // @ts-ignore
@@ -77,9 +74,9 @@ class CompilerTest {
     let mod = compiler.generateModule();
 
     // Goodbean should be use the SubDefinition
-    assert.strictEqual(mod.schemas["webda/goodbean"].required.length, 3);
-    assert.notStrictEqual(mod.schemas["webda/anotherschema"], undefined);
-    assert.notStrictEqual(mod.schemas["webda/schematest"], undefined);
+    assert.strictEqual(mod.schemas["Webda/GoodBean"].required.length, 3);
+    assert.notStrictEqual(mod.schemas["Webda/AnotherSchema"], undefined);
+    assert.notStrictEqual(mod.schemas["Webda/SchemaTest"], undefined);
     // Ensure we manage failure in schema
     compiler.schemaGenerator.createSchemaFromNodes = () => {
       throw new Error();

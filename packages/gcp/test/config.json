@@ -35,7 +35,7 @@
         "url": "/binary"
       },
       "map": {
-        "users": ["images"]
+        "Users": ["images"]
       }
     },
     "pubsub": {

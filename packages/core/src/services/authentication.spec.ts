@@ -15,22 +15,23 @@ class AuthenticationTest extends WebdaTest {
   authentication: Authentication;
 
   getUserStore(): Store<any> {
-    return <Store<any>>this.getService("Users");
+    return this.authentication._userModel.store();
   }
 
   getIdentStore(): Store<any> {
-    return <Store<any>>this.getService("Idents");
+    return this.authentication._identModel.store();
   }
 
   async before() {
     await super.before();
+    this.authentication = <Authentication>this.getService("Authentication");
     this.userStore = this.getUserStore();
     this.identStore = this.getIdentStore();
     assert.notStrictEqual(this.userStore, undefined);
     assert.notStrictEqual(this.identStore, undefined);
     await this.userStore.__clean();
     await this.identStore.__clean();
-    this.authentication = <Authentication>this.getService("Authentication");
+
     this.mailer = <DebugMailer>this.getService("DefinedMailer");
     this.authentication.on("Authentication.Login", () => {
       this.events++;
@@ -76,16 +77,16 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(await this.authentication.getPasswordRecoveryInfos("bouzouf"), undefined);
     assert.strictEqual(this.authentication._passwordVerifier, this.getService("VersionService"));
     let params = new AuthenticationParameters({});
-    assert.strictEqual(params.identStore, "idents");
-    assert.strictEqual(params.userStore, "users");
+    assert.strictEqual(params.identModel, "Webda/Ident");
+    assert.strictEqual(params.userModel, "Webda/User");
     assert.strictEqual(params.url, "/auth");
     params = new AuthenticationParameters({
-      identStore: "id",
-      userStore: "us",
+      identModel: "id",
+      userModel: "us",
       url: "/aaa"
     });
-    assert.strictEqual(params.identStore, "id");
-    assert.strictEqual(params.userStore, "us");
+    assert.strictEqual(params.identModel, "id");
+    assert.strictEqual(params.userModel, "us");
     assert.strictEqual(params.url, "/aaa");
     this.authentication.getParameters().email = undefined;
     assert.strictEqual(this.authentication.getUrl("./emails", ["POST"]), undefined);
@@ -189,9 +190,10 @@ class AuthenticationTest extends WebdaTest {
       add: "plop"
     });
     await executor.execute(ctx);
-    // Should create it with the dat provided
+    // Should create it with the data provided
     assert.notStrictEqual(ctx.getSession().userId, undefined);
     ident = await this.identStore.get(ctx.getSession().identUsed);
+    assert.strictEqual(ctx.getCurrentUserId(), ident.getUser());
     // Email should be already validate
     assert.notStrictEqual(ident._validation, undefined);
     assert.strictEqual(this.mailer.sent.length, 2);
@@ -199,10 +201,7 @@ class AuthenticationTest extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/test2@webda.io/validate");
     ctx.getSession().login(userId, "fake");
     // Should be to soon to resend an email
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 429
-    );
+    await assert.rejects(() => executor.execute(ctx), /429/);
     ident = await this.identStore.get("test2@webda.io_email");
     ident._lastValidationEmail = 10;
     await ident.save();

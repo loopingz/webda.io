@@ -2,97 +2,102 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/aggregator": "lib/stores/aggregator:default",
-    "webda/aliasstore": "lib/stores/aliasstore:AliasStore",
-    "webda/asyncevents": "lib/services/asyncevents:EventService",
-    "webda/authentication": "lib/services/authentication:Authentication",
-    "webda/configurationservice": "lib/services/configuration:default",
-    "webda/consolelogger": "lib/utils/logger:ConsoleLoggerService",
-    "webda/cookiesessionmanager": "lib/utils/session:CookieSessionManager",
-    "webda/cronservice": "lib/services/cron:CronService",
-    "webda/cryptoservice": "lib/services/cryptoservice:default",
-    "webda/debugmailer": "lib/services/debugmailer:default",
-    "webda/echoservice": "lib/services/echo:EchoService",
-    "webda/filebinary": "lib/services/filebinary:FileBinary",
-    "webda/fileconfiguration": "lib/services/fileconfiguration:FileConfigurationService",
-    "webda/filelogger": "lib/utils/logger:FileLoggerService",
-    "webda/filequeue": "lib/queues/filequeue:FileQueue",
-    "webda/filestore": "lib/stores/file:FileStore",
-    "webda/invitationservice": "lib/services/invitationservice:default",
-    "webda/kubernetesconfigurationservice": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
-    "webda/mailer": "lib/services/mailer:Mailer",
-    "webda/mapper": "lib/stores/mapper:default",
-    "webda/memorylogger": "lib/utils/logger:MemoryLoggerService",
-    "webda/memoryqueue": "lib/queues/memoryqueue:MemoryQueue",
-    "webda/memorystore": "lib/stores/memory:MemoryStore",
-    "webda/multinotificationservice": "lib/services/notificationservice:default",
-    "webda/prometheusservice": "lib/services/prometheus:PrometheusService",
-    "webda/proxyservice": "lib/services/proxy:ProxyService",
-    "webda/resourceservice": "lib/services/resource:default",
-    "webda/versionservice": "lib/services/version:VersionService"
+    "Webda/Aggregator": "lib/stores/aggregator:default",
+    "Webda/AliasStore": "lib/stores/aliasstore:AliasStore",
+    "Webda/AsyncEvents": "lib/services/asyncevents:EventService",
+    "Webda/Authentication": "lib/services/authentication:Authentication",
+    "Webda/ConfigurationService": "lib/services/configuration:default",
+    "Webda/ConsoleLogger": "lib/utils/logger:ConsoleLoggerService",
+    "Webda/CookieSessionManager": "lib/utils/session:CookieSessionManager",
+    "Webda/CronService": "lib/services/cron:CronService",
+    "Webda/CryptoService": "lib/services/cryptoservice:default",
+    "Webda/DebugMailer": "lib/services/debugmailer:default",
+    "Webda/EchoService": "lib/services/echo:EchoService",
+    "Webda/FileBinary": "lib/services/filebinary:FileBinary",
+    "Webda/FileConfiguration": "lib/services/fileconfiguration:FileConfigurationService",
+    "Webda/FileLogger": "lib/utils/logger:FileLoggerService",
+    "Webda/FileQueue": "lib/queues/filequeue:FileQueue",
+    "Webda/FileStore": "lib/stores/file:FileStore",
+    "Webda/InvitationService": "lib/services/invitationservice:default",
+    "Webda/KubernetesConfigurationService": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
+    "Webda/Mailer": "lib/services/mailer:Mailer",
+    "Webda/Mapper": "lib/stores/mapper:default",
+    "Webda/MemoryLogger": "lib/utils/logger:MemoryLoggerService",
+    "Webda/MemoryQueue": "lib/queues/memoryqueue:MemoryQueue",
+    "Webda/MemoryStore": "lib/stores/memory:MemoryStore",
+    "Webda/MultiNotificationService": "lib/services/notificationservice:default",
+    "Webda/PrometheusService": "lib/services/prometheus:PrometheusService",
+    "Webda/ProxyService": "lib/services/proxy:ProxyService",
+    "Webda/ResourceService": "lib/services/resource:default",
+    "Webda/VersionService": "lib/services/version:VersionService"
   },
   "models": {
     "graph": {
-      "webda/ownermodel": {},
-      "webda/ident": {
-        "links": [
-          {
-            "attribute": "_user",
-            "model": "webda/user",
-            "type": "LINK"
-          }
-        ]
-      },
-      "webda/user": {
-        "maps": [
-          {
-            "attribute": "_idents",
-            "model": "webda/ident",
-            "targetAttribute": "_type | uuid | email"
-          }
-        ]
-      },
-      "webda/coremodel": {},
-      "webda/registryentry": {},
-      "webda/aclmodel": {},
-      "webda/rolemodel": {},
-      "webda/comment": {
+      "Webda/AclModel": {},
+      "Webda/Comment": {
         "parent": {
           "attribute": "target",
-          "model": "webda/coremodel"
+          "model": "Webda/CoreModel"
         },
         "links": [
           {
             "attribute": "author",
-            "model": "webda/user",
+            "model": "Webda/User",
             "type": "LINK"
+          }
+        ]
+      },
+      "Webda/CoreModel": {
+        "children": [
+          "Webda/Comment"
+        ]
+      },
+      "Webda/Ident": {
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "Webda/User",
+            "type": "LINK"
+          }
+        ]
+      },
+      "Webda/OwnerModel": {},
+      "Webda/RegistryEntry": {},
+      "Webda/RoleModel": {},
+      "Webda/User": {
+        "maps": [
+          {
+            "attribute": "_idents",
+            "model": "Webda/Ident",
+            "targetAttribute": "_type | uuid | email"
           }
         ]
       }
     },
     "tree": {
-      "webda/ownermodel": {
-        "webda/ident": {},
-        "webda/user": {}
+      "Webda/AclModel": {},
+      "Webda/Comment": {},
+      "Webda/OwnerModel": {
+        "Webda/Ident": {},
+        "Webda/User": {}
       },
-      "webda/registryentry": {},
-      "webda/aclmodel": {},
-      "webda/rolemodel": {},
-      "webda/comment": {}
+      "Webda/RegistryEntry": {},
+      "Webda/RoleModel": {}
     },
+    "plurals": {},
     "list": {
-      "webda/aclmodel": "lib/models/aclmodel:default",
-      "webda/comment": "lib/models/comment:Comment",
-      "webda/coremodel": "lib/models/coremodel:CoreModel",
-      "webda/ident": "lib/models/ident:Ident",
-      "webda/ownermodel": "lib/models/ownermodel:OwnerModel",
-      "webda/registryentry": "lib/core:RegistryEntry",
-      "webda/rolemodel": "lib/models/rolemodel:RoleModel",
-      "webda/user": "lib/models/user:User"
+      "Webda/AclModel": "lib/models/aclmodel:default",
+      "Webda/Comment": "lib/models/comment:Comment",
+      "Webda/CoreModel": "lib/models/coremodel:CoreModel",
+      "Webda/Ident": "lib/models/ident:Ident",
+      "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
+      "Webda/RegistryEntry": "lib/core:RegistryEntry",
+      "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
+      "Webda/User": "lib/models/user:User"
     }
   },
   "schemas": {
-    "webda/aclmodel": {
+    "Webda/AclModel": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -117,7 +122,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AclModel"
     },
-    "webda/aggregator": {
+    "Webda/Aggregator": {
       "type": "object",
       "properties": {
         "type": {
@@ -183,7 +188,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AggregatorService"
     },
-    "webda/aliasstore": {
+    "Webda/AliasStore": {
       "type": "object",
       "properties": {
         "type": {
@@ -329,7 +334,7 @@
       },
       "title": "AliasStore"
     },
-    "webda/asyncevents": {
+    "Webda/AsyncEvents": {
       "type": "object",
       "properties": {
         "type": {
@@ -362,7 +367,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EventService"
     },
-    "webda/authentication": {
+    "Webda/Authentication": {
       "type": "object",
       "properties": {
         "type": {
@@ -374,15 +379,15 @@
           "description": "URL on which to serve the content",
           "default": "/auth"
         },
-        "identStore": {
+        "identModel": {
           "type": "string",
           "description": "Idents store for authentication identifiers",
-          "default": "idents"
+          "default": "Webda/Ident"
         },
-        "userStore": {
+        "userModel": {
           "type": "string",
           "description": "User store for authentication users",
-          "default": "users"
+          "default": "Webda/User"
         },
         "email": {
           "type": "object",
@@ -464,7 +469,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Authentication"
     },
-    "webda/comment": {
+    "Webda/Comment": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -504,7 +509,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Comment"
     },
-    "webda/configurationservice": {
+    "Webda/ConfigurationService": {
       "type": "object",
       "properties": {
         "type": {
@@ -539,7 +544,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ConfigurationService"
     },
-    "webda/consolelogger": {
+    "Webda/ConsoleLogger": {
       "type": "object",
       "properties": {
         "type": {
@@ -582,7 +587,7 @@
       },
       "title": "ConsoleLoggerService"
     },
-    "webda/cookiesessionmanager": {
+    "Webda/CookieSessionManager": {
       "type": "object",
       "properties": {
         "type": {
@@ -768,7 +773,7 @@
       },
       "title": "CookieSessionManager"
     },
-    "webda/coremodel": {
+    "Webda/CoreModel": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -788,7 +793,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CoreModel"
     },
-    "webda/cronservice": {
+    "Webda/CronService": {
       "type": "object",
       "properties": {
         "type": {
@@ -811,7 +816,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CronService"
     },
-    "webda/cryptoservice": {
+    "Webda/CryptoService": {
       "type": "object",
       "properties": {
         "type": {
@@ -1044,7 +1049,7 @@
       },
       "title": "CryptoService"
     },
-    "webda/debugmailer": {
+    "Webda/DebugMailer": {
       "type": "object",
       "properties": {
         "type": {
@@ -1067,7 +1072,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DebugMailer"
     },
-    "webda/echoservice": {
+    "Webda/EchoService": {
       "type": "object",
       "properties": {
         "type": {
@@ -1104,7 +1109,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EchoService"
     },
-    "webda/filebinary": {
+    "Webda/FileBinary": {
       "type": "object",
       "properties": {
         "type": {
@@ -1185,7 +1190,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileBinary"
     },
-    "webda/fileconfiguration": {
+    "Webda/FileConfiguration": {
       "type": "object",
       "properties": {
         "type": {
@@ -1220,7 +1225,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileConfigurationService"
     },
-    "webda/filelogger": {
+    "Webda/FileLogger": {
       "type": "object",
       "properties": {
         "type": {
@@ -1270,7 +1275,7 @@
       },
       "title": "FileLoggerService"
     },
-    "webda/filequeue": {
+    "Webda/FileQueue": {
       "type": "object",
       "properties": {
         "type": {
@@ -1331,7 +1336,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileQueue"
     },
-    "webda/filestore": {
+    "Webda/FileStore": {
       "type": "object",
       "properties": {
         "type": {
@@ -1484,7 +1489,7 @@
       },
       "title": "FileStore"
     },
-    "webda/ident": {
+    "Webda/Ident": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -1543,6 +1548,13 @@
         "email": {
           "type": "string",
           "description": "Email for this ident if it exist"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider id"
+        },
+        "profile": {
+          "description": "Provider profile"
         }
       },
       "required": [
@@ -1553,7 +1565,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ident"
     },
-    "webda/invitationservice": {
+    "Webda/InvitationService": {
       "type": "object",
       "properties": {
         "type": {
@@ -1633,7 +1645,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "InvitationService"
     },
-    "webda/kubernetesconfigurationservice": {
+    "Webda/KubernetesConfigurationService": {
       "type": "object",
       "properties": {
         "type": {
@@ -1668,7 +1680,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "KubernetesConfigurationService"
     },
-    "webda/mailer": {
+    "Webda/Mailer": {
       "type": "object",
       "properties": {
         "type": {
@@ -1714,7 +1726,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Mailer"
     },
-    "webda/mapper": {
+    "Webda/Mapper": {
       "type": "object",
       "properties": {
         "type": {
@@ -1776,7 +1788,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MapperService"
     },
-    "webda/memorylogger": {
+    "Webda/MemoryLogger": {
       "type": "object",
       "properties": {
         "type": {
@@ -1819,7 +1831,7 @@
       },
       "title": "MemoryLoggerService"
     },
-    "webda/memoryqueue": {
+    "Webda/MemoryQueue": {
       "type": "object",
       "properties": {
         "type": {
@@ -1875,7 +1887,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MemoryQueue"
     },
-    "webda/memorystore": {
+    "Webda/MemoryStore": {
       "type": "object",
       "properties": {
         "type": {
@@ -2038,7 +2050,7 @@
       },
       "title": "MemoryStore"
     },
-    "webda/multinotificationservice": {
+    "Webda/MultiNotificationService": {
       "type": "object",
       "properties": {
         "type": {
@@ -2074,7 +2086,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MultiNotificationService"
     },
-    "webda/ownermodel": {
+    "Webda/OwnerModel": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -2110,7 +2122,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OwnerModel"
     },
-    "webda/prometheusservice": {
+    "Webda/PrometheusService": {
       "type": "object",
       "properties": {
         "type": {
@@ -2168,7 +2180,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PrometheusService"
     },
-    "webda/proxyservice": {
+    "Webda/ProxyService": {
       "type": "object",
       "properties": {
         "type": {
@@ -2201,7 +2213,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ProxyService"
     },
-    "webda/registryentry": {
+    "Webda/RegistryEntry": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -2220,7 +2232,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RegistryEntry"
     },
-    "webda/resourceservice": {
+    "Webda/ResourceService": {
       "type": "object",
       "properties": {
         "type": {
@@ -2264,7 +2276,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ResourceService"
     },
-    "webda/rolemodel": {
+    "Webda/RoleModel": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -2283,7 +2295,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RoleModel"
     },
-    "webda/user": {
+    "Webda/User": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -2337,6 +2349,29 @@
           "description": "Groups for a user",
           "readOnly": true
         },
+        "_idents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "_type": {
+                "type": "string",
+                "readOnly": true
+              },
+              "uuid": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "description": "Email for this ident if it exist"
+              }
+            },
+            "required": [
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
+        },
         "_avatar": {
           "type": "string",
           "description": "Define the user avatar if exists",
@@ -2359,7 +2394,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User"
     },
-    "webda/versionservice": {
+    "Webda/VersionService": {
       "type": "object",
       "properties": {
         "type": {

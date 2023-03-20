@@ -37,7 +37,7 @@
       "fields": "type,_lastUpdate,counter",
       "cascade": true
     },
-    "idents": {
+    "Idents": {
       "expose": {
         "restrict": {
           "create": true,
@@ -51,7 +51,7 @@
       "table": "webda-test-idents",
       "model": "Webda/Ident"
     },
-    "users": {
+    "Users": {
       "expose": {
         "url": "/users",
         "restrict": {
@@ -71,7 +71,7 @@
       "endpoint": "http://localhost:4566",
       "forcePathStyle": true,
       "map": {
-        "users": ["images"]
+        "Users": ["images"]
       },
       "expose": {
         "url": "/binary"

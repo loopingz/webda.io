@@ -11,7 +11,7 @@ import { AsyncEvent, EventService } from "./asyncevents";
 class AsyncEventsTest extends WebdaTest {
   @test
   async simple() {
-    var users: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("users");
+    var users: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("Users");
     var eventsCount = 0;
     var priorityEventsCount = 0;
     var defaultQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("EventQueue");
@@ -100,10 +100,10 @@ class AsyncEventsTest extends WebdaTest {
       /Callbacks should not be empty, possible application version mismatch between emitter and worker/
     );
     evt._async = true;
-    let stub = sinon.spy(this.webda.getService("users"), "on");
+    let stub = sinon.spy(this.webda.getService("Users"), "on");
     try {
-      evt.bindAsyncListener(this.webda.getService("users"), "plop", () => {}, "priority");
-      evt.bindAsyncListener(this.webda.getService("users"), "plop", () => {}, "priority");
+      evt.bindAsyncListener(this.webda.getService("Users"), "plop", () => {}, "priority");
+      evt.bindAsyncListener(this.webda.getService("Users"), "plop", () => {}, "priority");
       // Should call 'on' only once
       assert.strictEqual(stub.callCount, 1);
     } finally {

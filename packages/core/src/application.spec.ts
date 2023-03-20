@@ -49,12 +49,12 @@ class ApplicationTest extends WebdaTest {
   async testHierarchy() {
     let hierarchy = this.sampleApp.getModelHierarchy(new CoreModel());
     assert.strictEqual(hierarchy.ancestors.length, 0);
-    assert.notStrictEqual(hierarchy.children["webdademo/computer"], undefined);
-    assert.notStrictEqual(hierarchy.children["webda/ownermodel"], undefined);
-    hierarchy = this.sampleApp.getModelHierarchy("webdademo/user");
+    assert.notStrictEqual(hierarchy.children["WebdaDemo/Computer"], undefined);
+    assert.notStrictEqual(hierarchy.children["Webda/OwnerModel"], undefined);
+    hierarchy = this.sampleApp.getModelHierarchy("WebdaDemo/User");
     assert.strictEqual(hierarchy.ancestors.length, 3);
     assert.strictEqual(Object.keys(hierarchy.children).length, 0);
-    hierarchy = this.sampleApp.getModelHierarchy("webdademo/abstractproject");
+    hierarchy = this.sampleApp.getModelHierarchy("WebdaDemo/AbstractProject");
     assert.strictEqual(hierarchy.ancestors.length, 2);
     assert.strictEqual(Object.keys(hierarchy.children).length, 1);
   }
@@ -144,7 +144,7 @@ class ApplicationTest extends WebdaTest {
     // Nothing can be really checked here
     app.addModel("WebdaTest/NotExisting", null);
     app.addDeployer("WebdaTest/NotExisting", null);
-    delete app.getModels()["webdatest/notexisting"];
+    delete app.getModels()["WebdaTest/NotExisting"];
     assert.deepStrictEqual(app.getGitInformation(), {
       branch: "",
       commit: "",
@@ -172,10 +172,10 @@ class ApplicationTest extends WebdaTest {
     // @ts-ignore
     unpackedApp.baseConfiguration.cachedModules.project.webda = undefined;
     assert.deepStrictEqual(unpackedApp.getPackageWebda(), { namespace: "Webda" });
-    assert.strictEqual(app.getModelFromInstance(new CoreModel()), "webda/coremodel");
-    assert.strictEqual(app.getModelFromInstance(new User()), "webda/user");
-    assert.strictEqual(app.getModelName(CoreModel), "webda/coremodel");
-    assert.strictEqual(app.getModelName(new CoreModel()), "webda/coremodel");
+    assert.strictEqual(app.getModelFromInstance(new CoreModel()), "Webda/CoreModel");
+    assert.strictEqual(app.getModelFromInstance(new User()), "Webda/User");
+    assert.strictEqual(app.getModelName(CoreModel), "Webda/CoreModel");
+    assert.strictEqual(app.getModelName(new CoreModel()), "Webda/CoreModel");
 
     app.registerSchema("testor", {});
     assert.deepStrictEqual(app.getSchema("testor"), {});
@@ -190,14 +190,14 @@ class ApplicationTest extends WebdaTest {
     let name = Object.keys(services).pop();
     let service: any = services[name].prototype;
     assert.strictEqual(app.getFullNameFromPrototype(service), name);
-    assert.strictEqual(app.getFullNameFromPrototype(CoreModel.prototype), "webda/coremodel");
+    assert.strictEqual(app.getFullNameFromPrototype(CoreModel.prototype), "Webda/CoreModel");
     assert.strictEqual(app.getFullNameFromPrototype(undefined), undefined);
     // Cheat for deployer
     services = app.getModels();
     name = Object.keys(services).pop();
     service = services[name].prototype;
     app.addDeployer("Plop/Test", services[name]);
-    assert.strictEqual(app.getFullNameFromPrototype(service), "plop/test");
+    assert.strictEqual(app.getFullNameFromPrototype(service), "Plop/Test");
   }
 
   @test
@@ -216,7 +216,9 @@ class ApplicationTest extends WebdaTest {
           graph: {
             "webdademo/test": {}
           },
-          tree: {}
+          tree: {},
+          plurals: {},
+          shortIds: {}
         },
         deployers: {
           ReTest: "notFound.js"
@@ -224,7 +226,7 @@ class ApplicationTest extends WebdaTest {
       },
       ""
     );
-    await app.loadModule({ models: { list: {}, graph: {}, tree: {} } }, "");
+    await app.loadModule({ models: { list: {}, graph: {}, tree: {}, plurals: {}, shortIds: {} } }, "");
     await app.importFile("./../test/moddas/fakeservice.js");
     let cwd = process.cwd();
     try {

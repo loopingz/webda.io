@@ -64,17 +64,17 @@ class WebSocketsServerTest extends WebdaTest {
     assert.ok(await this.service.checkRequest(ctx));
     await this.webda.getRegistry().save({ uuid: "test", info: Date.now() });
     mock.of().adapter.emit("create-room", "test");
-    mock.of().adapter.emit("create-room", "model_webda-coremodel$test");
+    mock.of().adapter.emit("create-room", "model_Webda-CoreModel$test");
     mock.of().adapter.emit("delete-room", "test");
-    mock.of().adapter.emit("delete-room", "model_webda-coremodel$test");
+    mock.of().adapter.emit("delete-room", "model_Webda-CoreModel$test");
     const socket = new MockSocket();
 
     socket.request.webdaContext = ctx;
     ctx.getSession().login("plop", "66");
     mock.emit("connection", socket);
-    socket.emit("subscribe", "model_webda-coremodel$test");
-    socket.emit("subscribe", "model_webda-coremodel$test2");
-    socket.emit("unsubscribe", "model_webda-coremodel$test");
+    socket.emit("subscribe", "model_Webda-CoreModel$test");
+    socket.emit("subscribe", "model_Webda-CoreModel$test2");
+    socket.emit("unsubscribe", "model_Webda-CoreModel$test");
     socket.emit("disconnect");
     socket.emit("error");
     await this.nextTick();

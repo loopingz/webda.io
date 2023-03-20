@@ -2,15 +2,16 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/kuberunner": "lib/services/kuberunner:default"
+    "Webda/KubeRunner": "lib/services/kuberunner:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/kuberunner": {
+    "Webda/KubeRunner": {
       "type": "object",
       "properties": {
         "config": {

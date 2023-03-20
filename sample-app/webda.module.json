@@ -1,195 +1,219 @@
 {
   "beans": {
-    "webdademo/beanservice": "lib/services/bean:BeanService",
-    "webdademo/customservice": "lib/services/custom:CustomService",
-    "webdademo/sampleappgoodbean": "lib/services/bean:SampleAppGoodBean"
+    "WebdaDemo/BeanService": "lib/services/bean:BeanService",
+    "WebdaDemo/CustomService": "lib/services/custom:CustomService",
+    "WebdaDemo/SampleAppGoodBean": "lib/services/bean:SampleAppGoodBean"
   },
   "deployers": {
-    "webdademo/customdeployer": "lib/services/deployer:CustomDeployer"
+    "WebdaDemo/CustomDeployer": "lib/services/deployer:CustomDeployer"
   },
   "moddas": {
-    "webdademo/anotherservice": "lib/services/compiler:AnotherService",
-    "webdademo/customreusableservice": "lib/services/reusable:default",
-    "webdademo/fourthotherservice": "lib/services/compiler:FourthOtherService",
-    "webdademo/queueservice": "lib/services/compiler:QueueService",
-    "webdademo/secondotherservice": "lib/services/compiler:SecondOtherService",
-    "webdademo/simpleservice": "lib/services/compiler:SimpleService",
-    "webdademo/thirdotherservice": "lib/services/compiler:ThirdOtherService"
+    "WebdaDemo/AnotherService": "lib/services/compiler:AnotherService",
+    "WebdaDemo/CustomReusableService": "lib/services/reusable:default",
+    "WebdaDemo/FourthOtherService": "lib/services/compiler:FourthOtherService",
+    "WebdaDemo/QueueService": "lib/services/compiler:QueueService",
+    "WebdaDemo/SecondOtherService": "lib/services/compiler:SecondOtherService",
+    "WebdaDemo/SimpleService": "lib/services/compiler:SimpleService",
+    "WebdaDemo/ThirdOtherService": "lib/services/compiler:ThirdOtherService"
   },
   "models": {
     "graph": {
-      "webdademo/abstractproject": {},
-      "webdademo/project": {
+      "WebdaDemo/AbstractProject": {},
+      "WebdaDemo/AnotherSubProject": {
         "parent": {
           "attribute": "_company",
-          "model": "webdademo/company"
+          "model": "WebdaDemo/Company"
         }
       },
-      "webdademo/subproject": {
-        "parent": {
-          "attribute": "_company",
-          "model": "webdademo/company"
-        }
-      },
-      "webdademo/anothersubproject": {
-        "parent": {
-          "attribute": "_company",
-          "model": "webdademo/company"
-        }
-      },
-      "webdademo/subsubproject": {
-        "parent": {
-          "attribute": "_company",
-          "model": "webdademo/company"
-        }
-      },
-      "webdademo/user": {
-        "parent": {
-          "attribute": "_company",
-          "model": "webdademo/company"
-        },
-        "maps": [
-          {
-            "attribute": "_idents",
-            "model": "unknown",
-            "targetAttribute": "_type | uuid | email"
-          }
-        ]
-      },
-      "webdademo/computer": {
-        "parent": {
-          "attribute": "_user",
-          "model": "webdademo/user"
-        }
-      },
-      "webdademo/company": {
-        "queries": [
-          {
-            "attribute": "users",
-            "model": "webdademo/user",
-            "targetAttribute": "_company"
-          }
-        ]
-      },
-      "webdademo/contact": {},
-      "webdademo/student": {
-        "links": [
-          {
-            "attribute": "friends",
-            "model": "webdademo/student",
-            "type": "LINKS_MAP"
-          },
-          {
-            "attribute": "teachers",
-            "model": "webdademo/teacher",
-            "type": "LINKS_SIMPLE_ARRAY"
-          }
-        ]
-      },
-      "webdademo/teacher": {
+      "WebdaDemo/Classroom": {
         "maps": [
           {
             "attribute": "courses",
-            "model": "webdademo/course",
-            "targetAttribute": "name"
-          }
-        ]
-      },
-      "webdademo/course": {
-        "links": [
-          {
-            "attribute": "classroom",
-            "model": "webdademo/classroom",
-            "type": "LINK"
-          },
-          {
-            "attribute": "teacher",
-            "model": "webdademo/teacher",
-            "type": "LINK"
-          },
-          {
-            "attribute": "students",
-            "model": "webdademo/student",
-            "type": "LINKS_ARRAY"
-          }
-        ]
-      },
-      "webdademo/classroom": {
-        "maps": [
-          {
-            "attribute": "courses",
-            "model": "webdademo/course",
+            "model": "WebdaDemo/Course",
             "targetAttribute": "name"
           }
         ],
         "queries": [
           {
-            "attribute": "hardware",
-            "model": "webdademo/hardware",
+            "attribute": "hardwares",
+            "model": "WebdaDemo/Hardware",
             "targetAttribute": "classroom"
+          }
+        ],
+        "children": [
+          "WebdaDemo/Hardware",
+          "WebdaDemo/ComputerScreen"
+        ]
+      },
+      "WebdaDemo/Company": {
+        "maps": [
+          {
+            "attribute": "_projects",
+            "model": "WebdaDemo/Project",
+            "targetAttribute": "name | type"
+          }
+        ],
+        "queries": [
+          {
+            "attribute": "users",
+            "model": "WebdaDemo/User",
+            "targetAttribute": "_company"
+          }
+        ],
+        "children": [
+          "WebdaDemo/Project",
+          "WebdaDemo/SubProject",
+          "WebdaDemo/AnotherSubProject",
+          "WebdaDemo/SubSubProject",
+          "WebdaDemo/User"
+        ]
+      },
+      "WebdaDemo/Computer": {
+        "parent": {
+          "attribute": "_user",
+          "model": "WebdaDemo/User"
+        }
+      },
+      "WebdaDemo/ComputerScreen": {
+        "parent": {
+          "attribute": "classroom",
+          "model": "WebdaDemo/Classroom"
+        }
+      },
+      "WebdaDemo/Contact": {},
+      "WebdaDemo/Course": {
+        "links": [
+          {
+            "attribute": "classroom",
+            "model": "WebdaDemo/Classroom",
+            "type": "LINK"
+          },
+          {
+            "attribute": "teacher",
+            "model": "WebdaDemo/Teacher",
+            "type": "LINK"
+          },
+          {
+            "attribute": "students",
+            "model": "WebdaDemo/Student",
+            "type": "LINKS_ARRAY"
           }
         ]
       },
-      "webdademo/hardware": {
+      "WebdaDemo/Hardware": {
         "parent": {
           "attribute": "classroom",
-          "model": "webdademo/classroom"
+          "model": "WebdaDemo/Classroom"
         }
       },
-      "webdademo/computerscreen": {
+      "WebdaDemo/Project": {
         "parent": {
-          "attribute": "classroom",
-          "model": "webdademo/classroom"
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
         }
+      },
+      "WebdaDemo/Student": {
+        "links": [
+          {
+            "attribute": "friends",
+            "model": "WebdaDemo/Student",
+            "type": "LINKS_MAP"
+          },
+          {
+            "attribute": "teachers",
+            "model": "WebdaDemo/Teacher",
+            "type": "LINKS_SIMPLE_ARRAY"
+          }
+        ]
+      },
+      "WebdaDemo/SubProject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        }
+      },
+      "WebdaDemo/SubSubProject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        }
+      },
+      "WebdaDemo/Teacher": {
+        "maps": [
+          {
+            "attribute": "courses",
+            "model": "WebdaDemo/Course",
+            "targetAttribute": "name"
+          }
+        ]
+      },
+      "WebdaDemo/User": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        },
+        "maps": [
+          {
+            "attribute": "_idents",
+            "model": "Webda/Ident",
+            "targetAttribute": "_type | uuid | email"
+          }
+        ],
+        "children": [
+          "WebdaDemo/Computer"
+        ]
       }
     },
     "tree": {
-      "webda/aclmodel": {
-        "webdademo/abstractproject": {
-          "webdademo/project": {
-            "webdademo/subproject": {},
-            "webdademo/anothersubproject": {
-              "webdademo/subsubproject": {}
+      "Webda/AclModel": {
+        "WebdaDemo/AbstractProject": {
+          "WebdaDemo/Project": {
+            "WebdaDemo/SubProject": {},
+            "WebdaDemo/AnotherSubProject": {
+              "WebdaDemo/SubSubProject": {}
             }
           }
         }
       },
-      "webda/ownermodel": {
-        "webda/user": {
-          "webdademo/user": {}
+      "Webda/OwnerModel": {
+        "Webda/User": {
+          "WebdaDemo/User": {}
         }
       },
-      "webdademo/computer": {},
-      "webdademo/company": {},
-      "webdademo/contact": {},
-      "webdademo/student": {},
-      "webdademo/teacher": {},
-      "webdademo/course": {},
-      "webdademo/classroom": {},
-      "webdademo/hardware": {
-        "webdademo/computerscreen": {}
-      }
+      "WebdaDemo/Classroom": {},
+      "WebdaDemo/Company": {},
+      "WebdaDemo/Computer": {},
+      "WebdaDemo/Contact": {},
+      "WebdaDemo/Course": {},
+      "WebdaDemo/Hardware": {
+        "WebdaDemo/ComputerScreen": {}
+      },
+      "WebdaDemo/Student": {},
+      "WebdaDemo/Teacher": {}
+    },
+    "plurals": {
+      "WebdaDemo/Company": "Companies"
     },
     "list": {
-      "webdademo/abstractproject": "lib/models/project:AbstractProject",
-      "webdademo/anothersubproject": "lib/models/project:AnotherSubProject",
-      "webdademo/classroom": "lib/models/relations:Classroom",
-      "webdademo/company": "lib/models/company:Company",
-      "webdademo/computer": "lib/models/user:Computer",
-      "webdademo/computerscreen": "lib/models/relations:ComputerScreen",
-      "webdademo/contact": "lib/models/contact:default",
-      "webdademo/course": "lib/models/relations:Course",
-      "webdademo/hardware": "lib/models/relations:Hardware",
-      "webdademo/project": "lib/models/project:Project",
-      "webdademo/student": "lib/models/relations:Student",
-      "webdademo/subproject": "lib/models/project:SubProject",
-      "webdademo/subsubproject": "lib/models/project:SubSubProject",
-      "webdademo/teacher": "lib/models/relations:Teacher",
-      "webdademo/user": "lib/models/user:User"
+      "WebdaDemo/AbstractProject": "lib/models/project:AbstractProject",
+      "WebdaDemo/AnotherSubProject": "lib/models/project:AnotherSubProject",
+      "WebdaDemo/Classroom": "lib/models/relations:Classroom",
+      "WebdaDemo/Company": "lib/models/company:Company",
+      "WebdaDemo/Computer": "lib/models/user:Computer",
+      "WebdaDemo/ComputerScreen": "lib/models/relations:ComputerScreen",
+      "WebdaDemo/Contact": "lib/models/contact:default",
+      "WebdaDemo/Course": "lib/models/relations:Course",
+      "WebdaDemo/Hardware": "lib/models/relations:Hardware",
+      "WebdaDemo/Project": "lib/models/project:Project",
+      "WebdaDemo/Student": "lib/models/relations:Student",
+      "WebdaDemo/SubProject": "lib/models/project:SubProject",
+      "WebdaDemo/SubSubProject": "lib/models/project:SubSubProject",
+      "WebdaDemo/Teacher": "lib/models/relations:Teacher",
+      "WebdaDemo/User": "lib/models/user:User"
     }
   },
   "schemas": {
-    "customservice.testoperation.input": {
+    "CustomService.testOperation.input": {
       "type": "object",
       "properties": {
         "test": {
@@ -204,9 +228,9 @@
         "num"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "customservice.testoperation.input"
+      "title": "CustomService.testOperation.input"
     },
-    "customservice.testoperationwithoutput.input": {
+    "CustomService.testOperationWithOutput.input": {
       "type": "object",
       "properties": {
         "test": {
@@ -217,9 +241,9 @@
         "test"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "customservice.testoperationwithoutput.input"
+      "title": "CustomService.testOperationWithOutput.input"
     },
-    "customservice.testoperationwithoutput.output": {
+    "CustomService.testOperationWithOutput.output": {
       "type": "object",
       "properties": {
         "result": {
@@ -230,9 +254,9 @@
         "result"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "customservice.testoperationwithoutput.output"
+      "title": "CustomService.testOperationWithOutput.output"
     },
-    "sampleappgoodbean.operation.input": {
+    "SampleAppGoodBean.operation.input": {
       "type": "object",
       "properties": {
         "projectId": {
@@ -243,9 +267,9 @@
         "projectId"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "sampleappgoodbean.operation.input"
+      "title": "SampleAppGoodBean.operation.input"
     },
-    "webdademo/abstractproject": {
+    "WebdaDemo/AbstractProject": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -270,7 +294,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AbstractProject"
     },
-    "webdademo/anotherservice": {
+    "WebdaDemo/AnotherService": {
       "type": "object",
       "properties": {
         "type": {
@@ -311,7 +335,7 @@
       },
       "title": "AnotherService"
     },
-    "webdademo/anothersubproject": {
+    "WebdaDemo/AnotherSubProject": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -354,7 +378,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AnotherSubProject"
     },
-    "webdademo/beanservice": {
+    "WebdaDemo/BeanService": {
       "type": "object",
       "properties": {
         "type": {
@@ -377,7 +401,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
     },
-    "webdademo/classroom": {
+    "WebdaDemo/Classroom": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -425,7 +449,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Classroom"
     },
-    "webdademo/company": {
+    "WebdaDemo/Company": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -441,54 +465,33 @@
           "readOnly": true
         },
         "_projects": {
-          "$ref": "#/definitions/ModelMapped%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E",
-          "readOnly": true
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type",
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ModelMapped<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>": {
-          "$ref": "#/definitions/Readonly%3C(def-alias-930307918-75027-75168-930307918-0-217681%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E%26def-alias-2050059695-396-590-2050059695-0-3192%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%3E365806895%26structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192%3Cclass-models_project.ts-493-1236-models_project.ts-0-2192%2C(%22name%22%7C%22type%22)%3E)%3E",
-          "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array TODO Handle 1:1 map"
-        },
-        "Readonly<(def-alias-930307918-75027-75168-930307918-0-217681<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>&def-alias-2050059695-396-590-2050059695-0-3192<class-models_project.ts-493-1236-models_project.ts-0-2192>365806895&structure-2050059695-1445-1467-2050059695-1416-1467-2050059695-1406-1468-2050059695-1182-1469-2050059695-0-3192<class-models_project.ts-493-1236-models_project.ts-0-2192,(\"name\"|\"type\")>)>": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "type": {
-              "type": "string"
-            },
-            "get": {
-              "type": "object",
-              "properties": {}
-            },
-            "set": {
-              "type": "object",
-              "properties": {}
-            },
-            "toString": {
-              "type": "object",
-              "properties": {}
-            },
-            "uuid": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "name",
-            "type",
-            "get",
-            "set",
-            "toString",
-            "uuid"
-          ]
-        }
-      },
       "title": "Company"
     },
-    "webdademo/computer": {
+    "WebdaDemo/Computer": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -517,7 +520,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Computer"
     },
-    "webdademo/computerscreen": {
+    "WebdaDemo/ComputerScreen": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -550,7 +553,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ComputerScreen"
     },
-    "webdademo/contact": {
+    "WebdaDemo/Contact": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -605,7 +608,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contact"
     },
-    "webdademo/course": {
+    "WebdaDemo/Course": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -635,7 +638,7 @@
         "students": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-754-837-models_relations.ts-724-841-models_relations.ts-712-842-models_relations.ts-580-844-models_relations.ts-0-1246%3E"
+            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-794-877-models_relations.ts-764-881-models_relations.ts-752-882-models_relations.ts-610-884-models_relations.ts-0-1306%3E"
           }
         }
       },
@@ -647,7 +650,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Readonly<structure-models_relations.ts-754-837-models_relations.ts-724-841-models_relations.ts-712-842-models_relations.ts-580-844-models_relations.ts-0-1246>": {
+        "Readonly<structure-models_relations.ts-794-877-models_relations.ts-764-881-models_relations.ts-752-882-models_relations.ts-610-884-models_relations.ts-0-1306>": {
           "type": "object",
           "properties": {
             "email": {
@@ -673,7 +676,7 @@
       },
       "title": "Course"
     },
-    "webdademo/customdeployer": {
+    "WebdaDemo/CustomDeployer": {
       "type": "object",
       "properties": {
         "name": {
@@ -686,7 +689,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CustomDeployer"
     },
-    "webdademo/customreusableservice": {
+    "WebdaDemo/CustomReusableService": {
       "type": "object",
       "properties": {
         "type": {
@@ -712,7 +715,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CustomReusableService"
     },
-    "webdademo/customservice": {
+    "WebdaDemo/CustomService": {
       "type": "object",
       "properties": {
         "type": {
@@ -724,7 +727,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1847-2331-1131383939-0-7992976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1847-2331-1131383939-0-8162976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -737,7 +740,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-1847-2331-1131383939-0-7992976353190>": {
+        "Partial<class-1131383939-1847-2331-1131383939-0-8162976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -753,7 +756,7 @@
       },
       "title": "CustomService"
     },
-    "webdademo/fourthotherservice": {
+    "WebdaDemo/FourthOtherService": {
       "type": "object",
       "properties": {
         "type": {
@@ -800,7 +803,7 @@
       },
       "title": "FourthOtherService"
     },
-    "webdademo/hardware": {
+    "WebdaDemo/Hardware": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -825,7 +828,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Hardware"
     },
-    "webdademo/myinterface": {
+    "WebdaDemo/MyInterface": {
       "type": "object",
       "properties": {
         "test": {
@@ -842,7 +845,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MyInterface"
     },
-    "webdademo/project": {
+    "WebdaDemo/Project": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -884,7 +887,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Project"
     },
-    "webdademo/queueservice": {
+    "WebdaDemo/QueueService": {
       "type": "object",
       "properties": {
         "type": {
@@ -945,7 +948,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "QueueService"
     },
-    "webdademo/sampleappgoodbean": {
+    "WebdaDemo/SampleAppGoodBean": {
       "type": "object",
       "properties": {
         "type": {
@@ -968,7 +971,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
     },
-    "webdademo/secondotherservice": {
+    "WebdaDemo/SecondOtherService": {
       "type": "object",
       "properties": {
         "type": {
@@ -1009,7 +1012,7 @@
       },
       "title": "SecondOtherService"
     },
-    "webdademo/simpleservice": {
+    "WebdaDemo/SimpleService": {
       "type": "object",
       "properties": {
         "type": {
@@ -1032,7 +1035,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
     },
-    "webdademo/student": {
+    "WebdaDemo/Student": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -1059,7 +1062,7 @@
         "friends": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-349-404-models_relations.ts-326-405-models_relations.ts-315-406-models_relations.ts-222-502-models_relations.ts-0-1246%3E"
+            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-369-424-models_relations.ts-346-425-models_relations.ts-335-426-models_relations.ts-232-522-models_relations.ts-0-1306%3E"
           }
         },
         "teachers": {
@@ -1077,7 +1080,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Readonly<structure-models_relations.ts-349-404-models_relations.ts-326-405-models_relations.ts-315-406-models_relations.ts-222-502-models_relations.ts-0-1246>": {
+        "Readonly<structure-models_relations.ts-369-424-models_relations.ts-346-425-models_relations.ts-335-426-models_relations.ts-232-522-models_relations.ts-0-1306>": {
           "type": "object",
           "properties": {
             "email": {
@@ -1099,7 +1102,7 @@
       },
       "title": "Student"
     },
-    "webdademo/subproject": {
+    "WebdaDemo/SubProject": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -1141,7 +1144,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubProject"
     },
-    "webdademo/subsubproject": {
+    "WebdaDemo/SubSubProject": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -1187,7 +1190,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SubSubProject"
     },
-    "webdademo/subsubproject.action.input": {
+    "WebdaDemo/SubSubProject.action.input": {
       "type": "object",
       "properties": {
         "param": {
@@ -1199,9 +1202,9 @@
         "param"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webdademo/subsubproject.action.input"
+      "title": "WebdaDemo/SubSubProject.action.input"
     },
-    "webdademo/subsubproject.action2.input": {
+    "WebdaDemo/SubSubProject.action2.input": {
       "type": "object",
       "properties": {
         "_company": {
@@ -1221,15 +1224,15 @@
         "_lastUpdate": {}
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webdademo/subsubproject.action2.input"
+      "title": "WebdaDemo/SubSubProject.action2.input"
     },
-    "webdademo/subsubproject.action3.input": "webdademo/project",
-    "webdademo/subsubproject.action6.input": {
+    "WebdaDemo/SubSubProject.action3.input": "WebdaDemo/Project",
+    "WebdaDemo/SubSubProject.action6.input": {
       "type": "string",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "webdademo/subsubproject.action6.input"
+      "title": "WebdaDemo/SubSubProject.action6.input"
     },
-    "webdademo/teacher": {
+    "WebdaDemo/Teacher": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -1267,7 +1270,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Teacher"
     },
-    "webdademo/testinput": {
+    "WebdaDemo/testInput": {
       "type": "object",
       "properties": {
         "test": {
@@ -1283,7 +1286,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CustomBody"
     },
-    "webdademo/testoutput": {
+    "WebdaDemo/testOutput": {
       "type": "object",
       "properties": {
         "result": {
@@ -1296,7 +1299,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CustomBody"
     },
-    "webdademo/thirdotherservice": {
+    "WebdaDemo/ThirdOtherService": {
       "type": "object",
       "properties": {
         "type": {
@@ -1319,7 +1322,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
     },
-    "webdademo/user": {
+    "WebdaDemo/User": {
       "type": "object",
       "properties": {
         "_creationDate": {
@@ -1372,6 +1375,29 @@
           },
           "description": "Groups for a user",
           "readOnly": true
+        },
+        "_idents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "_type": {
+                "type": "string",
+                "readOnly": true
+              },
+              "uuid": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "description": "Email for this ident if it exist"
+              }
+            },
+            "required": [
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
         },
         "_avatar": {
           "type": "string",

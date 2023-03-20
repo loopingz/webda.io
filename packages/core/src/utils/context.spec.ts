@@ -136,6 +136,7 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(this.ctx.hasFlushedHeaders(), true);
     this.ctx.setFlushedHeaders(false);
     assert.strictEqual(this.ctx.hasFlushedHeaders(), false);
+    assert.strictEqual(this.ctx.getResponseCode(), 200);
   }
 
   @test

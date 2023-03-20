@@ -1,24 +1,25 @@
 {
   "beans": {},
   "deployers": {
-    "webdaawsdeployer/cloudformation": "lib/deployers/cloudformation:default",
-    "webdaawsdeployer/lambdapackager": "lib/deployers/lambdapackager:default"
+    "WebdaAWSDeployer/CloudFormation": "lib/deployers/cloudformation:default",
+    "WebdaAWSDeployer/LambdaPackager": "lib/deployers/lambdapackager:default"
   },
   "moddas": {
-    "webda/awssecretsmanager": "lib/services/secretsmanager:default",
-    "webda/cloudwatchlogger": "lib/services/cloudwatchlogger:default",
-    "webda/dynamostore": "lib/services/dynamodb:default",
-    "webda/lambdacaller": "lib/services/lambdacaller:LambdaCaller",
-    "webda/s3binary": "lib/services/s3binary:default",
-    "webda/sqsqueue": "lib/services/sqsqueue:default"
+    "Webda/AWSSecretsManager": "lib/services/secretsmanager:default",
+    "Webda/CloudWatchLogger": "lib/services/cloudwatchlogger:default",
+    "Webda/DynamoStore": "lib/services/dynamodb:default",
+    "Webda/LambdaCaller": "lib/services/lambdacaller:LambdaCaller",
+    "Webda/S3Binary": "lib/services/s3binary:default",
+    "Webda/SQSQueue": "lib/services/sqsqueue:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/awssecretsmanager": {
+    "Webda/AWSSecretsManager": {
       "type": "object",
       "properties": {
         "type": {
@@ -41,7 +42,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CloudWatchLogger"
     },
-    "webda/cloudwatchlogger": {
+    "Webda/CloudWatchLogger": {
       "type": "object",
       "properties": {
         "type": {
@@ -64,7 +65,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CloudWatchLogger"
     },
-    "webda/dynamostore": {
+    "Webda/DynamoStore": {
       "type": "object",
       "properties": {
         "type": {
@@ -201,7 +202,7 @@
       },
       "title": "DynamoStore"
     },
-    "webda/lambdacaller": {
+    "Webda/LambdaCaller": {
       "type": "object",
       "properties": {
         "type": {
@@ -231,7 +232,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LambdaCaller"
     },
-    "webda/s3binary": {
+    "Webda/S3Binary": {
       "type": "object",
       "properties": {
         "type": {
@@ -303,7 +304,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "S3Binary"
     },
-    "webda/sqsqueue": {
+    "Webda/SQSQueue": {
       "type": "object",
       "properties": {
         "type": {
@@ -354,7 +355,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SQSQueue"
     },
-    "webdaawsdeployer/cloudformation": {
+    "WebdaAWSDeployer/CloudFormation": {
       "type": "object",
       "properties": {
         "name": {
@@ -367,7 +368,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LambdaPackager"
     },
-    "webdaawsdeployer/lambdapackager": {
+    "WebdaAWSDeployer/LambdaPackager": {
       "type": "object",
       "properties": {
         "name": {

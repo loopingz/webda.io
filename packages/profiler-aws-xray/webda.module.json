@@ -2,15 +2,16 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/awsxrayservice": "lib/services/xray:default"
+    "Webda/AWSXRayService": "lib/services/xray:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/awsxrayservice": {
+    "Webda/AWSXRayService": {
       "type": "object",
       "properties": {
         "type": {

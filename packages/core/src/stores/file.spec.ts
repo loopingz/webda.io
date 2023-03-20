@@ -40,13 +40,13 @@ class FileStoreTest extends StoreTest {
   }
 
   async getIndex(): Promise<CoreModel> {
-    return this.getService<Store>("memoryaggregators").get("idents-index");
+    return this.getService<Store>("MemoryAggregators").get("idents-index");
   }
 
   async recreateIndex() {
-    let store = this.getService<Store>("memoryaggregators");
+    let store = this.getService<Store>("MemoryAggregators");
     await store.__clean();
-    await this.getService<AggregatorService>("identsindexer").createAggregate();
+    await this.getService<AggregatorService>("IdentsIndexer").createAggregate();
   }
 
   @test
@@ -57,8 +57,8 @@ class FileStoreTest extends StoreTest {
 
   @test
   async cov() {
-    let identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.getService<any>("idents");
-    let userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("users");
+    let identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.getService<any>("Idents");
+    let userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Users");
     let user: any = await userStore.save({});
     let ident = await identStore.save({
       _user: user.getUuid()
@@ -139,7 +139,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async configuration() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
     assert.strictEqual(
       identStore.canTriggerConfiguration("plop", () => {}),
       false
@@ -159,7 +159,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async cacheMishit() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
     let ident: CoreModel = await identStore.save({ uuid: "test" });
     await identStore._cacheStore.__clean();
     // @ts-ignore
@@ -168,7 +168,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async modelStaticActions() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
     let ctx, executor;
     let eventFired = 0;
     identStore.on("Store.Action", evt => {
@@ -212,7 +212,7 @@ class FileStoreTest extends StoreTest {
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       noname: "Task #1"
     });
-    this.webda.getModules().schemas["webdatest/task"] = FileUtils.load("./test/schemas/task.json");
+    this.webda.getModules().schemas["WebdaTest/Task"] = FileUtils.load("./test/schemas/task.json");
 
     assert.notStrictEqual(executor, undefined);
     ctx.getSession().login("fake_user", "fake_ident");

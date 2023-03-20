@@ -1,5 +1,7 @@
+import { JSONSchema7 } from "json-schema";
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
+import { ModelGraph } from "../application";
 import { Core } from "../core";
 import { DeepPartial, Service } from "../services/service";
 import { Store } from "../stores/store";
@@ -41,7 +43,6 @@ export function Expose(
   }
 ) {
   return function (target: any): void {
-    segment ??= target.constructor.name.toLowerCase();
     // @ts-ignore
     target.Expose ??= {
       segment,
@@ -168,10 +169,26 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   factory(model: new () => T, object: any, context?: OperationContext): T;
   getActions(): { [key: string]: ModelAction };
   store(): Store<T>;
+  getSchema(): JSONSchema7;
+  /**
+   * Get Model identifier
+   */
+  getIdentifier(): string;
+  /**
+   * Get the model hierarchy
+   *
+   * Ancestors will contain every model it inherits from
+   * Children will contain every model that inherits from this model in a tree structure
+   */
+  getHierarchy(): {
+    ancestors: string[];
+    children: ModelGraph;
+  };
   getUuidField(): string;
   getLastUpdateField(): string;
   getCreationField(): string;
   getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
+  ref: typeof CoreModel.ref;
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -279,9 +296,9 @@ class CoreModel {
   constructor() {
     this.__class = new.target;
     // Get the store automatically now
-    this.__store = <Store<this>>Core.get()?.getModelStore(this);
+    this.__store = <Store<this>>Core.get()?.getModelStore(new.target);
     // Get the type automatically now
-    this.__type = Core.get()?.getApplication().getModelFromInstance(this);
+    this.__type = Core.get()?.getApplication().getShortId(Core.get()?.getApplication().getModelFromInstance(this));
   }
 
   /**
@@ -305,6 +322,15 @@ class CoreModel {
    */
   static completeUid(uid: string): string {
     return uid;
+  }
+
+  /**
+   * Return the known schema
+   * @returns
+   */
+  static getSchema() {
+    const app = Core.get()?.getApplication();
+    return app?.getSchema(app.getModelFromConstructor(this));
   }
 
   /**
@@ -339,6 +365,7 @@ class CoreModel {
     setAttribute(attribute: keyof T, value: any): Promise<void>;
     conditionalPatch(updates: Partial<T>, conditionField: any, condition: any): Promise<boolean>;
     patch(updates: Partial<T>): Promise<boolean>;
+    create(info: Partial<T>): Promise<T>;
     upsertItemToCollection(
       prop: FilterKeys<T, any[]>,
       item: any,
@@ -372,8 +399,11 @@ class CoreModel {
       ) => store.upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField),
       exists: () => store.exists(uid),
       get: async (defaultValue?: Partial<T>, context?: OperationContext) => {
-        return (await store.get(uid, context)) || new this().load(defaultValue).setUuid(uid);
+        return (
+          (await store.get(uid, context)) || (defaultValue ? new this().load(defaultValue).setUuid(uid) : undefined)
+        );
       },
+      create: (defaultValue: Partial<T>) => new this().load(defaultValue).setUuid(uid).save(),
       delete: () => store.delete(uid),
       conditionalPatch: (updates: Partial<T>, conditionField: any, condition: any) =>
         store.conditionalPatch(uid, updates, conditionField, condition),
@@ -388,6 +418,25 @@ class CoreModel {
         }[]
       ) => store.incrementAttributes(uid, info)
     };
+  }
+
+  /**
+   * Get identifier for this model
+   * @returns
+   */
+  static getIdentifier(): string {
+    return Core.get().getApplication().getModelName(this);
+  }
+
+  /**
+   * Get hierarchy for this model
+   * @returns
+   */
+  static getHierarchy(): {
+    ancestors: string[];
+    children: ModelGraph;
+  } {
+    return Core.get().getApplication().getModelHierarchy(this);
   }
 
   /**

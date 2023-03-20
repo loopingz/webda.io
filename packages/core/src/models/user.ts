@@ -31,7 +31,6 @@ export class User extends OwnerModel {
   _groups: string[] = [];
   /**
    * Idents used by the user
-   * @SchemaIgnore
    */
   _idents: ModelsMapped<Ident, "_type" | "uuid" | "email"> = [];
   /**

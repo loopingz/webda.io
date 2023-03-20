@@ -2,15 +2,16 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/googleauthentication": "lib/google-auth:default"
+    "Webda/GoogleAuthentication": "lib/google-auth:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/googleauthentication": {
+    "Webda/GoogleAuthentication": {
       "type": "object",
       "properties": {
         "type": {

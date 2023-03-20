@@ -72,7 +72,7 @@ class SQSQueueTest extends QueueTest {
   @test
   @timeout(80000)
   async basic() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
+    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test";
     await queue.__clean();
     // Update timeout to 80000ms as Purge can only be sent once every 60s
@@ -83,7 +83,7 @@ class SQSQueueTest extends QueueTest {
 
   @test
   async fifo() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
+    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test2.fifo";
     queue.getParameters().MessageGroupId = "myGroup";
     await queue.sendMessage({});
@@ -91,7 +91,7 @@ class SQSQueueTest extends QueueTest {
 
   @test
   ARN() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
+    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     let arn = queue.getARNPolicy();
     assert.strictEqual(arn.Action.indexOf("sqs:SendMessage") >= 0, true);
     assert.strictEqual(arn.Resource[0], "arn:aws:sqs:us-east-1:000000000000:webda-test");
@@ -99,7 +99,7 @@ class SQSQueueTest extends QueueTest {
 
   @test
   getQueueInfos() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
+    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     queue.getParameters().queue = "none";
     let error = false;
     try {
@@ -112,7 +112,7 @@ class SQSQueueTest extends QueueTest {
 
   @test
   async purgeQueueError() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
+    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     let mock = mockClient(SQS)
       .on(PurgeQueueCommand)
       .callsFake(async () => {

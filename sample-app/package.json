@@ -15,7 +15,7 @@
     "lib"
   ],
   "scripts": {
-    "build": "tsc-esm",
+    "build": "webda build",
     "pretest": "npm run build",
     "test": "echo 'No test sample available yet'"
   },
@@ -37,7 +37,7 @@
   },
   "webda": {
     "logo": "none.txt",
-    "namespace": "webdademo"
+    "namespace": "WebdaDemo"
   },
   "devDependencies": {
     "@types/node": "14.6.0"

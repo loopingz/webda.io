@@ -35,6 +35,14 @@ export class Ident extends OwnerModel {
    * Email for this ident if it exist
    */
   email?: string;
+  /**
+   * Provider id
+   */
+  provider?: string;
+  /**
+   * Provider profile
+   */
+  profile?: any;
 
   static init(
     type: string,

@@ -286,7 +286,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   async checkRequest(context: WebContext): Promise<boolean> {
     const url = context.getHttpContext().getRelativeUri();
-    if (url.startsWith(this.parameters.url)) {
+    // Only for status endpoint - operations endpoint should still be authorized by something else
+    if (url === `${this.parameters.url}/status`) {
       // Allow status url to be called without other mechanism
       await this.verifyJobRequest(context);
       return true;
@@ -443,13 +444,37 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * List available operations through this service
    * @param context
    */
-  async listOperations(context: WebContext): Promise<void> {
+  async listOperations(
+    context: WebContext<
+      void,
+      | {
+          application: {
+            name: string;
+            version: string;
+          };
+          operations: {
+            [key: string]: {
+              id: string;
+              input?: string;
+              output?: string;
+            };
+          };
+          schemas: { [key: string]: JSONSchema7 };
+        }
+      | string[]
+    >
+  ): Promise<void> {
+    this.log("INFO", "Listing operations called");
     let filtered: typeof this.operations = JSONUtils.duplicate(this.operations);
     // Filter operations based on permissions
     Object.keys(filtered.operations)
       .filter(key => filtered.operations[key].permission && !this.getWebda().checkOperationPermission(context, key))
       .forEach(key => delete filtered.operations[key]);
 
+    // Remove permission definition
+    Object.values(filtered.operations)
+      .filter(def => def.permission)
+      .forEach(def => delete def.permission);
     if (!context.getParameters().full) {
       context.write(Object.keys(filtered.operations));
       return;
@@ -469,7 +494,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       .forEach(key => {
         delete filtered.schemas[key];
       });
-    context.write(this.operations);
+    context.write(filtered);
   }
 
   /**

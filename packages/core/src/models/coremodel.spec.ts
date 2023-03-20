@@ -233,6 +233,8 @@ class CoreModelTest extends WebdaTest {
     // @ts-ignore
     process.webda = Core.singleton = undefined;
     assert.throws(() => CoreModel.store(), /Webda not initialized/);
+    // No test
+    Task.getSchema();
   }
 
   @test

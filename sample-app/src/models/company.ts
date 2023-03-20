@@ -1,11 +1,12 @@
-import { CoreModel, ModelMapped, ModelRelated } from "@webda/core";
+import { CoreModel, Expose, ModelRelated, ModelsMapped } from "@webda/core";
 import { Project } from "./project";
 import { User } from "./user";
 
 /**
- * @WebdaModel
+ * @WebdaPlural Companies
  */
+@Expose()
 export class Company extends CoreModel {
-  _projects: ModelMapped<Project, "name" | "type">;
+  _projects: ModelsMapped<Project, "name" | "type">;
   users: ModelRelated<User, "_company">;
 }

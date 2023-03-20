@@ -610,6 +610,14 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   }
 
   /**
+   *
+   * @returns
+   */
+  getResponseCode() {
+    return this.statusCode || 200;
+  }
+
+  /**
    * Redirect to another url
    * @param url
    */

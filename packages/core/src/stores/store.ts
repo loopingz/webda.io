@@ -553,6 +553,10 @@ abstract class Store<
    */
   _models: CoreModelDefinition<T>[] = [];
   /**
+   * Store teh manager hierarchy with their depth
+   */
+  _modelsHierarchy: { [key: string]: number } = {};
+  /**
    * Contains the current model type
    */
   _modelType: string;
@@ -595,14 +599,29 @@ abstract class Store<
     super.computeParameters();
     const p = this.parameters;
     this._model = <CoreModelDefinition<T>>this._webda.getModel(p.model);
-    this._models = [this._model, ...this.parameters.models.map(m => this._webda.getModel(m) as CoreModelDefinition<T>)];
-    this._modelType = this._webda.getApplication().getModelFromConstructor(this._model);
+    this._models = [
+      this._model,
+      ...this.parameters.models.map(m => this._webda.getModel(m) as CoreModelDefinition<T>).filter(i => i !== undefined)
+    ];
+    this._modelType = this._model.getIdentifier();
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
     this.cacheStorePatchException();
     this.parent = this.parameters.parent ? this.getService(this.parameters.parent.name) : undefined;
+    const recursive = (tree, depth) => {
+      for (let i in tree) {
+        this._modelsHierarchy[i] ??= depth;
+        this._modelsHierarchy[i] = Math.min(depth, this._modelsHierarchy[i]);
+        recursive(this.getWebda().getApplication().getModelHierarchy(i).children, depth + 1);
+      }
+    };
+    // Compute the hierarchy
+    this._models.forEach(model => {
+      this._modelsHierarchy[model.getIdentifier()] = 0;
+      recursive(model.getHierarchy().children, 1);
+    });
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -648,30 +667,10 @@ abstract class Store<
    *
    */
   handleModel(model: Constructor<CoreModel> | CoreModel): number {
-    let finalDepth;
-    // @ts-ignore
-    let inst = model.__class ? model : new model();
-    this._models
-      .filter(m => inst instanceof m)
-      .forEach(m => {
-        let next = model instanceof CoreModel ? model.__class : model;
-        let depth = 0;
-        while (next && next.name !== "") {
-          if (next === m) {
-            finalDepth = finalDepth !== undefined ? Math.min(depth, finalDepth) : depth;
-            return;
-          }
-          // If Store strictly managed one Model
-          if (this.parameters.strict) {
-            return;
-          }
-          depth++;
-          next = Object.getPrototypeOf(next);
-        }
-      });
-    finalDepth ??= -1;
-    return finalDepth;
+    const name = this.getWebda().getApplication().getModelName(model);
+    return this._modelsHierarchy[name] ?? -1;
   }
+
   /**
    * Get From Cache or main
    * @param uid
@@ -742,6 +741,106 @@ abstract class Store<
     return parentUrl + super.getUrl(url, methods);
   }
 
+  initOperations(): void {
+    super.initOperations();
+    if (!this.parameters.operationPrefix) {
+      return;
+    }
+    const prefix = this.parameters.operationPrefix;
+    const expose = this.parameters.expose;
+    const webda = this.getWebda();
+    const app = webda.getApplication();
+    const modelSchema = app.hasSchema(this._modelType) && this._modelType;
+    if (!app.hasSchema("uuidRequest")) {
+      app.registerSchema("uuidRequest", {
+        type: "object",
+        properties: {
+          uuid: {
+            type: "string"
+          }
+        },
+        required: ["uuid"]
+      });
+    }
+    if (!app.hasSchema("searchRequest")) {
+      app.registerSchema("searchRequest", {
+        type: "object",
+        properties: {
+          query: {
+            type: "string"
+          }
+        }
+      });
+    }
+    ["create", "update"]
+      .filter(k => !expose.restrict[k])
+      .forEach(k => {
+        k = k.substring(0, 1).toUpperCase() + k.substring(1);
+        const id = `${prefix}.${k}`;
+        this.getWebda().registerOperation(id, {
+          service: this.getName(),
+          method: k === "Create" ? "httpCreate" : "operationUpdate",
+          id,
+          input: modelSchema,
+          output: modelSchema
+        });
+      });
+    ["delete", "get"]
+      .filter(k => !expose.restrict[k])
+      .forEach(k => {
+        k = k.substring(0, 1).toUpperCase() + k.substring(1);
+        const id = `${prefix}.${k}`;
+        const output = k === "Get" && modelSchema;
+        this.getWebda().registerOperation(id, {
+          service: this.getName(),
+          method: `http${k}`,
+          id,
+          input: "uuidRequest",
+          output
+        });
+      });
+    if (!expose.restrict.query) {
+      const id = `${prefix}.Query`;
+      this.getWebda().registerOperation(id, {
+        service: this.getName(),
+        method: "httpQuery",
+        id,
+        input: "searchRequest"
+      });
+    }
+    // Add patch
+    if (!expose.restrict.update) {
+      const id = `${prefix}.Patch`;
+      this.getWebda().registerOperation(id, {
+        service: this.getName(),
+        method: "operationPatch",
+        id,
+        input: this._modelType + "?",
+        output: this._modelType
+      });
+    }
+    // Add all operations for Actions
+    if (this._model && this._model.getActions) {
+      let actions = this._model.getActions();
+      Object.keys(actions).forEach(name => {
+        const id = `${prefix}.${name}`;
+        const input =
+          app.hasSchema(`${this._modelType}.${name.toLowerCase()}.input`) &&
+          `${this._modelType}.${name.toLowerCase()}.input`;
+        const output =
+          app.hasSchema(`${this._modelType}.${name.toLowerCase()}.output`) &&
+          `${this._modelType}.${name.toLowerCase()}.output`;
+        this.getWebda().registerOperation(id, {
+          service: this.getName(),
+          method: `action${name}`,
+          id,
+          input,
+          output
+        });
+      });
+    }
+  }
+
   /**
    * @inheritdoc
    */
@@ -780,7 +879,7 @@ abstract class Store<
           requestBody,
           responses: {
             "200": {
-              description: "Retrieve models",
+              description: `Retrieve models ${this._model.name}`,
               content: {
                 "application/json": {
                   schema: {
@@ -822,7 +921,6 @@ abstract class Store<
         if (action.global) {
           // By default will grab the object and then call the action
           if (!this._model[name] && !this._model["_" + name]) {
-            console.log(this._model);
             throw Error("Action static method /_?" + name + "/ does not exist");
           }
           executer = this.httpGlobalAction;
@@ -965,7 +1063,7 @@ abstract class Store<
     let params = <{ property: string; value: number }[]>info.filter(i => i.value !== 0);
     // If value === 0 no need to update anything
     if (params.length === 0) {
-      return Promise.resolve();
+      return;
     }
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "increment" });
@@ -1247,6 +1345,19 @@ abstract class Store<
       }
       throw err;
     }
+  }
+
+  /**
+   * Override the getOperationId to disable Operations if
+   * not operationPrefix is set
+   * @param id
+   * @returns
+   */
+  getOperationId(id: string): string {
+    if (!this.parameters.operationPrefix) {
+      return undefined;
+    }
+    return `${this.parameters.operationPrefix}.${id}`;
   }
 
   /**
@@ -1994,13 +2105,27 @@ abstract class Store<
     }
   })
   async httpUpdate(ctx: WebContext) {
-    let body = await ctx.getRequestBody();
-    let uuid = ctx.parameter("uuid");
+    const { uuid } = ctx.getPathParameters();
+    const body = await ctx.getInput();
+    return this.operationUpdates(ctx, <"PUT" | "PATCH">ctx.getHttpContext().getMethod(), uuid, body);
+  }
+
+  async operationPatch(ctx: OperationContext) {
+    const { uuid, ...body } = await ctx.getInput();
+    return this.operationUpdates(ctx, "PATCH", uuid, body);
+  }
+
+  async operationUpdate(ctx: OperationContext) {
+    const { uuid, ...body } = await ctx.getInput();
+    return this.operationUpdates(ctx, "PUT", uuid, body);
+  }
+
+  async operationUpdates(ctx: OperationContext, type: "PUT" | "PATCH", uuid: string, body: Partial<T>) {
     body[this._uuidField] = uuid;
     let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw 404;
     await object.canAct(ctx, "update");
-    if (ctx.getHttpContext().getMethod() === "PATCH") {
+    if (type === "PATCH") {
       try {
         await object.validate(ctx, body, true);
       } catch (err) {
@@ -2120,15 +2245,15 @@ abstract class Store<
       }
     }
   })
-  async httpRoute(ctx: WebContext) {
+  async httpDelete(ctx: WebContext) {
     let uuid = ctx.parameter("uuid");
     let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw 404;
     await object.canAct(ctx, "delete");
     // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
     // IOS don't handle 204 with Content-Length != 0 it seems
-    // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
-    ctx.write({});
+    // Might still run into: Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
+    ctx.writeHead(204, { "Content-Length": "0" });
     await this.delete(uuid);
     await this.emitSync("Store.WebDelete", {
       context: ctx,

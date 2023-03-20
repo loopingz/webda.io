@@ -146,25 +146,27 @@ class SourceApplicationTest extends WebdaTest {
     module.models ??= {
       list: {},
       graph: {},
-      tree: {}
+      tree: {},
+      plurals: {},
+      shortIds: {}
     };
     module.beans ??= {};
     // Abstract project should not be there
-    assert.strictEqual(module.models["webdademo/abstractproject"], undefined);
+    assert.strictEqual(module.models["WebdaDemo/AbstractProject"], undefined);
     // Subsubproject2 should not be there as it is not exported
-    assert.strictEqual(module.models["webdademo/subsubproject2"], undefined);
+    assert.strictEqual(module.models["WebdaDemo/SubSubProject2"], undefined);
     // The @Webda/Ignore should prevent the export of the model
-    assert.strictEqual(module.models["webdademo/subsubproject3"], undefined);
+    assert.strictEqual(module.models["WebdaDemo/SubSubProject3"], undefined);
     // The bean is not extending Service
-    assert.strictEqual(module.beans["webdademo/sampleappbadbean"], undefined);
+    assert.strictEqual(module.beans["WebdaDemo/SampleAppBadBean"], undefined);
 
     // Check for good objects
-    assert.notStrictEqual(module.models.list["webdademo/subsubproject"], undefined);
-    assert.notStrictEqual(module.models.list["webdademo/subproject"], undefined);
-    assert.notStrictEqual(module.models.list["webdademo/project"], undefined);
+    assert.notStrictEqual(module.models.list["WebdaDemo/SubSubProject"], undefined);
+    assert.notStrictEqual(module.models.list["WebdaDemo/SubProject"], undefined);
+    assert.notStrictEqual(module.models.list["WebdaDemo/Project"], undefined);
     console.log(module);
-    assert.notStrictEqual(module.beans["webdademo/beanservice"], undefined);
-    assert.notStrictEqual(module.beans["webdademo/sampleappgoodbean"], undefined);
+    assert.notStrictEqual(module.beans["WebdaDemo/BeanService"], undefined);
+    assert.notStrictEqual(module.beans["WebdaDemo/SampleAppGoodBean"], undefined);
 
     this.cleanSampleApp();
     // should not recreate
@@ -210,15 +212,12 @@ class SourceApplicationTest extends WebdaTest {
     await this.sampleApp.generateModule();
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("webda.module.json")), true);
     let config: Module = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
-    assert.strictEqual(config.moddas["WebdaDemo/CustomReusableService".toLowerCase()], "lib/services/reusable:default");
+    assert.strictEqual(config.moddas["WebdaDemo/CustomReusableService"], "lib/services/reusable:default");
     // Won't be find as it is in a test context
-    assert.strictEqual(config.models.list["WebdaDemo/Contact".toLowerCase()], "lib/models/contact:default");
-    assert.strictEqual(
-      config.deployers["WebdaDemo/CustomDeployer".toLowerCase()],
-      "lib/services/deployer:CustomDeployer"
-    );
+    assert.strictEqual(config.models.list["WebdaDemo/Contact"], "lib/models/contact:default");
+    assert.strictEqual(config.deployers["WebdaDemo/CustomDeployer"], "lib/services/deployer:CustomDeployer");
     console.log(Object.keys(config.schemas));
-    assert.deepStrictEqual(config.schemas["WebdaDemo/CustomDeployer".toLowerCase()].title, "CustomDeployer");
+    assert.deepStrictEqual(config.schemas["WebdaDemo/CustomDeployer"].title, "CustomDeployer");
     let app = new BuildSourceApplication(this.sampleApp.getAppPath());
     let stub = sinon.stub(app, "compile").callsFake(() => false);
     try {

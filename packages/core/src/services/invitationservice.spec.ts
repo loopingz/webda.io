@@ -37,16 +37,17 @@ class InvitationTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this.service = new InvitationService(this.webda, "invit", {
-      modelStore: "Companies",
-      invitationStore: "Invitations",
-      attribute: "__acl",
-      mapAttribute: "_companies",
-      pendingAttribute: "__invitations",
-      notificationService: "DebugMailer",
-      mapFields: ["name"]
-    });
-    this.webda.getServices()["invit"] = this.service;
+    this.service = this.registerService(
+      new InvitationService(this.webda, "invit", {
+        modelStore: "Companies",
+        invitationStore: "Invitations",
+        attribute: "__acl",
+        mapAttribute: "_companies",
+        pendingAttribute: "__invitations",
+        notificationService: "DebugMailer",
+        mapFields: ["name"]
+      })
+    );
     this.store = this.webda.getService<Store<AclModel>>("Companies");
     this.store._model = <any>MyCompany;
     this.invitations = this.webda.getService<Store<CoreModel>>("Invitations");

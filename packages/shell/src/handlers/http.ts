@@ -166,11 +166,13 @@ export class WebdaServer extends Webda {
           await ctx.end();
           return;
         }
+        this.log("INFO", "Pre checkRequest", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
         // Verify if request is authorized
         if (!(await this.checkRequest(ctx))) {
           this.log("WARN", "Request refused");
           throw 403;
         }
+        this.log("INFO", "Post checkRequest", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
       } catch (err) {
         if (typeof err === "number") {
           ctx.statusCode = err;
@@ -204,6 +206,7 @@ export class WebdaServer extends Webda {
 
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {
+        this.log("INFO", "Execute", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
         await ctx.execute();
         await this.emitSync("Webda.Result", { context: ctx });
         await ctx.end();

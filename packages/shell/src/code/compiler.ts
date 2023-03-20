@@ -40,6 +40,7 @@ type WebdaSearchResult = {
   };
   jsFile: string;
   name: string;
+  lib: boolean;
 };
 
 type WebdaSearchResults = {
@@ -90,7 +91,7 @@ class WebdaSchemaResults {
 
   add(name: string, info?: ts.Node | string, title?: string, addOpenApi: boolean = false) {
     if (typeof info === "object") {
-      this.store[name.toLowerCase()] = {
+      this.store[name] = {
         name: name,
         schemaNode: info,
         title,
@@ -98,7 +99,7 @@ class WebdaSchemaResults {
       };
       this.byNode.set(info, name);
     } else {
-      this.store[name.toLowerCase()] = {
+      this.store[name] = {
         name: name,
         link: info,
         title,
@@ -323,8 +324,10 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
             false
           );
         } else if (typeName === "ModelsMapped") {
-          let type = (<any>this.childNodeParser.createType(member.type, context)).type.type.type.type.type.item.type
-            .type.type.type.type;
+          let type = <any>this.childNodeParser.createType(member.type, context);
+          while (!type.properties) {
+            type = type.item ? type.item : type.type;
+          }
           return new ObjectProperty(
             this.getPropertyName(member.name),
             new ArrayType(
@@ -473,20 +476,6 @@ export class Compiler {
   }
 
   /**
-   * Sort object keys
-   * @param unordered
-   * @returns
-   */
-  sortObject(unordered: any): any {
-    return Object.keys(unordered)
-      .sort()
-      .reduce((obj, key) => {
-        obj[key] = unordered[key].jsFile;
-        return obj;
-      }, {});
-  }
-
-  /**
    * Generate a single schema
    * @param schemaNode
    */
@@ -572,6 +561,7 @@ export class Compiler {
     });
     return tags;
   }
+
   /**
    * Retrieve all webda  objects from source
    *
@@ -596,7 +586,7 @@ export class Compiler {
     this.tsProgram.getSourceFiles().forEach(sourceFile => {
       if (
         !this.tsProgram.isSourceFileDefaultLibrary(sourceFile) &&
-        this.tsProgram.getRootFileNames().includes(sourceFile.fileName) &&
+        //this.tsProgram.getRootFileNames().includes(sourceFile.fileName) &&
         !sourceFile.fileName.endsWith(".spec.ts")
       ) {
         this.sourceFile = sourceFile;
@@ -623,13 +613,30 @@ export class Compiler {
           if (tags["WebdaIgnore"]) {
             return;
           }
-
-          const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
           const classTree = this.getClassTree(type);
+          if (!this.tsProgram.getRootFileNames().includes(sourceFile.fileName)) {
+            if (this.extends(classTree, "@webda/core", "CoreModel")) {
+              const name = this.getLibraryModelName(sourceFile.fileName, this.getExportedName(classNode));
+              if (!name) {
+                return;
+              }
+              result["models"][name] = {
+                name,
+                tags: {},
+                lib: true,
+                type,
+                node,
+                symbol,
+                jsFile: sourceFile.fileName.replace(/\.d\.ts$/, ".js")
+              };
+            }
+            return;
+          }
+          const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
 
           let section;
           let schemaNode;
-          if (this.extends(classTree, "@webda/core", "CoreModel") || tags["WebdaModel"]) {
+          if (this.extends(classTree, "@webda/core", "CoreModel")) {
             section = "models";
             schemaNode = node;
           } else if (tags["WebdaModda"]) {
@@ -675,6 +682,7 @@ export class Compiler {
             symbol,
             node,
             tags,
+            lib: false,
             jsFile: `${importTarget}:${exportName}`,
             name: this.app.completeNamespace(
               tags[`Webda${section.substring(0, 1).toUpperCase()}${section.substring(1, section.length - 1)}`] ||
@@ -689,11 +697,33 @@ export class Compiler {
               section === "beans" || section === "moddas"
             );
           }
-          result[section][info.name.toLowerCase()] = info;
+          result[section][info.name] = info;
         });
       }
     });
     return result;
+  }
+  /**
+   * Get a model name from a library path based on file and classname
+   * @param fileName
+   * @param className
+   * @returns
+   */
+  getLibraryModelName(fileName: string, className: string) {
+    let mod = path.dirname(fileName);
+    let moduleInfo;
+    while (mod !== "/") {
+      if (existsSync(path.join(mod, "webda.module.json"))) {
+        moduleInfo = FileUtils.load(path.join(mod, "webda.module.json"));
+        break;
+      }
+      mod = path.dirname(mod);
+    }
+    if (!moduleInfo) {
+      return;
+    }
+    const importEntry = `${path.relative(mod, fileName.replace(/\.d\.ts$/, ""))}:${className}`;
+    return Object.keys(moduleInfo.models.list).find(f => moduleInfo.models.list[f] === importEntry);
   }
 
   /**
@@ -717,14 +747,12 @@ export class Compiler {
     // Check for @Operation and @Route methods
     this.exploreServices(objects.moddas, objects.schemas);
     this.exploreServices(objects.beans, objects.schemas);
+    const jsOnly = a => a.jsFile;
     return {
-      beans: this.sortObject(objects.beans),
-      deployers: this.sortObject(objects.deployers),
-      moddas: this.sortObject(objects.moddas),
-      models: {
-        ...this.processModels(objects.models),
-        list: this.sortObject(objects.models)
-      },
+      beans: JSONUtils.sortObject(objects.beans, jsOnly),
+      deployers: JSONUtils.sortObject(objects.deployers, jsOnly),
+      moddas: JSONUtils.sortObject(objects.moddas, jsOnly),
+      models: this.processModels(objects.models),
       schemas: objects.schemas.generateSchemas(this)
     };
   }
@@ -849,16 +877,25 @@ export class Compiler {
    * And the hierarchy tree
    * @param models
    */
-  processModels(models: { [key: string]: { name: string; type: ts.Type } }) {
+  processModels(models: WebdaSearchResults) {
     let graph: {
       [key: string]: ModelGraph;
     } = {};
     let tree = {};
+    let plurals = {};
     let symbolMap = new Map<number, string>();
+    let list = {};
 
-    Object.values(models).forEach(({ name, type }) => {
+    Object.values(models).forEach(({ name, type, tags, lib }) => {
       // @ts-ignore
       symbolMap.set(type.id, name);
+      // Do not process external models apart from adding them to the symbol map
+      if (lib) {
+        return;
+      }
+      if (tags["WebdaPlural"]) {
+        plurals[name] = tags["WebdaPlural"].split(" ")[0];
+      }
       graph[name] ??= {};
       type
         .getProperties()
@@ -937,44 +974,60 @@ export class Compiler {
         }
       });
     });
+    // Compute children now
+    Object.keys(graph)
+      .filter(k => graph[k].parent && graph[graph[k].parent.model])
+      .forEach(k => {
+        const parent = graph[graph[k].parent.model];
+        parent.children ??= [];
+        parent.children.push(k);
+      });
 
     // Construct the hierarchy tree
-    Object.values(models).forEach(({ type }) => {
-      let root = tree;
-      this.getClassTree(type)
-        .map((t: any) => {
-          // If the reference is not internal to this project
-          if (!symbolMap.has(t.id) && t.symbol?.parent?.escapedName) {
-            // Check the module of the source
-            let sourcePath = t.symbol?.parent?.escapedName.replace(/"/g, "");
-            let dir = sourcePath;
-            while (dir !== "/" && !existsSync(path.join(dir, "webda.module.json"))) {
-              dir = path.dirname(dir);
+    Object.values(models)
+      .filter(p => !p.lib)
+      .forEach(({ type, name, jsFile }) => {
+        list[name] = jsFile;
+        let root = tree;
+        this.getClassTree(type)
+          .map((t: any) => {
+            // If the reference is not internal to this project
+            if (!symbolMap.has(t.id) && t.symbol?.parent?.escapedName) {
+              // Check the module of the source
+              let sourcePath = t.symbol?.parent?.escapedName.replace(/"/g, "");
+              let dir = sourcePath;
+              while (dir !== "/" && !existsSync(path.join(dir, "webda.module.json"))) {
+                dir = path.dirname(dir);
+              }
+              // If we found a module
+              if (existsSync(path.join(dir, "webda.module.json"))) {
+                let mod = FileUtils.load(path.join(dir, "webda.module.json"));
+                // Find the model in the module
+                return (
+                  Object.keys(mod.models.list).find(
+                    key =>
+                      mod.models.list[key].startsWith(sourcePath.substring(dir.length + 1) + ":") &&
+                      t.symbol.parent.exports.get(mod.models.list[key].split(":")[1] || "default") === t.symbol
+                  ) || null
+                );
+              }
+            } else {
+              return symbolMap.get(t.id);
             }
-            // If we found a module
-            if (existsSync(path.join(dir, "webda.module.json"))) {
-              let mod = FileUtils.load(path.join(dir, "webda.module.json"));
-              // Find the model in the module
-              return (
-                Object.keys(mod.models.list).find(
-                  key =>
-                    mod.models.list[key].startsWith(sourcePath.substring(dir.length + 1) + ":") &&
-                    t.symbol.parent.exports.get(mod.models.list[key].split(":")[1] || "default") === t.symbol
-                ) || null
-              );
-            }
-          } else {
-            return symbolMap.get(t.id);
-          }
-        })
-        .filter(t => t !== null && t !== undefined && t !== "webda/coremodel")
-        .reverse()
-        .forEach((name: string) => {
-          root[name] ??= {};
-          root = root[name];
-        });
-    });
-    return { graph, tree };
+          })
+          .filter(t => t !== null && t !== undefined && t !== "Webda/CoreModel")
+          .reverse()
+          .forEach((name: string) => {
+            root[name] ??= {};
+            root = root[name];
+          });
+      });
+    return {
+      graph: JSONUtils.sortObject(graph),
+      tree: JSONUtils.sortObject(tree),
+      plurals: JSONUtils.sortObject(plurals),
+      list: JSONUtils.sortObject(list)
+    };
   }
 
   /**
@@ -1215,24 +1268,14 @@ export class Compiler {
   /**
    * Generate regex based on a service name
    *
-   * The regex will ensure the pattern is not case sensitive and
-   * that the namespace is optional
+   * The regex will ensure the namespace is optional
    *
    * @param type
    * @returns
    */
   getServiceTypePattern(type: string): string {
-    let result = "";
-    type = this.app.completeNamespace(type);
-    for (let t of type) {
-      if (t.match(/[a-z]/)) {
-        result += `[${t}${t.toUpperCase()}]`;
-      } else {
-        result += t;
-      }
-    }
     // Namespace is optional
-    let split = result.split("/");
+    let split = this.app.completeNamespace(type).split("/");
     return `^(${split[0]}/)?${split[1]}$`;
   }
 

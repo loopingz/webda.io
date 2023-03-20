@@ -2,18 +2,19 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/googlecloudfirestore": "lib/services/firestore:default",
-    "webda/googlecloudpubsub": "lib/services/pubsub:default",
-    "webda/googlecloudqueue": "lib/services/queue:default",
-    "webda/googlecloudstorage": "lib/services/storage:default"
+    "Webda/GoogleCloudFireStore": "lib/services/firestore:default",
+    "Webda/GoogleCloudPubSub": "lib/services/pubsub:default",
+    "Webda/GoogleCloudQueue": "lib/services/queue:default",
+    "Webda/GoogleCloudStorage": "lib/services/storage:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/googlecloudfirestore": {
+    "Webda/GoogleCloudFireStore": {
       "type": "object",
       "properties": {
         "type": {
@@ -174,7 +175,7 @@
       },
       "title": "FireStore"
     },
-    "webda/googlecloudpubsub": {
+    "Webda/GoogleCloudPubSub": {
       "type": "object",
       "properties": {
         "type": {
@@ -1033,7 +1034,7 @@
       },
       "title": "GCPPubSubService"
     },
-    "webda/googlecloudqueue": {
+    "Webda/GoogleCloudQueue": {
       "type": "object",
       "properties": {
         "type": {
@@ -1099,7 +1100,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GCPQueue"
     },
-    "webda/googlecloudstorage": {
+    "Webda/GoogleCloudStorage": {
       "type": "object",
       "properties": {
         "type": {

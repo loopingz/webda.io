@@ -2,16 +2,17 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/amqppubsub": "lib/pubsub:default",
-    "webda/amqpqueue": "lib/queue:default"
+    "Webda/AMQPPubSub": "lib/pubsub:default",
+    "Webda/AMQPQueue": "lib/queue:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/amqppubsub": {
+    "Webda/AMQPPubSub": {
       "type": "object",
       "properties": {
         "type": {
@@ -69,7 +70,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AMQPPubSubService"
     },
-    "webda/amqpqueue": {
+    "Webda/AMQPQueue": {
       "type": "object",
       "properties": {
         "type": {

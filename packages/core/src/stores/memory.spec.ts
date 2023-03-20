@@ -33,13 +33,13 @@ class MemoryStoreTest extends StoreTest {
   }
 
   async getIndex(): Promise<CoreModel> {
-    return this.getService<Store>("memoryaggregators").get("index");
+    return this.getService<Store>("MemoryAggregators").get("index");
   }
 
   async recreateIndex() {
-    let store = this.getService<Store>("memoryaggregators");
+    let store = this.getService<Store>("MemoryAggregators");
     await store.__clean();
-    await this.getService<AggregatorService>("memoryidentsindexer").createAggregate();
+    await this.getService<AggregatorService>("MemoryIdentsIndexer").createAggregate();
   }
 
   @test async deleteAsyncHttp() {
@@ -150,8 +150,7 @@ class MemoryStoreTest extends StoreTest {
     assert.ok((await identStore.get("user")) instanceof User);
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = true;
-    // @ts-ignore
-    identStore.storage["user"] = identStore.storage["user"].replace(/webda\/user/, "webda/user2");
+    identStore.storage["user"] = identStore.storage["user"].replace(/Webda\/User/, "Webda/User2");
     assert.ok((await identStore.get("user")).constructor.name === "Ident");
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = false;

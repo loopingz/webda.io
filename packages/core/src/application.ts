@@ -30,6 +30,7 @@ export type ModelGraph = {
     targetAttribute: string;
   }[];
   maps?: any[];
+  children?: string[];
 };
 
 /**
@@ -135,6 +136,14 @@ export interface Module {
      * The links are attribute of types ModelLink
      */
     graph: ModelsGraph;
+    /**
+     * Specific plurals for a model
+     */
+    plurals: { [key: string]: string };
+    /**
+     * Contains the shortcut id for the models
+     */
+    shortIds: { [key: string]: string };
   };
   /**
    * Deployers provided by the module
@@ -435,7 +444,9 @@ export class Application {
     models: {
       list: {},
       graph: {},
-      tree: {}
+      tree: {},
+      plurals: {},
+      shortIds: {}
     },
     deployers: {}
   };
@@ -464,6 +475,11 @@ export class Application {
    * Models graph
    */
   protected graph: ModelsGraph = {};
+
+  /**
+   * Models specific plurals
+   */
+  protected plurals: { [key: string]: string } = {};
 
   /**
    * Class Logger
@@ -536,7 +552,7 @@ export class Application {
         addParent(key, tree[key]);
       }
     };
-    addParent("webda/coremodel", this.baseConfiguration.cachedModules.models.tree);
+    addParent("Webda/CoreModel", this.baseConfiguration.cachedModules.models.tree);
     return this;
   }
 
@@ -693,7 +709,7 @@ export class Application {
    */
   addService(name: string, service: Modda): this {
     this.log("TRACE", "Registering service", name);
-    this.moddas[name.toLowerCase()] = service;
+    this.moddas[name] = service;
     return this;
   }
 
@@ -710,6 +726,15 @@ export class Application {
   }
 
   /**
+   * Get plural of an Id
+   * @param name
+   * @returns
+   */
+  getModelPlural(name: string): string {
+    return this.plurals[name] || name + "s";
+  }
+
+  /**
    *
    * @param section
    * @param name
@@ -719,13 +744,14 @@ export class Application {
     let objectName = this.completeNamespace(name);
     this.log("TRACE", `Search for ${section} ${objectName}`);
     if (!this[section][objectName] && name.indexOf("/") === -1) {
-      objectName = `webda/${name}`.toLowerCase();
+      objectName = `Webda/${name}`;
     }
     if (!this[section][objectName]) {
+      objectName = name !== objectName ? ` or ${objectName}` : "";
       throw Error(
-        `Undefined ${section.substring(0, section.length - 1)} ${name} or ${objectName} (${Object.keys(
-          this[section]
-        ).join(", ")})`
+        `Undefined ${section.substring(0, section.length - 1)} ${name}${objectName} (${Object.keys(this[section]).join(
+          ", "
+        )})`
       );
     }
     return this[section][objectName];
@@ -760,7 +786,7 @@ export class Application {
    * @param name model to retrieve
    */
   getModel<T extends CoreModelDefinition = CoreModelDefinition>(name: string): T {
-    return this.getWebdaObject("models", name);
+    return this.getWebdaObject("models", this.completeNamespace(name));
   }
 
   /**
@@ -770,6 +796,14 @@ export class Application {
     [key: string]: CoreModelDefinition;
   } {
     return this.models;
+  }
+
+  /**
+   * Return models that do not have parents and are exposed
+   * @returns
+   */
+  getRootModels(): string[] {
+    return Object.keys(this.graph).filter(key => !this.graph[key].parent && this.models[key].Expose);
   }
 
   /**
@@ -813,23 +847,22 @@ export class Application {
     if (typeof model !== "string") {
       model = this.getModelName(model);
     }
-    if (model === "webda/coremodel") {
-      return { ancestors: [], children: this.baseConfiguration.cachedModules.models.tree };
+    if (model === "Webda/CoreModel") {
+      return { ancestors: [], children: this.baseConfiguration?.cachedModules?.models?.tree };
     }
 
     let ancestors: string[] = [];
     let modelInfo = model;
-    while ((this.flatHierarchy[modelInfo] || "webda/coremodel") !== "webda/coremodel") {
+    while ((this.flatHierarchy[modelInfo] || "Webda/CoreModel") !== "Webda/CoreModel") {
       modelInfo = this.flatHierarchy[modelInfo];
       ancestors.unshift(modelInfo);
     }
-    let tree = this.baseConfiguration.cachedModules.models.tree;
+    let tree = this.baseConfiguration?.cachedModules?.models?.tree || {};
     ancestors.forEach(ancestor => {
       tree = tree[ancestor];
     });
-    ancestors.unshift("webda/coremodel");
+    ancestors.unshift("Webda/CoreModel");
     ancestors.reverse();
-
     return { ancestors, children: tree[model] };
   }
 
@@ -846,9 +879,18 @@ export class Application {
    * @param name
    * @param model
    */
-  addModel(name: string, model: any): this {
+  addModel(name: string, model: any, dynamic: boolean = true): this {
     this.log("TRACE", "Registering model", name);
-    this.models[name.toLowerCase()] = model;
+    this.models[name] = model;
+    if (dynamic && model) {
+      const superClass = Object.getPrototypeOf(model);
+      Object.values(this.getModels())
+        .filter(m => m === superClass)
+        .forEach(m => {
+          this.flatHierarchy[name] = this.getModelName(m);
+          this.getModelHierarchy(this.flatHierarchy[name]).children[name] = {};
+        });
+    }
     return this;
   }
 
@@ -860,7 +902,7 @@ export class Application {
    */
   addDeployer(name: string, model: any): this {
     this.log("TRACE", "Registering deployer", name);
-    this.deployers[name.toLowerCase()] = model;
+    this.deployers[name] = model;
     return this;
   }
 
@@ -1064,7 +1106,7 @@ export class Application {
     const info: Omit<CachedModule, "project"> = { beans: {}, ...module };
     const sectionLoader = async (section: Section) => {
       for (let key in info[section]) {
-        this[section][key.toLowerCase()] ??= await this.importFile(path.join(parent, info[section][key]));
+        this[section][key] ??= await this.importFile(path.join(parent, info[section][key]));
       }
     };
     // Merging graph from different modules
@@ -1078,8 +1120,12 @@ export class Application {
       sectionLoader("deployers"),
       // Load models
       (async () => {
+        // Copy plurals
+        for (let key in info.models.plurals || {}) {
+          this.plurals[key] = info.models.plurals[key];
+        }
         for (let key in info.models.list) {
-          this.models[key.toLowerCase()] ??= await this.importFile(path.join(parent, info.models.list[key]));
+          this.addModel(key, await this.importFile(path.join(parent, info.models.list[key])), false);
         }
       })(),
       ...Object.keys(info.beans).map(f => {
@@ -1101,9 +1147,35 @@ export class Application {
   completeNamespace(name: string = ""): string {
     // Do not add a namespace if already present
     if (name.indexOf("/") >= 0) {
-      return name.toLowerCase();
+      return name;
     }
-    return `${this.baseConfiguration?.cachedModules?.project?.webda?.namespace || "webda"}/${name}`.toLowerCase();
+    return `${this.getNamespace()}/${name}`;
+  }
+
+  /**
+   * Return current namespace
+   * @returns
+   */
+  getNamespace(): string {
+    return this.baseConfiguration?.cachedModules?.project?.webda?.namespace || "Webda";
+  }
+
+  /**
+   * Get short id for a name
+   * @param name
+   * @returns
+   */
+  getShortId(name: string): string {
+    return this.baseConfiguration?.cachedModules?.models?.shortIds[name] || name;
+  }
+
+  /**
+   *
+   * @param name
+   * @returns
+   */
+  hasShortId(name: string): boolean {
+    return this.baseConfiguration?.cachedModules?.models?.shortIds[name] !== undefined;
   }
 
   /**

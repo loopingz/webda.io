@@ -2,15 +2,16 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/elasticsearchservice": "lib/elasticsearchservice:default"
+    "Webda/ElasticSearchService": "lib/elasticsearchservice:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/elasticsearchservice": {
+    "Webda/ElasticSearchService": {
       "type": "object",
       "properties": {
         "type": {

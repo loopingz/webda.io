@@ -17,6 +17,10 @@
 
 Webda is a framework that provides a dependencies injection system, model-driven applications with multidatabase abstraction and deployment strategy that includes Lambda/APIGateway, Kubernetes.
 
+Even if the framework can do all the steps of deployment, it can also be decoupled to fit inside your classic CI workflow using Github Actions, Bazel, Jenkins, ...
+
+The framework in its latest version moved to a Domain-driven design: design your `Models` and their actions, permissions. For specific behavior that are not Models specific, you can create and use Beans. The framework can then expose everything as REST API, or GraphQL or CommandLine.
+
 ## Quickstart
 
 You should checkout our demo project : [link](https://github.com/loopingz/webda.io/sample-app/)
@@ -27,52 +31,28 @@ You should checkout our demo project : [link](https://github.com/loopingz/webda.
 npx @webda/shell init
 ```
 
-#### Create a new service
+#### Create a new module if you have a multi modules
 
-We will create a new executor, so we can map some URLs directly to the service
+Inside your project, just launch:
 
-```javascript
-import { Service, Route } from '@webda/core';
-
-class MyService extends Service {
-
-   delete(ctx) {
-     // If we don't output anything, then the default result will be a 204
-   }
-
-   get(ctx) {
-    // Should output : I am a getter and I've sent a welcome email to you
-    ctx.write(this._params.sentence);
-       let otherService = this.getService("Mailer");
-       otherService.send();
-   }
-
-   @Route("/myservice", ["GET", "DELETE"])
-   handleRequest(ctx) {
-     if (ctx._route._http.method === "GET") {
-         this.get(ctx);
-     } else {
-        this.delete(ctx);
-     }
-   }
-)
+```
+yarn new-module
 ```
 
-Here is the corresponding configuration
+#### Create a new service
 
-```javascript
-{
-  ...
-  services: {
-     ...
-     "MyService": {
-       sentence: "I am a getter and I've sent a welcome email to you"
-     }
-     ...
-  }
-  ...
-}
+Inside your package, just launch:
 
+```
+yarn new-service
+```
+
+#### Create a new model
+
+Inside your package, just launch:
+
+```
+yarn new-model
 ```
 
 #### Run it
@@ -81,13 +61,11 @@ Here is the corresponding configuration
 webda serve
 ```
 
-You can call the http://localhost:18080/myservice, and see the nice output
+Or in debug mode with hot reload
 
-"I am a getter and I've sent a welcome email to you"
-
-And then the http://localhost:18080/myurl
-
-"I am an inline route"
+```
+webda debug
+```
 
 ## Documentation
 
@@ -99,8 +77,6 @@ To ease up the configuration of an application we came up with the following con
 
 You have the global configuration for the application, that is override by the deployment configuration, that is override by the local element configuration, and finally, override by the deployment element configuration.
 
-![image](http://webda.io/images/schemas/configuration_resolution.png)
-
 ## History
 
 Back in 2014, I had servers running for my own personal use for more than 10 years because I wanted to have few websites and APIs online, but most of the time those servers are sitting and waiting. Then came **Lambda**, really cool feature from AWS, but it was tricky to turn it into a full webserver. That's one of the targets of Webda.
@@ -108,12 +84,6 @@ Back in 2014, I had servers running for my own personal use for more than 10 yea
 Since AWS became better with nice framework like Amplify or Serverless. Webda stayed useful as it does provide a true framework of development with some vague inspiration from Spring. It does the heavy lifting for you to abstract NoSQL, to abstract the run environment (Lambda or Kubernetes or custom)
 
 The **webda.config.json** contains the configuration of the app, defining Services, Routes, and global configuration, you can consider it as the applicationContext.xml of Spring if you prefer, with Beans=Services
-
-## Annotations
-
-@Bean({name: "", instance: ""})
-
-@Route({url: "", methods: [], swagger: {}})
 
 ## Requirements
 

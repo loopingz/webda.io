@@ -2,15 +2,16 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/postgresstore": "lib/postgresstore:default"
+    "Webda/PostgresStore": "lib/postgresstore:default"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/postgresstore": {
+    "Webda/PostgresStore": {
       "type": "object",
       "properties": {
         "type": {

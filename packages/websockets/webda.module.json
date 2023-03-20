@@ -2,16 +2,17 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "webda/websocketsclientservice": "lib/client:WebSocketsClientService",
-    "webda/websocketsservice": "lib/server:WebSocketsService"
+    "Webda/WebSocketsClientService": "lib/client:WebSocketsClientService",
+    "Webda/WebSocketsService": "lib/server:WebSocketsService"
   },
   "models": {
     "graph": {},
     "tree": {},
+    "plurals": {},
     "list": {}
   },
   "schemas": {
-    "webda/websocketsclientservice": {
+    "Webda/WebSocketsClientService": {
       "type": "object",
       "properties": {
         "type": {
@@ -73,7 +74,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WebSocketsClientService"
     },
-    "webda/websocketsservice": {
+    "Webda/WebSocketsService": {
       "type": "object",
       "properties": {
         "type": {

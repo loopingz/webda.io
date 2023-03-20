@@ -58,7 +58,8 @@
     }
   },
   "webda": {
-    "randomLink": "./test.json"
+    "randomLink": "./test.json",
+    "namespace": "Webda"
   },
   "type": "module",
   "commitlint": {

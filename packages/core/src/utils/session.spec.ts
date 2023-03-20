@@ -25,7 +25,7 @@ class SessionStoreTest extends WebdaTest {
   @test
   async sessionStore() {
     // Test MemoryStore
-    const store = (this.webda.getServices()["sessionstore"] = await new MemoryStore(this.webda, "SessionStore", {})
+    const store = (this.webda.getServices()["SessionStore"] = await new MemoryStore(this.webda, "SessionStore", {})
       .resolve()
       .init());
     store.getParameters().expose = { url: "url" };

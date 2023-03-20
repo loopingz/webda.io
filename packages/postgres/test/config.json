@@ -19,9 +19,9 @@
     },
     "IdentsMapper": {
       "type": "Webda/Mapper",
-      "source": "Idents",
+      "source": "idents",
       "targetAttribute": "idents",
-      "target": "Users",
+      "target": "users",
       "attribute": "_user",
       "fields": "type,_lastUpdate,counter",
       "cascade": true

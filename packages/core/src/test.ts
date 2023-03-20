@@ -141,11 +141,11 @@ class WebdaTest {
    * @param app
    */
   async tweakApp(app: TestApplication) {
-    app.addService("webdatest/voidstore", (await import("../test/moddas/voidstore")).VoidStore);
-    app.addService("webdatest/fakeservice", (await import("../test/moddas/fakeservice")).FakeService);
-    app.addService("webdatest/mailer", (await import("../test/moddas/debugmailer")).DebugMailer);
-    app.addModel("webdatest/task", (await import("../test/models/task")).Task);
-    app.addModel("webdatest/ident", (await import("../test/models/ident")).Ident);
+    app.addService("WebdaTest/VoidStore", (await import("../test/moddas/voidstore")).VoidStore);
+    app.addService("WebdaTest/FakeService", (await import("../test/moddas/fakeservice")).FakeService);
+    app.addService("WebdaTest/Mailer", (await import("../test/moddas/debugmailer")).DebugMailer);
+    app.addModel("WebdaTest/Task", (await import("../test/models/task")).Task);
+    app.addModel("WebdaTest/Ident", (await import("../test/models/ident")).Ident);
   }
 
   /**
@@ -260,6 +260,27 @@ class WebdaTest {
     }
   }
 
+  /**
+   * Execute a test request
+   * @param params
+   * @returns
+   */
+  async http(
+    params: {
+      method?: HttpMethodType;
+      url?: string;
+      body?: any;
+      ctx?: WebContext;
+      headers?: { [key: string]: string };
+    } = {}
+  ): Promise<WebContext> {
+    params.ctx ??= await this.newContext();
+    params.method ??= "GET";
+    params.url ??= "/";
+    await this.execute(params.ctx, "test.webda.io", params.method, params.url, params.body, params.headers);
+    return params.ctx;
+  }
+
   async execute(
     ctx: WebContext = undefined,
     host: string = "test.webda.io",
@@ -329,7 +350,7 @@ class WebdaTest {
   registerService<T extends Service>(service: T, name: string = service.getName()): T {
     // Have to override protected
     // @ts-ignore
-    this.webda.services[name.toLowerCase()] = service;
+    this.webda.services[name] = service;
     return service;
   }
 }

@@ -309,7 +309,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -324,7 +324,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -638,7 +638,7 @@
         "students": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-794-877-models_relations.ts-764-881-models_relations.ts-752-882-models_relations.ts-610-884-models_relations.ts-0-1306%3E"
+            "$ref": "#/definitions/Readonly%3Cstructure-804506288-794-877-804506288-764-881-804506288-752-882-804506288-610-884-804506288-0-1306%3E"
           }
         }
       },
@@ -650,7 +650,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Readonly<structure-models_relations.ts-794-877-models_relations.ts-764-881-models_relations.ts-752-882-models_relations.ts-610-884-models_relations.ts-0-1306>": {
+        "Readonly<structure-804506288-794-877-804506288-764-881-804506288-752-882-804506288-610-884-804506288-0-1306>": {
           "type": "object",
           "properties": {
             "email": {
@@ -727,7 +727,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-1847-2331-1131383939-0-8162976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-1847-2331-178760925-0-8162976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -740,7 +740,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-1847-2331-1131383939-0-8162976353190>": {
+        "Partial<class-178760925-1847-2331-178760925-0-8162976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -771,7 +771,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -792,7 +792,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -986,7 +986,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -1001,7 +1001,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -1062,7 +1062,7 @@
         "friends": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/Readonly%3Cstructure-models_relations.ts-369-424-models_relations.ts-346-425-models_relations.ts-335-426-models_relations.ts-232-522-models_relations.ts-0-1306%3E"
+            "$ref": "#/definitions/Readonly%3Cstructure-804506288-369-424-804506288-346-425-804506288-335-426-804506288-232-522-804506288-0-1306%3E"
           }
         },
         "teachers": {
@@ -1080,7 +1080,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Readonly<structure-models_relations.ts-369-424-models_relations.ts-346-425-models_relations.ts-335-426-models_relations.ts-232-522-models_relations.ts-0-1306>": {
+        "Readonly<structure-804506288-369-424-804506288-346-425-804506288-335-426-804506288-232-522-804506288-0-1306>": {
           "type": "object",
           "properties": {
             "email": {
@@ -1417,15 +1417,61 @@
         },
         "name": {
           "type": "string"
+        },
+        "images": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "type": "string",
+              "description": "Will be computed by the service\n\nhash of the content"
+            },
+            "challenge": {
+              "type": "string",
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+            },
+            "size": {
+              "type": "number",
+              "description": "Size of the binary"
+            },
+            "name": {
+              "type": "string",
+              "description": "Current name"
+            },
+            "mimetype": {
+              "type": "string",
+              "description": "Mimetype of the binary"
+            },
+            "metadata": {
+              "$ref": "#/definitions/BinaryMetadata",
+              "description": "Metadatas stored along with the binary"
+            },
+            "originalname": {
+              "type": "string",
+              "description": "Original name"
+            }
+          },
+          "required": [
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "description": "This is a map used to retrieve binary"
         }
       },
       "required": [
         "_company",
         "displayName",
+        "images",
         "name",
         "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "BinaryMetadata": {
+          "type": "object",
+          "description": "Define the metadata for a Binary"
+        }
+      },
       "title": "User"
     }
   }

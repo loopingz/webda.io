@@ -785,11 +785,17 @@ class CoreModel {
     // Get relation
     const addLoader = (attr: string, model) => {
       this[attr] ??= {};
+      let coreValue;
       if (typeof this[attr] === "string") {
         this[attr] = new String(this[attr]);
       }
+      coreValue = this[attr].toString();
+      this[attr].modelLink = true;
       this[attr].get = async () => {
         return Core.get().getModelStore(Core.get().getModel(model)).get(this[attr]);
+      };
+      this[attr].toString = () => {
+        return coreValue;
       };
       this[attr].set = value => {
         if (typeof value === "string") {

@@ -129,7 +129,6 @@ class ApplicationTest extends WebdaTest {
     // No package.json should not fail although more than abnormal
     app = new TestApplication(__dirname + "/../test/config.json");
     await app.load();
-    assert.ok(!app.extends(null, String));
 
     app.getPackageWebda();
     assert.throws(() => app.getModda("Unknown"), /Undefined modda Unknown/);

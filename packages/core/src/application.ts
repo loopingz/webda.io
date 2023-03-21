@@ -625,8 +625,8 @@ export class Application {
   /**
    * Get model graph
    */
-  getRelations(model: string | Constructor<CoreModel>) {
-    return this.getGraph()[typeof model === "string" ? model : this.getModelFromConstructor(model)] || {};
+  getRelations(model: string | Constructor<CoreModel> | CoreModel) {
+    return this.getGraph()[typeof model === "string" ? model : this.getModelName(model)] || {};
   }
 
   /**
@@ -731,7 +731,7 @@ export class Application {
    * @returns
    */
   getModelPlural(name: string): string {
-    return this.plurals[name] || name + "s";
+    return this.plurals[name] || name.split("/").pop() + "s";
   }
 
   /**
@@ -1167,34 +1167,5 @@ export class Application {
    */
   getShortId(name: string): string {
     return this.baseConfiguration?.cachedModules?.models?.shortIds[name] || name;
-  }
-
-  /**
-   *
-   * @param name
-   * @returns
-   */
-  hasShortId(name: string): boolean {
-    return this.baseConfiguration?.cachedModules?.models?.shortIds[name] !== undefined;
-  }
-
-  /**
-   * Check if object extends a class
-   *
-   * @param obj
-   * @param className
-   */
-  extends(obj: any, className: any): boolean {
-    if (!obj) {
-      return false;
-    }
-    while (obj && Object.getPrototypeOf(obj)) {
-      let proto = Object.getPrototypeOf(obj);
-      if (proto.name == className.name || proto == className.name) {
-        return true;
-      }
-      obj = proto;
-    }
-    return false;
   }
 }

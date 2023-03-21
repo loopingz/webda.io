@@ -296,7 +296,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     let toAdd = [];
     let ids = [];
     // Manage the update of linked object
-    if (typeof attribute === "string") {
+    if (typeof attribute === "string" || attribute.modelLink) {
       if (updates[this.parameters.attribute] !== undefined && updates[this.parameters.attribute] !== attribute) {
         toAdd.push(updates[this.parameters.attribute]);
         toDelete.push(attribute);

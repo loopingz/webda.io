@@ -122,14 +122,12 @@ class ServiceTest extends WebdaTest {
     assert.strictEqual(ctx.getOutput(), "longerOutput");
 
     // Check the list
-    /*
     assert.deepStrictEqual(this.webda.listOperations(), {
       "plop.myOperation": {
         id: "plop.myOperation",
         input: "plop.myoperation.input"
       }
     });
-    */
 
     // Check with permission
     // @ts-ignore

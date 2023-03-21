@@ -17,9 +17,6 @@ export class Ident extends OwnerModel {
   __profile: any;
   __tokens: IdentTokens;
   _lastUsed: Date;
-  /**
-   * @SchemaIgnore
-   */
   _user: ModelLink<User, "_idents">;
   __new: boolean;
   _failedLogin: number;
@@ -65,7 +62,7 @@ export class Ident extends OwnerModel {
     return obj;
   }
 
-  getUser() {
+  getUser(): ModelLink<User, "_idents"> {
     return this._user;
   }
 

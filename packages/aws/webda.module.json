@@ -94,11 +94,8 @@
         },
         "expose": {
           "$ref": "#/definitions/ExposeParameters",
-          "description": "Expose the service to an urls"
-        },
-        "operationPrefix": {
-          "type": "string",
-          "description": "Register routes as operation with {operationPrefix}.{routeType}\n\nIf not defined it will be removed"
+          "description": "Expose the service to an urls",
+          "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
         },
         "strict": {
           "type": "boolean",
@@ -119,22 +116,6 @@
           "type": "number",
           "description": "Slow query threshold",
           "default": 30000
-        },
-        "parent": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "condition": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "name",
-            "condition"
-          ],
-          "description": "Parent of the store\n\nIf parent is specified the url route is relative to it"
         },
         "graphql": {
           "type": "boolean",

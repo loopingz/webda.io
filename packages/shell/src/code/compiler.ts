@@ -723,7 +723,7 @@ export class Compiler {
       return;
     }
     const importEntry = `${path.relative(mod, fileName.replace(/\.d\.ts$/, ""))}:${className}`;
-    return Object.keys(moduleInfo.models.list).find(f => moduleInfo.models.list[f] === importEntry);
+    return Object.keys(moduleInfo.models.list || {}).find(f => moduleInfo.models.list[f] === importEntry);
   }
 
   /**

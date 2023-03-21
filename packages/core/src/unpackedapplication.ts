@@ -303,6 +303,7 @@ export class UnpackedApplication extends Application {
     module.models.list = value.models.list;
     module.models.graph = value.models.graph;
     module.models.tree = value.models.tree;
+    module.models.plurals = value.models.plurals;
     // Copying schemas
     module.schemas = value.schemas;
   }

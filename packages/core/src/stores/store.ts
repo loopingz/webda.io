@@ -375,15 +375,11 @@ export class StoreParameters extends ServiceParameters {
 
   /**
    * Expose the service to an urls
+   *
+   * @deprecated will probably be removed in 4.0 in favor of Expose annotation
    */
   expose?: ExposeParameters;
 
-  /**
-   * Register routes as operation with {operationPrefix}.{routeType}
-   *
-   * If not defined it will be removed
-   */
-  operationPrefix?: string;
   /**
    * Allow to load object that does not have the type data
    *
@@ -413,15 +409,6 @@ export class StoreParameters extends ServiceParameters {
    */
   slowQueryThreshold: number;
 
-  /**
-   * Parent of the store
-   *
-   * If parent is specified the url route is relative to it
-   */
-  parent?: {
-    name: string;
-    condition: string;
-  };
   /**
    * For future use in our GraphQL api
    *
@@ -580,10 +567,6 @@ abstract class Store<
     slow_queries_total: Counter;
     queries: Histogram;
   };
-  /**
-   * The parent store if it is nested
-   */
-  parent?: Store;
 
   /**
    * Load the parameters for a service
@@ -609,7 +592,6 @@ abstract class Store<
     this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
     this.cacheStorePatchException();
-    this.parent = this.parameters.parent ? this.getService(this.parameters.parent.name) : undefined;
     const recursive = (tree, depth) => {
       for (let i in tree) {
         this._modelsHierarchy[i] ??= depth;
@@ -698,23 +680,6 @@ abstract class Store<
   }
 
   /**
-   * Get the full url with the nested parent
-   * @param url
-   * @param methods
-   * @param depth
-   */
-  getParentUrl(depth: number = 0) {
-    if (!this.parameters.expose) {
-      throw new Error(`Parent store need to be exposed ${this.getName()}`);
-    }
-    let res = `${this.parameters.url}/{P${depth}uuid}`;
-    if (this.parent) {
-      res = this.parent.getParentUrl(depth + 1) + res;
-    }
-    return res;
-  }
-
-  /**
    * @override
    */
   getUrl(url: string, methods: HttpMethodType[]) {
@@ -737,108 +702,7 @@ abstract class Store<
     ) {
       return undefined;
     }
-    let parentUrl = this.parent ? this.parent.getParentUrl() : "";
-    return parentUrl + super.getUrl(url, methods);
-  }
-
-  initOperations(): void {
-    super.initOperations();
-    if (!this.parameters.operationPrefix) {
-      return;
-    }
-    const prefix = this.parameters.operationPrefix;
-    const expose = this.parameters.expose;
-    const webda = this.getWebda();
-    const app = webda.getApplication();
-    const modelSchema = app.hasSchema(this._modelType) && this._modelType;
-    if (!app.hasSchema("uuidRequest")) {
-      app.registerSchema("uuidRequest", {
-        type: "object",
-        properties: {
-          uuid: {
-            type: "string"
-          }
-        },
-        required: ["uuid"]
-      });
-    }
-    if (!app.hasSchema("searchRequest")) {
-      app.registerSchema("searchRequest", {
-        type: "object",
-        properties: {
-          query: {
-            type: "string"
-          }
-        }
-      });
-    }
-    ["create", "update"]
-      .filter(k => !expose.restrict[k])
-      .forEach(k => {
-        k = k.substring(0, 1).toUpperCase() + k.substring(1);
-        const id = `${prefix}.${k}`;
-        this.getWebda().registerOperation(id, {
-          service: this.getName(),
-          method: k === "Create" ? "httpCreate" : "operationUpdate",
-          id,
-          input: modelSchema,
-          output: modelSchema
-        });
-      });
-    ["delete", "get"]
-      .filter(k => !expose.restrict[k])
-      .forEach(k => {
-        k = k.substring(0, 1).toUpperCase() + k.substring(1);
-        const id = `${prefix}.${k}`;
-        const output = k === "Get" && modelSchema;
-        this.getWebda().registerOperation(id, {
-          service: this.getName(),
-          method: `http${k}`,
-          id,
-          input: "uuidRequest",
-          output
-        });
-      });
-    if (!expose.restrict.query) {
-      const id = `${prefix}.Query`;
-      this.getWebda().registerOperation(id, {
-        service: this.getName(),
-        method: "httpQuery",
-        id,
-        input: "searchRequest"
-      });
-    }
-    // Add patch
-    if (!expose.restrict.update) {
-      const id = `${prefix}.Patch`;
-      this.getWebda().registerOperation(id, {
-        service: this.getName(),
-        method: "operationPatch",
-        id,
-        input: this._modelType + "?",
-        output: this._modelType
-      });
-    }
-    // Add all operations for Actions
-    if (this._model && this._model.getActions) {
-      let actions = this._model.getActions();
-      Object.keys(actions).forEach(name => {
-        const id = `${prefix}.${name}`;
-        const input =
-          app.hasSchema(`${this._modelType}.${name.toLowerCase()}.input`) &&
-          `${this._modelType}.${name.toLowerCase()}.input`;
-        const output =
-          app.hasSchema(`${this._modelType}.${name.toLowerCase()}.output`) &&
-          `${this._modelType}.${name.toLowerCase()}.output`;
-        this.getWebda().registerOperation(id, {
-          service: this.getName(),
-          method: `action${name}`,
-          id,
-          input,
-          output
-        });
-      });
-    }
+    return super.getUrl(url, methods);
   }
 
   /**
@@ -1345,19 +1209,6 @@ abstract class Store<
       }
       throw err;
     }
-  }
-
-  /**
-   * Override the getOperationId to disable Operations if
-   * not operationPrefix is set
-   * @param id
-   * @returns
-   */
-  getOperationId(id: string): string {
-    if (!this.parameters.operationPrefix) {
-      return undefined;
-    }
-    return `${this.parameters.operationPrefix}.${id}`;
   }
 
   /**
@@ -2105,27 +1956,13 @@ abstract class Store<
     }
   })
   async httpUpdate(ctx: WebContext) {
-    const { uuid } = ctx.getPathParameters();
+    const { uuid } = ctx.getParameters();
     const body = await ctx.getInput();
-    return this.operationUpdates(ctx, <"PUT" | "PATCH">ctx.getHttpContext().getMethod(), uuid, body);
-  }
-
-  async operationPatch(ctx: OperationContext) {
-    const { uuid, ...body } = await ctx.getInput();
-    return this.operationUpdates(ctx, "PATCH", uuid, body);
-  }
-
-  async operationUpdate(ctx: OperationContext) {
-    const { uuid, ...body } = await ctx.getInput();
-    return this.operationUpdates(ctx, "PUT", uuid, body);
-  }
-
-  async operationUpdates(ctx: OperationContext, type: "PUT" | "PATCH", uuid: string, body: Partial<T>) {
     body[this._uuidField] = uuid;
     let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw 404;
     await object.canAct(ctx, "update");
-    if (type === "PATCH") {
+    if (ctx.getHttpContext().getMethod() === "PATCH") {
       try {
         await object.validate(ctx, body, true);
       } catch (err) {

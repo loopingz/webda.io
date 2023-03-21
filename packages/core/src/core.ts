@@ -20,7 +20,6 @@ import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
 import {
-  AliasStore,
   ConfigurationService,
   ContextProvider,
   ContextProviderInfo,
@@ -469,16 +468,15 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param model
    * @returns
    */
-  getModelStore<T extends CoreModel>(model: Constructor<T> | T): Store<T> {
-    if (model instanceof CoreModel) {
-      if (this._modelStoresCache.has(model.__class)) {
-        return <Store<T>>this._modelStoresCache.get(model.__class);
-      }
-    } else if (this._modelStoresCache.has(model)) {
+  getModelStore<T extends CoreModel>(modelOrConstructor: Constructor<T> | T): Store<T> {
+    const model = <Constructor<T>>(
+      (modelOrConstructor instanceof CoreModel ? (<T>modelOrConstructor).__class : modelOrConstructor)
+    );
+    if (this._modelStoresCache.has(model)) {
       return <Store<T>>this._modelStoresCache.get(model);
     }
     const setCache = store => {
-      this._modelStoresCache.set(model instanceof CoreModel ? model.__class : model, store);
+      this._modelStoresCache.set(model, store);
     };
     const stores = this.getStores();
     let actualScore: number;
@@ -1104,48 +1102,17 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       this.createService(services, service);
     }
 
-    // Create Alias store as needed by the Expose
-    this.createModelAliasStores();
-
-    this.autoConnectServices();
+    // Call resolve on all services
+    Object.keys(this.services)
+      .filter(s => !excludes.includes(s))
+      .forEach(s => {
+        try {
+          this.services[s].resolve();
+        } catch (err) {
+          this.log("ERROR", err);
+        }
+      });
     this.emit("Webda.Create.Services", this.services);
-  }
-
-  /**
-   * Create alias stores for models
-   */
-  protected createModelAliasStores(): void {
-    const models = this.application.getModels();
-    for (let name in models) {
-      let model = models[name];
-      if (model?.Expose) {
-        const storeName = "Auto/" + name.split("/").pop();
-        this.log("DEBUG", `Creating alias store (${storeName}) for ${name}, aliasing ${model.store().getName()}}`);
-        this.services[storeName] = new AliasStore(this, storeName, {
-          model: name,
-          targetStore: model.store().getName(),
-          operationPrefix: model.Expose.restrict?.operations ? undefined : model.constructor.name.toLowerCase(),
-          expose: {
-            url: model.Expose.segment || this.application.getModelPlural(name).toLowerCase(),
-            restrict: model.Expose.restrict || {}
-          }
-        });
-      }
-    }
-    // Clear model store cache
-    this._modelStoresCache.clear();
-  }
-  /**
-   * Return all methods that are setters (startsWith("set"))
-   * @param obj service get setter from
-   */
-  protected _getSetters(obj): any[] {
-    let methods = [];
-    while ((obj = Reflect.getPrototypeOf(obj))) {
-      let keys = Reflect.ownKeys(obj).filter(k => k.toString().startsWith("set"));
-      keys.forEach(k => methods.push(k));
-    }
-    return methods;
   }
 
   /**
@@ -1162,33 +1129,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   getCrypto(): CryptoService {
     return this.cryptoService;
-  }
-
-  /**
-   * Auto connect services with setters
-   */
-  protected autoConnectServices(): void {
-    for (let service in this.services) {
-      this.log("TRACE", "Auto-connect", service);
-      try {
-        let serviceBean = this.services[service];
-        if (!serviceBean.resolve) {
-          this.log("ERROR", `${service} seems to not extend Service`);
-          continue;
-        }
-        serviceBean.resolve();
-        let setters = this._getSetters(serviceBean);
-        setters.forEach(setter => {
-          let targetService = this.services[setter.substr(3)];
-          if (targetService) {
-            this.log("TRACE", "Auto-connecting", serviceBean.getName(), targetService.getName());
-            serviceBean[setter](targetService);
-          }
-        });
-      } catch (err) {
-        this.log("ERROR", err);
-      }
-    }
   }
 
   protected jsonFilter(key: string, value: any): any {
@@ -1431,19 +1371,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       let desc: JSONSchema7 = {
         type: "object"
       };
-      let modelDescription;
-      try {
-        modelDescription = this.getModel(i);
-      } catch (err) {
-        this.log("WARN", "Cannot find model", i);
-        // Ignore
-        continue;
-      }
       let modelName = (<CoreModelDefinition>model).name || i.split("/").pop();
-      // Only export CoreModel info
-      if (!this.application.extends(modelDescription, CoreModel)) {
-        continue;
-      }
       let schema = this.application.getSchema(i);
       if (schema) {
         for (let j in schema.definitions) {

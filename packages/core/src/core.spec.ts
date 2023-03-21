@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
+import { stub } from "sinon";
 import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
 import {
   Authentication,
@@ -457,6 +458,21 @@ class CoreTest extends WebdaTest {
     assert.strictEqual(this.webda.validateSchema("test", {}), null);
     assert.strictEqual(this.webda.validateSchema("test", {}, true), null);
     assert.strictEqual(this.webda.validateSchema("Webda/FileConfiguration", {}, true), true);
+    const app = this.webda.getApplication();
+    if (!app.hasSchema("uuidRequest")) {
+      app.registerSchema("uuidRequest", {
+        type: "object",
+        properties: {
+          uuid: {
+            type: "string"
+          }
+        },
+        required: ["uuid"]
+      });
+    }
+    assert.throws(() => this.webda.validateSchema("uuidRequest", {}));
+    assert.strictEqual(this.webda.validateSchema("uuidRequest", {}, true), true);
+    assert.strictEqual(this.webda.validateSchema("uuidRequest?", {}), true);
   }
 
   @test
@@ -546,11 +562,13 @@ class CoreTest extends WebdaTest {
     core.getServices()["ImplicitBean"].resolve = () => {
       throw new Error();
     };
+    const bean = core.getServices()["ImplicitBean"];
     // @ts-ignore
-    core.autoConnectServices();
-    core.getServices()["ImplicitBean"].resolve = undefined;
+    stub(core, "createService").callsFake(() => {
+      return bean;
+    });
     // @ts-ignore
-    core.autoConnectServices();
+    core.createServices();
   }
 
   @test

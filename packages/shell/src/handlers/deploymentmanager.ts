@@ -136,7 +136,10 @@ export class DeploymentManager {
 
   async getDeployer(name: string) {
     if (!this.deployers[name]) {
-      throw new WebdaError("DEPLOYER_UNKNOWN", `Unknown deployer ${name} (${Object.keys(this.deployers).join(",")})`);
+      throw new WebdaError.CodeError(
+        "DEPLOYER_UNKNOWN",
+        `Unknown deployer ${name} (${Object.keys(this.deployers).join(",")})`
+      );
     }
     let deployer = new this.deployersDefinition[this.deployers[name].type](this, this.deployers[name]);
     deployer.setName(name);
@@ -157,7 +160,7 @@ export class DeploymentManager {
    */
   async run(type: string, resources: any): Promise<any> {
     if (!this.deployersDefinition[type.toLowerCase()]) {
-      throw new WebdaError("DEPLOYER_TYPE_UNKNOWN", "Unknown deployer type " + type);
+      throw new WebdaError.CodeError("DEPLOYER_TYPE_UNKNOWN", "Unknown deployer type " + type);
     }
     let deployer = new this.deployersDefinition[type.toLowerCase()](this, resources);
     await deployer.defaultResources();

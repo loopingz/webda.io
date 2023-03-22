@@ -1,4 +1,12 @@
-import { EventAuthenticationRegister, EventWithContext, Ident, OperationContext, Store, WebContext } from "../index";
+import {
+  EventAuthenticationRegister,
+  EventWithContext,
+  Ident,
+  OperationContext,
+  Store,
+  WebContext,
+  WebdaError
+} from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
@@ -236,14 +244,10 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    */
   async answerInvitation(ctx: WebContext<InvitationAnswerBody>, model: CoreModel) {
     let body = await ctx.getInput();
-    // Need to specify if you accept or not
-    if (typeof body.accept !== "boolean") {
-      throw 400;
-    }
     // Invitation on the model is gone
     if (model === undefined) {
       await this.removeInvitationFromUser(ctx.getCurrentUserId(), ctx.getParameters().uuid);
-      throw 410;
+      throw new WebdaError.Gone("Invitation is gone");
     }
     const user = await ctx.getCurrentUser();
     let metadata = undefined;
@@ -312,8 +316,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
             const id = await this.authenticationService.getIdentStore().get(ident);
             if (id && id.getUser()) {
               delete model[this.parameters.attribute][id.getUser()];
-              await this.removeInvitationFromUser(id.getUser(), model.getUuid());
-              invitedUsers.push(id.getUser());
+              await this.removeInvitationFromUser(id.getUser().toString(), model.getUuid());
+              invitedUsers.push(id.getUser().toString());
             }
           })()
         );
@@ -371,7 +375,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     }
     let inviter = await ctx.getCurrentUser();
     if (!model) {
-      throw 404;
+      throw new WebdaError.NotFound("Model not found");
     }
     model[this.parameters.attribute] ??= {};
     model[this.parameters.pendingAttribute] ??= {};
@@ -413,7 +417,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         }
         promises.push(
           (async () => {
-            const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser());
+            const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser().toString());
             invitedUsers.push(user);
             await this.addInvitationToUser(model, user, inviter, metadata, body.notification);
           })()

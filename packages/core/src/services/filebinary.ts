@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { join } from "path";
 import { Readable } from "stream";
-import { CloudBinary, CloudBinaryParameters, CoreModel } from "../index";
+import { CloudBinary, CloudBinaryParameters, CoreModel, WebdaError } from "../index";
 import { WebContext } from "../utils/context";
 import { Binary, BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
 import CryptoService from "./cryptoservice";
@@ -123,10 +123,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     try {
       let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
       if (dt.hash !== hash) {
-        throw 403;
+        throw new WebdaError.Forbidden("Wrong hash");
       }
     } catch (err) {
-      throw 403;
+      throw new WebdaError.Forbidden("Incorrect JWT");
     }
     ctx.writeHead(200, {
       "content-disposition": ctx.parameter("content-disposition"),
@@ -268,22 +268,22 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }).getHashes();
     if (ctx.parameter("hash") !== result.hash) {
       this.log("WARN", "Request hash differ", ctx.parameter("hash"), "!==", result.hash);
-      throw 400;
+      throw new WebdaError.BadRequest("Request hash differ");
     }
     // Verify token
     try {
       let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
       if (dt.hash !== result.hash) {
         this.log("WARN", "JWT hash differ", ctx.parameter("hash"), "!==", result.hash);
-        throw 403;
+        throw new WebdaError.Forbidden("JWT hash differ");
       }
     } catch (err) {
       this.log("WARN", "Invalid JWT token");
-      throw 403;
+      throw new WebdaError.Forbidden("Invalid JWT token");
     }
     if (!fs.existsSync(this._getPath(result.hash))) {
       // The folder should have been create by a previous request
-      throw 412;
+      throw new WebdaError.PreconditionFailed("No folder for hash " + result.hash);
     }
     let path = this._getPath(result.hash, "data");
     if (!fs.existsSync(path)) {

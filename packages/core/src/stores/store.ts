@@ -1,18 +1,18 @@
-import { Counter, EventWithContext, Histogram, WebdaError } from "../core";
-import { ConfigurationProvider } from "../index";
+import { Counter, EventWithContext, Histogram } from "../core";
+import { ConfigurationProvider, WebdaError } from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
 import { OperationContext, WebContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { WebdaQL } from "./webdaql/query";
 
-export class StoreNotFoundError extends WebdaError {
+export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
     super("STORE_NOTFOUND", `Item not found ${uuid} Store(${storeName})`);
   }
 }
 
-export class UpdateConditionFailError extends WebdaError {
+export class UpdateConditionFailError extends WebdaError.CodeError {
   constructor(uuid: string, conditionField: string, condition: string | Date) {
     super(
       "STORE_UPDATE_CONDITION_FAILED",
@@ -1205,7 +1205,7 @@ abstract class Store<
     } catch (err) {
       if (err instanceof SyntaxError) {
         this.log("INFO", "Query syntax error");
-        throw 400;
+        throw new WebdaError.BadRequest("Query syntax error");
       }
       throw err;
     }
@@ -1837,10 +1837,10 @@ abstract class Store<
       await object.validate(ctx, body);
     } catch (err) {
       this.log("INFO", "Object is not valid", err);
-      throw 400;
+      throw new WebdaError.BadRequest("Object is not valid");
     }
     if (object[this._uuidField] && (await this.exists(object[this._uuidField]))) {
-      throw 409;
+      throw new WebdaError.Conflict("Object already exists");
     }
     await this.save(object, ctx);
     ctx.write(object);
@@ -1860,7 +1860,7 @@ abstract class Store<
     let action = ctx.getHttpContext().getUrl().split("/").pop();
     let object = await this.get(ctx.parameter("uuid"), ctx);
     if (object === undefined || object.__deleted) {
-      throw 404;
+      throw new WebdaError.NotFound("Object not found or is deleted");
     }
     await object.canAct(ctx, action);
     await this.emitSync("Store.Action", {
@@ -1960,14 +1960,14 @@ abstract class Store<
     const body = await ctx.getInput();
     body[this._uuidField] = uuid;
     let object = await this.get(uuid, ctx);
-    if (!object || object.__deleted) throw 404;
+    if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
     await object.canAct(ctx, "update");
     if (ctx.getHttpContext().getMethod() === "PATCH") {
       try {
         await object.validate(ctx, body, true);
       } catch (err) {
         this.log("INFO", "Object invalid", err, object);
-        throw 400;
+        throw new WebdaError.BadRequest("Object is not valid");
       }
       let updateObject: any = new this._model();
       // Clean any default attributes from the model
@@ -1994,7 +1994,7 @@ abstract class Store<
         await updateObject.validate(ctx, body);
       } catch (err) {
         this.log("INFO", "Object invalid", err);
-        throw 400;
+        throw new WebdaError.BadRequest("Object is not valid");
       }
 
       // Add mappers back to
@@ -2046,7 +2046,7 @@ abstract class Store<
       store: this
     });
     if (object === undefined || object.__deleted) {
-      throw 404;
+      throw new WebdaError.NotFound("Object not found or is deleted");
     }
     await object.canAct(ctx, "get");
     ctx.write(object);
@@ -2085,7 +2085,7 @@ abstract class Store<
   async httpDelete(ctx: WebContext) {
     let uuid = ctx.parameter("uuid");
     let object = await this.get(uuid, ctx);
-    if (!object || object.__deleted) throw 404;
+    if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
     await object.canAct(ctx, "delete");
     // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
     // IOS don't handle 204 with Content-Length != 0 it seems

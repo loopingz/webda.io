@@ -1,6 +1,7 @@
 import * as http from "http";
 import * as https from "https";
 import { Counter, Gauge, Histogram } from "../core";
+import { WebdaError } from "../errors";
 import { WebContext } from "../utils/context";
 import { Route, Service, ServiceParameters } from "./service";
 
@@ -221,7 +222,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   @Route(".", ["GET", "POST", "DELETE", "PUT", "PATCH"])
   async proxyRoute(ctx: WebContext) {
     if (this.parameters.requireAuthentication && !ctx.getCurrentUserId()) {
-      throw 401;
+      throw new WebdaError.Unauthorized("You need to be authenticated to access this route");
     }
     // Add any additional controls here
     await this.proxy(ctx, this.parameters.backend, this.parameters.url);

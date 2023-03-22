@@ -32,7 +32,7 @@ export default class ChainDeployer extends Deployer<ChainDeployerResources> {
     let deployers = this.getChain();
     deployers.forEach(d => {
       if (!this.manager.deployersDefinition[d.toLowerCase()]) {
-        throw new WebdaError("DEPLOYER_UNKNOWN", "Deployer " + d + " is unknown");
+        throw new WebdaError.CodeError("DEPLOYER_UNKNOWN", "Deployer " + d + " is unknown");
       }
     });
     // Duplicate object

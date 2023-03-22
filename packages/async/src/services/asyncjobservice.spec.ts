@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Cron, HttpContext, OperationContext, Queue, Service, Store } from "@webda/core";
+import { Cron, HttpContext, OperationContext, Queue, Service, Store, WebdaError } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import axios from "axios";
@@ -150,13 +150,13 @@ class AsyncJobServiceTest extends WebdaTest {
         "X-Job-Time": jobTime
       })
     );
-    await assert.rejects(() => this.service.checkRequest(context), /403/);
+    await assert.rejects(() => this.service.checkRequest(context), WebdaError.Forbidden);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
         "X-Job-Time": jobTime
       })
     );
-    await assert.rejects(() => this.service.checkRequest(context), /404/);
+    await assert.rejects(() => this.service.checkRequest(context), WebdaError.NotFound);
   }
 
   @test
@@ -200,7 +200,7 @@ class AsyncJobServiceTest extends WebdaTest {
         "X-Job-Hash": "myhash"
       })
     );
-    await assert.rejects(() => hook(context), /404/);
+    await assert.rejects(() => hook(context), WebdaError.NotFound);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Time": "12345",
@@ -208,7 +208,7 @@ class AsyncJobServiceTest extends WebdaTest {
         "X-Job-Id": "plop"
       })
     );
-    await assert.rejects(() => hook(context), /404/);
+    await assert.rejects(() => hook(context), WebdaError.NotFound);
     await this.store.save({
       uuid: "plop",
       __secretKey: "mine",
@@ -217,7 +217,7 @@ class AsyncJobServiceTest extends WebdaTest {
         param1: "plop"
       }
     });
-    await assert.rejects(() => hook(context), /403/);
+    await assert.rejects(() => hook(context), WebdaError.Forbidden);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Time": "12345",
@@ -625,12 +625,12 @@ class AsyncJobServiceTest extends WebdaTest {
     await service.listOperations(context);
     context.getSession<any>().role = "no-hr";
     context.getParameters().operationId = "User.Onboard";
-    await assert.rejects(() => service.launchOperation(context), /403/);
+    await assert.rejects(() => service.launchOperation(context), WebdaError.Forbidden);
     context.getParameters().operationId = "User.Onboard2";
-    await assert.rejects(() => service.launchOperation(context), /404/);
+    await assert.rejects(() => service.launchOperation(context), WebdaError.NotFound);
     context.getSession<any>().role = "hr";
     context.getParameters().operationId = "User.Revoke";
-    await assert.rejects(() => service.launchOperation(context), /400/);
+    await assert.rejects(() => service.launchOperation(context), WebdaError.BadRequest);
     context = await this.newContext({ id: "my-id" });
     context.getSession<any>().role = "hr";
     context.getParameters().operationId = "User.Revoke";

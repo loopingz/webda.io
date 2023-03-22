@@ -184,7 +184,7 @@ class ConsoleTest {
       await new Promise(resolve => setTimeout(resolve, 1000));
       time += 1000;
       if (timeout < time) {
-        throw new WebdaError("WAIT_FOR_TIMEOUT", "Timeout");
+        throw new WebdaError.CodeError("WAIT_FOR_TIMEOUT", "Timeout");
       }
     } while (true);
   }

@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { v4 as uuidv4 } from "uuid";
 import { Ident } from "../../test/models/ident";
-import { OperationContext, Store, StoreParameters, User } from "../index";
+import { OperationContext, Store, StoreParameters, User, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
@@ -179,14 +179,15 @@ abstract class StoreTest extends WebdaTest {
     q = "BAD QUERY !";
     context.setHttpContext(new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443));
     context.getHttpContext().setBody({ q });
-    // @ts-ignore
-    await assert.rejects(() => userStore.httpQuery(context), /400/);
+    await assert.rejects(
+      () => userStore["httpQuery"](context),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
     let mock = stub(userStore, "query").callsFake(() => {
       throw new Error("Plop");
     });
     try {
-      // @ts-ignore
-      await assert.rejects(() => userStore.httpQuery(context), /Plop/);
+      await assert.rejects(() => userStore["httpQuery"](context), /Plop/);
     } finally {
       mock.restore();
     }
@@ -287,14 +288,14 @@ abstract class StoreTest extends WebdaTest {
       await userStore.save({
         name: "test"
       })
-    ).uuid;
+    ).getUuid();
     let user = await userStore.get(user1);
     // Save a user and add an ident
     assert.notStrictEqual(user, undefined);
-    user1 = user.uuid;
+    user1 = user.getUuid();
     ident1 = await identStore.save({
       type: "facebook",
-      _user: user.uuid
+      _user: user.getUuid()
     });
     user = await userStore.get(user1);
     // Verify the ident is on the user
@@ -372,7 +373,7 @@ abstract class StoreTest extends WebdaTest {
       null
     );
     assert.strictEqual(res.type, "google2");
-    assert.strictEqual(res._user, user1);
+    assert.strictEqual(res._user.toString(), user1);
 
     // Check index
     if (index) {
@@ -912,7 +913,7 @@ abstract class StoreTest extends WebdaTest {
     let ctx, executor;
     await userStore.__clean();
     ctx = await this.newContext({});
-    ctx.session.login("fake_user", "fake_ident");
+    ctx.session.login("PLOP", "fake_ident");
     executor = this.getExecutor(ctx, "test.webda.io", "POST", url, {
       type: "CRUD",
       uuid: "PLOP",
@@ -930,7 +931,7 @@ abstract class StoreTest extends WebdaTest {
       uuid: "PLOP",
       displayName: "Coucou 2"
     });
-    await assert.rejects(executor.execute(ctx), err => err == 409);
+    await assert.rejects(executor.execute(ctx), (err: WebdaError.HttpError) => err.getResponseCode() === 409);
     // Verify the none overide of UUID
     await this.execute(ctx, "test.webda.io", "PUT", `${url}/PLOP`, {
       type: "CRUD2",
@@ -940,11 +941,10 @@ abstract class StoreTest extends WebdaTest {
       displayName: "Coucou 3"
     });
     let user: any = await userStore.get("PLOP");
-    assert.strictEqual(user.uuid, "PLOP");
+    assert.strictEqual(user.getUuid(), "PLOP");
     assert.strictEqual(user.type, "CRUD2");
     assert.strictEqual(user.additional, "field");
     assert.strictEqual(user.user, "fake_user");
-    assert.strictEqual(user._user, "fake_user");
 
     // Add a role to the user
     user.addRole("plop");
@@ -965,7 +965,6 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(user.type, "CRUD3");
     assert.strictEqual(user.additional, "field");
     assert.strictEqual(user._testor, undefined);
-    assert.strictEqual(user._user, "fake_user");
     assert.deepStrictEqual(user.getRoles(), ["plop"]);
 
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/PLOP`, {
@@ -985,22 +984,13 @@ abstract class StoreTest extends WebdaTest {
     await this.getExecutor(ctx, "test.webda.io", "DELETE", `${url}/PLOP`).execute(ctx);
     eventFired = 0;
     executor = this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
     eventFired++;
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", `${url}/PLOP`);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
     eventFired++;
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/PLOP`);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
     eventFired++;
     assert.strictEqual(eventFired, 3);
   }
@@ -1022,7 +1012,7 @@ abstract class StoreTest extends WebdaTest {
     });
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/coucou/plop`);
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(executor.execute(ctx), err => err == 404);
+    await assert.rejects(executor.execute(ctx), WebdaError.NotFound);
     await identStore.save({
       uuid: "coucou"
     });

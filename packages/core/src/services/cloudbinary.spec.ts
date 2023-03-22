@@ -1,6 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
+import { WebdaError } from "../errors";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { WebContext } from "../utils/context";
@@ -140,15 +141,24 @@ export class FakeCloudBinaryTest extends WebdaTest {
         }
       };
     });
-    await assert.rejects(() => service.getRedirectUrl(context), /404/);
+    await assert.rejects(
+      () => service.getRedirectUrl(context),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
     storeGetResult = {
       property: "plop"
     };
-    await assert.rejects(() => service.getRedirectUrl(context), /404/);
+    await assert.rejects(
+      () => service.getRedirectUrl(context),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
     storeGetResult = {
       property: [1]
     };
-    await assert.rejects(() => service.getRedirectUrl(context), /404/);
+    await assert.rejects(
+      () => service.getRedirectUrl(context),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
     let myEvt;
     storeGetResult = {
       property: [

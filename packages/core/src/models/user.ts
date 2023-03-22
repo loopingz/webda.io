@@ -1,5 +1,7 @@
+import { WebdaError } from "../errors";
+import { OperationContext } from "../utils/context";
+import { CoreModel } from "./coremodel";
 import { Ident } from "./ident";
-import { OwnerModel } from "./ownermodel";
 import { ModelsMapped } from "./relations";
 
 /**
@@ -7,7 +9,7 @@ import { ModelsMapped } from "./relations";
  * @class
  * @WebdaModel
  */
-export class User extends OwnerModel {
+export class User extends CoreModel {
   /**
    * Password of the user if defined
    */
@@ -116,7 +118,7 @@ export class User extends OwnerModel {
   }
 
   inGroup(group: string) {
-    if (group === "all" || group === this.uuid) {
+    if (group === "all" || group === this.getUuid()) {
       return true;
     }
     return this._groups.indexOf(group) >= 0;
@@ -140,5 +142,12 @@ export class User extends OwnerModel {
 
   setPassword(password: string) {
     this.__password = password;
+  }
+
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    if (!ctx.getCurrentUserId() || ctx.getCurrentUserId() !== this.getUuid()) {
+      throw new WebdaError.Forbidden("You can't act on this user");
+    }
+    return this;
   }
 }

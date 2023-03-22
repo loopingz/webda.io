@@ -27,7 +27,7 @@ export class S3BinaryParameters extends AWSServiceParameters(BinaryParameters) {
   constructor(params: any, service: S3Binary) {
     super(params, service);
     if (!this.bucket) {
-      throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
+      throw new WebdaError.CodeError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this.forcePathStyle ??= false;
     this.prefix = "";

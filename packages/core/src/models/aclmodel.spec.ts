@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { AclModel, Core, HttpContext, Session, User, WebContext } from "../index";
+import { AclModel, Core, HttpContext, Session, User, WebContext, WebdaError } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 
@@ -24,7 +24,7 @@ class AclModelTest {
     this._session.login("user-uid", "none");
     this.model = new AclModel().getProxy();
     this._user = new User();
-    this._user.uuid = "user-uid";
+    this._user.setUuid("user-uid");
     this._user.addGroup("gip-123");
     // @ts-ignore
     this._ctx.getCurrentUser = async () => {
@@ -73,12 +73,18 @@ class AclModelTest {
     this._ctx.getCurrentUserId = () => {
       return undefined;
     };
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "get"), /403/);
+    await assert.rejects(
+      this.model.canAct.bind(this.model, this._ctx, "get"),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
     this._ctx.getCurrentUserId = () => {
       return "123";
     };
     this.model.setAcl(undefined);
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "get"), /403/);
+    await assert.rejects(
+      this.model.canAct.bind(this.model, this._ctx, "get"),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
   }
 
   @test async all() {

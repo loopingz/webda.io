@@ -12,18 +12,18 @@
   },
   "models": {
     "graph": {
-      "WebdaDemo/Deployment": {}
+      "Webda/Deployment": {}
     },
     "tree": {
-      "WebdaDemo/Deployment": {}
+      "Webda/Deployment": {}
     },
     "plurals": {},
     "list": {
-      "WebdaDemo/Deployment": "lib/models/deployment:default"
+      "Webda/Deployment": "lib/models/deployment:default"
     }
   },
   "schemas": {
-    "WebdaDemo/Deployment": {
+    "Webda/Deployment": {
       "type": "object",
       "properties": {
         "_creationDate": {

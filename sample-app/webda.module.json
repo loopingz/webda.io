@@ -175,10 +175,8 @@
           }
         }
       },
-      "Webda/OwnerModel": {
-        "Webda/User": {
-          "WebdaDemo/User": {}
-        }
+      "Webda/User": {
+        "WebdaDemo/User": {}
       },
       "WebdaDemo/Classroom": {},
       "WebdaDemo/Company": {},
@@ -401,54 +399,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
     },
-    "WebdaDemo/Classroom": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "uuid": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "courses": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "uuid": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "name",
-              "uuid"
-            ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": [
-        "uuid",
-        "name"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Classroom"
-    },
     "WebdaDemo/Company": {
       "type": "object",
       "properties": {
@@ -607,74 +557,6 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contact"
-    },
-    "WebdaDemo/Course": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "uuid": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "classroom": {
-          "type": "string"
-        },
-        "teacher": {
-          "type": "string"
-        },
-        "students": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Readonly%3Cstructure-804506288-794-877-804506288-764-881-804506288-752-882-804506288-610-884-804506288-0-1306%3E"
-          }
-        }
-      },
-      "required": [
-        "uuid",
-        "name",
-        "classroom",
-        "teacher"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Readonly<structure-804506288-794-877-804506288-764-881-804506288-752-882-804506288-610-884-804506288-0-1306>": {
-          "type": "object",
-          "properties": {
-            "email": {
-              "type": "string"
-            },
-            "firstName": {
-              "type": "string"
-            },
-            "lastName": {
-              "type": "string"
-            },
-            "uuid": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "email",
-            "firstName",
-            "uuid",
-            "uuid"
-          ]
-        }
-      },
-      "title": "Course"
     },
     "WebdaDemo/CustomDeployer": {
       "type": "object",
@@ -1035,73 +917,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
     },
-    "WebdaDemo/Student": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "email": {
-          "type": "string"
-        },
-        "firstName": {
-          "type": "string"
-        },
-        "lastName": {
-          "type": "string"
-        },
-        "friends": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/Readonly%3Cstructure-804506288-369-424-804506288-346-425-804506288-335-426-804506288-232-522-804506288-0-1306%3E"
-          }
-        },
-        "teachers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "email",
-        "firstName",
-        "lastName",
-        "teachers"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Readonly<structure-804506288-369-424-804506288-346-425-804506288-335-426-804506288-232-522-804506288-0-1306>": {
-          "type": "object",
-          "properties": {
-            "email": {
-              "type": "string"
-            },
-            "firstName": {
-              "type": "string"
-            },
-            "lastName": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "email",
-            "firstName",
-            "lastName"
-          ]
-        }
-      },
-      "title": "Student"
-    },
     "WebdaDemo/SubProject": {
       "type": "object",
       "properties": {
@@ -1232,44 +1047,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WebdaDemo/SubSubProject.action6.input"
     },
-    "WebdaDemo/Teacher": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "courses": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "uuid": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "name",
-              "uuid"
-            ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Teacher"
-    },
     "WebdaDemo/testInput": {
       "type": "object",
       "properties": {
@@ -1336,20 +1113,6 @@
           "format": "date-time",
           "description": "Last update date",
           "readOnly": true
-        },
-        "_user": {
-          "type": "string",
-          "description": "Default owner of the object",
-          "readOnly": true
-        },
-        "public": {
-          "type": "boolean",
-          "description": "Define if the object is publicly readable",
-          "default": false
-        },
-        "uuid": {
-          "type": "string",
-          "description": "UUID of the object"
         },
         "displayName": {
           "type": "string",
@@ -1462,8 +1225,7 @@
         "_company",
         "displayName",
         "images",
-        "name",
-        "uuid"
+        "name"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {

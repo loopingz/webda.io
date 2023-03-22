@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { OAuthSession } from "@webda/core";
+import { OAuthSession, WebdaError } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import fetch from "node-fetch";
@@ -68,7 +68,7 @@ class GoogleAuthTest extends WebdaTest {
     ctx.getParameters().state = "plop";
     ctx.getSession<OAuthSession>().oauth ??= {};
     ctx.getSession<OAuthSession>().oauth.state = "bouzouf";
-    await assert.rejects(() => this.service.handleCallback(ctx), /403/);
+    await assert.rejects(() => this.service.handleCallback(ctx), WebdaError.Forbidden);
     ctx.getSession<OAuthSession>().oauth.state = "plop";
     ctx.getParameters().code = "u1";
     assert.deepStrictEqual(await this.service.handleCallback(ctx), {
@@ -76,10 +76,10 @@ class GoogleAuthTest extends WebdaTest {
       profile: { sub: "u1", email: "u1@webda.io" }
     });
     ctx.getParameters().code = "u2";
-    await assert.rejects(() => this.service.handleCallback(ctx), /403/);
+    await assert.rejects(() => this.service.handleCallback(ctx), WebdaError.Forbidden);
 
     // Verify tokens verification
-    await assert.rejects(() => this.service.handleToken(ctx), /400/);
+    await assert.rejects(() => this.service.handleToken(ctx), WebdaError.BadRequest);
     ctx = await this.newContext({ tokens: { id_token: "u1" } });
     assert.deepStrictEqual(await this.service.handleToken(ctx), {
       identId: "u1",

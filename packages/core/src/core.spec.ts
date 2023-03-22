@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
 import { stub } from "sinon";
-import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
+import { Core, OriginFilter, WebsiteOriginFilter } from "./core";
 import {
   Authentication,
   Bean,
@@ -13,7 +13,8 @@ import {
   MemoryStore,
   Route,
   Service,
-  WebContext
+  WebContext,
+  WebdaError
 } from "./index";
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
@@ -549,7 +550,7 @@ class CoreTest extends WebdaTest {
     assert.strictEqual(this.webda.getService("plop"), undefined);
     assert.strictEqual(JSON.stringify(this.webda.getModels()), "{}");
     process.env.WEBDA_CONFIG = __dirname + "/../test/config.broken.json";
-    let err = new WebdaError("CODE", "");
+    let err = new WebdaError.CodeError("CODE", "");
     assert.strictEqual(err.getCode(), "CODE");
   }
 

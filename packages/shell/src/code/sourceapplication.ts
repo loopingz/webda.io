@@ -252,7 +252,7 @@ export class SourceApplication extends UnpackedApplication {
     }
 
     if (!fs.existsSync(deploymentConfig)) {
-      throw new WebdaError("UNKNOWN_DEPLOYMENT", "Unknown deployment");
+      throw new WebdaError.CodeError("UNKNOWN_DEPLOYMENT", "Unknown deployment");
     }
 
     let deploymentModel: Deployment;
@@ -260,7 +260,7 @@ export class SourceApplication extends UnpackedApplication {
       deploymentModel = FileUtils.load(deploymentConfig);
       deploymentModel.name = deploymentName;
     } catch (err) {
-      throw new WebdaError(
+      throw new WebdaError.CodeError(
         "INVALID_DEPLOYMENT",
         `Invalid deployment configuration ${deploymentConfig}: ${err.toString()}`
       );

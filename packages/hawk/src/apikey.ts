@@ -1,4 +1,4 @@
-import { HttpContext, NotEnumerable, OperationContext, OwnerModel } from "@webda/core";
+import { HttpContext, NotEnumerable, OperationContext, OwnerModel, WebdaError } from "@webda/core";
 import { createChecker } from "is-in-subnet";
 import { HawkCredentials } from "./hawk";
 
@@ -123,7 +123,7 @@ export default class ApiKey extends OwnerModel {
   async canAct(context: OperationContext, action: string) {
     // Do not allow
     if (this.uuid === "origins") {
-      throw 403;
+      throw new WebdaError.Forbidden("origins cannot be modified");
     }
     return super.canAct(context, action);
   }

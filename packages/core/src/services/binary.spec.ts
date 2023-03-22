@@ -4,7 +4,7 @@ import axios from "axios";
 import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as sinon from "sinon";
-import { Binary, Store, User, WebContext } from "../index";
+import { Binary, Store, User, WebContext, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import {
@@ -139,7 +139,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       exposePath + "/users/" + user1.uuid + "/" + map + "/0"
     );
     this.log("DEBUG", "Verify permission check on HTTP GET");
-    await assert.rejects(executor.execute(ctx), res => res == 403);
+    await assert.rejects(executor.execute(ctx), (err: WebdaError.HttpError) => err.getResponseCode() === 403);
     ctx.session.userId = user1.uuid;
     this.log("DEBUG", "Verify valid permission check on HTTP GET");
     executor = this.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
@@ -237,7 +237,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     });
     let ctx = await this.newContext();
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", `/binary/users/${user1.getUuid()}/images`, {});
-    await assert.rejects(() => executor.execute(ctx), /403/);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
 
     /**
      * Two modes should be handled
@@ -261,11 +264,14 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/${user1.getUuid()}/images/0/myhash`,
       {}
     );
-    await assert.rejects(() => executor.execute(ctx), /403/, "DELETE binary w/o permission");
+    await assert.rejects(() => executor.execute(ctx), WebdaError.Forbidden, "DELETE binary w/o permission");
     // Now login
     ctx.getSession().login(user1.getUuid(), "fake");
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", `/binary/users/${user1.getUuid()}/images/0/myhash`, {});
-    await assert.rejects(() => executor.execute(ctx), /412/);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
     executor = this.getExecutor(
       ctx,
       "test.webda.io",
@@ -320,9 +326,9 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let { binary, user1, ctx } = await this.setupDefault(false);
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     // If not logged in
-    await assert.rejects(() => executor.execute(ctx), /403/, "GET binary w/o permission");
+    await assert.rejects(() => executor.execute(ctx), WebdaError.Forbidden, "GET binary w/o permission");
     executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/unknown/images/0`, {});
-    await assert.rejects(() => executor.execute(ctx), /404/, "GET binary on unknown object");
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound, "GET binary on unknown object");
 
     // Login
     ctx.getSession().login(user1.getUuid(), "fake");
@@ -334,7 +340,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
     // Check 404 now it is gone
     executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
-    await assert.rejects(() => executor.execute(ctx), /404/);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
   }
 
   @test
@@ -347,7 +356,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/${user1.getUuid()}/images/0/${user1.images[0].hash}`,
       {}
     ); // If not logged in
-    await assert.rejects(() => executor.execute(ctx), /403/, "PUT metadata w/o permission");
+    await assert.rejects(() => executor.execute(ctx), WebdaError.Forbidden, "PUT metadata w/o permission");
     executor = this.getExecutor(
       ctx,
       "test.webda.io",
@@ -355,7 +364,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       `/binary/users/unknown/images/0/${user1.images[0].hash}`,
       {}
     );
-    await assert.rejects(() => executor.execute(ctx), /404/, "GET binary on unknown object");
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound, "GET binary on unknown object");
 
     // Login
     ctx.getSession().login(user1.getUuid(), "fake");
@@ -385,7 +394,11 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
         "my-other-metadata": true
       }
     );
-    await assert.rejects(() => executor.execute(ctx), /400/, "PUT metadata with big content should fail");
+    await assert.rejects(
+      () => executor.execute(ctx),
+      WebdaError.BadRequest,
+      "PUT metadata with big content should fail"
+    );
   }
 
   @test
@@ -437,7 +450,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       challenge,
       metadata
     });
-    await assert.rejects(() => executor.execute(ctx), /403/);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
     ctx.getSession().login(user1.getUuid(), "fake");
     await executor.execute(ctx);
     let info = JSON.parse(<string>ctx.getResponseBody());
@@ -511,16 +527,25 @@ class BinaryAbstractTest extends WebdaTest {
   async cov() {
     let service = new TestBinaryService(undefined, "plop", {});
     let ctx = await this.newContext();
-    await assert.rejects(() => service.putRedirectUrl(undefined), /404/);
+    await assert.rejects(
+      () => service.putRedirectUrl(undefined),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
     ctx.getHttpContext().setBody({
       hash: "plop"
     });
-    await assert.rejects(() => service.httpChallenge(ctx), /400/);
+    await assert.rejects(
+      () => service.httpChallenge(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
     ctx = await this.newContext();
     ctx.getHttpContext().setBody({
       challenge: "plop"
     });
-    await assert.rejects(() => service.httpChallenge(ctx), /400/);
+    await assert.rejects(
+      () => service.httpChallenge(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
     ctx = await this.newContext();
     let binary = this.getService<Binary>("binary");
     ctx.setPathParameters({
@@ -533,7 +558,10 @@ class BinaryAbstractTest extends WebdaTest {
       hash: "p",
       challenge: "z"
     });
-    await assert.rejects(() => binary.httpChallenge(ctx), /404/);
+    await assert.rejects(
+      () => binary.httpChallenge(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
 
     let stubs = [];
     try {
@@ -547,7 +575,10 @@ class BinaryAbstractTest extends WebdaTest {
           } as Store<CoreModel>;
         })
       );
-      await assert.rejects(() => binary.httpRoute(ctx), /404/);
+      await assert.rejects(
+        () => binary.httpRoute(ctx),
+        (err: WebdaError.HttpError) => err.getResponseCode() === 404
+      );
       model = {
         images: [
           {
@@ -566,7 +597,7 @@ class BinaryAbstractTest extends WebdaTest {
           };
         })
       );
-      await assert.rejects(() => binary.httpRoute(ctx), /500/);
+      await assert.rejects(() => binary.httpRoute(ctx));
     } finally {
       stubs.forEach(stub => stub.restore());
     }

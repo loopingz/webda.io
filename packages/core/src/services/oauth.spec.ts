@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { HttpContext, Ident, Store } from "../";
+import { HttpContext, Ident, Store, WebdaError } from "../";
 import { WebdaTest } from "../test";
 import { OAuthService, OAuthSession } from "./oauth";
 
@@ -89,7 +89,10 @@ class OAuthServiceTest extends WebdaTest {
     this.service.resolve();
     assert.notStrictEqual(this.service._authenticationService, undefined, "Should get default Authentication service");
     // Test the 403 on handleReturn
-    assert.rejects(() => this.service.handleReturn(undefined, undefined, undefined), /403/);
+    assert.rejects(
+      () => this.service.handleReturn(undefined, undefined, undefined),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
     let ctx = await this.newContext();
     await this.webda.getService<Store<Ident>>("Idents").__clean();
     // Register with oauth
@@ -110,8 +113,14 @@ class OAuthServiceTest extends WebdaTest {
     assert.strictEqual(ctx.getCurrentUserId(), userId);
     await this.service.handleReturn(ctx, "plop3", { email: "rcattiau@gmail.com" }, undefined);
     // Default to false for token
-    assert.rejects(() => this.execute(ctx, "webda.io", "GET", "/fake/scope"), /404/);
-    assert.rejects(() => this.execute(ctx, "webda.io", "POST", "/fake/token"), /404/);
+    assert.rejects(
+      () => this.execute(ctx, "webda.io", "GET", "/fake/scope"),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
+    assert.rejects(
+      () => this.execute(ctx, "webda.io", "POST", "/fake/token"),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
     // @ts-ignore
     this.service.parameters = this.service.loadParameters({
       authenticationService: "Authentication2",
@@ -177,10 +186,10 @@ class OAuthServiceTest extends WebdaTest {
         referer: "https://redirect.me/plop2"
       })
     );
-    assert.throws(() => this.service._redirect(ctx), /401/);
+    assert.throws(() => this.service._redirect(ctx), WebdaError.Unauthorized);
     // Test w/o referer
     ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/fake"));
-    assert.throws(() => this.service._redirect(ctx), /401/);
+    assert.throws(() => this.service._redirect(ctx), WebdaError.Unauthorized);
     // Enable the no_referer
     this.service.getParameters().no_referer = true;
     this.service._redirect(ctx);

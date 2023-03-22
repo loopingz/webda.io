@@ -3,6 +3,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import pkg from "fs-extra";
 import { Readable } from "stream";
+import { WebdaError } from "../errors";
 import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
 import { CloudBinaryTest } from "./cloudbinary.spec";
 import { FileBinary } from "./filebinary";
@@ -78,7 +79,7 @@ class FileBinaryTest extends CloudBinaryTest {
           "GET",
           url.substring("http://test.webda.io".length).replace("c59d?token", "d59d?token")
         ),
-      /403/
+      WebdaError.Forbidden
     );
     await assert.rejects(
       () =>
@@ -88,7 +89,7 @@ class FileBinaryTest extends CloudBinaryTest {
           "GET",
           url.substring("http://test.webda.io".length).replace("eyJhbG", "ezJhbG")
         ),
-      /403/
+      WebdaError.Forbidden
     );
   }
 
@@ -97,13 +98,22 @@ class FileBinaryTest extends CloudBinaryTest {
     let binary = this.getBinary();
     let ctx = await this.newContext();
     ctx.setPathParameters({ store: "Store", property: "images" });
-    assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
+    assert.throws(
+      () => binary._verifyMapAndStore(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
     ctx.setPathParameters({ store: "users", property: "images" });
     assert.strictEqual(binary._verifyMapAndStore(ctx), this.getService("Users"));
     ctx.setPathParameters({ store: "users", property: "images2" });
-    assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
+    assert.throws(
+      () => binary._verifyMapAndStore(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
     ctx.setPathParameters({ store: "notexisting", property: "images" });
-    assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
+    assert.throws(
+      () => binary._verifyMapAndStore(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
   }
 
   @test
@@ -130,26 +140,38 @@ class FileBinaryTest extends CloudBinaryTest {
       token
     });
     ctx.getHttpContext().setBody("PLOP");
-    await assert.rejects(() => binary.storeBinary(ctx), /403/);
+    await assert.rejects(
+      () => binary.storeBinary(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
     token = await this.webda.getCrypto().jwtSign({ hash: "PLOP2" });
     ctx.setPathParameters({
       hash,
       token
     });
-    await assert.rejects(() => binary.storeBinary(ctx), /403/);
+    await assert.rejects(
+      () => binary.storeBinary(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
     // expired token
     token = await this.webda.getCrypto().jwtSign({ hash, exp: Math.floor(Date.now() / 1000) - 60 * 60 });
     ctx.setPathParameters({
       hash,
       token
     });
-    await assert.rejects(() => binary.storeBinary(ctx), /403/);
+    await assert.rejects(
+      () => binary.storeBinary(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
     token = await this.webda.getCrypto().jwtSign({ hash });
     ctx.setPathParameters({
       hash,
       token
     });
-    await assert.rejects(() => binary.storeBinary(ctx), /412/);
+    await assert.rejects(
+      () => binary.storeBinary(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 412
+    );
   }
 
   @test

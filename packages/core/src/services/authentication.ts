@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Counter, EventWithContext } from "../core";
+import { WebdaError } from "../errors";
 import { CoreModelDefinition } from "../models/coremodel";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
@@ -452,15 +453,15 @@ class Authentication<
     } else {
       // If the ident is linked to someone else - might want to remove it
       if (ident.getUser() !== ctx.getCurrentUserId()) {
-        throw 409;
+        throw new WebdaError.Conflict("Ident is linked to someone else");
       }
       // If the email is already validated
       if (ident._validation) {
-        throw 412;
+        throw new WebdaError.PreconditionFailed("Email already validated");
       }
       //
       if (ident._lastValidationEmail >= Date.now() - this.parameters.email.delay) {
-        throw 429;
+        throw new WebdaError.TooManyRequests("Email sent recently");
       }
       await this._identModel.ref(ident.getUuid()).setAttribute("_lastValidationEmail", Date.now());
     }
@@ -481,7 +482,7 @@ class Authentication<
   async _getMe(ctx: OperationContext) {
     let user = await ctx.getCurrentUser();
     if (user === undefined) {
-      throw 404;
+      throw new WebdaError.NotFound("No user found");
     }
     await this.emitSync("Authentication.GetMe", <EventAuthenticationGetMe>{
       context: ctx,
@@ -537,7 +538,7 @@ class Authentication<
     let ident: Ident = await this._identModel.ref(identId).get();
     // Ident is known
     if (ident) {
-      await this.login(ctx, ident.getUser(), ident, provider);
+      await this.login(ctx, ident.getUser().toString(), ident, provider);
       await ident.patch({
         _lastUsed: new Date(),
         __tokens: tokens
@@ -555,7 +556,7 @@ class Authentication<
     } else {
       // If an email in profile try to find the ident
       if (ident) {
-        user = await this._userModel.ref(ident.getUser()).get();
+        user = await this._userModel.ref(ident.getUser().toString()).get();
       }
 
       if (!user) {
@@ -656,12 +657,12 @@ class Authentication<
     let email = ctx.parameter("email");
     let ident: Ident = await this._identModel.ref(email + "_email").get();
     if (!ident) {
-      throw 404;
+      throw new WebdaError.NotFound("Email not found");
     }
-    let user: User = await this._userModel.ref(ident.getUser()).get();
+    let user: User = await this._userModel.ref(ident.getUser().toString()).get();
     // Dont allow to do too many request
     if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
-      throw 429;
+      throw new WebdaError.TooManyRequests("Password recovery already requested recently");
     }
     await user.patch(
       {
@@ -676,44 +677,35 @@ class Authentication<
   async _verifyPassword(password: string, user?: User) {
     if (this._passwordVerifier) {
       if (!(await this._passwordVerifier.validate(password, user))) {
-        throw 400;
+        throw new WebdaError.BadRequest("Password does not match the policy");
       }
       return;
     }
     let regexp = new RegExp(this.parameters.password.regexp);
     if (regexp.exec(password) === null) {
-      throw 400;
+      throw new WebdaError.BadRequest("Password does not match the policy");
     }
   }
 
   async _passwordRecovery(ctx: WebContext<PasswordRecoveryBody>) {
     let body = await ctx.getRequestBody();
-    if (
-      body.password === undefined ||
-      body.login === undefined ||
-      body.token === undefined ||
-      body.expire === undefined
-    ) {
-      throw 400;
-    }
     let user: User = await this._userModel.ref(body.login.toLowerCase()).get();
     if (!user) {
-      throw 403;
+      throw new WebdaError.Forbidden("User not found");
     }
     if (
       !(await this.cryptoService.hmacVerify(body.login.toLowerCase() + body.expire + user.getPassword(), body.token))
     ) {
-      throw 403;
+      throw new WebdaError.Forbidden("Invalid token");
     }
     if (body.expire < Date.now()) {
-      throw 410;
+      throw new WebdaError.Gone("Expired token");
     }
     await this._verifyPassword(body.password, user);
     let password = this.hashPassword(body.password);
     await user.patch(
       {
-        __password: password,
-        uuid: body.login.toLowerCase()
+        __password: password
       },
       null
     );
@@ -735,7 +727,7 @@ class Authentication<
   })
   async _handleEmailCallback(ctx: WebContext) {
     if (!ctx.parameter("token")) {
-      throw 400;
+      throw new WebdaError.BadRequest("Missing token");
     }
     if (
       !(await this.cryptoService.hmacVerify(
@@ -889,7 +881,7 @@ class Authentication<
     };
 
     if (typeof user == "object") {
-      event.userId = user.uuid;
+      event.userId = user.getUuid();
       event.user = user;
     } else {
       event.userId = user;
@@ -913,7 +905,7 @@ class Authentication<
    */
   protected async handleLogin(ctx: WebContext<LoginBody>, ident: Ident) {
     let updates: any = {};
-    let user: User = await this._userModel.ref(ident.getUser()).get();
+    let user: User = await this._userModel.ref(ident.getUser().toString()).get();
     // Check password
     if (this.checkPassword(user.getPassword(), (await ctx.getRequestBody()).password)) {
       if (ident._failedLogin > 0) {
@@ -923,7 +915,7 @@ class Authentication<
       updates._failedLogin = 0;
 
       await this._identModel.ref(ident.uuid).patch(updates);
-      await this.login(ctx, ident.getUser(), ident, "email");
+      await this.login(ctx, ident.getUser().toString(), ident, "email");
       ctx.write(user);
     } else {
       this.metrics.loginFailed.inc();
@@ -937,8 +929,10 @@ class Authentication<
       // Swalow exeception issue to double check !
       await this._identModel.ref(ident.uuid).patch(updates);
       // Allows to auto redirect user to a oauth if needed
+      // It can intercept the error and redirect to the oauth if
+      // email match
       if (!ctx.isEnded()) {
-        throw 403;
+        throw new WebdaError.Forbidden("Invalid password");
       }
     }
   }
@@ -952,14 +946,11 @@ class Authentication<
   async _handleEmail(ctx: WebContext<LoginBody>) {
     // If called while logged in reject
     if (ctx.getCurrentUserId() !== undefined) {
-      throw 410;
+      throw new WebdaError.Gone("Already logged in");
     }
 
     let body = await ctx.getRequestBody();
 
-    if (body.login === undefined) {
-      throw 400;
-    }
     const mailConfig = this.parameters.email;
     const uuid = body.login.toLowerCase() + "_email";
     let ident: Ident = await this._identModel.ref(uuid).get();
@@ -971,7 +962,7 @@ class Authentication<
       }
       // If register on a validate email
       if (ident._validation !== undefined) {
-        throw 409;
+        throw new WebdaError.Conflict("Email already registered");
       }
     }
 
@@ -991,7 +982,7 @@ class Authentication<
         }
       }
       if (!body.password) {
-        throw 400;
+        throw new WebdaError.BadRequest("Password is required");
       }
       // Store with a _
       let __password = this.hashPassword(body.password);
@@ -1040,7 +1031,7 @@ class Authentication<
       }
       return;
     }
-    throw 404;
+    throw new WebdaError.NotFound("");
   }
 
   async generateEmailValidationToken(user: string, email: string): Promise<string> {

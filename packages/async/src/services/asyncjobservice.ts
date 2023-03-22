@@ -16,6 +16,7 @@ import {
   SimpleOperationContext,
   Store,
   WebContext,
+  WebdaError,
   WebdaQL
 } from "@webda/core";
 import { WorkerLogLevel } from "@webda/workout";
@@ -304,19 +305,19 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
     if (!jobId) {
       this.log("TRACE", "Require Job Id");
-      throw 404;
+      throw new WebdaError.NotFound("X-Job-Id header required");
     }
     const action = await this.store.get(jobId);
     if (!action) {
       this.log("TRACE", `Unknown Job Id '${jobId}'`);
-      throw 404;
+      throw new WebdaError.NotFound(`Unknown Job Id '${jobId}'`);
     }
     const jobTime = context.getHttpContext().getUniqueHeader("X-Job-Time");
     const jobHash = context.getHttpContext().getUniqueHeader("X-Job-Hash");
     // Ensure hash mac is correct
     if (jobHash !== crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex")) {
       this.log("TRACE", "Invalid Job HMAC");
-      throw 403;
+      throw new WebdaError.Forbidden("Invalid Job HMAC");
     }
     // Set the context extension
     context.setExtension("asyncJob", action);
@@ -516,11 +517,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     } catch (err) {
       if (err instanceof OperationError) {
         if (err.type === "InvalidInput") {
-          throw 400;
+          throw new WebdaError.BadRequest("Invalid Input");
         } else if (err.type === "PermissionDenied") {
-          throw 403;
+          throw new WebdaError.Forbidden("Permission Denied");
         } else if (err.type === "Unknown") {
-          throw 404;
+          throw new WebdaError.NotFound("Operation not found");
         }
       } else {
         throw err;

@@ -1,6 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
+import { WebdaError } from "../errors";
 import { WebdaTest } from "../test";
 import ResourceService, { ResourceServiceParameters } from "./resource";
 
@@ -22,7 +23,7 @@ class ResourceTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(
       () => executor.execute(this.ctx),
-      err => err == 401
+      (err: WebdaError.HttpError) => err.getResponseCode() === 401
     );
   }
 
@@ -53,7 +54,7 @@ class ResourceTest extends WebdaTest {
     // index.html does not exist in our case
     await assert.rejects(
       () => executor.execute(this.ctx),
-      err => err == 404
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
     );
   }
 
@@ -62,7 +63,10 @@ class ResourceTest extends WebdaTest {
     this.getService<ResourceService>("ResourceService").getParameters().indexFallback = true;
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.unknown.json");
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(() => executor.execute(this.ctx), /404/);
+    await assert.rejects(
+      () => executor.execute(this.ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+    );
   }
 
   @test

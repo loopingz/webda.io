@@ -4,7 +4,8 @@ import {
   OAuthServiceParameters,
   OAuthSession,
   RequestFilter,
-  WebContext
+  WebContext,
+  WebdaError
 } from "@webda/core";
 import { Credentials, OAuth2Client } from "google-auth-library";
 import * as http from "http";
@@ -146,7 +147,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
         "WARN",
         `Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth?.state}`
       );
-      throw 403;
+      throw new WebdaError.Forbidden("Bad State");
     }
     let code: string = ctx.getRequestParameters().code;
     let redirect_uri = ctx.getHttpContext().getAbsoluteUrl(`${this.parameters.url}/callback`);
@@ -160,7 +161,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
       identId = profile.sub;
     } catch (err) {
       this.log("ERROR", err);
-      throw 403;
+      throw new WebdaError.Forbidden("OAuth Error");
     }
     return {
       identId,
@@ -188,7 +189,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
   async handleToken(context: WebContext) {
     let tokens = (await context.getRequestBody()).tokens;
     if (!tokens) {
-      throw 400;
+      throw new WebdaError.BadRequest("No tokens provided");
     }
     const profile = await this.getUserInfo(tokens.id_token);
     return {

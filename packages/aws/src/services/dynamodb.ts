@@ -47,7 +47,7 @@ export class DynamoStoreParameters extends AWSServiceParameters(StoreParameters)
   constructor(params: any, service: DynamoStore) {
     super(params, service);
     if (this.table === undefined) {
-      throw new WebdaError("DYNAMODB_TABLE_PARAMETER_REQUIRED", "Need to define a table at least");
+      throw new WebdaError.CodeError("DYNAMODB_TABLE_PARAMETER_REQUIRED", "Need to define a table at least");
     }
     this.globalIndexes ??= {};
   }

@@ -37,7 +37,7 @@ export interface EventBinaryMetadataUpdate extends EventBinaryUploadSuccess {
 /**
  * Emitted if binary does not exist
  */
-export class BinaryNotFoundError extends WebdaError {
+export class BinaryNotFoundError extends WebdaError.CodeError {
   constructor(hash: string, storeName: string) {
     super("BINARY_NOTFOUND", `Binary not found ${hash} BinaryService(${storeName})`);
   }
@@ -811,14 +811,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     // To avoid any problem lowercase everything
     let map = this.parameters.map[this._lowercaseMaps[store]];
     if (map === undefined) {
-      throw 404;
+      throw new WebdaError.NotFound("Unknown map");
     }
     if (!map.includes(ctx.parameter("property"))) {
-      throw 404;
+      throw new WebdaError.NotFound("Unknown property");
     }
     let targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(this._lowercaseMaps[store]);
     if (targetStore === undefined) {
-      throw 404;
+      throw new WebdaError.NotFound("Unknown store");
     }
     return targetStore;
   }
@@ -830,7 +830,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    */
   async putRedirectUrl(_ctx: WebContext): Promise<{ url: string; method?: string }> {
     // Dont handle the redirect url
-    throw 404;
+    throw new WebdaError.NotFound("No redirect url");
   }
 
   /**
@@ -839,14 +839,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   async httpChallenge(ctx: WebContext<BinaryFile>) {
     let body = await ctx.getRequestBody();
     if (!body.hash || !body.challenge) {
-      throw 400;
+      throw new WebdaError.BadRequest("Missing hash or challenge");
     }
     // First verify if map exist
     let targetStore = this._verifyMapAndStore(ctx);
     // Get the object
     let object = await targetStore.get(ctx.parameter("uid"), ctx);
     if (object === undefined) {
-      throw 404;
+      throw new WebdaError.NotFound("Object does not exist");
     }
     await object.canAct(ctx, "attach_binary");
     let url = await this.putRedirectUrl(ctx);
@@ -868,13 +868,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     // Get the object
     let object = await targetStore.get(ctx.parameter("uid"), ctx);
     if (object === undefined) {
-      throw 404;
+      throw new WebdaError.NotFound("Object does not exist");
     }
     let property = ctx.parameter("property");
     let index = ctx.parameter("index");
     // Should be an array
     if (!Array.isArray(object[property]) || object[property].length <= index) {
-      throw 404;
+      throw new WebdaError.NotFound("Object property is invalid");
     }
     // Check permissions
     let action = "unknown";
@@ -898,23 +898,18 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
         "Content-Length": file.size
       });
       let readStream: any = await this.get(file);
-      try {
-        await new Promise<void>((resolve, reject) => {
-          // We replaced all the event handlers with a simple call to readStream.pipe()
-          ctx._stream.on("finish", resolve);
-          ctx._stream.on("error", reject);
-          readStream.pipe(ctx._stream);
-        });
-      } catch (err) {
-        this.log("ERROR", err);
-        throw 500;
-      }
+      await new Promise<void>((resolve, reject) => {
+        // We replaced all the event handlers with a simple call to readStream.pipe()
+        ctx._stream.on("finish", resolve);
+        ctx._stream.on("error", reject);
+        readStream.pipe(ctx._stream);
+      });
     } else {
       if (ctx.getHttpContext().getMethod() === "POST") {
         await this.store(object, property, await this._getFile(ctx), await ctx.getRequestBody());
       } else {
         if (object[property][index].hash !== ctx.parameter("hash")) {
-          throw 412;
+          throw new WebdaError.BadRequest("Hash does not match");
         }
         if (ctx.getHttpContext().getMethod() === "DELETE") {
           await this.delete(object, property, index);
@@ -922,7 +917,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
           let metadata: BinaryMetadata = await ctx.getRequestBody();
           // Limit metadata to 4kb
           if (JSON.stringify(metadata).length >= 4096) {
-            throw 400;
+            throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
           }
           let evt = {
             service: this,

@@ -1,5 +1,5 @@
 import { Core, Counter } from "../core";
-import { EventWithContext, OperationContext, RequestFilter, WebContext } from "../index";
+import { EventWithContext, OperationContext, RequestFilter, WebContext, WebdaError } from "../index";
 import { Authentication } from "./authentication";
 import { Service, ServiceParameters } from "./service";
 
@@ -308,7 +308,7 @@ export abstract class OAuthService<
       if (this.parameters.authorized_uris.indexOf(redirect) < 0) {
         if (ctx.getHttpContext().getHeaders().referer || !this.parameters.no_referer) {
           // The redirect_uri is not authorized , might be forging HOST request
-          throw 401;
+          throw new WebdaError.Unauthorized("Unauthorized redirect_uri");
         }
       }
     }
@@ -366,7 +366,7 @@ export abstract class OAuthService<
   async handleReturn(ctx: WebContext, identId: string, profile: any, _tokens: any = undefined) {
     // If no identId has been provided error
     if (!identId) {
-      throw 403;
+      throw new WebdaError.Forbidden("No identId provided by the OAuth provider");
     }
 
     const session = ctx.getSession<OAuthSession>();

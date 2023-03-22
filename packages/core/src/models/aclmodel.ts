@@ -1,4 +1,4 @@
-import { ModelAction, OperationContext, Store, User, WebContext } from "../index";
+import { ModelAction, OperationContext, Store, User, WebContext, WebdaError } from "../index";
 import { CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -110,7 +110,7 @@ export default class AclModel extends CoreModel {
     let acl = await ctx.getInput();
     // This looks like a bad request
     if (acl.raw) {
-      throw 400;
+      throw new WebdaError.BadRequest("ACL should have raw field");
     }
     this.__acl = acl;
     await this.save();
@@ -126,7 +126,7 @@ export default class AclModel extends CoreModel {
       groups = [];
     }
     groups = groups.slice(0);
-    groups.push(user.uuid);
+    groups.push(user.getUuid());
     return groups;
   }
 
@@ -164,13 +164,13 @@ export default class AclModel extends CoreModel {
 
   async canAct(ctx: OperationContext, action: string) {
     if (!this.getAcl() || !ctx.getCurrentUserId()) {
-      throw 403;
+      throw new WebdaError.Forbidden("No ACL or user");
     }
     let user = await ctx.getCurrentUser();
     if (await this.hasPermission(ctx, user, action)) {
       return this;
     }
-    throw 403;
+    throw new WebdaError.Forbidden("No permission");
   }
 }
 

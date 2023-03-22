@@ -1,6 +1,6 @@
 // organize-imports-ignore
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { Core, HttpContext, HttpMethodType, Service, WebContext } from "./index";
+import { Core, HttpContext, HttpMethodType, Service, WebContext, WebdaError } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as path from "path";
 import { execSync } from "child_process";
@@ -296,6 +296,9 @@ class WebdaTest {
     try {
       await exec.execute(ctx);
     } catch (err) {
+      if (err instanceof WebdaError.HttpError) {
+        throw err;
+      }
       if (err instanceof Error) {
         this.log("ERROR", err);
         throw 500;

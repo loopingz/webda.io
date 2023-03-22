@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
+import { WebdaError } from "../errors";
 import { WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -180,14 +181,14 @@ export default class ResourceService<
 
     // Avoid path transversal
     if (!path.resolve(file).startsWith(this._resolved)) {
-      throw 401;
+      throw new WebdaError.Unauthorized(file);
     }
 
     if (!fs.existsSync(file)) {
       file = path.join(this._resolved, this.parameters.index);
       // Catch All for SPA
       if (!(this.parameters.indexFallback && fs.existsSync(file))) {
-        throw 404;
+        throw new WebdaError.NotFound(file);
       }
     }
     let mimetype = mime.lookup(file) || "application/octet-stream";

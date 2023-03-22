@@ -1,5 +1,8 @@
+import { WebdaError } from "../errors";
 import { OperationContext } from "../utils/context";
 import { CoreModel } from "./coremodel";
+import { ModelLink } from "./relations";
+import { User } from "./user";
 
 /**
  * @WebdaModel
@@ -8,7 +11,7 @@ export class OwnerModel extends CoreModel {
   /**
    * Default owner of the object
    */
-  _user: string;
+  _user: ModelLink<User>;
   /**
    * Define if the object is publicly readable
    * @default false
@@ -26,7 +29,7 @@ export class OwnerModel extends CoreModel {
   async canCreate(ctx: OperationContext): Promise<this> {
     const userId = ctx.getSession().userId;
     if (!userId) {
-      throw 403;
+      throw new WebdaError.Forbidden("You need to be logged in to create an object");
     }
     this.setOwner(userId);
 
@@ -38,7 +41,8 @@ export class OwnerModel extends CoreModel {
    * @param uuid
    */
   setOwner(uuid: string): void {
-    this._user = uuid;
+    this._user ??= new ModelLink<User>(uuid, <any>User);
+    this._user.set(uuid);
   }
 
   /**
@@ -47,7 +51,7 @@ export class OwnerModel extends CoreModel {
    * Only the owner can do update to the object
    * @returns
    */
-  getOwner(): string {
+  getOwner(): ModelLink<User> {
     return this._user;
   }
 
@@ -78,7 +82,7 @@ export class OwnerModel extends CoreModel {
     } else if (action === "delete") {
       return this.canDelete(ctx);
     }
-    throw 403;
+    throw new WebdaError.Forbidden("No permission");
   }
 
   /**
@@ -102,8 +106,8 @@ export class OwnerModel extends CoreModel {
    */
   async canUpdate(ctx: OperationContext): Promise<this> {
     // Allow to modify itself by default
-    if ((!this.getOwner() || ctx.getCurrentUserId() !== this.getOwner()) && ctx.getCurrentUserId() !== this.uuid) {
-      throw 403;
+    if (!this.getOwner() || ctx.getCurrentUserId() !== this.getOwner().toString()) {
+      throw new WebdaError.Forbidden("You are not the owner of this object");
     }
     return this;
   }

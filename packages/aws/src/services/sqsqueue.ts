@@ -172,7 +172,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
       // Check for LocalStack
       found = this.parameters.queue.match(/http:\/\/(localhost):\d+\/(.*)\/(.*)/i);
       if (!found) {
-        throw new WebdaError("SQS_PARAMETER_MALFORMED", "SQS Queue URL malformed");
+        throw new WebdaError.CodeError("SQS_PARAMETER_MALFORMED", "SQS Queue URL malformed");
       }
       found[1] = "us-east-1";
     }

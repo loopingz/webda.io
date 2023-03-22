@@ -5,6 +5,7 @@ import {
   Action,
   Core,
   CoreModel,
+  createModelLinksMap,
   Expose,
   ModelLink,
   ModelLinksArray,
@@ -14,7 +15,8 @@ import {
   ModelRelated,
   ModelsMapped,
   OperationContext,
-  Store
+  Store,
+  WebdaError
 } from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";
@@ -190,7 +192,10 @@ class CoreModelTest extends WebdaTest {
   @test async cov() {
     let task = new Task();
     assert.ok(CoreModel.instanceOf(task));
-    await assert.rejects(() => new CoreModel().canAct(undefined, "test"), /403/);
+    await assert.rejects(
+      () => new CoreModel().canAct(undefined, "test"),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
     task.plop = 1;
     assert.ok(!task.isDirty());
     task = task.getProxy();
@@ -250,7 +255,7 @@ class CoreModelTest extends WebdaTest {
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
     // @ts-ignore
-    let task = await (await TestMask.ref("unit1").get({ test: false })).save();
+    let task = await TestMask.ref("unit1").getOrCreate({ test: false });
     assert.strictEqual(await TestMask.ref("unit1").exists(), true);
     await TestMask.ref("unit1").incrementAttributes([{ property: "counter", value: 1 }]);
     await TestMask.ref("unit1").setAttribute("side", "plop");
@@ -270,6 +275,16 @@ class CoreModelTest extends WebdaTest {
     await TestMask.ref("unit1").deleteItemFromCollection("__typeTree", 0, null);
     await task.refresh();
     assert.deepStrictEqual(task.__typeTree, []);
+    // Relations test
+    let link = new ModelLink("unit1", TestMask);
+    // @ts-ignore
+    assert.strictEqual((await link.get()).counter, 3);
+    assert.strictEqual(link.getUuid(), "unit1");
+    assert.strictEqual(link.toString(), "unit1");
+    let customLink = createModelLinksMap(TestMask, { test: { uuid: "test", label: "test" } });
+    // @ts-ignore
+    assert.strictEqual(customLink.test.label, "test");
+
     await TestMask.ref("unit1").delete();
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
   }
@@ -281,7 +296,7 @@ class CoreModelTest extends WebdaTest {
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
     assert.strictEqual(new Task().__type, "webdatest/task");
     assert.notStrictEqual(new Task().__store, undefined);
-    let task = await (await Task.ref("task#1").get({ test: false })).save();
+    let task = await Task.ref("task#1").getOrCreate({ test: false });
     assert.strictEqual(task.getFullUuid(), "webdatest-task$task#1");
     let taskB = await this.webda.getModelObject("webdatest-task$task#1");
     // @ts-ignore

@@ -1,4 +1,12 @@
-import { CoreModel, Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError, WebdaQL } from "@webda/core";
+import {
+  CoreModel,
+  ModelLink,
+  Store,
+  StoreNotFoundError,
+  StoreParameters,
+  UpdateConditionFailError,
+  WebdaQL
+} from "@webda/core";
 
 export interface SQLDatabase {
   name: string;
@@ -179,7 +187,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     return object;
   }
 
-  getUuid(object: T | string) {
+  getUuid(object: T | string | ModelLink<T>) {
     let id: string;
     if (typeof object === "string") {
       id = object;

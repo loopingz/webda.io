@@ -5,7 +5,8 @@ import {
   ResourceService,
   WaitFor,
   WaitLinearDelay,
-  WebContext
+  WebContext,
+  WebdaError
 } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
 import * as http from "http";
@@ -143,6 +144,9 @@ export class WebdaServer extends Webda {
           } catch (err) {
             if (typeof err === "number") {
               ctx.writeHead(err);
+            } else if (err instanceof WebdaError.HttpError) {
+              this.log("DEBUG", "Sending error", err.message);
+              ctx.writeHead(err.getResponseCode());
             } else {
               throw err;
             }
@@ -176,6 +180,10 @@ export class WebdaServer extends Webda {
       } catch (err) {
         if (typeof err === "number") {
           ctx.statusCode = err;
+          await ctx.end();
+          return;
+        } else if (err instanceof WebdaError.HttpError) {
+          ctx.statusCode = err.getResponseCode();
           await ctx.end();
           return;
         }
@@ -214,6 +222,11 @@ export class WebdaServer extends Webda {
         await this.emitSync("Webda.Result", { context: ctx });
         if (typeof err === "number") {
           ctx.statusCode = err;
+          this.flushHeaders(ctx);
+          return;
+        } else if (err instanceof WebdaError.HttpError) {
+          this.log("DEBUG", "Sending error", err.message);
+          ctx.statusCode = err.getResponseCode();
           this.flushHeaders(ctx);
           return;
         }

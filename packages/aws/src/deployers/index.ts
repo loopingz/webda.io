@@ -222,7 +222,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (!certificate) {
       let zone = await this.getZoneForDomainName(domain);
       if (!zone) {
-        throw new WebdaError("ROUTE53_NOTFOUND", "Cannot create certificate as Route53 Zone was not found");
+        throw new WebdaError.CodeError("ROUTE53_NOTFOUND", "Cannot create certificate as Route53 Zone was not found");
       }
       this.logger.log("INFO", "Creating a certificate for", domain);
       certificate = await this.doCreateCertificate(domain, zone);
@@ -361,7 +361,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       10000
     );
     if (cert === undefined || cert.Status === "FAILED") {
-      throw new WebdaError("ACM_VALIDATION_FAILED", "Certificate validation has failed");
+      throw new WebdaError.CodeError("ACM_VALIDATION_FAILED", "Certificate validation has failed");
     }
     if (cert.Status === "PENDING_VALIDATION") {
       // On create need to wait

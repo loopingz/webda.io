@@ -6,7 +6,8 @@ import {
   Service,
   ServiceParameters,
   Store,
-  WebContext
+  WebContext,
+  WebdaError
 } from "@webda/core";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
@@ -172,7 +173,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    */
   async redirectWithCSRF(context: WebContext, url: string) {
     if (!this.parameters.redirectUris.some(u => url.startsWith(u))) {
-      throw 403;
+      throw new WebdaError.Forbidden("Invalid redirect");
     }
     context.getSession()[this.parameters.dynamicSessionKey] ??= `${
       this.cryptoService.current
@@ -238,7 +239,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     if (this.parameters.dynamicSessionKey && authorization.startsWith('Hawk id="session"')) {
       try {
         if (!context.getSession()[this.parameters.dynamicSessionKey]) {
-          throw 403;
+          throw new WebdaError.Forbidden("No session key");
         }
         const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
         context.setExtension(
@@ -250,10 +251,10 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
           }))
         );
       } catch (err) {
-        if (err !== 403) {
-          this.log("ERROR", `Hawk error (${err.message})`);
+        if (err instanceof WebdaError.Forbidden) {
+          throw err;
         }
-        throw 403;
+        throw new WebdaError.Forbidden(`Hawk error (${err.message})`);
       }
     } else if (this.store) {
       // We have an Api Key store
@@ -261,11 +262,14 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
         context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
         let fullKey = await this.store.get(context.getExtension("hawk").credentials.id);
         if (!fullKey.canRequest(context.getHttpContext())) {
-          throw 403;
+          throw new WebdaError.Forbidden("Key not allowed to request");
         }
       } catch (err) {
         this.log("TRACE", err);
-        throw 403;
+        if (err instanceof WebdaError.Forbidden) {
+          throw err;
+        }
+        throw new WebdaError.Forbidden("Bad Hawk credentials");
       }
     }
     return true;

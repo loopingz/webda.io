@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { existsSync } from "fs";
 import pkg from "fs-extra";
 import * as sinon from "sinon";
-import { CoreModel, FileStore, FileUtils, Store } from "../index";
+import { CoreModel, FileStore, FileUtils, Store, WebdaError } from "../index";
 import { User } from "../models/user";
 import { HttpContext } from "../utils/httpcontext";
 import AggregatorService from "./aggregator";
@@ -188,7 +188,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async httpCRUD() {
-    return super.httpCRUD();
+    return await super.httpCRUD();
   }
 
   @test
@@ -206,7 +206,7 @@ class FileStoreTest extends StoreTest {
 
     assert.notStrictEqual(executor, undefined);
     ctx.getSession().login("fake_user", "fake_ident");
-    await assert.rejects(executor.execute(ctx), err => err == 400, "Should reject for bad schema");
+    await assert.rejects(executor.execute(ctx), WebdaError.BadRequest, "Should reject for bad schema");
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       name: "Task #1"
     });
@@ -221,11 +221,17 @@ class FileStoreTest extends StoreTest {
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/tasks/${task.uuid}`, {
       test: "plop"
     });
-    await assert.rejects(() => executor.execute(ctx), /400/);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
     executor = this.getExecutor(ctx, "test.webda.io", "PATCH", `/tasks/${task.uuid}`, {
       name: 123
     });
-    await assert.rejects(() => executor.execute(ctx), /400/);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 400
+    );
   }
 
   @test

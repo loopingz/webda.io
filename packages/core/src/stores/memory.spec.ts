@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync, unlinkSync } from "fs";
-import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User } from "../index";
+import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User, WebdaError } from "../index";
 import { HttpContext } from "../utils/httpcontext";
 import { JSONUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
@@ -53,22 +53,13 @@ class MemoryStoreTest extends StoreTest {
     await identStore.delete("toDelete");
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/memory/idents/toDelete");
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/memory/idents/toDelete");
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/memory/idents/toDelete");
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      err => err == 404
-    );
+    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
     assert.strictEqual(identStore._getSync("notFound"), null);
   }
 
@@ -145,7 +136,7 @@ class MemoryStoreTest extends StoreTest {
   async multiModel() {
     let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     identStore.getParameters().strict = false;
-    await identStore.save(new User().load({ uuid: "user" }, true));
+    await identStore.save(new User().setUuid("user"));
     await identStore.save(new Ident().load({ uuid: "ident" }, true));
     assert.ok((await identStore.get("user")) instanceof User);
     assert.ok((await identStore.get("ident")) instanceof Ident);

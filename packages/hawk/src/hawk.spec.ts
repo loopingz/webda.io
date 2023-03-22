@@ -1,7 +1,7 @@
 // organize-imports-ignore
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { CacheService, WebContext, HttpContext, HttpMethodType, Store, UnknownSession } from "@webda/core";
+import { CacheService, WebContext, HttpContext, HttpMethodType, Store, UnknownSession, WebdaError } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
@@ -75,7 +75,7 @@ class HawkServiceTest extends WebdaTest {
     this.context.getHttpContext().getHeaders()["authorization"] = header;
     await assert.rejects(
       () => this.checkRequest(this.context),
-      /403/,
+      WebdaError.Forbidden,
       "Should refuse with error as Authorization is using an unknown key"
     );
   }
@@ -91,8 +91,8 @@ class HawkServiceTest extends WebdaTest {
     this.context.getHttpContext().getHeaders()["authorization"] = header;
     await assert.rejects(
       () => this.checkRequest(this.context),
-      /403/,
-      "Should refuse as signed URL is different from requested URL"
+      WebdaError.Forbidden
+      //"Should refuse as signed URL is different from requested URL"
     );
   }
 
@@ -199,10 +199,10 @@ class HawkServiceTest extends WebdaTest {
     await this.key.save();
     // Reset cache
     CacheService.clearAllCache();
-    await assert.rejects(() => this.doValidRequest(), /403/, "Should refuse as permissions are set");
+    await assert.rejects(() => this.doValidRequest(), WebdaError.Forbidden, "Should refuse as permissions are set");
     assert.equal(await this.doValidRequest("/restricted/plop", "GET"), true);
-    await assert.rejects(() => this.doValidRequest("/restricted/plop", "PUT"), /403/);
-    await assert.rejects(() => this.doValidRequest("/restricted/plop", "PATCH"), /403/);
+    await assert.rejects(() => this.doValidRequest("/restricted/plop", "PUT"), WebdaError.Forbidden);
+    await assert.rejects(() => this.doValidRequest("/restricted/plop", "PATCH"), WebdaError.Forbidden);
     assert.equal(await this.doValidRequest("/restricted/plop", "POST"), true);
     assert.equal(await this.doValidRequest("/any", "POST"), true);
     assert.equal(await this.doValidRequest("/test", "PUT"), true);
@@ -272,7 +272,7 @@ class HawkServiceTest extends WebdaTest {
     await test.resolve().init();
     let ctx = await this.newContext();
     ctx.getParameters().url = "http://test.webda.io";
-    await assert.rejects(() => test._redirect(ctx), /403/);
+    await assert.rejects(() => test._redirect(ctx), WebdaError.Forbidden);
     test.getParameters().redirectUris.push("http://test.webda.io");
     await test._redirect(ctx);
     let location = new URL(ctx.getResponseHeaders().Location);
@@ -307,10 +307,10 @@ class HawkServiceTest extends WebdaTest {
     assert.strictEqual(await test.checkRequest(this.context), true);
     this.context.getSession()["myCSRF"] = `${key}.anotherone`;
     this.context.setExtension("HawkReviewed", false);
-    await assert.rejects(() => test.checkRequest(this.context), /403/);
+    await assert.rejects(() => test.checkRequest(this.context), WebdaError.Forbidden);
     delete this.context.getSession()["myCSRF"];
     this.context.setExtension("HawkReviewed", false);
-    await assert.rejects(() => test.checkRequest(this.context), /403/);
+    await assert.rejects(() => test.checkRequest(this.context), WebdaError.Forbidden);
     // Simulate pre-reviewed
     this.context.setExtension("HawkReviewed", true);
     await test.checkRequest(this.context);

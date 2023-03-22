@@ -30,6 +30,7 @@ import {
   Store,
   UnpackedApplication,
   WebContext,
+  WebdaError,
   WebdaQL
 } from "./index";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
@@ -108,30 +109,6 @@ export interface OperationDefinitionInfo extends OperationDefinition {
  */
 export class RegistryEntry extends CoreModel {
   [key: string]: any;
-}
-
-/**
- * Error with a code
- */
-export class WebdaError extends Error {
-  code: string;
-
-  /**
-   *
-   * @param code
-   * @param message
-   */
-  constructor(code: string, message: string) {
-    super(message);
-    this.code = code;
-  }
-
-  /**
-   * Return error code
-   */
-  getCode() {
-    return this.code;
-  }
 }
 
 /**
@@ -1018,7 +995,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     if (JSON.stringify(Object.keys(configuration)) !== JSON.stringify(Object.keys(this.configuration.services))) {
       this.log("ERROR", "Configuration update cannot modify services");
-      throw new WebdaError("REINIT_SERVICE_INJECTION", "Configuration is not designed to add dynamically services");
+      throw new WebdaError.CodeError(
+        "REINIT_SERVICE_INJECTION",
+        "Configuration is not designed to add dynamically services"
+      );
     }
     this.configuration.services = configuration;
     let inits: Promise<void>[] = [];

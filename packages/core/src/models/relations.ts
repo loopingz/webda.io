@@ -1,4 +1,11 @@
-import { CoreModel, ModelAction } from "./coremodel";
+import {
+  CoreModel,
+  CoreModelDefinition,
+  ModelAction,
+  ModelRef,
+  ModelRefCustom,
+  ModelRefCustomProperties
+} from "./coremodel";
 
 /**
  * Attribute of an object
@@ -70,11 +77,28 @@ export type ModelsMapped<T extends CoreModel, K extends Attributes<T>> = Readonl
 /**
  * Define a link to 1:n relation
  */
+/*
 export type ModelLink<T extends CoreModel, _FK extends keyof T = any> = ModelLoader<T> &
   String & {
     set: (id: string) => void;
   };
-
+  */
+export class ModelLink<T extends CoreModel> {
+  constructor(protected uuid: string, protected model: CoreModelDefinition<T>) {}
+  async get(): Promise<T> {
+    return this.model.ref(this.uuid).get();
+  }
+  set(id: string | T) {}
+  toString(): string {
+    return this.uuid;
+  }
+  toJSON(): string {
+    return this.uuid;
+  }
+  getUuid(): string {
+    return this.uuid;
+  }
+}
 /**
  * Methods that allow to manage a collection of linked objects
  */
@@ -92,21 +116,118 @@ type ModelCollectionManager<T> = {
    */
   remove: (model: T | string) => void;
 };
+
+export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T>> {
+  constructor(protected model: CoreModelDefinition<T>, content: any[] = []) {
+    super();
+    content.forEach(c => this.add(c));
+  }
+
+  add(model: string | ModelRef<T> | T) {
+    this.push(typeof model === "string" ? new ModelRef(model, this.model) : new ModelRef(model.getUuid(), this.model));
+  }
+
+  remove(model: ModelRef<T> | string | T) {
+    let index = this.findIndex(m => m.toString() === (typeof model === "string" ? model : model.getUuid()));
+    if (index >= 0) {
+      this.splice(index, 1);
+    }
+  }
+}
+
+export class ModelLinksArray<T extends CoreModel, K> extends Array<
+  ModelRefCustomProperties<T, (K & { uuid: string }) | { getUuid: () => string }>
+> {
+  constructor(protected model: CoreModelDefinition<T>, content: any[] = []) {
+    super();
+    this.push(...content.map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c)));
+  }
+
+  add(
+    model:
+      | ModelRefCustomProperties<T, (K & { uuid: string }) | { getUuid: () => string }>
+      | ((K & { uuid: string }) | { getUuid: () => string })
+  ) {
+    this.push(
+      <ModelRefCustomProperties<T, K & ({ uuid: string } | { getUuid: () => string })>>(
+        (model instanceof ModelRefCustom
+          ? model
+          : new ModelRefCustom(
+              (<{ uuid: string }>model).uuid || (<{ getUuid: () => string }>model).getUuid(),
+              this.model,
+              model
+            ))
+      )
+    );
+  }
+
+  remove(model: ModelRefCustomProperties<T, K> | string | T) {
+    const uuid = typeof model === "string" ? model : (<{ uuid: string }>model).uuid || model.getUuid();
+    let index = this.findIndex(m => m.getUuid() === uuid);
+    if (index >= 0) {
+      this.splice(index, 1);
+    }
+  }
+}
+
+/**
+ * Define 1:n relation with some sort of additional data or duplicated data
+ *
+ * The key of the map is the value of the FK
+ */
+export type ModelLinksMap<T extends CoreModel, K> = Readonly<{
+  [key: string]: ModelRefCustomProperties<T, K & ({ uuid: string } | { getUuid: () => string })>;
+}> &
+  ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
+
+export function createModelLinksMap<T extends CoreModel>(model: CoreModelDefinition<any>, data: any = {}) {
+  let result = {
+    add: (model: ModelRefCustomProperties<T, any>) => {
+      result[model.uuid || model.getUuid()] = model;
+    },
+    remove: (model: ModelRefCustomProperties<T, any> | string) => {
+      // @ts-ignore
+      const uuid = typeof model === "string" ? model : model.uuid || model.getUuid();
+      delete result[uuid];
+    }
+  };
+  Object.keys(data)
+    .filter(k => k !== "__proto__")
+    .forEach(key => {
+      result[key] = new ModelRefCustom(data[key].uuid, model, data[key]);
+    });
+  return result;
+}
+/*
+export class ModelLinksMap<T extends CoreModel, K> implements Test<T, K> {
+  add(model: ModelRefCustomProperties<T, K>) {
+    this.push(model);
+  }
+
+  remove(model: ModelRefCustomProperties<T, K> | string) {
+    let index = this.findIndex(m => m.getUuid() === (typeof model === "string" ? model : model.getUuid()));
+    if (index >= 0) {
+      this.splice(index, 1);
+    }
+  }
+  [key: Omit<string, "add" | "remove">]: ModelRefCustomProperties<T, K>;
+}
+*/
 /**
  * Define 1:n relation
  */
-export type ModelLinksSimpleArray<T extends CoreModel> = Readonly<ModelLoader<T>[]> & ModelCollectionManager<string>;
+//export type ModelLinksSimpleArray<T extends CoreModel> = Readonly<ModelRef<T>[]> & ModelCollectionManager<string>;
 /**
  * Define 1:n relation with some sort of additional data or duplicated data
  */
-export type ModelLinksArray<T extends CoreModel, K = any> = Readonly<(ModelLoader<T, K> & { uuid: string })[]> &
+export type ModelLinksArray2<T extends CoreModel, K = any> = Readonly<(ModelLoader<T, K> & { uuid: string })[]> &
   ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
 /**
  * Define 1:n relation with some sort of additional data or duplicated data
  *
  * The key of the map is the value of the FK
  */
-export type ModelLinksMap<T extends CoreModel, K = any> = Readonly<{
+export type ModelLinksMap2<T extends CoreModel, K = any> = Readonly<{
   [key: string]: ModelLoader<T, K> & { uuid: string };
 }> &
   ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
@@ -114,7 +235,7 @@ export type ModelLinksMap<T extends CoreModel, K = any> = Readonly<{
 /**
  * Define the parent of the model
  */
-export type ModelParent<T extends CoreModel> = ModelLink<T, any>;
+export type ModelParent<T extends CoreModel> = ModelLink<T>;
 
 /**
  * Define an export of actions from Model

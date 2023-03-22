@@ -6,7 +6,15 @@
   },
   "models": {
     "graph": {
-      "Webda/ApiKey": {}
+      "Webda/ApiKey": {
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "Webda/User",
+            "type": "LINK"
+          }
+        ]
+      }
     },
     "tree": {
       "Webda/OwnerModel": {
@@ -35,9 +43,7 @@
           "readOnly": true
         },
         "_user": {
-          "type": "string",
-          "description": "Default owner of the object",
-          "readOnly": true
+          "type": "string"
         },
         "public": {
           "type": "boolean",
@@ -108,6 +114,7 @@
         }
       },
       "required": [
+        "_user",
         "algorithm",
         "name",
         "uuid"

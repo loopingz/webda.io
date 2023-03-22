@@ -59,7 +59,7 @@ class ElasticSearchServiceParameters extends ServiceParameters {
   }
 }
 
-export class ESUnknownIndexError extends WebdaError {
+export class ESUnknownIndexError extends WebdaError.CodeError {
   constructor(index: string) {
     super("ES_UNKOWN_INDEX", `Unknown index "${index}"`);
   }

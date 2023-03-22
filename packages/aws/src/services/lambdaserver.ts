@@ -1,4 +1,4 @@
-import { Core as Webda, HttpContext, HttpMethodType, WebContext } from "@webda/core";
+import { Core as Webda, HttpContext, HttpMethodType, WebContext, WebdaError } from "@webda/core";
 import { APIGatewayProxyEvent, Context as LambdaContext, S3Event } from "aws-lambda";
 import { serialize as cookieSerialize } from "cookie";
 import { LambdaCommandEvent } from "./lambdacaller";
@@ -225,6 +225,9 @@ export default class LambdaServer extends Webda {
       if (typeof err === "number") {
         ctx.statusCode = err;
         return this.handleLambdaReturn(ctx);
+      } else if (err instanceof WebdaError.HttpError) {
+        ctx.statusCode = err.getResponseCode();
+        return this.handleLambdaReturn(ctx);
       }
       throw err;
     }
@@ -260,6 +263,9 @@ export default class LambdaServer extends Webda {
     } catch (err) {
       if (typeof err === "number") {
         ctx.statusCode = err;
+      } else if (err instanceof WebdaError.HttpError) {
+        this.log("DEBUG", "Sending error", err.message);
+        ctx.statusCode = err.getResponseCode();
       } else {
         this.log("ERROR", err);
         ctx.statusCode = 500;

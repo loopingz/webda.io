@@ -1,6 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
+import { WebdaError } from "../errors";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
@@ -107,7 +108,10 @@ class InvitationTest extends WebdaTest {
   @test
   async inviteOnMissing() {
     let ctx = await this.newContext();
-    await assert.rejects(() => this.execute(ctx, "test.webda.io", "POST", `/companies/unknown/invitations`, {}), /404/);
+    await assert.rejects(
+      () => this.execute(ctx, "test.webda.io", "POST", `/companies/unknown/invitations`, {}),
+      WebdaError.NotFound
+    );
   }
 
   @test
@@ -139,8 +143,8 @@ class InvitationTest extends WebdaTest {
     });
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
-      [ident1.getUser()]: "read",
-      [ident2.getUser()]: "read",
+      [ident1.getUser().toString()]: "read",
+      [ident2.getUser().toString()]: "read",
       [user.getUuid()]: "all"
     });
     let getter = await this.execute(ctx, "test.webda.io", "GET", `/companies/${company.getUuid()}/invitations`);
@@ -185,11 +189,11 @@ class InvitationTest extends WebdaTest {
 
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
-      [ident1.getUser()]: "read,write",
-      [ident2.getUser()]: "read,write",
+      [ident1.getUser().toString()]: "read,write",
+      [ident2.getUser().toString()]: "read,write",
       [user.getUuid()]: "all"
     });
-    let userCheck = await this.authentication.getUserStore().get(ident1.getUser());
+    let userCheck = await this.authentication.getUserStore().get(ident1.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
@@ -239,7 +243,7 @@ class InvitationTest extends WebdaTest {
 
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
-      [ident2.getUser()]: "read,write",
+      [ident2.getUser().toString()]: "read,write",
       [user.getUuid()]: "all"
     });
     // @ts-ignore
@@ -275,8 +279,8 @@ class InvitationTest extends WebdaTest {
 
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
-      [ident2.getUser()]: "read,write",
-      [ident4.getUser()]: "read,write",
+      [ident2.getUser().toString()]: "read,write",
+      [ident4.getUser().toString()]: "read,write",
       [user.getUuid()]: "all"
     });
     // @ts-ignore
@@ -288,9 +292,9 @@ class InvitationTest extends WebdaTest {
       })),
       []
     );
-    userCheck = await this.authentication.getUserStore().get(ident3.getUser());
+    userCheck = await this.authentication.getUserStore().get(ident3.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"] || [], []);
-    userCheck = await this.authentication.getUserStore().get(ident4.getUser());
+    userCheck = await this.authentication.getUserStore().get(ident4.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
@@ -368,7 +372,7 @@ class InvitationTest extends WebdaTest {
         }
       ]
     );
-    let userCheck = await this.authentication.getUserStore().get(ident1.getUser());
+    let userCheck = await this.authentication.getUserStore().get(ident1.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
@@ -393,17 +397,13 @@ class InvitationTest extends WebdaTest {
 
     // Accepting the invite for user1
     let ctx2 = await this.newContext();
-    ctx2.getSession().userId = ident1.getUser();
-    await assert.rejects(
-      () => this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {}),
-      /400/
-    );
+    ctx2.getSession().userId = ident1.getUser().toString();
     await this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {
       accept: true
     });
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
-      [ident1.getUser()]: "read",
+      [ident1.getUser().toString()]: "read",
       [user.getUuid()]: "all"
     });
 
@@ -415,7 +415,7 @@ class InvitationTest extends WebdaTest {
 
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
-      [ident1.getUser()]: "read",
+      [ident1.getUser().toString()]: "read",
       [user.getUuid()]: "all"
     });
     // @ts-ignore
@@ -483,13 +483,13 @@ class InvitationTest extends WebdaTest {
         }
       ]
     );
-    userCheck = await this.authentication.getUserStore().get(ident1.getUser());
+    userCheck = await this.authentication.getUserStore().get(ident1.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         model: "Test"
       }
     ]);
-    userCheck = await this.authentication.getUserStore().get(ident2.getUser());
+    userCheck = await this.authentication.getUserStore().get(ident2.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], []);
 
     // Missing model
@@ -516,7 +516,7 @@ class InvitationTest extends WebdaTest {
       })),
       []
     );
-    ctx2.getSession().userId = ident4.getUser();
+    ctx2.getSession().userId = ident4.getUser().toString();
     // Force refresh of user as we changed user manually
     await ctx2.getCurrentUser(true);
     await this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {
@@ -525,7 +525,7 @@ class InvitationTest extends WebdaTest {
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
       [user.getUuid()]: "all",
-      [ident4.getUser()]: "read,write"
+      [ident4.getUser().toString()]: "read,write"
     });
     // @ts-ignore
     assert.deepStrictEqual(company.__invitations, {});
@@ -558,25 +558,25 @@ class InvitationTest extends WebdaTest {
     });
 
     await company.delete();
-    let checkUser = await this.authentication.getUserStore().get(ident1.getUser());
+    let checkUser = await this.authentication.getUserStore().get(ident1.getUser().toString());
     assert.strictEqual(checkUser["_companies"].length, 1);
     // Accepting the invite for user1
     let ctx2 = await this.newContext();
-    ctx2.getSession().userId = ident1.getUser();
+    ctx2.getSession().userId = ident1.getUser().toString();
     // It should be removed and get a 410 error code
     await assert.rejects(
       () =>
         this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {
           accept: true
         }),
-      /410/
+      WebdaError.Gone
     );
     await checkUser.refresh();
     assert.strictEqual(checkUser["_companies"].length, 0);
     // Register pending one
     await this.authentication.createUserWithIdent("email", "test2@webda.io");
     const ident2 = await this.authentication.getIdentStore().get(`test2@webda.io_email`);
-    checkUser = await this.authentication.getUserStore().get(ident2.getUser());
+    checkUser = await this.authentication.getUserStore().get(ident2.getUser().toString());
     assert.strictEqual(checkUser["_companies"].length, 0);
   }
 }

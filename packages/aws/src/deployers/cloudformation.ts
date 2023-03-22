@@ -285,7 +285,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     this.resources.ChangeSetType = this.resources.ChangeSetType || "CREATE";
     this.resources.AssetsBucket = this.resources.AssetsBucket || packageDesc.webda.aws.AssetsBucket;
     if (!this.resources.AssetsBucket) {
-      throw new WebdaError("ASSETS_BUCKET_REQUIRED", "AssetsBucket must be defined");
+      throw new WebdaError.CodeError("ASSETS_BUCKET_REQUIRED", "AssetsBucket must be defined");
     }
     this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment}/${deployer.name}/";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";

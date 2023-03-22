@@ -1,4 +1,4 @@
-import { CoreModel, OperationContext } from "../index";
+import { CoreModel, OperationContext, WebdaError } from "../index";
 abstract class RoleModel extends CoreModel {
   abstract getRolesMap(): { [key: string]: string };
 
@@ -8,7 +8,7 @@ abstract class RoleModel extends CoreModel {
 
   async getRoles(ctx: OperationContext) {
     if (!ctx.getCurrentUserId()) {
-      throw 403;
+      throw new WebdaError.Forbidden("No user");
     }
     // If roles are cached in session
     if (ctx.getSession().roles) {
@@ -26,13 +26,13 @@ abstract class RoleModel extends CoreModel {
       if (this.isPermissive()) {
         return this;
       }
-      throw 403;
+      throw new WebdaError.Forbidden("No permission for this action defined");
     }
     let roles = await this.getRoles(ctx);
     if (roles.indexOf(this.getRolesMap()[action]) >= 0) {
       return this;
     }
-    throw 403;
+    throw new WebdaError.Forbidden("No permission");
   }
 }
 

@@ -8,6 +8,7 @@ export { CacheService };
 export * from "./application";
 export * from "./unpackedapplication";
 export * from "./core";
+export * from "./errors";
 
 // Models
 export * from "./models/aclmodel";

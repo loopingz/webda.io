@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Bean, getCommonJS, HttpContext, Route, Service } from "@webda/core";
+import { Bean, getCommonJS, HttpContext, Route, Service, WebdaError } from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as fs from "fs";
@@ -17,7 +17,9 @@ class ExceptionExecutor extends Service {
 
   @Route("/route/broken/{type}")
   async _brokenRoute(ctx) {
-    if (ctx.parameters.type === "401") {
+    if (ctx.parameters.type === "unauthorized") {
+      throw new WebdaError.Unauthorized("OnPurpose");
+    } else if (ctx.parameters.type === "401") {
       throw 401;
     } else if (ctx.parameters.type === "Error") {
       throw new Error();
@@ -42,6 +44,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   debugMailer: any;
   context: any = {};
   badCheck: boolean = false;
+  newExcept: boolean;
 
   async before() {
     await checkLocalStack();
@@ -187,6 +190,10 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.resource = "/route/broken/401";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 401);
+    this.evt.path = "/route/broken/unauthorized";
+    this.evt.resource = "/route/broken/unauthorized";
+    res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 401);
   }
 
   @test
@@ -292,9 +299,15 @@ class LambdaHandlerTest extends WebdaAwsTest {
     assert.strictEqual(res.statusCode, 410);
     this.badCheck = true;
     await assert.rejects(() => this.handler.handleRequest(this.evt, this.context), /Unknown/);
+    this.newExcept = true;
+    res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 429);
   }
 
   async checkRequest(): Promise<boolean> {
+    if (this.newExcept) {
+      throw new WebdaError.TooManyRequests("Too many requests");
+    }
     if (this.badCheck) {
       throw new Error("Unknown");
     }

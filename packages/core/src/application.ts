@@ -524,7 +524,7 @@ export class Application {
     this.logger = logger || new WorkerOutput();
     this.initTime = Date.now();
     if (!fs.existsSync(file)) {
-      throw new WebdaError(
+      throw new WebdaError.CodeError(
         "NO_WEBDA_FOLDER",
         `Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting ${file}`
       );
@@ -565,7 +565,7 @@ export class Application {
   loadConfiguration(file: string): void {
     // Check if file is a file or folder
     if (!fs.existsSync(file)) {
-      throw new WebdaError(
+      throw new WebdaError.CodeError(
         "NO_WEBDA_FOLDER",
         `Not a webda application folder or webda.config.jsonc or webda.config.json file: ${file}`
       );
@@ -578,7 +578,7 @@ export class Application {
         this.log("ERROR", "Your configuration file should use version 3, see https://docs.webda.io/");
       }
     } catch (err) {
-      throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
+      throw new WebdaError.CodeError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
     }
   }
 

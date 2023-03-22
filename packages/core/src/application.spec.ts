@@ -52,7 +52,7 @@ class ApplicationTest extends WebdaTest {
     assert.notStrictEqual(hierarchy.children["WebdaDemo/Computer"], undefined);
     assert.notStrictEqual(hierarchy.children["Webda/OwnerModel"], undefined);
     hierarchy = this.sampleApp.getModelHierarchy("WebdaDemo/User");
-    assert.strictEqual(hierarchy.ancestors.length, 3);
+    assert.strictEqual(hierarchy.ancestors.length, 2);
     assert.strictEqual(Object.keys(hierarchy.children).length, 0);
     hierarchy = this.sampleApp.getModelHierarchy("WebdaDemo/AbstractProject");
     assert.strictEqual(hierarchy.ancestors.length, 2);

@@ -1,5 +1,5 @@
 import jsonpath from "jsonpath";
-import { WebdaError } from "../core";
+import { WebdaError } from "../index";
 import { Service, ServiceParameters } from "./service";
 
 /**
@@ -106,22 +106,22 @@ export default class ConfigurationService<
     // Check interval by default every hour
 
     if (!this.parameters.source) {
-      throw new WebdaError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
+      throw new WebdaError.CodeError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
     }
     let source = this.parameters.source.split(":");
     this.sourceService = <ConfigurationProvider>(<unknown>this.getService(source[0]));
     if (!this.sourceService) {
-      throw new WebdaError(
+      throw new WebdaError.CodeError(
         "CONFIGURATION_SOURCE_INVALID",
         'Need a valid service for source ("sourceService:sourceId")'
       );
     }
     this.sourceId = source[1];
     if (!this.sourceId) {
-      throw new WebdaError("CONFIGURATION_SOURCE_INVALID", 'Need a valid source ("sourceService:sourceId")');
+      throw new WebdaError.CodeError("CONFIGURATION_SOURCE_INVALID", 'Need a valid source ("sourceService:sourceId")');
     }
     if (!this.sourceService.getConfiguration) {
-      throw new WebdaError(
+      throw new WebdaError.CodeError(
         "CONFIGURATION_SOURCE_INVALID",
         `Service '${source[0]}' is not implementing ConfigurationProvider interface`
       );

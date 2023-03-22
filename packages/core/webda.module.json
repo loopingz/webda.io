@@ -61,7 +61,15 @@
           }
         ]
       },
-      "Webda/OwnerModel": {},
+      "Webda/OwnerModel": {
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "Webda/User",
+            "type": "LINK"
+          }
+        ]
+      },
       "Webda/RegistryEntry": {},
       "Webda/RoleModel": {},
       "Webda/User": {
@@ -78,11 +86,11 @@
       "Webda/AclModel": {},
       "Webda/Comment": {},
       "Webda/OwnerModel": {
-        "Webda/Ident": {},
-        "Webda/User": {}
+        "Webda/Ident": {}
       },
       "Webda/RegistryEntry": {},
-      "Webda/RoleModel": {}
+      "Webda/RoleModel": {},
+      "Webda/User": {}
     },
     "plurals": {},
     "list": {
@@ -2044,9 +2052,7 @@
           "readOnly": true
         },
         "_user": {
-          "type": "string",
-          "description": "Default owner of the object",
-          "readOnly": true
+          "type": "string"
         },
         "public": {
           "type": "boolean",
@@ -2059,6 +2065,7 @@
         }
       },
       "required": [
+        "_user",
         "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2252,20 +2259,6 @@
           "description": "Last update date",
           "readOnly": true
         },
-        "_user": {
-          "type": "string",
-          "description": "Default owner of the object",
-          "readOnly": true
-        },
-        "public": {
-          "type": "boolean",
-          "description": "Define if the object is publicly readable",
-          "default": false
-        },
-        "uuid": {
-          "type": "string",
-          "description": "UUID of the object"
-        },
         "displayName": {
           "type": "string",
           "description": "Display name for this user"
@@ -2329,8 +2322,7 @@
         }
       },
       "required": [
-        "displayName",
-        "uuid"
+        "displayName"
       ],
       "description": "First basic model for User",
       "$schema": "http://json-schema.org/draft-07/schema#",

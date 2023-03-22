@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as http from "http";
 import { WritableStreamBuffer } from "stream-buffers";
+import { WebdaError } from "../errors";
 import { WebdaTest } from "../test";
 import { ProxyService } from "./proxy";
 
@@ -69,7 +70,7 @@ class ProxyTest extends WebdaTest {
     await exec.execute(ctx);
 
     proxyService.getParameters().requireAuthentication = true;
-    await assert.rejects(() => this.execute(ctx, "test.webda.io", "GET", "/proxy"), /401/);
+    await assert.rejects(() => this.execute(ctx, "test.webda.io", "GET", "/proxy"), WebdaError.Unauthorized);
     ctx.reinit();
     ctx.getSession().login("test", "test");
 

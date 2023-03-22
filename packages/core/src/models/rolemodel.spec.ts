@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Core, HttpContext, RoleModel, Session, User, WebContext } from "../index";
+import { Core, HttpContext, RoleModel, Session, User, WebContext, WebdaError } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -57,7 +57,10 @@ class RolePolicyTest {
 
   @test async noLogged() {
     this._ctx.getSession().logout();
-    assert.rejects(() => this.permissive.canAct(this._ctx, "get"), /403/g);
+    assert.rejects(
+      () => this.permissive.canAct(this._ctx, "get"),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
   }
   @test async get() {
     assert.strictEqual(await this.permissive.canAct(this._ctx, "get"), this.permissive);

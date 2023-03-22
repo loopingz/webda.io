@@ -1,4 +1,4 @@
-import { CoreModel } from "../models/coremodel";
+import { CoreModel, ModelRef } from "../models/coremodel";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { EventStoreDeleted, EventStorePartialUpdated, EventStoreSaved, EventStoreUpdate, Store } from "./store";
 
@@ -296,9 +296,10 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     let toAdd = [];
     let ids = [];
     // Manage the update of linked object
-    if (typeof attribute === "string" || attribute.modelLink) {
+    if (typeof attribute === "string" || attribute instanceof ModelRef) {
+      attribute = attribute.toString();
       if (updates[this.parameters.attribute] !== undefined && updates[this.parameters.attribute] !== attribute) {
-        toAdd.push(updates[this.parameters.attribute]);
+        toAdd.push(updates[this.parameters.attribute].toString());
         toDelete.push(attribute);
       } else {
         ids.push(attribute);

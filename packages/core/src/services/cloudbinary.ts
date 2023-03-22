@@ -1,4 +1,5 @@
 import { join } from "path";
+import { WebdaError } from "../errors";
 import { OperationContext } from "../utils/context";
 import { Binary, BinaryMap, BinaryModel, BinaryParameters } from "./binary";
 
@@ -95,7 +96,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(uid);
     if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
-      throw 404;
+      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
     await object.canAct(ctx, "get_binary");
     let url = await this.getRedirectUrlFromObject(object[property][index], ctx);

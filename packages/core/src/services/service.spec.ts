@@ -88,7 +88,8 @@ class ServiceTest extends WebdaTest {
     ctx.setInput(JSON.stringify({ output: "plop" }));
     assert.rejects(() => this.webda.callOperation(ctx, "myOperation2"));
     // @ts-ignore
-    this.webda.getApplication().baseConfiguration.cachedModules.schemas["plop.myoperation.input"] = {
+    const schemaRegistry = this.webda.getApplication().baseConfiguration.cachedModules.schemas;
+    schemaRegistry["plop.myoperation.input"] = {
       properties: {
         output: {
           type: "string",
@@ -97,6 +98,8 @@ class ServiceTest extends WebdaTest {
       },
       required: ["output"]
     };
+    // @ts-ignore
+    schemaRegistry["plop.myOperation.input"] = schemaRegistry["plop.myoperation.input"];
     let service = new FakeService(this.webda, "plop", {
       bean: "Authentication"
     });
@@ -139,6 +142,33 @@ class ServiceTest extends WebdaTest {
     await ctx.newSession();
     ctx.getSession<any>().role = "test";
     await this.webda.callOperation(ctx, "plop.myOperation");
+
+    // Test input detection
+    this.webda.registerOperation("plop.myOperation", {
+      id: "plop.myOperation",
+      input: "plop.myOperation.input",
+      service: "plop",
+      method: "myOperation"
+    });
+    assert.deepStrictEqual(this.webda.listOperations(), {
+      "plop.myOperation": {
+        id: "plop.myOperation",
+        input: "plop.myOperation.input"
+      }
+    });
+
+    // Test input detection
+    this.webda.registerOperation("plop.myOperation", {
+      id: "plop.myOperation",
+      input: "plop.myOperation.input2",
+      service: "plop",
+      method: "myOperation"
+    });
+    assert.deepStrictEqual(this.webda.listOperations(), {
+      "plop.myOperation": {
+        id: "plop.myOperation"
+      }
+    });
   }
 
   @test

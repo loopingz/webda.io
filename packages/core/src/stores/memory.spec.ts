@@ -150,6 +150,29 @@ class MemoryStoreTest extends StoreTest {
   }
 
   @test
+  async migration() {
+    let usersStore: MemoryStore<any> = <MemoryStore<any>>this.getUserStore();
+    for (let i = 0; i < 1200; i++) {
+      await usersStore.save({ uuid: `id_${i}`, id: i });
+      if (i % 10 === 0) {
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/CoreModel/, "webda/user2");
+      } else if (i % 2 === 0) {
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/CoreModel/, "webda/user");
+      }
+    }
+    await usersStore.v3Migration();
+    (await usersStore.getAll()).forEach(user => {
+      if (user.id % 10 === 0) {
+        assert.strictEqual(user.__type, "webda/user2");
+      } else if (user.id % 2 === 0) {
+        assert.strictEqual(user.__type, "Webda/User");
+      } else {
+        assert.strictEqual(user.__type, "Webda/CoreModel");
+      }
+    });
+  }
+
+  @test
   async persistence() {
     // Remove the path if exists
     if (existsSync(".test.json")) {

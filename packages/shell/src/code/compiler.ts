@@ -306,18 +306,18 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         }
         // @ts-ignore
         let typeName = member.type?.typeName?.escapedText;
+        //typeName && console.log(typeName); //, member.type, this.typeChecker.getTypeAtLocation(member.type));
         if (typeName === "ModelParent" || typeName === "ModelLink") {
           return new ObjectProperty(this.getPropertyName(member.name), new StringType(), true);
         } else if (typeName === "ModelLinksSimpleArray") {
           return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(new StringType()), true);
         } else if (typeName === "ModelLinksArray") {
-          let type = (<any>this.childNodeParser.createType(member.type, context)).type.type.type.types[0].type.type.item
-            .types[0].type.type.type.types[1];
-          type.type.type.properties.push(new ObjectProperty("uuid", new StringType(), true));
+          let type = <any>this.childNodeParser.createType((<any>member.type).typeArguments[1], context);
+          type.properties.push(new ObjectProperty("uuid", new StringType(), true));
           return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(type), false);
         } else if (typeName === "ModelLinksMap") {
-          let type = (<any>this.childNodeParser.createType(member.type, context)).type.type.type.types[0].type.type
-            .additionalProperties.types[0].type.type.type.types[1];
+          let type = <any>this.childNodeParser.createType((<any>member.type).typeArguments[1], context);
+          type.properties.push(new ObjectProperty("uuid", new StringType(), true));
           return new ObjectProperty(
             this.getPropertyName(member.name),
             new ObjectType("modellinksmap-test", [], [], type),
@@ -617,6 +617,8 @@ export class Compiler {
           if (!this.tsProgram.getRootFileNames().includes(sourceFile.fileName)) {
             if (this.extends(classTree, "@webda/core", "CoreModel")) {
               const name = this.getLibraryModelName(sourceFile.fileName, this.getExportedName(classNode));
+              // This should not happen likely bad module not worth checking
+              /* c8 ignore next 3 */
               if (!name) {
                 return;
               }
@@ -719,6 +721,8 @@ export class Compiler {
       }
       mod = path.dirname(mod);
     }
+    // Should not happen
+    /* c8 ignore next 3 */
     if (!moduleInfo) {
       return;
     }
@@ -990,32 +994,8 @@ export class Compiler {
         list[name] = jsFile;
         let root = tree;
         this.getClassTree(type)
-          .map((t: any) => {
-            // If the reference is not internal to this project
-            if (!symbolMap.has(t.id) && t.symbol?.parent?.escapedName) {
-              // Check the module of the source
-              let sourcePath = t.symbol?.parent?.escapedName.replace(/"/g, "");
-              let dir = sourcePath;
-              while (dir !== "/" && !existsSync(path.join(dir, "webda.module.json"))) {
-                dir = path.dirname(dir);
-              }
-              // If we found a module
-              if (existsSync(path.join(dir, "webda.module.json"))) {
-                let mod = FileUtils.load(path.join(dir, "webda.module.json"));
-                // Find the model in the module
-                return (
-                  Object.keys(mod.models.list).find(
-                    key =>
-                      mod.models.list[key].startsWith(sourcePath.substring(dir.length + 1) + ":") &&
-                      t.symbol.parent.exports.get(mod.models.list[key].split(":")[1] || "default") === t.symbol
-                  ) || null
-                );
-              }
-            } else {
-              return symbolMap.get(t.id);
-            }
-          })
-          .filter(t => t !== null && t !== undefined && t !== "Webda/CoreModel")
+          .map((t: any) => symbolMap.get(t.id))
+          .filter(t => t !== undefined && t !== "Webda/CoreModel")
           .reverse()
           .forEach((name: string) => {
             root[name] ??= {};

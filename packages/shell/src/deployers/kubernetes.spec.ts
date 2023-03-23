@@ -84,11 +84,11 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
                     schedule: "10 * * * *"
                   },
                   metadata: {
-                    name: "beanservice-cron-037b410f",
+                    name: "BeanService-cron-5dbf01c8",
                     namespace: "default",
                     annotations: {
                       "webda.io/crondeployer": "e63d39145a743541c090bbc9f0869bd871ff6fa42a6d4e10387e2cf3762fe5e9",
-                      "webda.io/cronid": "037b410f",
+                      "webda.io/cronid": "5dbf01c8",
                       "webda.io/crondescription": "10 * * * *: beanservice.cron()",
                       "webda.io/deployer": undefined,
                       "webda.io/deployment": "Production",

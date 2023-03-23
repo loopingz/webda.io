@@ -1,4 +1,4 @@
-import { Counter, EventWithContext, Histogram } from "../core";
+import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
 import { ConfigurationProvider, WebdaError } from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
@@ -1499,6 +1499,62 @@ abstract class Store<
 
     await saved._onUpdated();
     return saved;
+  }
+
+  /**
+   * Manage the store migration for __type case sensitivity
+   */
+  async v3Migration() {
+    const app = this.getWebda().getApplication();
+    // We need to be laxist for migration
+    this.parameters.strict = false;
+    this.log("INFO", "Ensuring __type is case sensitive from migration from v2.x");
+    await this.migration("typesCase", async item => {
+      if (item.__type !== undefined) {
+        if (!app.hasWebdaObject("models", item.__type, true) && app.hasWebdaObject("models", item.__type, false)) {
+          const model = app.getWebdaObject("models", item.__type, false);
+          const name = app.getModelName(model);
+          if (model) {
+            this.log("INFO", "Migrating type " + item.__type + " to " + name);
+            return <Partial<T>>{
+              __type: name
+            };
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Add a migration mechanism to store
+   * @param name
+   * @param patcher
+   */
+  async migration(name: string, patcher: (object: T) => Promise<Partial<T> | undefined>, batchSize: number = 1000) {
+    let status: RegistryEntry<{
+      continuationToken?: string;
+      count: number;
+      updated: number;
+      done: boolean;
+    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, undefined, {});
+    status.count ??= 0;
+    status.updated ??= 0;
+    do {
+      const res = await this.query(
+        status.continuationToken ? `OFFSET "${status.continuationToken}" ` : "" + `LIMIT ${batchSize}`
+      );
+      status.count += res.results.length;
+      for (let item of res.results) {
+        let updated = await patcher(item);
+        if (updated !== undefined) {
+          status.updated++;
+          await item.patch(updated, null);
+        }
+      }
+      this.log("INFO", `Migrated ${status.count} items: ${status.updated} updated`);
+      status.continuationToken = res.continuationToken;
+      await status.save();
+    } while (status.continuationToken);
   }
 
   /**

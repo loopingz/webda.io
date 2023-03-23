@@ -119,12 +119,23 @@ export class WebdaServer extends Webda {
    * @param next
    */
   async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    let ctx: WebContext;
+    let emitResult: boolean = false;
     try {
       res.on("error", this.log.bind(this, "ERROR"));
-      let ctx = await this.getContextFromRequest(req, res);
+      ctx = await this.getContextFromRequest(req, res);
+    } catch (err) {
+      this.log("ERROR", err);
+    } finally {
       if (!ctx) {
+        if (res.statusCode < 400) {
+          res.writeHead(500);
+        }
+        res.end();
         return;
       }
+    }
+    try {
       let httpContext = ctx.getHttpContext();
 
       if (!this.updateContextWithRoute(ctx)) {
@@ -133,108 +144,71 @@ export class WebdaServer extends Webda {
           // Static served should not be reachable via XHR
           if (httpContext.getMethod() !== "GET" || !this.resourceService) {
             ctx.writeHead(404);
-            await ctx.end();
             return;
           }
           // Try to serve static resource
           await ctx.init();
           ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
-          try {
-            await this.resourceService._serve(ctx);
-          } catch (err) {
-            if (typeof err === "number") {
-              ctx.writeHead(err);
-            } else if (err instanceof WebdaError.HttpError) {
-              this.log("DEBUG", "Sending error", err.message);
-              ctx.writeHead(err.getResponseCode());
-            } else {
-              throw err;
-            }
-          }
-          await ctx.end();
+          await this.resourceService._serve(ctx);
           return;
         }
       }
 
       await ctx.init();
       const origin = <string>(req.headers.Origin || req.headers.origin);
-      try {
-        // Set predefined headers for CORS
-        if (this.devMode || !origin || (await this.checkCORSRequest(ctx))) {
-          if (origin) {
-            res.setHeader("Access-Control-Allow-Origin", origin);
-          }
-        } else {
-          this.log("INFO", "CORS denied from", origin);
-          ctx.writeHead(401);
-          await ctx.end();
-          return;
-        }
-        this.log("INFO", "Pre checkRequest", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
-        // Verify if request is authorized
-        if (!(await this.checkRequest(ctx))) {
-          this.log("WARN", "Request refused");
-          throw 403;
-        }
-        this.log("INFO", "Post checkRequest", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
-      } catch (err) {
-        if (typeof err === "number") {
-          ctx.statusCode = err;
-          await ctx.end();
-          return;
-        } else if (err instanceof WebdaError.HttpError) {
-          ctx.statusCode = err.getResponseCode();
-          await ctx.end();
-          return;
-        }
-        throw err;
+      // Set predefined headers for CORS
+      if (this.devMode || !origin || (await this.checkCORSRequest(ctx))) {
+        ctx.setHeader("Access-Control-Allow-Origin", origin);
+      } else {
+        throw new WebdaError.Unauthorized(`CORS denied from ${origin}`);
       }
+      // Verify if request is authorized
+      if (!(await this.checkRequest(ctx))) {
+        this.log("WARN", "Request refused");
+        throw new WebdaError.Forbidden("Request refused");
+      }
+
       if (httpContext.getProtocol() === "https:") {
         // Add the HSTS header
-        res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+        ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
       }
       // Add correct headers for X-scripting
       if (req.headers["x-forwarded-server"] === undefined) {
         if (this.devMode && req.headers["origin"]) {
-          res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
+          ctx.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
         }
       }
+      // Handle OPTIONS
       if (req.method === "OPTIONS") {
         let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         routes.push("OPTIONS");
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-        res.setHeader("Access-Control-Allow-Headers", req.headers["access-control-request-headers"] || "content-type");
-        res.setHeader("Access-Control-Allow-Methods", routes.join(","));
-        res.setHeader("Access-Control-Max-Age", 86400);
-        res.setHeader("Allow", routes.join(","));
-        res.writeHead(200);
+        ctx.setHeader("Access-Control-Allow-Credentials", "true");
+        ctx.setHeader("Access-Control-Allow-Headers", req.headers["access-control-request-headers"] || "content-type");
+        ctx.setHeader("Access-Control-Allow-Methods", routes.join(","));
+        ctx.setHeader("Access-Control-Max-Age", 86400);
+        ctx.setHeader("Allow", routes.join(","));
+        ctx.writeHead(200);
         return;
       }
       await this.emitSync("Webda.Request", { context: ctx });
 
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-      try {
-        this.log("INFO", "Execute", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
-        await ctx.execute();
-        await this.emitSync("Webda.Result", { context: ctx });
-        await ctx.end();
-      } catch (err) {
-        await this.emitSync("Webda.Result", { context: ctx });
-        if (typeof err === "number") {
-          ctx.statusCode = err;
-          this.flushHeaders(ctx);
-          return;
-        } else if (err instanceof WebdaError.HttpError) {
-          this.log("DEBUG", "Sending error", err.message);
-          ctx.statusCode = err.getResponseCode();
-          this.flushHeaders(ctx);
-          return;
-        }
-        throw err;
-      }
+      ctx.setHeader("Access-Control-Allow-Credentials", "true");
+      emitResult = true;
+      this.log("INFO", "Execute", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
+      await ctx.execute();
+      await this.emitSync("Webda.Result", { context: ctx });
     } catch (err) {
-      res.writeHead(500);
+      err = typeof err === "number" ? new WebdaError.HttpError("Wrapped", err) : err;
+      if (err instanceof WebdaError.HttpError) {
+        ctx.statusCode = err.getResponseCode();
+      } else {
+        ctx.statusCode = 500;
+      }
+      // If we have a context, we can send the error
+      emitResult && (await this.emitSync("Webda.Result", { context: ctx }));
       this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
+    } finally {
+      await ctx.end();
     }
   }
 

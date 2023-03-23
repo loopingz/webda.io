@@ -307,7 +307,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -322,7 +322,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+        "Partial<interface-829200435-246-294-829200435-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -398,6 +398,54 @@
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
+    },
+    "WebdaDemo/Classroom": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "uuid",
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Classroom"
     },
     "WebdaDemo/Company": {
       "type": "object",
@@ -558,6 +606,68 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contact"
     },
+    "WebdaDemo/Course": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "classroom": {
+          "type": "string"
+        },
+        "teacher": {
+          "type": "string"
+        },
+        "students": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "firstName",
+              "uuid"
+            ]
+          }
+        }
+      },
+      "required": [
+        "uuid",
+        "name",
+        "classroom",
+        "teacher"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Course"
+    },
     "WebdaDemo/CustomDeployer": {
       "type": "object",
       "properties": {
@@ -609,7 +719,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-178760925-1847-2331-178760925-0-8162976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-1847-2331-1131383939-0-8162976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -622,7 +732,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-178760925-1847-2331-178760925-0-8162976353190>": {
+        "Partial<class-1131383939-1847-2331-1131383939-0-8162976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -653,7 +763,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -674,7 +784,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+        "Partial<interface-829200435-246-294-829200435-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -868,7 +978,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -883,7 +993,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+        "Partial<interface-829200435-246-294-829200435-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -916,6 +1026,72 @@
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
+    },
+    "WebdaDemo/Student": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "friends": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "firstName",
+              "lastName",
+              "uuid"
+            ]
+          }
+        },
+        "teachers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "email",
+        "firstName",
+        "lastName",
+        "teachers"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Student"
     },
     "WebdaDemo/SubProject": {
       "type": "object",
@@ -1046,6 +1222,44 @@
       "type": "string",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WebdaDemo/SubSubProject.action6.input"
+    },
+    "WebdaDemo/Teacher": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Teacher"
     },
     "WebdaDemo/testInput": {
       "type": "object",

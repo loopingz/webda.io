@@ -591,7 +591,11 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     if (this.headersFlushed) {
       throw new Error("Headers have been sent already");
     }
-    this._outputHeaders[header] = value;
+    if (value) {
+      this._outputHeaders[header] = value;
+    } else if (this._outputHeaders[header]) {
+      delete this._outputHeaders[header];
+    }
   }
 
   /**
@@ -694,7 +698,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
       await Promise.all(this._promises);
       if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
         this._body = (<WritableStreamBuffer>this._stream).getContents().toString();
-        this.statusCode = 200;
+        this.statusCode = this.statusCode < 300 ? 200 : this.statusCode;
       }
       if (!this.headersFlushed) {
         this._webda.flushHeaders(this);

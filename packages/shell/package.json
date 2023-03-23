@@ -24,6 +24,7 @@
     "build:watch": "webda build --watch",
     "pretest": "npm run build",
     "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts",
+    "test:debug": "mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*"
   },

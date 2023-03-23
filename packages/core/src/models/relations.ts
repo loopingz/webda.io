@@ -88,7 +88,10 @@ export class ModelLink<T extends CoreModel> {
   async get(): Promise<T> {
     return this.model.ref(this.uuid).get();
   }
-  set(id: string | T) {}
+  set(id: string | T) {
+    this.uuid = typeof id === "string" ? id : id.getUuid();
+  }
+
   toString(): string {
     return this.uuid;
   }
@@ -198,39 +201,6 @@ export function createModelLinksMap<T extends CoreModel>(model: CoreModelDefinit
     });
   return result;
 }
-/*
-export class ModelLinksMap<T extends CoreModel, K> implements Test<T, K> {
-  add(model: ModelRefCustomProperties<T, K>) {
-    this.push(model);
-  }
-
-  remove(model: ModelRefCustomProperties<T, K> | string) {
-    let index = this.findIndex(m => m.getUuid() === (typeof model === "string" ? model : model.getUuid()));
-    if (index >= 0) {
-      this.splice(index, 1);
-    }
-  }
-  [key: Omit<string, "add" | "remove">]: ModelRefCustomProperties<T, K>;
-}
-*/
-/**
- * Define 1:n relation
- */
-//export type ModelLinksSimpleArray<T extends CoreModel> = Readonly<ModelRef<T>[]> & ModelCollectionManager<string>;
-/**
- * Define 1:n relation with some sort of additional data or duplicated data
- */
-export type ModelLinksArray2<T extends CoreModel, K = any> = Readonly<(ModelLoader<T, K> & { uuid: string })[]> &
-  ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
-/**
- * Define 1:n relation with some sort of additional data or duplicated data
- *
- * The key of the map is the value of the FK
- */
-export type ModelLinksMap2<T extends CoreModel, K = any> = Readonly<{
-  [key: string]: ModelLoader<T, K> & { uuid: string };
-}> &
-  ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
 
 /**
  * Define the parent of the model

@@ -429,7 +429,7 @@ class CoreModel {
     if (!Core.get()) {
       throw new Error("Webda not initialized");
     }
-    return <Store<T>>Core.get().getModelStore(this);
+    return Core.get().getModelStore(this);
   }
 
   /**

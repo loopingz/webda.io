@@ -126,15 +126,16 @@ export class WebdaServer extends Webda {
       ctx = await this.getContextFromRequest(req, res);
     } catch (err) {
       this.log("ERROR", err);
-    } finally {
-      if (!ctx) {
-        if (res.statusCode < 400) {
-          res.writeHead(500);
-        }
-        res.end();
-        return;
-      }
     }
+    // If no context, we are in error
+    if (!ctx) {
+      if (res.statusCode < 400) {
+        res.writeHead(500);
+      }
+      res.end();
+      return;
+    }
+
     try {
       let httpContext = ctx.getHttpContext();
 

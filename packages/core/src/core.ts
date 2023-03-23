@@ -444,7 +444,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   getModelStore<T extends CoreModel>(modelOrConstructor: Constructor<T> | T): Store<T> {
     const model = <Constructor<T>>(
-      (modelOrConstructor instanceof CoreModel ? (<T>modelOrConstructor).__class : modelOrConstructor)
+      (modelOrConstructor instanceof CoreModel ? modelOrConstructor.__class : modelOrConstructor)
     );
     if (this._modelStoresCache.has(model)) {
       return <Store<T>>this._modelStoresCache.get(model);
@@ -715,9 +715,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     ["input", "output"]
       .filter(key => this.operations[operationId][key])
       .forEach(key => {
-        if (this.getApplication().hasSchema(this.operations[operationId][key])) {
-          this.operations[operationId][key] = this.operations[operationId][key];
-        } else {
+        if (!this.getApplication().hasSchema(this.operations[operationId][key])) {
           delete this.operations[operationId][key];
         }
       });

@@ -306,17 +306,20 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         }
         // @ts-ignore
         let typeName = member.type?.typeName?.escapedText;
-        //typeName && console.log(typeName); //, member.type, this.typeChecker.getTypeAtLocation(member.type));
         if (typeName === "ModelParent" || typeName === "ModelLink") {
           return new ObjectProperty(this.getPropertyName(member.name), new StringType(), true);
         } else if (typeName === "ModelLinksSimpleArray") {
           return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(new StringType()), true);
         } else if (typeName === "ModelLinksArray") {
-          let type = <any>this.childNodeParser.createType((<any>member.type).typeArguments[1], context);
+          let type = <any>(
+            this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
+          );
           type.properties.push(new ObjectProperty("uuid", new StringType(), true));
           return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(type), false);
         } else if (typeName === "ModelLinksMap") {
-          let type = <any>this.childNodeParser.createType((<any>member.type).typeArguments[1], context);
+          let type = <any>(
+            this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
+          );
           type.properties.push(new ObjectProperty("uuid", new StringType(), true));
           return new ObjectProperty(
             this.getPropertyName(member.name),

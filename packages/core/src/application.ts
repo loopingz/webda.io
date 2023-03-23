@@ -738,15 +738,44 @@ export class Application {
    *
    * @param section
    * @param name
-   * @returns
+   * @param caseSensitive
    */
-  getWebdaObject(section: Section, name: string) {
+  hasWebdaObject(section: Section, name: string, caseSensitive: boolean = false): boolean {
     let objectName = this.completeNamespace(name);
     this.log("TRACE", `Search for ${section} ${objectName}`);
     if (!this[section][objectName] && name.indexOf("/") === -1) {
       objectName = `Webda/${name}`;
     }
     if (!this[section][objectName]) {
+      const caseInsensitive = Object.keys(this[section]).find(k => k.toLowerCase() === name.toLowerCase());
+      if (this[section][caseInsensitive] && !caseSensitive) {
+        // We found a case insensitive match
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   *
+   * @param section
+   * @param name
+   * @returns
+   */
+  getWebdaObject(section: Section, name: string, caseSensitive: boolean = false) {
+    let objectName = this.completeNamespace(name);
+    this.log("TRACE", `Search for ${section} ${objectName}`);
+    if (!this[section][objectName] && name.indexOf("/") === -1) {
+      objectName = `Webda/${name}`;
+    }
+    if (!this[section][objectName]) {
+      const caseInsensitive = Object.keys(this[section]).find(k => k.toLowerCase() === name.toLowerCase());
+      if (this[section][caseInsensitive] && !caseSensitive) {
+        // We found a case insensitive match
+        this.log("DEBUG", `Found ${caseInsensitive} instead of ${name}, will be removed in 4.0`);
+        return this[section][caseInsensitive];
+      }
       objectName = name !== objectName ? ` or ${objectName}` : "";
       throw Error(
         `Undefined ${section.substring(0, section.length - 1)} ${name}${objectName} (${Object.keys(this[section]).join(
@@ -803,7 +832,7 @@ export class Application {
    * @returns
    */
   getRootModels(): string[] {
-    return Object.keys(this.graph).filter(key => !this.graph[key].parent && this.models[key].Expose);
+    return Object.keys(this.graph).filter(key => !this.graph[key].parent && this.models[key]?.Expose);
   }
 
   /**

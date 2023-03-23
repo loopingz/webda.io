@@ -107,10 +107,7 @@ export interface OperationDefinitionInfo extends OperationDefinition {
 /**
  *
  */
-export class RegistryEntry extends CoreModel {
-  [key: string]: any;
-}
-
+export type RegistryEntry<T = any> = CoreModel & T;
 /**
  * Ensure all events store the context in the same place
  */
@@ -718,8 +715,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     ["input", "output"]
       .filter(key => this.operations[operationId][key])
       .forEach(key => {
-        if (this.getApplication().hasSchema(this.operations[operationId][key].toLowerCase())) {
-          this.operations[operationId][key] = this.operations[operationId][key].toLowerCase();
+        if (this.getApplication().hasSchema(this.operations[operationId][key])) {
+          this.operations[operationId][key] = this.operations[operationId][key];
         } else {
           delete this.operations[operationId][key];
         }

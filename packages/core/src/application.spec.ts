@@ -141,8 +141,15 @@ class ApplicationTest extends WebdaTest {
     // @ts-ignore
     app.getPackageDescription.files = undefined;
     // Nothing can be really checked here
-    app.addModel("WebdaTest/NotExisting", null);
+    app.addModel("WebdaTest/NotExisting", CoreModel);
     app.addDeployer("WebdaTest/NotExisting", null);
+    assert.ok(app.hasWebdaObject("models", "WebdaTest/NotExisting"));
+    assert.ok(!app.hasWebdaObject("models", "notexisting"));
+    // To remove with 4.0
+    assert.ok(app.hasWebdaObject("models", "webdatest/notexisting"));
+    assert.ok(!app.hasWebdaObject("models", "webdatest/notexisting", true));
+    assert.strictEqual(app.getWebdaObject("models", "webdatest/notexisting"), CoreModel);
+
     delete app.getModels()["WebdaTest/NotExisting"];
     assert.deepStrictEqual(app.getGitInformation(), {
       branch: "",

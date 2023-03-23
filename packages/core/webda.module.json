@@ -70,7 +70,6 @@
           }
         ]
       },
-      "Webda/RegistryEntry": {},
       "Webda/RoleModel": {},
       "Webda/User": {
         "maps": [
@@ -88,7 +87,6 @@
       "Webda/OwnerModel": {
         "Webda/Ident": {}
       },
-      "Webda/RegistryEntry": {},
       "Webda/RoleModel": {},
       "Webda/User": {}
     },
@@ -99,7 +97,6 @@
       "Webda/CoreModel": "lib/models/coremodel:CoreModel",
       "Webda/Ident": "lib/models/ident:Ident",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
-      "Webda/RegistryEntry": "lib/core:RegistryEntry",
       "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
       "Webda/User": "lib/models/user:User"
     }
@@ -2161,25 +2158,6 @@
       "description": "Proxy to a backend service",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ProxyService"
-    },
-    "Webda/RegistryEntry": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RegistryEntry"
     },
     "Webda/ResourceService": {
       "type": "object",

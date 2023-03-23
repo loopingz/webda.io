@@ -31,7 +31,7 @@ export namespace WebdaError {
     }
   }
 
-  export abstract class HttpError extends CodeError {
+  export class HttpError extends CodeError {
     constructor(message: string, public statusCode: number = 500) {
       super("", message);
       this.code = this.constructor.name.replace(/[a-z]([A-Z])/g, "_$1").toUpperCase();

@@ -1,5 +1,5 @@
 import { Application, DeepPartial, ModelAction, Service, ServiceParameters, WebContext } from "../index";
-
+// 147-158,169-175
 class DomainServiceParameters extends ServiceParameters {
   /**
    * Expose objects as operations too

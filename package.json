@@ -24,7 +24,7 @@
     "typescript": "~5.0.2"
   },
   "resolutions": {
-    "typescript": "~4.9.3",
+    "typescript": "~5.0.2",
     "deepmerge-ts": "<4.2.0"
   },
   "author": "loopingz",

@@ -80,7 +80,7 @@ export type BinaryFiles = BinaryFileInfo[];
 /**
  * Represent a file to store
  */
-export abstract class BinaryFile implements BinaryFileInfo {
+export abstract class BinaryFile<T = any> implements BinaryFileInfo {
   /**
    * Current name
    */
@@ -112,7 +112,7 @@ export abstract class BinaryFile implements BinaryFileInfo {
   /**
    * Metadatas stored along with the binary
    */
-  metadata?: BinaryMetadata;
+  metadata?: T;
 
   constructor(info: BinaryFileInfo) {
     this.name = info.name;
@@ -217,14 +217,14 @@ export class MemoryBinaryFile extends BinaryFile {
 /**
  * Define the metadata for a Binary
  */
-export type BinaryMetadata = { [key: string]: any };
+export type BinaryMetadata = any;
 
 /**
  * This is a map used to retrieve binary
  *
  * @class BinaryMap
  */
-export class BinaryMap extends BinaryFile {
+export class BinaryMap<T = any> extends BinaryFile<T> {
   /**
    * Current context
    */
@@ -286,6 +286,11 @@ export class BinaryMap extends BinaryFile {
     this.__ctx = ctx;
   }
 }
+
+/**
+ * Define a collection of BinaryMap
+ */
+export class BinaryMaps extends Array<BinaryMap> {}
 
 export class BinaryParameters extends ServiceParameters {
   /**

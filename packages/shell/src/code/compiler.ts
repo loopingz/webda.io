@@ -916,6 +916,9 @@ export class Compiler {
         .getProperties()
         .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
         .forEach((prop: ts.Symbol) => {
+          if (prop.getEscapedName() === "profilePicture" || prop.getEscapedName() === "images") {
+            console.log(prop);
+          }
           const pType: ts.TypeReferenceNode = <ts.TypeReferenceNode>prop.valueDeclaration
             .getChildren()
             .filter(c => c.kind === ts.SyntaxKind.TypeReference)
@@ -965,6 +968,23 @@ export class Compiler {
               case "ModelLinksSimpleArray":
                 addLinkToGraph("LINKS_SIMPLE_ARRAY");
                 break;
+              case "BinaryMap":
+                graph[name].binaries ??= [];
+                graph[name].binaries.push({
+                  attribute: prop.escapedName.toString(),
+                  cardinality: "ONE"
+                });
+                break;
+              /* c8 ignore start */
+              // Future use
+              case "BinaryMaps":
+                graph[name].binaries ??= [];
+                graph[name].binaries.push({
+                  attribute: prop.escapedName.toString(),
+                  cardinality: "MANY"
+                });
+                break;
+              /* c8 ignore stop */
             }
           }
         });
@@ -1001,7 +1021,8 @@ export class Compiler {
           .map((t: any) => symbolMap.get(t.id))
           .filter(t => t !== undefined && t !== "Webda/CoreModel");
         ancestorsMap[name] = ancestors[1];
-        ancestors.reverse().forEach((ancestorName: string) => {
+        ancestors.reverse();
+        ancestors.forEach((ancestorName: string) => {
           root[ancestorName] ??= {};
           root = root[ancestorName];
         });

@@ -1,6 +1,6 @@
 // organize-imports-ignore
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { Core, HttpContext, HttpMethodType, Service, WebContext, WebdaError } from "./index";
+import { Core, HttpContext, HttpMethodType, Service, WebContext } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as path from "path";
 import { execSync } from "child_process";

@@ -87,13 +87,22 @@ class WebdaServerTest {
       .callsFake(async () => {
         throw 404;
       });
+    this.server.getRouter().removeRoute("/test");
+    this.server.getRouter().addRoute("/test", {
+      _method: async (ctx: HttpContext) => {
+        await stub();
+      },
+      methods: ["GET"],
+      executor: "CustomService"
+    });
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
     assert.strictEqual(res.status, 404);
     stub.callsFake(() => {
-      throw new Error("Unknown");
+      throw new Error();
     });
+
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });

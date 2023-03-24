@@ -8,7 +8,7 @@ import { Company } from "./company";
 export class User extends WebdaUser {
   _company: ModelParent<Company>;
   name: string;
-  profilePicture: BinaryMap;
+  profilePicture: BinaryMap<{ width: number; height: number }>;
   images: BinaryMap[];
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {

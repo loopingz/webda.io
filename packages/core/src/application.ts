@@ -31,6 +31,11 @@ export type ModelGraph = {
   }[];
   maps?: any[];
   children?: string[];
+  binaries?: {
+    attribute: string;
+    cardinality: "ONE" | "MANY";
+    metadata?: string;
+  }[];
 };
 
 /**

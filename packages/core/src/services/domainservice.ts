@@ -1,4 +1,13 @@
-import { Application, DeepPartial, ModelAction, Service, ServiceParameters, WebContext } from "../index";
+import {
+  Application,
+  DeepPartial,
+  Methods,
+  ModelAction,
+  Service,
+  ServiceParameters,
+  Store,
+  WebContext
+} from "../index";
 // 147-158,169-175
 class DomainServiceParameters extends ServiceParameters {
   /**
@@ -28,24 +37,19 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
   loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
     return new DomainServiceParameters(params);
   }
-  protected addRoute(...args: any[]) {
-    args.pop();
-    this.log("INFO", "AddRoute", ...args);
-    // @ts-ignore
-    super.addRoute(...args);
-  }
 
-  /*
+  /**
+   * Add operations for all exposed models
+   * @returns
+   */
   initOperations(): void {
     super.initOperations();
     if (!this.parameters.operations) {
       return;
     }
-    const prefix = this.parameters.operationPrefix;
-    const expose = this.parameters.expose;
-    const webda = this.getWebda();
-    const app = webda.getApplication();
-    const modelSchema = app.hasSchema(this._modelType) && this._modelType;
+    const app = this.getWebda().getApplication();
+
+    // Add default schemas
     if (!app.hasSchema("uuidRequest")) {
       app.registerSchema("uuidRequest", {
         type: "object",
@@ -67,102 +71,137 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
         }
       });
     }
-    ["create", "update"]
-      .filter(k => !expose.restrict[k])
-      .forEach(k => {
-        k = k.substring(0, 1).toUpperCase() + k.substring(1);
-        const id = `${prefix}.${k}`;
+
+    const models = app.getModels();
+    for (let modelKey in models) {
+      const model = models[modelKey];
+      const expose = model.Expose;
+      if (!expose) {
+        continue;
+      }
+      expose.restrict ??= {};
+      const prefix = modelKey.split("/").pop();
+      const modelSchema = modelKey;
+
+      ["create", "update"]
+        .filter(k => !expose.restrict[k])
+        .forEach(k => {
+          k = k.substring(0, 1).toUpperCase() + k.substring(1);
+          const id = `${prefix}.${k}`;
+          this.getWebda().registerOperation(id, {
+            service: this.getName(),
+            method: k === "Create" ? "httpCreate" : "operationUpdate",
+            id,
+            input: modelSchema,
+            output: modelSchema
+          });
+        });
+      ["delete", "get"]
+        .filter(k => !expose.restrict[k])
+        .forEach(k => {
+          k = k.substring(0, 1).toUpperCase() + k.substring(1);
+          const id = `${prefix}.${k}`;
+          const output = k === "Get" && modelSchema;
+          this.getWebda().registerOperation(id, {
+            service: this.getName(),
+            method: `http${k}`,
+            id,
+            input: "uuidRequest",
+            output
+          });
+        });
+      if (!expose.restrict.query) {
+        const id = `${prefix}.Query`;
         this.getWebda().registerOperation(id, {
           service: this.getName(),
-          method: k === "Create" ? "httpCreate" : "operationUpdate",
+          method: "httpQuery",
           id,
-          input: modelSchema,
-          output: modelSchema
+          input: "searchRequest"
         });
-      });
-    ["delete", "get"]
-      .filter(k => !expose.restrict[k])
-      .forEach(k => {
-        k = k.substring(0, 1).toUpperCase() + k.substring(1);
-        const id = `${prefix}.${k}`;
-        const output = k === "Get" && modelSchema;
+      }
+      // Add patch
+      if (!expose.restrict.update) {
+        const id = `${prefix}.Patch`;
         this.getWebda().registerOperation(id, {
           service: this.getName(),
-          method: `http${k}`,
+          method: "operationPatch",
           id,
-          input: "uuidRequest",
-          output
+          input: modelSchema + "?"
         });
-      });
-    if (!expose.restrict.query) {
-      const id = `${prefix}.Query`;
-      this.getWebda().registerOperation(id, {
-        service: this.getName(),
-        method: "httpQuery",
-        id,
-        input: "searchRequest"
-      });
-    }
-    // Add patch
-    if (!expose.restrict.update) {
-      const id = `${prefix}.Patch`;
-      this.getWebda().registerOperation(id, {
-        service: this.getName(),
-        method: "operationPatch",
-        id,
-        input: this._modelType + "?",
-        output: this._modelType
-      });
-    }
-    // Add all operations for Actions
-    if (this._model && this._model.getActions) {
-      let actions = this._model.getActions();
+      }
+      // Add all operations for Actions
+      let actions = model.getActions();
       Object.keys(actions).forEach(name => {
-        const id = `${prefix}.${name}`;
-        const input =
-          app.hasSchema(`${this._modelType}.${name.toLowerCase()}.input`) &&
-          `${this._modelType}.${name.toLowerCase()}.input`;
-        const output =
-          app.hasSchema(`${this._modelType}.${name.toLowerCase()}.output`) &&
-          `${this._modelType}.${name.toLowerCase()}.output`;
-        this.getWebda().registerOperation(id, {
+        const id = `${prefix}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
+        const info = {
           service: this.getName(),
           method: `action${name}`,
-          id,
-          input,
-          output
-        });
+          id
+        };
+        ["input", "output"]
+          .filter(i => app.hasSchema(`${modelKey}.${name}.${i}`))
+          .forEach(key => {
+            info[key] = `${modelKey}.${name}.${key}`;
+          });
+        this.getWebda().registerOperation(id, info);
       });
     }
   }
-  */
 
+  injector(
+    service: Store,
+    method: Methods<Store>,
+    type: "SET" | "QUERY",
+    injectAttribute?: string,
+    depth: number = 0,
+    ...args: any[]
+  ) {
+    return async (context: WebContext) => {
+      if (!injectAttribute || depth < 1) {
+        return service[method](context, ...args);
+      }
+      let input = await context.getInput();
+      if (type === "SET") {
+        input[injectAttribute] = context.getPathParameters()[`pid.${depth - 1}`];
+      } else if (type === "QUERY") {
+        input.q ??= "";
+        input.q =
+          `${injectAttribute} = "${context.getPathParameters()[`pid.${depth - 1}`]}"` +
+          (input.q !== "" ? `AND (${input.q})` : "");
+      }
+      await service[method](context, ...args);
+    };
+  }
+
+  /**
+   * Add routes for a model
+   * @param prefix
+   * @param model
+   * @param depth
+   * @param injectAttribute
+   * @returns
+   */
   addModelRoutes(prefix: string, model: any, depth: number = 0, injectAttribute?: string) {
     if (!model?.Expose) {
       return;
     }
 
-    const injector =
-      (method: (ctx: WebContext) => Promise<void>, type: "CLEAN" | "SET" | "QUERY") => async (context: WebContext) => {
-        if (!injectAttribute) {
-          return method(context);
-        }
-        let input = await context.getInput();
-        if (type === "CLEAN" && input[injectAttribute]) {
-          delete input[injectAttribute];
-        } else if (type === "SET") {
-          input[injectAttribute] = context.getParameters()[`pid.${depth}`];
-        } else if (type === "QUERY") {
-          input.query = `${injectAttribute} = "${context.getParameters()[`pid.${depth}`]}" AND (${input.query})`;
-        }
-        await method(context);
-      };
-
-    this.addRoute(`${prefix}`, ["GET", "PUT"], injector(model.store()["httpQuery"], "QUERY"));
-    this.addRoute(`${prefix}`, ["POST"], injector(model.store()["httpCreate"], "SET"));
+    this.addRoute(
+      `${prefix}`,
+      ["GET", "PUT"],
+      this.injector(model.store(), "httpQuery", "QUERY", injectAttribute, depth)
+    );
+    this.addRoute(
+      `${prefix}`,
+      ["POST"],
+      this.injector(model.store(), "operationCreate", "SET", injectAttribute, depth, model.getIdentifier())
+    );
     this.addRoute(`${prefix}/{uuid}`, ["DELETE"], model.store()["httpDelete"]);
-    this.addRoute(`${prefix}/{uuid}`, ["PUT"], injector(model.store()["httpUpdate"], "SET"));
-    this.addRoute(`${prefix}/{uuid}`, ["PATCH"], injector(model.store()["httpPatch"], "SET"));
+    this.addRoute(
+      `${prefix}/{uuid}`,
+      ["PUT", "PATCH"],
+      this.injector(model.store(), "httpUpdate", "SET", injectAttribute, depth)
+    );
     // Add all actions
     let actions = model.getActions();
     Object.keys(actions).forEach(actionName => {

@@ -626,7 +626,7 @@ export class Application {
    * Get model graph
    */
   getRelations(model: string | Constructor<CoreModel> | CoreModel) {
-    return this.getGraph()[typeof model === "string" ? model : this.getModelName(model)] || {};
+    return this.getGraph()[typeof model === "string" ? this.completeNamespace(model) : this.getModelName(model)] || {};
   }
 
   /**
@@ -840,9 +840,7 @@ export class Application {
    * @param object
    */
   getModelFromInstance(object: CoreModel): string | undefined {
-    return Object.keys(this.models)
-      .filter(k => this.models[k] === object.constructor)
-      .pop();
+    return Object.keys(this.models).find(k => this.models[k] === object.constructor);
   }
 
   /**
@@ -850,9 +848,7 @@ export class Application {
    * @param object
    */
   getModelFromConstructor(model: Constructor<CoreModel>): string | undefined {
-    return Object.keys(this.models)
-      .filter(k => this.models[k] === model)
-      .pop();
+    return Object.keys(this.models).find(k => this.models[k] === model);
   }
 
   /**
@@ -875,6 +871,8 @@ export class Application {
   getModelHierarchy(model: CoreModel | Constructor<CoreModel> | string): { ancestors: string[]; children: ModelGraph } {
     if (typeof model !== "string") {
       model = this.getModelName(model);
+    } else {
+      model = this.completeNamespace(model);
     }
     if (model === "Webda/CoreModel") {
       return { ancestors: [], children: this.baseConfiguration?.cachedModules?.models?.tree };
@@ -1175,7 +1173,11 @@ export class Application {
    */
   completeNamespace(name: string = ""): string {
     // Do not add a namespace if already present
-    if (name.indexOf("/") >= 0) {
+    if (name.includes("/")) {
+      return name;
+    }
+    name = this.getShortId(name);
+    if (name.includes("/")) {
       return name;
     }
     return `${this.getNamespace()}/${name}`;
@@ -1191,7 +1193,7 @@ export class Application {
 
   /**
    * Get short id for a name
-   * @param name
+   * @param name if name is shortId return longId else return shortId
    * @returns
    */
   getShortId(name: string): string {

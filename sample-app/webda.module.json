@@ -41,8 +41,7 @@
           }
         ],
         "children": [
-          "WebdaDemo/Hardware",
-          "WebdaDemo/ComputerScreen"
+          "WebdaDemo/Hardware"
         ]
       },
       "WebdaDemo/Company": {
@@ -62,9 +61,6 @@
         ],
         "children": [
           "WebdaDemo/Project",
-          "WebdaDemo/SubProject",
-          "WebdaDemo/AnotherSubProject",
-          "WebdaDemo/SubSubProject",
           "WebdaDemo/User"
         ]
       },
@@ -447,6 +443,23 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Classroom"
     },
+    "WebdaDemo/Classroom.test.input": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test",
+        "id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WebdaDemo/Classroom.test.input"
+    },
     "WebdaDemo/Company": {
       "type": "object",
       "properties": {
@@ -719,7 +732,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-178760925-1847-2331-178760925-0-8162976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-1801-2285-178760925-0-8095976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -732,7 +745,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-178760925-1847-2331-178760925-0-8162976353190>": {
+        "Partial<class-178760925-1801-2285-178760925-0-8095976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -1395,7 +1408,7 @@
         "name": {
           "type": "string"
         },
-        "images": {
+        "profilePicture": {
           "type": "object",
           "properties": {
             "hash": {
@@ -1433,12 +1446,53 @@
             "size"
           ],
           "description": "This is a map used to retrieve binary"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "hash": {
+                "type": "string",
+                "description": "Will be computed by the service\n\nhash of the content"
+              },
+              "challenge": {
+                "type": "string",
+                "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+              },
+              "size": {
+                "type": "number",
+                "description": "Size of the binary"
+              },
+              "name": {
+                "type": "string",
+                "description": "Current name"
+              },
+              "mimetype": {
+                "type": "string",
+                "description": "Mimetype of the binary"
+              },
+              "metadata": {
+                "$ref": "#/definitions/BinaryMetadata",
+                "description": "Metadatas stored along with the binary"
+              },
+              "originalname": {
+                "type": "string",
+                "description": "Original name"
+              }
+            },
+            "required": [
+              "mimetype",
+              "name",
+              "size"
+            ],
+            "description": "This is a map used to retrieve binary"
+          }
         }
       },
       "required": [
         "_company",
         "displayName",
-        "images",
         "name"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",

@@ -11,7 +11,7 @@ export class VoidStore extends Store {
     if (this.parameters.brokenInit) throw Error();
     this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
     this.addRoute("/", ["GET", "POST"], this._default);
-    this.addRoute("/urltemplate/{id}", ["GET"], this._template);
+    this.addRoute("/urltemplate/{+id}", ["GET"], this._template);
     this.addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
   }
 

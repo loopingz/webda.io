@@ -218,7 +218,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * Proxy route
    * @param ctx
    */
-  @Route("./{path}", ["GET", "POST", "DELETE", "PUT", "PATCH"], true)
+  @Route("./{+path}", ["GET", "POST", "DELETE", "PUT", "PATCH"])
   @Route(".", ["GET", "POST", "DELETE", "PUT", "PATCH"])
   async proxyRoute(ctx: WebContext) {
     if (this.parameters.requireAuthentication && !ctx.getCurrentUserId()) {

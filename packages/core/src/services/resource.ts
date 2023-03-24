@@ -119,7 +119,7 @@ export default class ResourceService<
       }
     });
     this.addRoute(
-      this.parameters.url + "{resource}",
+      this.parameters.url + "{+resource}",
       ["GET"],
       this._serve,
       {

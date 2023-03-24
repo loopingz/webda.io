@@ -219,7 +219,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   /**
    *
    */
-  @Route(".", ["GET"], false, {
+  @Route(".", ["GET"], {
     description: "Serve JWKS keys",
     get: {
       operationId: "getJWKS"

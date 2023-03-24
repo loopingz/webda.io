@@ -163,6 +163,9 @@ export default class AclModel extends CoreModel {
   }
 
   async canAct(ctx: OperationContext, action: string) {
+    if (action === "create" && ctx.getCurrentUserId()) {
+      return this;
+    }
     if (!this.getAcl() || !ctx.getCurrentUserId()) {
       throw new WebdaError.Forbidden("No ACL or user");
     }

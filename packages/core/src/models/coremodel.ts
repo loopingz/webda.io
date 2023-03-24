@@ -181,7 +181,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   /**
    * Get Model identifier
    */
-  getIdentifier(): string;
+  getIdentifier(short?: boolean): string;
   /**
    * Get the model hierarchy
    *
@@ -466,8 +466,12 @@ class CoreModel {
    * Get identifier for this model
    * @returns
    */
-  static getIdentifier(): string {
-    return Core.get().getApplication().getModelName(this);
+  static getIdentifier(short: boolean = true): string {
+    if (short) {
+      return Core.get().getApplication().getShortId(Core.get().getApplication().getModelName(this));
+    } else {
+      return Core.get().getApplication().getModelName(this);
+    }
   }
 
   /**

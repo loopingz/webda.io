@@ -57,17 +57,13 @@ export interface RouteInfo {
    */
   _method?: string | Function;
   /**
-   * Allow path in path variable
-   */
-  allowPath?: boolean;
-  /**
    * OpenAPI definition
    */
   openapi?: OpenAPIWebdaDefinition;
   /**
    * URI Template parser
    */
-  _uriTemplateParse?: { fromUri: (uri: string) => any; varNames: any };
+  _uriTemplateParse?: { fromUri: (uri: string, options?: { strict: boolean }) => any; varNames: any };
   /**
    * Hash
    */
@@ -98,6 +94,13 @@ export class Router {
    * @returns
    */
   getFinalUrl(url: string): string {
+    // We have to replace all @ by %40 as it is allowed in url rfc (https://www.rfc-editor.org/rfc/rfc3986#page-22)
+    // But disallowed in https://www.rfc-editor.org/rfc/rfc6570#section-3.2.1
+    // Similar for / in query string
+    url = url.replace(/@/g, "%40");
+    if (url.includes("?")) {
+      url = url.substring(0, url.indexOf("?")) + "?" + url.substring(url.indexOf("?") + 1).replace(/\//g, "%2F");
+    }
     const prefix = this.webda.getGlobalParams().routePrefix || "";
     if (prefix && url.startsWith(prefix)) {
       return url;
@@ -194,8 +197,8 @@ export class Router {
   protected comparePath(a, b): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
-    let bs = b.url.split("/");
-    let as = a.url.split("/");
+    let bs = b.url.replace(/\{[^}]+}/, "{}").split("/");
+    let as = a.url.replace(/\{[^}]+}/, "{}").split("/");
     for (let i in as) {
       if (bs[i] === undefined) return -1;
       if (as[i] === bs[i]) continue;
@@ -233,7 +236,7 @@ export class Router {
 
       if (
         routeUrl !== finalUrl &&
-        (map._uriTemplateParse === undefined || map._uriTemplateParse.fromUri(finalUrl) === undefined)
+        (map._uriTemplateParse === undefined || map._uriTemplateParse.fromUri(finalUrl, { strict: true }) === undefined)
       ) {
         continue;
       }
@@ -266,7 +269,7 @@ export class Router {
       if (map._uriTemplateParse === undefined) {
         continue;
       }
-      const parse_result = map._uriTemplateParse.fromUri(finalUrl);
+      const parse_result = map._uriTemplateParse.fromUri(finalUrl, { strict: true });
       if (parse_result !== undefined) {
         ctx.setServiceParameters(parameters);
         ctx.setPathParameters(parse_result);

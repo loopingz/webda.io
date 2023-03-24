@@ -11,18 +11,6 @@ import { FileUtils, JSONUtils } from "./utils/serializers";
 import { PrometheusService } from "./services/prometheus";
 import { register } from "prom-client";
 
-export class Executor {
-  /**
-   * Main method called by the webda framework if the route don't specify a _method
-   */
-  execute(ctx: WebContext): Promise<any> {
-    if (typeof ctx._route._method === "function") {
-      return ctx.execute();
-    }
-    return Promise.reject(Error("Not implemented"));
-  }
-}
-
 /**
  * TestApplication ensure we load the typescript sources instead of compiled version
  *
@@ -239,7 +227,7 @@ class WebdaTest {
     url: string = "/",
     body: any = {},
     headers: { [key: string]: string } = {}
-  ): Executor {
+  ): { execute: (context?: WebContext) => Promise<any> } {
     let httpContext = new HttpContext(host, method, url, "http", 80, headers);
     httpContext.setBody(body);
     httpContext.setClientIp("127.0.0.1");
@@ -250,13 +238,7 @@ class WebdaTest {
       ctx.setHttpContext(httpContext);
     }
     if (this.webda.updateContextWithRoute(ctx)) {
-      return {
-        execute: async (argCtx: WebContext = ctx) => {
-          if (typeof argCtx._route._method === "function") {
-            return Promise.resolve(argCtx.getExecutor()[argCtx._route._method.name](argCtx));
-          }
-        }
-      };
+      return ctx;
     }
   }
 
@@ -265,7 +247,7 @@ class WebdaTest {
    * @param params
    * @returns
    */
-  async http(
+  async http<T = any>(
     params: {
       method?: HttpMethodType;
       url?: string;
@@ -273,12 +255,12 @@ class WebdaTest {
       ctx?: WebContext;
       headers?: { [key: string]: string };
     } = {}
-  ): Promise<WebContext> {
+  ): Promise<T> {
     params.ctx ??= await this.newContext();
     params.method ??= "GET";
     params.url ??= "/";
-    await this.execute(params.ctx, "test.webda.io", params.method, params.url, params.body, params.headers);
-    return params.ctx;
+
+    return await this.execute(params.ctx, "test.webda.io", params.method, params.url, params.body, params.headers);
   }
 
   async execute(
@@ -293,18 +275,7 @@ class WebdaTest {
     if (!exec) {
       throw new Error(`${method} ${url} route not found`);
     }
-    try {
-      await exec.execute(ctx);
-    } catch (err) {
-      if (err instanceof WebdaError.HttpError) {
-        throw err;
-      }
-      if (err instanceof Error) {
-        this.log("ERROR", err);
-        throw 500;
-      }
-      throw err;
-    }
+    await exec.execute(ctx);
 
     let res = <string>ctx.getResponseBody();
     if (res) {

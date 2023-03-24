@@ -304,6 +304,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         if (ignore) {
           return undefined;
         }
+        let optional = jsDocs.filter(n => ["SchemaOptional", "readOnly"].includes(n.tagName.text)).length > 0;
         // @ts-ignore
         let typeName = member.type?.typeName?.escapedText;
         if (typeName === "ModelParent" || typeName === "ModelLink") {
@@ -344,10 +345,17 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
             false
           );
         } else if (typeName === "ModelRelated") {
+          // ModelRelated are only helpers for backend development
           return undefined;
+        } else if (
+          typeName === "BinaryMap" ||
+          (ts.isArrayTypeNode(member.type) &&
+            (<ts.Identifier>(<ts.TypeReferenceNode>member.type.elementType)?.typeName)?.escapedText === "BinaryMap")
+        ) {
+          // BinaryMap should be readonly as they are only modifiable by a BinaryService
+          optional = true;
         }
         let type = this.childNodeParser.createType(member.type, context);
-        let optional = jsDocs.filter(n => ["SchemaOptional", "readOnly"].includes(n.tagName.text)).length > 0;
         // If property is in readOnly then we do not want to require it
         return new ObjectProperty(
           this.getPropertyName(member.name),
@@ -981,30 +989,35 @@ export class Compiler {
         }
       });
     });
-    // Compute children now
-    Object.keys(graph)
-      .filter(k => graph[k].parent && graph[graph[k].parent.model])
-      .forEach(k => {
-        const parent = graph[graph[k].parent.model];
-        parent.children ??= [];
-        parent.children.push(k);
-      });
 
+    const ancestorsMap = {};
     // Construct the hierarchy tree
     Object.values(models)
       .filter(p => !p.lib)
       .forEach(({ type, name, jsFile }) => {
         list[name] = jsFile;
         let root = tree;
-        this.getClassTree(type)
+        const ancestors = this.getClassTree(type)
           .map((t: any) => symbolMap.get(t.id))
-          .filter(t => t !== undefined && t !== "Webda/CoreModel")
-          .reverse()
-          .forEach((name: string) => {
-            root[name] ??= {};
-            root = root[name];
-          });
+          .filter(t => t !== undefined && t !== "Webda/CoreModel");
+        ancestorsMap[name] = ancestors[1];
+        ancestors.reverse().forEach((ancestorName: string) => {
+          root[ancestorName] ??= {};
+          root = root[ancestorName];
+        });
       });
+
+    // Compute children now
+    Object.keys(graph)
+      .filter(k => graph[k].parent && graph[graph[k].parent.model])
+      .forEach(k => {
+        const parent = graph[graph[k].parent.model];
+        parent.children ??= [];
+        if (!ancestorsMap[k] || !graph[ancestorsMap[k]]?.parent) {
+          parent.children.push(k);
+        }
+      });
+
     return {
       graph: JSONUtils.sortObject(graph),
       tree: JSONUtils.sortObject(tree),

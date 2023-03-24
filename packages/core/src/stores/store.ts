@@ -580,11 +580,12 @@ abstract class Store<
    */
   computeParameters(): void {
     super.computeParameters();
+    const app = this.getWebda().getApplication();
     const p = this.parameters;
-    this._model = <CoreModelDefinition<T>>this._webda.getModel(p.model);
+    this._model = <CoreModelDefinition<T>>app.getModel(p.model);
     this._models = [
       this._model,
-      ...this.parameters.models.map(m => this._webda.getModel(m) as CoreModelDefinition<T>).filter(i => i !== undefined)
+      ...this.parameters.models.map(m => app.getModel(m) as CoreModelDefinition<T>).filter(i => i !== undefined)
     ];
     this._modelType = this._model.getIdentifier();
     this._uuidField = this._model.getUuidField();
@@ -596,11 +597,13 @@ abstract class Store<
       for (let i in tree) {
         this._modelsHierarchy[i] ??= depth;
         this._modelsHierarchy[i] = Math.min(depth, this._modelsHierarchy[i]);
-        recursive(this.getWebda().getApplication().getModelHierarchy(i).children, depth + 1);
+        this._modelsHierarchy[app.completeNamespace(i)] = this._modelsHierarchy[i];
+        recursive(app.getModelHierarchy(i).children, depth + 1);
       }
     };
     // Compute the hierarchy
     this._models.forEach(model => {
+      this._modelsHierarchy[model.getIdentifier(false)] = 0;
       this._modelsHierarchy[model.getIdentifier()] = 0;
       recursive(model.getHierarchy().children, 1);
     });
@@ -852,7 +855,7 @@ abstract class Store<
    */
   protected initModel(object: any = {}): T {
     if (object instanceof CoreModel) {
-      object.__type = this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
+      object.__type ??= this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
     } else {
       object.__type ??= this._modelType;
     }
@@ -1193,7 +1196,7 @@ abstract class Store<
   /**
    * Expose query to http
    */
-  protected async httpQuery(ctx: WebContext): Promise<void> {
+  async httpQuery(ctx: WebContext): Promise<void> {
     let query: string;
     if (ctx.getHttpContext().getMethod() === "GET") {
       query = ctx.getParameters().q;
@@ -1517,7 +1520,7 @@ abstract class Store<
           if (model) {
             this.log("INFO", "Migrating type " + item.__type + " to " + name);
             return <Partial<T>>{
-              __type: name
+              __type: app.getShortId(name)
             };
           }
         }
@@ -1847,7 +1850,7 @@ abstract class Store<
    * Handle POST
    * @param ctx
    */
-  @Route(".", ["POST"], false, {
+  @Route(".", ["POST"], {
     post: {
       description: "The way to create a new ${modelName} model",
       summary: "Create a new ${modelName}",
@@ -1885,8 +1888,18 @@ abstract class Store<
     }
   })
   async httpCreate(ctx: WebContext) {
-    let body = await ctx.getRequestBody();
-    let object = this._model.factory(this._model, body, ctx);
+    return this.operationCreate(ctx, this.parameters.model);
+  }
+
+  /**
+   * Create a new object based on the context
+   * @param ctx
+   * @param model
+   */
+  async operationCreate(ctx: OperationContext, model: string) {
+    let body = await ctx.getInput();
+    const modelPrototype = this.getWebda().getApplication().getModel(model);
+    let object = modelPrototype.factory(modelPrototype, body, ctx);
     object[this._creationDateField] = new Date();
     await object.canAct(ctx, "create");
     try {
@@ -1966,7 +1979,7 @@ abstract class Store<
    *
    * @param ctx context of the request
    */
-  @Route("./{uuid}", ["PUT", "PATCH"], false, {
+  @Route("./{uuid}", ["PUT", "PATCH"], {
     put: {
       description: "Update a ${modelName} if the permissions allow",
       summary: "Update a ${modelName}",
@@ -2071,7 +2084,7 @@ abstract class Store<
    *
    * @param ctx context of the request
    */
-  @Route("./{uuid}", ["GET"], false, {
+  @Route("./{uuid}", ["GET"], {
     get: {
       description: "Retrieve ${modelName} model if permissions allow",
       summary: "Retrieve a ${modelName}",
@@ -2120,7 +2133,7 @@ abstract class Store<
    * @param ctx context of the request
    * @returns
    */
-  @Route("./{uuid}", ["DELETE"], false, {
+  @Route("./{uuid}", ["DELETE"], {
     delete: {
       operationId: "delete${modelName}",
       description: "Delete ${modelName} if the permissions allow",

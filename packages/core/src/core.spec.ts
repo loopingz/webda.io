@@ -13,6 +13,7 @@ import {
   MemoryStore,
   Route,
   Service,
+  User,
   WebContext,
   WebdaError
 } from "./index";
@@ -378,8 +379,6 @@ class CoreTest extends WebdaTest {
   @test
   knownPage() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/");
-    // @ts-ignore
-    console.log(Object.keys(this.webda.getRouter().routes));
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["TEST_ADD"], undefined);
     let service = this.ctx.getExecutor();
@@ -435,9 +434,9 @@ class CoreTest extends WebdaTest {
       this.ctx,
       "test.webda.io",
       "GET",
-      "/urltemplate/callback?code=4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#"
+      "/urltemplate/callback?code=4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k"
     );
-    assert.strictEqual(this.ctx.getParameters().code, "4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#");
+    assert.strictEqual(this.ctx.getParameters().code, "4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k");
   }
 
   @test
@@ -447,6 +446,16 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(this.ctx.getParameters().id, "666/test");
   }
 
+  @test
+  stores() {
+    // First store in the config should be the default one
+    assert.strictEqual(this.webda.getModelStore(User).getName(), "MemoryUsers");
+    assert.strictEqual(
+      this.webda.getModelStore(this.webda.getApplication().getModel("WebdaTest/Ident")).getName(),
+      "MemoryIdents"
+    );
+    assert.strictEqual(this.webda.getModelStore(CoreModel).getName(), "Registry");
+  }
   @test
   me() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/auth/me");
@@ -483,8 +492,8 @@ class CoreTest extends WebdaTest {
 
   @test
   covRemoveRoute() {
-    this.webda.removeRoute("/urltemplate/{id}");
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/urltemplate/666");
+    this.webda.removeRoute("/version");
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/version");
     assert.strictEqual(executor, undefined);
   }
 

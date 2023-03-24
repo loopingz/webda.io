@@ -53,7 +53,6 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
             }
           }
         },
-        false,
         true
       );
       url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";

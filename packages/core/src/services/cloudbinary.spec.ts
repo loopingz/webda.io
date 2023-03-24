@@ -92,20 +92,17 @@ export class FakeCloudBinaryTest extends WebdaTest {
   @test
   async initRoutes() {
     let service = new CloudBinaryFakeService(this.webda, "fake", {});
-    let counter = 0;
     // @ts-ignore addRoute is a protected method of service
-    let stub = sinon.stub(service, "addRoute").callsFake(() => {
-      counter++;
-    });
+    let stub = sinon.stub(service, "addRoute");
     service.initRoutes();
-    assert.strictEqual(counter, 0);
+    assert.strictEqual(stub.callCount, 0);
     service.getParameters().expose = {
       url: "plop",
       restrict: {}
     };
     service.initRoutes();
-    assert.strictEqual(counter, 7);
-    counter = 0;
+    assert.strictEqual(stub.callCount, 7);
+    stub.callCount = 0;
     service.getParameters().expose = {
       url: "plop",
       restrict: {
@@ -113,7 +110,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
       }
     };
     service.initRoutes();
-    assert.strictEqual(counter, 4);
+    assert.strictEqual(stub.callCount, 4);
   }
 
   @test

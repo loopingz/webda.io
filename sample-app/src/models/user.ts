@@ -1,4 +1,4 @@
-import { BinaryMap, CoreModel, Expose, ModelParent, User as WebdaUser } from "@webda/core";
+import { BinaryMap, CoreModel, Expose, ModelParent, OperationContext, User as WebdaUser } from "@webda/core";
 import { Company } from "./company";
 
 /**
@@ -8,7 +8,16 @@ import { Company } from "./company";
 export class User extends WebdaUser {
   _company: ModelParent<Company>;
   name: string;
-  images: BinaryMap;
+  profilePicture: BinaryMap;
+  images: BinaryMap[];
+
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
+    return value;
+  }
+
+  canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    return Promise.resolve(this);
+  }
 }
 
 /**

@@ -421,7 +421,7 @@ class Authentication<
    * @throws 412 if the email is already validated
    * @throws 429 if a validation email has been sent recently
    */
-  @Route("./email/{email}/validate", ["GET"], false, {
+  @Route("./email/{email}/validate", ["GET"], {
     get: {
       description: "The email validation process will be start",
       summary: "Restart email validation",
@@ -472,7 +472,7 @@ class Authentication<
    * Return current user
    * @param ctx
    */
-  @Route("./me", ["GET"], false, {
+  @Route("./me", ["GET"], {
     get: {
       description: "Retrieve the current user from the session",
       summary: "Get current user",
@@ -498,7 +498,7 @@ class Authentication<
    * @param ctx
    * @returns
    */
-  @Route(".", ["GET", "DELETE"], false, {
+  @Route(".", ["GET", "DELETE"], {
     get: {
       description: "Retrieve the list of available authentication",
       summary: "Get available auths",
@@ -722,7 +722,7 @@ class Authentication<
    * @param ctx
    * @returns
    */
-  @Route("./email/callback{?email,token,user}", ["GET"], false, {
+  @Route("./email/callback{?email,token,user}", ["GET"], {
     hidden: true
   })
   async _handleEmailCallback(ctx: WebContext) {

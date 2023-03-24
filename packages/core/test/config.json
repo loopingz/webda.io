@@ -105,7 +105,8 @@
       "expose": {
         "url": "/memory/users"
       },
-      "type": "MemoryStore"
+      "type": "MemoryStore",
+      "model": "Webda/User"
     },
     "IdentsMapper": {
       "type": "Webda/Mapper",

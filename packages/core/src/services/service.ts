@@ -120,7 +120,6 @@ export function Operation(
   route?: {
     url: string;
     method?: HttpMethodType;
-    allowPath?: boolean;
     openapi?: OpenAPIWebdaDefinition;
   }
 ) {
@@ -147,7 +146,7 @@ export function Operation(
       def.schemas ??= {};
       def.schemas.input ??= properties.id.toLowerCase() + ".input";
       def.schemas.output ??= properties.id.toLowerCase() + ".output";
-      Route(route.url, route.method, route.allowPath, route.openapi)(target, executor);
+      Route(route.url, route.method, route.openapi)(target, executor);
     }
   };
 }
@@ -156,7 +155,6 @@ export function Operation(
 export function Route(
   route: string,
   methods: HttpMethodType | HttpMethodType[] = ["GET"],
-  allowPath: boolean = false,
   openapi: OpenAPIWebdaDefinition = {}
 ) {
   return function (target: any, executor: string) {
@@ -165,7 +163,6 @@ export function Route(
     target.constructor.routes[route].push({
       methods: Array.isArray(methods) ? methods : [methods],
       executor,
-      allowPath,
       openapi
     });
   };
@@ -385,7 +382,6 @@ abstract class Service<
     methods: HttpMethodType[],
     executer: Function,
     openapi: OpenAPIWebdaDefinition = {},
-    allowPath: boolean = false,
     override: boolean = false
   ) {
     let finalUrl = this.getUrl(url, methods);
@@ -393,9 +389,9 @@ abstract class Service<
       return;
     }
     this._webda.addRoute(finalUrl, {
-      _method: executer,
+      // Create bounded function to keep the context
+      _method: executer.bind(this),
       executor: this._name,
-      allowPath,
       openapi: deepmerge(openapi, this.parameters.openapi || {}),
       methods,
       override
@@ -419,7 +415,7 @@ abstract class Service<
     for (let j in routes) {
       this.log("TRACE", "Adding route", j, "for bean", this.getName());
       routes[j].forEach(route => {
-        this.addRoute(j, route.methods, this[route.executor], route.openapi, route.allowPath || false);
+        this.addRoute(j, route.methods, this[route.executor], route.openapi);
       });
     }
   }

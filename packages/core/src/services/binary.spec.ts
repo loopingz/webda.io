@@ -302,7 +302,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let stub = sinon.stub(binary, "get").callsFake(() => {
       return {
         pipe: stream => {
-          stream.emit("error", new Error("I/O"));
+          stream.emit("error", new Error("IO UnitTest"));
         }
       };
     });
@@ -315,7 +315,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
           "GET",
           ctx.getResponseHeaders().Location.substring("http://test.webda.io".length)
         ),
-      /500/,
+      /IO UnitTest/,
       "GET binary with I/O"
     );
     stub.restore();
@@ -380,7 +380,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       }
     );
     await executor.execute(ctx);
-    let user = await ctx.getCurrentUser<ImageUser>(true);
+    let user = await this.getUserStore().get(ctx.getCurrentUserId());
     user.images[0].metadata ??= {};
     assert.strictEqual(user.images[0].metadata["my-metadata"], "updated");
     assert.strictEqual(user.images[0].metadata["my-other-metadata"], true);

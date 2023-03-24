@@ -57,23 +57,75 @@ class RouterTest extends WebdaTest {
   }
 
   @test
+  async testRouteWithWeirdSplit() {
+    this.webda.addRoute("/test/{uuid}at{domain}", { methods: ["GET"], executor: "DefinedMailer" });
+    let httpContext = new HttpContext("test.webda.io", "GET", "/test/plopatgoogle", "https");
+    let ctx = await this.webda.newWebContext(httpContext);
+    this.webda.updateContextWithRoute(ctx);
+    assert.deepStrictEqual(ctx.getPathParameters(), {
+      uuid: "plop",
+      domain: "google"
+    });
+  }
+
+  @test
+  async testRouteWithSubPath() {
+    this.webda.addRoute("/test/{uuid}", { methods: ["GET"], executor: "DefinedMailer" });
+    this.webda.addRoute("/test/{uuid}/users", { methods: ["GET"], executor: "DefinedMailer2" });
+    this.webda.addRoute("/test/{puid}/users/{uuid}", { methods: ["GET"], executor: "DefinedMailer3" });
+    let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "https");
+    let ctx = await this.webda.newWebContext(httpContext);
+    this.webda.updateContextWithRoute(ctx);
+    assert.deepStrictEqual(ctx.getPathParameters(), {
+      uuid: "plop"
+    });
+    httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/users", "https");
+    ctx = await this.webda.newWebContext(httpContext);
+    this.webda.updateContextWithRoute(ctx);
+    assert.deepStrictEqual(ctx.getPathParameters(), {
+      uuid: "plop"
+    });
+    httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/users/plip", "https");
+    ctx = await this.webda.newWebContext(httpContext);
+    this.webda.updateContextWithRoute(ctx);
+    assert.deepStrictEqual(ctx.getPathParameters(), {
+      uuid: "plip",
+      puid: "plop"
+    });
+  }
+
+  @test
   async testRouteWithPath() {
-    this.webda.addRoute("/test/{path+}", { methods: ["GET"], executor: "DefinedMailer" });
-    this.webda.addRoute("/test2/{path+}{?query*}", { methods: ["GET"], executor: "DefinedMailer" });
+    this.webda.addRoute("/test/{+path}", { methods: ["GET"], executor: "DefinedMailer" });
+    this.webda.addRoute("/test2/{+path}{?query*}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/toto/plus", "https");
     let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), { "path+": "plop/toto/plus" });
+    assert.deepStrictEqual(ctx.getPathParameters(), { path: "plop/toto/plus" });
     httpContext = new HttpContext("test.webda.io", "GET", "/test2/plop/toto/plus?query3=12&query2=test,test2", "https");
     ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.deepStrictEqual(ctx.getPathParameters(), {
-      "path+": "plop/toto/plus",
+      path: "plop/toto/plus",
       query: {
         query3: "12",
         query2: ["test", "test2"]
       }
     });
+  }
+
+  @test
+  async testRouteWithEmail() {
+    this.webda.addRoute("/email/{email}/test", { methods: ["GET"], executor: "DefinedMailer" });
+    this.webda.addRoute("/email/callback{?email,test}", { methods: ["GET"], executor: "DefinedMailer" });
+    let httpContext = new HttpContext("test.webda.io", "GET", "/email/test%40webda.io/test", "https");
+    let ctx = await this.webda.newWebContext(httpContext);
+    this.webda.updateContextWithRoute(ctx);
+    assert.deepStrictEqual(ctx.getPathParameters(), { email: "test@webda.io" });
+    httpContext = new HttpContext("test.webda.io", "GET", "/email/callback?email=test%40webda.io", "https");
+    ctx = await this.webda.newWebContext(httpContext);
+    this.webda.updateContextWithRoute(ctx);
+    assert.deepStrictEqual(ctx.getPathParameters(), { email: "test@webda.io" });
   }
 
   @test

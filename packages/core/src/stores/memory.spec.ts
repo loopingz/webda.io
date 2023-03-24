@@ -141,7 +141,7 @@ class MemoryStoreTest extends StoreTest {
     assert.ok((await identStore.get("user")) instanceof User);
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = true;
-    identStore.storage["user"] = identStore.storage["user"].replace(/Webda\/User/, "Webda/User2");
+    identStore.storage["user"] = identStore.storage["user"].replace(/User/, "User2");
     assert.ok((await identStore.get("user")).constructor.name === "Ident");
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = false;
@@ -155,9 +155,9 @@ class MemoryStoreTest extends StoreTest {
     for (let i = 0; i < 1200; i++) {
       await usersStore.save({ uuid: `id_${i}`, id: i });
       if (i % 10 === 0) {
-        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/CoreModel/, "webda/user2");
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/User/, "webda/user2");
       } else if (i % 2 === 0) {
-        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/CoreModel/, "webda/user");
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/User/, "webda/user");
       }
     }
     await usersStore.v3Migration();
@@ -165,9 +165,9 @@ class MemoryStoreTest extends StoreTest {
       if (user.id % 10 === 0) {
         assert.strictEqual(user.__type, "webda/user2");
       } else if (user.id % 2 === 0) {
-        assert.strictEqual(user.__type, "Webda/User");
+        assert.strictEqual(user.__type, "User");
       } else {
-        assert.strictEqual(user.__type, "Webda/CoreModel");
+        assert.strictEqual(user.__type, "User");
       }
     });
   }

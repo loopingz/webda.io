@@ -556,13 +556,7 @@ class AuthenticationTest extends WebdaTest {
   async redirectEmailRegister() {
     let token = await this.authentication.generateEmailValidationToken(undefined, "test@webda.io");
     let ctx = await this.newContext();
-    let executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      `/auth/email/callback?email=test@webda.io&token=${token}`
-    );
-    await executor.execute(ctx);
+    await this.execute(ctx, "test.webda.io", "GET", `/auth/email/callback?email=test@webda.io&token=${token}`);
     assert.strictEqual(ctx.statusCode, 302);
     assert.strictEqual(
       ctx.getResponseHeaders().Location,

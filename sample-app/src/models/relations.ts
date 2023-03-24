@@ -3,6 +3,7 @@
  */
 
 import {
+  Action,
   CoreModel,
   Expose,
   ModelLink,
@@ -11,7 +12,8 @@ import {
   ModelLinksSimpleArray,
   ModelParent,
   ModelRelated,
-  ModelsMapped
+  ModelsMapped,
+  OperationContext
 } from "@webda/core";
 
 @Expose()
@@ -54,12 +56,22 @@ class Classroom extends CoreModel {
   courses: ModelsMapped<Course, "name">;
   hardwares: ModelRelated<Hardware, "classroom">;
 
-  test() {}
+  @Action()
+  test(context: OperationContext<{ test: string; id: string }>) {}
 }
 
 @Expose()
 class Hardware extends CoreModel {
   classroom: ModelParent<Classroom>;
+
+  @Action()
+  static globalAction(context: OperationContext) {
+    return;
+  }
+
+  async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    return this;
+  }
 }
 
 export class ComputerScreen extends Hardware {

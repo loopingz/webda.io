@@ -9,7 +9,6 @@ import { Core } from "../core";
 import { NotEnumerable } from "../models/coremodel";
 import { User } from "../models/user";
 import { Service } from "../services/service";
-import { Store } from "../stores/store";
 import { Session, SessionManager } from "../utils/session";
 import { HttpContext } from "./httpcontext";
 import { JSONUtils } from "./serializers";
@@ -383,7 +382,8 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     }
     // Caching the answer
     if (!this.user || refresh) {
-      this.user = await this._webda.getService<Store<K, any>>("Users").get(this.getCurrentUserId());
+      this.user = <User>await this._webda.getApplication().getModel("User").ref(this.getCurrentUserId()).get();
+      //this.user = <any>User; //await User.ref(this.getCurrentUserId()).get();
     }
     return <K>this.user;
   }
@@ -802,10 +802,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    * Execute the target route
    */
   async execute() {
-    if (this.getExecutor() && typeof this._route._method === "function") {
-      return Promise.resolve(this.getExecutor()[this._route._method.name](this));
-    }
-    return Promise.reject(Error("Not implemented"));
+    return this._route._method(this);
   }
 
   /**

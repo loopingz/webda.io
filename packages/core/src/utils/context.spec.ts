@@ -79,7 +79,6 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(this.ctx.getExtension("mine"), "plop");
     // @ts-ignore
     assert.strictEqual(this.ctx.getRequestParameters(), this.ctx.parameters);
-    assert.strictEqual(this.ctx.isGlobal(), false);
     // @ts-ignore
     this.ctx.session = undefined;
     assert.strictEqual(this.ctx.getSession(), undefined);

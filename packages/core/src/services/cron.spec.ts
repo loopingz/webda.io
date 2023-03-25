@@ -1,6 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import * as sinon from "sinon";
 import { Cron, CronDefinition, CronService, Service } from "..";
 import { WebdaTest } from "../test";
 
@@ -24,11 +23,11 @@ class CronServiceTest extends WebdaTest {
     assert.deepStrictEqual(service.getCrontab()[1], def);
     // for cov
     assert.deepStrictEqual(service.getCrontab()[1], def);
-    const cron = sinon.stub(service, "crontabSchedule").callsFake((cron, cb) => {
+    service.crontabSchedule = (cron, cb) => {
       try {
         cb();
       } catch (err) {}
-    });
+    };
     try {
       let promise = service.work();
       promise.cancel();

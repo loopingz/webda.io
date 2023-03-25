@@ -4,36 +4,17 @@ import { v4 as uuidv4 } from "uuid";
 import { ModelGraph } from "../application";
 import { Core } from "../core";
 import { WebdaError } from "../errors";
-import { DeepPartial, Service } from "../services/service";
+import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
-import {
-  createModelLinksMap,
-  ModelActions,
-  ModelLink,
-  ModelLinksArray,
-  ModelLinksMap,
-  ModelLinksSimpleArray
-} from "./relations";
+import { createModelLinksMap, ModelActions, ModelLinksArray, ModelLinksSimpleArray, RawModel } from "./relations";
 
 /**
  * Create a new type with only optional
  */
-export type ModelPartial<T> = {
-  [P in keyof T]?: T[P] extends ModelLinksSimpleArray<CoreModel>
-    ? Partial<T[P]>
-    : T[P] extends ModelLinksMap<CoreModel, any>
-    ? Partial<T[P]>
-    : T[P] extends ModelLinksArray<CoreModel, any>
-    ? Partial<T[P]>
-    : T[P] extends ModelLink<CoreModel>
-    ? Partial<T[P]>
-    : T[P] extends object
-    ? DeepPartial<T[P]>
-    : T[P];
-};
+//export type ModelPartial<T> = ;
 
 /**
  * Expose the model through API or GraphQL if it exists
@@ -197,7 +178,21 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   getLastUpdateField(): string;
   getCreationField(): string;
   getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
+  /**
+   * Reference to an object without doing a DB request yet
+   */
   ref: typeof CoreModel.ref;
+  /**
+   * Create a new model
+   * @param this
+   * @param data
+   */
+  create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<T>;
+  /**
+   * Query the model
+   * @param query
+   */
+  query(query?: string, includeSubclass?: boolean): Promise<{ results: T[]; continuationToken?: string }>;
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -323,7 +318,7 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param withSave
    * @returns
    */
-  async create(defaultValue: Partial<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
+  async create(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
     let result = new this.model().setContext(context).load(defaultValue, true).setUuid(this.uuid);
     if (withSave) {
       await result.save();
@@ -340,7 +335,7 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param context to set on the object
    * @returns
    */
-  async getOrCreate(defaultValue: Partial<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
+  async getOrCreate(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
     return (await this.get()) || this.create(defaultValue, context, withSave);
   }
 }
@@ -375,9 +370,9 @@ class CoreModel {
    */
   __type: string;
   /**
-   * Type name
+   * Types name
    */
-  __typeTree: string[];
+  __types: string[];
   /**
    * Object context
    *
@@ -460,6 +455,16 @@ class CoreModel {
    */
   static ref<T extends CoreModel>(this: Constructor<T>, uid: string): ModelRefWithCreate<T> {
     return new ModelRefWithCreate(uid, <CoreModelDefinition<T>>this);
+  }
+
+  /**
+   * Get a reference to a model
+   * @param this
+   * @param uid
+   * @returns
+   */
+  static create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<T> {
+    return new this().load(data, true).save();
   }
 
   /**
@@ -562,13 +567,27 @@ class CoreModel {
    */
   static async query<T extends CoreModel>(
     this: Constructor<T>,
-    query: string
+    query: string = "",
+    includeSubclass: boolean = true,
+    context?: OperationContext
   ): Promise<{
     results: T[];
     continuationToken?: string;
   }> {
+    if (query.trim() !== "") {
+      query = `AND ${query}`;
+    }
+    if (!query.includes("__type")) {
+      const app = Core.get().getApplication();
+      const name = app.getShortId(app.getModelName(this));
+      if (includeSubclass) {
+        query = `__types CONTAINS "${name}"${query}`;
+      } else {
+        query = `__type = "${name}"${query}`;
+      }
+    }
     // @ts-ignore
-    return <any>this.store().query(query);
+    return <any>this.store().query(query, context);
   }
 
   /**
@@ -795,7 +814,7 @@ class CoreModel {
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: ModelPartial<this>, secure: boolean = false): this {
+  load(raw: RawModel<this>, secure: boolean = false): this {
     // Object assign with filter
     for (let prop in raw) {
       let val = raw[prop];
@@ -883,7 +902,7 @@ class CoreModel {
    * Global object does not belong to a request
    */
   getContext<T extends OperationContext>(): T {
-    return <any>this.__ctx || OperationContext.getGlobalContext();
+    return <any>this.__ctx || Core.get().getGlobalContext();
   }
 
   /**

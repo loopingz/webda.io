@@ -1,6 +1,6 @@
 // organize-imports-ignore
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { Core, HttpContext, HttpMethodType, Service, WebContext } from "./index";
+import { Core, HttpContext, HttpMethodType, MemoryStore, Service, WebContext } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as path from "path";
 import { execSync } from "child_process";
@@ -146,10 +146,6 @@ class WebdaTest {
     await app.load();
     await this.tweakApp(app);
 
-    if (JSONUtils.loadFile("package.json").name === "@webda/core" && existsSync(".registry")) {
-      // Auto remove registry for core test
-      unlinkSync(".registry");
-    }
     this.webda = new Core(app);
     if (this.addConsoleLogger) {
       // @ts-ignore - Hack a ConsoleLogger in
@@ -173,6 +169,8 @@ class WebdaTest {
     await this.buildWebda();
     if (init) {
       await this.webda.init();
+      // Prevent persistance for tests
+      (<MemoryStore>this.webda.getRegistry()).persist = async () => {};
     }
   }
 

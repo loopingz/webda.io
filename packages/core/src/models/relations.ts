@@ -17,6 +17,13 @@ export type Attributes<T extends object> = {
 }[keyof T];
 
 /**
+ * Raw model without methods
+ */
+export type RawModel<T extends object> = {
+  [K in Attributes<T>]?: T[K] extends object ? RawModel<T[K]> : T[K];
+};
+
+/**
  * Methods of an object
  *
  * Filter out attributes
@@ -66,7 +73,7 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
  * TODO Handle 1:1 map
  */
 export type ModelMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<
-  Pick<T, K> & ModelLoader<T> & { uuid: string }
+  ModelLoader<T, Pick<T, K> & { uuid: string }>
 >;
 
 /**

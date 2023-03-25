@@ -23,6 +23,7 @@ import {
   ConfigurationService,
   ContextProvider,
   ContextProviderInfo,
+  GlobalContext,
   HttpContext,
   Logger,
   OperationContext,
@@ -379,6 +380,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       }
     }
   ];
+  /**
+   * System context
+   */
+  protected globalContext: GlobalContext;
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -420,6 +425,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     if (this.configuration.parameters.website) {
       this.registerCORSFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
     }
+
+    this.setGlobalContext(new GlobalContext(this));
   }
 
   /**
@@ -560,8 +567,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       return this._init;
     }
 
-    // Set the global context
-    OperationContext.setGlobalContext(await this.newContext({ global: true }));
     if (this.configuration.parameters.configurationService) {
       try {
         this.log("INFO", "Create and init ConfigurationService", this.configuration.parameters.configurationService);
@@ -912,7 +917,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @param {String} name The model name to retrieve
    */
-  getModel<T extends CoreModelDefinition = CoreModelDefinition>(name): CoreModelDefinition {
+  getModel<T extends CoreModel = CoreModel>(name): CoreModelDefinition<T> {
     return this.application.getModel<T>(name);
   }
 
@@ -961,6 +966,23 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   public getGlobalParams(): any {
     return this.configuration.parameters || {};
+  }
+
+  /**
+   * Get the system context
+   * @returns
+   */
+  public getGlobalContext(): GlobalContext {
+    return this.globalContext;
+  }
+
+  /**
+   * Set the system context
+   * @param context
+   */
+  public setGlobalContext(context: GlobalContext): void {
+    this.globalContext = context;
+    context.getSession().login("system", "system");
   }
 
   /**

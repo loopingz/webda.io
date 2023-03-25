@@ -150,6 +150,33 @@ class MemoryStoreTest extends StoreTest {
   }
 
   @test
+  async multiModelQuery() {
+    const Teacher = this.webda.getModel<CoreModel & { name: string }>("Teacher");
+    const Project = this.webda.getModel<CoreModel & { name: string }>("Project");
+    const SubProject = this.webda.getModel<CoreModel & { name: string }>("SubProject");
+    const AnotherSubProject = this.webda.getModel<CoreModel & { name: string }>("AnotherSubProject");
+    const SubSubProject = this.webda.getModel<CoreModel & { name: string }>("SubSubProject");
+
+    await Promise.all(
+      [Teacher, Project, SubProject, AnotherSubProject, SubSubProject].map(model => {
+        let p = [];
+        for (let i = 1; i < 4; i++) {
+          p.push(model.create({ name: `${model.name} ${i}` }));
+        }
+        return Promise.all(p);
+      })
+    );
+    assert.strictEqual((await Teacher.query("")).results.length, 3);
+    assert.strictEqual((await Teacher.query("", false)).results.length, 3);
+    assert.strictEqual((await Project.query("")).results.length, 12);
+    assert.strictEqual((await Project.query("", false)).results.length, 3);
+    assert.strictEqual((await AnotherSubProject.query("")).results.length, 6);
+    assert.strictEqual((await AnotherSubProject.query("", false)).results.length, 3);
+    assert.strictEqual((await SubProject.query("")).results.length, 3);
+    assert.strictEqual((await SubProject.query("", false)).results.length, 3);
+  }
+
+  @test
   async migration() {
     let usersStore: MemoryStore<any> = <MemoryStore<any>>this.getUserStore();
     for (let i = 0; i < 1200; i++) {

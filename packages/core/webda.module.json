@@ -2268,15 +2268,13 @@
             "type": "object",
             "properties": {
               "_type": {
-                "type": "string",
-                "readOnly": true
+                "type": "string"
               },
               "uuid": {
                 "type": "string"
               },
               "email": {
-                "type": "string",
-                "description": "Email for this ident if it exist"
+                "type": "string"
               }
             },
             "required": [

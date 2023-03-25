@@ -63,7 +63,6 @@ export interface ContextProvider {
  */
 export class OperationContext<T = any, U = any> extends EventEmitter {
   protected static __globalContext: OperationContext;
-  private global: boolean = false;
   /**
    * Contain emitting Core
    */
@@ -345,30 +344,6 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     return true;
   }
 
-  /**
-   * Get Global Context
-   */
-  public static getGlobalContext() {
-    return OperationContext.__globalContext;
-  }
-
-  /**
-   * Set the Global Context
-   *
-   * @param ctx to set as Global
-   */
-  public static setGlobalContext(ctx: OperationContext) {
-    ctx.global = true;
-    OperationContext.__globalContext = ctx;
-  }
-
-  /**
-   * Return if context is global
-   */
-  public isGlobal() {
-    return this.global;
-  }
-
   async init(): Promise<this> {
     return this;
   }
@@ -396,6 +371,16 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 }
 
+export class GlobalContext extends OperationContext {
+  session: Session = new Session();
+
+  constructor(webda: Core) {
+    super(webda);
+    this.session.login("system", "system");
+    // Disable logout
+    this.session.logout = () => {};
+  }
+}
 /**
  * Simple Operation Context with custom input
  */

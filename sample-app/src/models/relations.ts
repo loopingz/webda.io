@@ -32,6 +32,7 @@ class Student extends CoreModel {
 @Expose()
 class Teacher extends CoreModel {
   courses: ModelsMapped<Course, "name">;
+  name: string;
 }
 
 @Expose()

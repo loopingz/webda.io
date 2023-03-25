@@ -5,7 +5,6 @@ import {
   Action,
   Core,
   CoreModel,
-  createModelLinksMap,
   Expose,
   ModelLink,
   ModelLinksArray,
@@ -15,8 +14,8 @@ import {
   ModelRelated,
   ModelsMapped,
   OperationContext,
-  Store,
-  WebdaError
+  WebdaError,
+  createModelLinksMap
 } from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";
@@ -243,14 +242,10 @@ class CoreModelTest extends WebdaTest {
 
   @test
   async expose() {
-    let memoryStore = this.getService<Store>("MemoryUsers");
-    memoryStore._models.push(TestMask);
     this.webda.getApplication().addModel("webdatest", TestMask);
   }
 
   @test async ref() {
-    let memoryStore = this.getService<Store>("MemoryUsers");
-    memoryStore._models.push(TestMask);
     this.webda.getApplication().addModel("webdatest", TestMask);
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
@@ -268,13 +263,13 @@ class CoreModelTest extends WebdaTest {
     assert.strictEqual(task.counter, 2);
     assert.strictEqual(task.side, undefined);
     await TestMask.ref("unit1").patch({ counter: 3 });
-    await TestMask.ref("unit1").upsertItemToCollection("__typeTree", "plop");
+    await TestMask.ref("unit1").upsertItemToCollection("__types", "plop");
     await task.refresh();
     assert.strictEqual(task.counter, 3);
-    assert.deepStrictEqual(task.__typeTree, ["plop"]);
-    await TestMask.ref("unit1").deleteItemFromCollection("__typeTree", 0, null);
+    assert.deepStrictEqual(task.__types, ["webdatest", "plop"]);
+    await TestMask.ref("unit1").deleteItemFromCollection("__types", 1, null);
     await task.refresh();
-    assert.deepStrictEqual(task.__typeTree, []);
+    assert.deepStrictEqual(task.__types, ["webdatest"]);
     // Relations test
     let link = new ModelLink("unit1", TestMask);
     // @ts-ignore
@@ -290,8 +285,6 @@ class CoreModelTest extends WebdaTest {
   }
 
   @test async fullUuid() {
-    let memoryStore = this.getService<Store>("MemoryUsers");
-    memoryStore._models.push(Task);
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
     assert.strictEqual(new Task().__type, "WebdaTest/Task");
     assert.notStrictEqual(new Task().__store, undefined);

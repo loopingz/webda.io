@@ -365,10 +365,6 @@ export class StoreParameters extends ServiceParameters {
    */
   model?: string;
   /**
-   * Different models managed by this store
-   */
-  models?: string[];
-  /**
    * async delete
    */
   asyncDelete: boolean;
@@ -419,7 +415,6 @@ export class StoreParameters extends ServiceParameters {
   constructor(params: any, service: Service<any>) {
     super(params);
     this.model ??= "Webda/CoreModel";
-    this.models ??= [];
     let expose = params.expose;
     if (typeof expose == "boolean") {
       expose = {};
@@ -536,10 +531,6 @@ abstract class Store<
    */
   _model: CoreModelDefinition<T>;
   /**
-   * Models of this store
-   */
-  _models: CoreModelDefinition<T>[] = [];
-  /**
    * Store teh manager hierarchy with their depth
    */
   _modelsHierarchy: { [key: string]: number } = {};
@@ -583,10 +574,6 @@ abstract class Store<
     const app = this.getWebda().getApplication();
     const p = this.parameters;
     this._model = <CoreModelDefinition<T>>app.getModel(p.model);
-    this._models = [
-      this._model,
-      ...this.parameters.models.map(m => app.getModel(m) as CoreModelDefinition<T>).filter(i => i !== undefined)
-    ];
     this._modelType = this._model.getIdentifier();
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
@@ -602,11 +589,9 @@ abstract class Store<
       }
     };
     // Compute the hierarchy
-    this._models.forEach(model => {
-      this._modelsHierarchy[model.getIdentifier(false)] = 0;
-      this._modelsHierarchy[model.getIdentifier()] = 0;
-      recursive(model.getHierarchy().children, 1);
-    });
+    this._modelsHierarchy[this._model.getIdentifier(false)] = 0;
+    this._modelsHierarchy[this._model.getIdentifier()] = 0;
+    recursive(this._model.getHierarchy().children, 1);
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -1081,6 +1066,13 @@ abstract class Store<
   }
 
   /**
+   * Check that __type Comparison is only used with = and CONTAINS
+   * If CONTAINS is used, move __type to __types
+   */
+  queryTypeUpdater(query: WebdaQL.Query): WebdaQL.Query {
+    return query;
+  }
+  /**
    * Query store with WebdaQL
    * @param query
    * @param context to apply permission
@@ -1102,7 +1094,8 @@ abstract class Store<
     let queryValidator = new WebdaQL.QueryValidator(fullQuery);
     let offset = queryValidator.getOffset();
     const limit = queryValidator.getLimit();
-    const parsedQuery = queryValidator.getQuery();
+    const parsedQuery = this.queryTypeUpdater(queryValidator.getQuery());
+    // __type is a special field to filter on the type of the object
     // Emit the default event
     await this.emitSync("Store.Query", {
       query,
@@ -1243,6 +1236,8 @@ abstract class Store<
     // Dates should be store by the Store
     object[this._creationDateField] ??= new Date();
     object[this._lastUpdateField] = new Date();
+    const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
+    object.__types = [object.__type, ...ancestors.filter(i => i !== "Webda/CoreModel" && i !== "CoreModel")];
 
     if (ctx) {
       object.setContext(ctx);

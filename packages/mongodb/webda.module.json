@@ -156,6 +156,10 @@
               ],
               "description": "Write Concern as an object"
             },
+            "useBigInt64": {
+              "type": "boolean",
+              "description": "when deserializing a Long will return as a BigInt."
+            },
             "promoteLongs": {
               "type": "boolean",
               "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits."

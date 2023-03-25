@@ -819,7 +819,7 @@ export class Application {
    *
    * @param name model to retrieve
    */
-  getModel<T extends CoreModelDefinition = CoreModelDefinition>(name: string): T {
+  getModel<T extends CoreModel = CoreModel>(name: string): CoreModelDefinition<T> {
     return this.getWebdaObject("models", this.completeNamespace(name));
   }
 
@@ -893,9 +893,9 @@ export class Application {
     ancestors.forEach(ancestor => {
       tree = tree[ancestor];
     });
-    ancestors.unshift("Webda/CoreModel");
+    ancestors.unshift(this.getShortId("Webda/CoreModel"));
     ancestors.reverse();
-    return { ancestors, children: tree[model] };
+    return { ancestors: ancestors.map(i => this.getShortId(i)), children: tree[model] };
   }
 
   /**

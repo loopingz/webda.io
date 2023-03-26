@@ -9,6 +9,7 @@ import { User } from "./user";
 export class Company extends CoreModel {
   _projects: ModelsMapped<Project, "name" | "type">;
   users: ModelRelated<User, "_company">;
+  name: string;
 
   async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
     return this;

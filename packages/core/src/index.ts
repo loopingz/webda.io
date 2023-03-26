@@ -35,6 +35,7 @@ export * from "./services/configuration";
 export * from "./services/cron";
 export * from "./services/cryptoservice";
 export * from "./services/debugmailer";
+export * from "./services/domainservice";
 export * from "./services/echo";
 export * from "./services/filebinary";
 export * from "./services/fileconfiguration";

@@ -1,52 +1,29 @@
+import { JSONSchema7 } from "json-schema";
 import {
   Application,
+  CoreModelDefinition,
   DeepPartial,
+  JSONUtils,
   Methods,
   ModelAction,
+  OperationDefinition,
   Service,
   ServiceParameters,
   Store,
   WebContext
 } from "../index";
-// 147-158,169-175
-class DomainServiceParameters extends ServiceParameters {
-  /**
-   * Expose objects as operations too
-   */
-  operations: boolean;
-  constructor(params: any) {
-    super(params);
-    // Init default here
-    this.operations ??= true;
-  }
-}
 
-// Add @WebdaModda to the JSDocs to make it available to your other modules as a Modda
 /**
- * A sample service
- *
+ * @WebdaModda
  */
-// Add @Bean to make a singleton in your applicaiton
-export class DomainService<T extends DomainServiceParameters = DomainServiceParameters> extends Service<T> {
-  app: Application;
-  /**
-   * Load the paremeters for your service
-   * @param params
-   * @param name
-   */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
-    return new DomainServiceParameters(params);
-  }
-
+export class ModelsOperationsService extends Service {
   /**
    * Add operations for all exposed models
    * @returns
    */
   initOperations(): void {
     super.initOperations();
-    if (!this.parameters.operations) {
-      return;
-    }
+
     const app = this.getWebda().getApplication();
 
     // Add default schemas
@@ -72,6 +49,24 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
       });
     }
 
+    const getSchema = (id: string, input: string, params?: "uuidRequest" | "searchRequest") => {
+      const schema: JSONSchema7 = {
+        type: "object",
+        properties: {},
+        required: []
+      };
+      if (input && app.hasSchema(input)) {
+        schema.properties["input"] = app.getSchema(input);
+        schema.required.push("input");
+      }
+      if (params) {
+        schema.properties["params"] = app.getSchema(params);
+        schema.required.push("params");
+      }
+      app.registerSchema(id, schema);
+      return id;
+    };
+
     const models = app.getModels();
     for (let modelKey in models) {
       const model = models[modelKey];
@@ -79,7 +74,6 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
       if (!expose) {
         continue;
       }
-      expose.restrict ??= {};
       const prefix = modelKey.split("/").pop();
       const modelSchema = modelKey;
 
@@ -92,7 +86,7 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
             service: this.getName(),
             method: k === "Create" ? "httpCreate" : "operationUpdate",
             id,
-            input: modelSchema,
+            input: getSchema(id, modelSchema, k === "Update" ? "uuidRequest" : undefined),
             output: modelSchema
           });
         });
@@ -101,14 +95,16 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${prefix}.${k}`;
-          const output = k === "Get" && modelSchema;
-          this.getWebda().registerOperation(id, {
+          const info: OperationDefinition = {
             service: this.getName(),
             method: `http${k}`,
             id,
-            input: "uuidRequest",
-            output
-          });
+            input: getSchema(id, undefined, "uuidRequest")
+          };
+          if (k === "Get") {
+            info.output = modelSchema;
+          }
+          this.getWebda().registerOperation(id, info);
         });
       if (!expose.restrict.query) {
         const id = `${prefix}.Query`;
@@ -116,7 +112,7 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
           service: this.getName(),
           method: "httpQuery",
           id,
-          input: "searchRequest"
+          input: getSchema(id, undefined, "searchRequest")
         });
       }
       // Add patch
@@ -126,102 +122,112 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
           service: this.getName(),
           method: "operationPatch",
           id,
-          input: modelSchema + "?"
+          input: getSchema(id, modelSchema + "?", "uuidRequest")
         });
       }
       // Add all operations for Actions
       let actions = model.getActions();
       Object.keys(actions).forEach(name => {
         const id = `${prefix}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
-        const info = {
+        const info: any = {
           service: this.getName(),
           method: `action${name}`,
           id
         };
-        ["input", "output"]
-          .filter(i => app.hasSchema(`${modelKey}.${name}.${i}`))
-          .forEach(key => {
-            info[key] = `${modelKey}.${name}.${key}`;
-          });
+        info.input = getSchema(id, `${modelKey}.${name}.input`, "uuidRequest");
+        info.output = `${modelKey}.${name}.output`;
         this.getWebda().registerOperation(id, info);
       });
     }
   }
+}
 
-  injector(
-    service: Store,
-    method: Methods<Store>,
-    type: "SET" | "QUERY",
-    injectAttribute?: string,
-    depth: number = 0,
-    ...args: any[]
-  ) {
-    return async (context: WebContext) => {
-      if (!injectAttribute || depth < 1) {
-        return service[method](context, ...args);
-      }
-      let input = await context.getInput();
-      if (type === "SET") {
-        input[injectAttribute] = context.getPathParameters()[`pid.${depth - 1}`];
-      } else if (type === "QUERY") {
-        input.q ??= "";
-        input.q =
-          `${injectAttribute} = "${context.getPathParameters()[`pid.${depth - 1}`]}"` +
-          (input.q !== "" ? `AND (${input.q})` : "");
-      }
-      await service[method](context, ...args);
-    };
+export class DomainServiceParameters extends ServiceParameters {
+  /**
+   * Expose objects as operations too
+   */
+  operations: boolean;
+  nameTransfomer: "camelCase" | "lowercase" | "none";
+
+  constructor(params: any) {
+    super(params);
+    // Init default here
+    this.operations ??= true;
+    this.nameTransfomer ??= "camelCase";
+  }
+}
+
+/**
+ * Domain Service expose all the models as Route and Operations
+ *
+ * Model are exposed if they have a Expose decorator
+ *
+ * Children models Exposed should be under the first ModelRelated targetting them or the segment endpoint of Expose
+ *
+ * Other relations (ModelLinks, ModelParent) should only display their information but not be exposed
+ * ModelRelated should be ignored
+ */
+export abstract class DomainService<T extends DomainServiceParameters = DomainServiceParameters> extends Service<T> {
+  app: Application;
+  /**
+   * Load the paremeters for your service
+   * @param params
+   * @param name
+   */
+  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
+    return new DomainServiceParameters(params);
   }
 
   /**
-   * Add routes for a model
-   * @param prefix
-   * @param model
-   * @param depth
-   * @param injectAttribute
+   * Return the model name for this service
+   * @param name
    * @returns
    */
-  addModelRoutes(prefix: string, model: any, depth: number = 0, injectAttribute?: string) {
-    if (!model?.Expose) {
+  transformName(name: string): string {
+    if (this.parameters.nameTransfomer === "camelCase") {
+      return name.substring(0, 1).toLowerCase() + name.substring(1).replace(/_(.)/g, (match, p1) => p1.toUpperCase());
+    } else if (this.parameters.nameTransfomer === "lowercase") {
+      return name.toLowerCase();
+    }
+    return name;
+  }
+
+  /**
+   * Handle one model and expose it based on the service
+   * @param model
+   * @param name
+   * @param context
+   * @returns
+   */
+  abstract handleModel(model: CoreModelDefinition, name: string, context: any): boolean;
+
+  /**
+   * Explore the models
+   * @param model
+   * @param name
+   * @param depth
+   * @param modelContext
+   * @returns
+   */
+  walkModel(model: CoreModelDefinition, name: string, depth: number = 0, modelContext: any = {}) {
+    if (!model.Expose) {
+      return;
+    }
+    const context = JSONUtils.duplicate(modelContext);
+    context.depth = depth;
+    if (!this.handleModel(model, name, context)) {
       return;
     }
 
-    this.addRoute(
-      `${prefix}`,
-      ["GET", "PUT"],
-      this.injector(model.store(), "httpQuery", "QUERY", injectAttribute, depth)
-    );
-    this.addRoute(
-      `${prefix}`,
-      ["POST"],
-      this.injector(model.store(), "operationCreate", "SET", injectAttribute, depth, model.getIdentifier())
-    );
-    this.addRoute(`${prefix}/{uuid}`, ["DELETE"], model.store()["httpDelete"]);
-    this.addRoute(
-      `${prefix}/{uuid}`,
-      ["PUT", "PATCH"],
-      this.injector(model.store(), "httpUpdate", "SET", injectAttribute, depth)
-    );
-    // Add all actions
-    let actions = model.getActions();
-    Object.keys(actions).forEach(actionName => {
-      let action: ModelAction = actions[actionName];
-      this.addRoute(
-        action.global ? `${prefix}/${actionName}` : `${prefix}/{uuid}/${actionName}`,
-        action.methods || ["PUT"],
-        model.store()[action.global ? "httpGlobalAction" : "httpAction"],
-        action.openapi
-      );
-    });
+    const queries = this.app.getRelations(model).queries || [];
     // Get the children now
-    (this.getWebda().getApplication().getRelations(model).children || []).forEach(name => {
+    (this.app.getRelations(model).children || []).forEach(name => {
       const childModel = this.app.getModel(name);
-      this.addModelRoutes(
-        `${prefix}/{pid.${depth}}/${this.app.getModelPlural(name).toLowerCase()}`,
-        childModel,
-        depth + 1,
-        this.app.getRelations(childModel)?.parent?.attribute
-      );
+      const parentAttribute = this.app.getRelations(childModel)?.parent?.attribute;
+      const segment =
+        queries.find(q => q.model === name && q.targetAttribute === parentAttribute)?.attribute ||
+        this.app.getModelPlural(name);
+      this.walkModel(childModel, segment, depth + 1, context);
     });
   }
 
@@ -233,21 +239,79 @@ export class DomainService<T extends DomainServiceParameters = DomainServicePara
 
     this.app = this.getWebda().getApplication();
     // Add all routes per model
-    Object.values(this.app.getRootModels()).forEach(name =>
-      this.addModelRoutes(`/${this.app.getModelPlural(name).toLowerCase()}`, this.app.getModel(name))
-    );
+    this.app.getRootExposedModels().forEach(name => {
+      const model = this.app.getModel(name);
+      this.walkModel(model, this.app.getModelPlural(name));
+    });
 
     return this;
   }
+}
 
+/**
+ * Expose all models via a REST API
+ * @WebdaModda
+ */
+export class RESTDomainService<T extends DomainServiceParameters = DomainServiceParameters> extends DomainService<T> {
   /**
-   * Init method for your service
-   * @param params define in your webda.config.json
-   * @returns {Promise<this>}
+   * Handle one model and expose it based on the service
+   * @param model
+   * @param name
+   * @param context
+   * @returns
    */
-  async init(): Promise<this> {
-    await super.init();
-    // You can run any async action to get your service ready
-    return this;
+  handleModel(model: CoreModelDefinition, name: string, context: any): boolean {
+    const depth = context.depth || 0;
+    const injectAttribute = this.app.getRelations(model)?.parent?.attribute;
+
+    const injector = (service: Store, method: Methods<Store>, type: "SET" | "QUERY", ...args: any[]) => {
+      return async (context: WebContext) => {
+        let input = await context.getInput();
+        if (type === "SET" && injectAttribute && depth > 0) {
+          input[injectAttribute] = context.getPathParameters()[`pid.${depth - 1}`];
+        } else if (type === "QUERY") {
+          input.q = input.q ? ` AND (${input.q})` : "";
+          if (injectAttribute && depth > 0) {
+            input.q = ` AND ${injectAttribute} = "${context.getPathParameters()[`pid.${depth - 1}`]}"` + input.q;
+          }
+          input.q = `__types CONTAINS "${model.getIdentifier()}"` + input.q;
+        }
+        await service[method](context, ...args);
+      };
+    };
+
+    // Update prefix
+    const prefix = (context.prefix || this.parameters.url || "/") + this.transformName(name);
+    context.prefix = prefix + `/{pid.${depth}}/`;
+
+    model.Expose.restrict.query ||
+      this.addRoute(`${prefix}`, ["GET", "PUT"], injector(model.store(), "httpQuery", "QUERY"));
+    model.Expose.restrict.create ||
+      this.addRoute(`${prefix}`, ["POST"], injector(model.store(), "operationCreate", "SET", model.getIdentifier()));
+    model.Expose.restrict.delete || this.addRoute(`${prefix}/{uuid}`, ["DELETE"], ctx => model.store().httpDelete(ctx));
+    model.Expose.restrict.update ||
+      this.addRoute(`${prefix}/{uuid}`, ["PUT", "PATCH"], injector(model.store(), "httpUpdate", "SET"));
+    model.Expose.restrict.get || this.addRoute(`${prefix}/{uuid}`, ["GET"], ctx => model.store().httpGet(ctx));
+
+    // Add all actions
+    // Actions cannot be restricted as its purpose is to be exposed
+    let actions = model.getActions();
+    Object.keys(actions).forEach(actionName => {
+      let action: ModelAction = actions[actionName];
+      this.addRoute(
+        action.global ? `${prefix}/${actionName}` : `${prefix}/{uuid}/${actionName}`,
+        action.methods || ["PUT"],
+        ctx => {
+          if (action.global) {
+            model.store().httpGlobalAction(ctx);
+          } else {
+            model.store().httpAction(ctx);
+          }
+        },
+        action.openapi
+      );
+    });
+
+    return true;
   }
 }

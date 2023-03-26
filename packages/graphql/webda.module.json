@@ -17,12 +17,26 @@
           "type": "string",
           "description": "URL on which to serve the content"
         },
+        "operations": {
+          "type": "boolean",
+          "description": "Expose objects as operations too"
+        },
+        "nameTransfomer": {
+          "type": "string",
+          "enum": [
+            "camelCase",
+            "lowercase",
+            "none"
+          ]
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
         }
       },
       "required": [
+        "nameTransfomer",
+        "operations",
         "type"
       ],
       "description": "Parameters for the GraphQL service",

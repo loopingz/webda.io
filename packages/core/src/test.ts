@@ -1,6 +1,6 @@
 // organize-imports-ignore
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { Core, HttpContext, HttpMethodType, MemoryStore, Service, WebContext } from "./index";
+import { Core, CoreModel, HttpContext, HttpMethodType, MemoryStore, Service, WebContext } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as path from "path";
 import { execSync } from "child_process";
@@ -19,6 +19,13 @@ import { register } from "prom-client";
 export class TestApplication extends UnpackedApplication {
   constructor(file?: string, logger?: WorkerOutput) {
     super(file || "./", logger);
+  }
+  /**
+   * Force the namespace to WebdaDemo
+   * @returns
+   */
+  getNamespace() {
+    return "WebdaDemo";
   }
   /**
    * Set the status of the compilation
@@ -250,32 +257,35 @@ class WebdaTest {
       method?: HttpMethodType;
       url?: string;
       body?: any;
-      ctx?: WebContext;
+      context?: WebContext;
       headers?: { [key: string]: string };
     } = {}
   ): Promise<T> {
-    params.ctx ??= await this.newContext();
+    if (params.context) {
+      params.context.resetResponse();
+    }
+    params.context ??= await this.newContext();
     params.method ??= "GET";
     params.url ??= "/";
 
-    return await this.execute(params.ctx, "test.webda.io", params.method, params.url, params.body, params.headers);
+    return await this.execute(params.context, "test.webda.io", params.method, params.url, params.body, params.headers);
   }
 
   async execute(
-    ctx: WebContext = undefined,
+    context: WebContext = undefined,
     host: string = "test.webda.io",
     method: HttpMethodType = "GET",
     url: string = "/",
     body: any = {},
     headers: { [key: string]: string } = {}
   ) {
-    const exec = this.getExecutor(ctx, host, method, url, body, headers);
+    const exec = this.getExecutor(context, host, method, url, body, headers);
     if (!exec) {
       throw new Error(`${method} ${url} route not found`);
     }
-    await exec.execute(ctx);
+    await exec.execute(context);
 
-    let res = <string>ctx.getResponseBody();
+    let res = <string>context.getResponseBody();
     if (res) {
       try {
         return JSON.parse(res);
@@ -292,6 +302,98 @@ class WebdaTest {
    */
   async sleep(time): Promise<void> {
     return Core.sleep(time);
+  }
+
+  /**
+   * Create a graph of objets from sample-app to be able to test graph
+   */
+  async createGraphObjects() {
+    const Teacher = this.webda.getModel<CoreModel & { name: string; senior: boolean }>("Teacher");
+    const Course = this.webda.getModel<CoreModel & { name: string }>("Course");
+    const Classroom = this.webda.getModel<CoreModel & { name: string; courses: any; hardwares: any }>("Classroom");
+    const Student = this.webda.getModel<CoreModel & { email: string; firstName: string; lastName: string }>("Student");
+    const Hardware = this.webda.getModel<CoreModel & { name: string; classroom: string }>("Hardware");
+    const ComputerScreen = this.webda.getModel<
+      CoreModel & { name: string; classroom: string; modelId: string; serialNumber: string }
+    >("ComputerScreen");
+    const Company = this.webda.getModel<CoreModel & { name: string; uuid: string }>("Company");
+    const User = this.webda.getModel<CoreModel & { name: string; _company: string }>("User");
+
+    // 2 Companies
+    const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];
+    const users = [];
+    for (let company of companies) {
+      for (let i = 1; i < 6; i++) {
+        // 2 User per company
+        users.push(
+          await User.create({
+            name: `User ${users.length + 1}`,
+            _company: company.uuid
+          })
+        );
+      }
+    }
+
+    // 2 Teachers
+    const teachers = [await Teacher.create({ name: "test" }), await Teacher.create({ name: "test2", senior: true })];
+    const students = [];
+    const courses = [];
+
+    // 10 Students
+    for (let i = 1; i < 11; i++) {
+      students.push(
+        await Student.create({
+          email: `student${i}@webda.io`,
+          firstName: `Student ${i}`,
+          lastName: `Lastname ${i}`
+        })
+      );
+    }
+
+    // 10 Topics
+    const topics = ["Math", "French", "English", "Physics", "Computer Science"];
+    for (let i = 1; i < 13; i++) {
+      courses.push(
+        await Course.create({
+          name: `${topics[i % 5]} ${i}`
+        })
+      );
+    }
+
+    // 3 classrooms
+    const classrooms = [];
+    for (let i = 1; i < 4; i++) {
+      classrooms.push(
+        await Classroom.create({
+          name: `Classroom ${i}`,
+          courses: {
+            [courses[i % 3].uuid]: {
+              name: courses[i % 3].name
+            }
+          }
+        })
+      );
+    }
+
+    // 12 Hardware
+    const hardwares = [];
+    for (let i = 1; i < 12; i++) {
+      if (i % 2) {
+        hardwares.push(
+          await ComputerScreen.create({
+            classroom: classrooms[i % 3].uuid,
+            name: `Computer Screen ${i}`
+          })
+        );
+      } else {
+        hardwares.push(
+          await Hardware.create({
+            classroom: classrooms[i % 3].uuid,
+            name: `Hardware ${i}`
+          })
+        );
+      }
+    }
   }
 
   /**

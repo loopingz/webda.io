@@ -4,7 +4,6 @@
 
 import {
   Action,
-  CoreModel,
   Expose,
   ModelLink,
   ModelLinksArray,
@@ -13,11 +12,13 @@ import {
   ModelParent,
   ModelRelated,
   ModelsMapped,
-  OperationContext
+  OperationContext,
+  UuidModel,
+  WebdaError
 } from "@webda/core";
 
 @Expose()
-class Student extends CoreModel {
+class Student extends UuidModel {
   email: string;
   firstName: string;
   lastName: string;
@@ -30,13 +31,22 @@ class Student extends CoreModel {
 }
 
 @Expose()
-class Teacher extends CoreModel {
+class Teacher extends UuidModel {
+  uuid: string;
   courses: ModelsMapped<Course, "name">;
   name: string;
+  senior: boolean;
+
+  async canAct(ctx: OperationContext, action: string): Promise<this> {
+    if (ctx.getCurrentUserId() === "test") {
+      return this;
+    }
+    throw new WebdaError.Forbidden("Only test user can access");
+  }
 }
 
 @Expose()
-class Course extends CoreModel {
+class Course extends UuidModel {
   uuid: string;
   name: string;
   classroom: ModelLink<Classroom>;
@@ -51,7 +61,7 @@ class Course extends CoreModel {
   >;
 }
 @Expose()
-class Classroom extends CoreModel {
+class Classroom extends UuidModel {
   uuid: string;
   name: string;
   courses: ModelsMapped<Course, "name">;
@@ -59,19 +69,30 @@ class Classroom extends CoreModel {
 
   @Action()
   test(context: OperationContext<{ test: string; id: string }>) {}
+
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    if (ctx.getCurrentUserId() === "test") {
+      return this;
+    }
+    throw new WebdaError.Forbidden("Only test user can access");
+  }
 }
 
-@Expose()
-class Hardware extends CoreModel {
+@Expose({ root: true })
+class Hardware extends UuidModel {
   classroom: ModelParent<Classroom>;
+  name: string;
 
   @Action()
   static globalAction(context: OperationContext) {
     return;
   }
 
-  async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    return this;
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    if (ctx.getCurrentUserId() === "test") {
+      return this;
+    }
+    throw new WebdaError.Forbidden("Only test user can access");
   }
 }
 

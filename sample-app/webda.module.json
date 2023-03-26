@@ -443,8 +443,8 @@
         }
       },
       "required": [
-        "uuid",
-        "name"
+        "name",
+        "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Classroom"
@@ -503,8 +503,14 @@
             ],
             "additionalProperties": false
           }
+        },
+        "name": {
+          "type": "string"
         }
       },
+      "required": [
+        "name"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Company"
     },
@@ -552,7 +558,13 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "uuid": {
+          "type": "string"
+        },
         "classroom": {
+          "type": "string"
+        },
+        "name": {
           "type": "string"
         },
         "modelId": {
@@ -565,7 +577,9 @@
       "required": [
         "classroom",
         "modelId",
-        "serialNumber"
+        "name",
+        "serialNumber",
+        "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ComputerScreen"
@@ -679,10 +693,10 @@
         }
       },
       "required": [
-        "uuid",
-        "name",
         "classroom",
-        "teacher"
+        "name",
+        "teacher",
+        "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Course"
@@ -829,12 +843,20 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "uuid": {
+          "type": "string"
+        },
         "classroom": {
+          "type": "string"
+        },
+        "name": {
           "type": "string"
         }
       },
       "required": [
-        "classroom"
+        "classroom",
+        "name",
+        "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Hardware"
@@ -1061,6 +1083,9 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "uuid": {
+          "type": "string"
+        },
         "email": {
           "type": "string"
         },
@@ -1107,7 +1132,8 @@
         "email",
         "firstName",
         "lastName",
-        "teachers"
+        "teachers",
+        "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student"
@@ -1257,6 +1283,9 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "uuid": {
+          "type": "string"
+        },
         "courses": {
           "type": "array",
           "items": {
@@ -1278,10 +1307,15 @@
         },
         "name": {
           "type": "string"
+        },
+        "senior": {
+          "type": "boolean"
         }
       },
       "required": [
-        "name"
+        "name",
+        "senior",
+        "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Teacher"

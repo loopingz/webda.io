@@ -182,9 +182,9 @@ class MemoryStoreTest extends StoreTest {
     for (let i = 0; i < 1200; i++) {
       await usersStore.save({ uuid: `id_${i}`, id: i });
       if (i % 10 === 0) {
-        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/User/, "webda/user2");
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/User/, "webda/user2");
       } else if (i % 2 === 0) {
-        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/User/, "webda/user");
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/User/, "webdademo/user");
       }
     }
     await usersStore.v3Migration();
@@ -194,7 +194,7 @@ class MemoryStoreTest extends StoreTest {
       } else if (user.id % 2 === 0) {
         assert.strictEqual(user.__type, "User");
       } else {
-        assert.strictEqual(user.__type, "User");
+        assert.strictEqual(user.__type, "Webda/User");
       }
     });
   }

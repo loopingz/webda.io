@@ -12,34 +12,23 @@ import { Throttler } from "../utils/throttler";
 import { createModelLinksMap, ModelActions, ModelLinksArray, ModelLinksSimpleArray, RawModel } from "./relations";
 
 /**
- * Create a new type with only optional
- */
-//export type ModelPartial<T> = ;
-
-/**
  * Expose the model through API or GraphQL if it exists
+ * The model will be exposed using its class name + 's'
+ * If you need to have a specific plural, use the annotation WebdaPlural
+ *  to define the plural name
+ *
  * @returns
  */
-export function Expose(
-  segment?: string,
-  restrict?: {
-    create?: boolean;
-    update?: boolean;
-    query?: boolean;
-    get?: boolean;
-    delete?: boolean;
-    operation?: boolean;
-  }
-) {
-  return function (target: any): void {
-    // @ts-ignore
-    target.Expose ??= {
-      segment,
-      restrict
-    };
+export function Expose(params: Partial<ExposeParameters> = {}) {
+  return function (target: CoreModelDefinition): void {
+    params.restrict ??= {};
+    target.Expose = <ExposeParameters>params;
   };
 }
 
+/**
+ *
+ */
 class CoreModelQuery {
   @NotEnumerable
   private type: string;
@@ -65,7 +54,7 @@ class CoreModelQuery {
     results: CoreModel[];
     continuationToken?: string;
   }> {
-    return Core.get().getModelStore(Core.get().getModel(this.type)).query(this.completeQuery(query), context);
+    return (<CoreModelDefinition>this.model.constructor).query(this.completeQuery(query), true, context);
   }
 
   /**
@@ -120,6 +109,12 @@ export type FilterKeys<T extends CoreModel, K> = {
   [L in keyof T]: T[L] extends K ? L : never;
 }[keyof T];
 
+/**
+ * Define an Action on a model
+ *
+ * It is basically a method designed to be called by the API or external
+ * systems
+ */
 export interface ModelAction {
   /**
    * Method for the route
@@ -140,12 +135,59 @@ export interface ModelAction {
   openapi?: any;
 }
 
+/**
+ * Expose parameters for the model
+ */
+export interface ExposeParameters {
+  /**
+   * If model have parent but you still want it to be exposed as root
+   * in domain-like service: DomainService, GraphQL
+   *
+   * It would create alias for the model in the root too
+   */
+  root?: boolean;
+  /**
+   * You can select to not expose some methods like create, update, delete, get, query
+   */
+  restrict: {
+    /**
+     * Create a new object
+     */
+    create?: boolean;
+    /**
+     * Update an existing object
+     *
+     * Includes PUT and PATCH
+     */
+    update?: boolean;
+    /**
+     * Query the object
+     */
+    query?: boolean;
+    /**
+     * Get a single object
+     */
+    get?: boolean;
+    /**
+     * Delete an object
+     */
+    delete?: boolean;
+    /**
+     * Do not create operations for the model
+     */
+    operation?: boolean;
+  };
+}
+
+/**
+ *
+ */
 export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   new (): T;
   /**
    * If the model have some Expose annotation
    */
-  Expose?: any;
+  Expose?: ExposeParameters;
   /**
    * Create a CoreModel object loaded with the content of object
    *
@@ -192,7 +234,11 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
    * Query the model
    * @param query
    */
-  query(query?: string, includeSubclass?: boolean): Promise<{ results: T[]; continuationToken?: string }>;
+  query(
+    query?: string,
+    includeSubclass?: boolean,
+    context?: OperationContext
+  ): Promise<{ results: T[]; continuationToken?: string }>;
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -472,10 +518,11 @@ class CoreModel {
    * @returns
    */
   static getIdentifier(short: boolean = true): string {
+    const res = Core.get().getApplication().getModelName(this);
     if (short) {
-      return Core.get().getApplication().getShortId(Core.get().getApplication().getModelName(this));
+      return Core.get().getApplication().getShortId(res);
     } else {
-      return Core.get().getApplication().getModelName(this);
+      return res;
     }
   }
 
@@ -1127,4 +1174,11 @@ class CoreModel {
   }
 }
 
-export { CoreModel };
+/**
+ * CoreModel with a uuid
+ */
+class UuidModel extends CoreModel {
+  uuid: string;
+}
+
+export { CoreModel, UuidModel };

@@ -15,8 +15,8 @@ export class User extends WebdaUser {
     return value;
   }
 
-  canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    return Promise.resolve(this);
+  async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    return this;
   }
 }
 

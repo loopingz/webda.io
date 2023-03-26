@@ -288,7 +288,11 @@ export interface EventStoreWebDelete extends EventWithContext {
   store: Store;
 }
 
-export type ExposeParameters = {
+/**
+ * @deprecated Store should not be exposed directly anymore
+ * You should use the DomainService instead
+ */
+export type StoreExposeParameters = {
   /**
    * URL endpoint to use to expose REST Resources API
    *
@@ -374,7 +378,7 @@ export class StoreParameters extends ServiceParameters {
    *
    * @deprecated will probably be removed in 4.0 in favor of Expose annotation
    */
-  expose?: ExposeParameters;
+  expose?: StoreExposeParameters;
 
   /**
    * Allow to load object that does not have the type data
@@ -592,6 +596,9 @@ abstract class Store<
     this._modelsHierarchy[this._model.getIdentifier(false)] = 0;
     this._modelsHierarchy[this._model.getIdentifier()] = 0;
     recursive(this._model.getHierarchy().children, 1);
+    if (this.getParameters().expose) {
+      this.log("WARN", "Exposing a store is not recommended, use a DomainService instead to expose all your CoreModel");
+    }
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -1068,6 +1075,7 @@ abstract class Store<
   /**
    * Check that __type Comparison is only used with = and CONTAINS
    * If CONTAINS is used, move __type to __types
+   * If __type = store._model, remove it
    */
   queryTypeUpdater(query: WebdaQL.Query): WebdaQL.Query {
     return query;

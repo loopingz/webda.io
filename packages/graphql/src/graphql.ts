@@ -1,6 +1,15 @@
-import { DeepPartial, ModelGraph, Route, Service, ServiceParameters, WebContext } from "@webda/core";
+import {
+  DeepPartial,
+  DomainServiceParameters,
+  ModelGraph,
+  Route,
+  Service,
+  ServiceParameters,
+  WebContext
+} from "@webda/core";
 import {
   GraphQLBoolean,
+  GraphQLError,
   GraphQLFieldConfig,
   GraphQLInt,
   GraphQLList,
@@ -16,7 +25,7 @@ import { JSONSchema7 } from "json-schema";
 /**
  * Parameters for the GraphQL service
  */
-export class GraphQLParameters extends ServiceParameters {
+export class GraphQLParameters extends DomainServiceParameters {
   constructor(params: any) {
     super(params);
     this.url ??= "/graphql";
@@ -126,10 +135,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (webdaGraph.parent) {
         skipFields.push(webdaGraph.parent.attribute);
       }
+      // Links should probably not be displayed
       (webdaGraph.links || []).filter(attributeFilter()).forEach(link => {
         if (link.type === "LINK") {
           fields[link.attribute] = {
-            type: this.modelsMap[link.model]
+            type: this.modelsMap[link.model],
+            resolve: async (source, args, context, info) => {
+              let model = source[link.attribute].get();
+              // Check permission and model exists
+              return model;
+            }
           };
         } else {
           fields[link.attribute] = {
@@ -138,6 +153,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               filter: {
                 type: GraphQLString
               }
+            },
+            resolve: async (source, args, context, info) => {
+              return;
             }
           };
         }
@@ -149,6 +167,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             filter: {
               type: GraphQLString
             }
+          },
+          resolve: async (source, args, context, info) => {
+            return [];
           }
         };
       });
@@ -159,6 +180,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             query: {
               type: GraphQLString
             }
+          },
+          resolve: async (source, args, context, info) => {
+            return source[query.attribute].query(args.query, true, context);
           }
         };
       });
@@ -224,19 +248,34 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           }
         },
         resolve: async (_, args, context) => {
-          return await model.query(args.query || "", context);
+          return await model.query(args.query || "", true, context);
         }
       };
       rootFields[i.split("/")[1]] = {
         type: this.modelsMap[i],
         args: {
-          uuid: {
+          [model.getUuidField()]: {
             type: GraphQLString
           }
         },
         resolve: async (_, args, context) => {
           let res = await model.store().get(args.uuid || "");
-          await res.canAct(context, "get");
+          if (!res) {
+            throw new GraphQLError("Object not found", {
+              extensions: {
+                code: "NOT_FOUND"
+              }
+            });
+          }
+          try {
+            await res.canAct(context, "get");
+          } catch (err) {
+            throw new GraphQLError("Permission denied", {
+              extensions: {
+                code: "PERMISSION_DENIED"
+              }
+            });
+          }
           return res;
         }
       };

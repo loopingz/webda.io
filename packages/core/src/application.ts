@@ -833,11 +833,26 @@ export class Application {
   }
 
   /**
-   * Return models that do not have parents and are exposed
+   * Return models that do not have parents
    * @returns
    */
   getRootModels(): string[] {
     return Object.keys(this.graph).filter(key => !this.graph[key].parent && this.models[key]?.Expose);
+  }
+
+  /**
+   * Return models that do not have parents and are exposed
+   * Or specifically set as root via the Expose.root parameter
+   * @returns
+   */
+  getRootExposedModels(): string[] {
+    const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Expose));
+    for (let model in this.models) {
+      if (this.models[model].Expose?.root) {
+        results.add(model);
+      }
+    }
+    return [...results];
   }
 
   /**
@@ -860,7 +875,7 @@ export class Application {
    * Get the model name from a model or a constructor
    *
    * @param model
-   * @returns
+   * @returns longId for a model
    */
   getModelName(model: CoreModel | Constructor<CoreModel>): string | undefined {
     if (model instanceof CoreModel) {

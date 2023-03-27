@@ -282,6 +282,7 @@ class CoreModelTest extends WebdaTest {
 
     await TestMask.ref("unit1").delete();
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
+    assert.strictEqual(TestMask.ref("unit1").getUuid(), "unit1");
   }
 
   @test async fullUuid() {

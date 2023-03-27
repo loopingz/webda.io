@@ -14,8 +14,6 @@ import {
   CircularReferenceNodeParser,
   Config,
   Context,
-  createFormatter,
-  createParser,
   Definition,
   ExtendedAnnotationsReader,
   FunctionType,
@@ -26,7 +24,9 @@ import {
   SchemaGenerator,
   StringType,
   SubNodeParser,
-  SubTypeFormatter
+  SubTypeFormatter,
+  createFormatter,
+  createParser
 } from "ts-json-schema-generator";
 import ts from "typescript";
 import { SourceApplication } from "./sourceapplication";
@@ -916,9 +916,6 @@ export class Compiler {
         .getProperties()
         .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
         .forEach((prop: ts.Symbol) => {
-          if (prop.getEscapedName() === "profilePicture" || prop.getEscapedName() === "images") {
-            console.log(prop);
-          }
           const pType: ts.TypeReferenceNode = <ts.TypeReferenceNode>prop.valueDeclaration
             .getChildren()
             .filter(c => c.kind === ts.SyntaxKind.TypeReference)

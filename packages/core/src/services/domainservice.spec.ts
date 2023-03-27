@@ -18,8 +18,7 @@ class DomainServiceTest extends WebdaTest {
   async operations() {
     assert.strictEqual(Object.keys(this.webda.listOperations()).length, 0);
     await this.registerService(new ModelsOperationsService(this.webda, "ModelsOperationsService")).resolve().init();
-    assert.strictEqual(Object.keys(this.webda.listOperations()).length, 51);
-    console.log(this.webda.listOperations(), this.webda.getApplication().getSchema("User.Patch"));
+    assert.strictEqual(Object.keys(this.webda.listOperations()).length, 57);
   }
 
   @test
@@ -161,6 +160,15 @@ class DomainServiceTest extends WebdaTest {
       },
       context
     });
+    result = await this.http({
+      method: "PUT",
+      url: `/students`,
+      body: {
+        q: ""
+      },
+      context
+    });
+    assert.strictEqual(result.results.length, 10);
   }
 
   @test

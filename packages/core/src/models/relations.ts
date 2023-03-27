@@ -150,7 +150,9 @@ export class ModelLinksArray<T extends CoreModel, K> extends Array<
 > {
   constructor(protected model: CoreModelDefinition<T>, content: any[] = []) {
     super();
-    this.push(...content.map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c)));
+    this.push(
+      ...content.filter(c => c && c.uuid).map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c))
+    );
   }
 
   add(

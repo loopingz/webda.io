@@ -878,6 +878,10 @@ export class Application {
    * @returns longId for a model
    */
   getModelName(model: CoreModel | Constructor<CoreModel>): string | undefined {
+    // If __type is defined, use it
+    if ((<any>model).__type) {
+      return this.completeNamespace((<any>model).__type);
+    }
     if (model instanceof CoreModel) {
       return this.getModelFromInstance(model);
     }

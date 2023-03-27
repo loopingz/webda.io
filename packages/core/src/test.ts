@@ -1,6 +1,6 @@
 // organize-imports-ignore
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { Core, CoreModel, HttpContext, HttpMethodType, MemoryStore, Service, WebContext } from "./index";
+import { Core, CoreModel, HttpContext, HttpMethodType, MemoryStore, Service, UuidModel, WebContext } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as path from "path";
 import { execSync } from "child_process";
@@ -308,16 +308,18 @@ class WebdaTest {
    * Create a graph of objets from sample-app to be able to test graph
    */
   async createGraphObjects() {
-    const Teacher = this.webda.getModel<CoreModel & { name: string; senior: boolean }>("Teacher");
-    const Course = this.webda.getModel<CoreModel & { name: string }>("Course");
-    const Classroom = this.webda.getModel<CoreModel & { name: string; courses: any; hardwares: any }>("Classroom");
-    const Student = this.webda.getModel<CoreModel & { email: string; firstName: string; lastName: string }>("Student");
-    const Hardware = this.webda.getModel<CoreModel & { name: string; classroom: string }>("Hardware");
+    const Teacher = this.webda.getModel<UuidModel & { name: string; senior: boolean; uuid: string }>("Teacher");
+    const Course = this.webda.getModel<
+      UuidModel & { name: string; classroom: string; teacher: string; students: any[] }
+    >("Course");
+    const Classroom = this.webda.getModel<UuidModel & { name: string; courses: any; hardwares: any }>("Classroom");
+    const Student = this.webda.getModel<UuidModel & { email: string; firstName: string; lastName: string }>("Student");
+    const Hardware = this.webda.getModel<UuidModel & { name: string; classroom: string }>("Hardware");
     const ComputerScreen = this.webda.getModel<
-      CoreModel & { name: string; classroom: string; modelId: string; serialNumber: string }
+      UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }
     >("ComputerScreen");
-    const Company = this.webda.getModel<CoreModel & { name: string; uuid: string }>("Company");
-    const User = this.webda.getModel<CoreModel & { name: string; _company: string }>("User");
+    const Company = this.webda.getModel<UuidModel & { name: string; uuid: string }>("Company");
+    const User = this.webda.getModel<UuidModel & { name: string; _company: string }>("User");
 
     // 2 Companies
     const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];
@@ -353,9 +355,21 @@ class WebdaTest {
     // 10 Topics
     const topics = ["Math", "French", "English", "Physics", "Computer Science"];
     for (let i = 1; i < 13; i++) {
+      let courseStudents = [];
+      for (let j = i; j < i + 6; j++) {
+        let s = students[j % 10];
+        courseStudents.push({
+          uuid: s.getUuid(),
+          email: s.email,
+          firstName: s.firstName,
+          lastName: s.lastName
+        });
+      }
       courses.push(
         await Course.create({
-          name: `${topics[i % 5]} ${i}`
+          name: `${topics[i % 5]} ${i}`,
+          teacher: teachers[i % 2].uuid,
+          students: courseStudents
         })
       );
     }
@@ -363,16 +377,22 @@ class WebdaTest {
     // 3 classrooms
     const classrooms = [];
     for (let i = 1; i < 4; i++) {
+      let classCourses = [];
+      classCourses.push({ uuid: courses[i].uuid, name: courses[i].name });
+      classCourses.push({ uuid: courses[i * 2].uuid, name: courses[i * 2].name });
+      classCourses.push({ uuid: courses[i * 3].uuid, name: courses[i * 3].name });
       classrooms.push(
         await Classroom.create({
           name: `Classroom ${i}`,
-          courses: {
-            [courses[i % 3].uuid]: {
-              name: courses[i % 3].name
-            }
-          }
+          courses: classCourses
         })
       );
+    }
+
+    let count = 1;
+    for (let course of courses) {
+      course.classroom.set(classrooms[count++ % 3].uuid);
+      await course.save();
     }
 
     // 12 Hardware
@@ -393,6 +413,20 @@ class WebdaTest {
           })
         );
       }
+    }
+
+    count = 1;
+    for (let classroom of classrooms) {
+      let classCourses = [];
+      for (let i = 0; i < 3; i++) {
+        classCourses.push({
+          uuid: courses[count++ % 12].uuid,
+          name: courses[count % 12].name
+        });
+      }
+      await classroom.patch({
+        courses: classCourses
+      });
     }
   }
 

@@ -1,4 +1,12 @@
-import { BinaryMap, CoreModel, Expose, ModelParent, OperationContext, User as WebdaUser } from "@webda/core";
+import {
+  BinaryMap,
+  CoreModel,
+  Expose,
+  ModelParent,
+  ModelRelated,
+  OperationContext,
+  User as WebdaUser
+} from "@webda/core";
 import { Company } from "./company";
 
 /**
@@ -10,6 +18,7 @@ export class User extends WebdaUser {
   name: string;
   profilePicture: BinaryMap<{ width: number; height: number }>;
   images: BinaryMap[];
+  computers: ModelRelated<Computer, "_user">;
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
     return value;
@@ -23,6 +32,7 @@ export class User extends WebdaUser {
 /**
  * @WebdaModel
  */
+@Expose()
 export class Computer extends CoreModel {
   _user: ModelParent<User>;
   name: string;

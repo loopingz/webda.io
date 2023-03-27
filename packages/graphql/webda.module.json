@@ -29,15 +29,33 @@
             "none"
           ]
         },
+        "maxOperationsPerRequest": {
+          "type": "number",
+          "description": "Max number of requests allowed within a graphql query or mutation",
+          "default": 10
+        },
+        "userModel": {
+          "type": "string",
+          "description": "User model to expose",
+          "default": "User"
+        },
+        "exposeMe": {
+          "type": "boolean",
+          "description": "Expose current user in the context with me",
+          "default": true
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
         }
       },
       "required": [
+        "exposeMe",
+        "maxOperationsPerRequest",
         "nameTransfomer",
         "operations",
-        "type"
+        "type",
+        "userModel"
       ],
       "description": "Parameters for the GraphQL service",
       "$schema": "http://json-schema.org/draft-07/schema#",

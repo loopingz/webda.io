@@ -160,7 +160,7 @@ class MemoryStore<
    * @override
    */
   async _save(object: T): Promise<T> {
-    let uid = object[this._uuidField];
+    let uid = object.getUuid();
     this.storage[uid] = object.toStoredJSON(true);
     return this._getSync(uid);
   }

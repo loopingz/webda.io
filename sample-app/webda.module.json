@@ -25,6 +25,7 @@
           "model": "WebdaDemo/Company"
         }
       },
+      "WebdaDemo/Brand": {},
       "WebdaDemo/Classroom": {
         "maps": [
           {
@@ -74,7 +75,14 @@
         "parent": {
           "attribute": "classroom",
           "model": "WebdaDemo/Classroom"
-        }
+        },
+        "queries": [
+          {
+            "attribute": "brands",
+            "model": "WebdaDemo/Brand",
+            "targetAttribute": "name"
+          }
+        ]
       },
       "WebdaDemo/Contact": {},
       "WebdaDemo/Course": {
@@ -100,7 +108,14 @@
         "parent": {
           "attribute": "classroom",
           "model": "WebdaDemo/Classroom"
-        }
+        },
+        "queries": [
+          {
+            "attribute": "brands",
+            "model": "WebdaDemo/Brand",
+            "targetAttribute": "name"
+          }
+        ]
       },
       "WebdaDemo/Project": {
         "parent": {
@@ -154,6 +169,13 @@
             "cardinality": "ONE"
           }
         ],
+        "queries": [
+          {
+            "attribute": "computers",
+            "model": "WebdaDemo/Computer",
+            "targetAttribute": "_user"
+          }
+        ],
         "maps": [
           {
             "attribute": "_idents",
@@ -180,6 +202,7 @@
       "Webda/User": {
         "WebdaDemo/User": {}
       },
+      "WebdaDemo/Brand": {},
       "WebdaDemo/Classroom": {},
       "WebdaDemo/Company": {},
       "WebdaDemo/Computer": {},
@@ -197,6 +220,7 @@
     "list": {
       "WebdaDemo/AbstractProject": "lib/models/project:AbstractProject",
       "WebdaDemo/AnotherSubProject": "lib/models/project:AnotherSubProject",
+      "WebdaDemo/Brand": "lib/models/relations:Brand",
       "WebdaDemo/Classroom": "lib/models/relations:Classroom",
       "WebdaDemo/Company": "lib/models/company:Company",
       "WebdaDemo/Computer": "lib/models/user:Computer",
@@ -400,6 +424,36 @@
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ThirdOtherService"
+    },
+    "WebdaDemo/Brand": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "uuid"
+      ],
+      "description": "Model not exposed on purpose",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Brand"
     },
     "WebdaDemo/Classroom": {
       "type": "object",
@@ -1126,9 +1180,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "constraints": {
+          "type": "null"
         }
       },
       "required": [
+        "constraints",
         "email",
         "firstName",
         "lastName",

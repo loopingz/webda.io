@@ -46,7 +46,8 @@
     "reporter": [
       "html",
       "lcov",
-      "json"
+      "json",
+      "text"
     ],
     "exclude": [
       "**/*.spec.ts",
@@ -54,7 +55,7 @@
     ]
   },
   "webda": {
-    "namespace": "MyCompany"
+    "namespace": "Webda"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

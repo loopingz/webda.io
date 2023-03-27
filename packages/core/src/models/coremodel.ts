@@ -36,11 +36,22 @@ class CoreModelQuery {
   private model: CoreModel;
   @NotEnumerable
   private attribute: string;
+  @NotEnumerable
+  private targetModel: CoreModelDefinition;
 
   constructor(type: string, model: CoreModel, attribute: string) {
     this.attribute = attribute;
     this.type = type;
     this.model = model;
+  }
+
+  /**
+   * Retrieve target model definition
+   * @returns
+   */
+  getTargetModel(): CoreModelDefinition {
+    this.targetModel ??= Core.get().getModel(this.type);
+    return this.targetModel;
   }
   /**
    * Query the object
@@ -54,7 +65,7 @@ class CoreModelQuery {
     results: CoreModel[];
     continuationToken?: string;
   }> {
-    return (<CoreModelDefinition>this.model.constructor).query(this.completeQuery(query), true, context);
+    return this.getTargetModel().query(this.completeQuery(query), true, context);
   }
 
   /**
@@ -98,7 +109,7 @@ class CoreModelQuery {
    * @returns
    */
   async getAll(query?: string, context?: OperationContext) {
-    return Core.get().getModelStore(Core.get().getModel(this.type)).queryAll(this.completeQuery(query), context);
+    return Core.get().getModelStore(this.getTargetModel()).queryAll(this.completeQuery(query), context);
   }
 }
 
@@ -391,6 +402,13 @@ export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
     super(uuid, model);
     Object.assign(this, data);
   }
+
+  toJSON(): any {
+    return this;
+  }
+  getUuid(): string {
+    return this.uuid;
+  }
 }
 
 export type ModelRefCustomProperties<T extends CoreModel, K> = ModelRefCustom<T> & K;
@@ -621,10 +639,10 @@ class CoreModel {
     results: T[];
     continuationToken?: string;
   }> {
-    if (query.trim() !== "") {
-      query = `AND ${query}`;
-    }
     if (!query.includes("__type")) {
+      if (query.trim() !== "") {
+        query = ` AND ${query}`;
+      }
       const app = Core.get().getApplication();
       const name = app.getShortId(app.getModelName(this));
       if (includeSubclass) {
@@ -749,8 +767,8 @@ class CoreModel {
    * @returns
    */
   async canAct(
-    _ctx: OperationContext,
-    _action:
+    ctx: OperationContext,
+    action:
       | "create"
       | "update"
       | "get"
@@ -762,7 +780,7 @@ class CoreModel {
       | "subscribe" // To manage MQTT or Websockets
       | string
   ): Promise<this> {
-    throw new WebdaError.Forbidden("This model does not support any action: override canAct");
+    throw new WebdaError.Forbidden("This model does not support any action: override checkAct");
   }
 
   /**

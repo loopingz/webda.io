@@ -24,9 +24,23 @@ class Student extends UuidModel {
   lastName: string;
   friends: ModelLinksMap<Student, { email: string; firstName: string; lastName: string }>;
   teachers: ModelLinksSimpleArray<Teacher>;
+  // For cov
+  constraints: null;
 
   getUuid(): string {
     return this.email;
+  }
+
+  static getUuidField(): string {
+    // use email for uuid
+    return "email";
+  }
+
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    if (ctx.getCurrentUserId() === "test") {
+      return this;
+    }
+    throw new WebdaError.Forbidden("Only test user can access");
   }
 }
 
@@ -59,6 +73,13 @@ class Course extends UuidModel {
       lastName?: string;
     }
   >;
+
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
+    if (ctx.getCurrentUserId() === "test") {
+      return this;
+    }
+    throw new WebdaError.Forbidden("Only test user can access");
+  }
 }
 @Expose()
 class Classroom extends UuidModel {
@@ -82,6 +103,7 @@ class Classroom extends UuidModel {
 class Hardware extends UuidModel {
   classroom: ModelParent<Classroom>;
   name: string;
+  brands: ModelRelated<Brand, "name">;
 
   @Action()
   static globalAction(context: OperationContext) {
@@ -99,6 +121,13 @@ class Hardware extends UuidModel {
 export class ComputerScreen extends Hardware {
   modelId: string;
   serialNumber: string;
+}
+
+/**
+ * Model not exposed on purpose
+ */
+export class Brand extends UuidModel {
+  "name": string;
 }
 
 export { Student, Teacher, Course, Classroom, Hardware };

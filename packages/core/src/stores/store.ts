@@ -577,7 +577,7 @@ abstract class Store<
     super.computeParameters();
     const app = this.getWebda().getApplication();
     const p = this.parameters;
-    this._model = <CoreModelDefinition<T>>app.getModel(p.model);
+    this._model = app.getModel(p.model);
     this._modelType = this._model.getIdentifier();
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();

@@ -132,11 +132,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       "content-disposition": ctx.parameter("content-disposition"),
       "content-type": ctx.parameter("content-type")
     });
+    let map = await this.get({ hash } as BinaryMap);
     // Fake a binary map for this case
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       const stream = ctx.getStream();
       stream.on("error", reject).on("finish", resolve);
-      (await this.get({ hash } as BinaryMap)).pipe(stream);
+      map.pipe(stream);
     });
   }
 
@@ -359,8 +360,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
   async _store(file: BinaryFile, object: CoreModel) {
     fs.mkdirSync(this._getPath(file.hash));
-    await new Promise(async (resolve, reject) => {
-      (await file.get())
+    const map = await file.get();
+    await new Promise((resolve, reject) => {
+      map
         .pipe(fs.createWriteStream(this._getPath(file.hash, "data")))
         .on("error", reject)
         .on("finish", resolve);

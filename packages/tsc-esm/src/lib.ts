@@ -8,7 +8,7 @@ export function writer(fileName: string, text: string) {
     fileName,
     text
       .replace(/^(import .* from "\..*?)(\.js)?";$/gm, '$1.js";')
-      .replace(/^(import .* from "(@[^\/]+\/)?[^@\/]+\/.*?)(\.js)?";$/gm, '$1.js";')
+      .replace(/^(import .* from "(@[^/]+\/)?[^@/]+\/.*?)(\.js)?";$/gm, '$1.js";')
       .replace(/^(export .* from "\..*?)(\.js)?";$/gm, '$1.js";')
   );
 }

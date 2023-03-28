@@ -596,7 +596,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     // Init the other services
     this.initStatics();
     this.log("TRACE", "Create Webda init promise");
-    this._init = new Promise(async resolve => {
+    this._init = (async () => {
       await this.initService("Registry");
       await this.initService("CryptoService");
 
@@ -614,8 +614,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       }
       await Promise.all(inits);
       await this.emitSync("Webda.Init.Services", this.services);
-      resolve();
-    });
+    })();
     return this._init;
   }
 
@@ -713,7 +712,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param definition
    */
   registerOperation(operationId: string, definition: OperationDefinition) {
-    if (operationId.match(/[^a-zA-Z0-9\.]/)) {
+    if (operationId.match(/[^a-zA-Z0-9.]/)) {
       throw new Error("OperationId can only contain [a-zA-Z0-9.]");
     }
     this.operations[operationId] = { ...definition, id: operationId };
@@ -1368,7 +1367,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       let desc: JSONSchema7 = {
         type: "object"
       };
-      let modelName = (<CoreModelDefinition>model).name || i.split("/").pop();
+      let modelName = model.name || i.split("/").pop();
       let schema = this.application.getSchema(i);
       if (schema) {
         for (let j in schema.definitions) {

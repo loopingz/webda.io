@@ -7,6 +7,6 @@ class DeploymentTest {
   @test
   async canAct() {
     let deployment = new Deployment();
-    assert.strictEqual(await deployment.canAct(undefined, undefined), deployment);
+    assert.strictEqual(await deployment.canAct(undefined, undefined), true);
   }
 }

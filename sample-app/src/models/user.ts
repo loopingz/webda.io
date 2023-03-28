@@ -24,8 +24,8 @@ export class User extends WebdaUser {
     return value;
   }
 
-  async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    return this;
+  async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+    return true;
   }
 }
 

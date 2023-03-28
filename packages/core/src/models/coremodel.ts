@@ -762,6 +762,26 @@ class CoreModel {
     return null;
   }
 
+  async checkAct(
+    ctx: OperationContext,
+    action:
+      | "create"
+      | "update"
+      | "get"
+      | "delete"
+      | "get_binary"
+      | "detach_binary"
+      | "attach_binary"
+      | "update_binary_metadata"
+      | "subscribe" // To manage MQTT or Websockets
+      | string
+  ) {
+    let msg = await this.canAct(ctx, action);
+    if (msg !== true) {
+      throw new WebdaError.Forbidden(msg === false ? "No permission" : msg);
+    }
+  }
+
   /**
    * By default nothing is permitted on a CoreModel
    * @returns
@@ -779,8 +799,8 @@ class CoreModel {
       | "update_binary_metadata"
       | "subscribe" // To manage MQTT or Websockets
       | string
-  ): Promise<this> {
-    throw new WebdaError.Forbidden("This model does not support any action: override checkAct");
+  ): Promise<string | boolean> {
+    return "This model does not support any action: override checkAct";
   }
 
   /**
@@ -921,9 +941,10 @@ class CoreModel {
       });
     };
 
-    const rel = Core.get()
-      .getApplication()
-      .getRelations(<any>this);
+    const rel =
+      Core.get()
+        ?.getApplication()
+        ?.getRelations(<any>this) || {};
     for (let link of rel.links || []) {
       const model = Core.get().getModel(link.model);
       if (link.type === "LINK") {

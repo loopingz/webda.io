@@ -148,7 +148,7 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
    * @returns
    */
   async handleNotificationFor(user: User | Ident): Promise<boolean> {
-    return user.getEmail() !== null;
+    return user.getEmail() !== undefined;
   }
 
   /**

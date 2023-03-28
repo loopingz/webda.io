@@ -162,18 +162,18 @@ export default class AclModel extends CoreModel {
     return false;
   }
 
-  async canAct(ctx: OperationContext, action: string) {
+  async canAct(ctx: OperationContext, action: string): Promise<string | boolean> {
     if (action === "create" && ctx.getCurrentUserId()) {
-      return this;
+      return true;
     }
     if (!this.getAcl() || !ctx.getCurrentUserId()) {
-      throw new WebdaError.Forbidden("No ACL or user");
+      return "No ACL or user";
     }
     let user = await ctx.getCurrentUser();
     if (await this.hasPermission(ctx, user, action)) {
-      return this;
+      return true;
     }
-    throw new WebdaError.Forbidden("No permission");
+    return "No permission";
   }
 }
 

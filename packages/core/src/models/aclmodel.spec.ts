@@ -33,15 +33,15 @@ class AclModelTest {
   }
 
   @test async get() {
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "get"));
+    await assert.rejects(() => this.model.checkAct(this._ctx, "get"));
     this.model.__acl["gip-123"] = "get";
-    assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
+    assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
   }
   @test async multipermissions() {
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
+    await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     this.model.__acl["gip-123"] = "get,action";
-    assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    assert.strictEqual(await this.model.canAct(this._ctx, "action"), this.model);
+    assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
+    assert.strictEqual(await this.model.canAct(this._ctx, "action"), true);
     assert.deepStrictEqual(await this.model.getPermissions(this._ctx), ["get", "action"]);
     await this.model._onGet();
     // @ts-ignore
@@ -53,28 +53,28 @@ class AclModelTest {
   }
 
   @test async multigroups() {
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
+    await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     this.model.__acl["gip-124"] = "get,action";
     this.model.__acl["gip-123"] = "get";
     this.model.__acl["gip-122"] = "get,action";
-    assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
+    assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
+    await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     // @ts-ignore
     this._user._groups = undefined;
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "get"));
+    await assert.rejects(() => this.model.checkAct(this._ctx, "get"));
   }
 
   @test async userid() {
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
+    await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     this.model.__acl["user-uid"] = "get";
     this.model.__acl["gip-122"] = "get,action";
-    assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
+    assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
+    await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     this._ctx.getCurrentUserId = () => {
       return undefined;
     };
     await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "get"),
+      () => this.model.checkAct(this._ctx, "get"),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
     this._ctx.getCurrentUserId = () => {
@@ -82,20 +82,20 @@ class AclModelTest {
     };
     this.model.setAcl(undefined);
     await assert.rejects(
-      this.model.canAct.bind(this.model, this._ctx, "get"),
+      () => this.model.checkAct(this._ctx, "get"),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
   }
 
   @test async all() {
-    await assert.rejects(this.model.canAct.bind(this.model, this._ctx, "action"));
+    await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     this.model.__acl["gip-124"] = "get,action";
     this.model.__acl["user-uid"] = "all";
     this.model.__acl["gip-122"] = "get,action";
-    assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
-    assert.strictEqual(await this.model.canAct(this._ctx, "action"), this.model);
-    assert.strictEqual(await this.model.canAct(this._ctx, "delete"), this.model);
-    assert.strictEqual(await this.model.canAct(this._ctx, "whatever"), this.model);
+    assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
+    assert.strictEqual(await this.model.canAct(this._ctx, "action"), true);
+    assert.strictEqual(await this.model.canAct(this._ctx, "delete"), true);
+    assert.strictEqual(await this.model.canAct(this._ctx, "whatever"), true);
   }
 
   @test async httpAcls() {

@@ -5,6 +5,7 @@ import {
   Action,
   Core,
   CoreModel,
+  createModelLinksMap,
   Expose,
   ModelLink,
   ModelLinksArray,
@@ -14,8 +15,7 @@ import {
   ModelRelated,
   ModelsMapped,
   OperationContext,
-  WebdaError,
-  createModelLinksMap
+  WebdaError
 } from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";
@@ -192,7 +192,7 @@ class CoreModelTest extends WebdaTest {
     let task = new Task();
     assert.ok(CoreModel.instanceOf(task));
     await assert.rejects(
-      () => new CoreModel().canAct(undefined, "test"),
+      () => new CoreModel().checkAct(undefined, "test"),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
     task.plop = 1;

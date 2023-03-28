@@ -42,11 +42,24 @@ class UserTest {
   @test
   emailGetter() {
     let user: User = new User();
+    assert.strictEqual(user.getEmail(), undefined);
+    assert.deepStrictEqual(user.toPublicEntry(), {
+      avatar: undefined,
+      displayName: undefined,
+      uuid: undefined,
+      email: undefined
+    });
     // @ts-ignore
     user.load({ _idents: [{}, { email: "testIdent@test.com" }] }, true);
     assert.strictEqual(user.getEmail(), "testIdent@test.com");
     user.load({ email: "test@test.com", displayName: "Top" });
     assert.strictEqual(user.getEmail(), "test@test.com");
     assert.strictEqual(user.getDisplayName(), "Top");
+    assert.deepStrictEqual(user.toPublicEntry(), {
+      avatar: undefined,
+      displayName: "Top",
+      email: "test@test.com",
+      uuid: user.getUuid()
+    });
   }
 }

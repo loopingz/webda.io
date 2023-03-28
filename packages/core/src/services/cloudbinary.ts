@@ -97,7 +97,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
     if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
-    await object.canAct(ctx, "get_binary");
+    await object.checkAct(ctx, "get_binary");
     let url = await this.getRedirectUrlFromObject(object[property][index], ctx);
     if (returnInfo) {
       ctx.write({ Location: url, Map: object[property][index] });

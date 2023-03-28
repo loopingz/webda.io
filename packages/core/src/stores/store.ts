@@ -1151,12 +1151,8 @@ abstract class Store<
         if (tmpResults.filter !== true && !tmpResults.filter.eval(item)) {
           continue;
         }
-        if (context && partialPermission) {
-          try {
-            await item.canAct(context, "get");
-          } catch (err) {
-            continue;
-          }
+        if (context && partialPermission && (await item.canAct(context, "get")) !== true) {
+          continue;
         }
 
         result.results.push(item);
@@ -1904,7 +1900,7 @@ abstract class Store<
     const modelPrototype = this.getWebda().getApplication().getModel(model);
     let object = modelPrototype.factory(modelPrototype, body, ctx);
     object[this._creationDateField] = new Date();
-    await object.canAct(ctx, "create");
+    await object.checkAct(ctx, "create");
     try {
       await object.validate(ctx, body);
     } catch (err) {
@@ -1934,7 +1930,7 @@ abstract class Store<
     if (object === undefined || object.__deleted) {
       throw new WebdaError.NotFound("Object not found or is deleted");
     }
-    await object.canAct(ctx, action);
+    await object.checkAct(ctx, action);
     await this.emitSync("Store.Action", {
       action: action,
       object: object,
@@ -2033,7 +2029,7 @@ abstract class Store<
     body[this._uuidField] = uuid;
     let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
-    await object.canAct(ctx, "update");
+    await object.checkAct(ctx, "update");
     if (ctx.getHttpContext().getMethod() === "PATCH") {
       try {
         await object.validate(ctx, body, true);
@@ -2120,7 +2116,7 @@ abstract class Store<
     if (object === undefined || object.__deleted) {
       throw new WebdaError.NotFound("Object not found or is deleted");
     }
-    await object.canAct(ctx, "get");
+    await object.checkAct(ctx, "get");
     ctx.write(object);
     await this.emitSync("Store.WebGet", {
       context: ctx,
@@ -2158,7 +2154,7 @@ abstract class Store<
     let uuid = ctx.parameter("uuid");
     let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
-    await object.canAct(ctx, "delete");
+    await object.checkAct(ctx, "delete");
     // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
     // IOS don't handle 204 with Content-Length != 0 it seems
     // Might still run into: Have trouble to handle the Content-Length on API Gateway so returning an empty object for now

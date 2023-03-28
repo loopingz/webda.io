@@ -585,7 +585,8 @@ class BinaryAbstractTest extends WebdaTest {
             size: 10
           }
         ],
-        canAct: async () => true
+        canAct: async () => true,
+        checkAct: async () => {}
       };
       stubs.push(
         // @ts-ignore

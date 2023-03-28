@@ -46,6 +46,9 @@ class OwnerModelTest extends WebdaTest {
       uuid: "task_public",
       public: true
     });
+    await this._taskStore.save({
+      uuid: "task_no_owner"
+    });
   }
 
   @test("POST - not logged") async postNotLogged() {
@@ -71,6 +74,15 @@ class OwnerModelTest extends WebdaTest {
   }
 
   @test("GET - wrong owner") async getWrongOwner() {
+    await this.beforeEach();
+    this._ctx.getSession().login("fake_user2", "fake_ident");
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_no_owner", {});
+    await assert.rejects(
+      () => executor.execute(this._ctx),
+      (err: WebdaError.HttpError) => err.getResponseCode() === 403
+    );
+  }
+  @test("GET - no owner") async getNoOwner() {
     await this.beforeEach();
     this._ctx.getSession().login("fake_user2", "fake_ident");
     let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_user1", {});
@@ -114,7 +126,7 @@ class OwnerModelTest extends WebdaTest {
     let res = await this._taskStore.query("", this._ctx);
     assert.deepStrictEqual(res.results.map(r => r.getUuid()).sort(), ["task_public", "task_user2"]);
     res = await this._taskStore.query("");
-    assert.deepStrictEqual(res.results.length, 3);
+    assert.deepStrictEqual(res.results.length, 4);
     res = await this._taskStore.query("uuid = 'task_user1'", this._ctx);
     assert.deepStrictEqual(res.results.length, 0);
     res = await this._taskStore.query("uuid = 'task_public'", this._ctx);
@@ -127,10 +139,7 @@ class OwnerModelTest extends WebdaTest {
     let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_user1/actionable");
     await executor.execute(this._ctx);
     executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/tasks/task_user1/impossible");
-    await assert.rejects(
-      () => executor.execute(this._ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 403
-    );
+    await assert.rejects(() => executor.execute(this._ctx), /No permission/);
   }
   @test("DELETE") async delete() {
     await this.beforeEach();

@@ -13,12 +13,23 @@ import {
   ModelRelated,
   ModelsMapped,
   OperationContext,
-  UuidModel,
-  WebdaError
+  UuidModel
 } from "@webda/core";
 
+/**
+ * @WebdaIgnore
+ */
+class DefaultTestModel extends UuidModel {
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+    if (ctx.getCurrentUserId() !== "test") {
+      return "Only test user can access";
+    }
+    return true;
+  }
+}
+
 @Expose()
-class Student extends UuidModel {
+class Student extends DefaultTestModel {
   email: string;
   firstName: string;
   lastName: string;
@@ -35,32 +46,18 @@ class Student extends UuidModel {
     // use email for uuid
     return "email";
   }
-
-  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    if (ctx.getCurrentUserId() === "test") {
-      return this;
-    }
-    throw new WebdaError.Forbidden("Only test user can access");
-  }
 }
 
 @Expose()
-class Teacher extends UuidModel {
+class Teacher extends DefaultTestModel {
   uuid: string;
   courses: ModelsMapped<Course, "name">;
   name: string;
   senior: boolean;
-
-  async canAct(ctx: OperationContext, action: string): Promise<this> {
-    if (ctx.getCurrentUserId() === "test") {
-      return this;
-    }
-    throw new WebdaError.Forbidden("Only test user can access");
-  }
 }
 
 @Expose()
-class Course extends UuidModel {
+class Course extends DefaultTestModel {
   uuid: string;
   name: string;
   classroom: ModelLink<Classroom>;
@@ -73,16 +70,9 @@ class Course extends UuidModel {
       lastName?: string;
     }
   >;
-
-  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    if (ctx.getCurrentUserId() === "test") {
-      return this;
-    }
-    throw new WebdaError.Forbidden("Only test user can access");
-  }
 }
 @Expose()
-class Classroom extends UuidModel {
+class Classroom extends DefaultTestModel {
   uuid: string;
   name: string;
   courses: ModelsMapped<Course, "name">;
@@ -90,17 +80,10 @@ class Classroom extends UuidModel {
 
   @Action()
   test(context: OperationContext<{ test: string; id: string }>) {}
-
-  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    if (ctx.getCurrentUserId() === "test") {
-      return this;
-    }
-    throw new WebdaError.Forbidden("Only test user can access");
-  }
 }
 
 @Expose({ root: true })
-class Hardware extends UuidModel {
+class Hardware extends DefaultTestModel {
   classroom: ModelParent<Classroom>;
   name: string;
   brands: ModelRelated<Brand, "name">;
@@ -108,13 +91,6 @@ class Hardware extends UuidModel {
   @Action()
   static globalAction(context: OperationContext) {
     return;
-  }
-
-  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    if (ctx.getCurrentUserId() === "test") {
-      return this;
-    }
-    throw new WebdaError.Forbidden("Only test user can access");
   }
 }
 

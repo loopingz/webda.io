@@ -11,8 +11,9 @@ export default class Deployment extends CoreModel {
   _type: string = "deployment";
   callback: any;
 
-  async canAct(_ctx: any, _action: string) {
-    return this;
+  async canAct(_ctx: any, _action: string): Promise<string | true> {
+    // Allow everything
+    return true;
   }
 }
 

@@ -1,4 +1,3 @@
-import { WebdaError } from "../errors";
 import { OperationContext } from "../utils/context";
 import { CoreModel } from "./coremodel";
 import { ModelLink } from "./relations";
@@ -22,19 +21,6 @@ export class OwnerModel extends CoreModel {
    * @readonly
    */
   uuid: string;
-
-  /**
-   * Return false if can't create
-   */
-  async canCreate(ctx: OperationContext): Promise<this> {
-    const userId = ctx.getSession().userId;
-    if (!userId) {
-      throw new WebdaError.Forbidden("You need to be logged in to create an object");
-    }
-    this.setOwner(userId);
-
-    return this;
-  }
 
   /**
    * Set object owner
@@ -67,22 +53,19 @@ export class OwnerModel extends CoreModel {
       | "attach_binary"
       | "update_binary_metadata"
       | string
-  ): Promise<this> {
-    if (action === "create") {
-      return this.canCreate(ctx);
-    } else if (
-      action === "update" ||
-      action === "attach_binary" ||
-      action === "detach_binary" ||
-      action === "update_binary_metadata"
-    ) {
-      return this.canUpdate(ctx);
-    } else if (action === "get" || action === "get_binary") {
-      return this.canGet(ctx);
-    } else if (action === "delete") {
-      return this.canDelete(ctx);
+  ): Promise<string | boolean> {
+    // Object is public
+    if (this.public && (action === "get" || action === "get_binary")) {
+      return true;
+    } else if (!ctx.getCurrentUserId()) {
+      return "You need to be logged in to access this object";
+    } else if (!this.getOwner() && action !== "create") {
+      return "Object does not have an owner";
     }
-    throw new WebdaError.Forbidden("No permission");
+    if (action === "create") {
+      this.setOwner(ctx.getCurrentUserId());
+    }
+    return ctx.getCurrentUserId() === this.getOwner()?.toString();
   }
 
   /**
@@ -99,33 +82,5 @@ export class OwnerModel extends CoreModel {
       query: `_user = '${context.getCurrentUserId()}' OR public = TRUE`,
       partial: false
     };
-  }
-
-  /**
-   * Return false if can't update
-   */
-  async canUpdate(ctx: OperationContext): Promise<this> {
-    // Allow to modify itself by default
-    if (!this.getOwner() || ctx.getCurrentUserId() !== this.getOwner().toString()) {
-      throw new WebdaError.Forbidden("You are not the owner of this object");
-    }
-    return this;
-  }
-
-  /**
-   * Return false if can't get
-   */
-  async canGet(ctx: OperationContext): Promise<this> {
-    if (this.public) {
-      return this;
-    }
-    return this.canUpdate(ctx);
-  }
-
-  /**
-   * Return false if can't delete
-   */
-  async canDelete(ctx: OperationContext): Promise<this> {
-    return this.canUpdate(ctx);
   }
 }

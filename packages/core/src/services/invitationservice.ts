@@ -380,10 +380,10 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     model[this.parameters.attribute] ??= {};
     model[this.parameters.pendingAttribute] ??= {};
     if (ctx.getHttpContext().getMethod() === "DELETE") {
-      await model.canAct(ctx, "uninvite");
+      await model.checkAct(ctx, "uninvite");
       return this.uninvite(ctx, model);
     }
-    await model.canAct(ctx, "invite");
+    await model.checkAct(ctx, "invite");
     // Retrieve invitation useful when invitation are hidden with a __
     if (ctx.getHttpContext().getMethod() === "GET") {
       ctx.write(model[this.parameters.pendingAttribute] || {});

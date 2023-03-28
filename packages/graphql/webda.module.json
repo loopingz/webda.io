@@ -1,12 +1,12 @@
 {
   "moddas": {
-    "MyCompany/GraphQLService": "lib/graphql:GraphQLService"
+    "Webda/GraphQLService": "lib/graphql:GraphQLService"
   },
   "beans": {},
   "models": {},
   "deployers": {},
   "schemas": {
-    "MyCompany/GraphQLService": {
+    "Webda/GraphQLService": {
       "type": "object",
       "properties": {
         "type": {

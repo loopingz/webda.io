@@ -11,7 +11,7 @@ export class Company extends CoreModel {
   users: ModelRelated<User, "_company">;
   name: string;
 
-  async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<this> {
-    return this;
+  async canAct(_ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+    return true;
   }
 }

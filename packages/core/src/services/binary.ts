@@ -775,7 +775,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       // Need hash to avoid concurrent delete
       url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
       this.addRoute(url, ["PUT"], this.httpRoute, {
-        delete: {
+        put: {
           operationId: `update${name}BinaryMetadata`,
           description: "Update a binary metadata linked to an object",
           summary: "Update a binary metadata",
@@ -853,7 +853,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     if (object === undefined) {
       throw new WebdaError.NotFound("Object does not exist");
     }
-    await object.canAct(ctx, "attach_binary");
+    await object.checkAct(ctx, "attach_binary");
     let url = await this.putRedirectUrl(ctx);
     let base64String = Buffer.from(body.hash, "hex").toString("base64");
     ctx.write({
@@ -892,7 +892,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     } else if (ctx.getHttpContext().getMethod() === "PUT") {
       action = "update_binary_metadata";
     }
-    await object.canAct(ctx, action);
+    await object.checkAct(ctx, action);
 
     // Now do the action
     if (ctx.getHttpContext().getMethod() === "GET") {

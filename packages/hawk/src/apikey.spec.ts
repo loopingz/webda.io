@@ -111,12 +111,12 @@ class ApiKeyTest extends WebdaTest {
   async canAct() {
     let key = new ApiKey();
     key.uuid = "origins";
-    await assert.rejects(() => key.canAct(this.context, "get"), WebdaError.Forbidden);
+    await assert.rejects(() => key.checkAct(this.context, "get"), WebdaError.Forbidden);
     // By default key should be on a owner model
     key.uuid = "other";
-    this.context.getSession().userId = "me";
-    await assert.rejects(() => key.canAct(this.context, "get"), WebdaError.Forbidden);
+    this.context.getSession().login("me", "test");
+    await assert.rejects(() => key.checkAct(this.context, "get"), WebdaError.Forbidden);
     key.setOwner("me");
-    assert.strictEqual(await key.canAct(this.context, "get"), key);
+    assert.strictEqual(await key.canAct(this.context, "get"), true);
   }
 }

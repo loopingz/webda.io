@@ -19,10 +19,10 @@ import {
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLString,
-  ThunkObjMap,
-  printSchema
+  printSchema,
+  ThunkObjMap
 } from "graphql";
-import { Handler, OperationContext, createHandler } from "graphql-http";
+import { createHandler, Handler, OperationContext } from "graphql-http";
 import { JSONSchema7 } from "json-schema";
 
 export interface GraphQLContextExtension {
@@ -327,9 +327,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     }
-    try {
-      await modelInstance.canAct(context, "get");
-    } catch (err) {
+    if ((await modelInstance.canAct(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
         extensions: {
           code: "PERMISSION_DENIED"

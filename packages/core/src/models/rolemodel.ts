@@ -20,19 +20,19 @@ abstract class RoleModel extends CoreModel {
     return ctx.getSession().roles;
   }
 
-  async canAct(ctx: OperationContext, action: string) {
+  async canAct(ctx: OperationContext, action: string): Promise<string | boolean> {
     // If this action doesn't require role
     if (!this.getRolesMap()[action]) {
       if (this.isPermissive()) {
-        return this;
+        return true;
       }
-      throw new WebdaError.Forbidden("No permission for this action defined");
+      return "No permission for this action defined";
     }
     let roles = await this.getRoles(ctx);
     if (roles.indexOf(this.getRolesMap()[action]) >= 0) {
-      return this;
+      return true;
     }
-    throw new WebdaError.Forbidden("No permission");
+    return "No permission";
   }
 }
 

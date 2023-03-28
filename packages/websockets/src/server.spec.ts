@@ -37,8 +37,8 @@ class FakeModel extends CoreModel {
   uuid: string;
   update: number;
   collect: any[];
-  async canAct(_ctx: WebContext<any, any>, _action: string): Promise<this> {
-    return this;
+  async canAct(_ctx: WebContext<any, any>, _action: string): Promise<string | boolean> {
+    return true;
   }
 }
 

@@ -1,4 +1,3 @@
-import { WebdaError } from "../errors";
 import { OperationContext } from "../utils/context";
 import { CoreModel } from "./coremodel";
 import { Ident } from "./ident";
@@ -51,14 +50,13 @@ export class User extends CoreModel {
    * Return user email if known or guessable
    * @returns
    */
-  getEmail(): string | null {
+  getEmail(): string | undefined {
     if (this.email === undefined) {
       (this._idents || []).some(i => {
         if (i.email) {
           this.email = i.email;
         }
       });
-      this.email ??= null;
     }
     return this.email;
   }
@@ -68,11 +66,13 @@ export class User extends CoreModel {
    * @returns
    */
   toPublicEntry(): any {
-    return {
+    const res = {
       displayName: this.displayName,
       uuid: this.getUuid(),
-      avatar: this._avatar
+      avatar: this._avatar,
+      email: this.getEmail()
     };
+    return res;
   }
 
   getGroups(): string[] {
@@ -144,10 +144,10 @@ export class User extends CoreModel {
     this.__password = password;
   }
 
-  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<this> {
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     if (!ctx.getCurrentUserId() || ctx.getCurrentUserId() !== this.getUuid()) {
-      throw new WebdaError.Forbidden("You can't act on this user");
+      return "You can't act on this user";
     }
-    return this;
+    return true;
   }
 }

@@ -164,6 +164,9 @@ export class FakeCloudBinaryTest extends WebdaTest {
           hash: "myhash"
         }
       ],
+      checkAct: (ctx, evt) => {
+        myEvt = evt;
+      },
       canAct: (ctx, evt) => {
         myEvt = evt;
       }

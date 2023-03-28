@@ -14,11 +14,11 @@ import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./sto
  */
 export class PermissionModel extends CoreModel {
   order: number;
-  async canAct(ctx: OperationContext, _action: string): Promise<this> {
+  async canAct(ctx: OperationContext, _action: string): Promise<string | boolean> {
     if (this.order % 200 < 120) {
-      throw 403;
+      return false;
     }
-    return this;
+    return true;
   }
 }
 @suite
@@ -87,6 +87,8 @@ abstract class StoreTest extends WebdaTest {
    */
   async fillForQuery(): Promise<Store> {
     let userStore = this.getUserStore();
+    this.webda.getApplication().getModel("Webda/User").prototype.canAct = async () => true;
+    userStore._model.prototype.canAct = async () => true;
     await Promise.all(this.getQueryDocuments().map(d => userStore.save(d)));
     return userStore;
   }
@@ -94,6 +96,7 @@ abstract class StoreTest extends WebdaTest {
   @test
   async query() {
     let userStore = await this.fillForQuery();
+
     const queries = {
       'state = "CA"': 250,
       "team.id > 15": 200,

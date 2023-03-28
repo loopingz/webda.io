@@ -58,24 +58,24 @@ class RolePolicyTest {
   @test async noLogged() {
     this._ctx.getSession().logout();
     assert.rejects(
-      () => this.permissive.canAct(this._ctx, "get"),
+      () => this.permissive.checkAct(this._ctx, "get"),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
   }
   @test async get() {
-    assert.strictEqual(await this.permissive.canAct(this._ctx, "get"), this.permissive);
-    assert.strictEqual(await this.nonPermissive.canAct(this._ctx, "get"), this.nonPermissive);
+    assert.strictEqual(await this.permissive.canAct(this._ctx, "get"), true);
+    assert.strictEqual(await this.nonPermissive.canAct(this._ctx, "get"), true);
   }
   @test async action() {
-    assert.strictEqual(await this.permissive.canAct(this._ctx, "action"), this.permissive);
-    await assert.rejects(this.nonPermissive.canAct.bind(this.nonPermissive, this._ctx, "action"));
+    assert.strictEqual(await this.permissive.canAct(this._ctx, "action"), true);
+    await assert.rejects(() => this.nonPermissive.checkAct(this._ctx, "action"), WebdaError.Forbidden);
   }
 
   @test async delete() {
-    assert.strictEqual(await this.permissive.canAct(this._ctx, "delete"), this.permissive);
-    await assert.rejects(this.nonPermissive.canAct.bind(this.nonPermissive, this._ctx, "delete"));
+    assert.strictEqual(await this.permissive.canAct(this._ctx, "delete"), true);
+    await assert.rejects(() => this.nonPermissive.checkAct(this._ctx, "delete"));
     this._user.addRole("admin");
     this._session.roles = undefined;
-    assert.strictEqual(await this.nonPermissive.canAct(this._ctx, "delete"), this.nonPermissive);
+    assert.strictEqual(await this.nonPermissive.canAct(this._ctx, "delete"), true);
   }
 }

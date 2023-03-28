@@ -19,7 +19,7 @@ export class Task extends OwnerModel {
 
   async canAct(ctx, action) {
     if ("actionable" === action) {
-      return this;
+      return true;
     }
     return super.canAct(ctx, action);
   }

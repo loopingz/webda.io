@@ -25,9 +25,11 @@
     "Webda/MemoryLogger": "lib/utils/logger:MemoryLoggerService",
     "Webda/MemoryQueue": "lib/queues/memoryqueue:MemoryQueue",
     "Webda/MemoryStore": "lib/stores/memory:MemoryStore",
+    "Webda/ModelsOperationsService": "lib/services/domainservice:ModelsOperationsService",
     "Webda/MultiNotificationService": "lib/services/notificationservice:default",
     "Webda/PrometheusService": "lib/services/prometheus:PrometheusService",
     "Webda/ProxyService": "lib/services/proxy:ProxyService",
+    "Webda/RESTDomainService": "lib/services/domainservice:RESTDomainService",
     "Webda/ResourceService": "lib/services/resource:default",
     "Webda/VersionService": "lib/services/version:VersionService"
   },
@@ -79,7 +81,8 @@
             "targetAttribute": "_type | uuid | email"
           }
         ]
-      }
+      },
+      "Webda/UuidModel": {}
     },
     "tree": {
       "Webda/AclModel": {},
@@ -88,7 +91,8 @@
         "Webda/Ident": {}
       },
       "Webda/RoleModel": {},
-      "Webda/User": {}
+      "Webda/User": {},
+      "Webda/UuidModel": {}
     },
     "plurals": {},
     "list": {
@@ -98,7 +102,8 @@
       "Webda/Ident": "lib/models/ident:Ident",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
       "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
-      "Webda/User": "lib/models/user:User"
+      "Webda/User": "lib/models/user:User",
+      "Webda/UuidModel": "lib/models/coremodel:UuidModel"
     }
   },
   "schemas": {
@@ -209,19 +214,12 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
-        "models": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Different models managed by this store"
-        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
         },
         "expose": {
-          "$ref": "#/definitions/ExposeParameters",
+          "$ref": "#/definitions/StoreExposeParameters",
           "description": "Expose the service to an urls",
           "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
         },
@@ -271,7 +269,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ExposeParameters": {
+        "StoreExposeParameters": {
           "type": "object",
           "properties": {
             "url": {
@@ -315,7 +313,8 @@
               "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
               "default": "GET"
             }
-          }
+          },
+          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
         }
       },
       "title": "AliasStore"
@@ -800,7 +799,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CronService"
+      "title": "ModelsOperationsService"
     },
     "Webda/CryptoService": {
       "type": "object",
@@ -1338,19 +1337,12 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
-        "models": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Different models managed by this store"
-        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
         },
         "expose": {
-          "$ref": "#/definitions/ExposeParameters",
+          "$ref": "#/definitions/StoreExposeParameters",
           "description": "Expose the service to an urls",
           "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
         },
@@ -1407,7 +1399,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ExposeParameters": {
+        "StoreExposeParameters": {
           "type": "object",
           "properties": {
             "url": {
@@ -1451,7 +1443,8 @@
               "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
               "default": "GET"
             }
-          }
+          },
+          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
         }
       },
       "title": "FileStore"
@@ -1869,19 +1862,12 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
-        "models": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Different models managed by this store"
-        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
         },
         "expose": {
-          "$ref": "#/definitions/ExposeParameters",
+          "$ref": "#/definitions/StoreExposeParameters",
           "description": "Expose the service to an urls",
           "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
         },
@@ -1948,7 +1934,7 @@
       "description": "Memory store",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "ExposeParameters": {
+        "StoreExposeParameters": {
           "type": "object",
           "properties": {
             "url": {
@@ -1992,10 +1978,34 @@
               "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
               "default": "GET"
             }
-          }
+          },
+          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
         }
       },
       "title": "MemoryStore"
+    },
+    "Webda/ModelsOperationsService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ModelsOperationsService"
     },
     "Webda/MultiNotificationService": {
       "type": "object",
@@ -2203,6 +2213,42 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ResourceService"
     },
+    "Webda/RESTDomainService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "operations": {
+          "type": "boolean",
+          "description": "Expose objects as operations too"
+        },
+        "nameTransfomer": {
+          "type": "string",
+          "enum": [
+            "camelCase",
+            "lowercase",
+            "none"
+          ]
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "nameTransfomer",
+        "operations",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RESTDomainService"
+    },
     "Webda/RoleModel": {
       "type": "object",
       "properties": {
@@ -2303,6 +2349,32 @@
       "description": "First basic model for User",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User"
+    },
+    "Webda/UuidModel": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "uuid"
+      ],
+      "description": "CoreModel with a uuid",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UuidModel"
     },
     "Webda/VersionService": {
       "type": "object",

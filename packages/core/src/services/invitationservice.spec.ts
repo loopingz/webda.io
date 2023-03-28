@@ -14,7 +14,7 @@ import { Mailer } from "./mailer";
 class MyCompany extends AclModel {
   async canAct(ctx: OperationContext, action: string) {
     if (action === "create") {
-      return this;
+      return;
     }
     return super.canAct(ctx, action);
   }

@@ -21,7 +21,9 @@ export class Ident extends WebdaIdent {
     return "youpi";
   }
 
-  canAct(ctx, action) {}
+  canAct(ctx, action) {
+    return true;
+  }
 
   static index(ctx) {
     ctx.write("indexer");

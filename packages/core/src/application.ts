@@ -1009,7 +1009,7 @@ export class Application {
       }
     }
     return new Function(
-      "return `" + (" " + templateString).replace(/([^\\])\$\{([^\}\{]+)}/g, "$1${this.$2}").substring(1) + "`;"
+      "return `" + (" " + templateString).replace(/([^\\])\$\{([^}{]+)}/g, "$1${this.$2}").substring(1) + "`;"
     ).call({
       ...this.baseConfiguration.cachedModules.project,
       now: this.initTime,

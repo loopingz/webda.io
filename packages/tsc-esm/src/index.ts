@@ -43,12 +43,4 @@ if (process.argv.includes("--watch")) {
     console.log(message);
     process.exit(1);
   }
-  /*
-  const packageFile = path.join(process.cwd(), "package.json");
-  const packageJson = JSON.parse(ts.sys.readFile(packageFile) || "{}");
-  // @ts-ignore
-  Object.values(packageJson.bin || {}).forEach((bin: string) => {
-    chmodSync(path.join(ts.sys.getCurrentDirectory(), bin), 0o755);
-  });
-  */
 }

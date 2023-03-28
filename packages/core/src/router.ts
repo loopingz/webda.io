@@ -197,8 +197,8 @@ export class Router {
   protected comparePath(a, b): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
-    let bs = b.url.replace(/\{[^\{}]+}/, "{}").split("/");
-    let as = a.url.replace(/\{[^\{}]+}/, "{}").split("/");
+    let bs = b.url.replace(/\{[^{}]+}/, "{}").split("/");
+    let as = a.url.replace(/\{[^{}]+}/, "{}").split("/");
     for (let i in as) {
       if (bs[i] === undefined) return -1;
       if (as[i] === bs[i]) continue;

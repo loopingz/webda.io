@@ -281,7 +281,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         continue;
       }
       let prop: any = this.getGraphQLSchemaFromSchema(
-        <JSONSchema7>this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
+        this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
         `${defaultName}_${i}`
       );
       if (!prop) {
@@ -371,7 +371,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (let i in models) {
       const model = models[i];
       // Not exposed
-      if (!model.Expose || false) {
+      if (!model.Expose) {
         continue;
       }
       const schema = model.getSchema();

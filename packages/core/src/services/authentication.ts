@@ -284,8 +284,8 @@ class Authentication<
   computeParameters(): void {
     super.computeParameters();
 
-    this._identModel = <CoreModelDefinition<Ident>>this.getWebda().getModel(this.parameters.identModel);
-    this._userModel = <CoreModelDefinition<User>>this.getWebda().getModel(this.parameters.userModel);
+    this._identModel = this.getWebda().getModel(this.parameters.identModel);
+    this._userModel = this.getWebda().getModel(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {
       this._passwordVerifier = this.getService<PasswordVerifier>(this.parameters.password.verifier);

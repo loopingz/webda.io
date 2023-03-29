@@ -124,7 +124,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
 
       for (let i in schema.properties) {
         let res = this.getGraphQLSchemaFromSchema(
-          <JSONSchema7>this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
+          this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
           `${schema.title || defaultName}_${i}`
         );
         if (!res) continue;

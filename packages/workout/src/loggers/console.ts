@@ -102,7 +102,6 @@ class ConsoleLogger extends Logger {
       l: msg.log.level.padStart(5),
       t: msg.timestamp,
       d: () => new Date(msg.timestamp).toISOString()
-      // TODO Add different format of dates
     };
     try {
       return sprintf(format, info);

@@ -339,7 +339,7 @@ export namespace WebdaQL {
           .replace(/^%/g, ".*")
           .replace(/\\%/g, "%")
           // Replace backslash aswell
-          .replace(/\\([^\?\[\{\(])/g, "\\\\")
+          .replace(/\\([^?[{(])/g, "\\\\")
       );
     }
 

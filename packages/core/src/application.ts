@@ -1001,7 +1001,7 @@ export class Application {
       let next = scan.indexOf("}", index);
       let variable = scan.substring(index + 2, next);
       scan = scan.substring(next);
-      if (variable.match(/[|&;<>\\\{]/)) {
+      if (variable.match(/[|&;<>\\{]/)) {
         throw new Error(`Variable cannot use every javascript features found ${variable}`);
       }
       if (i++ > 10) {

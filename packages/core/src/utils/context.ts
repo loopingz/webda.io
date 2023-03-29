@@ -675,7 +675,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     if (this._ended) {
       return this._ended;
     }
-    this._ended = new Promise<void>(async resolve => {
+    this._ended = (async () => {
       this.emit("end");
       if (this.getExtension("http")) {
         await this._webda.getService<SessionManager>("SessionManager").save(this, this.session);
@@ -690,8 +690,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
       }
       this._webda.flush(this);
       this.emit("close");
-      resolve();
-    });
+    })();
     return this._ended;
   }
 

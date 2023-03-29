@@ -262,12 +262,12 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    */
   async _handleMapFromPartial(uid: string, updateDate: Date, property: string | string[] = undefined) {
     const props: string[] = Array.isArray(property) ? property : [property];
-    if (props.find(p => this.isMapped(p)) || this.isMapped(this.sourceService.getLastUpdateField())) {
+    if (props.find(p => this.isMapped(p)) || this.isMapped("_lastUpdate")) {
       // Not optimal need to reload the object
       let source = await this.sourceService.getObject(uid);
       let updates = {};
-      if (this.isMapped(this.sourceService.getLastUpdateField())) {
-        updates[this.sourceService.getLastUpdateField()] = updateDate;
+      if (this.isMapped("_lastUpdate")) {
+        updates["_lastUpdate"] = updateDate;
       }
       props
         .filter(prop => this.isMapped(prop))

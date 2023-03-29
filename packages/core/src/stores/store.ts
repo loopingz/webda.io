@@ -543,14 +543,6 @@ abstract class Store<
    */
   _modelType: string;
   /**
-   * Contain the model update date
-   */
-  _lastUpdateField: string;
-  /**
-   * Contain the model creation date
-   */
-  _creationDateField: string;
-  /**
    * Contain the model uuid field
    */
   protected _uuidField: string = "uuid";
@@ -580,8 +572,6 @@ abstract class Store<
     this._model = app.getModel(p.model);
     this._modelType = this._model.getIdentifier();
     this._uuidField = this._model.getUuidField();
-    this._lastUpdateField = this._model.getLastUpdateField();
-    this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
     this.cacheStorePatchException();
     const recursive = (tree, depth) => {
@@ -595,7 +585,10 @@ abstract class Store<
     // Compute the hierarchy
     this._modelsHierarchy[this._model.getIdentifier(false)] = 0;
     this._modelsHierarchy[this._model.getIdentifier()] = 0;
-    recursive(this._model.getHierarchy().children, 1);
+    // Strict Store only store their model
+    if (!this.parameters.strict) {
+      recursive(this._model.getHierarchy().children, 1);
+    }
     if (this.getParameters().expose) {
       this.log("WARN", "Exposing a store is not recommended, use a DomainService instead to expose all your CoreModel");
     }
@@ -631,10 +624,6 @@ abstract class Store<
    */
   getModel(): CoreModelDefinition {
     return this._model;
-  }
-
-  getLastUpdateField(): string {
-    return this._model.getLastUpdateField();
   }
 
   /**
@@ -1221,11 +1210,7 @@ abstract class Store<
    * Might want to rename to create
    */
   async save(object, ctx: OperationContext = undefined): Promise<T> {
-    if (
-      object instanceof this._model &&
-      object[this._creationDateField] !== undefined &&
-      object[this._lastUpdateField] !== undefined
-    ) {
+    if (object instanceof this._model && object._creationDate !== undefined && object._lastUpdate !== undefined) {
       if (ctx) {
         object.setContext(ctx);
       }
@@ -1238,8 +1223,8 @@ abstract class Store<
     object = this.initModel(object);
 
     // Dates should be store by the Store
-    object[this._creationDateField] ??= new Date();
-    object[this._lastUpdateField] = new Date();
+    object._creationDate ??= new Date();
+    object._lastUpdate = new Date();
     const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
     object.__types = [object.__type, ...ancestors.filter(i => i !== "Webda/CoreModel" && i !== "CoreModel")];
 
@@ -1385,7 +1370,7 @@ abstract class Store<
     } else {
       model[prop][index] = item;
     }
-    model[this._lastUpdateField] = updateDate;
+    model._lastUpdate = updateDate;
     await this._save(model);
   }
 
@@ -1420,7 +1405,7 @@ abstract class Store<
       return undefined;
     }
 
-    object[this._lastUpdateField] = new Date();
+    object._lastUpdate = new Date();
     this.metrics.operations_total.inc({ operation: "get" });
     let load = await this._getFromCache(object[this._uuidField], true);
     if (load.__type !== this._modelType && this.parameters.strict) {
@@ -1451,18 +1436,13 @@ abstract class Store<
     await loaded._onUpdate(object);
     let res: any;
     if (conditionField !== null) {
-      conditionField ??= <CK>this._lastUpdateField;
+      conditionField ??= <CK>"_lastUpdate";
       conditionValue ??= load[conditionField];
     }
     if (partial) {
       this.metrics.operations_total.inc({ operation: "partialUpdate" });
       await this._patch(object, object[this._uuidField], conditionValue, <string>conditionField);
-      await this._cacheStore?._patch(
-        object,
-        object[this._uuidField],
-        load[this._lastUpdateField],
-        this._lastUpdateField
-      );
+      await this._cacheStore?._patch(object, object[this._uuidField], load._lastUpdate, "_lastUpdate");
       res = object;
     } else {
       // Copy back the mappers
@@ -1472,12 +1452,7 @@ abstract class Store<
       object = this.initModel(object);
       this.metrics.operations_total.inc({ operation: "update" });
       res = await this._update(object, object[this._uuidField], conditionValue, <string>conditionField);
-      await this._cacheStore?._update(
-        object,
-        object[this._uuidField],
-        load[this._lastUpdateField],
-        this._lastUpdateField
-      );
+      await this._cacheStore?._update(object, object[this._uuidField], load._lastUpdate, "_lastUpdate");
     }
     // Return updated
     for (let i in res) {
@@ -1707,7 +1682,7 @@ abstract class Store<
     }
     let result: { [key: string]: any } = {};
     for (let i in object) {
-      if (i === this._uuidField || i === this._lastUpdateField || i.startsWith("_")) {
+      if (i === this._uuidField || i === "_lastUpdate" || i.startsWith("_")) {
         continue;
       }
       result[i] = object[i];
@@ -1899,7 +1874,7 @@ abstract class Store<
     let body = await ctx.getInput();
     const modelPrototype = this.getWebda().getApplication().getModel(model);
     let object = modelPrototype.factory(modelPrototype, body, ctx);
-    object[this._creationDateField] = new Date();
+    object._creationDate = new Date();
     await object.checkAct(ctx, "create");
     try {
       await object.validate(ctx, body);

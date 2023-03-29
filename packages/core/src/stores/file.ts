@@ -165,7 +165,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       index
     );
     res[prop].splice(index, 1);
-    res[this._lastUpdateField] = updateDate;
+    res._lastUpdate = updateDate;
     return this._save(res);
   }
 
@@ -248,10 +248,10 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       if (stored[prop] === undefined) {
         stored[prop] = 0;
       }
-      stored[this._lastUpdateField] = updateDate;
+      stored._lastUpdate = updateDate;
       stored[prop] += value;
     });
-    stored[this._lastUpdateField] = updateDate;
+    stored._lastUpdate = updateDate;
     return this._save(stored);
   }
 

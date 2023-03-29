@@ -227,9 +227,14 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
     children: ModelGraph;
   };
   completeUid(uid: string): string;
+  /**
+   * Get the model uuid field if you do not want to use the uuid field
+   */
   getUuidField(): string;
-  getLastUpdateField(): string;
-  getCreationField(): string;
+  /**
+   * Permission query for the model
+   * @param context
+   */
   getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
   /**
    * Reference to an object without doing a DB request yet
@@ -763,7 +768,7 @@ class CoreModel {
   }
 
   async checkAct(
-    ctx: OperationContext,
+    context: OperationContext,
     action:
       | "create"
       | "update"
@@ -776,7 +781,7 @@ class CoreModel {
       | "subscribe" // To manage MQTT or Websockets
       | string
   ) {
-    let msg = await this.canAct(ctx, action);
+    let msg = await this.canAct(context, action);
     if (msg !== true) {
       throw new WebdaError.Forbidden(msg === false ? "No permission" : msg);
     }
@@ -787,8 +792,8 @@ class CoreModel {
    * @returns
    */
   async canAct(
-    ctx: OperationContext,
-    action:
+    _context: OperationContext,
+    _action:
       | "create"
       | "update"
       | "get"
@@ -808,20 +813,6 @@ class CoreModel {
    */
   static getUuidField(): string {
     return "uuid";
-  }
-
-  /**
-   * Get the UUID property
-   */
-  static getLastUpdateField(): string {
-    return "_lastUpdate";
-  }
-
-  /**
-   * Get the UUID property
-   */
-  static getCreationField(): string {
-    return "_creationDate";
   }
 
   /**

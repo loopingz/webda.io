@@ -413,7 +413,7 @@ export default class FireStore<
   ): Promise<any> {
     try {
       const args: any = {
-        [this._lastUpdateField]: updateDate
+        ["_lastUpdate"]: updateDate
       };
       params.forEach(p => {
         args[p.property] = FieldValue.increment(p.value);
@@ -451,7 +451,7 @@ export default class FireStore<
         data[prop][index] = item;
         t.update(docRef, {
           [prop]: data[prop],
-          [this._lastUpdateField]: updateDate
+          ["_lastUpdate"]: updateDate
         });
       });
     } else {
@@ -490,7 +490,7 @@ export default class FireStore<
       // Get item from doc?
       t.update(docRef, {
         [prop]: FieldValue.arrayRemove(data[prop][index]),
-        [this._lastUpdateField]: updateDate
+        ["_lastUpdate"]: updateDate
       });
     });
   }

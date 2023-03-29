@@ -268,7 +268,7 @@ class MemoryStore<
       }
       res[prop] += value;
     });
-    res[this._lastUpdateField] = updateDate;
+    res._lastUpdate = updateDate;
     return this._save(res);
   }
 
@@ -304,7 +304,7 @@ class MemoryStore<
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
     res[prop].splice(index, 1);
-    res[this._lastUpdateField] = updateDate;
+    res._lastUpdate = updateDate;
     return this._save(res);
   }
 }

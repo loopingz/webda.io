@@ -135,7 +135,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
       $unset: {},
       $set: {}
     };
-    params["$set"][this._lastUpdateField] = new Date();
+    params["$set"]["_lastUpdate"] = new Date();
     params["$unset"][attribute] = 1;
     let res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
@@ -163,7 +163,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
       $unset: {},
       $set: {}
     };
-    params["$set"][this._lastUpdateField] = updateDate;
+    params["$set"]["_lastUpdate"] = updateDate;
     params["$unset"][prop + "." + index] = 1;
     let res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
@@ -173,7 +173,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
       $pull: {},
       $set: {}
     };
-    remove["$set"][this._lastUpdateField] = updateDate;
+    remove["$set"]["_lastUpdate"] = updateDate;
     remove["$pull"][prop] = null;
     await this._collection.updateOne(
       {
@@ -192,7 +192,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
       $inc: {},
       $set: {}
     };
-    params["$set"][this._lastUpdateField] = updateDate;
+    params["$set"]["_lastUpdate"] = updateDate;
     parameters.forEach(p => {
       params["$inc"][p.property] = p.value;
     });
@@ -223,13 +223,13 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
         $push: {},
         $set: {}
       };
-      params["$set"][this._lastUpdateField] = updateDate;
+      params["$set"]["_lastUpdate"] = updateDate;
       params["$push"][prop] = item;
     } else {
       params = {
         $set: {}
       };
-      params["$set"][this._lastUpdateField] = updateDate;
+      params["$set"]["_lastUpdate"] = updateDate;
       params["$set"][prop + "." + index] = item;
       filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
     }

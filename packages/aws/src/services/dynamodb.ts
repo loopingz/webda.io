@@ -373,7 +373,7 @@ export default class DynamoStore<
     };
     let attrs = {};
     attrs["#attr"] = attribute;
-    attrs["#lastUpdate"] = this._lastUpdateField;
+    attrs["#lastUpdate"] = "_lastUpdate";
     params.ExpressionAttributeNames = attrs;
     params.ConditionExpression = "attribute_exists(#uu)";
     params.ExpressionAttributeValues = {
@@ -412,7 +412,7 @@ export default class DynamoStore<
     };
     let attrs = {};
     attrs["#" + prop] = prop;
-    attrs["#lastUpdate"] = this._lastUpdateField;
+    attrs["#lastUpdate"] = "_lastUpdate";
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
       ":lastUpdate": this._serializeDate(updateDate)
@@ -457,7 +457,7 @@ export default class DynamoStore<
     let attrValues = {};
     let attrs = {};
     attrs["#" + prop] = prop;
-    attrs["#lastUpdate"] = this._lastUpdateField;
+    attrs["#lastUpdate"] = "_lastUpdate";
 
     attrValues[":" + prop] = this._cleanObject(item);
     attrValues[":lastUpdate"] = this._serializeDate(updateDate);
@@ -506,7 +506,7 @@ export default class DynamoStore<
    * @param field
    * @returns
    */
-  setWriteCondition(params: any, writeCondition: any, field: string = this._lastUpdateField): void {
+  setWriteCondition(params: any, writeCondition: any, field: string = "_lastUpdate"): void {
     params.ExpressionAttributeNames ??= {};
     params.ExpressionAttributeValues ??= {};
     params.ExpressionAttributeNames["#cf"] = field;
@@ -687,7 +687,7 @@ export default class DynamoStore<
         ":ud": this._serializeDate(updateDate)
       },
       ExpressionAttributeNames: {
-        "#ud": this._lastUpdateField,
+        "#ud": "_lastUpdate",
         "#uu": "uuid"
       }
     };

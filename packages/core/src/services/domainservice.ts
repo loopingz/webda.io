@@ -267,12 +267,13 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
     const injector = (service: Store, method: Methods<Store>, type: "SET" | "QUERY", ...args: any[]) => {
       return async (context: WebContext) => {
         let input = await context.getInput();
+        let parentId = `pid.${depth - 1}`;
         if (type === "SET" && injectAttribute && depth > 0) {
-          input[injectAttribute] = context.getPathParameters()[`pid.${depth - 1}`];
+          input[injectAttribute] = context.getPathParameters()[parentId];
         } else if (type === "QUERY") {
           input.q = input.q ? ` AND (${input.q})` : "";
           if (injectAttribute && depth > 0) {
-            input.q = ` AND ${injectAttribute} = "${context.getPathParameters()[`pid.${depth - 1}`]}"` + input.q;
+            input.q = ` AND ${injectAttribute} = "${context.getPathParameters()[parentId]}"` + input.q;
           }
           input.q = `__types CONTAINS "${model.getIdentifier()}"` + input.q;
         }

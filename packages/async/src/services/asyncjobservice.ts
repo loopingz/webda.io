@@ -630,11 +630,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // Create a temporary one if needed
     runner ??= await new ServiceRunner(this.getWebda(), this.getName() + "_temprunner").resolve().init();
     // Save action
-    const action = await new (<Constructor<AsyncWebdaAction, [string, string, ...any[]]>>this.model)(
-      serviceName,
-      method,
-      ...args
-    ).save();
+    const action = await new this.model(serviceName, method, ...args).save();
     // Run it
     return (await runner.launchAction(action, this.getJobInfo(action))).promise;
   }
@@ -717,13 +713,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
           "INFO",
           `Execute cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description} as an AsyncOperationAction`
         );
-        await this.launchAction(
-          new (<Constructor<AsyncWebdaAction, [string, string, ...any[]]>>this.model)(
-            cron.serviceName,
-            cron.method,
-            cron.args
-          )
-        );
+        await this.launchAction(new this.model(cron.serviceName, cron.method, cron.args));
       } catch (err) {
         this.log(
           "ERROR",

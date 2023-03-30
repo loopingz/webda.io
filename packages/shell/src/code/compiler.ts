@@ -14,6 +14,8 @@ import {
   CircularReferenceNodeParser,
   Config,
   Context,
+  createFormatter,
+  createParser,
   Definition,
   ExtendedAnnotationsReader,
   FunctionType,
@@ -24,9 +26,7 @@ import {
   SchemaGenerator,
   StringType,
   SubNodeParser,
-  SubTypeFormatter,
-  createFormatter,
-  createParser
+  SubTypeFormatter
 } from "ts-json-schema-generator";
 import ts from "typescript";
 import { SourceApplication } from "./sourceapplication";
@@ -349,6 +349,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
           return undefined;
         } else if (
           typeName === "BinaryMap" ||
+          typeName === "BinaryMaps" ||
           (ts.isArrayTypeNode(member.type) &&
             (<ts.Identifier>(<ts.TypeReferenceNode>member.type.elementType)?.typeName)?.escapedText === "BinaryMap")
         ) {
@@ -972,8 +973,6 @@ export class Compiler {
                   cardinality: "ONE"
                 });
                 break;
-              /* c8 ignore start */
-              // Future use
               case "BinaryMaps":
                 graph[name].binaries ??= [];
                 graph[name].binaries.push({
@@ -981,7 +980,6 @@ export class Compiler {
                   cardinality: "MANY"
                 });
                 break;
-              /* c8 ignore stop */
             }
           }
         });

@@ -109,7 +109,7 @@ class RouterTest extends WebdaTest {
       path: "plop/toto/plus",
       query: {
         query3: "12",
-        query2: ["test", "test2"]
+        query2: "test,test2"
       }
     });
   }
@@ -117,7 +117,7 @@ class RouterTest extends WebdaTest {
   @test
   async testRouteWithEmail() {
     this.webda.addRoute("/email/{email}/test", { methods: ["GET"], executor: "DefinedMailer" });
-    this.webda.addRoute("/email/callback{?email,test}", { methods: ["GET"], executor: "DefinedMailer" });
+    this.webda.addRoute("/email/callback{?email,test?}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/email/test%40webda.io/test", "https");
     let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
@@ -130,7 +130,7 @@ class RouterTest extends WebdaTest {
 
   @test
   async testRouteWithQueryParam() {
-    this.webda.addRoute("/test/plop{?uuid}", { methods: ["GET"], executor: "DefinedMailer" });
+    this.webda.addRoute("/test/plop{?uuid?}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "http");
     let ctx = await this.webda.newWebContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
@@ -139,6 +139,14 @@ class RouterTest extends WebdaTest {
     ctx = await this.webda.newWebContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
     assert.strictEqual(ctx.getPathParameters().uuid, "bouzouf");
+    this.webda.addRoute("/test/plop2{?params+}", { methods: ["GET"], executor: "DefinedMailer" });
+    httpContext = new HttpContext("test.webda.io", "GET", "/test/plop2", "http");
+    ctx = await this.webda.newWebContext(httpContext);
+    assert.strictEqual(this.webda.updateContextWithRoute(ctx), false);
+    httpContext = new HttpContext("test.webda.io", "GET", "/test/plop2?uuid=plop", "http");
+    ctx = await this.webda.newWebContext(httpContext);
+    assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
+    assert.strictEqual(ctx.getPathParameters().params.uuid, "plop");
   }
 
   @test

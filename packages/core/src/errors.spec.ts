@@ -17,5 +17,7 @@ class ErrorsTest {
     assert.rejects(() => {
       throw new WebdaError.ServiceUnavailable("test");
     });
+    assert.strictEqual(new WebdaError.HttpError("test").code, "HTTP_ERROR");
+    new WebdaError.Redirect("test", "http://test.com");
   }
 }

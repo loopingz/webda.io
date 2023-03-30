@@ -471,10 +471,7 @@ class AuthenticationTest extends WebdaTest {
       "GET",
       "/auth/email/callback?email=" + match[1] + "&user=" + match[4]
     );
-    await assert.rejects(
-      () => executor.execute(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 400
-    );
+    await assert.strictEqual(executor, undefined);
     executor = this.getExecutor(
       ctx,
       "test.webda.io",

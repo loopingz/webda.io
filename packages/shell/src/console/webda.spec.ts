@@ -414,6 +414,8 @@ class DynamicService extend Service {
       assert.notStrictEqual(module.schemas["WebdaDemo/Contact"], undefined);
       assert.notStrictEqual(module.beans["WebdaDemo/BeanService"], undefined);
       assert.notStrictEqual(module.beans["WebdaDemo/SampleAppGoodBean"], undefined);
+      assert.notStrictEqual(module.beans["WebdaDemo/SampleAppGoodBean"], undefined);
+      assert.strictEqual(module.models.graph["WebdaDemo/User"].binaries?.length, 2);
 
       WebdaConsole.build({ watch: true });
       WebdaConsole.app.getCompiler().stopWatch();

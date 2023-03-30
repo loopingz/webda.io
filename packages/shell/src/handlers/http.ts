@@ -195,7 +195,7 @@ export class WebdaServer extends Webda {
 
       ctx.setHeader("Access-Control-Allow-Credentials", "true");
       emitResult = true;
-      this.log("INFO", "Execute", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
+      this.log("DEBUG", "Execute", ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
       await ctx.execute();
       await this.emitSync("Webda.Result", { context: ctx });
     } catch (err) {
@@ -207,7 +207,9 @@ export class WebdaServer extends Webda {
       }
       // If we have a context, we can send the error
       emitResult && (await this.emitSync("Webda.Result", { context: ctx }));
-      this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
+      if (ctx.statusCode >= 500) {
+        this.log("ERROR", err);
+      }
     } finally {
       await ctx.end();
     }

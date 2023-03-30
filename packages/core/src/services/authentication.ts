@@ -722,13 +722,10 @@ class Authentication<
    * @param ctx
    * @returns
    */
-  @Route("./email/callback{?email,token,user}", ["GET"], {
+  @Route("./email/callback{?email,token,user?}", ["GET"], {
     hidden: true
   })
   async _handleEmailCallback(ctx: WebContext) {
-    if (!ctx.parameter("token")) {
-      throw new WebdaError.BadRequest("Missing token");
-    }
     if (
       !(await this.cryptoService.hmacVerify(
         `${ctx.parameter("email")}_${ctx.parameter("user")}`,

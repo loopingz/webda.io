@@ -34,7 +34,7 @@ export namespace WebdaError {
   export class HttpError extends CodeError {
     constructor(message: string, public statusCode: number = 500) {
       super("", message);
-      this.code = this.constructor.name.replace(/[a-z]([A-Z])/g, "_$1").toUpperCase();
+      this.code = this.constructor.name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase();
     }
 
     getResponseCode(): number {
@@ -99,6 +99,15 @@ export namespace WebdaError {
   export class PreconditionFailed extends HttpError {
     constructor(message: string) {
       super(message, 412);
+    }
+  }
+
+  /**
+   * Can be used to redirect the user
+   */
+  export class Redirect extends HttpError {
+    constructor(message: string, public location: string) {
+      super(message, 302);
     }
   }
 }

@@ -196,13 +196,34 @@ export abstract class OAuthService<
   }
 
   /**
+   * Get OAuth callback query parameters
+   * @returns
+   */
+  getCallbackQueryParams(): { name: string; required: boolean }[] {
+    return [
+      {
+        name: "code",
+        required: true
+      },
+      {
+        name: "scope",
+        required: true
+      },
+      {
+        name: "state",
+        required: true
+      }
+    ];
+  }
+
+  /**
    * Add routes for the authentication
    */
   initRoutes() {
     super.initRoutes();
     let name = this.getName();
 
-    this.addRoute(`${this.parameters.url}{?redirect}`, ["GET"], this._redirect, {
+    this.addRoute(`${this.parameters.url}{?redirect?}`, ["GET"], this._redirect, {
       get: {
         description: `Log with a ${name} account`,
         summary: `Redirect to ${name}`,
@@ -219,7 +240,12 @@ export abstract class OAuthService<
     });
 
     this.addRoute(
-      this.parameters.url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}",
+      this.parameters.url +
+        "/callback{?" +
+        this.getCallbackQueryParams()
+          .map(param => param.name + (param.required ? "" : "?"))
+          .join(",") +
+        "}",
       ["GET"],
       this._callback,
       {

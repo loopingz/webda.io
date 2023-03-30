@@ -1,5 +1,6 @@
 import {
   BinaryMap,
+  BinaryMaps,
   CoreModel,
   Expose,
   ModelParent,
@@ -17,7 +18,7 @@ export class User extends WebdaUser {
   _company: ModelParent<Company>;
   name: string;
   profilePicture: BinaryMap<{ width: number; height: number }>;
-  images: BinaryMap[];
+  images: BinaryMaps;
   computers: ModelRelated<Computer, "_user">;
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {

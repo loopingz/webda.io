@@ -22,6 +22,7 @@ class GoogleAuthTest extends WebdaTest {
     assert.strictEqual(this.service.getDefaultUrl(), "/google");
     assert.deepStrictEqual(this.service.getCallbackReferer(), [/accounts\.google\.[a-z]+$/]);
     assert.strictEqual(this.service.hasToken(), true);
+    assert.strictEqual(this.service.getCallbackQueryParams().length, 6);
   }
 
   @test

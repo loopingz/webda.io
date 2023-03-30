@@ -85,6 +85,19 @@ class OAuthServiceTest extends WebdaTest {
   }
 
   @test
+  async testRoute() {
+    this.service.resolve();
+    let ctx = await this.newContext();
+    await this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      "/fake/callback?state=qwYG5RI3RVm_LCt-psrYAg&code=4%2F0AVHEtk5UIL1IFer3juJuFYawc9oJnaTzThLqW0dNKJHPD41vbp7T5XROjdPYsaSWOzsKlA&scope=email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.labels.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.metadata.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fadmin.directory.group.readonly+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.readonly&authuser=0&hd=webda.io&prompt=none"
+    );
+    assert.strictEqual(ctx._executor, this.service);
+  }
+
+  @test
   async misc() {
     this.service.resolve();
     assert.notStrictEqual(this.service._authenticationService, undefined, "Should get default Authentication service");
@@ -150,7 +163,7 @@ class OAuthServiceTest extends WebdaTest {
       }
     });
     ctx.getSession<OAuthSession>().oauth.redirect = "bouzouf.com";
-    await this.getExecutor(ctx, "webda.io", "GET", "/bouzouf/callback").execute(ctx);
+    await this.execute(ctx, "webda.io", "GET", "/bouzouf/callback?code=123&scope=plop&state=123");
     assert.strictEqual(event, 2);
     assert.strictEqual(ctx.getResponseHeaders()["Location"], "bouzouf.com");
     assert.strictEqual(ctx.getSession<OAuthSession>().oauth.redirect, undefined);

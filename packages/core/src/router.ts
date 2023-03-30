@@ -65,6 +65,14 @@ export interface RouteInfo {
    */
   _uriTemplateParse?: { fromUri: (uri: string, options?: { strict: boolean }) => any; varNames: any };
   /**
+   * Query parameters to extract
+   */
+  _queryParams?: { name: string; required: boolean }[];
+  /**
+   * Catch all parameter
+   */
+  _queryCatchAll?: string;
+  /**
    * Hash
    */
   hash?: string;
@@ -216,7 +224,44 @@ export class Router {
     // Prepare tbe URI parser
     for (let map in config) {
       if (map.indexOf("{") !== -1) {
-        config[map].forEach((e: RouteInfo) => (e._uriTemplateParse = uriTemplates(map)));
+        config[map].forEach((e: RouteInfo) => {
+          let idx = map.indexOf("{?");
+          let queryOptional = true;
+          if (idx >= 0) {
+            let query = map.substring(idx + 2, map.length - 1);
+            e._queryParams = [];
+            query.split(",").forEach(q => {
+              if (q.endsWith("*")) {
+                e._queryCatchAll = q.substring(0, q.length - 1);
+                return;
+              } else if (q.endsWith("+")) {
+                e._queryCatchAll = q.substring(0, q.length - 1);
+                queryOptional = false;
+                return;
+              } else if (q.endsWith("?")) {
+                e._queryParams.push({ name: q.substring(0, q.length - 1), required: false });
+              } else {
+                queryOptional = false;
+                e._queryParams.push({ name: q, required: true });
+              }
+            });
+            // We do not use uri-templates for query parsing
+            //map = map.substring(0, idx) + "?{+URITemplateQuery}";
+            const templates = [uriTemplates(map.substring(0, idx) + "?{+URITemplateQuery}")];
+            let pathTemplate = uriTemplates(map.substring(0, idx));
+            if (queryOptional) {
+              templates.push(pathTemplate);
+            }
+            e._uriTemplateParse = {
+              fromUri: (url: string) => {
+                return templates.reduce((v, t) => (v ? v : t.fromUri(url)), undefined);
+              },
+              varNames: [...pathTemplate.varNames, ...e._queryParams.map(q => q.name)]
+            };
+          } else {
+            e._uriTemplateParse = uriTemplates(map);
+          }
+        });
       }
     }
   }
@@ -271,6 +316,31 @@ export class Router {
       }
       const parse_result = map._uriTemplateParse.fromUri(finalUrl, { strict: true });
       if (parse_result !== undefined) {
+        let parseUrl = new URL(`http://localhost${finalUrl}`);
+        if (map._queryCatchAll) {
+          parse_result[map._queryCatchAll] = {};
+          parseUrl.searchParams.forEach((v, k) => {
+            if (!map._queryParams?.find(q => q.name === k)) {
+              parse_result[map._queryCatchAll][k] = v;
+            }
+          });
+        }
+        // Check for each params
+        let mandatoryParams = true;
+        map._queryParams?.forEach(q => {
+          if (!parseUrl.searchParams.has(q.name)) {
+            mandatoryParams &&= !q.required;
+            return;
+          }
+          parse_result[q.name] = parseUrl.searchParams.get(q.name);
+        });
+        // Skip if we miss mandatory params
+        if (!mandatoryParams) {
+          continue;
+        }
+        if (parse_result.URITemplateQuery) {
+          delete parse_result.URITemplateQuery;
+        }
         ctx.setServiceParameters(parameters);
         ctx.setPathParameters(parse_result);
 
@@ -318,7 +388,8 @@ export class Router {
         if (route._uriTemplateParse) {
           openapi.paths[path].parameters = [];
           route._uriTemplateParse.varNames.forEach(varName => {
-            if (urlParameters.indexOf(varName) >= 0) {
+            const queryParam = route._queryParams?.find(i => i.name === varName);
+            if (queryParam) {
               let name = varName;
               if (name.startsWith("*")) {
                 name = name.substr(1);
@@ -326,7 +397,7 @@ export class Router {
               openapi.paths[path].parameters.push({
                 name,
                 in: "query",
-                required: !varName.startsWith("*"),
+                required: queryParam.required,
                 schema: {
                   type: "string"
                 }

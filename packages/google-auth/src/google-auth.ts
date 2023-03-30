@@ -92,6 +92,39 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
   }
 
   /**
+   * Get OAuth callback query parameters
+   * @returns
+   */
+  getCallbackQueryParams(): { name: string; required: boolean }[] {
+    return [
+      {
+        name: "code",
+        required: true
+      },
+      {
+        name: "scope",
+        required: true
+      },
+      {
+        name: "state",
+        required: true
+      },
+      {
+        name: "authuser",
+        required: false
+      },
+      {
+        name: "hd",
+        required: false
+      },
+      {
+        name: "prompt",
+        required: false
+      }
+    ];
+  }
+
+  /**
    * Expose on /google by default
    */
   getDefaultUrl() {

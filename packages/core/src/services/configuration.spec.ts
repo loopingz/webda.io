@@ -49,13 +49,11 @@ class ConfigurationServiceTest extends WebdaTest {
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     let test = {
       uuid: "test",
-      webda: {
-        services: {
-          Authentication: {
-            providers: {
-              email: {
-                text: "Plop"
-              }
+      services: {
+        Authentication: {
+          providers: {
+            email: {
+              text: "Plop"
             }
           }
         }

@@ -17,13 +17,11 @@ class FileConfigurationServiceTest extends WebdaTest {
       __dirname + "/../../test/my-cnf.json",
       JSON.stringify(
         {
-          webda: {
-            services: {
-              Authentication: {
-                providers: {
-                  email: {
-                    text: "Test"
-                  }
+          services: {
+            Authentication: {
+              providers: {
+                email: {
+                  text: "Test"
                 }
               }
             }
@@ -72,13 +70,11 @@ class FileConfigurationServiceTest extends WebdaTest {
         __dirname + "/../../test/my-cnf.json",
         JSON.stringify(
           {
-            webda: {
-              services: {
-                Authentication: {
-                  providers: {
-                    email: {
-                      text: "Plop"
-                    }
+            services: {
+              Authentication: {
+                providers: {
+                  email: {
+                    text: "Plop"
                   }
                 }
               }
@@ -106,13 +102,11 @@ class FileConfigurationNoReloadServiceTest extends WebdaTest {
       __dirname + "/../../test/my-cnf.json",
       JSON.stringify(
         {
-          webda: {
-            services: {
-              Authentication: {
-                providers: {
-                  email: {
-                    text: "Test2"
-                  }
+          services: {
+            Authentication: {
+              providers: {
+                email: {
+                  text: "Test2"
                 }
               }
             }

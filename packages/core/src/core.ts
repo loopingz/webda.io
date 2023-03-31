@@ -575,13 +575,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         let cfg = await this.getService<ConfigurationService>(
           this.configuration.parameters.configurationService
         ).initConfiguration();
-        if (cfg.webda) {
-          cfg.webda.parameters ??= {};
-          cfg.webda.services ??= {};
-          this.configuration.parameters = { ...this.configuration.parameters, ...cfg.webda.parameters };
+        if (cfg) {
+          cfg.parameters ??= {};
+          cfg.services ??= {};
+          this.configuration.parameters = { ...this.configuration.parameters, ...cfg.parameters };
           for (let i in this.configuration.services) {
             this.configuration.services[i] = {
-              ...deepmerge(this.configuration.services[i], cfg.webda.services[i] || {}),
+              ...deepmerge(this.configuration.services[i], cfg.services[i] || {}),
               type: this.configuration.services[i].type
             };
           }

@@ -53,20 +53,14 @@
       "type": "Webda/KubernetesConfigurationService",
       "source": "./kube",
       "default": {
-        "webda": {
-          "services": {
-            "Authentication": {
-              "providers": {
-                "email": {
-                  "text": "Plop0"
-                }
+        "services": {
+          "Authentication": {
+            "providers": {
+              "email": {
+                "text": "Plop0"
               }
             }
           }
-        },
-        "other": "text",
-        "yaml": {
-          "field": "test"
         }
       }
     }

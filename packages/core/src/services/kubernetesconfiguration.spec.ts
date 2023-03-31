@@ -4,7 +4,6 @@ import { mkdirSync, unlinkSync } from "fs";
 import pkg from "fs-extra";
 import * as path from "path";
 import { stub } from "sinon";
-import * as yaml from "yaml";
 import { KubernetesConfigurationService } from "..";
 import { WebdaTest } from "../test";
 import { getCommonJS } from "../utils/esm";
@@ -30,11 +29,7 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
       },
       undefined,
       2
-    ),
-    other: "test",
-    "yaml.yml": yaml.stringify({
-      field: "test"
-    })
+    )
   };
 
   getTestConfiguration() {

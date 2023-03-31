@@ -25,8 +25,8 @@ export class FileConfigurationService<
 
     watchFile(this.parameters.source, this.checkUpdate.bind(this));
 
-    // Add webda infoww
-    this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
+    // Add webda info
+    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
 
     await this.checkUpdate();
     return this;

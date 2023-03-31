@@ -290,7 +290,18 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
 /**
  * Define a collection of BinaryMap
  */
-export class BinaryMaps extends Array<BinaryMap> {}
+export class BinaryMaps<T = any> extends Array<BinaryMap<T>> {
+  constructor(protected modelId: string) {
+    super();
+  }
+  /**
+   * Upload a file to this model
+   * @param file
+   */
+  async upload(file: BinaryFile) {
+    throw new Error("Not implemented");
+  }
+}
 
 export class BinaryParameters extends ServiceParameters {
   /**
@@ -298,8 +309,17 @@ export class BinaryParameters extends ServiceParameters {
    *
    * key is a Store name
    * the string[] represent all valids attributes to store files in
+   * @deprecated
    */
   map: { [key: string]: string[] };
+  /**
+   * Define the map of models
+   * * indicates all models
+   *
+   * key is a Store name
+   * the string[] represent all valids attributes to store files in * indicates all attributes
+   */
+  models: { [key: string]: string[] };
   /**
    * Expose the service to http
    */

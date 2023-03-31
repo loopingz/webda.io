@@ -57,10 +57,8 @@
       "source": "ConfigurationStore:test",
       "checkInterval": 2,
       "default": {
-        "webda": {
-          "services": {
-            "Authentication.providers.email.text": "Test"
-          }
+        "services": {
+          "Authentication.providers.email.text": "Test"
         }
       }
     }

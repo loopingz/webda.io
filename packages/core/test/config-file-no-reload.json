@@ -54,13 +54,11 @@
       "type": "Webda/FileConfiguration",
       "source": "./my-cnf.json",
       "default": {
-        "webda": {
-          "services": {
-            "Authentication": {
-              "providers": {
-                "email": {
-                  "text": "Test"
-                }
+        "services": {
+          "Authentication": {
+            "providers": {
+              "email": {
+                "text": "Test"
               }
             }
           }

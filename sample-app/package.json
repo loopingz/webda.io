@@ -42,5 +42,11 @@
   "devDependencies": {
     "@types/node": "14.6.0"
   },
-  "type": "module"
+  "type": "module",
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core",
+      "@webda/shell"
+    ]
+  }
 }

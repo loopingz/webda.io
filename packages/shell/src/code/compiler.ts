@@ -347,13 +347,8 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         } else if (typeName === "ModelRelated") {
           // ModelRelated are only helpers for backend development
           return undefined;
-        } else if (
-          typeName === "BinaryMap" ||
-          typeName === "BinaryMaps" ||
-          (ts.isArrayTypeNode(member.type) &&
-            (<ts.Identifier>(<ts.TypeReferenceNode>member.type.elementType)?.typeName)?.escapedText === "BinaryMap")
-        ) {
-          // BinaryMap should be readonly as they are only modifiable by a BinaryService
+        } else if (typeName === "Binary" || typeName === "Binaries") {
+          // Binary and Binaries should be readonly as they are only modifiable by a BinaryService
           optional = true;
         }
         let type = this.childNodeParser.createType(member.type, context);
@@ -966,14 +961,14 @@ export class Compiler {
               case "ModelLinksSimpleArray":
                 addLinkToGraph("LINKS_SIMPLE_ARRAY");
                 break;
-              case "BinaryMap":
+              case "Binary":
                 graph[name].binaries ??= [];
                 graph[name].binaries.push({
                   attribute: prop.escapedName.toString(),
                   cardinality: "ONE"
                 });
                 break;
-              case "BinaryMaps":
+              case "Binaries":
                 graph[name].binaries ??= [];
                 graph[name].binaries.push({
                   attribute: prop.escapedName.toString(),

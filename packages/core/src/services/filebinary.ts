@@ -3,7 +3,7 @@ import { join } from "path";
 import { Readable } from "stream";
 import { CloudBinary, CloudBinaryParameters, CoreModel, WebdaError } from "../index";
 import { WebContext } from "../utils/context";
-import { Binary, BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
+import { BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, BinaryService, MemoryBinaryFile } from "./binary";
 import CryptoService from "./cryptoservice";
 import { Inject, ServiceParameters } from "./service";
 
@@ -18,7 +18,7 @@ export class FileBinaryParameters extends CloudBinaryParameters {
    */
   maxSize?: number;
 
-  constructor(params: any, service: Binary) {
+  constructor(params: any, service: BinaryService) {
     super(params, service);
     if (!this.folder.endsWith("/")) {
       this.folder += "/";

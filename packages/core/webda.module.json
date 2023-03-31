@@ -6,6 +6,7 @@
     "Webda/AliasStore": "lib/stores/aliasstore:AliasStore",
     "Webda/AsyncEvents": "lib/services/asyncevents:EventService",
     "Webda/Authentication": "lib/services/authentication:Authentication",
+    "Webda/Binary": "lib/services/binary:BinaryService",
     "Webda/ConfigurationService": "lib/services/configuration:default",
     "Webda/ConsoleLogger": "lib/utils/logger:ConsoleLoggerService",
     "Webda/CookieSessionManager": "lib/utils/session:CookieSessionManager",
@@ -453,6 +454,86 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Authentication"
+    },
+    "Webda/Binary": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in",
+          "deprecated": true
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
+        },
+        "expose": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to expose the service to"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "get": {
+                  "type": "boolean",
+                  "description": "Restrict GET"
+                },
+                "create": {
+                  "type": "boolean",
+                  "description": "Restrict POST"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Restrict DELETE"
+                },
+                "metadata": {
+                  "type": "boolean",
+                  "description": "Restrict update of metadata"
+                }
+              },
+              "description": "Restrict some APIs"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "description": "Expose the service to http"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "map",
+        "models",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BinaryService"
     },
     "Webda/Comment": {
       "type": "object",

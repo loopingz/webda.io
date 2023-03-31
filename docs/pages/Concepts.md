@@ -1,6 +1,34 @@
 # Concepts
 
+Webda is a domain driven framework.
+
+It means you should mainly focus on creating your business models.
+
+Then Services exists to implement generic features:
+
+- Store your models: Store, DynamoDB, MongoDB, Postgresql, Firebase, Memory, File
+- Store your binaries: BinaryService, FileBinary, S3Binary, GCPStorage
+- Expose your models: DomainService, GraphQLService
+- Authenticatate: AuthenticationService, OAuthService
+- Secure: Hawk, built-in sanitizer
+
+You usually have needs for a few additional services that are unrelated to business models like integration with third parties.
+To tackle this, create your Service or Bean.
+A Service is designed to be reusable, where a Bean is a singeleton in your application and not designed to be reused elsewhere.
+
+Althought there are other mechanisms we recommend using the annotations within the app to declare: @Bean, @Route, @Operation, @Action
+
 Webda relies on Services (or Beans), they can expose some Routes and the Application can deployed using different types of Deployment
+
+The configuration system relies on JSON files: `webda.config.json`, it can be seen as the `applicationContext.xml` of Spring framework.
+
+The framework also simplifies the deployment with builtin support for AWS Lambda, Containers, local debug.
+
+## Under the hood
+
+Webda on compilation will produce a `webda.module.json` file, it analyzes your code to get the relationship between your models, the hierarchy of models, the structure of the models (JSON Schemas)
+
+The framework at runtime read this reflective data to expose smartly its logic.
 
 ## Services
 

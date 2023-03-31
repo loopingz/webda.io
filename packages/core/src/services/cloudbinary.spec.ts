@@ -5,7 +5,15 @@ import { WebdaError } from "../errors";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { WebContext } from "../utils/context";
-import { Binary, BinaryEvents, BinaryFile, BinaryMap, BinaryMetadata, BinaryModel, BinaryParameters } from "./binary";
+import {
+  BinaryEvents,
+  BinaryFile,
+  BinaryMap,
+  BinaryMetadata,
+  BinaryModel,
+  BinaryParameters,
+  BinaryService
+} from "./binary";
 import { BinaryTest } from "./binary.spec";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 
@@ -36,7 +44,7 @@ class CloudBinaryFakeService extends CloudBinary {
 }
 
 export class CloudBinaryTest<
-  T extends Binary<BinaryParameters, BinaryEvents> = Binary<BinaryParameters, BinaryEvents>
+  T extends BinaryService<BinaryParameters, BinaryEvents> = BinaryService<BinaryParameters, BinaryEvents>
 > extends BinaryTest<T> {
   @test
   async redirectUrl() {

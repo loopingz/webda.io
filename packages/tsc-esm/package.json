@@ -29,7 +29,7 @@
   },
   "scripts": {
     "test": "c8 mocha --recursive --exit --timeout=30000 src/*.spec.ts",
-    "build": "tsc"
+    "build": "tsc && chmod +x lib/index.js"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

@@ -1,7 +1,7 @@
 import { join } from "path";
 import { WebdaError } from "../errors";
 import { OperationContext } from "../utils/context";
-import { Binary, BinaryMap, BinaryModel, BinaryParameters } from "./binary";
+import { BinaryMap, BinaryModel, BinaryParameters, BinaryService } from "./binary";
 
 /**
  * Default binary parameters
@@ -9,7 +9,7 @@ import { Binary, BinaryMap, BinaryModel, BinaryParameters } from "./binary";
 export class CloudBinaryParameters extends BinaryParameters {
   prefix?: string;
 
-  constructor(params: any, service: Binary) {
+  constructor(params: any, service: BinaryService) {
     super(params, service);
     this.prefix ??= "";
   }
@@ -18,7 +18,7 @@ export class CloudBinaryParameters extends BinaryParameters {
 /**
  * CloudBinary abstraction
  */
-export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryParameters> extends Binary<T> {
+export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryParameters> extends BinaryService<T> {
   /**
    * @inheritdoc
    */

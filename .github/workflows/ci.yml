@@ -105,12 +105,12 @@ jobs:
         run: yarn run build
 
       - name: Run tests
-        run: yarn run test --ignore @webda/shell
+        run: yarn run test --exclude @webda/shell
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Run shell tests
-        run: yarn run test --scope @webda/shell
+        run: yarn nx run @webda/shell:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

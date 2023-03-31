@@ -4,15 +4,18 @@ import axios from "axios";
 import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as sinon from "sinon";
-import { Binary, Store, User, WebContext, WebdaError } from "../index";
+import { Store, User, WebContext, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import {
+  Binaries,
+  BinariesItem,
+  Binary,
   BinaryEvents,
   BinaryFileInfo,
   BinaryMap,
-  BinaryMaps,
   BinaryNotFoundError,
+  BinaryService,
   LocalBinaryFile,
   MemoryBinaryFile
 } from "./binary";
@@ -20,7 +23,7 @@ export class ImageUser extends User {
   images: BinaryMap[];
 }
 
-class TestBinaryService extends Binary {
+class TestBinaryService extends BinaryService {
   store(object: CoreModel, property: string, file: any, metadatas: any, index?: number): Promise<any> {
     throw new Error("Method not implemented.");
   }
@@ -43,7 +46,7 @@ class TestBinaryService extends Binary {
   async cascadeDelete() {}
 }
 
-class BinaryTest<T extends Binary = Binary> extends WebdaTest {
+class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
   getUserStore(): Store<any> {
     return <Store<any>>this.getService("Users");
   }
@@ -179,10 +182,10 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       }
     }
     this.log("DEBUG", "Check get stream");
-    let buf1 = await Binary.streamToBuffer(await user1[map][0].get());
+    let buf1 = await BinaryService.streamToBuffer(await user1[map][0].get());
 
     // cov
-    let buf2 = await Binary.streamToBuffer(await binary._get(user1[map][0]));
+    let buf2 = await BinaryService.streamToBuffer(await binary._get(user1[map][0]));
 
     assert.strictEqual(buf1.toString(), buf2.toString());
     this.log("DEBUG", "Delete CoreModel and ensure usage count");
@@ -193,8 +196,28 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
   @test
   async binaryMaps() {
-    let map = new BinaryMaps("tes");
+    let map = new Binaries("tes");
     await assert.rejects(() => map.upload(undefined));
+    let binary = new Binary(
+      undefined,
+      new MemoryBinaryFile(Buffer.from("test"), {
+        name: "test",
+        mimetype: "text/plain",
+        size: 4
+      })
+    );
+    await assert.rejects(() => binary.upload(undefined));
+    await assert.rejects(() => binary.delete());
+    binary = new BinariesItem(
+      undefined,
+      new MemoryBinaryFile(Buffer.from("test"), {
+        name: "test",
+        mimetype: "text/plain",
+        size: 4
+      })
+    );
+    await assert.rejects(() => binary.upload(undefined));
+    await assert.rejects(() => binary.delete());
   }
 
   @test
@@ -424,7 +447,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
   async setupDefault(withLogin: boolean = true): Promise<{
     userStore: Store;
-    binary: Binary;
+    binary: BinaryService;
     user1: ImageUser;
     ctx: WebContext;
   }> {
@@ -489,7 +512,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
     await user1.refresh();
     assert.strictEqual(user1.images.length, 2);
-    assert.strictEqual((await Binary.streamToBuffer(await binary.get(user1.images[1]))).toString(), "PLOP");
+    assert.strictEqual((await BinaryService.streamToBuffer(await binary.get(user1.images[1]))).toString(), "PLOP");
     // If we try to re upload it should be already up
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user1.getUuid()}/images`, {
       hash,
@@ -554,7 +577,7 @@ class BinaryAbstractTest extends WebdaTest {
       (err: WebdaError.HttpError) => err.getResponseCode() === 400
     );
     ctx = await this.newContext();
-    let binary = this.getService<Binary>("binary");
+    let binary = this.getService<BinaryService>("binary");
     ctx.setPathParameters({
       property: "images",
       store: "users",
@@ -615,7 +638,7 @@ class BinaryAbstractTest extends WebdaTest {
   async streamToBufferError() {
     let stream = new EventEmitter();
     // @ts-ignore
-    let p = assert.rejects(() => Binary.streamToBuffer(stream), /Bad I\/O/);
+    let p = assert.rejects(() => BinaryService.streamToBuffer(stream), /Bad I\/O/);
     stream.emit("error", new Error("Bad I/O"));
     await p;
   }

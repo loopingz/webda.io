@@ -1,6 +1,6 @@
 import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
 import { suite, test } from "@testdeck/mocha";
-import { Binary, getCommonJS } from "@webda/core";
+import { BinaryService, getCommonJS } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import { TestApplication } from "@webda/core/lib/test";
 import * as assert from "assert";
@@ -180,9 +180,9 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     await this.getBinary().putObject(this.getBinary()._getKey("bouzouf"), "plop");
     assert.ok(await this.getBinary()._exists("bouzouf"));
     assert.strictEqual(
-      (await Binary.streamToBuffer(await this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))).toString(
-        "utf8"
-      ),
+      (
+        await BinaryService.streamToBuffer(await this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))
+      ).toString("utf8"),
       "plop"
     );
     assert.notStrictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf")), null);

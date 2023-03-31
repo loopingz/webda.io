@@ -15,7 +15,7 @@ import { Service, ServiceParameters } from "./service";
  */
 export interface EventBinary {
   object: BinaryFileInfo;
-  service: Binary;
+  service: BinaryService;
   /**
    * In case the Context is known
    */
@@ -234,9 +234,9 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
    * Link to the binary store
    */
   @NotEnumerable
-  __store: Binary;
+  __store: BinaryService;
 
-  constructor(service: Binary, obj: BinaryFileInfo) {
+  constructor(service: BinaryService, obj: BinaryFileInfo) {
     super(obj);
     for (let i in obj) {
       this[i] = obj[i];
@@ -263,7 +263,7 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
    *
    * @returns
    */
-  get() {
+  get(): Promise<Readable> {
     return this.__store.get(this);
   }
 
@@ -287,10 +287,41 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
   }
 }
 
+export class Binary<T = any> extends BinaryMap<T> {
+  /**
+   * Get a binary
+   * @param id
+   * @param ctx
+   * @returns
+   */
+  async upload(file: BinaryFile): Promise<BinaryMap> {
+    throw new Error("Not implemented");
+  }
+
+  async delete() {
+    throw new Error("Not implemented");
+  }
+}
+
+export class BinariesItem<T = any> extends BinaryMap<T> {
+  /**
+   * Get a binary
+   * @param id
+   * @param ctx
+   * @returns
+   */
+  async upload(file: BinaryFile): Promise<BinaryMap> {
+    throw new Error("Not implemented");
+  }
+
+  async delete() {
+    throw new Error("Not implemented");
+  }
+}
 /**
- * Define a collection of BinaryMap
+ * Define a collection of Binary
  */
-export class BinaryMaps<T = any> extends Array<BinaryMap<T>> {
+export class Binaries<T = any> extends Array<BinariesItem<T>> {
   constructor(protected modelId: string) {
     super();
   }
@@ -398,9 +429,12 @@ export type BinaryModel<T = { [key: string]: BinaryMap[] }> = CoreModel & T;
  *
  * @exports
  * @abstract
- * @class Binary
+ * @WebdaModda Binary
  */
-abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends BinaryEvents = BinaryEvents>
+export abstract class BinaryService<
+    T extends BinaryParameters = BinaryParameters,
+    E extends BinaryEvents = BinaryEvents
+  >
   extends Service<T, E>
   implements MappingService<BinaryMap>
 {
@@ -969,5 +1003,3 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     }
   }
 }
-
-export { Binary };

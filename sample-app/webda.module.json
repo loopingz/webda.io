@@ -1564,8 +1564,7 @@
             "mimetype",
             "name",
             "size"
-          ],
-          "description": "This is a map used to retrieve binary"
+          ]
         },
         "images": {
           "type": "object",
@@ -1577,7 +1576,7 @@
           "required": [
             "length"
           ],
-          "description": "Define a collection of BinaryMap"
+          "description": "Define a collection of Binary"
         }
       },
       "required": [

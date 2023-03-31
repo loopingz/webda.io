@@ -31,7 +31,7 @@ class ExceptionExecutor extends Service {
     ctx.write(`CodeCoverage${ctx.getParameters().test || ""}`);
   }
 
-  @Route("/route/param/{uuid}{?test}")
+  @Route("/route/param/{uuid}{?test?}")
   async onParamString(ctx) {
     ctx.write(`CodeCoverage${ctx.getParameters().uuid}${ctx.getParameters().test || ""}`);
   }

@@ -19,7 +19,7 @@
     "webda.module.json"
   ],
   "scripts": {
-    "build": "tsc-esm",
+    "build": "tsc-esm && chmod +x lib/bin/webda.js",
     "build:module": "webda build",
     "build:watch": "webda build --watch",
     "pretest": "npm run build",

@@ -11,6 +11,7 @@ import {
   BinaryEvents,
   BinaryFileInfo,
   BinaryMap,
+  BinaryMaps,
   BinaryNotFoundError,
   LocalBinaryFile,
   MemoryBinaryFile
@@ -188,6 +189,12 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 0);
+  }
+
+  @test
+  async binaryMaps() {
+    let map = new BinaryMaps("tes");
+    await assert.rejects(() => map.upload(undefined));
   }
 
   @test

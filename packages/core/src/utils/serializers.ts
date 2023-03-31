@@ -114,7 +114,7 @@ export const FileUtils: StorageFinder & {
         }
         /* c8 ignore start */
       } catch (err) {
-        Core.get().log("ERROR", "FileUtils.find: Error while reading file", p, err);
+        Core.get()?.log("ERROR", "FileUtils.find: Error while reading file", p, err);
       }
       /* c8 ignore stop */
     };

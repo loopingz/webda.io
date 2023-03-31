@@ -226,7 +226,18 @@
               "type": "string"
             }
           },
-          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in"
+          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in",
+          "deprecated": true
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
         },
         "expose": {
           "type": "object",
@@ -273,6 +284,7 @@
       },
       "required": [
         "map",
+        "models",
         "type"
       ],
       "description": "Default binary parameters",

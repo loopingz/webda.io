@@ -133,7 +133,7 @@ export default class ConfigurationService<
     }
 
     // Add webda info
-    this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
+    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
     return this;
   }
 
@@ -210,11 +210,11 @@ export default class ConfigurationService<
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
       // Add the webda parameters logical
-      if (this.configuration.webda && this.configuration.webda.services) {
+      if (this.configuration && this.configuration.services) {
         // Merge parameters with each service
-        for (let i in this.configuration.webda.services) {
+        for (let i in this.configuration.services) {
           if (this.getWebda().getService(i)) {
-            this.configuration.webda.services[i] = this.getWebda().getServiceParams(i, this.configuration.webda);
+            this.configuration.services[i] = this.getWebda().getServiceParams(i, this.configuration);
           }
         }
       }

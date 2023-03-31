@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { WebdaError } from "../index";
-import { JSONUtils } from "../utils/serializers";
+import { FileUtils } from "../utils/serializers";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 
 /**
@@ -31,7 +31,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
     }
 
     // Add webda info
-    this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
+    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
 
     fs.watchFile(path.join(this.parameters.source, "..data"), this.checkUpdate.bind(this));
     await this.checkUpdate();
@@ -51,23 +51,15 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
    */
   async loadConfiguration(): Promise<{ [key: string]: any }> {
     let result = {};
-    let found = 0;
-    fs.readdirSync(this.parameters.source)
-      .filter(f => !f.startsWith("."))
-      .forEach(f => {
-        found++;
-        let filePath = path.join(this.parameters.source, f);
-        // Auto parse JSON and YAML
-        if (f.match(/\.(jsonc?|ya?ml)$/i)) {
-          result[f.replace(/\.(jsonc?|ya?ml)$/i, "")] = JSONUtils.loadFile(filePath);
-        } else {
-          result[f] = fs.readFileSync(filePath, "utf-8");
-        }
-      });
-    if (found === 0) {
-      return undefined;
+    let files = fs.readdirSync(this.parameters.source);
+    const found = fs
+      .readdirSync(this.parameters.source)
+      .filter(f => !f.startsWith(".") && f.match(/webda\.(jsonc?|ya?ml)$/i))
+      .pop();
+    if (!found) {
+      return this.parameters.default;
     }
     this.log("TRACE", "loadConfiguration", result);
-    return result;
+    return FileUtils.load(path.join(this.parameters.source, found));
   }
 }

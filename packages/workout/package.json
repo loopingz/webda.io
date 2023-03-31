@@ -62,5 +62,10 @@
   "type": "module",
   "engines": {
     "node": ">=16.0.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "@webda/tsc-esm"
+    ]
   }
 }

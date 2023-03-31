@@ -54,5 +54,11 @@
   "type": "module",
   "engines": {
     "node": ">=16.0.0"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core",
+      "@webda/shell"
+    ]
   }
 }

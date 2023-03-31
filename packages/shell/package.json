@@ -90,5 +90,12 @@
     "sinon": "^15.0.0",
     "ts-node": "^10.8.1"
   },
-  "type": "module"
+  "type": "module",
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core",
+      "@webda/tsc-esm",
+      "@webda/kubernetes"
+    ]
+  }
 }

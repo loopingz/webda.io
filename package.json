@@ -39,12 +39,12 @@
     "sample-app"
   ],
   "scripts": {
-    "build": "lerna run build && lerna run build:module",
-    "test": "lerna run test --ignore @webda/sample-app",
-    "new-version": "lerna run build && lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
+    "build": "nx run-many --target=build && nx run-many --target=build:module",
+    "test": "nx run-many --target=test --exclude @webda/sample-app",
+    "new-version": "yarn build && lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
     "new-module": "yarn webda init webda:module",
-    "lint": "lerna run lint --parallel",
-    "lint:fix": "lerna run lint:fix --parallel",
+    "lint": "nx run-many --target=lint",
+    "lint:fix": "nx run-many --target=lint:fix",
     "lerna:publish": "lerna publish",
     "docs": "yarn docs:pages && yarn docs:typedoc",
     "docs:pages": "yarn node scripts/docs/updatepages.mjs",

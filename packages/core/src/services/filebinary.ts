@@ -243,7 +243,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     if (!fs.existsSync(this._getPath(body.hash))) {
       fs.mkdirSync(this._getPath(body.hash));
     }
-    this._touch(this._getPath(body.hash, store + "_" + uid));
+    this._touch(this._getPath(body.hash, store + "_" + uid + "_" + property));
     if (this.challenge(body.hash, body.challenge)) {
       // Return empty as we dont need to upload the data
       return;
@@ -326,11 +326,14 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @override
    */
-  async _cleanUsage(hash: string, uuid: string): Promise<void> {
+  async _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
+    uuid = uuid.startsWith("_") ? uuid : `_${uuid}`;
     let files = fs.readdirSync(p);
-    files.filter(f => f.endsWith(uuid)).forEach(f => fs.unlinkSync(this._getPath(hash, f)));
+    files
+      .filter(f => f.endsWith(attribute ? `_${attribute}${uuid}` : `${uuid}`))
+      .forEach(f => fs.unlinkSync(this._getPath(hash, f)));
 
     if (files.length == 3) {
       await this._cleanHash(hash);
@@ -340,10 +343,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @inheritdoc
    */
-  async delete(object: CoreModel, property: string, index: number): Promise<void> {
-    let hash = object[property][index].hash;
+  async delete(object: CoreModel, property: string, index?: number): Promise<void> {
+    let hash = (index !== undefined ? object[property][index] : object[property]).hash;
     await this.deleteSuccess(<BinaryModel>object, property, index);
-    await this._cleanUsage(hash, object.getUuid());
+    await this._cleanUsage(hash, object.getUuid(), property);
   }
 
   challenge(hash, challenge) {
@@ -355,10 +358,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @inheritdoc
    */
   async cascadeDelete(info: BinaryMap, uuid: string) {
-    return this._cleanUsage(info.hash, "_" + uuid);
+    return this._cleanUsage(info.hash, uuid);
   }
 
-  async _store(file: BinaryFile, object: CoreModel) {
+  async _store(file: BinaryFile, object: CoreModel, attribute: string) {
     fs.mkdirSync(this._getPath(file.hash));
     const map = await file.get();
     await new Promise((resolve, reject) => {
@@ -370,7 +373,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
     // Store the challenge
     this._touch(this._getPath(file.hash, "_" + file.challenge));
-    this._touch(this._getPath(file.hash, object.getStore().getName() + "_" + object.getUuid()));
+    this._touch(this._getPath(file.hash, `${object.getStore().getName()}_${attribute}_${object.getUuid()}`));
   }
 
   /**
@@ -380,13 +383,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     await file.getHashes();
     const storeName = object.getStore().getName();
     const fileInfo = file.toBinaryFileInfo();
-    this.checkMap(storeName, property);
+    //this.checkMap(storeName, property);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${object.getUuid()}`));
       await this.uploadSuccess(<BinaryModel>object, property, fileInfo);
       return;
     }
-    await this._store(file, object);
+    await this._store(file, object, property);
     await this.uploadSuccess(<BinaryModel>object, property, fileInfo);
   }
 

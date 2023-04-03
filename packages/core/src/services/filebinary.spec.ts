@@ -3,8 +3,11 @@ import * as assert from "assert";
 import * as fs from "fs";
 import pkg from "fs-extra";
 import { Readable } from "stream";
+import { Core } from "../core";
 import { WebdaError } from "../errors";
-import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
+import { CoreModel, CoreModelDefinition } from "../models/coremodel";
+import { FileUtils } from "../utils/serializers";
+import { Binaries, Binary, BinaryFile, BinaryFileInfo, BinaryService, MemoryBinaryFile } from "./binary";
 import { CloudBinaryTest } from "./cloudbinary.spec";
 import { FileBinary } from "./filebinary";
 const { removeSync } = pkg;
@@ -200,6 +203,64 @@ class FileBinaryTest extends CloudBinaryTest {
     } finally {
       fs.unlinkSync("./touch.txt");
     }
+  }
+
+  @test
+  async handleBinary() {
+    this.registerService(
+      new FileBinary(Core.get(), "second", {
+        folder: "./test/data/binaries"
+      })
+    );
+    const binaries: { [key: string]: BinaryService } = <any>Core.get().getServicesOfType(<any>BinaryService);
+    const user = Core.get().getModel("WebdaDemo/User");
+    assert.strictEqual(Core.get().getBinaryStore(user, "images"), binaries["binary"]);
+    binaries["binary"].getParameters().models = {};
+    assert.throws(
+      () => Core.get().getBinaryStore(user, "profilePicture"),
+      /No binary store found for WebdaDemo\/User profilePicture/
+    );
+    binaries["binary"].getParameters().models = {
+      "WebdaDemo/User": ["*"]
+    };
+    binaries["second"].getParameters().models = {
+      "WebdaDemo/User": ["profilePicture"]
+    };
+    assert.strictEqual(Core.get().getBinaryStore(user, "profilePicture"), binaries["second"]);
+  }
+
+  /**
+   * Test that we can use binary attributes
+   */
+  @test
+  async binaryAttributes() {
+    const user: CoreModelDefinition<CoreModel & { images: Binaries; profilePicture: Binary }> =
+      Core.get().getModel("WebdaDemo/User");
+    const User = await new user().load({}, true).save();
+    await User.profilePicture.upload(new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})));
+    await User.images.upload(new MemoryBinaryFile(Buffer.from("PLOP2"), <BinaryFileInfo>(<unknown>{})));
+    await this.sleep(1000);
+    let files = FileUtils.find("./test/data/binaries");
+    assert.deepStrictEqual(files, [
+      `test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/MemoryUsers_profilePicture_${User.getUuid()}`,
+      "test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/_9eed42d099ec7ef1eed00a49e8079cd2",
+      "test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/data",
+      `test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/MemoryUsers_images_${User.getUuid()}`,
+      "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/_0a4ef38590e0bd4a8999f1489186bbe9",
+      "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/data"
+    ]);
+    await User.profilePicture.delete();
+    await this.sleep(1000);
+    files = FileUtils.find("./test/data/binaries");
+    assert.deepStrictEqual(files, [
+      `test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/MemoryUsers_images_${User.getUuid()}`,
+      "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/_0a4ef38590e0bd4a8999f1489186bbe9",
+      "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/data"
+    ]);
+    await User.images[0].delete();
+    await this.sleep(1000);
+    files = FileUtils.find("./test/data/binaries");
+    assert.deepStrictEqual(files, []);
   }
 }
 

@@ -8,7 +8,7 @@ import { Store, User, WebContext, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import {
-  Binaries,
+  BinariesImpl,
   BinariesItem,
   Binary,
   BinaryEvents,
@@ -192,32 +192,6 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 0);
-  }
-
-  @test
-  async binaryMaps() {
-    let map = new Binaries("tes");
-    await assert.rejects(() => map.upload(undefined));
-    let binary = new Binary(
-      undefined,
-      new MemoryBinaryFile(Buffer.from("test"), {
-        name: "test",
-        mimetype: "text/plain",
-        size: 4
-      })
-    );
-    await assert.rejects(() => binary.upload(undefined));
-    await assert.rejects(() => binary.delete());
-    binary = new BinariesItem(
-      undefined,
-      new MemoryBinaryFile(Buffer.from("test"), {
-        name: "test",
-        mimetype: "text/plain",
-        size: 4
-      })
-    );
-    await assert.rejects(() => binary.upload(undefined));
-    await assert.rejects(() => binary.delete());
   }
 
   @test
@@ -632,6 +606,25 @@ class BinaryAbstractTest extends WebdaTest {
     } finally {
       stubs.forEach(stub => stub.restore());
     }
+  }
+
+  @test
+  async binaryMaps() {
+    let map = new BinariesImpl().assign(<any>{}, "test");
+    await assert.rejects(() => map.upload(undefined));
+    let binary = new Binary(undefined, undefined);
+    await assert.rejects(() => binary.upload(undefined));
+    await assert.rejects(() => binary.delete());
+    let binaryItem = new BinariesItem(
+      undefined,
+      new MemoryBinaryFile(Buffer.from("test"), {
+        name: "test",
+        mimetype: "text/plain",
+        size: 4
+      })
+    );
+    await assert.rejects(() => binaryItem.upload(undefined));
+    await assert.rejects(() => binaryItem.delete());
   }
 
   @test

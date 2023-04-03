@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { ModelGraph } from "../application";
 import { Core } from "../core";
 import { WebdaError } from "../errors";
+import { BinariesImpl, Binary } from "../services/binary";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { OperationContext } from "../utils/context";
@@ -961,6 +962,13 @@ class CoreModel {
       this[rel.parent.attribute] ??= "";
       if (typeof this[rel.parent.attribute] === "string") {
         this[rel.parent.attribute] = new ModelRef(this[rel.parent.attribute], Core.get().getModel(rel.parent.model));
+      }
+    }
+    for (let binary of rel.binaries || []) {
+      if (binary.cardinality === "ONE") {
+        this[binary.attribute] = new Binary(binary.attribute, this);
+      } else {
+        this[binary.attribute] = new BinariesImpl().assign(this, binary.attribute);
       }
     }
   }

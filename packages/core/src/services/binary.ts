@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
-import { Counter, WebdaError } from "../index";
+import { Core, Counter, WebdaError } from "../index";
 import { CoreModel, NotEnumerable } from "../models/coremodel";
 import { EventStoreDeleted, MappingService, Store } from "../stores/store";
 import { OperationContext, WebContext } from "../utils/context";
@@ -115,6 +115,14 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
   metadata?: T;
 
   constructor(info: BinaryFileInfo) {
+    this.set(info);
+  }
+
+  /**
+   * Set the information
+   * @param info
+   */
+  set(info: BinaryFileInfo) {
     this.name = info.name;
     this.challenge = info.challenge;
     this.hash = info.hash;
@@ -238,24 +246,8 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
 
   constructor(service: BinaryService, obj: BinaryFileInfo) {
     super(obj);
-    for (let i in obj) {
-      this[i] = obj[i];
-    }
+    this.set(obj);
     this.__store = service;
-  }
-
-  /**
-   * Prevent all the attributes starting with '__' to be serialized
-   * @returns
-   */
-  toJSON() {
-    let res = {};
-    Object.keys(this)
-      .filter(k => !k.startsWith("__"))
-      .forEach(k => {
-        res[k] = this[k];
-      });
-    return res;
   }
 
   /**
@@ -287,52 +279,150 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
   }
 }
 
+/**
+ * One Binary instance
+ */
 export class Binary<T = any> extends BinaryMap<T> {
+  @NotEnumerable
+  protected model: CoreModel;
+  @NotEnumerable
+  protected attribute: string;
+  constructor(attribute: string, model: CoreModel) {
+    super(Core.get().getBinaryStore(model, attribute), model[attribute] || {});
+    this.attribute = attribute;
+    this.model = model;
+  }
   /**
-   * Get a binary
+   * Replace the binary
    * @param id
    * @param ctx
    * @returns
    */
-  async upload(file: BinaryFile): Promise<BinaryMap> {
-    throw new Error("Not implemented");
+  async upload(file: BinaryFile): Promise<void> {
+    await this.__store.store(this.model, this.attribute, file);
+    this.set(file);
   }
 
+  /**
+   * Delete the binary, if you need to replace just use upload
+   */
   async delete() {
-    throw new Error("Not implemented");
+    await this.__store.delete(this.model, this.attribute);
+    this.set(<any>{});
+  }
+
+  /**
+   * Return undefined if no hash
+   * @returns
+   */
+  toJSON() {
+    if (!this.hash) {
+      return undefined;
+    }
+    return this;
   }
 }
 
+/**
+ * Define a Binary map stored in a Binaries collection
+ */
 export class BinariesItem<T = any> extends BinaryMap<T> {
+  @NotEnumerable
+  protected parent: BinariesImpl;
+  constructor(parent: BinariesImpl, info: BinaryFileInfo) {
+    super(parent.__service, info);
+    this.parent = parent;
+  }
   /**
-   * Get a binary
+   * Replace the binary
    * @param id
    * @param ctx
    * @returns
    */
-  async upload(file: BinaryFile): Promise<BinaryMap> {
-    throw new Error("Not implemented");
+  async upload(file: BinaryFile): Promise<void> {
+    await this.parent.upload(file, this);
+    this.set(file);
   }
 
+  /**
+   * Delete the binary, if you need to replace just use upload
+   */
   async delete() {
-    throw new Error("Not implemented");
+    return this.parent.delete(this);
   }
 }
 /**
  * Define a collection of Binary
  */
-export class Binaries<T = any> extends Array<BinariesItem<T>> {
-  constructor(protected modelId: string) {
-    super();
+export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
+  @NotEnumerable
+  __service: BinaryService;
+
+  @NotEnumerable
+  protected model: CoreModel;
+
+  @NotEnumerable
+  protected attribute: string;
+
+  assign(model: CoreModel, attribute: string): this {
+    this.model = model;
+    this.attribute = attribute;
+    for (let binary of model[attribute] || []) {
+      this.push(binary);
+    }
+    this.__service = Core.get().getBinaryStore(model, attribute);
+    return this;
   }
+
+  // Readonly methods
+  pop(): BinariesItem<T> {
+    throw new Error("Readonly");
+  }
+  slice(): BinariesItem<T>[] {
+    throw new Error("Readonly");
+  }
+  unshift(): number {
+    throw new Error("Readonly");
+  }
+  push(...args): number {
+    return super.push(...args.map(arg => (arg instanceof BinariesItem ? arg : new BinariesItem(this, arg))));
+  }
+
   /**
    * Upload a file to this model
    * @param file
    */
-  async upload(file: BinaryFile) {
-    throw new Error("Not implemented");
+  async upload(file: BinaryFile, replace?: BinariesItem) {
+    await this.__service.store(this.model, this.attribute, file);
+    // Should call the store first
+    super.push(new BinariesItem(this, file));
+    if (replace) {
+      await this.delete(replace);
+    }
+  }
+
+  /**
+   * Delete an item
+   * @param item
+   */
+  async delete(item: BinariesItem) {
+    let itemIndex = this.indexOf(item);
+    if (itemIndex === -1) {
+      throw new Error("Item not found");
+    }
+    await this.__service.delete(this.model, this.attribute, itemIndex);
+    itemIndex = this.indexOf(item);
+    if (itemIndex >= 0) {
+      // Call store delete here
+      this.splice(itemIndex, 1);
+    }
   }
 }
+
+/**
+ * Define a collection of Binary with a Readonly and the upload method
+ */
+export type Binaries = Readonly<Array<BinariesItem>> & { upload: (file: BinaryFile) => Promise<void> };
 
 export class BinaryParameters extends ServiceParameters {
   /**
@@ -388,6 +478,7 @@ export class BinaryParameters extends ServiceParameters {
       this.expose.restrict = this.expose.restrict || {};
     }
     this.map ??= {};
+    this.models ??= {};
   }
 }
 
@@ -471,6 +562,34 @@ export abstract class BinaryService<
   }
 
   /**
+   * Define if binary is managed by the store
+   * @param modelName
+   * @param attribute
+   * @returns -1 if not managed, 0 if managed but by default, 1 if managed and in the map, 2 if explicit with attribute and model
+   */
+  handleBinary(modelName: string, attribute: string): -1 | 0 | 1 | 2 {
+    let score = 0;
+    let key = Object.keys(this.parameters.models).find(k => k === modelName);
+    if (key) {
+      // Explicit model
+      score = 1;
+    } else {
+      // Default to all model
+      key = Object.keys(this.parameters.models).find(k => k === "*");
+    }
+    if (key) {
+      let attributes = this.parameters.models[key];
+      if (attributes.includes(attribute)) {
+        return <any>score + 1;
+      }
+      if (attributes.includes("*")) {
+        return <any>score;
+      }
+    }
+    return -1;
+  }
+
+  /**
    * When you store a binary to be able to retrieve it you need to store the information into another object
    *
    * If you have a User object define like this : User = {'name': 'Remi', 'uuid': 'Loopingz'}
@@ -509,7 +628,7 @@ export abstract class BinaryService<
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(object: CoreModel, property: string, index: number): Promise<void>;
+  abstract delete(object: CoreModel, property: string, index?: number): Promise<void>;
 
   /**
    * Get a binary
@@ -652,7 +771,13 @@ export abstract class BinaryService<
       service: this,
       target: object
     });
-    await object.getStore().upsertItemToCollection(object_uid, property, file);
+    const relations = this.getWebda().getApplication().getRelations(object);
+    const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
+    if (cardinality === "MANY") {
+      await object.getStore().upsertItemToCollection(object_uid, property, file);
+    } else {
+      await object.getStore().setAttribute(object_uid, property, file);
+    }
     await this.emitSync("Binary.Create", {
       object: file,
       service: this,
@@ -677,9 +802,16 @@ export abstract class BinaryService<
    * @param index
    * @returns
    */
-  async deleteSuccess(object: BinaryModel, property: string, index: number) {
+  async deleteSuccess(object: BinaryModel, property: string, index?: number) {
     let info: BinaryMap = object[property][index];
-    let update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
+    const relations = this.getWebda().getApplication().getRelations(object);
+    const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
+    let update;
+    if (cardinality === "MANY") {
+      update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
+    } else {
+      object.getStore().removeAttribute(object.getUuid(), property);
+    }
     await this.emitSync("Binary.Delete", {
       object: info,
       service: this
@@ -992,7 +1124,7 @@ export abstract class BinaryService<
           await object.getStore().patch(
             {
               [object.__class.getUuidField()]: object.getUuid(),
-              [property]: (<BinaryMap[]>object[property]).map(b => b.toJSON())
+              [property]: object[property]
             },
             false
           );

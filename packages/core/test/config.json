@@ -159,6 +159,9 @@
         "Users": ["images"],
         "notexisting": ["images"]
       },
+      "models": {
+        "*": ["*"]
+      },
       "expose": {
         "url": "/binary"
       }

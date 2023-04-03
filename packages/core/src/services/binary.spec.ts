@@ -610,7 +610,7 @@ class BinaryAbstractTest extends WebdaTest {
 
   @test
   async binaryMaps() {
-    let map = new BinariesImpl().assign(<any>{}, "test");
+    let map = new BinariesImpl().assign(new CoreModel(), "test");
     await assert.rejects(() => map.upload(undefined));
     let binary = new Binary(undefined, undefined);
     await assert.rejects(() => binary.upload(undefined));

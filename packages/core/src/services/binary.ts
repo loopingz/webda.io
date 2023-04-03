@@ -751,7 +751,10 @@ export abstract class BinaryService<
    * @param name
    * @param property
    */
-  protected checkMap(name: string, property: string) {
+  protected checkMap(name: string, property: string, modelName?: string) {
+    if (modelName && this.handleBinary(modelName, property) !== -1) {
+      return;
+    }
     let map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
     if (map === undefined) {
       throw Error("Unknown mapping");
@@ -803,7 +806,7 @@ export abstract class BinaryService<
    * @returns
    */
   async deleteSuccess(object: BinaryModel, property: string, index?: number) {
-    let info: BinaryMap = object[property][index];
+    let info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
     const relations = this.getWebda().getApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;

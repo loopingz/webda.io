@@ -228,8 +228,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     let store = ctx.parameter("store");
     let property = ctx.parameter("property");
     let result = { url: await this.getPutUrl(ctx), method: "PUT" };
-    if (fs.existsSync(this._getPath(body.hash, store + "_" + uid))) {
+    if (fs.existsSync(this._getPath(body.hash, store + "_" + property + "_" + uid))) {
       if (!fs.existsSync(this._getPath(body.hash, "data"))) {
+        // 232-237
         return result;
       }
       // If the link is already register just return directly ok

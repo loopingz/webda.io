@@ -139,11 +139,11 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   /**
    * Return the S3 key
    * @param hash
-   * @param postfix
+   * @param suffix
    * @returns
    */
-  _getKey(hash: string, postfix: string = "data"): string {
-    return join(`${this.parameters.prefix}`, hash, postfix);
+  _getKey(hash: string, suffix: string = "data"): string {
+    return join(`${this.parameters.prefix}`, hash, suffix);
   }
 
   /**

@@ -1,5 +1,5 @@
 "use strict";
-import { Bucket, GetSignedUrlConfig, Storage as GCS } from "@google-cloud/storage";
+import { Bucket, File, GetSignedUrlConfig, Storage as GCS } from "@google-cloud/storage";
 import {
   BinaryFile,
   BinaryMap,
@@ -7,14 +7,12 @@ import {
   CloudBinary,
   CoreModel,
   DeepPartial,
-  getCommonJS,
   OperationContext
 } from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream } from "stream";
 
-const { __dirname } = getCommonJS(import.meta.url);
 export type StorageObject = {
   key: string;
 
@@ -163,8 +161,23 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   /**
    * @inheritdoc
    */
-  async _cleanUsage(hash: string, uuid: string) {
-    await this.getStorageBucket().file(this._getKey(hash, uuid)).delete();
+  async _cleanUsage(hash: string, uuid: string, property?: string) {
+    const suffix = property ? `${property}_${uuid}` : `_${uuid}`;
+    let files: File[] = (await this.getStorageBucket().getFiles({ prefix: this._getKey(hash, "") }))[0];
+    await Promise.all(
+      files
+        .filter(f => f.name.endsWith(suffix))
+        .map(f => {
+          console.log("Delete marker", f.name);
+          f.delete();
+        })
+    );
+    // If no more usage, delete the data
+    files = files.filter(f => !f.name.endsWith(suffix));
+    if (files.length == 1) {
+      console.log("Clean hash", hash, "files", files.map(f => f.name).join(","));
+      await Promise.all(files.map(f => f.delete()));
+    }
   }
 
   /**
@@ -192,7 +205,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
         challenge: file.challenge
       });
     }
-    await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
+    await this.putMarker(file.hash, `${property}_${object.getUuid()}`, object.getStore().getName());
     await this.uploadSuccess(<any>object, property, file);
   }
 
@@ -270,6 +283,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @inheritdoc
    */
   async putMarker(hash: string, uuid: string, storeName: string) {
+    console.log("Add marker", this._getKey(hash, uuid));
     await this.getStorageBucket()
       .file(this._getKey(hash, uuid))
       .save("", {

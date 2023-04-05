@@ -1,16 +1,12 @@
-import { suite, test } from "@testdeck/mocha";
+import { test } from "@testdeck/mocha";
 import * as assert from "assert";
 import axios from "axios";
-import { EventEmitter } from "events";
 import * as fs from "fs";
 import * as sinon from "sinon";
 import { Store, User, WebContext, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import {
-  BinariesImpl,
-  BinariesItem,
-  Binary,
   BinaryEvents,
   BinaryFileInfo,
   BinaryMap,
@@ -23,7 +19,7 @@ export class ImageUser extends User {
   images: BinaryMap[];
 }
 
-class TestBinaryService extends BinaryService {
+export class TestBinaryService extends BinaryService {
   store(object: CoreModel, property: string, file: any, metadatas: any, index?: number): Promise<any> {
     throw new Error("Method not implemented.");
   }
@@ -201,6 +197,7 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
     let user1 = await userStore.save({
       test: "plop"
     });
+    binary.getParameters().models = {};
     await assert.rejects(
       () => binary.store(user1, "images2", new LocalBinaryFile(this.getTestFile()), {}),
       err => true
@@ -522,118 +519,6 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
         "Content-Type": "application/octet-stream"
       }
     });
-  }
-}
-
-@suite
-class BinaryAbstractTest extends WebdaTest {
-  @test
-  async cov() {
-    let service = new TestBinaryService(undefined, "plop", {});
-    let ctx = await this.newContext();
-    await assert.rejects(
-      () => service.putRedirectUrl(undefined),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
-    );
-    ctx.getHttpContext().setBody({
-      hash: "plop"
-    });
-    await assert.rejects(
-      () => service.httpChallenge(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 400
-    );
-    ctx = await this.newContext();
-    ctx.getHttpContext().setBody({
-      challenge: "plop"
-    });
-    await assert.rejects(
-      () => service.httpChallenge(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 400
-    );
-    ctx = await this.newContext();
-    let binary = this.getService<BinaryService>("binary");
-    ctx.setPathParameters({
-      property: "images",
-      store: "users",
-      uid: "notfound",
-      index: 0
-    });
-    ctx.getHttpContext().setBody({
-      hash: "p",
-      challenge: "z"
-    });
-    await assert.rejects(
-      () => binary.httpChallenge(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
-    );
-
-    let stubs = [];
-    try {
-      let model = {};
-      stubs.push(
-        sinon.stub(binary, "_verifyMapAndStore").callsFake(() => {
-          return {
-            get: async (uuid: string, ctx: WebContext) => {
-              return model as CoreModel;
-            }
-          } as Store<CoreModel>;
-        })
-      );
-      await assert.rejects(
-        () => binary.httpRoute(ctx),
-        (err: WebdaError.HttpError) => err.getResponseCode() === 404
-      );
-      model = {
-        images: [
-          {
-            size: 10
-          }
-        ],
-        canAct: async () => true,
-        checkAct: async () => {}
-      };
-      stubs.push(
-        // @ts-ignore
-        sinon.stub(binary, "get").callsFake(async () => {
-          return {
-            pipe: stream => {
-              stream.emit("error", new Error("I/O"));
-            }
-          };
-        })
-      );
-      await assert.rejects(() => binary.httpRoute(ctx));
-    } finally {
-      stubs.forEach(stub => stub.restore());
-    }
-  }
-
-  @test
-  async binaryMaps() {
-    let map = new BinariesImpl().assign(new CoreModel(), "test");
-    await assert.rejects(() => map.upload(undefined));
-    let binary = new Binary(undefined, undefined);
-    await assert.rejects(() => binary.upload(undefined));
-    await assert.rejects(() => binary.delete());
-    let binaryItem = new BinariesItem(
-      undefined,
-      new MemoryBinaryFile(Buffer.from("test"), {
-        name: "test",
-        mimetype: "text/plain",
-        size: 4
-      })
-    );
-    await assert.rejects(() => binaryItem.upload(undefined));
-    await assert.rejects(() => binaryItem.delete());
-  }
-
-  @test
-  async streamToBufferError() {
-    let stream = new EventEmitter();
-    // @ts-ignore
-    let p = assert.rejects(() => BinaryService.streamToBuffer(stream), /Bad I\/O/);
-    stream.emit("error", new Error("Bad I/O"));
-    await p;
   }
 }
 

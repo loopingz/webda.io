@@ -128,7 +128,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
     await this.uploadSuccess(object, property, body);
-    await this.putMarker(body.hash, uid, store);
+    await this.putMarker(body.hash, `${property}_${uid}`, store);
     return {
       url: await this.getSignedUrl(params.Key, "putObject", params),
       method: "PUT"
@@ -138,11 +138,11 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  putMarker(hash, uuid, storeName) {
+  putMarker(hash: string, suffix: string, storeName: string) {
     let s3obj = new S3(this.parameters);
     return s3obj.putObject({
       Bucket: this.parameters.bucket,
-      Key: this._getKey(hash, uuid),
+      Key: this._getKey(hash, suffix),
       Metadata: {
         "x-amz-meta-store": storeName
       }
@@ -223,6 +223,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Bucket: this.parameters.bucket,
       Prefix: this._getKey(hash, "")
     });
+    data.Contents ??= [];
     return data.Contents.filter(k => !(k.Key.includes("data") || k.Key.includes("challenge"))).length;
   }
 
@@ -252,11 +253,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async _cleanUsage(hash: string, uuid: string) {
+  async _cleanUsage(hash: string, uuid: string, attribute?: string) {
+    if (!attribute) {
+      return this._cleanHash(hash);
+    }
     // Dont clean data for now
     let params = {
       Bucket: this.parameters.bucket,
-      Key: this._getKey(hash, uuid)
+      Key: this._getKey(hash, `${attribute}_${uuid}`)
     };
     await this._s3.deleteObject(params);
   }
@@ -390,7 +394,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // Set challenge aside for now
     await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
 
-    await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
+    await this.putMarker(file.hash, `${property}_${object.getUuid()}`, object.getStore().getName());
     await this.uploadSuccess(<any>object, property, file);
   }
 

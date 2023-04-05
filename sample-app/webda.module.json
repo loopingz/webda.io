@@ -1564,19 +1564,11 @@
             "mimetype",
             "name",
             "size"
-          ]
+          ],
+          "description": "One Binary instance"
         },
         "images": {
-          "type": "object",
-          "properties": {
-            "length": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "length"
-          ],
-          "description": "Define a collection of Binary"
+          "$ref": "#/definitions/Binaries"
         }
       },
       "required": [
@@ -1585,6 +1577,18 @@
         "name"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Binaries": {
+          "type": "object",
+          "properties": {
+            "upload": {}
+          },
+          "required": [
+            "upload"
+          ],
+          "description": "Define a collection of Binary with a Readonly and the upload method"
+        }
+      },
       "title": "User"
     }
   }

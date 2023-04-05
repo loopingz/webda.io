@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, getCommonJS } from "@webda/core";
+import { CoreModel, FileBinary, getCommonJS } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as path from "path";
@@ -14,6 +14,9 @@ class GraphQLServiceTest extends WebdaTest {
 
   async before() {
     await super.before();
+    await this.registerService(
+      new FileBinary(this.webda, "filebinary", { folder: "./test/binaries", models: { "*": ["*"] } })
+    );
     this.service = await this.registerService(new GraphQLService(this.webda, "graphql")).resolve().init();
   }
 

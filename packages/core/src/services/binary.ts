@@ -384,6 +384,9 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
   unshift(): number {
     throw new Error("Readonly");
   }
+  shift(): BinariesItem<T> {
+    throw new Error("Readonly");
+  }
   push(...args): number {
     return super.push(...args.map(arg => (arg instanceof BinariesItem ? arg : new BinariesItem(this, arg))));
   }
@@ -573,18 +576,24 @@ export abstract class BinaryService<
     if (key) {
       // Explicit model
       score = 1;
-    } else {
-      // Default to all model
-      key = Object.keys(this.parameters.models).find(k => k === "*");
-    }
-    if (key) {
       let attributes = this.parameters.models[key];
       if (attributes.includes(attribute)) {
-        return <any>score + 1;
+        return 2;
+      } else if (attributes.includes("*")) {
+        return 1;
       }
-      if (attributes.includes("*")) {
-        return <any>score;
-      }
+    }
+    // Default to all model - 593-594,598-599
+    key = Object.keys(this.parameters.models).find(k => k === "*");
+    if (!key) {
+      return -1;
+    }
+    let attributes = this.parameters.models[key];
+    if (attributes.includes(attribute)) {
+      return 1;
+    }
+    if (attributes.includes("*")) {
+      return 0;
     }
     return -1;
   }
@@ -769,6 +778,10 @@ export abstract class BinaryService<
    */
   async uploadSuccess(object: BinaryModel, property: string, file: BinaryFileInfo): Promise<void> {
     let object_uid = object.getUuid();
+    // Check if the file is already in the array then skip
+    if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
+      return;
+    }
     await this.emitSync("Binary.UploadSuccess", {
       object: file,
       service: this,

@@ -51,7 +51,6 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
    */
   async loadConfiguration(): Promise<{ [key: string]: any }> {
     let result = {};
-    let files = fs.readdirSync(this.parameters.source);
     const found = fs
       .readdirSync(this.parameters.source)
       .filter(f => !f.startsWith(".") && f.match(/webda\.(jsonc?|ya?ml)$/i))

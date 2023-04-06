@@ -378,10 +378,8 @@ export class Router {
           return;
         }
         route.openapi.hidden = false;
-        let urlParameters = [];
         let path = i;
         if (i.indexOf("{?") >= 0) {
-          urlParameters = i.substring(i.indexOf("{?") + 2, i.length - 1).split(",");
           path = i.substring(0, i.indexOf("{?"));
         }
         openapi.paths[path] = openapi.paths[path] || {};

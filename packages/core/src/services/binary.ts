@@ -571,11 +571,9 @@ export abstract class BinaryService<
    * @returns -1 if not managed, 0 if managed but by default, 1 if managed and in the map, 2 if explicit with attribute and model
    */
   handleBinary(modelName: string, attribute: string): -1 | 0 | 1 | 2 {
-    let score = 0;
     let key = Object.keys(this.parameters.models).find(k => k === modelName);
     if (key) {
       // Explicit model
-      score = 1;
       let attributes = this.parameters.models[key];
       if (attributes.includes(attribute)) {
         return 2;

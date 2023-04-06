@@ -139,11 +139,11 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   /**
    * Return the S3 key
    * @param hash
-   * @param postfix
+   * @param suffix
    * @returns
    */
-  _getKey(hash: string, postfix: string = "data"): string {
-    return join(`${this.parameters.prefix}`, hash, postfix);
+  _getKey(hash: string, suffix: string = "data"): string {
+    return join(`${this.parameters.prefix}`, hash, suffix);
   }
 
   /**
@@ -152,7 +152,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   async delete(object: BinaryModel, property: string, index: number) {
     let hash = object[property][index].hash;
     await this.deleteSuccess(object, property, index);
-    await this._cleanUsage(hash, object.getUuid());
+    await this._cleanUsage(hash, object.getUuid(), property);
   }
 
   /**
@@ -169,7 +169,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   /**
    * Clean usage for a hash
    */
-  abstract _cleanUsage(hash: string, uuid: string): Promise<void>;
+  abstract _cleanUsage(hash: string, uuid: string, attribute?: string): Promise<void>;
 
   /**
    * Retrieve one signed URL to download the file in parameter

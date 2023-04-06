@@ -20,6 +20,7 @@ import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
 import {
+  BinaryService,
   ConfigurationService,
   ContextProvider,
   ContextProviderInfo,
@@ -356,6 +357,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   private _modelStoresCache: Map<Constructor<CoreModel>, Store> = new Map<Constructor<CoreModel>, Store>();
   /**
+   * Cache for model to store resolution
+   */
+  private _modelBinariesCache: Map<string, BinaryService> = new Map<string, BinaryService>();
+  /**
    * Store the Core singleton
    *
    * The main storage is on the process itself
@@ -475,6 +480,38 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     setCache(actualStore);
     return <Store<T>>actualStore;
+  }
+
+  /**
+   * Get the service that manage a model
+   * @param modelOrConstructor
+   * @param attribute
+   * @returns
+   */
+  getBinaryStore<T extends CoreModel>(modelOrConstructor: Constructor<T> | T, attribute: string): BinaryService {
+    const binaries: { [key: string]: BinaryService } = this.getServicesOfType(<any>BinaryService);
+    const model = this.application.getModelName(modelOrConstructor);
+    let actualScore: number = -1;
+    let actualService: BinaryService;
+    const setCache = store => {
+      this._modelBinariesCache.set(model, store);
+    };
+    for (let binary in binaries) {
+      let score = binaries[binary].handleBinary(model, attribute);
+      // As 0 mean exact match we stop there
+      if (score === 2) {
+        setCache(binaries[binary]);
+        return binaries[binary];
+      } else if (score >= 0 && (actualService === undefined || actualScore > score)) {
+        actualScore = score;
+        actualService = binaries[binary];
+      }
+    }
+    if (!actualService) {
+      throw new Error("No binary store found for " + model + " " + attribute);
+    }
+    setCache(actualService);
+    return actualService;
   }
 
   /**

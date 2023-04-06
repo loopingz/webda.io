@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { EventEmitter } from "events";
 import * as fs from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import pkg from "fs-extra";
 import sinon from "sinon";
 import { Readable } from "stream";
@@ -411,6 +412,26 @@ class BinaryAbstractTest extends WebdaTest {
     let p = assert.rejects(() => BinaryService.streamToBuffer(stream), /Bad I\/O/);
     stream.emit("error", new Error("Bad I/O"));
     await p;
+  }
+
+  @test
+  async putRedirectUrl() {
+    const binaryService = this.getService<FileBinary>("binary");
+    let ctx = await this.newContext(JSON.stringify({ hash: "123" }));
+    ctx.getParameters().uid = "456";
+    ctx.getParameters().store = "Test";
+    ctx.getParameters().property = "plop";
+    let dataPath = binaryService._getPath("123", "data");
+    mkdirSync(binaryService._getPath("123"), { recursive: true });
+    writeFileSync(binaryService._getPath("123", "Test_plop_456"), "");
+    if (fs.existsSync(dataPath)) {
+      fs.unlinkSync(dataPath);
+    }
+    let res = await binaryService.putRedirectUrl(ctx);
+    assert.notStrictEqual(res, undefined);
+    writeFileSync(dataPath, "data");
+    res = await binaryService.putRedirectUrl(ctx);
+    assert.strictEqual(res, undefined);
   }
 }
 

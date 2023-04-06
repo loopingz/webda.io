@@ -223,10 +223,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @ignore
    */
   async putRedirectUrl(ctx: WebContext<BinaryFile>): Promise<{ url: string; method: string }> {
-    let body = await ctx.getRequestBody();
-    let uid = ctx.parameter("uid");
-    let store = ctx.parameter("store");
-    let property = ctx.parameter("property");
+    const body = await ctx.getInput();
+    const { uid, store, property } = ctx.getParameters();
     let result = { url: await this.getPutUrl(ctx), method: "PUT" };
     if (fs.existsSync(this._getPath(body.hash, store + "_" + property + "_" + uid))) {
       if (!fs.existsSync(this._getPath(body.hash, "data"))) {

@@ -1,6 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
+import * as crypto from "crypto";
 import { WebdaError } from "../errors";
+import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
 import { ModelsOperationsService, RESTDomainService } from "./domainservice";
 
@@ -247,5 +249,70 @@ class DomainServiceTest extends WebdaTest {
 
     rest.handleModel = () => false;
     rest.walkModel(<any>{ Expose: {} }, "coremodel");
+  }
+
+  @test
+  async testBinary() {
+    // Setup a user
+    const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService")).resolve().init();
+
+    // Play with the rest api now
+    let company = await this.http({
+      method: "POST",
+      url: "/companies",
+      body: {
+        test: "test",
+        name: "Test 1"
+      }
+    });
+    assert.notStrictEqual(company.uuid, undefined);
+    let user = await this.http({
+      method: "POST",
+      url: `/companies/${company.uuid}/users`,
+      body: {
+        displayName: "My User",
+        name: "User"
+      }
+    });
+    assert.notStrictEqual(user.uuid, undefined);
+    await this.http({
+      method: "POST",
+      url: `/companies/${company.uuid}/users/${user.uuid}/profilePicture`,
+      body: Buffer.from("test")
+    });
+    const userModel: any = await this.webda.getService<Store>("MemoryUsers").get(user.uuid);
+    await this.http({
+      method: "GET",
+      url: `/companies/${company.uuid}/users/${user.uuid}/profilePicture`
+    });
+    const value = "test";
+    const hash = crypto.createHash("md5");
+    const challenge = crypto.createHash("md5");
+    challenge.update("WEBDA");
+    hash.update(value);
+    challenge.update(value);
+    await this.http({
+      method: "PUT",
+      url: `/companies/${company.uuid}/users/${user.uuid}/images`,
+      body: {
+        hash: hash.digest("hex"),
+        challenge: challenge.digest("hex"),
+        name: "file.txt"
+      }
+    });
+    await this.http({
+      method: "POST",
+      url: `/companies/${company.uuid}/users/${user.uuid}/images`,
+      body: Buffer.from("testImage2"),
+      headers: {
+        "X-Filename": "file2.txt"
+      }
+    });
+    await userModel.refresh();
+    assert.strictEqual(userModel.profilePicture.hash, "098f6bcd4621d373cade4e832627b4f6");
+    assert.strictEqual(userModel.images[0].hash, "098f6bcd4621d373cade4e832627b4f6");
+    assert.strictEqual(userModel.images[1].hash, "974e716f2142b8df60108602703a8602");
+    assert.strictEqual(userModel.images[0].name, "file.txt");
+    assert.strictEqual(userModel.images[1].name, "file2.txt");
   }
 }

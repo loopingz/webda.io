@@ -25,7 +25,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   _initRoutes(): void {
     super._initRoutes();
     // Will use getRedirectUrl so override the default route
-    let url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
+    let url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}";
     let name = this.getOperationName();
     if (!this.parameters.expose.restrict.get) {
       this.addRoute(
@@ -55,7 +55,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
         },
         true
       );
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";
+      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}/url";
       name = this._name === "Binary" ? "" : this._name;
       this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {
         get: {
@@ -89,11 +89,9 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param returnInfo
    */
   async getRedirectUrl(ctx, returnInfo: boolean = false) {
-    let uid = ctx.parameter("uid");
-    let index = ctx.parameter("index");
-    let property = ctx.parameter("property");
+    const { uuid, index, property } = ctx.getParameters();
     let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(uid);
+    let object = await targetStore.get(uuid);
     if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }

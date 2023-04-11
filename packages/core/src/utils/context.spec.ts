@@ -166,6 +166,18 @@ class ContextTest extends WebdaTest {
   }
 
   @test
+  async getInputError() {
+    let i = 0;
+    this.ctx.getRawInputAsString = async () => {
+      if (i++ === 0) {
+        throw new Error("Error");
+      }
+      return "";
+    };
+    assert.strictEqual(await this.ctx.getInput(), undefined);
+  }
+
+  @test
   getRequest() {
     // Need to finish this
     let req = this.ctx.getRequest();

@@ -892,7 +892,7 @@ export class Application {
    * Get the model hierarchy
    * @param model
    */
-  getModelHierarchy(model: CoreModel | Constructor<CoreModel> | string): { ancestors: string[]; children: ModelGraph } {
+  getModelHierarchy(model: CoreModel | Constructor<CoreModel> | string): { ancestors: string[]; children: ModelsTree } {
     if (typeof model !== "string") {
       model = this.getModelName(model);
     } else {

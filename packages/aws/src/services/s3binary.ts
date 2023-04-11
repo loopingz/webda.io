@@ -81,11 +81,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string }> {
     let body = await ctx.getRequestBody();
-    let uid = ctx.parameter("uid");
-    let store = ctx.parameter("store");
-    let property = ctx.parameter("property");
+    const { uuid, store, property } = ctx.getParameters();
     let targetStore = this._verifyMapAndStore(ctx);
-    let object: any = await targetStore.get(uid);
+    let object: any = await targetStore.get(uuid);
     let base64String = Buffer.from(body.hash, "hex").toString("base64");
     let params = {
       Bucket: this.parameters.bucket,
@@ -103,7 +101,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let challenge;
     for (let i in data.Contents) {
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
-      if (data.Contents[i].Key.endsWith(uid)) foundMap = true;
+      if (data.Contents[i].Key.endsWith(`${property}_${uuid}`)) foundMap = true;
       if (data.Contents[i].Key.split("/").pop().startsWith("challenge_")) {
         challenge = data.Contents[i].Key.split("/").pop().substring("challenge_".length);
       }
@@ -128,7 +126,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
     await this.uploadSuccess(object, property, body);
-    await this.putMarker(body.hash, `${property}_${uid}`, store);
+    await this.putMarker(body.hash, `${property}_${uuid}`, store);
     return {
       url: await this.getSignedUrl(params.Key, "putObject", params),
       method: "PUT"

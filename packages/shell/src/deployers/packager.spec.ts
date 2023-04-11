@@ -57,6 +57,7 @@ export class WorkspaceTestApplication extends SourceTestApplication {
 class PackagerTest {
   @test("simple")
   async package() {
+    console.log("PackagerTest.simple:Starting");
     await WebdaSampleApplication.load();
     // Check override is ok
     let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-2");
@@ -70,6 +71,7 @@ class PackagerTest {
       }
     });
 
+    console.log("PackagerTest.simple:Deploying");
     let deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
       name: "deployer",
       type: "Packager",
@@ -84,9 +86,10 @@ class PackagerTest {
     let captureFiles = {
       "webda.config.json": ""
     };
+    console.log("PackagerTest.simple:Reading zip");
     await new Promise((resolve, reject) =>
       fs
-        .createReadStream(zipPath + ".zip")
+        .createReadStream(zipPath + ".zip", { emitClose: true })
         .pipe(unzip.Parse())
         .on("entry", async function (entry) {
           var fileName = entry.path;
@@ -119,6 +122,7 @@ class PackagerTest {
     assert.strictEqual(config.cachedModules.models.list["WebdaDemo/Contact"], "lib/models/contact:default");
     assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
 
+    console.log("PackagerTest.simple:Deployer errors");
     deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
       name: "deployer",
       type: "Packager",
@@ -129,6 +133,7 @@ class PackagerTest {
     await deployer.loadDefaults();
     await assert.rejects(() => deployer.deploy(), /Cannot find the entrypoint for Packager: /);
     assert.strictEqual(config.cachedModules.moddas["WebdaDemo/CustomReusableService"], "lib/services/reusable:default");
+    console.log("PackagerTest.simple:Done");
   }
 
   @test

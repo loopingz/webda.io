@@ -464,15 +464,23 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
     let url = new URL(info.url);
 
     if (url.host === "test.webda.io") {
-      executor = this.getExecutor(ctx, "test.webda.io", info.method || "PUT", url.pathname + url.search, "PLOP2", {
-        "Content-MD5": info.md5,
-        "Content-Type": "application/octet-stream"
-      });
+      executor = this.getExecutor(
+        ctx,
+        "test.webda.io",
+        info.method || "PUT",
+        url.pathname + url.search,
+        "PLOP2",
+        info.headers
+      );
       await assert.rejects(() => executor.execute(ctx));
-      executor = this.getExecutor(ctx, "test.webda.io", info.method || "PUT", url.pathname + url.search, "PLOP", {
-        "Content-MD5": info.md5,
-        "Content-Type": "application/octet-stream"
-      });
+      executor = this.getExecutor(
+        ctx,
+        "test.webda.io",
+        info.method || "PUT",
+        url.pathname + url.search,
+        "PLOP",
+        info.headers
+      );
       await executor.execute(ctx);
     } else {
       if (remoteCheckHash) {
@@ -510,15 +518,28 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
   }
 
   async sendChallengeData(info: any, data: string) {
-    return axios.request({
-      method: info.method,
-      url: info.url,
-      data,
-      headers: {
-        "Content-MD5": info.md5,
-        "Content-Type": "application/octet-stream"
-      }
-    });
+    let res;
+    try {
+      res = await axios.request({
+        method: info.method,
+        url: info.url,
+        data,
+        headers: info.headers
+      });
+      return res;
+    } catch (err) {
+      console.log(
+        "sendChallengeDataError",
+        {
+          method: info.method,
+          url: info.url,
+          data,
+          headers: info.headers
+        },
+        err
+      );
+      throw err;
+    }
   }
 }
 

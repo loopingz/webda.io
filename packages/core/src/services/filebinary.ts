@@ -382,7 +382,6 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     await file.getHashes();
     const storeName = object.getStore().getName();
     const fileInfo = file.toBinaryFileInfo();
-    this.log("INFO", "Store", file, "on", object.getUuid(), property);
     this.checkMap(storeName, property, object.__type);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${property}_${object.getUuid()}`));

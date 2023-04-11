@@ -9,7 +9,8 @@
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts"
+    "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts",
+    "test:debug": "mocha --recursive --exit --timeout=100000 src/**/*.spec.ts"
   },
   "repository": {
     "type": "git",

@@ -112,6 +112,11 @@ class StorageTest extends BinaryTest<Storage> {
   }
 
   @test
+  async challenge() {
+    await this.testChallenge(false);
+  }
+
+  @test
   async redirectUrlInfo() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET

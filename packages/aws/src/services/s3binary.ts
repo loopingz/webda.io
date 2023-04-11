@@ -79,7 +79,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string }> {
+  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
     let body = await ctx.getRequestBody();
     const { uuid, store, property } = ctx.getParameters();
     let targetStore = this._verifyMapAndStore(ctx);
@@ -106,11 +106,16 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         challenge = data.Contents[i].Key.split("/").pop().substring("challenge_".length);
       }
     }
+    const headers = {
+      "Content-MD5": base64String,
+      "Content-Type": "application/octet-stream"
+    };
     if (foundMap) {
       if (foundData) return;
       return {
         url: await this.getSignedUrl(params.Key, "putObject", params),
-        method: "PUT"
+        method: "PUT",
+        headers
       };
     }
     if (foundData) {
@@ -129,7 +134,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     await this.putMarker(body.hash, `${property}_${uuid}`, store);
     return {
       url: await this.getSignedUrl(params.Key, "putObject", params),
-      method: "PUT"
+      method: "PUT",
+      headers
     };
   }
 

@@ -174,14 +174,12 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       files
         .filter(f => f.name.endsWith(suffix))
         .map(f => {
-          console.log("Delete marker", f.name);
           f.delete();
         })
     );
     // If no more usage, delete the data
     files = files.filter(f => !f.name.endsWith(suffix));
     if (files.length == 1) {
-      console.log("Clean hash", hash, "files", files.map(f => f.name).join(","));
       await Promise.all(files.map(f => f.delete()));
     }
   }
@@ -241,7 +239,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   /**
    * @inheritdoc
    */
-  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string }> {
+  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
     let body = await ctx.getRequestBody();
     const { uuid, store, property } = ctx.getParameters();
     let targetStore = this._verifyMapAndStore(ctx);
@@ -253,47 +251,35 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       action: "write",
       contentType: "application/octet-stream",
       contentMd5: base64String,
-      // Might include the challenge
-      queryParams: {}
+      extensionHeaders: {
+        "x-goog-meta-challenge": body.challenge
+      }
     };
-
     // List bucket to check if the file already exist
-    let foundMap = false;
-    let foundData = false;
     let challenge;
-    /*
-    for (let i in data.Contents) {
-      if (data.Contents[i].Key.endsWith("data")) foundData = true;
-      if (data.Contents[i].Key.endsWith(uuid)) foundMap = true;
-      if (data.Contents[i].Key.split("/").pop().startsWith("challenge_")) {
-        challenge = data.Contents[i].Key.split("/").pop().substring("challenge_".length);
-      }
-    }
-    */
-    if (foundMap) {
-      if (foundData) return;
-      return {
-        url: await this.getSignedUrl(params),
-        method: "PUT"
-      };
-    }
-    if (foundData) {
-      if (challenge) {
-        // challenge and data prove it exists
-        if (challenge === body.challenge) {
-          await this.uploadSuccess(object, property, body);
-          return;
-        }
-      }
-      // Need to do something?
-    } else {
-      await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
+    try {
+      let res = await this.getStorageBucket().file(params.key).getMetadata();
+      challenge = res[0].metadata.challenge;
+    } catch (err) {
+      // Ignore error
     }
     await this.uploadSuccess(object, property, body);
     await this.putMarker(body.hash, `${property}_${uuid}`, store);
+    // If the challenge is the same, no need to upload
+    if (challenge && challenge === body.challenge) {
+      return;
+    }
+    let url = await this.getSignedUrl(params);
+    // Re-upload, we should probably queue for recheck
     return {
-      url: await this.getSignedUrl(params),
-      method: "PUT"
+      url,
+      method: "PUT",
+      headers: {
+        "Content-MD5": base64String,
+        "Content-Type": "application/octet-stream",
+        "x-goog-meta-challenge": body.challenge,
+        Host: new URL(url).host
+      }
     };
   }
 
@@ -302,10 +288,10 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @param {SignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  async getSignedUrl({ bucket, key, action, expires = 3600 }: SignedUrlParams): Promise<string> {
+  async getSignedUrl({ bucket, key, expires = 3600, ...params }: SignedUrlParams): Promise<string> {
     const options: GetSignedUrlConfig = {
       version: "v4",
-      action,
+      ...params,
       expires: Date.now() + expires * 1000
     };
     const [url] = await this.getStorageBucket(bucket).file(key).getSignedUrl(options);
@@ -348,7 +334,6 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @inheritdoc
    */
   async putMarker(hash: string, uuid: string, storeName: string) {
-    console.log("Add marker", this._getKey(hash, uuid));
     await this.getStorageBucket()
       .file(this._getKey(hash, uuid))
       .save("", {

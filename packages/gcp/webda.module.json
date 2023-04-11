@@ -1140,7 +1140,8 @@
           "required": [
             "url"
           ],
-          "description": "Expose the service to http"
+          "description": "Expose the service to http",
+          "deprecated": "will be removed in 4.0"
         },
         "prefix": {
           "type": "string"

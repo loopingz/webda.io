@@ -1041,7 +1041,9 @@ export abstract class BinaryService<
    *
    * @param ctx
    */
-  async putRedirectUrl(_ctx: WebContext): Promise<{ url: string; method?: string }> {
+  async putRedirectUrl(
+    _ctx: WebContext
+  ): Promise<{ url: string; method?: string; headers?: { [key: string]: string } }> {
     // Dont handle the redirect url
     throw new WebdaError.NotFound("No redirect url");
   }

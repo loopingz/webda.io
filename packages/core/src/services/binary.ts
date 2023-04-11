@@ -446,6 +446,7 @@ export class BinaryParameters extends ServiceParameters {
   models: { [key: string]: string[] };
   /**
    * Expose the service to http
+   * @deprecated will be removed in 4.0
    */
   expose?: {
     /**
@@ -845,7 +846,7 @@ export abstract class BinaryService<
     return new MemoryBinaryFile(Buffer.from(file), {
       mimetype: req.getHttpContext().getUniqueHeader("Content-Type", "application/octet-stream"),
       size: parseInt(req.getHttpContext().getUniqueHeader("Content-Length")) || file.length,
-      name: ""
+      name: req.getHttpContext().getUniqueHeader("X-Filename", "")
     });
   }
 
@@ -869,7 +870,7 @@ export abstract class BinaryService<
     let name = this.getOperationName();
 
     if (!this.parameters.expose.restrict.get) {
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
+      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}";
       this.addRoute(url, ["GET"], this.httpRoute, {
         get: {
           operationId: `get${name}Binary`,
@@ -895,7 +896,7 @@ export abstract class BinaryService<
 
     if (!this.parameters.expose.restrict.create) {
       // No need the index to add file
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}";
+      url = this.parameters.expose.url + "/{store}/{uuid}/{property}";
       this.addRoute(url, ["POST"], this.httpRoute, {
         post: {
           operationId: `add${name}Binary`,
@@ -921,7 +922,7 @@ export abstract class BinaryService<
 
     if (!this.parameters.expose.restrict.create) {
       // Add file with challenge
-      url = this.parameters.expose.url + "/upload/{store}/{uid}/{property}";
+      url = this.parameters.expose.url + "/upload/{store}/{uuid}/{property}";
       this.addRoute(url, ["PUT"], this.httpChallenge, {
         put: {
           operationId: `put${name}Binary`,
@@ -947,7 +948,7 @@ export abstract class BinaryService<
 
     if (!this.parameters.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}/{hash}";
       this.addRoute(url, ["DELETE"], this.httpRoute, {
         delete: {
           operationId: `delete${name}Binary`,
@@ -973,7 +974,7 @@ export abstract class BinaryService<
 
     if (!this.parameters.expose.restrict.metadata) {
       // Need hash to avoid concurrent delete
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}/{hash}";
       this.addRoute(url, ["PUT"], this.httpRoute, {
         put: {
           operationId: `update${name}BinaryMetadata`,
@@ -1012,6 +1013,13 @@ export abstract class BinaryService<
    * @returns
    */
   _verifyMapAndStore(ctx: WebContext): Store<CoreModel> {
+    // Check for model
+    if (ctx.parameter("model")) {
+      if (this.handleBinary(ctx.parameter("model"), ctx.parameter("property")) === -1) {
+        throw new WebdaError.NotFound("Model not managed by this store");
+      }
+      return this.getWebda().getModelStore(this.getWebda().getModel(ctx.parameter("model")));
+    }
     let store = ctx.parameter("store").toLowerCase();
     // To avoid any problem lowercase everything
     let map = this.parameters.map[this._lowercaseMaps[store]];
@@ -1049,7 +1057,7 @@ export abstract class BinaryService<
     // First verify if map exist
     let targetStore = this._verifyMapAndStore(ctx);
     // Get the object
-    let object = await targetStore.get(ctx.parameter("uid"), ctx);
+    let object = await targetStore.get(ctx.parameter("uuid"), ctx);
     if (object === undefined) {
       throw new WebdaError.NotFound("Object does not exist");
     }
@@ -1071,16 +1079,20 @@ export abstract class BinaryService<
     // First verify if map exist
     let targetStore = this._verifyMapAndStore(ctx);
     // Get the object
-    let object = await targetStore.get(ctx.parameter("uid"), ctx);
+    let object = await targetStore.get(ctx.parameter("uuid"), ctx);
     if (object === undefined) {
       throw new WebdaError.NotFound("Object does not exist");
     }
-    let property = ctx.parameter("property");
-    let index = ctx.parameter("index");
-    // Should be an array
-    if (!Array.isArray(object[property]) || object[property].length <= index) {
-      throw new WebdaError.NotFound("Object property is invalid");
-    }
+    const { property, index } = ctx.getParameters();
+
+    // Current file - would be empty on creation
+    const file =
+      ctx.getHttpContext().getMethod() === "POST"
+        ? undefined
+        : Array.isArray(object[property])
+        ? object[property][index]
+        : object[property];
+
     // Check permissions
     let action = "unknown";
     if (ctx.getHttpContext().getMethod() === "GET") {
@@ -1097,7 +1109,6 @@ export abstract class BinaryService<
     // Now do the action
     if (ctx.getHttpContext().getMethod() === "GET") {
       // Most implementation override this to do a REDIRECT to a GET url
-      let file = object[property][index];
       ctx.writeHead(200, {
         "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
         "Content-Length": file.size
@@ -1111,9 +1122,9 @@ export abstract class BinaryService<
       });
     } else {
       if (ctx.getHttpContext().getMethod() === "POST") {
-        await this.store(object, property, await this._getFile(ctx), await ctx.getRequestBody());
+        await this.store(object, property, await this._getFile(ctx));
       } else {
-        if (object[property][index].hash !== ctx.parameter("hash")) {
+        if (file.hash !== ctx.parameter("hash")) {
           throw new WebdaError.BadRequest("Hash does not match");
         }
         if (ctx.getHttpContext().getMethod() === "DELETE") {
@@ -1126,14 +1137,14 @@ export abstract class BinaryService<
           }
           let evt = {
             service: this,
-            object: object[property][index],
+            object: file,
             target: object
           };
           await this.emitSync("Binary.MetadataUpdate", {
             ...evt,
             metadata
           });
-          object[property][index].metadata = metadata;
+          file.metadata = metadata;
           // Update mapper on purpose
           await object.getStore().patch(
             {

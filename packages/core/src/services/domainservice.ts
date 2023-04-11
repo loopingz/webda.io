@@ -1,6 +1,7 @@
 import { JSONSchema7 } from "json-schema";
 import {
   Application,
+  Core,
   CoreModelDefinition,
   DeepPartial,
   JSONUtils,
@@ -262,7 +263,8 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
    */
   handleModel(model: CoreModelDefinition, name: string, context: any): boolean {
     const depth = context.depth || 0;
-    const injectAttribute = this.app.getRelations(model)?.parent?.attribute;
+    const relations = model.getRelations();
+    const injectAttribute = relations?.parent?.attribute;
 
     const injector = (service: Store, method: Methods<Store>, type: "SET" | "QUERY", ...args: any[]) => {
       return async (context: WebContext) => {
@@ -311,6 +313,50 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
         },
         action.openapi
       );
+    });
+
+    /*
+    Binaries should expose several methods
+    If cardinality is ONE
+    GET to download the binary
+    POST to upload a binary directly
+    PUT to upload a binary with challenge
+    DELETE /{hash} to delete a binary
+    PUT /{hash} to update metadata
+
+    If cardinality is MANY
+    GET /{index} to download the binary
+    POST to upload a binary directly
+    PUT to upload a binary with challenge
+    DELETE /{index}/{hash} to delete a binary
+    PUT /{index}/{hash} to update metadata
+    */
+
+    (relations.binaries || []).forEach(name => {
+      const store = Core.get().getBinaryStore(model, name.attribute);
+      const modelInjector = async (ctx: WebContext) => {
+        ctx.getParameters().model = model.getIdentifier();
+        ctx.getParameters().property = name.attribute;
+        await store.httpRoute(ctx);
+      };
+      const modelInjectorChallenge = async (ctx: WebContext) => {
+        ctx.getParameters().model = model.getIdentifier();
+        ctx.getParameters().property = name.attribute;
+        await store.httpChallenge(ctx);
+      };
+      if (name.cardinality === "ONE") {
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["GET"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["PUT"], modelInjectorChallenge);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["POST"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{hash}`, ["DELETE"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{hash}`, ["PUT"], modelInjector);
+      } else {
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{index}`, ["GET"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["PUT"], modelInjectorChallenge);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["POST"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{index}/{hash}`, ["DELETE"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{index}/{hash}`, ["PUT"], modelInjector);
+      }
     });
 
     return true;

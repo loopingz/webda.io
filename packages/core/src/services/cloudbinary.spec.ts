@@ -135,7 +135,8 @@ export class FakeCloudBinaryTest extends WebdaTest {
       },
       writeHead: (...arg) => {
         wroteHead = arg;
-      }
+      },
+      getParameters: () => ({ index: 1, hash: "hash", property: "property" })
     };
     let storeGetResult;
     // @ts-ignore

@@ -331,7 +331,15 @@ class BinaryAbstractTest extends WebdaTest {
 
     let stubs = [];
     try {
-      let model = {};
+      let model = <any>{
+        images: [
+          {
+            size: 10
+          }
+        ],
+        canAct: async () => true,
+        checkAct: async () => {}
+      };
       stubs.push(
         sinon.stub(binary, "_verifyMapAndStore").callsFake(() => {
           return (<any>{
@@ -341,19 +349,6 @@ class BinaryAbstractTest extends WebdaTest {
           }) as Store<CoreModel>;
         })
       );
-      await assert.rejects(
-        () => binary.httpRoute(ctx),
-        (err: WebdaError.HttpError) => err.getResponseCode() === 404
-      );
-      model = {
-        images: [
-          {
-            size: 10
-          }
-        ],
-        canAct: async () => true,
-        checkAct: async () => {}
-      };
       stubs.push(
         // @ts-ignore
         sinon.stub(binary, "get").callsFake(async () => {
@@ -415,10 +410,19 @@ class BinaryAbstractTest extends WebdaTest {
   }
 
   @test
+  async verifyMapStore() {
+    const binaryService = this.getService<FileBinary>("binary");
+    const ctx = await this.newContext();
+    binaryService.handleBinary = () => -1;
+    ctx.getParameters().model = "webda/test";
+    assert.throws(() => binaryService._verifyMapAndStore(ctx), WebdaError.NotFound);
+  }
+
+  @test
   async putRedirectUrl() {
     const binaryService = this.getService<FileBinary>("binary");
     let ctx = await this.newContext(JSON.stringify({ hash: "123" }));
-    ctx.getParameters().uid = "456";
+    ctx.getParameters().uuid = "456";
     ctx.getParameters().store = "Test";
     ctx.getParameters().property = "plop";
     let dataPath = binaryService._getPath("123", "data");

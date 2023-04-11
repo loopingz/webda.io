@@ -7,7 +7,8 @@ import {
   CloudBinary,
   CoreModel,
   DeepPartial,
-  OperationContext
+  OperationContext,
+  WebContext
 } from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
@@ -32,9 +33,14 @@ export type PutObjectParams = StorageObject & {
   content?: string | Buffer;
 };
 
-export type GetSignedUrlParams = StorageObject & {
+export type SignedUrlParams = StorageObject & {
   expires?: number;
   action: "read" | "write" | "delete";
+  contentMd5?: string;
+  contentType?: string;
+  extensionHeaders?: { [key: string]: string };
+  responseDisposition?: string;
+  queryParams?: { [key: string]: string };
 };
 
 export type StorageObjectMeta = {
@@ -233,11 +239,70 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
+   * @inheritdoc
+   */
+  async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string }> {
+    let body = await ctx.getRequestBody();
+    const { uuid, store, property } = ctx.getParameters();
+    let targetStore = this._verifyMapAndStore(ctx);
+    let object: any = await targetStore.get(uuid);
+    let base64String = Buffer.from(body.hash, "hex").toString("base64");
+    let params: SignedUrlParams = {
+      bucket: this.parameters.bucket,
+      key: this._getKey(body.hash, "data"),
+      action: "write",
+      contentType: "application/octet-stream",
+      contentMd5: base64String,
+      // Might include the challenge
+      queryParams: {}
+    };
+
+    // List bucket to check if the file already exist
+    let foundMap = false;
+    let foundData = false;
+    let challenge;
+    /*
+    for (let i in data.Contents) {
+      if (data.Contents[i].Key.endsWith("data")) foundData = true;
+      if (data.Contents[i].Key.endsWith(uuid)) foundMap = true;
+      if (data.Contents[i].Key.split("/").pop().startsWith("challenge_")) {
+        challenge = data.Contents[i].Key.split("/").pop().substring("challenge_".length);
+      }
+    }
+    */
+    if (foundMap) {
+      if (foundData) return;
+      return {
+        url: await this.getSignedUrl(params),
+        method: "PUT"
+      };
+    }
+    if (foundData) {
+      if (challenge) {
+        // challenge and data prove it exists
+        if (challenge === body.challenge) {
+          await this.uploadSuccess(object, property, body);
+          return;
+        }
+      }
+      // Need to do something?
+    } else {
+      await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
+    }
+    await this.uploadSuccess(object, property, body);
+    await this.putMarker(body.hash, `${property}_${uuid}`, store);
+    return {
+      url: await this.getSignedUrl(params),
+      method: "PUT"
+    };
+  }
+
+  /**
    * Retrieve one signed URL to download the file in parameter
-   * @param {GetSignedUrlParams} params
+   * @param {SignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  async getSignedUrl({ bucket, key, action, expires = 3600 }: GetSignedUrlParams): Promise<string> {
+  async getSignedUrl({ bucket, key, action, expires = 3600 }: SignedUrlParams): Promise<string> {
     const options: GetSignedUrlConfig = {
       version: "v4",
       action,

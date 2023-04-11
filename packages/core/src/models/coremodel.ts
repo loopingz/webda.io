@@ -1,7 +1,7 @@
 import { JSONSchema7 } from "json-schema";
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
-import { ModelGraph } from "../application";
+import { ModelGraph, ModelsTree } from "../application";
 import { Core } from "../core";
 import { WebdaError } from "../errors";
 import { BinariesImpl, Binary } from "../services/binary";
@@ -210,9 +210,27 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
    * @param context if the data is unsafe from http
    */
   factory(model: new () => T, object: any, context?: OperationContext): T;
+  /**
+   * Get the model actions
+   */
   getActions(): { [key: string]: ModelAction };
+  /**
+   * Get the model store
+   */
   store(): Store<T>;
+  /**
+   * Get the model schema
+   */
   getSchema(): JSONSchema7;
+
+  /**
+   * Get the model hierarchy
+   */
+  getHierarchy(): { ancestors: string[]; children: ModelsTree };
+  /**
+   * Get the model relations
+   */
+  getRelations(): ModelGraph;
   /**
    * Get Model identifier
    */
@@ -227,6 +245,10 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
     ancestors: string[];
     children: ModelGraph;
   };
+  /**
+   * Complete uuid useful to implement uuid prefix or suffix
+   * @param uid
+   */
   completeUid(uid: string): string;
   /**
    * Get the model uuid field if you do not want to use the uuid field
@@ -486,6 +508,14 @@ class CoreModel {
   }
 
   /**
+   *
+   * @returns
+   */
+  static getRelations() {
+    return Core.get()?.getApplication().getRelations(this);
+  }
+
+  /**
    * Get Store for this model
    * @param this
    * @returns
@@ -556,7 +586,7 @@ class CoreModel {
    */
   static getHierarchy(): {
     ancestors: string[];
-    children: ModelGraph;
+    children: ModelsTree;
   } {
     return Core.get().getApplication().getModelHierarchy(this);
   }

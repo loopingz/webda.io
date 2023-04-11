@@ -5,7 +5,7 @@ import { CloudBinary, CloudBinaryParameters, CoreModel, WebdaError } from "../in
 import { WebContext } from "../utils/context";
 import { BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, BinaryService, MemoryBinaryFile } from "./binary";
 import CryptoService from "./cryptoservice";
-import { Inject, ServiceParameters } from "./service";
+import { Inject } from "./service";
 
 export class FileBinaryParameters extends CloudBinaryParameters {
   /**
@@ -52,7 +52,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    *
    * @param params
    */
-  loadParameters(params: any): ServiceParameters {
+  loadParameters(params: any): CloudBinaryParameters {
     return new FileBinaryParameters(params, this);
   }
 
@@ -224,9 +224,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    */
   async putRedirectUrl(ctx: WebContext<BinaryFile>): Promise<{ url: string; method: string }> {
     const body = await ctx.getInput();
-    const { uid, store, property } = ctx.getParameters();
+    const { uuid, store, property } = ctx.getParameters();
     let result = { url: await this.getPutUrl(ctx), method: "PUT" };
-    if (fs.existsSync(this._getPath(body.hash, store + "_" + property + "_" + uid))) {
+    if (fs.existsSync(this._getPath(body.hash, store + "_" + property + "_" + uuid))) {
       if (!fs.existsSync(this._getPath(body.hash, "data"))) {
         // 232-237
         return result;
@@ -236,13 +236,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(uid, ctx);
+    let object = await targetStore.get(uuid, ctx);
     await this.uploadSuccess(<BinaryModel>object, property, body);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(body.hash))) {
       fs.mkdirSync(this._getPath(body.hash));
     }
-    this._touch(this._getPath(body.hash, store + "_" + uid + "_" + property));
+    this._touch(this._getPath(body.hash, store + "_" + uuid + "_" + property));
     if (this.challenge(body.hash, body.challenge)) {
       // Return empty as we dont need to upload the data
       return;
@@ -382,6 +382,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     await file.getHashes();
     const storeName = object.getStore().getName();
     const fileInfo = file.toBinaryFileInfo();
+    this.log("INFO", "Store", file, "on", object.getUuid(), property);
     this.checkMap(storeName, property, object.__type);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${property}_${object.getUuid()}`));

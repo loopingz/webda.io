@@ -1,7 +1,9 @@
 import { CoreModel } from "@webda/core";
 
 /**
- * @WebdaModel
+ * @WebdaModel Contact
+ *
+ * Another comment
  *
  * @SchemaAdditionalProperties Allow mine
  */

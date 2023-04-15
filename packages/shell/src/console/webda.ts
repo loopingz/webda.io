@@ -11,6 +11,7 @@ import { Transform } from "stream";
 import ts from "typescript";
 import yargs from "yargs";
 import { createGzip } from "zlib";
+import { DiagramTypes } from "../code/documentation/diagrams";
 import { BuildSourceApplication, SourceApplication } from "../code/sourceapplication";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
@@ -729,6 +730,31 @@ ${Object.keys(operationsExport.operations)
   }
 
   /**
+   * Generate a diagram for the application
+   * @param argv
+   * @returns
+   */
+  static async diagram(argv) {
+    this.webda = new WebdaServer(this.app);
+    await this.webda.init();
+    let type = argv.diagramType;
+
+    // If diagram exists, use it
+    if (!DiagramTypes[type]) {
+      this.log("ERROR", `Diagram type '${type}' not supported`);
+      return -1;
+    }
+
+    let diagram = new DiagramTypes[type]();
+    if (argv.exportFile) {
+      diagram.update(argv.exportFile, <any>this.webda);
+      this.log("INFO", `Diagram '${type}' exported to ${argv.exportFile}`);
+    } else {
+      this.log("INFO", diagram.generate(<any>this.webda));
+    }
+  }
+
+  /**
    * Return the default builin command map
    */
   static builtinCommands(): {
@@ -793,6 +819,11 @@ ${Object.keys(operationsExport.operations)
         module: y => {
           return y.command("serviceName", "Service name to launch");
         }
+      },
+      diagram: {
+        handler: WebdaConsole.diagram,
+        description: "Generate a diagram of the application",
+        command: "diagram <diagramType> [exportFile]"
       },
       debug: {
         handler: WebdaConsole.debug,
@@ -961,7 +992,7 @@ ${Object.keys(operationsExport.operations)
       argv.notty ||
       process.env.NO_TTY ||
       !process.stdout.isTTY ||
-      ["init", "build", "openapi", "models", "operations"].includes(<string>argv._[0])
+      ["init", "build", "openapi", "models", "operations", "diagram"].includes(<string>argv._[0])
     ) {
       logger = new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
     } else {

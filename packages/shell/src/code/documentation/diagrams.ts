@@ -17,29 +17,28 @@ flowchart BT
 <!-- /WEBDA:StorageDiagram -->
 */
 
-import { Constructor, Core, CoreEvents, ModelsTree } from "@webda/core";
-import { readFileSync, writeFileSync } from "fs";
+import { Constructor, Core, CoreEvents, ModelAction, ModelsTree, Service } from "@webda/core";
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { JSONSchema7 } from "json-schema";
 
 /**
  * Abstract diagram with the common replacement methods
  */
 export abstract class Diagram {
-  _diagram: string;
   append: boolean;
   content: string;
   file: string;
 
-  constructor(protected name: string) {
-    this._diagram = "";
-  }
+  constructor(protected name: string) {}
 
   update(file: string, webda: Core) {
     this.file = file;
-    this.content = readFileSync(file, "utf8").toString();
-    let diagram = this.generate(webda);
-    if (diagram === "") {
-      throw new Error("Diagram is empty");
+    if (existsSync(file)) {
+      this.content = readFileSync(file, "utf8").toString();
+    } else {
+      this.content = "";
     }
+    let diagram = this.generate(webda);
     diagram = `<!-- WEBDA:${this.name} -->\n${diagram}\n<!-- /WEBDA:${this.name} -->`;
     if (this.content.includes(`<!-- WEBDA:${this.name} -->`)) {
       const regexp = new RegExp(`<!-- WEBDA:${this.name} -->[\\s\\S]*?<!-- \\/WEBDA:${this.name} -->`, "gm");
@@ -51,14 +50,6 @@ export abstract class Diagram {
   }
 
   abstract generate(webda: Core): string;
-
-  addDiagram(diagram) {
-    this._diagram += diagram;
-  }
-
-  getDiagram() {
-    return this._diagram;
-  }
 }
 
 /**
@@ -95,12 +86,41 @@ export class StorageDiagram extends Diagram {
   }
 }
 
-/*
-ClassDiagram
-*/
-export class ClassDiagram extends Diagram {
+/**
+ * Export each CoreModel, their properties and actions
+ */
+export class ModelDiagram extends Diagram {
   constructor() {
     super("ClassDiagram");
+  }
+
+  generateClassDefinition(
+    schema: JSONSchema7,
+    actions: {
+      [key: string]: ModelAction;
+    }
+  ): string {
+    let definition: string = "";
+
+    if (schema.description) {
+      definition += `\t\t${schema.title}: ${schema.description}\n`;
+    }
+
+    const properties = schema.properties;
+    // Display properties
+    for (const propertyName in properties) {
+      const property = <JSONSchema7>properties[propertyName];
+      const isRequired = schema.required && schema.required.includes(propertyName);
+      const propertyType = property.type;
+
+      definition += `\t\t${isRequired ? "+" : "-"}${propertyName}: ${propertyType}\n`;
+    }
+
+    // Display actions
+    for (const actionName in actions) {
+      definition += `\t\t+${actionName}()\n`;
+    }
+    return definition;
   }
 
   generate(webda: Core<CoreEvents>): string {
@@ -108,29 +128,45 @@ export class ClassDiagram extends Diagram {
     let diagram = "```mermaid\nclassDiagram\n";
     Object.values(models).forEach(model => {
       diagram += `\tclass ${model.getIdentifier()}{\n`;
-
+      diagram += this.generateClassDefinition(model.getSchema(), model.getActions());
       diagram += `\t}\n`;
     });
     return diagram + "```";
   }
 }
 
-/*
-ServiceDiagram
-*/
+/**
+ * Export each Service and their dependencies
+ *
+ * It detect dependencies by looking at the attributes of the service
+ * So dynamic dependencies are not detected
+ */
 export class ServiceDiagram extends Diagram {
   constructor() {
     super("ServiceDiagram");
   }
 
   generate(webda: Core<CoreEvents>): string {
-    const services = webda.getServices();
-    return "";
+    const services = Object.values(webda.getServices()).filter(service => service.getName);
+    let diagram = "```mermaid\nflowchart TD\n";
+    let ids = {};
+    services.forEach((service, i) => {
+      diagram += `\tS${i}(${service.getName()}<br /><i>${service.getParameters().type}</i>)\n`;
+      ids[service.getName()] = i;
+    });
+    services.forEach((service, i) => {
+      for (let attr in service) {
+        if (service[attr] instanceof Service) {
+          diagram += `\tS${i} -->|${attr}| S${ids[service[attr].getName()]}\n`;
+        }
+      }
+    });
+    return diagram + "```";
   }
 }
 
 export const DiagramTypes: { [key: string]: Constructor<Diagram, []> } = {
   storage: StorageDiagram,
-  models: ClassDiagram,
+  models: ModelDiagram,
   services: ServiceDiagram
 };

@@ -244,9 +244,12 @@
           "description": "Slow query threshold",
           "default": 30000
         },
-        "graphql": {
-          "type": "boolean",
-          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
+        "modelAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model Aliases to allow easier rename of Model"
         },
         "targetStore": {
           "type": "string",
@@ -520,7 +523,8 @@
           "required": [
             "url"
           ],
-          "description": "Expose the service to http"
+          "description": "Expose the service to http",
+          "deprecated": "will be removed in 4.0"
         },
         "openapi": {
           "type": "object",
@@ -1240,7 +1244,8 @@
           "required": [
             "url"
           ],
-          "description": "Expose the service to http"
+          "description": "Expose the service to http",
+          "deprecated": "will be removed in 4.0"
         },
         "prefix": {
           "type": "string"
@@ -1459,9 +1464,12 @@
           "description": "Slow query threshold",
           "default": 30000
         },
-        "graphql": {
-          "type": "boolean",
-          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
+        "modelAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model Aliases to allow easier rename of Model"
         },
         "folder": {
           "type": "string",
@@ -1984,9 +1992,12 @@
           "description": "Slow query threshold",
           "default": 30000
         },
-        "graphql": {
-          "type": "boolean",
-          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
+        "modelAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model Aliases to allow easier rename of Model"
         },
         "persistence": {
           "type": "object",
@@ -2327,6 +2338,26 @@
             "camelCase",
             "lowercase",
             "none"
+          ],
+          "description": "Transform the name of the model to be used in the URL"
+        },
+        "queryMethod": {
+          "type": "string",
+          "enum": [
+            "PUT",
+            "GET"
+          ],
+          "description": "Method used for query objects",
+          "default": "PUT"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
+          "default": [
+            "*"
           ]
         },
         "openapi": {
@@ -2335,8 +2366,10 @@
         }
       },
       "required": [
+        "models",
         "nameTransfomer",
         "operations",
+        "queryMethod",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",

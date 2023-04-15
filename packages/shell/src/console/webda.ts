@@ -752,6 +752,7 @@ ${Object.keys(operationsExport.operations)
     } else {
       this.log("INFO", diagram.generate(<any>this.webda));
     }
+    return 0;
   }
 
   /**

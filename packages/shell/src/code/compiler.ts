@@ -561,7 +561,8 @@ export class Compiler {
       const tagName = n.tagName.escapedText.toString();
       if (tagName.startsWith("Webda")) {
         tags[tagName] =
-          n.comment?.toString().trim().split(" ").shift() || (<ts.ClassDeclaration>node).name?.escapedText;
+          n.comment?.toString().trim().replace("\n", " ").split(" ").shift() ||
+          (<ts.ClassDeclaration>node).name?.escapedText;
       } else if (tagName.startsWith("Schema")) {
         tags[tagName] = n.comment?.toString().trim() || "";
       }

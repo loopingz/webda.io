@@ -191,12 +191,40 @@ class MemoryStoreTest extends StoreTest {
     (await usersStore.getAll()).forEach(user => {
       if (user.id % 10 === 0) {
         assert.strictEqual(user.__type, "webda/user2");
+        assert.deepStrictEqual(user.__types, ["webda/user2"]);
+      } else if (user.id % 2 === 0) {
+        assert.strictEqual(user.__type, "WebdaDemo/User");
+        assert.deepStrictEqual(user.__types, ["User", "Webda/User"]);
+      } else {
+        assert.strictEqual(user.__type, "Webda/User");
+        assert.deepStrictEqual(user.__types, ["Webda/User"]);
+      }
+    });
+    usersStore.getParameters().modelAliases = {
+      "webda/user2": "WebdaDemo/User"
+    };
+    await usersStore.cleanModelAliases();
+    (await usersStore.getAll()).forEach(user => {
+      if (user.id % 10 === 0) {
+        assert.strictEqual(user.__type, "WebdaDemo/User");
+      } else if (user.id % 2 === 0) {
+        assert.strictEqual(user.__type, "WebdaDemo/User");
+      } else {
+        assert.strictEqual(user.__type, "Webda/User");
+      }
+    });
+    await usersStore.recomputeTypeShortId();
+    (await usersStore.getAll()).forEach(user => {
+      if (user.id % 10 === 0) {
+        assert.strictEqual(user.__type, "User");
       } else if (user.id % 2 === 0) {
         assert.strictEqual(user.__type, "User");
       } else {
         assert.strictEqual(user.__type, "Webda/User");
       }
     });
+    await usersStore.getMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
+    await usersStore.cancelMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
   }
 
   @test

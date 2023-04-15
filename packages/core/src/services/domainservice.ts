@@ -148,13 +148,60 @@ export class DomainServiceParameters extends ServiceParameters {
    * Expose objects as operations too
    */
   operations: boolean;
+  /**
+   * Transform the name of the model to be used in the URL
+   */
   nameTransfomer: "camelCase" | "lowercase" | "none";
+  /**
+   * Method used for query objects
+   *
+   * @default "PUT"
+   */
+  queryMethod: "PUT" | "GET";
+  /**
+   * List of models to include
+   *
+   * If model is prefixed with a ! it will be excluded
+   *
+   * @default ["*"]
+   */
+  models: string[];
+  /**
+   *
+   * @SchemaIgnore
+   */
+  private excludedModels: string[];
 
-  constructor(params: any) {
+  constructor(params: DeepPartial<DomainServiceParameters>) {
     super(params);
     // Init default here
     this.operations ??= true;
     this.nameTransfomer ??= "camelCase";
+    this.queryMethod ??= "PUT";
+    this.models ??= ["*"];
+    this.excludedModels = this.models.filter(i => i.startsWith("!")).map(i => i.substring(1));
+    // Only contains excluded models so a wildcard is implied
+    if (this.models.length === this.excludedModels.length) {
+      this.models = ["*"];
+    }
+  }
+
+  /**
+   * Is a model is included in the service
+   * @param model
+   * @returns
+   */
+  isIncluded(model: string) {
+    return !this.isExcluded(model) && (this.models.includes("*") || this.models.includes(model));
+  }
+
+  /**
+   * Is a model excluded from the service
+   * @param model
+   * @returns
+   */
+  isExcluded(model: string) {
+    return this.excludedModels.includes(model);
   }
 }
 
@@ -211,7 +258,8 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @returns
    */
   walkModel(model: CoreModelDefinition, name: string, depth: number = 0, modelContext: any = {}) {
-    if (!model.Expose) {
+    // If not expose or not in the list of models
+    if (!model.Expose || (model.getIdentifier && !this.parameters.isIncluded(model.getIdentifier()))) {
       return;
     }
     const context = JSONUtils.duplicate(modelContext);
@@ -266,18 +314,41 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
     const relations = model.getRelations();
     const injectAttribute = relations?.parent?.attribute;
 
-    const injector = (service: Store, method: Methods<Store>, type: "SET" | "QUERY", ...args: any[]) => {
+    const injector = (
+      service: Store,
+      method: Methods<Store>,
+      type: "SET" | "QUERY" | "GET" | "DELETE",
+      ...args: any[]
+    ) => {
       return async (context: WebContext) => {
-        let input = await context.getInput();
         let parentId = `pid.${depth - 1}`;
         if (type === "SET" && injectAttribute && depth > 0) {
-          input[injectAttribute] = context.getPathParameters()[parentId];
+          (await context.getInput())[injectAttribute] = context.getPathParameters()[parentId];
         } else if (type === "QUERY") {
-          input.q = input.q ? ` AND (${input.q})` : "";
-          if (injectAttribute && depth > 0) {
-            input.q = ` AND ${injectAttribute} = "${context.getPathParameters()[parentId]}"` + input.q;
+          let input = await context.getInput({ defaultValue: { q: "" } });
+          let q;
+          if (context.getHttpContext().getMethod() === "GET") {
+            q = context.getParameters().q;
+          } else {
+            q = input.q;
           }
-          input.q = `__types CONTAINS "${model.getIdentifier()}"` + input.q;
+          q = q ? ` AND (${q})` : "";
+          if (injectAttribute) {
+            q = ` AND ${injectAttribute} = "${context.getPathParameters()[parentId]}"` + q;
+          }
+          if (args[0] > 0) {
+            q = `__types CONTAINS "${model.getIdentifier()}"` + q;
+          }
+          if (context.getHttpContext().getMethod() === "GET") {
+            context.getParameters().q = q;
+          } else {
+            input.q = q;
+          }
+          this.log("TRACE", `Query modified to ${q} ${args}`);
+        }
+        // Complete the uuid if needed
+        if (context.getParameters().uuid) {
+          context.getParameters().uuid = model.completeUid(context.getParameters().uuid);
         }
         await service[method](context, ...args);
       };
@@ -288,13 +359,18 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
     context.prefix = prefix + `/{pid.${depth}}/`;
 
     model.Expose.restrict.query ||
-      this.addRoute(`${prefix}`, ["GET", "PUT"], injector(model.store(), "httpQuery", "QUERY"));
+      this.addRoute(
+        `${prefix}`,
+        ["GET", "PUT"],
+        injector(model.store(), "httpQuery", "QUERY", model.store().handleModel(model))
+      );
     model.Expose.restrict.create ||
       this.addRoute(`${prefix}`, ["POST"], injector(model.store(), "operationCreate", "SET", model.getIdentifier()));
-    model.Expose.restrict.delete || this.addRoute(`${prefix}/{uuid}`, ["DELETE"], ctx => model.store().httpDelete(ctx));
+    model.Expose.restrict.delete ||
+      this.addRoute(`${prefix}/{uuid}`, ["DELETE"], injector(model.store(), "httpDelete", "DELETE"));
     model.Expose.restrict.update ||
       this.addRoute(`${prefix}/{uuid}`, ["PUT", "PATCH"], injector(model.store(), "httpUpdate", "SET"));
-    model.Expose.restrict.get || this.addRoute(`${prefix}/{uuid}`, ["GET"], ctx => model.store().httpGet(ctx));
+    model.Expose.restrict.get || this.addRoute(`${prefix}/{uuid}`, ["GET"], injector(model.store(), "httpGet", "GET"));
 
     // Add all actions
     // Actions cannot be restricted as its purpose is to be exposed
@@ -308,6 +384,7 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
           if (action.global) {
             model.store().httpGlobalAction(ctx);
           } else {
+            ctx.getParameters().uuid = model.completeUid(ctx.getParameters().uuid);
             model.store().httpAction(ctx);
           }
         },

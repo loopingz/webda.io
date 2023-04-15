@@ -221,12 +221,13 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
         this.getWebda().getGlobalParams().requestTimeout
       );
       if (!data || data.length === 0) {
-        return undefined;
+        this._sanitized = sanitizedOptions.defaultValue;
+        return this._sanitized;
       }
       this._sanitized = recursiveSanitize(JSON.parse(data), sanitizedOptions);
     } catch (err) {
       this.log("ERROR", err, `Body: '${await this.getRawInputAsString()}'`);
-      return undefined;
+      this._sanitized = sanitizedOptions.defaultValue;
     }
     return this._sanitized;
   }

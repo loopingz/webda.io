@@ -41,7 +41,7 @@ export default class AclModel extends CoreModel {
   async _onSave() {
     await super._onSave();
     this._creator = this.getContext().getCurrentUserId();
-    if (Object.keys(this.__acl).length === 0) {
+    if (Object.keys(this.__acl).length === 0 && this._creator) {
       this.__acl[this._creator] = "all";
     }
   }

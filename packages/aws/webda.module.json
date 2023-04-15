@@ -110,9 +110,12 @@
           "description": "Slow query threshold",
           "default": 30000
         },
-        "graphql": {
-          "type": "boolean",
-          "description": "For future use in our GraphQL api\n\nExpose this store in the graphql"
+        "modelAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model Aliases to allow easier rename of Model"
         },
         "openapi": {
           "type": "object",
@@ -272,7 +275,8 @@
           "required": [
             "url"
           ],
-          "description": "Expose the service to http"
+          "description": "Expose the service to http",
+          "deprecated": "will be removed in 4.0"
         },
         "prefix": {
           "type": "string"

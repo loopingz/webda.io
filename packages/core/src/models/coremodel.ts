@@ -504,7 +504,9 @@ class CoreModel {
     // Get the store automatically now
     this.__store = <Store<this>>Core.get()?.getModelStore(new.target);
     // Get the type automatically now
-    this.__type = Core.get()?.getApplication().getShortId(Core.get()?.getApplication().getModelFromInstance(this));
+    this.__type = process.env.WEBDA_V2_COMPATIBLE
+      ? Core.get()?.getApplication().getModelFromInstance(this)
+      : Core.get()?.getApplication().getShortId(Core.get()?.getApplication().getModelFromInstance(this));
   }
 
   /**

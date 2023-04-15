@@ -1,5 +1,5 @@
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
-import { ConfigurationProvider, WebdaError } from "../index";
+import { ConfigurationProvider, Throttler, WebdaError } from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
 import { OperationContext, WebContext } from "../utils/context";
@@ -408,13 +408,10 @@ export class StoreParameters extends ServiceParameters {
    * @default 30000
    */
   slowQueryThreshold: number;
-
   /**
-   * For future use in our GraphQL api
-   *
-   * Expose this store in the graphql
+   * Model Aliases to allow easier rename of Model
    */
-  graphql?: boolean;
+  modelAliases?: { [key: string]: string };
 
   constructor(params: any, service: Service<any>) {
     super(params);
@@ -446,6 +443,7 @@ export class StoreParameters extends ServiceParameters {
     this.defaultModel ??= true;
     this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
+    this.modelAliases ??= {};
   }
 }
 
@@ -848,7 +846,9 @@ abstract class Store<
       // Dynamic load type
       if (object.__type && !this.getParameters().forceModel) {
         try {
-          const modelType = this.getWebda().getApplication().getModel(object.__type);
+          const modelType = this.getWebda()
+            .getApplication()
+            .getModel(this.parameters.modelAliases[object.__type] || object.__type);
           object = new modelType().load(object, true);
         } catch (err) {
           if (!this.parameters.defaultModel) {
@@ -1094,6 +1094,7 @@ abstract class Store<
     let offset = queryValidator.getOffset();
     const limit = queryValidator.getLimit();
     const parsedQuery = this.queryTypeUpdater(queryValidator.getQuery());
+    parsedQuery.limit = limit;
     // __type is a special field to filter on the type of the object
     // Emit the default event
     await this.emitSync("Store.Query", {
@@ -1221,6 +1222,12 @@ abstract class Store<
     return this.create(object, ctx);
   }
 
+  /**
+   *
+   * @param object
+   * @param ctx
+   * @returns
+   */
   async create(object, ctx: OperationContext = undefined) {
     object = this.initModel(object);
 
@@ -1228,7 +1235,7 @@ abstract class Store<
     object._creationDate ??= new Date();
     object._lastUpdate = new Date();
     const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
-    object.__types = [object.__type, ...ancestors.filter(i => i !== "Webda/CoreModel" && i !== "CoreModel")];
+    object.__types = [object.__type, ...ancestors].filter(i => i !== "Webda/CoreModel" && i !== "CoreModel");
 
     if (ctx) {
       object.setContext(ctx);
@@ -1484,10 +1491,62 @@ abstract class Store<
    * Manage the store migration for __type case sensitivity
    */
   async v3Migration() {
+    // Compute case for all object
+    await this.recomputeTypeCase();
+    // Compute all __types
+    await this.recomputeTypes();
+    // We do not move to short id as it is not compatible with v2
+  }
+
+  /**
+   *
+   */
+  async recomputeTypeShortId() {
+    this.log("INFO", "Ensuring __type is using its short id form");
     const app = this.getWebda().getApplication();
     // We need to be laxist for migration
     this.parameters.strict = false;
+    await this.migration("typesShortId", async item => {
+      if (item.__type !== undefined && item.__type.includes("/")) {
+        const model = app.getWebdaObject("models", item.__type);
+        const name = app.getShortId(app.getModelName(model));
+        if (name !== item.__type) {
+          this.log("INFO", "Migrating type " + item.__type + " to " + name);
+          return <Partial<T>>{
+            __type: name
+          };
+        }
+      }
+    });
+  }
+
+  /**
+   * Ensure model aliases are not used in this store
+   *
+   * So alias can be cleaned
+   */
+  async cleanModelAliases() {
+    this.log("INFO", "Ensuring __type is not using any aliases");
+    // We need to be laxist for migration
+    this.parameters.strict = false;
+    await this.migration("cleanAliases", async item => {
+      if (this.parameters.modelAliases[item.__type]) {
+        this.log("INFO", "Migrating type " + item.__type + " to " + this.parameters.modelAliases[item.__type]);
+        return <Partial<T>>{
+          __type: this.parameters.modelAliases[item.__type]
+        };
+      }
+    });
+  }
+
+  /**
+   * Recompute type case
+   */
+  async recomputeTypeCase() {
     this.log("INFO", "Ensuring __type is case sensitive from migration from v2.x");
+    const app = this.getWebda().getApplication();
+    // We need to be laxist for migration
+    this.parameters.strict = false;
     await this.migration("typesCase", async item => {
       if (item.__type !== undefined) {
         if (!app.hasWebdaObject("models", item.__type, true) && app.hasWebdaObject("models", item.__type, false)) {
@@ -1496,7 +1555,7 @@ abstract class Store<
           if (model) {
             this.log("INFO", "Migrating type " + item.__type + " to " + name);
             return <Partial<T>>{
-              __type: app.getShortId(name)
+              __type: name
             };
           }
         }
@@ -1505,11 +1564,54 @@ abstract class Store<
   }
 
   /**
+   * Recompute the __types for all objects (storeMigration.Registry.typesCompute)
+   */
+  async recomputeTypes() {
+    this.log("INFO", "Ensuring __types is correct from migration from v2.x");
+    // Update __types for each __type will be more efficient
+    await this.migration("typesCompute", async item => {
+      let __types = this.getWebda().getApplication().getModelTypes(item);
+      if (
+        !item.__types ||
+        item.__types.length !== __types.length ||
+        !__types.every((element, index) => element === item.__types[index])
+      ) {
+        this.log(
+          "INFO",
+          "Migrating types " + JSON.stringify(item.__types) + " to " + JSON.stringify(__types),
+          "for",
+          item.__type,
+          item.getUuid()
+        );
+        return <Partial<T>>{
+          __types
+        };
+      }
+    });
+  }
+
+  /**
+   * Delete a migration
+   * @param name
+   */
+  async cancelMigration(name: string) {
+    await this.getWebda().getRegistry().delete(`storeMigration.${this.getName()}.${name}`);
+  }
+
+  /**
+   * Get a migration
+   * @param name
+   */
+  async getMigration(name: string) {
+    return await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`);
+  }
+
+  /**
    * Add a migration mechanism to store
    * @param name
    * @param patcher
    */
-  async migration(name: string, patcher: (object: T) => Promise<Partial<T> | undefined>, batchSize: number = 1000) {
+  async migration(name: string, patcher: (object: T) => Promise<Partial<T> | undefined>, batchSize: number = 500) {
     let status: RegistryEntry<{
       continuationToken?: string;
       count: number;
@@ -1518,20 +1620,27 @@ abstract class Store<
     }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, undefined, {});
     status.count ??= 0;
     status.updated ??= 0;
+    const worker = new Throttler(20);
     do {
       const res = await this.query(
-        status.continuationToken ? `OFFSET "${status.continuationToken}" ` : "" + `LIMIT ${batchSize}`
+        status.continuationToken ? `LIMIT ${batchSize} OFFSET "${status.continuationToken}"` : `LIMIT ${batchSize}`
       );
       status.count += res.results.length;
       for (let item of res.results) {
         let updated = await patcher(item);
         if (updated !== undefined) {
           status.updated++;
-          await item.patch(updated, null);
+          worker.queue(async () => {
+            await item.patch(updated, null);
+          });
         }
       }
-      this.log("INFO", `Migrated ${status.count} items: ${status.updated} updated`);
+      this.log(
+        "INFO",
+        `storeMigration.${this.getName()}.${name}: Migrated ${status.count} items: ${status.updated} updated`
+      );
       status.continuationToken = res.continuationToken;
+      await worker.waitForCompletion();
       await status.save();
     } while (status.continuationToken);
   }

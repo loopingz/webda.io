@@ -474,7 +474,7 @@ export class Application {
   /**
    * Models type registry
    */
-  protected models: { [key: string]: CoreModelDefinition } = {};
+  protected models: { [key: string /* LongId */]: CoreModelDefinition } = {};
 
   /**
    * Models graph
@@ -915,6 +915,19 @@ export class Application {
     ancestors.unshift(this.getShortId("Webda/CoreModel"));
     ancestors.reverse();
     return { ancestors: ancestors.map(i => this.getShortId(i)), children: tree[model] };
+  }
+
+  /**
+   * Get all model types with the hierarchy
+   * @param model
+   * @returns
+   */
+  getModelTypes(model: CoreModel) {
+    const hierarchy = this.getModelHierarchy(model);
+    const coreModel = this.getShortId("Webda/CoreModel");
+    return [model.__type, ...hierarchy.ancestors]
+      .map(i => (i.includes("/") ? this.getShortId(i) : i))
+      .filter(i => i !== coreModel);
   }
 
   /**

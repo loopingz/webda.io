@@ -142,6 +142,18 @@ class ConsoleTest {
     assert.strictEqual(await this.commandLine("store Registry2 export ./test.ndjson.gz"), -1);
   }
 
+  @test
+  async diagrams() {
+    // Just to initiate it
+    this.cleanFiles.push("DIAGRAMS.test.md");
+    assert.strictEqual(await this.commandLine("diagram storage ./DIAGRAMS.test.md"), 0);
+    assert.strictEqual(await this.commandLine("diagram models ./DIAGRAMS.test.md"), 0);
+    assert.strictEqual(await this.commandLine("diagram services ./DIAGRAMS.test.md"), 0);
+    assert.strictEqual(await this.commandLine("diagram storage ./DIAGRAMS.test.md"), 0);
+    assert.strictEqual(await this.commandLine("diagram storage"), 0);
+    assert.strictEqual(await this.commandLine("diagram unknown ./DIAGRAMS.test.md"), -1);
+  }
+
   async waitForWebda() {
     for (let i = 0; i < 100; i++) {
       if (WebdaConsole.webda) {

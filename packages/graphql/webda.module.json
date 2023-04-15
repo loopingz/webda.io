@@ -27,6 +27,26 @@
             "camelCase",
             "lowercase",
             "none"
+          ],
+          "description": "Transform the name of the model to be used in the URL"
+        },
+        "queryMethod": {
+          "type": "string",
+          "enum": [
+            "PUT",
+            "GET"
+          ],
+          "description": "Method used for query objects",
+          "default": "PUT"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
+          "default": [
+            "*"
           ]
         },
         "maxOperationsPerRequest": {
@@ -52,8 +72,10 @@
       "required": [
         "exposeMe",
         "maxOperationsPerRequest",
+        "models",
         "nameTransfomer",
         "operations",
+        "queryMethod",
         "type",
         "userModel"
       ],

@@ -184,7 +184,7 @@ export default class FireStore<
     // OrderBy have quite some complexity with FireStore
     query = this.handleOrderBy(query, parsedQuery.orderBy, rangeAttribute);
 
-    const res = await query.limit(parsedQuery.limit || 0).get();
+    const res = await query.limit(parsedQuery.limit || 1000).get();
     return {
       results: res.docs.map(d => this.initModel(this.giveDatesBack(d.data()))),
       filter: filter.children.length ? filter : true,

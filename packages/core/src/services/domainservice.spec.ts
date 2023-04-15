@@ -4,7 +4,7 @@ import * as crypto from "crypto";
 import { WebdaError } from "../errors";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
-import { ModelsOperationsService, RESTDomainService } from "./domainservice";
+import { DomainServiceParameters, ModelsOperationsService, RESTDomainService } from "./domainservice";
 
 @suite
 class DomainServiceTest extends WebdaTest {
@@ -38,6 +38,15 @@ class DomainServiceTest extends WebdaTest {
     });
     assert.strictEqual(result.results.length, 2);
     const companies = result.results;
+    // Test GET search now
+    rest.getParameters().queryMethod = "GET";
+    // Reset the routes
+    rest.resolve();
+    result = await this.http({
+      method: "GET",
+      url: `/companies`
+    });
+    assert.strictEqual(result.results.length, 2);
     result = await this.http({
       method: "PUT",
       url: `/companies/${companies[0].uuid}/users`,
@@ -249,6 +258,17 @@ class DomainServiceTest extends WebdaTest {
 
     rest.handleModel = () => false;
     rest.walkModel(<any>{ Expose: {} }, "coremodel");
+  }
+
+  @test
+  async parametersCov() {
+    let params = new DomainServiceParameters({
+      models: ["!User", "!Company"]
+    });
+    assert.ok(params.isIncluded("Plop"));
+    assert.ok(!params.isIncluded("User"));
+    assert.ok(!params.isIncluded("Company"));
+    assert.ok(params.isIncluded("Plop2"));
   }
 
   @test

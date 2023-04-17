@@ -651,6 +651,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       }
       await Promise.all(inits);
       await this.emitSync("Webda.Init.Services", this.services);
+      this._modelStoresCache.clear();
+      this._modelBinariesCache.clear();
     })();
     return this._init;
   }

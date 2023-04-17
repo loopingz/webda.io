@@ -24,7 +24,7 @@ export class ProxyParameters extends ServiceParameters {
 
   constructor(params: any) {
     super(params);
-    if (this.backend.endsWith("/")) {
+    if (this.backend?.endsWith("/")) {
       this.backend = this.backend.substring(0, this.backend.length - 1);
     }
   }

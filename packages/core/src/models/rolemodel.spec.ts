@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Core, HttpContext, RoleModel, Session, User, WebContext, WebdaError } from "../index";
+import { Core, HttpContext, RoleModel, Session, SimpleUser, WebContext, WebdaError } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -35,7 +35,7 @@ class RolePolicyTest {
   permissive: RoleModel;
   _webda: Core;
   _session: Session;
-  _user: User;
+  _user: SimpleUser;
 
   async before() {
     let app = new TestApplication(__dirname + "/../../test/config.json");
@@ -51,7 +51,7 @@ class RolePolicyTest {
     };
     this.nonPermissive = new RolePolicyModel();
     this.permissive = new RolePolicyModelPermissive();
-    this._user = new User();
+    this._user = new SimpleUser();
     this._user.addRole("member");
   }
 

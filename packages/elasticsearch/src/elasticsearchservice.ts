@@ -3,7 +3,15 @@ import { CoreModel, Service, ServiceParameters, Store, WebdaError } from "@webda
 import dateFormat from "dateformat";
 
 interface IndexParameter {
+  /**
+   * Store to duplicate in elasticsearch
+   * @deprecated
+   */
   store: string;
+  /**
+   * Use a model instead of a store
+   */
+  model: string;
   url: string;
   /**
    * Split index by date

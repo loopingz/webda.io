@@ -1,11 +1,11 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { User } from "./user";
+import { SimpleUser, User } from "./user";
 
 @suite
 class UserTest {
   @test("Verify groups in user") groupManagement() {
-    let user: User = new User();
+    let user: SimpleUser = new SimpleUser();
     user.addGroup("test");
     assert.strictEqual(user.inGroup("test"), true);
     user.addGroup("test");
@@ -17,7 +17,7 @@ class UserTest {
   }
 
   @test("Verify roles in user") roleManagement() {
-    let user: User = new User();
+    let user: SimpleUser = new SimpleUser();
     user.addRole("test");
     assert.strictEqual(user.hasRole("test"), true);
     user.addRole("test");
@@ -25,6 +25,12 @@ class UserTest {
     user.removeRole("test");
     assert.strictEqual(user.hasRole("test"), false);
     user.removeRole("unknown");
+  }
+
+  @test
+  userCov() {
+    const user = new User();
+    assert.deepStrictEqual(user.getRoles(), []);
   }
 
   @test
@@ -41,7 +47,7 @@ class UserTest {
 
   @test
   emailGetter() {
-    let user: User = new User();
+    let user: SimpleUser = new SimpleUser();
     assert.strictEqual(user.getEmail(), undefined);
     assert.deepStrictEqual(user.toPublicEntry(), {
       avatar: undefined,

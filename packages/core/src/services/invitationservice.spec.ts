@@ -4,6 +4,8 @@ import * as sinon from "sinon";
 import { WebdaError } from "../errors";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
+import { Ident } from "../models/ident";
+import { ModelMapLoader, ModelMapLoaderImplementation } from "../models/relations";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
 import { OperationContext } from "../utils/context";
@@ -518,6 +520,13 @@ class InvitationTest extends WebdaTest {
     ctx2.getSession().userId = ident4.getUser().toString();
     // Force refresh of user as we changed user manually
     await ctx2.getCurrentUser(true);
+    ctx2.getCurrentUser = async () => {
+      let user = await ident4.getUser().get();
+      user.getIdents = () => [
+        <ModelMapLoader<Ident, { _type: string }>>new ModelMapLoaderImplementation(ident4.__class, ident4)
+      ];
+      return <any>user;
+    };
     await this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {
       accept: true
     });

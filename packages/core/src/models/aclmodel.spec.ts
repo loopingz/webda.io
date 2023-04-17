@@ -145,6 +145,13 @@ class AclModelTest {
     });
   }
 
+  @test async canActCreate() {
+    this._ctx.getSession().userId = undefined;
+    assert.strictEqual(await this.model.canAct(this._ctx, "create"), "No ACL or user");
+    this._ctx.getSession().login("user-uid", "ident-uid");
+    assert.strictEqual(await this.model.canAct(this._ctx, "create"), true);
+  }
+
   @test async onSave() {
     this.model.setContext(this._ctx);
     await this.model._onSave();

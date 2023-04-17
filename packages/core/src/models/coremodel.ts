@@ -10,7 +10,14 @@ import { Store } from "../stores/store";
 import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
-import { createModelLinksMap, ModelActions, ModelLinksArray, ModelLinksSimpleArray, RawModel } from "./relations";
+import {
+  createModelLinksMap,
+  ModelActions,
+  ModelLinksArray,
+  ModelLinksSimpleArray,
+  ModelMapLoaderImplementation,
+  RawModel
+} from "./relations";
 
 /**
  * Expose the model through API or GraphQL if it exists
@@ -956,15 +963,6 @@ class CoreModel {
    * to add all the helpers
    */
   protected handleRelations() {
-    const addMapLoader = (attr: string, model) => {
-      this[attr] ??= [];
-      this[attr].forEach(el => {
-        el.get = async () => {
-          return Core.get().getModelStore(Core.get().getModel(model)).get(el.uuid);
-        };
-      });
-    };
-
     const rel =
       Core.get()
         ?.getApplication()
@@ -985,7 +983,9 @@ class CoreModel {
       }
     }
     for (let link of rel.maps || []) {
-      addMapLoader(link.attribute, link.model);
+      this[link.attribute] = (this[link.attribute] || []).map(
+        el => new ModelMapLoaderImplementation(Core.get().getModel(link.model), el)
+      );
     }
     for (let query of rel.queries || []) {
       this[query.attribute] = new CoreModelQuery(query.model, this, query.targetAttribute);
@@ -1052,6 +1052,7 @@ class CoreModel {
           delete this[i];
         }
       }
+      this.handleRelations();
     }
     return this;
   }

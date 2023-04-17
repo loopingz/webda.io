@@ -387,7 +387,6 @@ abstract class StoreTest extends WebdaTest {
     user = await userStore.get(user1);
     assert.strictEqual(user.idents.length, 2);
     assert.strictEqual(user.idents[1].type, "google2");
-    assert.strictEqual(user.idents[1] instanceof this.getModelClass(), true);
     await identStore.delete(ident1.uuid);
     user = await userStore.get(user1);
     assert.strictEqual(user.idents.length, 1);
@@ -941,7 +940,8 @@ abstract class StoreTest extends WebdaTest {
       additional: "field",
       uuid: "PLOP2",
       user: "fake_user",
-      displayName: "Coucou 3"
+      displayName: "Coucou 3",
+      roles: []
     });
     let user: any = await userStore.get("PLOP");
     assert.strictEqual(user.getUuid(), "PLOP");
@@ -950,11 +950,11 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(user.user, "fake_user");
 
     // Add a role to the user
-    user.addRole("plop");
+    user.roles.push("plop");
     await user.save();
 
     user = await userStore.get("PLOP");
-    assert.deepStrictEqual(user.getRoles(), ["plop"]);
+    assert.deepStrictEqual(user.roles, ["plop"]);
 
     ctx.resetResponse();
     // Check PATH
@@ -968,7 +968,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(user.type, "CRUD3");
     assert.strictEqual(user.additional, "field");
     assert.strictEqual(user._testor, undefined);
-    assert.deepStrictEqual(user.getRoles(), ["plop"]);
+    assert.deepStrictEqual(user.roles, ["plop"]);
 
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/PLOP`, {
       type: "CRUD3",
@@ -982,7 +982,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(user.type, "CRUD3");
     assert.strictEqual(user.additional, undefined);
     assert.strictEqual(user._testor, undefined);
-    assert.deepStrictEqual(user.getRoles(), ["plop"]);
+    assert.deepStrictEqual(user.roles, undefined);
 
     await this.getExecutor(ctx, "test.webda.io", "DELETE", `${url}/PLOP`).execute(ctx);
     eventFired = 0;

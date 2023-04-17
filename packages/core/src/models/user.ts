@@ -22,18 +22,7 @@ export class User extends CoreModel {
    * Last time the password was recovered
    */
   _lastPasswordRecovery?: number = 0;
-  /**
-   * Roles of the user
-   */
-  _roles: string[] = [];
-  /**
-   * Groups for a user
-   */
-  _groups: string[] = [];
-  /**
-   * Idents used by the user
-   */
-  _idents: ModelsMapped<Ident, "_type" | "uuid" | "email"> = [];
+
   /**
    * Define the user avatar if exists
    */
@@ -51,13 +40,9 @@ export class User extends CoreModel {
    * @returns
    */
   getEmail(): string | undefined {
-    if (this.email === undefined) {
-      (this._idents || []).some(i => {
-        if (i.email) {
-          this.email = i.email;
-        }
-      });
-    }
+    this.email ??= this.getIdents().find(i => {
+      return i.email;
+    })?.email;
     return this.email;
   }
 
@@ -76,11 +61,11 @@ export class User extends CoreModel {
   }
 
   getGroups(): string[] {
-    return this._groups;
+    return [];
   }
 
   getRoles(): string[] {
-    return this._roles;
+    return [];
   }
 
   getDisplayName(): string {
@@ -88,48 +73,7 @@ export class User extends CoreModel {
   }
 
   getIdents(): ModelsMapped<Ident, "_type" | "uuid" | "email"> {
-    return this._idents;
-  }
-
-  addRole(role: string) {
-    if (this.hasRole(role)) {
-      return;
-    }
-    this._roles.push(role);
-  }
-
-  hasRole(role: string) {
-    return this._roles.indexOf(role) >= 0;
-  }
-
-  removeRole(role: string) {
-    let ind = this._roles.indexOf(role);
-    if (ind < 0) {
-      return;
-    }
-    this._roles.splice(ind, 1);
-  }
-
-  addGroup(group: string) {
-    if (this.inGroup(group)) {
-      return;
-    }
-    this._groups.push(group);
-  }
-
-  inGroup(group: string) {
-    if (group === "all" || group === this.getUuid()) {
-      return true;
-    }
-    return this._groups.indexOf(group) >= 0;
-  }
-
-  removeGroup(group: string) {
-    let ind = this._groups.indexOf(group);
-    if (ind < 0) {
-      return;
-    }
-    this._groups.splice(ind, 1);
+    return [];
   }
 
   lastPasswordRecoveryBefore(timestamp: number): boolean {
@@ -149,5 +93,83 @@ export class User extends CoreModel {
       return "You can't act on this user";
     }
     return true;
+  }
+}
+
+/**
+ * Simple user offers groups and roles management
+ *
+ * Groups and roles are defined just as string, no
+ * models
+ */
+export class SimpleUser extends User {
+  /**
+   * Groups for a user
+   */
+  _groups: string[] = [];
+  /**
+   * Roles of the user
+   */
+  _roles: string[] = [];
+  /**
+   * Normal ident
+   */
+  _idents: ModelsMapped<Ident, "_type" | "uuid" | "email"> = [];
+
+  /**
+   * Return idents
+   * @returns
+   */
+  getIdents() {
+    return this._idents;
+  }
+
+  addGroup(group: string) {
+    if (this.inGroup(group)) {
+      return;
+    }
+    this._groups.push(group);
+  }
+
+  inGroup(group: string) {
+    if (group === "all" || group === this.getUuid()) {
+      return true;
+    }
+    return this._groups.includes(group);
+  }
+
+  removeGroup(group: string) {
+    let ind = this._groups.indexOf(group);
+    if (ind < 0) {
+      return;
+    }
+    this._groups.splice(ind, 1);
+  }
+
+  getGroups(): string[] {
+    return this._groups;
+  }
+
+  getRoles(): string[] {
+    return this._roles;
+  }
+
+  addRole(role: string) {
+    if (this.hasRole(role)) {
+      return;
+    }
+    this._roles.push(role);
+  }
+
+  hasRole(role: string) {
+    return this._roles.indexOf(role) >= 0;
+  }
+
+  removeRole(role: string) {
+    let ind = this._roles.indexOf(role);
+    if (ind < 0) {
+      return;
+    }
+    this._roles.splice(ind, 1);
   }
 }

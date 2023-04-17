@@ -282,7 +282,7 @@ export class WebdaServer extends Webda {
     this.serverStatus = ServerStatus.Starting;
     try {
       this.http = http
-        .createServer((req, res) => {
+        .createServer(async (req, res) => {
           this.handleRequest(req, res).finally(() => {
             res.end();
           });

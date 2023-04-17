@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { AclModel, Core, HttpContext, Session, User, WebContext, WebdaError } from "../index";
+import { AclModel, Core, HttpContext, Session, SimpleUser, WebContext, WebdaError } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 
@@ -12,7 +12,7 @@ class AclModelTest {
   model: AclModel;
   _webda: Core;
   _session: Session;
-  _user: User;
+  _user: SimpleUser;
 
   async before() {
     let app = new TestApplication();
@@ -23,7 +23,7 @@ class AclModelTest {
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");
     this.model = new AclModel().getProxy();
-    this._user = new User();
+    this._user = new SimpleUser();
     this._user.setUuid("user-uid");
     this._user.addGroup("gip-123");
     // @ts-ignore

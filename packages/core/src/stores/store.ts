@@ -1,5 +1,5 @@
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
-import { ConfigurationProvider, Throttler, WebdaError } from "../index";
+import { ConfigurationProvider, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
 import { OperationContext, WebContext } from "../utils/context";
@@ -867,6 +867,9 @@ abstract class Store<
     for (let i in this._reverseMap) {
       object[this._reverseMap[i].property] ??= [];
       for (let j in object[this._reverseMap[i].property]) {
+        if (object[this._reverseMap[i].property][j] instanceof ModelMapLoaderImplementation) {
+          continue;
+        }
         // Use Partial
         object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.newModel(
           object[this._reverseMap[i].property][j]

@@ -4,7 +4,8 @@ import {
   ModelAction,
   ModelRef,
   ModelRefCustom,
-  ModelRefCustomProperties
+  ModelRefCustomProperties,
+  NotEnumerable
 } from "./coremodel";
 
 /**
@@ -73,7 +74,7 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
  * TODO Handle 1:1 map
  */
 export type ModelMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<
-  ModelLoader<T, Pick<T, K> & { uuid: string }>
+  Pick<T, K> & { uuid: string; get: () => Promise<T> }
 >;
 
 /**
@@ -222,3 +223,27 @@ export type ModelParent<T extends CoreModel> = ModelLink<T>;
 export type ModelActions = {
   [key: string]: ModelAction;
 };
+
+export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
+  @NotEnumerable
+  protected _model;
+  /**
+   * The uuid of the object
+   */
+  public uuid: string;
+
+  constructor(model: CoreModelDefinition<T>, data: { uuid: string } & K) {
+    Object.assign(this, data);
+    this._model = model;
+  }
+
+  /**
+   *
+   * @returns the model
+   */
+  async get(): Promise<T> {
+    return this._model.ref(this.uuid).get();
+  }
+}
+
+export type ModelMapLoader<T extends CoreModel, K> = ModelMapLoaderImplementation<T, K> & K;

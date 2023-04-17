@@ -12,8 +12,17 @@ export class IdentTokens {
  * @WebdaModel
  */
 export class Ident extends OwnerModel {
+  /**
+   * Type of the ident
+   */
   _type: string;
+  /**
+   * Uid on the provider
+   */
   uid: string;
+  /**
+   * Profile provided by the provider if exists
+   */
   __profile: any;
   __tokens: IdentTokens;
   _lastUsed: Date;

@@ -12,6 +12,7 @@ import InvitationService, { InvitationParameters } from "./invitationservice";
 import { Mailer } from "./mailer";
 
 class MyCompany extends AclModel {
+  name: string;
   async canAct(ctx: OperationContext, action: string) {
     if (action === "create") {
       return;
@@ -38,19 +39,23 @@ class InvitationTest extends WebdaTest {
 
   async before() {
     await super.before();
+    this.webda.getApplication().addModel("WebdaDemo/Company", MyCompany);
+
+    this.store = this.webda.getService<Store<AclModel>>("Companies");
+    this.store._model = <any>MyCompany;
+
     this.service = this.registerService(
       new InvitationService(this.webda, "invit", {
-        modelStore: "Companies",
+        model: "Company",
         invitationStore: "Invitations",
         attribute: "__acl",
         mapAttribute: "_companies",
         pendingAttribute: "__invitations",
         notificationService: "DebugMailer",
-        mapFields: ["name"]
+        mapFields: ["name"],
+        url: "/companies"
       })
     );
-    this.store = this.webda.getService<Store<AclModel>>("Companies");
-    this.store._model = <any>MyCompany;
     this.invitations = this.webda.getService<Store<CoreModel>>("Invitations");
     this.authentication = this.webda.getService<Authentication>("Authentication");
     this.mailer = this.webda.getService<Mailer>("DebugMailer");
@@ -123,10 +128,7 @@ class InvitationTest extends WebdaTest {
     let ctx = await this.newContext();
     let user = await this.authentication.getUserStore().save({ displayName: "Webda.io Test" });
     ctx.getSession().userId = user.getUuid();
-    let res = await this.execute(ctx, "test.webda.io", "POST", "/companies", {
-      name: "MyTestCompany"
-    });
-    const company = await this.store.get(res.uuid);
+    const company = await MyCompany.create({ name: "MyTestCompany", __acl: { [user.getUuid()]: "all" } });
 
     // Auto register 2 users
     await this.authentication.createUserWithIdent("email", "test1@webda.io");
@@ -319,10 +321,7 @@ class InvitationTest extends WebdaTest {
       displayName: "Webda.io Test"
     });
     ctx.getSession().userId = user.getUuid();
-    let res = await this.execute(ctx, "test.webda.io", "POST", "/companies", {
-      name: "MyTestCompany"
-    });
-    const company = await this.store.get(res.uuid);
+    const company = await MyCompany.create({ name: "MyTestCompany", __acl: { [user.getUuid()]: "all" } });
 
     // Auto register 2 users
     await this.authentication.createUserWithIdent("email", "test1@webda.io");
@@ -540,10 +539,7 @@ class InvitationTest extends WebdaTest {
       displayName: "Webda.io Test"
     });
     ctx.getSession().userId = user.getUuid();
-    let res = await this.execute(ctx, "test.webda.io", "POST", "/companies", {
-      name: "MyTestCompany"
-    });
-    const company = await this.store.get(res.uuid);
+    const company = await MyCompany.create({ name: "MyTestCompany", __acl: { [user.getUuid()]: "all" } });
 
     // Auto register 2 users
     await this.authentication.createUserWithIdent("email", "test1@webda.io");

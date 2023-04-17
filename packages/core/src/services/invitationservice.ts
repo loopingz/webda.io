@@ -7,8 +7,7 @@ import {
   WebContext,
   WebdaError
 } from "../index";
-import { AclModel } from "../models/aclmodel";
-import { CoreModel } from "../models/coremodel";
+import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { User } from "../models/user";
 import { Authentication } from "./authentication";
 import { NotificationService } from "./notificationservice";
@@ -116,9 +115,9 @@ export class InvitationParameters extends ServiceParameters {
    */
   notificationService?: string;
   /**
-   * Store to use
+   * Model to use
    */
-  modelStore: string;
+  model: string;
   /**
    * Used to store pending invitation
    */
@@ -198,9 +197,10 @@ export default class InvitationService<T extends InvitationParameters = Invitati
 
   @Inject("params:invitationStore")
   invitationStore: Store<CoreModel>;
-
-  @Inject("params:modelStore")
-  modelStore: Store<AclModel | CoreModel>;
+  /**
+   * CoreModel to manage invitation on
+   */
+  model: CoreModelDefinition;
 
   /**
    * @inheritdoc
@@ -218,7 +218,9 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     this.authenticationService.on("Authentication.Register", (evt: EventAuthenticationRegister) =>
       this.registrationListener(evt)
     );
-    const url = this.modelStore.getParameters().expose.url;
+    this.model = this.getWebda().getModel(this.parameters.model);
+    const url =
+      this.getParameters().url || `/${this.getWebda().getApplication().getModelPlural(this.parameters.model)}`;
     this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite);
     return this;
   }
@@ -369,7 +371,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @returns
    */
   async invite(ctx: WebContext) {
-    let model = await this.modelStore.get(ctx.getParameters().uuid);
+    let model = await this.model.ref(ctx.getParameters().uuid).get();
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);
     }
@@ -545,7 +547,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         .filter(k => k.startsWith("invit_"))
         .map(async k => ({
           ...invitations[k],
-          model: await this.modelStore.get(k.substring(6))
+          model: await this.model.ref(k.substring(6)).get()
         }))
     );
 

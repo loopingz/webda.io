@@ -20,7 +20,7 @@ export default class AclModel extends CoreModel {
   /**
    * Contains permissions
    */
-  private _permissions?: string[];
+  protected _permissions?: string[];
 
   /**
    * Add acls actions

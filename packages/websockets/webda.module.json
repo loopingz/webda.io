@@ -9,7 +9,8 @@
     "graph": {},
     "tree": {},
     "plurals": {},
-    "list": {}
+    "list": {},
+    "reflections": {}
   },
   "schemas": {
     "Webda/WebSocketsClientService": {

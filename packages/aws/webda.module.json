@@ -16,7 +16,8 @@
     "graph": {},
     "tree": {},
     "plurals": {},
-    "list": {}
+    "list": {},
+    "reflections": {}
   },
   "schemas": {
     "Webda/AWSSecretsManager": {

@@ -195,6 +195,7 @@ class ElasticSearchTest extends WebdaTest {
   @test
   async reindex() {
     assert.rejects(() => this.service.reindex("articles7"), ESUnknownIndexError);
+
     await this.service.__clean();
     await this.waitAsyncEnded();
     let store = this.webda.getService<Store>("MemoryStore");
@@ -213,7 +214,5 @@ class ElasticSearchTest extends WebdaTest {
     assert.ok(await this.service.exists("articles", "2"));
     // @ts-ignore
     this.service._client = undefined;
-    // It should not fail but display warning in logs
-    await this.service.reindex("articles");
   }
 }

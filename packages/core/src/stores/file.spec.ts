@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { existsSync } from "fs";
 import pkg from "fs-extra";
 import * as sinon from "sinon";
-import { CoreModel, FileStore, FileUtils, Store, WebdaError } from "../index";
+import { CoreModel, FileStore, FileUtils, ModelMapLoaderImplementation, Store, WebdaError } from "../index";
 import { User } from "../models/user";
 import { HttpContext } from "../utils/httpcontext";
 import AggregatorService from "./aggregator";
@@ -80,6 +80,8 @@ class FileStoreTest extends StoreTest {
       );
       await user.refresh();
       assert.strictEqual(user.plop, undefined);
+      user.idents[0] = new ModelMapLoaderImplementation(identStore._model, user.idents[0]);
+      userStore["initModel"](user);
       await identStore.delete(user.getUuid());
     } finally {
       stub.restore();

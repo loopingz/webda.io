@@ -128,7 +128,7 @@ export class ModelDiagram extends Diagram {
     let diagram = "```mermaid\nclassDiagram\n";
     Object.values(models).forEach(model => {
       diagram += `\tclass ${model.getIdentifier()}{\n`;
-      diagram += this.generateClassDefinition(model.getSchema(), model.getActions());
+      diagram += this.generateClassDefinition(model.getSchema() || { properties: {} }, model.getActions());
       diagram += `\t}\n`;
     });
     return diagram + "```";

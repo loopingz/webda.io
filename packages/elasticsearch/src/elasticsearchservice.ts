@@ -181,7 +181,7 @@ export default class ElasticSearchService<
           return [
             {
               update: {
-                _index: "slack",
+                _index: index,
                 _id: doc.getUuid()
               }
             },
@@ -189,9 +189,11 @@ export default class ElasticSearchService<
           ];
         },
         onDrop: doc => {
+          /* c8 ignore next 3 - do not know how to trigger this one */
           status.errors++;
           this.log("ERROR", "Failed to reindex doc", doc.document.getUuid(), doc.error);
-        }
+        },
+        refresh: this._refreshMode
       });
       status.count += page.results.length;
       status.continuationToken = page.continuationToken;

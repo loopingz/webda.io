@@ -593,6 +593,10 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    */
   writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
     this._outputHeaders = { ...this._outputHeaders, ...headers };
+    // Ensure undefined values are removed
+    Object.keys(this._outputHeaders)
+      .filter(h => this._outputHeaders[h] === undefined)
+      .forEach(h => delete this._outputHeaders[h]);
     if (statusCode !== undefined) {
       this.statusCode = statusCode;
     }

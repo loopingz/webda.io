@@ -148,7 +148,8 @@ class SourceApplicationTest extends WebdaTest {
       graph: {},
       tree: {},
       plurals: {},
-      shortIds: {}
+      shortIds: {},
+      reflections: {}
     };
     module.beans ??= {};
     // Abstract project should not be there

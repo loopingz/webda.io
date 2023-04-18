@@ -20,6 +20,25 @@
     "plurals": {},
     "list": {
       "Webda/Deployment": "lib/models/deployment:default"
+    },
+    "reflections": {
+      "Webda/Deployment": {
+        "parameters": "any",
+        "resources": "any",
+        "services": "any",
+        "units": "any[]",
+        "_type": "string",
+        "callback": "any",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      }
     }
   },
   "schemas": {

@@ -632,6 +632,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     // Init the other services
     this.initStatics();
+    // Reset the model cache
+    this._modelStoresCache.clear();
+    this._modelBinariesCache.clear();
+
     this.log("TRACE", "Create Webda init promise");
     this._init = (async () => {
       await this.initService("Registry");
@@ -651,8 +655,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       }
       await Promise.all(inits);
       await this.emitSync("Webda.Init.Services", this.services);
-      this._modelStoresCache.clear();
-      this._modelBinariesCache.clear();
     })();
     return this._init;
   }

@@ -522,9 +522,7 @@ class InvitationTest extends WebdaTest {
     await ctx2.getCurrentUser(true);
     ctx2.getCurrentUser = async () => {
       let user = await ident4.getUser().get();
-      user.getIdents = () => [
-        <ModelMapLoader<Ident, { _type: string }>>new ModelMapLoaderImplementation(ident4.__class, ident4)
-      ];
+      user.getIdents = () => [<ModelMapLoader<Ident, "_type">>new ModelMapLoaderImplementation(ident4.__class, ident4)];
       return <any>user;
     };
     await this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {

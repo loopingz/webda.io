@@ -8,7 +8,8 @@
     "graph": {},
     "tree": {},
     "plurals": {},
-    "list": {}
+    "list": {},
+    "reflections": {}
   },
   "schemas": {
     "Webda/ElasticSearchService": {
@@ -31,10 +32,17 @@
             "type": "object",
             "properties": {
               "store": {
-                "type": "string"
+                "type": "string",
+                "description": "Store to duplicate in elasticsearch",
+                "deprecated": true
+              },
+              "model": {
+                "type": "string",
+                "description": "Use a model instead of a store"
               },
               "url": {
-                "type": "string"
+                "type": "string",
+                "description": "To expose the index in the API"
               },
               "dateSplit": {
                 "type": "object",
@@ -64,6 +72,7 @@
             },
             "required": [
               "store",
+              "model",
               "url"
             ]
           }

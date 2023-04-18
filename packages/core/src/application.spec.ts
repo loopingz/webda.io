@@ -224,7 +224,8 @@ class ApplicationTest extends WebdaTest {
           },
           tree: {},
           plurals: {},
-          shortIds: {}
+          shortIds: {},
+          reflections: {}
         },
         deployers: {
           ReTest: "notFound.js"
@@ -232,7 +233,7 @@ class ApplicationTest extends WebdaTest {
       },
       ""
     );
-    await app.loadModule({ models: { list: {}, graph: {}, tree: {}, plurals: {}, shortIds: {} } }, "");
+    await app.loadModule({ models: { list: {}, graph: {}, tree: {}, plurals: {}, shortIds: {}, reflections: {} } }, "");
     await app.importFile("./../test/moddas/fakeservice.js");
     let cwd = process.cwd();
     try {

@@ -149,6 +149,10 @@ export interface Module {
      * Contains the shortcut id for the models
      */
     shortIds: { [key: string]: string };
+    /**
+     * Store the model attributes types
+     */
+    reflections: { [key: string]: { [key: string]: string } };
   };
   /**
    * Deployers provided by the module
@@ -451,7 +455,8 @@ export class Application {
       graph: {},
       tree: {},
       plurals: {},
-      shortIds: {}
+      shortIds: {},
+      reflections: {}
     },
     deployers: {}
   };

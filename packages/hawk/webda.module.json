@@ -24,6 +24,29 @@
     "plurals": {},
     "list": {
       "Webda/ApiKey": "lib/apikey:default"
+    },
+    "reflections": {
+      "Webda/ApiKey": {
+        "name": "string",
+        "permissions": "{\n    GET: string[];\n    PUT: string[];\n    DELETE: string[];\n    POST: string[];\n  }",
+        "algorithm": "string",
+        "___secret": "string",
+        "___checker": "(address: string) => boolean",
+        "origins": "string[]",
+        "whitelist": "string[]",
+        "_user": "ModelLink<User>",
+        "public": "boolean",
+        "uuid": "string",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      }
     }
   },
   "schemas": {

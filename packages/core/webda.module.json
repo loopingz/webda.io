@@ -74,7 +74,7 @@
         ]
       },
       "Webda/RoleModel": {},
-      "Webda/User": {
+      "Webda/SimpleUser": {
         "maps": [
           {
             "attribute": "_idents",
@@ -83,6 +83,7 @@
           }
         ]
       },
+      "Webda/User": {},
       "Webda/UuidModel": {}
     },
     "tree": {
@@ -92,7 +93,9 @@
         "Webda/Ident": {}
       },
       "Webda/RoleModel": {},
-      "Webda/User": {},
+      "Webda/User": {
+        "Webda/SimpleUser": {}
+      },
       "Webda/UuidModel": {}
     },
     "plurals": {},
@@ -103,8 +106,151 @@
       "Webda/Ident": "lib/models/ident:Ident",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
       "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
+      "Webda/SimpleUser": "lib/models/user:SimpleUser",
       "Webda/User": "lib/models/user:User",
       "Webda/UuidModel": "lib/models/coremodel:UuidModel"
+    },
+    "reflections": {
+      "Webda/AclModel": {
+        "_creator": "string",
+        "___acl": "Acl",
+        "_permissions": "string[]",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/Comment": {
+        "target": "ModelParent<CoreModel>",
+        "author": "ModelLink<User>",
+        "title": "string",
+        "description": "string",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/CoreModel": {
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/Ident": {
+        "_type": "string",
+        "uid": "string",
+        "___profile": "any",
+        "___tokens": "IdentTokens",
+        "_lastUsed": "Date",
+        "_user": "ModelLink<User>",
+        "___new": "boolean",
+        "_failedLogin": "number",
+        "_lastValidationEmail": "number",
+        "_validation": "Date",
+        "email": "string",
+        "provider": "string",
+        "profile": "any",
+        "public": "boolean",
+        "uuid": "string",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/OwnerModel": {
+        "_user": "ModelLink<User>",
+        "public": "boolean",
+        "uuid": "string",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/RoleModel": {
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/SimpleUser": {
+        "_groups": "string[]",
+        "_roles": "string[]",
+        "_idents": "ModelsMapped<Ident, \"_type\" | \"uuid\" | \"email\">",
+        "___password": "string",
+        "displayName": "string",
+        "_lastPasswordRecovery": "number",
+        "_avatar": "string",
+        "locale": "string",
+        "email": "string",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/User": {
+        "___password": "string",
+        "displayName": "string",
+        "_lastPasswordRecovery": "number",
+        "_avatar": "string",
+        "locale": "string",
+        "email": "string",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      },
+      "Webda/UuidModel": {
+        "uuid": "string",
+        "___class": "CoreModelDefinition",
+        "___type": "string",
+        "___types": "string[]",
+        "___ctx": "OperationContext",
+        "___store": "Store<this>",
+        "___dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "___deleted": "boolean"
+      }
     }
   },
   "schemas": {
@@ -1579,10 +1725,12 @@
         },
         "_type": {
           "type": "string",
+          "description": "Type of the ident",
           "readOnly": true
         },
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "Uid on the provider"
         },
         "_lastUsed": {
           "type": "string",
@@ -1646,9 +1794,9 @@
           "description": "Notification service",
           "default": "Mailer"
         },
-        "modelStore": {
+        "model": {
           "type": "string",
-          "description": "Store to use"
+          "description": "Model to use"
         },
         "invitationStore": {
           "type": "string",
@@ -1697,7 +1845,7 @@
         "invitationStore",
         "mapAttribute",
         "mapFields",
-        "modelStore",
+        "model",
         "multiple",
         "pendingAttribute",
         "type"
@@ -2417,43 +2565,6 @@
           "type": "number",
           "description": "Last time the password was recovered",
           "readOnly": true
-        },
-        "_roles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Roles of the user",
-          "readOnly": true
-        },
-        "_groups": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Groups for a user",
-          "readOnly": true
-        },
-        "_idents": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "_type": {
-                "type": "string"
-              },
-              "uuid": {
-                "type": "string"
-              },
-              "email": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "uuid"
-            ],
-            "additionalProperties": false
-          }
         },
         "_avatar": {
           "type": "string",

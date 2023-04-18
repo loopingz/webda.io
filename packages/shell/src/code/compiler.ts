@@ -20,13 +20,15 @@ import {
   ExtendedAnnotationsReader,
   FunctionType,
   InterfaceAndClassNodeParser,
+  LiteralType,
   ObjectProperty,
   ObjectType,
   ReferenceType,
   SchemaGenerator,
   StringType,
   SubNodeParser,
-  SubTypeFormatter
+  SubTypeFormatter,
+  UnionType
 } from "ts-json-schema-generator";
 import ts from "typescript";
 import { SourceApplication } from "./sourceapplication";
@@ -246,6 +248,7 @@ class WebdaAnnotatedNodeParser extends AnnotatedNodeParser {
     let type = super.createType(node, context, reference);
     if (node.parent.kind === ts.SyntaxKind.PropertyDeclaration) {
       if ((<ts.PropertyDeclaration>node.parent).name.getText().startsWith("_")) {
+        /* c8 ignore next 3 - do not know how to generate this one */
         if (!(type instanceof AnnotatedType)) {
           type = new AnnotatedType(type, { readOnly: true }, false);
         } else {
@@ -328,10 +331,26 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
             false
           );
         } else if (typeName === "ModelsMapped") {
-          let type = <any>this.childNodeParser.createType(member.type, context);
-          while (!type.properties) {
-            type = type.item ? type.item : type.type;
+          let type = <any>(
+            this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[0], context)
+          );
+          let attrs = this.childNodeParser.createType(
+            (<ts.NodeWithTypeArguments>member.type).typeArguments[1],
+            context
+          );
+          let keep = [];
+          if (attrs instanceof LiteralType) {
+            keep.push(attrs.getValue());
+          } else if (attrs instanceof UnionType) {
+            attrs
+              .getTypes()
+              .filter(t => t instanceof LiteralType)
+              .forEach((t: LiteralType) => {
+                keep.push(t.getValue());
+              });
           }
+          type.properties = type.properties.filter(o => keep.includes(o.name));
+          type.properties.push(new ObjectProperty("uuid", new StringType(), true));
           return new ObjectProperty(
             this.getPropertyName(member.name),
             new ArrayType(
@@ -897,7 +916,7 @@ export class Compiler {
     let plurals = {};
     let symbolMap = new Map<number, string>();
     let list = {};
-
+    let reflections = {};
     Object.values(models).forEach(({ name, type, tags, lib }) => {
       // @ts-ignore
       symbolMap.set(type.id, name);
@@ -909,6 +928,8 @@ export class Compiler {
         plurals[name] = tags["WebdaPlural"].split(" ")[0];
       }
       graph[name] ??= {};
+
+      reflections[name] ??= {};
       type
         .getProperties()
         .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
@@ -917,6 +938,18 @@ export class Compiler {
             .getChildren()
             .filter(c => c.kind === ts.SyntaxKind.TypeReference)
             .shift();
+
+          let children = prop.valueDeclaration.getChildren();
+          let type;
+          let captureNext = false;
+          for (let i in children) {
+            if (captureNext) {
+              type = children[i];
+            }
+            captureNext = children[i].kind === ts.SyntaxKind.ColonToken;
+          }
+
+          reflections[name][prop.escapedName.toString()] = type?.getText() || "unknown";
           if (pType) {
             const addLinkToGraph = (type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY") => {
               graph[name].links ??= [];
@@ -1034,7 +1067,8 @@ export class Compiler {
       graph: JSONUtils.sortObject(graph),
       tree: JSONUtils.sortObject(tree),
       plurals: JSONUtils.sortObject(plurals),
-      list: JSONUtils.sortObject(list)
+      list: JSONUtils.sortObject(list),
+      reflections: JSONUtils.sortObject(reflections)
     };
   }
 

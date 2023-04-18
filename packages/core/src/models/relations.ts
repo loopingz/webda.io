@@ -68,21 +68,6 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
 };
 
 /**
- * Mapper attribute (target of a Mapper service)
- *
- * This is not exported as when mapped the target is always an array
- * TODO Handle 1:1 map
- */
-export type ModelMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<
-  Pick<T, K> & { uuid: string; get: () => Promise<T> }
->;
-
-/**
- * Define a ModelMap attribute
- */
-export type ModelsMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<ModelMapped<T, K>[]>;
-
-/**
  * Define a link to 1:n relation
  */
 /*
@@ -224,6 +209,12 @@ export type ModelActions = {
   [key: string]: ModelAction;
 };
 
+/**
+ * Mapper attribute (target of a Mapper service)
+ *
+ * This is not exported as when mapped the target is always an array
+ * TODO Handle 1:1 map
+ */
 export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
   @NotEnumerable
   protected _model;
@@ -246,4 +237,15 @@ export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
   }
 }
 
-export type ModelMapLoader<T extends CoreModel, K> = ModelMapLoaderImplementation<T, K> & K;
+/**
+ * Mapper attribute (target of a Mapper service)
+ *
+ * This is not exported as when mapped the target is always an array
+ * TODO Handle 1:1 map
+ */
+export type ModelMapLoader<T extends CoreModel, K extends keyof T> = ModelMapLoaderImplementation<T, K> & Pick<T, K>;
+
+/**
+ * Define a ModelMap attribute
+ */
+export type ModelsMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<ModelMapLoader<T, K>[]>;

@@ -115,7 +115,8 @@ export class UnpackedApplication extends Application {
           graph: {},
           tree: {},
           plurals: {},
-          shortIds: {}
+          shortIds: {},
+          reflections: {}
         },
         schemas: {},
         moddas: {}

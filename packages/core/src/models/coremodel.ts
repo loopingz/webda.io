@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import { JSONSchema7 } from "json-schema";
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
@@ -19,6 +20,7 @@ import {
   RawModel
 } from "./relations";
 
+const Emitters: Map<any, EventEmitter> = new Map();
 /**
  * Expose the model through API or GraphQL if it exists
  * The model will be exposed using its class name + 's'

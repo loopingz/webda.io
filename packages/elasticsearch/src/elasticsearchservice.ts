@@ -1,5 +1,5 @@
 import { Client } from "@elastic/elasticsearch";
-import { CoreModel, Service, ServiceParameters, Store, WebdaError } from "@webda/core";
+import { CoreModel, RegistryEntry, Service, ServiceParameters, Store, WebdaError } from "@webda/core";
 import dateFormat from "dateformat";
 
 interface IndexParameter {
@@ -12,6 +12,9 @@ interface IndexParameter {
    * Use a model instead of a store
    */
   model: string;
+  /**
+   * To expose the index in the API
+   */
   url: string;
   /**
    * Split index by date
@@ -159,21 +162,45 @@ export default class ElasticSearchService<
       throw new ESUnknownIndexError(index);
     }
     const store = info._store;
-
-    let continuationToken;
+    let status: RegistryEntry<{
+      continuationToken?: string;
+      count: number;
+      errors: number;
+      done: boolean;
+    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.reindex.${index}`, undefined, {});
+    status.count ??= 0;
+    status.errors ??= 0;
+    // Bulk reindex
     do {
-      const page = await store.query(continuationToken ? `LIMIT ${continuationToken}, 1000` : "");
-      for (let object of page.results) {
-        try {
-          await this._create(index, object);
-        } catch (err) {
-          if (err.name !== "ResponseError" && err.meta?.statusCode !== 409) {
-            this.log("WARN", "Cannot reindex", object.getUuid(), err);
-          }
+      const page = await store.query(
+        status.continuationToken ? `LIMIT 1000 OFFSET ${status.continuationToken}` : "LIMIT 1000"
+      );
+      await this._client.helpers.bulk({
+        datasource: page.results,
+        onDocument: doc => {
+          return [
+            {
+              update: {
+                _index: "slack",
+                _id: doc.getUuid()
+              }
+            },
+            { doc_as_upsert: true }
+          ];
+        },
+        onDrop: doc => {
+          status.errors++;
+          this.log("ERROR", "Failed to reindex doc", doc.document.getUuid(), doc.error);
         }
-      }
-      continuationToken = page.continuationToken;
-    } while (continuationToken);
+      });
+      status.count += page.results.length;
+      status.continuationToken = page.continuationToken;
+      this.log(
+        "INFO",
+        `storeMigration.${this.getName()}.reindex.${index}: Migrated ${status.count} items: ${status.errors} in errors`
+      );
+      await status.save();
+    } while (status.continuationToken);
   }
 
   /**

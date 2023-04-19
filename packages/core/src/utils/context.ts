@@ -208,7 +208,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
       if (typeof obj === "string") {
         return sanitizeHtml(obj, options);
       }
-      if (typeof obj === "object") {
+      if (obj !== null && typeof obj === "object") {
         Object.keys(obj).forEach(key => {
           obj[key] = recursiveSanitize(obj[key], options);
         });

@@ -178,6 +178,14 @@ class ContextTest extends WebdaTest {
   }
 
   @test
+  async nullInput() {
+    this.ctx.getRawInputAsString = async () => {
+      return '{"test": null, "plop": 12}';
+    };
+    assert.deepStrictEqual(await this.ctx.getInput(), { test: null, plop: 12 });
+  }
+
+  @test
   getRequest() {
     // Need to finish this
     let req = this.ctx.getRequest();

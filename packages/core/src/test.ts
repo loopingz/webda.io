@@ -62,21 +62,6 @@ export class TestApplication extends UnpackedApplication {
   }
 
   /**
-   * Only allow local and core module and sample-app
-   */
-  filterModule(filename: string): boolean {
-    // Just for cov
-
-    const relativePath = path.relative(process.cwd(), filename);
-    return (
-      super.filterModule(filename) &&
-      (!relativePath.includes("..") ||
-        relativePath.startsWith("../core") ||
-        relativePath.startsWith("../../sample-app/"))
-    );
-  }
-
-  /**
    * Load a webda.module.json file
    * Resolve the linked file to current application
    *

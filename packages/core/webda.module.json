@@ -89,14 +89,15 @@
     "tree": {
       "Webda/AclModel": {},
       "Webda/Comment": {},
-      "Webda/OwnerModel": {
-        "Webda/Ident": {}
-      },
       "Webda/RoleModel": {},
       "Webda/User": {
         "Webda/SimpleUser": {}
       },
-      "Webda/UuidModel": {}
+      "Webda/UuidModel": {
+        "Webda/OwnerModel": {
+          "Webda/Ident": {}
+        }
+      }
     },
     "plurals": {},
     "list": {
@@ -1711,6 +1712,10 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
         "_user": {
           "type": "string"
         },
@@ -1718,10 +1723,6 @@
           "type": "boolean",
           "description": "Define if the object is publicly readable",
           "default": false
-        },
-        "uuid": {
-          "type": "string",
-          "description": "UUID of the object"
         },
         "_type": {
           "type": "string",
@@ -2310,6 +2311,10 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
         "_user": {
           "type": "string"
         },
@@ -2317,10 +2322,6 @@
           "type": "boolean",
           "description": "Define if the object is publicly readable",
           "default": false
-        },
-        "uuid": {
-          "type": "string",
-          "description": "UUID of the object"
         }
       },
       "required": [

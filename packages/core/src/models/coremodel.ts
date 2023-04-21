@@ -1252,6 +1252,14 @@ class CoreModel {
  */
 class UuidModel extends CoreModel {
   uuid: string;
+
+  /**
+   * @override
+   */
+  validate(ctx: OperationContext<any, any>, updates: any, ignoreRequired?: boolean): Promise<boolean> {
+    updates.uuid ??= this.generateUid();
+    return super.validate(ctx, updates, ignoreRequired);
+  }
 }
 
 export { CoreModel, UuidModel };

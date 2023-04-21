@@ -332,19 +332,19 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
           } else {
             q = input.q;
           }
-          q = q ? ` AND (${q})` : "";
+          let query = q ? ` AND (${q})` : "";
           if (injectAttribute) {
-            q = ` AND ${injectAttribute} = "${context.getPathParameters()[parentId]}"` + q;
+            query = ` AND ${injectAttribute} = "${context.getPathParameters()[parentId]}"` + query;
           }
-          if (args[0] > 0) {
-            q = `__types CONTAINS "${model.getIdentifier()}"` + q;
+          if (args[0] !== 0) {
+            query = `__types CONTAINS "${model.getIdentifier()}"` + query;
           }
           if (context.getHttpContext().getMethod() === "GET") {
-            context.getParameters().q = q;
+            context.getParameters().q = query;
           } else {
-            input.q = q;
+            input.q = query;
           }
-          this.log("TRACE", `Query modified to ${q} ${args}`);
+          this.log("TRACE", `Query modified to '${query}' from '${q}' ${args[0]}`);
         }
         // Complete the uuid if needed
         if (context.getParameters().uuid) {
@@ -361,7 +361,7 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
     model.Expose.restrict.query ||
       this.addRoute(
         `${prefix}`,
-        ["GET", "PUT"],
+        [this.parameters.queryMethod],
         injector(model.store(), "httpQuery", "QUERY", model.store().handleModel(model))
       );
     model.Expose.restrict.create ||
@@ -382,7 +382,7 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
         action.methods || ["PUT"],
         ctx => {
           if (action.global) {
-            model.store().httpGlobalAction(ctx);
+            model.store().httpGlobalAction(ctx, model);
           } else {
             ctx.getParameters().uuid = model.completeUid(ctx.getParameters().uuid);
             model.store().httpAction(ctx);

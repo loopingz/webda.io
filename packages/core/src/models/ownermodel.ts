@@ -1,12 +1,12 @@
 import { OperationContext } from "../utils/context";
-import { CoreModel } from "./coremodel";
+import { UuidModel } from "./coremodel";
 import { ModelLink } from "./relations";
 import { User } from "./user";
 
 /**
  * @WebdaModel
  */
-export class OwnerModel extends CoreModel {
+export class OwnerModel extends UuidModel {
   /**
    * Default owner of the object
    */
@@ -29,6 +29,15 @@ export class OwnerModel extends CoreModel {
   setOwner(uuid: string): void {
     this._user ??= new ModelLink<User>(uuid, <any>User);
     this._user.set(uuid);
+  }
+
+  /**
+   * @override
+   */
+  validate(ctx: OperationContext<any, any>, updates: any, ignoreRequired?: boolean): Promise<boolean> {
+    updates._user ??= this._user?.toString();
+    updates.uuid ??= this.generateUid();
+    return super.validate(ctx, updates, ignoreRequired);
   }
 
   /**

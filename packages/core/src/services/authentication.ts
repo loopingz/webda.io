@@ -884,7 +884,6 @@ class Authentication<
       event.userId = user;
     }
     event.context = ctx;
-
     ctx.getSession().login(event.userId, event.identId);
     this.metrics.login.inc({ provider });
     return this.emitSync("Authentication.Login", event);

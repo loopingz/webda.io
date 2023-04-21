@@ -74,12 +74,27 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
-  async checkRequestFalse() {
+  async checkRequestNoRequestFilter() {
     await this.handler.init();
     // @ts-ignore
     this.handler._requestFilters = [];
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
+    let res = await this.handler.handleRequest(this.evt, this.context);
+    // No filter return ok now
+    assert.strictEqual(res.statusCode, 200);
+  }
+
+  @test
+  async checkRequestRefusedRequest() {
+    await this.handler.init();
+    // @ts-ignore
+    this.handler._requestFilters = [];
+    this.ensureGoodCSRF();
+    this.evt.queryStringParameters = { test: "Plop" };
+    this.handler.registerRequestFilter({
+      checkRequest: async () => false
+    });
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 403);
   }

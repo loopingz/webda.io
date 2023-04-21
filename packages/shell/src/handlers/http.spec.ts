@@ -128,13 +128,26 @@ class WebdaServerTest {
     stub.restore();
 
     this.server.setDevMode(true);
+    // @ts-ignore
+    this.server._requestFilters = [
+      {
+        checkRequest: async () => false
+      }
+    ];
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    // Status should be the same for now
+    assert.strictEqual(res.status, 403);
     // Remove request accept
     // @ts-ignore
     this.server._requestFilters = [];
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
-    assert.strictEqual(res.status, 403);
+    // Status should be the same for now
+    assert.strictEqual(res.status, 500);
+
     // @ts-ignore
     this.server.subnetChecker = createChecker(["127.0.0.2/32"]);
     res = await fetch(`http://localhost:${this.port}/test`, {

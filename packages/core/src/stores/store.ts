@@ -70,6 +70,10 @@ export interface EventStoreAction extends EventWithContext {
    */
   object?: CoreModel;
   /**
+   * Model of the object if global action
+   */
+  model?: CoreModelDefinition;
+  /**
    * Emitting store
    */
   store: Store;
@@ -2043,14 +2047,15 @@ abstract class Store<
    * Handle collection action
    * @param ctx
    */
-  async httpGlobalAction(ctx: WebContext) {
+  async httpGlobalAction(ctx: WebContext, model: CoreModelDefinition = this._model) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
     await this.emitSync("Store.Action", {
       action: action,
       store: this,
-      context: ctx
+      context: ctx,
+      model
     });
-    const res = await this._model[action](ctx);
+    const res = await model[action](ctx);
     if (res) {
       ctx.write(res);
     }
@@ -2058,7 +2063,8 @@ abstract class Store<
       action: action,
       store: this,
       context: ctx,
-      result: res
+      result: res,
+      model
     });
   }
 

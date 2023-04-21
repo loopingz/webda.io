@@ -176,12 +176,20 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
         this.log("ERROR", "Proxying error", e);
         resolve();
       };
+      let Host;
+      try {
+        Host = new URL(host).host;
+      } catch (err) {
+        // Skip wrong host
+      }
+
       try {
         const req = this.createRequest(
           `${host}${url}`,
           ctx.getHttpContext().getMethod(),
           {
             ...this.getRequestHeaders(ctx),
+            Host,
             "X-Rewrite-URL": ctx.getHttpContext().getRelativeUri(),
             "X-Forwarded-Host": ctx.getHttpContext().getHeader("x-forwarded-host", `${ctx.getHttpContext().getHost()}`),
             "X-Forwarded-Proto": ctx

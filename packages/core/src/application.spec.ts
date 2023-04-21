@@ -50,7 +50,7 @@ class ApplicationTest extends WebdaTest {
     let hierarchy = this.sampleApp.getModelHierarchy(new CoreModel());
     assert.strictEqual(hierarchy.ancestors.length, 0);
     assert.notStrictEqual(hierarchy.children["WebdaDemo/Computer"], undefined);
-    assert.notStrictEqual(hierarchy.children["Webda/OwnerModel"], undefined);
+    assert.notStrictEqual(hierarchy.children["Webda/UuidModel"], undefined);
     hierarchy = this.sampleApp.getModelHierarchy("WebdaDemo/User");
     assert.strictEqual(hierarchy.ancestors.length, 2);
     assert.strictEqual(Object.keys(hierarchy.children).length, 0);

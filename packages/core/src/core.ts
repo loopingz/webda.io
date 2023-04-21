@@ -1341,7 +1341,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected async checkRequest(ctx: WebContext): Promise<boolean> {
     // Do not need to filter on OPTIONS as CORS is for that
-    if (ctx.getHttpContext().getMethod() === "OPTIONS") {
+    if (ctx.getHttpContext().getMethod() === "OPTIONS" || this._requestFilters.length === 0) {
       return true;
     }
     return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "AUTH")))).some(v => v);

@@ -227,6 +227,7 @@ export default class LambdaServer extends Webda {
         return this.handleLambdaReturn(ctx);
       } else if (err instanceof WebdaError.HttpError) {
         ctx.statusCode = err.getResponseCode();
+        this.log("TRACE", `${err.getResponseCode()}: ${err.message}`);
         return this.handleLambdaReturn(ctx);
       }
       throw err;

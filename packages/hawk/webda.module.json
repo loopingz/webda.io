@@ -17,8 +17,10 @@
       }
     },
     "tree": {
-      "Webda/OwnerModel": {
-        "Webda/ApiKey": {}
+      "Webda/UuidModel": {
+        "Webda/OwnerModel": {
+          "Webda/ApiKey": {}
+        }
       }
     },
     "plurals": {},
@@ -65,6 +67,10 @@
           "description": "Last update date",
           "readOnly": true
         },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
         "_user": {
           "type": "string"
         },
@@ -72,10 +78,6 @@
           "type": "boolean",
           "description": "Define if the object is publicly readable",
           "default": false
-        },
-        "uuid": {
-          "type": "string",
-          "description": "UUID of the object"
         },
         "name": {
           "type": "string",

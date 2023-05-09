@@ -18,7 +18,7 @@ import {
 } from "prom-client";
 import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
-import { Application, Configuration } from "./application";
+import { Application, Configuration, Modda } from "./application";
 import {
   BinaryService,
   ConfigurationService,
@@ -197,13 +197,14 @@ export class WebsiteOriginFilter implements RequestFilter<WebContext> {
   }
 }
 
-const beans = {};
-
 // @Bean to declare as a Singleton service
 export function Bean(constructor: Function) {
   let name = constructor.name;
-  beans[name] = beans[name] || { constructor };
-  beans[name] = { ...beans[name], bean: true };
+  // @ts-ignore
+  process.webdaBeans ??= {};
+  // @ts-ignore
+  const beans = process.webdaBeans;
+  beans[name] ??= <Modda>constructor;
 }
 
 export type CoreEvents = {
@@ -262,6 +263,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @hidden
    */
   protected services: { [key: string]: Service } = {};
+  /**
+   * Webda Beans
+   */
+  protected beans: { [key: string]: Modda } = {};
   /**
    * Application that generates this Core
    */
@@ -1119,16 +1124,18 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected createServices(excludes: string[] = []): void {
     const services = this.configuration.services;
+    // @ts-ignore
+    const beans: { [key: string]: Modda } = process.webdaBeans || {};
     this.log("DEBUG", "BEANS", beans);
     for (let i in beans) {
-      let name = beans[i].constructor.name;
+      let name = beans[i].name;
       if (!services[name]) {
         services[name] = {};
       }
       // Force type to Bean
       services[name].type = `Beans/${name}`;
       // Register the type
-      this.application.addService(`Beans/${name}`, beans[i].constructor);
+      this.application.addService(`Beans/${name}`, beans[i]);
     }
 
     // Construct services

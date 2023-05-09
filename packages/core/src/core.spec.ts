@@ -311,6 +311,7 @@ class CoreTest extends WebdaTest {
       [
         { name: "Aaaaa" },
         { name: "contacts" },
+        { name: "CustomService" },
         { name: "ExceptionExecutor" },
         { name: "ImplicitBean" },
         { name: "Zzzz" }
@@ -357,7 +358,7 @@ class CoreTest extends WebdaTest {
   @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesOfType();
-    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 30);
+    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 34);
   }
 
   @test
@@ -403,7 +404,7 @@ class CoreTest extends WebdaTest {
 
   @test
   unknownPage() {
-    assert.strictEqual(this.getExecutor(this.ctx, "test.webda.io", "GET", "/test"), undefined);
+    assert.strictEqual(this.getExecutor(this.ctx, "test.webda.io", "GET", "/test12345"), undefined);
   }
 
   @test

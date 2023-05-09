@@ -163,6 +163,7 @@
         "*": ["*"],
         "WebdaDemo/User": ["images"]
       },
+      "url": "/binary/",
       "expose": {
         "url": "/binary"
       }

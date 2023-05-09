@@ -24,6 +24,10 @@ export class FileBinaryParameters extends CloudBinaryParameters {
       this.folder += "/";
     }
     this.maxSize ??= 10 * 1024 * 1024;
+    // Remove trailing /
+    if (this.url && this.url.endsWith("/")) {
+      this.url = this.url.substring(0, this.url.length - 1);
+    }
   }
 }
 /**
@@ -66,52 +70,53 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
   }
 
-  _initRoutes(): void {
-    super._initRoutes();
-    // Will redirect to this URL for direct upload
-    let url = this.parameters.expose.url + "/download/data/{hash}{?token,content-disposition,content-type}";
+  initRoutes(): void {
+    super.initRoutes();
+    // We do not want to expose by default
+    if (!this.parameters.url) {
+      return;
+    }
+    // Will redirect to this URL for direct download
+    let url = this.parameters.url + "/download/data/{hash}{?token,content-disposition,content-type}";
     let name = this.getOperationName();
-    if (!this.parameters.expose.restrict.get) {
-      this.addRoute(url, ["GET"], this.downloadBinaryLink, {
-        put: {
-          operationId: `get${name}Binary`,
-          description: "Download a binary to an object after challenge",
-          summary: "Download a binary",
-          responses: {
-            "200": {
-              description: "Content of binary"
-            },
-            "403": {
-              description: "Wrong hash"
-            }
+    this.addRoute(url, ["GET"], this.downloadBinaryLink, {
+      put: {
+        operationId: `get${name}Binary`,
+        description: "Download a binary to an object after challenge",
+        summary: "Download a binary",
+        responses: {
+          "200": {
+            description: "Content of binary"
+          },
+          "403": {
+            description: "Wrong hash"
           }
         }
-      });
-    }
-    if (!this.parameters.expose.restrict.create) {
-      url = this.parameters.expose.url + "/upload/data/{hash}{?token}";
-      this.addRoute(url, ["PUT"], this.storeBinary, {
-        put: {
-          operationId: `put${name}Binary`,
-          description: "Upload a binary to an object after challenge",
-          summary: "Upload a binary",
-          responses: {
-            "204": {
-              description: ""
-            },
-            "400": {
-              description: "Wrong hash"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
+      }
+    });
+
+    url = this.parameters.url + "/upload/data/{hash}{?token}";
+    this.addRoute(url, ["PUT"], this.storeBinary, {
+      put: {
+        operationId: `put${name}Binary`,
+        description: "Upload a binary to an object after challenge",
+        summary: "Upload a binary",
+        responses: {
+          "204": {
+            description: ""
+          },
+          "400": {
+            description: "Wrong hash"
+          },
+          "404": {
+            description: "Object does not exist or attachment does not exist"
+          },
+          "412": {
+            description: "Provided hash does not match"
           }
         }
-      });
-    }
+      }
+    });
   }
 
   /**
@@ -158,7 +163,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async getSignedUrlFromMap(map: BinaryMap, expires: number, context: WebContext): Promise<string> {
     return `${context
       .getHttpContext()
-      .getAbsoluteUrl(this.parameters.expose.url + "/download/data/" + map.hash)}?token=${await this.getToken(
+      .getAbsoluteUrl(this.parameters.url + "/download/data/" + map.hash)}?token=${await this.getToken(
       map.hash,
       "GET",
       expires
@@ -212,9 +217,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     // Get a full URL, this method should be in a Route Object
     // Add a JWT token for 60s
     let token = await this.getToken(body.hash, "PUT");
-    return ctx
-      .getHttpContext()
-      .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + body.hash + `?token=${token}`);
+    return ctx.getHttpContext().getAbsoluteUrl(this.parameters.url + "/upload/data/" + body.hash + `?token=${token}`);
   }
 
   /**

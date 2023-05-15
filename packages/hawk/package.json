@@ -1,6 +1,6 @@
 {
   "name": "@webda/hawk",
-  "version": "2.4.2",
+  "version": "3.0.0",
   "description": "Implements Hawk on webda",
   "keywords": [
     "hawk",
@@ -20,7 +20,7 @@
     "test:debug": "mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
-    "@webda/core": "^2.4.2",
+    "@webda/core": "^3.0.0",
     "hawk": "^9.0.0",
     "is-in-subnet": "^4.0.1"
   },
@@ -50,7 +50,7 @@
   },
   "devDependencies": {
     "@types/node": "14.6.0",
-    "@webda/shell": "^2.4.2"
+    "@webda/shell": "^3.0.0"
   },
   "type": "module",
   "engines": {

@@ -1,10 +1,16 @@
 {
+  "beans": {},
+  "deployers": {},
   "moddas": {
     "Webda/GraphQLService": "lib/graphql:GraphQLService"
   },
-  "beans": {},
-  "models": {},
-  "deployers": {},
+  "models": {
+    "graph": {},
+    "tree": {},
+    "plurals": {},
+    "list": {},
+    "reflections": {}
+  },
   "schemas": {
     "Webda/GraphQLService": {
       "type": "object",

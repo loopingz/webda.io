@@ -1,4 +1,3 @@
-import { EventEmitter } from "events";
 import { JSONSchema7 } from "json-schema";
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
@@ -20,7 +19,6 @@ import {
   RawModel
 } from "./relations";
 
-const Emitters: Map<any, EventEmitter> = new Map();
 /**
  * Expose the model through API or GraphQL if it exists
  * The model will be exposed using its class name + 's'
@@ -244,16 +242,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
    * Get Model identifier
    */
   getIdentifier(short?: boolean): string;
-  /**
-   * Get the model hierarchy
-   *
-   * Ancestors will contain every model it inherits from
-   * Children will contain every model that inherits from this model in a tree structure
-   */
-  getHierarchy(): {
-    ancestors: string[];
-    children: ModelGraph;
-  };
+
   /**
    * Complete uuid useful to implement uuid prefix or suffix
    * @param uid
@@ -592,8 +581,10 @@ class CoreModel {
   }
 
   /**
-   * Get hierarchy for this model
-   * @returns
+   * Get the model hierarchy
+   *
+   * Ancestors will contain every model it inherits from
+   * Children will contain every model that inherits from this model in a tree structure
    */
   static getHierarchy(): {
     ancestors: string[];

@@ -37,24 +37,7 @@
   "models": {
     "graph": {
       "Webda/AclModel": {},
-      "Webda/Comment": {
-        "parent": {
-          "attribute": "target",
-          "model": "Webda/CoreModel"
-        },
-        "links": [
-          {
-            "attribute": "author",
-            "model": "Webda/User",
-            "type": "LINK"
-          }
-        ]
-      },
-      "Webda/CoreModel": {
-        "children": [
-          "Webda/Comment"
-        ]
-      },
+      "Webda/CoreModel": {},
       "Webda/Ident": {
         "links": [
           {
@@ -88,7 +71,6 @@
     },
     "tree": {
       "Webda/AclModel": {},
-      "Webda/Comment": {},
       "Webda/RoleModel": {},
       "Webda/User": {
         "Webda/SimpleUser": {}
@@ -102,7 +84,6 @@
     "plurals": {},
     "list": {
       "Webda/AclModel": "lib/models/aclmodel:default",
-      "Webda/Comment": "lib/models/comment:Comment",
       "Webda/CoreModel": "lib/models/coremodel:CoreModel",
       "Webda/Ident": "lib/models/ident:Ident",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
@@ -116,21 +97,6 @@
         "_creator": "string",
         "___acl": "Acl",
         "_permissions": "string[]",
-        "___class": "CoreModelDefinition",
-        "___type": "string",
-        "___types": "string[]",
-        "___ctx": "OperationContext",
-        "___store": "Store<this>",
-        "___dirty": "Set<string | symbol>",
-        "_creationDate": "Date",
-        "_lastUpdate": "Date",
-        "___deleted": "boolean"
-      },
-      "Webda/Comment": {
-        "target": "ModelParent<CoreModel>",
-        "author": "ModelLink<User>",
-        "title": "string",
-        "description": "string",
         "___class": "CoreModelDefinition",
         "___type": "string",
         "___types": "string[]",
@@ -685,46 +651,6 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BinaryService"
-    },
-    "Webda/Comment": {
-      "type": "object",
-      "properties": {
-        "_creationDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Creation date",
-          "readOnly": true
-        },
-        "_lastUpdate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Last update date",
-          "readOnly": true
-        },
-        "target": {
-          "type": "string"
-        },
-        "author": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string",
-          "description": "Title"
-        },
-        "description": {
-          "type": "string",
-          "description": "Comment content"
-        }
-      },
-      "required": [
-        "target",
-        "author",
-        "title",
-        "description"
-      ],
-      "description": "Generic comment class",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Comment"
     },
     "Webda/ConfigurationService": {
       "type": "object",

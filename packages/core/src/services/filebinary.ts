@@ -73,7 +73,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   initRoutes(): void {
     super.initRoutes();
     // We do not want to expose by default
-    if (!this.parameters.url) {
+    if (this.parameters.url === undefined) {
       return;
     }
     // Will redirect to this URL for direct download

@@ -139,20 +139,17 @@ export class WebdaServer extends Webda {
     try {
       let httpContext = ctx.getHttpContext();
 
-      if (!this.updateContextWithRoute(ctx)) {
-        let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
-        if (routes.length === 0) {
-          // Static served should not be reachable via XHR
-          if (httpContext.getMethod() !== "GET" || !this.resourceService) {
-            ctx.writeHead(404);
-            return;
-          }
-          // Try to serve static resource
-          await ctx.init();
-          ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
-          await this.resourceService._serve(ctx);
+      if (!this.updateContextWithRoute(ctx) && httpContext.getMethod() !== "OPTIONS") {
+        // Static served should not be reachable via XHR
+        if (httpContext.getMethod() !== "GET" || !this.resourceService) {
+          ctx.writeHead(404);
           return;
         }
+        // Try to serve static resource
+        await ctx.init();
+        ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
+        await this.resourceService._serve(ctx);
+        return;
       }
 
       await ctx.init();
@@ -182,6 +179,11 @@ export class WebdaServer extends Webda {
       // Handle OPTIONS
       if (req.method === "OPTIONS") {
         let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
+        // OPTIONS on unknown route should return 404
+        if (routes.length === 0) {
+          ctx.writeHead(404);
+          return;
+        }
         routes.push("OPTIONS");
         ctx.setHeader("Access-Control-Allow-Credentials", "true");
         ctx.setHeader("Access-Control-Allow-Headers", req.headers["access-control-request-headers"] || "content-type");

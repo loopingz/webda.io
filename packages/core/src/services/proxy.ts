@@ -21,12 +21,19 @@ export class ProxyParameters extends ServiceParameters {
    * Helper to refuse any request if user is not auth
    */
   requireAuthentication: boolean;
+  /**
+   * Add X-Forwarded-* headers
+   *
+   * @default true
+   */
+  proxyHeaders: boolean;
 
   constructor(params: any) {
     super(params);
     if (this.backend?.endsWith("/")) {
       this.backend = this.backend.substring(0, this.backend.length - 1);
     }
+    this.proxyHeaders ??= true;
   }
 }
 
@@ -135,6 +142,24 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @returns
    */
   getRequestHeaders(context: WebContext) {
+    const headers = { ...context.getHttpContext().getHeaders() };
+    if (this.parameters.proxyHeaders) {
+      let xff = context.getHttpContext().getHeader("x-forwarded-for");
+      if (!xff) {
+        xff += `, ${context.getHttpContext().getClientIp()}`;
+      } else {
+        xff = context.getHttpContext().getClientIp();
+      }
+      const protocol = context.getHttpContext().getProtocol();
+      headers["X-Rewrite-URL"] = context.getHttpContext().getRelativeUri();
+      headers["X-Forwarded-Host"] = context
+        .getHttpContext()
+        .getHeader("x-forwarded-host", `${context.getHttpContext().getHost()}`);
+      headers["X-Forwarded-Proto"] = context
+        .getHttpContext()
+        .getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1));
+      headers["X-Forwarded-For"] = xff;
+    }
     return context.getHttpContext().getHeaders();
   }
 
@@ -161,13 +186,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${url}`);
     this.metrics.http_request_in_flight.inc();
     await new Promise<void>((resolve, reject) => {
-      let xff = ctx.getHttpContext().getHeader("x-forwarded-for");
-      if (!xff) {
-        xff += `, ${ctx.getHttpContext().getClientIp()}`;
-      } else {
-        xff = ctx.getHttpContext().getClientIp();
-      }
-      const protocol = ctx.getHttpContext().getProtocol();
       const labels = {
         method: ctx.getHttpContext().getMethod(),
         host,
@@ -192,12 +210,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
           {
             ...this.getRequestHeaders(ctx),
             Host,
-            "X-Rewrite-URL": ctx.getHttpContext().getRelativeUri(),
-            "X-Forwarded-Host": ctx.getHttpContext().getHeader("x-forwarded-host", `${ctx.getHttpContext().getHost()}`),
-            "X-Forwarded-Proto": ctx
-              .getHttpContext()
-              .getHeader("x-forwarded-proto", protocol.substring(0, protocol.length - 1)),
-            "X-Forwarded-For": xff,
             ...headers
           },
           res => {

@@ -123,11 +123,12 @@ export class CookieSessionManager<
         this.parameters.cookie.name,
         context,
         {},
-        { ...this.parameters.jwt, subject: session.uuid.toString() }
+        { ...this.parameters.jwt, subject: session.uuid.toString() },
+        this.parameters.cookie
       );
       return;
     }
-    SecureCookie.save(this.parameters.cookie.name, context, session, this.parameters.jwt);
+    SecureCookie.save(this.parameters.cookie.name, context, session, this.parameters.jwt, this.parameters.cookie);
   }
 }
 

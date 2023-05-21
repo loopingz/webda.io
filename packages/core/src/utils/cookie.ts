@@ -93,6 +93,7 @@ export class SecureCookie {
     let cookies = {};
     let raw = "";
     let session = await context.newSession();
+    name ??= "webda";
 
     // No http context
     if (!context.getHttpContext()) {
@@ -154,6 +155,7 @@ export class SecureCookie {
    */
   static sendCookie(ctx: WebContext, name: string, value: string, params: CookieOptions) {
     let j = 1;
+    name ??= "webda";
     let cookieName = name;
     let limit;
     const mapLength = cookieSerialize(name, "", params).length;

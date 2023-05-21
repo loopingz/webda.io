@@ -356,6 +356,9 @@ abstract class Service<
       return undefined;
     }
     if (url.startsWith(".")) {
+      if (this.parameters.url === "/") {
+        return url.substring(1);
+      }
       return this.parameters.url + url.substring(1);
     }
     return url;

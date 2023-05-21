@@ -154,7 +154,10 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * @param ctx
    * @param url
    */
-  async rawProxy(ctx: WebContext, host: string, url: string, headers: any = {}) {
+  async rawProxy(ctx: WebContext, host: string, url: string = "/", headers: any = {}) {
+    if (!url.startsWith("/")) {
+      url = "/" + url;
+    }
     this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${url}`);
     this.metrics.http_request_in_flight.inc();
     await new Promise<void>((resolve, reject) => {
@@ -182,7 +185,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       } catch (err) {
         // Skip wrong host
       }
-
       try {
         const req = this.createRequest(
           `${host}${url}`,

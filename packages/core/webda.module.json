@@ -2334,6 +2334,11 @@
           "type": "boolean",
           "description": "Helper to refuse any request if user is not auth"
         },
+        "proxyHeaders": {
+          "type": "boolean",
+          "description": "Add X-Forwarded-* headers",
+          "default": true
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
@@ -2341,6 +2346,7 @@
       },
       "required": [
         "backend",
+        "proxyHeaders",
         "requireAuthentication",
         "type"
       ],

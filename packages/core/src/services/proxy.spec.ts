@@ -1,10 +1,123 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
+import { EventEmitter } from "events";
 import * as http from "http";
+import sinon from "sinon";
 import { WritableStreamBuffer } from "stream-buffers";
+import { WebSocket, WebSocketServer } from "ws";
 import { WebdaError } from "../errors";
 import { WebdaTest } from "../test";
-import { ProxyService } from "./proxy";
+import { HttpContext } from "../utils/httpcontext";
+import { createHttpHeader, ProxyService } from "./proxy";
+
+@suite
+class WSProxyTest extends WebdaTest {
+  @test
+  cov() {
+    assert.strictEqual(createHttpHeader("plop", { test: ["1", "2"] }), `plop\r\ntest: 1\r\ntest: 2\r\n\r\n`);
+  }
+
+  @test
+  async wsProxy() {
+    const proxyService = new ProxyService(this.webda, "proxy", {
+      url: "/proxy",
+      backend: "http://localhost:28888/"
+    });
+    const socket: any = new EventEmitter();
+    socket.destroy = sinon.stub();
+    socket.end = sinon.stub();
+    proxyService.proxyWS({ url: "/toto" }, socket, undefined);
+    assert.ok(!socket.destroy.calledOnce);
+    proxyService.proxyWS({ url: "/proxy/", method: "POST" }, socket, undefined);
+    assert.ok(socket.destroy.calledOnce);
+    socket.destroy.resetHistory();
+    proxyService.proxyWS({ url: "/proxy/", method: "GET", headers: {} }, socket, undefined);
+    assert.ok(socket.destroy.calledOnce);
+    socket.destroy.resetHistory();
+    proxyService.proxyWS({ url: "/proxy/", method: "GET", headers: { upgrade: "toto" } }, socket, undefined);
+    assert.ok(socket.destroy.calledOnce);
+    const proxyRequestSocket: any = <any>new EventEmitter();
+    proxyRequestSocket.end = sinon.stub();
+    const createRequest = sinon.stub(proxyService, "createWSRequest").callsFake(() => {
+      return <any>proxyRequestSocket;
+    });
+    const ctx = await this.newContext();
+    await proxyService.rawProxyWS(ctx, "", socket);
+    proxyRequestSocket.emit("error");
+    assert.ok(socket.end.calledOnce);
+
+    socket.write = sinon.stub();
+    proxyRequestSocket.emit("response", {
+      pipe: sinon.stub(),
+      headers: {},
+      httpVersion: "1.0",
+      statusCode: 200,
+      statusMessage: "OK"
+    });
+    assert.ok(socket.write.calledOnce);
+    createRequest.restore();
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        console.log("WS server constructor");
+        const wss = new WebSocketServer({ port: 28888 });
+
+        wss.on("connection", function connection(ws) {
+          ws.on("error", console.error);
+
+          ws.on("message", function message(data) {
+            console.log("received: %s", data);
+            ws.send(data);
+          });
+
+          ws.send("something");
+        });
+
+        this.registerService(proxyService);
+        await proxyService.resolve().init();
+        console.log("Http server constructor");
+        const httpServer = http
+          .createServer((req, res) => {
+            console.log("Got request", req.url);
+          })
+          .listen("28887");
+        this.webda.emit("Webda.Init.Http", httpServer);
+        // @ts-ignore
+        this.webda.getContextFromRequest = async (req, res) =>
+          this.webda.newWebContext(
+            new HttpContext("localhost", "GET", "/proxy/", "http", "28887", req.headers),
+            res,
+            true
+          );
+
+        const ws = new WebSocket("ws://localhost:28887/proxy/");
+
+        ws.on("error", console.error);
+
+        ws.on("open", function open() {
+          console.log("connected");
+          ws.send(Date.now());
+        });
+
+        ws.on("close", function close() {
+          console.log("disconnected");
+        });
+
+        ws.on("message", function message(data: any) {
+          if (isNaN(data)) {
+            return;
+          }
+          console.log(`Round-trip time: ${Date.now() - data} ms`);
+          ws.close();
+          wss.close();
+          httpServer.close();
+          resolve();
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  }
+}
 
 @suite
 class ProxyTest extends WebdaTest {

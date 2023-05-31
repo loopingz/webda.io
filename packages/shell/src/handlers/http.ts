@@ -299,6 +299,7 @@ export class WebdaServer extends Webda {
         this.log("ERROR", err.message);
         this.serverStatus = ServerStatus.Stopped;
       });
+      this.emit("Webda.Init.Http", this.http);
       if (websockets) {
         // Activate websocket
         this.output("Activating socket.io");

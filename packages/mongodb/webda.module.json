@@ -155,7 +155,7 @@
             },
             "useBigInt64": {
               "type": "boolean",
-              "description": "when deserializing a Long return as a BigInt."
+              "description": "when deserializing a Long will return as a BigInt."
             },
             "promoteLongs": {
               "type": "boolean",
@@ -187,11 +187,11 @@
             },
             "serializeFunctions": {
               "type": "boolean",
-              "description": "serialize the javascript functions"
+              "description": "serialize the javascript functions **(default:false)**."
             },
             "ignoreUndefined": {
               "type": "boolean",
-              "description": "serialize will not emit undefined fields note that the driver sets this to `false`"
+              "description": "serialize will not emit undefined fields **(default:true)**"
             },
             "enableUtf8Validation": {
               "type": "boolean",

@@ -11,7 +11,7 @@
     "commitlint": "^17.0.0",
     "gh-pages": "^5.0.0",
     "husky": "^8.0.1",
-    "lerna": "^6.0.3",
+    "lerna": "^7.0.2",
     "merge-stream": "^2.0.0",
     "mocha": ">=9.0.2",
     "nyc": "^15.0.1",

@@ -581,7 +581,10 @@ ${Object.keys(operationsExport.operations)
    */
   static async initLogger(argv: yargs.Arguments) {
     if (argv["logLevel"]) {
-      process.env["LOG_LEVEL"] = <string>argv["logLevel"];
+      process.env["LOG_LEVEL"] = (<string>argv["logLevel"]).toUpperCase();
+    }
+    if (process.env["LOG_LEVEL"]) {
+      process.env["LOG_LEVEL"] = process.env["LOG_LEVEL"].toUpperCase();
     }
   }
 

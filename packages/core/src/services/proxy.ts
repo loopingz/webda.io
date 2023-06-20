@@ -324,7 +324,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     if (!url.startsWith("/")) {
       url = "/" + url;
     }
-    this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${url}`);
+    this.log("DEBUG", "Proxying to", `${ctx.getHttpContext().getMethod()} ${host} ${url}`);
     this.metrics.http_request_in_flight.inc();
     await new Promise<void>((resolve, reject) => {
       const labels = {

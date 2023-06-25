@@ -1,0 +1,23 @@
+{
+    "plugins": ["node-workspace"],
+    "packages": {
+      "packages/amqp": { },
+      "packages/async": { },
+      "packages/aws": { },
+      "packages/core": { },
+      "packages/elasticsearch": { },
+      "packages/gcp": { },
+      "packages/google-auth": { },
+      "packages/graphql": { },
+      "packages/hawk": { },
+      "packages/kubernetes": { },
+      "packages/mongodb": { },
+      "packages/postgres": { },
+      "packages/profiler-aws-xray": { },
+      "packages/profiler": { },
+      "packages/shell": { },
+      "packages/tsc-esm": { },
+      "packages/websockets": { },
+      "packages/workout": { }
+    }
+  }

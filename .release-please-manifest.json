@@ -1,1 +1,21 @@
-{}
+{
+  "packages/amqp": "3.0.2",
+  "packages/async": "3.0.2",
+  "packages/aws": "3.0.2",
+  "packages/core": "3.0.2",
+  "packages/codmod": "3.0.0",
+  "packages/elasticsearch": "3.0.2",
+  "packages/gcp": "3.0.2",
+  "packages/google-auth": "3.0.2",
+  "packages/graphql": "3.0.2",
+  "packages/hawk": "3.0.2",
+  "packages/kubernetes": "3.0.2",
+  "packages/mongodb": "3.0.2",
+  "packages/postgres": "3.0.2",
+  "packages/profiler": "3.0.2",
+  "packages/profiler-aws-xray": "3.0.2",
+  "packages/shell": "3.0.2",
+  "packages/tsc-esm": "1.0.3",
+  "packages/websockets": "3.0.2",
+  "packages/workout": "3.0.0"
+}

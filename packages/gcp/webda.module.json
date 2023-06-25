@@ -415,6 +415,39 @@
                         }
                       ],
                       "description": "PushConfig oidcToken"
+                    },
+                    "pubsubWrapper": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "description": "Properties of a PubsubWrapper."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "PushConfig pubsubWrapper"
+                    },
+                    "noWrapper": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "writeMetadata": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ],
+                              "description": "NoWrapper writeMetadata"
+                            }
+                          },
+                          "description": "Properties of a NoWrapper."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "PushConfig noWrapper"
                     }
                   },
                   "description": "Properties of a PushConfig."
@@ -497,6 +530,194 @@
                 }
               ],
               "description": "Subscription bigqueryConfig"
+            },
+            "cloudStorageConfig": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "bucket": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "CloudStorageConfig bucket"
+                    },
+                    "filenamePrefix": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "CloudStorageConfig filenamePrefix"
+                    },
+                    "filenameSuffix": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "CloudStorageConfig filenameSuffix"
+                    },
+                    "textConfig": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "description": "Properties of a TextConfig."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "CloudStorageConfig textConfig"
+                    },
+                    "avroConfig": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "writeMetadata": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ],
+                              "description": "AvroConfig writeMetadata"
+                            }
+                          },
+                          "description": "Properties of an AvroConfig."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "CloudStorageConfig avroConfig"
+                    },
+                    "maxDuration": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "seconds": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "high": {
+                                      "type": "number",
+                                      "description": "The high 32 bits as a signed value."
+                                    },
+                                    "low": {
+                                      "type": "number",
+                                      "description": "The low 32 bits as a signed value."
+                                    },
+                                    "unsigned": {
+                                      "type": "boolean",
+                                      "description": "Whether unsigned or not."
+                                    }
+                                  },
+                                  "required": [
+                                    "high",
+                                    "low",
+                                    "unsigned"
+                                  ]
+                                },
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "Duration seconds"
+                            },
+                            "nanos": {
+                              "type": [
+                                "number",
+                                "null"
+                              ],
+                              "description": "Duration nanos"
+                            }
+                          },
+                          "description": "Properties of a Duration."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "CloudStorageConfig maxDuration"
+                    },
+                    "maxBytes": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "high": {
+                              "type": "number",
+                              "description": "The high 32 bits as a signed value."
+                            },
+                            "low": {
+                              "type": "number",
+                              "description": "The low 32 bits as a signed value."
+                            },
+                            "unsigned": {
+                              "type": "boolean",
+                              "description": "Whether unsigned or not."
+                            }
+                          },
+                          "required": [
+                            "high",
+                            "low",
+                            "unsigned"
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "CloudStorageConfig maxBytes"
+                    },
+                    "state": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/google.pubsub.v1.CloudStorageConfig.State"
+                        },
+                        {
+                          "type": "string",
+                          "const": "STATE_UNSPECIFIED"
+                        },
+                        {
+                          "type": "string",
+                          "const": "ACTIVE"
+                        },
+                        {
+                          "type": "string",
+                          "const": "PERMISSION_DENIED"
+                        },
+                        {
+                          "type": "string",
+                          "const": "NOT_FOUND"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "CloudStorageConfig state"
+                    }
+                  },
+                  "description": "Properties of a CloudStorageConfig."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription cloudStorageConfig"
             },
             "ackDeadlineSeconds": {
               "type": [
@@ -990,6 +1211,16 @@
             2,
             3,
             4
+          ],
+          "description": "State enum."
+        },
+        "google.pubsub.v1.CloudStorageConfig.State": {
+          "type": "number",
+          "enum": [
+            0,
+            1,
+            2,
+            3
           ],
           "description": "State enum."
         },

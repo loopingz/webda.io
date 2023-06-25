@@ -22,7 +22,7 @@ class LambdaCallerTest extends WebdaTest {
     const mock = mockClient(Lambda)
       .on(InvokeCommand)
       .resolves({
-        Payload: Buffer.from(JSON.stringify({ plop: true }))
+        Payload: <any>Buffer.from(JSON.stringify({ plop: true }))
       });
     try {
       lambdaCaller.resolve();

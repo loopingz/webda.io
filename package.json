@@ -26,7 +26,8 @@
   },
   "resolutions": {
     "typescript": "~4.9.3",
-    "deepmerge-ts": "<4.2.0"
+    "deepmerge-ts": "<4.2.0",
+    "@types/ws": "=8.5.4"
   },
   "author": "loopingz",
   "license": "MIT",

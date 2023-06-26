@@ -19,6 +19,10 @@ type WalkerOptionsType = { followSymlinks?: boolean; includeDir?: boolean; maxDe
 type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor?: (filepath: string) => void };
 
 /**
+ * Type of format managed
+ */
+type Format = "json" | "yaml";
+/**
  * Define a Finder that can be use
  */
 export interface StorageFinder {
@@ -48,8 +52,8 @@ export interface StorageFinder {
  * Allow save/load of yaml or json file
  */
 export const FileUtils: StorageFinder & {
-  save: (object: any, filename: string, publicAudience?: boolean) => void;
-  load: (filename: string) => any;
+  save: (object: any, filename: string, publicAudience?: boolean, format?: Format) => void;
+  load: (filename: string, format?: Format) => any;
   clean: (...files: string[]) => void;
 } = {
   /**
@@ -148,18 +152,25 @@ export const FileUtils: StorageFinder & {
    * @param filename to load
    * @returns
    */
-  load: filename => {
+  load: (filename, format?: Format) => {
     if (!existsSync(filename)) {
       throw new Error(`File '${filename}' does not exist.`);
     }
     let content = readFileSync(filename, "utf-8");
-    if (filename.match(/\.ya?ml$/i)) {
+    if (!format) {
+      if (filename.match(/\.ya?ml$/i)) {
+        format = "yaml";
+      } else if (filename.match(/\.jsonc?$/i)) {
+        format = "json";
+      }
+    }
+    if (format === "yaml") {
       let res = yaml.parseAllDocuments(content);
       if (res.length === 1) {
         return res.pop().toJSON();
       }
       return res.map(d => d.toJSON());
-    } else if (filename.match(/\.jsonc?$/i)) {
+    } else if (format === "json") {
       if (filename.endsWith("c")) {
         return jsonc.parse(content);
       }
@@ -290,11 +301,12 @@ export const JSONUtils = {
   /**
    * Helper to FileUtils.save
    */
-  loadFile: FileUtils.load,
+  loadFile: (filename: string) => FileUtils.load(filename, "json"),
   /**
    * Helper to FileUtils.save
    */
-  saveFile: FileUtils.save,
+  saveFile: (object: any, filename: string, publicAudience?: boolean) => FileUtils.save(object, filename, publicAudience, "json"),
+  
 
   /**
    * Sort object keys
@@ -322,11 +334,11 @@ export const YAMLUtils = {
   /**
    * Helper to FileUtils.save
    */
-  saveFile: FileUtils.save,
+  loadFile: (filename: string) => FileUtils.load(filename, "yaml"),
   /**
-   * Helper to FileUtils.load
+   * Helper to FileUtils.save
    */
-  loadFile: FileUtils.load,
+  saveFile: (object: any, filename: string, publicAudience?: boolean) => FileUtils.save(object, filename, publicAudience, "yaml"),
   /**
    * Duplicate an object using serializer
    */

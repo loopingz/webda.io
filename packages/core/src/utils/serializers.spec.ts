@@ -20,12 +20,13 @@ class UtilsTest {
       test: "ok"
     });
     assert.throws(() => JSONUtils.loadFile("/none"), /File '\/none' does not exist/);
-    assert.throws(() => JSONUtils.loadFile("./Dockerfile"), /Unknown format/);
+    assert.throws(() => JSONUtils.loadFile("./Dockerfile"), /SyntaxError/);
+    assert.throws(() => FileUtils.load("./Dockerfile"), /Unknown format/);
   }
 
   @test("LoadYAML File")
   fileYml() {
-    assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.yml"), {
+    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.yml"), {
       test: { ok: "plop" },
       tab: ["ok", "item2"]
     });
@@ -33,7 +34,7 @@ class UtilsTest {
 
   @test("LoadYAML Multiple Docs File")
   fileYaml() {
-    assert.strictEqual(JSONUtils.loadFile(TEST_FOLDER + "mdocs.yaml").length, 2);
+    assert.strictEqual(FileUtils.load(TEST_FOLDER + "mdocs.yaml").length, 2);
   }
 
   @test("CircularJSON")

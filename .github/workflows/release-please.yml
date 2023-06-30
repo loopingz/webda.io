@@ -17,7 +17,6 @@ jobs:
         with:
           command: manifest
           monorepo-tags: true
-          include-v-in-tags: false
 
       - uses: actions/setup-node@v2
         if: ${{ steps.release.outputs.releases_created }}

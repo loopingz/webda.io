@@ -22,7 +22,8 @@
   "dependencies": {
     "@webda/core": "^3.1.0",
     "hawk": "^9.0.0",
-    "is-in-subnet": "^4.0.1"
+    "is-in-subnet": "^4.0.1",
+    "jsonwebtoken": "^9.0.0"
   },
   "files": [
     "lib",

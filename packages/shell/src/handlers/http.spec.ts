@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { HttpContext, ResourceService } from "@webda/core";
+import { HttpContext, ResourceService, WebdaError } from "@webda/core";
 import * as assert from "assert";
 import * as http from "http";
 import { createChecker } from "is-in-subnet";
@@ -100,6 +100,16 @@ class WebdaServerTest {
     });
     assert.strictEqual(res.status, 404);
     stub.callsFake(() => {
+      throw new WebdaError.Redirect("Need Auth", "https://google.com")
+    })
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" },
+      redirect: "manual"
+    });
+    assert.strictEqual(res.status, 302);
+    assert.strictEqual(res.headers.get("Location"), "https://google.com/");
+
+    stub.callsFake(() => {
       throw new Error();
     });
 
@@ -124,6 +134,10 @@ class WebdaServerTest {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
     assert.strictEqual(res.status, 500);
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    
 
     stub.restore();
 

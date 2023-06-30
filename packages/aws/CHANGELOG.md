@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.1.0](https://github.com/loopingz/webda.io/compare/aws-v3.0.2...aws-v3.1.0) (2023-06-30)
+
+
+### Features
+
+* allow redirect with WebdaError.Redirect ([499432e](https://github.com/loopingz/webda.io/commit/499432edd2bc9b542d7551b398a8b32648f04c4e))
+
+
+### Bug Fixes
+
+* @types/ws version ([f63b002](https://github.com/loopingz/webda.io/commit/f63b0025b72f96f4282fbd30232f02164134ed5e))
+* improve error message for unsupported diagrams ([03238b0](https://github.com/loopingz/webda.io/commit/03238b072ad3525ed463212fc77463f958259f90))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.0.2 to ^3.1.0
+  * devDependencies
+    * @webda/async bumped from ^3.0.2 to ^3.0.3
+    * @webda/shell bumped from ^3.0.2 to ^3.1.0
+
 ## [1.1.1](https://github.com/loopingz/webda.io/compare/@webda/aws@1.1.0...@webda/aws@1.1.1) (2021-03-24)
 
 **Note:** Version bump only for package @webda/aws

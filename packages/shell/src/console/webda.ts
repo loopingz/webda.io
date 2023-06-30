@@ -1,4 +1,4 @@
-import { CancelablePromise, FileUtils, getCommonJS, Logger, PackageDescriptorAuthor, Store } from "@webda/core";
+import { Application, CancelablePromise, FileUtils, getCommonJS, JSONUtils, Logger, PackageDescriptorAuthor, Store } from "@webda/core";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
@@ -16,6 +16,8 @@ import { BuildSourceApplication, SourceApplication } from "../code/sourceapplica
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
 import { WebdaTerminal } from "./terminal";
+import { glob } from "glob";
+import { createHash } from "crypto";
 const { __dirname } = getCommonJS(import.meta.url);
 
 export type WebdaCommand = (argv: any[]) => void;
@@ -36,6 +38,16 @@ export interface ApplicationExportFormat {
     version: string;
     author?: PackageDescriptorAuthor;
   };
+}
+
+/**
+ * Webda Cache file description
+ */
+export interface WebdaCache {
+  /**
+   * Digest of source code to know if compilation is needed
+   */
+  digest?: string;
 }
 
 export interface OperationsExportFormat extends ApplicationExportFormat {
@@ -503,6 +515,37 @@ ${Object.keys(operationsExport.operations)
    */
   static getVersion() {
     return JSON.parse(fs.readFileSync(__dirname + "/../../package.json").toString()).version;
+  }
+
+  /**
+   * Add a system to recompile if needed
+   * @returns 
+   */
+  static requireCompilation() : boolean {
+    const f = this.app.getAppPath(".webda");
+    let webdaCache : WebdaCache = {};
+    if (fs.existsSync(f)) {
+        webdaCache = JSONUtils.loadFile(f);
+    }
+    const digest = webdaCache.digest;
+    // This is a cache key not cryptographic need
+    const current = createHash("md5");
+    const tsCfg = fs.readFileSync(this.app.getAppPath("tsconfig.json"));
+    current.update(tsCfg);
+    const ts = JSON.parse(tsCfg.toString());
+    glob.sync(ts.include || ["**/*"], {
+      ignore: ts.exclude,
+      nodir: true,
+    }).forEach(f => {
+      current.update(fs.readFileSync(f));
+    });
+    webdaCache.digest = current.digest('hex');
+    if (webdaCache.digest == digest) {
+      this.log("DEBUG", "Skipping compilation as nothing changed");
+      return false;
+    }
+    JSONUtils.saveFile(webdaCache, f);
+    return true;
   }
 
   /**
@@ -1051,6 +1094,11 @@ ${Object.keys(operationsExport.operations)
           this.app = new BuildSourceApplication(<string>argv.appPath, output);
         } else {
           this.app = new SourceApplication(<string>argv.appPath, output);
+          if (argv.noCompile || !this.requireCompilation()) {
+            this.app.preventCompilation(true);
+          } else {
+            this.app.compile();
+          }
         }
       } catch (err) {
         output.log("WARN", err.message);
@@ -1070,11 +1118,6 @@ ${Object.keys(operationsExport.operations)
           this.log("ERROR", err.message);
           return -1;
         }
-      }
-
-      // Recompile project
-      if (argv.noCompile) {
-        this.app.preventCompilation(true);
       }
 
       // Load webda module

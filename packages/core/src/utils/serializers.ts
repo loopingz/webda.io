@@ -48,6 +48,20 @@ export interface StorageFinder {
    */
   getReadStream(path: string): Readable;
 }
+
+/**
+ * Guess format to use for a filename
+ * @param filename 
+ * @returns 
+ */
+function getFormatFromFilename(filename: string): Format {
+    if (filename.match(/\.ya?ml$/i)) {
+      return "yaml";
+    } else if (filename.match(/\.jsonc?$/i)) {
+      return "json";
+    }
+    throw new Error("Unknown format: " + filename);
+}
 /**
  * Allow save/load of yaml or json file
  */
@@ -157,13 +171,7 @@ export const FileUtils: StorageFinder & {
       throw new Error(`File '${filename}' does not exist.`);
     }
     let content = readFileSync(filename, "utf-8");
-    if (!format) {
-      if (filename.match(/\.ya?ml$/i)) {
-        format = "yaml";
-      } else if (filename.match(/\.jsonc?$/i)) {
-        format = "json";
-      }
-    }
+    format ??= getFormatFromFilename(filename);
     if (format === "yaml") {
       let res = yaml.parseAllDocuments(content);
       if (res.length === 1) {
@@ -176,7 +184,6 @@ export const FileUtils: StorageFinder & {
       }
       return JSON.parse(content);
     }
-    throw new Error("Unknown format");
   },
   /**
    * Save a YAML or JSON file based on its extension
@@ -185,16 +192,16 @@ export const FileUtils: StorageFinder & {
    * @param filename to save
    * @returns
    */
-  save: (object, filename = "", publicAudience: boolean = false) => {
-    if (filename.match(/\.ya?ml$/i)) {
+  save: (object, filename = "", publicAudience: boolean = false, format?: Format) => {
+    format ??= getFormatFromFilename(filename);
+    if (format === "yaml") {
       return writeFileSync(
         filename,
         yaml.stringify(JSON.parse(JSONUtils.stringify(object, undefined, 0, publicAudience)))
       );
-    } else if (filename.match(/\.json$/i)) {
+    } else if (format === "json") {
       return writeFileSync(filename, JSONUtils.stringify(object, undefined, 2, publicAudience));
     }
-    throw new Error("Unknown format");
   },
   /**
    * Delete files if exists

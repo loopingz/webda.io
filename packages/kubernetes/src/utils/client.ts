@@ -16,11 +16,11 @@ export interface KubernetesParameters {
 }
 
 /**
- *
- * @param params
- * @returns
+ * Get a Kubernetes configuration initialized based on Kubernetes Parameters
+ * @param params 
+ * @returns 
  */
-export function getKubernetesApiClient(params: KubernetesParameters, api?: any): k8s.ApiType | k8s.KubernetesObjectApi {
+export function getKubeConfig(params: KubernetesParameters) : k8s.KubeConfig {
   const kc = new k8s.KubeConfig();
   // Load all type of configuration
   if (params.config) {
@@ -35,6 +35,16 @@ export function getKubernetesApiClient(params: KubernetesParameters, api?: any):
   if (params.context) {
     kc.setCurrentContext(params.context);
   }
+  return kc;
+}
+
+/**
+ *
+ * @param params
+ * @returns
+ */
+export function getKubernetesApiClient(params: KubernetesParameters, api?: any): k8s.ApiType | k8s.KubernetesObjectApi {
+  const kc = getKubeConfig(params);
   if (api) {
     return kc.makeApiClient(api);
   } else {

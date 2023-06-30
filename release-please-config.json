@@ -1,4 +1,5 @@
 {
+    "bootstrap-sha": "bcea7b61edda56452f03ab7f25e3cc97a23ba909",
     "plugins": ["node-workspace"],
     "packages": {
       "packages/amqp": { },

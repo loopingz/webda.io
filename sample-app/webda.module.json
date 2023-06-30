@@ -944,7 +944,7 @@
         },
         "readonly": {
           "type": "number",
-          "description": "To indicate a property that will be set by server, similar to @SchemaOptional",
+          "description": "To indicate a property that will be set by server, similar to",
           "readOnly": true
         },
         "optional": {

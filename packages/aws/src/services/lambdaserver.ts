@@ -221,17 +221,7 @@ export default class LambdaServer extends Webda {
         this.log("WARN", "Request refused");
         throw 403;
       }
-    } catch (err) {
-      if (typeof err === "number") {
-        ctx.statusCode = err;
-        return this.handleLambdaReturn(ctx);
-      } else if (err instanceof WebdaError.HttpError) {
-        ctx.statusCode = err.getResponseCode();
-        this.log("TRACE", `${err.getResponseCode()}: ${err.message}`);
-        return this.handleLambdaReturn(ctx);
-      }
-      throw err;
-    }
+
     if (protocol === "https") {
       // Add the HSTS header
       ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
@@ -258,7 +248,7 @@ export default class LambdaServer extends Webda {
       return this.handleLambdaReturn(ctx);
     }
     await ctx.init();
-    try {
+
       await ctx.execute();
       return this.handleLambdaReturn(ctx);
     } catch (err) {
@@ -267,6 +257,10 @@ export default class LambdaServer extends Webda {
       } else if (err instanceof WebdaError.HttpError) {
         this.log("DEBUG", "Sending error", err.message);
         ctx.statusCode = err.getResponseCode();
+        // Handle redirect
+        if (err instanceof WebdaError.Redirect) {
+          ctx.setHeader("Location", err.location);
+        }
       } else {
         this.log("ERROR", err);
         ctx.statusCode = 500;

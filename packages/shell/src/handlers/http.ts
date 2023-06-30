@@ -204,6 +204,10 @@ export class WebdaServer extends Webda {
       err = typeof err === "number" ? new WebdaError.HttpError("Wrapped", err) : err;
       if (err instanceof WebdaError.HttpError) {
         ctx.statusCode = err.getResponseCode();
+        // Handle redirect
+        if (err instanceof WebdaError.Redirect) {
+          ctx.setHeader("Location", err.location);
+        }
         this.log("TRACE", `${err.getResponseCode()}: ${err.message}`);
       } else {
         ctx.statusCode = 500;

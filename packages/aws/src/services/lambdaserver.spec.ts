@@ -100,6 +100,24 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
+  async checkRequestRedirect() {
+    await this.handler.init();
+    // @ts-ignore
+    this.handler._requestFilters = [];
+    this.ensureGoodCSRF();
+    this.evt.queryStringParameters = { test: "Plop" };
+    this.handler.registerRequestFilter({
+      checkRequest: async () => {
+        throw new WebdaError.Redirect("Need Auth", "https://google.com")
+      }
+    });
+    let res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 302);
+    console.log(res);
+    assert.strictEqual(res.headers.Location, "https://google.com");
+  }
+
+  @test
   async handleRequestCustomLaunch() {
     await this.handler.handleRequest(
       {
@@ -313,7 +331,8 @@ class LambdaHandlerTest extends WebdaAwsTest {
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 410);
     this.badCheck = true;
-    await assert.rejects(() => this.handler.handleRequest(this.evt, this.context), /Unknown/);
+    res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 500);
     this.newExcept = true;
     res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 429);

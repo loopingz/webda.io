@@ -8,6 +8,5 @@
   },
   "version2": {
     "message": "chore(release): publish"
-  },
-  "useWorkspaces": true
+  }
 }

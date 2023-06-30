@@ -15,6 +15,7 @@ jobs:
         with:
           command: manifest
           monorepo-tags: true
+          include-v-in-tags: false
 
       - uses: actions/setup-node@v2
         if: ${{ steps.release.outputs.releases_created }}
@@ -27,4 +28,4 @@ jobs:
 
       - name: Publish project
         if: ${{ steps.release.outputs.releases_created }}
-        run: yarn run lerna:publish from-git --yes
+        run: yarn run lerna:publish from-package --yes

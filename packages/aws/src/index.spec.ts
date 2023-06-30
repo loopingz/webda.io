@@ -12,10 +12,13 @@ export const defaultCreds = {
 };
 export async function checkLocalStack() {
   if (localStack === undefined) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 500);
     try {
       let res = await fetch("http://localhost:4566", {
-        timeout: 500
+        signal: controller.signal
       });
+      clearTimeout(id);
       localStack = true;
     } catch (err) {
       localStack = false;

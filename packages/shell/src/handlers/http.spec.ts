@@ -107,7 +107,8 @@ class WebdaServerTest {
       redirect: "manual"
     });
     assert.strictEqual(res.status, 302);
-    assert.strictEqual(res.headers.get("Location"), "https://google.com/");
+    // Depending on node-fetch library the / will be appended or not to the url
+    assert.ok(res.headers.get("Location")?.startsWith("https://google.com"));
 
     stub.callsFake(() => {
       throw new Error();

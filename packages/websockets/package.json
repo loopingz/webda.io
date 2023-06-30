@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@webda/core": "^3.1.0",
-    "pg": "^8.7.1",
     "socket.io": "^4.5.4",
     "socket.io-client": "^4.5.4"
   },

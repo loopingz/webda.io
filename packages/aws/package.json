@@ -47,9 +47,12 @@
     "@aws-sdk/lib-dynamodb": "^3.58.0",
     "@aws-sdk/s3-request-presigner": "^3.58.0",
     "@webda/core": "^3.1.0",
+    "@webda/workout": "^3.0.1",
     "bluebird": "^3.7.2",
+    "cookie": "^0.5.0",
     "glob": "^10.0.0",
     "iam-policy-optimizer": "^1.2.0",
+    "mime-types": "^2.1.35",
     "uuid": "^9.0.0",
     "yaml": "^2.0.0"
   },
@@ -75,7 +78,9 @@
     "@types/node": "14.6.0",
     "@webda/async": "^3.0.3",
     "@webda/shell": "^3.1.0",
+    "aws-lambda": "^1.0.7",
     "aws-sdk-client-mock": "^2.0.1",
+    "node-fetch": "^3.3.1",
     "sinon": "^15.0.0"
   },
   "type": "module",

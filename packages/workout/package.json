@@ -1,6 +1,6 @@
 {
   "name": "@webda/workout",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Abstraction to loggin and user interaction",
   "keywords": [
     "terminal",
@@ -30,7 +30,7 @@
     "@types/node": "=14.6.0",
     "@types/sprintf-js": "^1.1.2",
     "@types/uuid": "^9.0.0",
-    "@webda/tsc-esm": "^1.0.3",
+    "@webda/tsc-esm": "^1.0.4",
     "c8": "^8.0.0",
     "mocha": "^10.0.0",
     "mock-stdin": "^1.0.0",

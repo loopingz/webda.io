@@ -787,7 +787,7 @@ ${Object.keys(operationsExport.operations)
 
     // If diagram exists, use it
     if (!DiagramTypes[type]) {
-      this.log("ERROR", `Diagram type '${type}' not supported`);
+      this.log("ERROR", `Diagram type '${type}' not supported: supported types are ${Object.keys(DiagramTypes)}`);
       return -1;
     }
 

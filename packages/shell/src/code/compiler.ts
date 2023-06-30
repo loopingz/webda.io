@@ -122,11 +122,7 @@ class WebdaSchemaResults {
  * @return True if node has the modifier, false if not.
  */
 export function hasModifier(node: ts.Node, modifier: ts.SyntaxKind): boolean {
-  if (!ts.canHaveModifiers(node)) {
-    return false;
-  } else {
-    return node.modifiers?.some(nodeModifier => nodeModifier.kind === modifier);
-  }
+  return ts.canHaveModifiers(node) && node.modifiers?.some(nodeModifier => nodeModifier.kind === modifier);
 }
 /**
  * Checks if given node is public. A node is public if it has the public modifier or has no modifiers at all.

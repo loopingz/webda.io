@@ -219,6 +219,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     this.log("ERROR", "Proxying error", e);
   }
 
+  /**
+   * Proxy WebService 
+   */
   async proxyWS(req, socket, head) {
     if (!req.url.startsWith(this.parameters.url)) {
       return;
@@ -235,7 +238,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     await webdaContext.init();
     return this.rawProxyWS(
       webdaContext,
-      `${this.parameters.backend}${req.url.substring(this.parameters.url.length)}`,
+      `${this.getBackend(webdaContext)}${req.url.substring(this.parameters.url.length)}`,
       socket
     );
   }
@@ -378,6 +381,15 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
+   * Simplify override for dynamic backend
+   * @param _ctx 
+   * @returns 
+   */
+  getBackend(_ctx: WebContext) {
+    return this.parameters.backend;
+  }
+
+  /**
    * Proxy route
    * @param ctx
    */
@@ -388,6 +400,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       throw new WebdaError.Unauthorized("You need to be authenticated to access this route");
     }
     // Add any additional controls here
-    await this.proxy(ctx, this.parameters.backend, this.parameters.url);
+    await this.proxy(ctx, this.getBackend(ctx), this.parameters.url);
   }
 }

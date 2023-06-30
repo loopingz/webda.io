@@ -3,6 +3,35 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.1.0](https://github.com/loopingz/webda.io/compare/shell-v3.0.2...shell-v3.1.0) (2023-06-30)
+
+
+### Features
+
+* add smart compilation for webda binary ([48e17ed](https://github.com/loopingz/webda.io/commit/48e17eda613b171ccb240950e167fe3c806ee78f)), closes [#402](https://github.com/loopingz/webda.io/issues/402)
+* add WS proxy system ([fdc394d](https://github.com/loopingz/webda.io/commit/fdc394de666d74e9130d29fb6d4ddd67b650430f))
+* allow redirect with WebdaError.Redirect ([499432e](https://github.com/loopingz/webda.io/commit/499432edd2bc9b542d7551b398a8b32648f04c4e))
+* allow usage of lowercase log level ([6e8efdb](https://github.com/loopingz/webda.io/commit/6e8efdbbdfee1cbe1bcb04e9daf17a4aab89ae1f))
+* emit a Webda.Init.Http when http server is ready ([5513a21](https://github.com/loopingz/webda.io/commit/5513a214ed46ab7cf43ce0ae8e364e72a1333725))
+
+
+### Bug Fixes
+
+* @types/ws version ([f63b002](https://github.com/loopingz/webda.io/commit/f63b0025b72f96f4282fbd30232f02164134ed5e))
+* add missing dependencies ([189863f](https://github.com/loopingz/webda.io/commit/189863fcd18f27295eb4630febe7cf852dcc12e8))
+* add missing dependencies for pnpm/bazel ([1ec04a3](https://github.com/loopingz/webda.io/commit/1ec04a375998ee7a7a00ea03c30a2960b7778d6b))
+* improve error message for unsupported diagrams ([03238b0](https://github.com/loopingz/webda.io/commit/03238b072ad3525ed463212fc77463f958259f90))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.0.2 to ^3.1.0
+    * @webda/kubernetes bumped from ^3.0.2 to ^3.0.3
+    * @webda/tsc-esm bumped from ^1.0.3 to ^1.0.4
+    * @webda/workout bumped from ^3.0.0 to ^3.0.1
+
 ## [1.0.2](https://github.com/loopingz/webda.io/compare/@webda/shell@1.0.1...@webda/shell@1.0.2) (2021-03-24)
 
 

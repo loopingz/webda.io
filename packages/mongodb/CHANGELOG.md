@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.1.0](https://github.com/loopingz/webda.io/compare/gcp-v3.0.2...gcp-v3.1.0) (2023-06-30)
+## [3.1.0](https://github.com/loopingz/webda.io/compare/mongo-v3.0.2...mongo-v3.1.0) (2023-06-30)
 
 
 ### Features
@@ -19,10 +19,4 @@
   * dependencies
     * @webda/core bumped from ^3.0.2 to ^3.1.0
   * devDependencies
-    * @webda/async bumped from ^3.0.2 to ^3.0.3
     * @webda/shell bumped from ^3.0.2 to ^3.1.0
-
-## Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.

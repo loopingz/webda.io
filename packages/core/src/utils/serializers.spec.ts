@@ -106,19 +106,19 @@ class UtilsTest {
       JSONUtils.saveFile({ test: "plop" }, file);
       assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
       file = path.join(TEST_FOLDER, "writeTest.yaml");
-      JSONUtils.saveFile({ test: "plop" }, file);
+      FileUtils.save({ test: "plop" }, file);
       assert.strictEqual(readFileSync(file).toString(), `test: plop\n`);
 
       // Yaml alias
       file = path.join(TEST_FOLDER, "writeTest.json");
       YAMLUtils.saveFile({ test: "plop" }, file);
-      assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+      assert.strictEqual(readFileSync(file).toString(), `test: plop\n`);
 
       // True implem
       file = path.join(TEST_FOLDER, "writeTest.json");
       FileUtils.save({ test: "plop" }, file);
       assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
-      assert.throws(() => JSONUtils.saveFile({}, "./Dockerfile.zzz"), /Unknown format/);
+      assert.throws(() => FileUtils.save({}, "./Dockerfile.zzz"), /Unknown format/);
     } finally {
       FileUtils.clean("test/jsonutils/writeTest.json", "test/jsonutils/writeTest.yaml");
     }

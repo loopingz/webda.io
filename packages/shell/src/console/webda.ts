@@ -1,4 +1,4 @@
-import { Application, CancelablePromise, FileUtils, getCommonJS, JSONUtils, Logger, PackageDescriptorAuthor, Store } from "@webda/core";
+import { CancelablePromise, FileUtils, getCommonJS, JSONUtils, Logger, PackageDescriptorAuthor, Store } from "@webda/core";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";

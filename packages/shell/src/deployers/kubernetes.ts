@@ -1,5 +1,5 @@
 import * as k8s from "@kubernetes/client-node";
-import { CronService, JSONUtils } from "@webda/core";
+import { CronService, FileUtils } from "@webda/core";
 import { CronReplace, getKubernetesApiClient, KubernetesParameters } from "@webda/kubernetes";
 import * as crypto from "crypto";
 import * as fs from "fs";
@@ -141,7 +141,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       if (typeof this.resources.cronTemplate === "boolean") {
         resource = yaml.parse(K8S_DEFAULT_CRON_DEFINITION);
       } else if (typeof this.resources.cronTemplate === "string") {
-        resource = JSONUtils.loadFile(this.resources.cronTemplate);
+        resource = FileUtils.load(this.resources.cronTemplate);
       } else {
         resource = this.resources.cronTemplate;
       }
@@ -245,7 +245,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
 
     for (let i in this.resources.resourcesFiles) {
       let resourcesFile = this.resources.resourcesFiles[i];
-      let resources = JSONUtils.loadFile(resourcesFile);
+      let resources = FileUtils.load(resourcesFile);
       if (!Array.isArray(resources)) {
         resources = [resources];
       }

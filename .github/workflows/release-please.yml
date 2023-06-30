@@ -21,6 +21,7 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
         with:
           node-version: 18
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Build
         if: ${{ steps.release.outputs.releases_created }}
@@ -29,3 +30,5 @@ jobs:
       - name: Publish project
         if: ${{ steps.release.outputs.releases_created }}
         run: yarn run lerna:publish from-package --yes
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

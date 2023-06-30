@@ -1,6 +1,6 @@
 "use strict";
 import { suite, test } from "@testdeck/mocha";
-import { FileUtils, getCommonJS, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
+import { FileUtils, JSONUtils, Logger, Module, WebdaError, getCommonJS } from "@webda/core";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { execSync } from "child_process";

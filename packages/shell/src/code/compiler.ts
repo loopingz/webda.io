@@ -14,8 +14,6 @@ import {
   CircularReferenceNodeParser,
   Config,
   Context,
-  createFormatter,
-  createParser,
   Definition,
   ExtendedAnnotationsReader,
   FunctionType,
@@ -28,7 +26,9 @@ import {
   StringType,
   SubNodeParser,
   SubTypeFormatter,
-  UnionType
+  UnionType,
+  createFormatter,
+  createParser
 } from "ts-json-schema-generator";
 import ts from "typescript";
 import { SourceApplication } from "./sourceapplication";
@@ -122,11 +122,10 @@ class WebdaSchemaResults {
  * @return True if node has the modifier, false if not.
  */
 export function hasModifier(node: ts.Node, modifier: ts.SyntaxKind): boolean {
-  const nodeModifiers = node.modifiers;
-  if (nodeModifiers == null) {
+  if (!ts.canHaveModifiers(node)) {
     return false;
   } else {
-    return nodeModifiers.some(nodeModifier => nodeModifier.kind === modifier);
+    return node.modifiers?.some(nodeModifier => nodeModifier.kind === modifier);
   }
 }
 /**

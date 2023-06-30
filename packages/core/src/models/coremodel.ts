@@ -11,12 +11,12 @@ import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
 import {
-  createModelLinksMap,
   ModelActions,
   ModelLinksArray,
   ModelLinksSimpleArray,
   ModelMapLoaderImplementation,
-  RawModel
+  RawModel,
+  createModelLinksMap
 } from "./relations";
 
 /**

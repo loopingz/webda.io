@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { CacheService, ConsoleLoggerService, Core, FileUtils, getCommonJS, Module } from "@webda/core";
+import { CacheService, ConsoleLoggerService, Core, FileUtils, Module, getCommonJS } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { execSync } from "child_process";

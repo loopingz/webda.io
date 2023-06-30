@@ -5,7 +5,6 @@ import {
   Action,
   Core,
   CoreModel,
-  createModelLinksMap,
   Expose,
   ModelLink,
   ModelLinksArray,
@@ -15,7 +14,8 @@ import {
   ModelRelated,
   ModelsMapped,
   OperationContext,
-  WebdaError
+  WebdaError,
+  createModelLinksMap
 } from "..";
 import { Task } from "../../test/models/task";
 import { WebdaTest } from "../test";

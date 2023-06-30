@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.1.1](https://github.com/loopingz/webda.io/compare/gcp-v3.1.0...gcp-v3.1.1) (2023-06-30)
+
+
+### Bug Fixes
+
+* add explicit dependencies declaration ([#411](https://github.com/loopingz/webda.io/issues/411)) ([4d8cbae](https://github.com/loopingz/webda.io/commit/4d8cbae4d6d31b62df98832591bc97ca77ae6a69))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.1.0 to ^3.1.1
+  * devDependencies
+    * @webda/async bumped from ^3.0.3 to ^3.0.4
+    * @webda/shell bumped from ^3.1.0 to ^3.1.1
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/gcp-v3.0.2...gcp-v3.1.0) (2023-06-30)
 
 

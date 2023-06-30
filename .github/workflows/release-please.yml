@@ -23,7 +23,7 @@ jobs:
 
       - name: Build
         if: ${{ steps.release.outputs.releases_created }}
-        run: yarn run build
+        run: yarn && yarn run build
 
       - name: Publish project
         if: ${{ steps.release.outputs.releases_created }}

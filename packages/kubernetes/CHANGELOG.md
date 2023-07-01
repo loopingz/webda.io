@@ -1,5 +1,12 @@
 # Changelog
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.0.4 to ^3.0.5
+    * @webda/core bumped from ^3.1.1 to ^3.1.2
+
 ## [3.0.4](https://github.com/loopingz/webda.io/compare/kubernetes-v3.0.3...kubernetes-v3.0.4) (2023-06-30)
 
 

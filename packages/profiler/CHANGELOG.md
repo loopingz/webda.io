@@ -19,6 +19,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.1.0 to ^3.1.1
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.1.1 to ^3.1.2
+  * devDependencies
+    * @webda/shell bumped from ^3.1.1 to ^3.1.2
+
 ## [1.0.2](https://github.com/loopingz/webda.io/compare/@webda/profiler@1.0.1...@webda/profiler@1.0.2) (2021-03-24)
 
 **Note:** Version bump only for package @webda/profiler

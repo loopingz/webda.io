@@ -1190,7 +1190,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       type: "Webda/MemoryStore",
       persistence: {
         path: ".registry",
-        key: machineIdSync()
+        key: process.env["WEBDA_MACHINE_ID"] || machineIdSync()
       }
     };
     this.createService(this.configuration.services, "Registry");

@@ -15,5 +15,22 @@ By default the cookie is set with this options:
 
 ## Override default configuration
 
-By adding a cookie object in your `parameters` section of the `webda.config.json`
+You can redefine the SessionManager service. And then set your parameters.
+
+```
+{
+    "services": {
+        "SessionManager": {
+            "type": "Webda/CookieSessionManager",
+            "cookie": {
+                "path": "/",
+                "domain": "localhost",
+                "httpOnly": true,
+                ...
+            }
+        }
+    }
+}
+```
+
 You can find the options here: (Cookie library)[https://www.npmjs.com/package/cookie]

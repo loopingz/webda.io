@@ -28,6 +28,7 @@ import {
   HttpContext,
   Logger,
   OperationContext,
+  RegExpValidator,
   Service,
   Store,
   UnpackedApplication,
@@ -137,17 +138,9 @@ export interface RequestFilter<T extends WebContext = WebContext> {
  * @category CoreFeatures
  */
 export class OriginFilter implements RequestFilter<WebContext> {
-  regexs: RegExp[];
+  regexs: RegExpValidator;
   constructor(origins: string[]) {
-    this.regexs = origins.map(origin => {
-      if (!origin.endsWith("$")) {
-        origin += "$";
-      }
-      if (!origin.startsWith("^")) {
-        origin = "^" + origin;
-      }
-      return new RegExp(origin);
-    });
+    this.regexs = new RegExpValidator(origins);
   }
   /**
    *
@@ -156,15 +149,7 @@ export class OriginFilter implements RequestFilter<WebContext> {
    */
   async checkRequest(context: WebContext): Promise<boolean> {
     let httpContext = context.getHttpContext();
-    for (let regexp of this.regexs) {
-      if (httpContext.hostname.match(regexp)) {
-        return true;
-      }
-      if (httpContext.origin.match(regexp)) {
-        return true;
-      }
-    }
-    return false;
+    return this.regexs.validate(httpContext.hostname) || this.regexs.validate(httpContext.origin);
   }
 }
 

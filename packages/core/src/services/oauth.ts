@@ -1,7 +1,7 @@
 import { Core, Counter } from "../core";
 import { EventWithContext, OperationContext, RequestFilter, WebContext, WebdaError } from "../index";
 import { Authentication } from "./authentication";
-import { Service, ServiceParameters } from "./service";
+import { RegExpStringValidator, Service, ServiceParameters } from "./service";
 
 export interface EventOAuthToken extends EventWithContext {
   /**
@@ -130,6 +130,7 @@ export abstract class OAuthService<
   metrics: {
     login: Counter;
   };
+  authorized_uris: RegExpStringValidator;
 
   /**
    * Ensure default parameter url
@@ -157,6 +158,8 @@ export abstract class OAuthService<
     let result = new OAuthServiceParameters(params);
     if (result.authorized_uris === undefined) {
       this.log("WARN", "Not defining authorized_uris is a security risk");
+    } else {
+      this.authorized_uris = new RegExpStringValidator(result.authorized_uris);
     }
     return result;
   }
@@ -319,6 +322,18 @@ export abstract class OAuthService<
   }
 
   /**
+   * Check if the url is authorized
+   * @param redirect 
+   * @param context 
+   * @returns 
+   */
+  isAuthorizedUri(redirect: string, context: WebContext): boolean {
+    return !this.parameters.authorized_uris // If no authorized_uris defined, allow all
+              || this.authorized_uris?.validate(redirect) // If redirect is included in authorized_uris
+              || (this.parameters.no_referer && !context.getHttpContext().getUniqueHeader("referer")); // If no_referer is allowed
+  }
+
+  /**
    * Redirect to the OAuth provider
    *
    * The calling url must be and authorized_uris if defined
@@ -329,15 +344,10 @@ export abstract class OAuthService<
     let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
     let redirect = ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
 
-    if (this.parameters.authorized_uris) {
-      // Might want to use regexp here
-      if (this.parameters.authorized_uris.indexOf(redirect) < 0) {
-        if (ctx.getHttpContext().getHeaders().referer || !this.parameters.no_referer) {
-          // The redirect_uri is not authorized , might be forging HOST request
-          throw new WebdaError.Unauthorized("Unauthorized redirect_uri");
-        }
-      }
+    if (!this.isAuthorizedUri(redirect, ctx)) {
+      throw new WebdaError.Unauthorized("Unauthorized redirect_uri");
     }
+
     const session = ctx.getSession<OAuthSession>();
     session.oauth ??= {};
     // Generate 2 random uuid: nonce and state

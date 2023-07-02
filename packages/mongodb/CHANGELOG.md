@@ -8,6 +8,14 @@
   * devDependencies
     * @webda/shell bumped from ^3.1.0 to ^3.1.1
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.1.1 to ^3.1.2
+  * devDependencies
+    * @webda/shell bumped from ^3.1.1 to ^3.1.2
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/mongo-v3.0.2...mongo-v3.1.0) (2023-06-30)
 
 

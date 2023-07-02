@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.1.1 to ^3.1.2
+    * @webda/kubernetes bumped from ^3.0.4 to ^3.0.5
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/shell-v3.1.0...shell-v3.1.1) (2023-06-30)
 
 

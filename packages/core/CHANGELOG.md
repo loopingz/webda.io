@@ -19,6 +19,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.1.2](https://github.com/loopingz/webda.io/compare/core-v3.1.1...core-v3.1.2) (2023-07-01)
+
+
+### Bug Fixes
+
+* allow to specify a machine id ([#413](https://github.com/loopingz/webda.io/issues/413)) ([fa24d8e](https://github.com/loopingz/webda.io/commit/fa24d8ec00340903e180ba16dc7dbf5765430d21))
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/core-v3.1.0...core-v3.1.1) (2023-06-30)
 
 

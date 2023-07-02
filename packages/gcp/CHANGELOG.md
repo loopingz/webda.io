@@ -1,5 +1,14 @@
 # Changelog
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.1.1 to ^3.1.2
+  * devDependencies
+    * @webda/async bumped from ^3.0.4 to ^3.0.5
+    * @webda/shell bumped from ^3.1.1 to ^3.1.2
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/gcp-v3.1.0...gcp-v3.1.1) (2023-06-30)
 
 

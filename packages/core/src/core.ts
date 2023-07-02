@@ -224,6 +224,12 @@ export type CoreEvents = {
     context: OperationContext;
     info: ContextProviderInfo;
   };
+  /**
+   * Sent when route is added to context
+   */
+  "Webda.UpdateContextRoute": {
+    context: WebContext;
+  };
   [key: string]: unknown;
 };
 
@@ -963,6 +969,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     ctx.setRoute({ ...this.configuration, ...route });
     ctx.setExecutor(this.getService(route.executor));
+    this.emit("Webda.UpdateContextRoute", {context: ctx});
     return true;
   }
 

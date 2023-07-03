@@ -79,7 +79,7 @@
     "@webda/async": "^3.0.5",
     "@webda/shell": "^3.1.2",
     "aws-lambda": "^1.0.7",
-    "aws-sdk-client-mock": "^2.0.1",
+    "aws-sdk-client-mock": "^3.0.0",
     "node-fetch": "^3.3.1",
     "sinon": "^15.0.0"
   },

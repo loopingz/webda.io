@@ -3,6 +3,10 @@ import { IncomingHttpHeaders } from "http";
 import { Readable } from "stream";
 
 export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
+/**
+ * All methods supported by Webda
+ */
+export const HttpMethodTypeAny: HttpMethodType[] = ["GET", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"];
 
 type HeadersRequest = IncomingHttpHeaders & {
   // Permit any property starting with 'x-'.

@@ -24,6 +24,9 @@ class FileConfigurationServiceTest extends WebdaTest {
                     text: "Test"
                   }
                 }
+              },
+              ImplicitBean: {
+                implicit: "ok"
               }
             }
           }
@@ -84,6 +87,7 @@ class FileConfigurationServiceTest extends WebdaTest {
       );
     });
 
+    assert.strictEqual(this.webda.getServices()["implicitbean"].getParameters()["implicit"], "ok");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }

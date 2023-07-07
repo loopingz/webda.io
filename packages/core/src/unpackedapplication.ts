@@ -212,7 +212,8 @@ export class UnpackedApplication extends Application {
         nodeModules,
         filepath => {
           // We filter out the cache of nx
-          if (filepath.endsWith("webda.module.json") && !filepath.includes("node_modules/.cache/nx")) {
+          // If it is inside a node_modules/. we consider it should not be checked
+          if (filepath.endsWith("webda.module.json") && !filepath.includes("node_modules/.")) {
             files.push(filepath);
           }
         },

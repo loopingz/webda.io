@@ -345,7 +345,7 @@ export abstract class OAuthService<
     let redirect = ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
 
     if (!this.isAuthorizedUri(redirect, ctx)) {
-      throw new WebdaError.Unauthorized("Unauthorized redirect_uri");
+      throw new WebdaError.Unauthorized("Unauthorized redirect parameter");
     }
 
     const session = ctx.getSession<OAuthSession>();

@@ -19,6 +19,19 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/core-v3.1.2...core-v3.2.0) (2023-07-07)
+
+
+### Features
+
+* add a Webda.UpdateContextRoute to be able to alter router decision ([22463f9](https://github.com/loopingz/webda.io/commit/22463f9b12a25cbee124184df0243d8ab7bf706d))
+* add regexp validator utility classes ([b71f1ca](https://github.com/loopingz/webda.io/commit/b71f1ca37ac3602675de21341ac843833d6eaf63))
+
+
+### Bug Fixes
+
+* ignore any .folder in node_modules for pnpm and nx ([ebe7f81](https://github.com/loopingz/webda.io/commit/ebe7f81e19d27f5a8bed27e040a18c2925fe5e27))
+
 ## [3.1.2](https://github.com/loopingz/webda.io/compare/core-v3.1.1...core-v3.1.2) (2023-07-01)
 
 

@@ -120,7 +120,7 @@ export const FileUtils: StorageFinder & {
               // following below
               if (!options.maxDepth || state.depth < options.maxDepth) {
                 // unless we reached the maximum depth
-                FileUtils.walk(realPath, processor, options, state);
+                FileUtils.walk(p, processor, options, state);
               }
             }
           } else {

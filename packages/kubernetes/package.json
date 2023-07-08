@@ -1,6 +1,6 @@
 {
   "name": "@webda/kubernetes",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "description": "Kubernetes Helpers",
   "main": "lib/index.js",
   "scripts": {
@@ -22,8 +22,8 @@
   ],
   "dependencies": {
     "@kubernetes/client-node": "^0.18.0",
-    "@webda/async": "^3.0.6",
-    "@webda/core": "^3.2.0"
+    "@webda/async": "^3.0.7",
+    "@webda/core": "^3.2.1"
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",

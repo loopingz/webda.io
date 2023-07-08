@@ -19,6 +19,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.2.1](https://github.com/loopingz/webda.io/compare/core-v3.2.0...core-v3.2.1) (2023-07-08)
+
+
+### Bug Fixes
+
+* keep symlink path with folder symlinked ([bd3d7b5](https://github.com/loopingz/webda.io/commit/bd3d7b59d4a22d3e5e26b24532214ee62505098a))
+* relax version condition between @webda/shell and @webda/core ([b634574](https://github.com/loopingz/webda.io/commit/b6345743ea5ea0ef66615d7e1ae3bca4c8610122))
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/core-v3.1.2...core-v3.2.0) (2023-07-07)
 
 

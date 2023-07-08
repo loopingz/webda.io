@@ -536,14 +536,14 @@ class DynamicService extend Service {
   }
 
   @test
-  withinPatchRange() {
-    assert.strictEqual(WebdaConsole.withinPatchVersion("1.1.1", "1.1.2"), true);
-    assert.strictEqual(WebdaConsole.withinPatchVersion("1.1.3", "1.1.2"), true);
-    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "1.1.2"), false);
-    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "1.3.2"), false);
-    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "2.2.1"), false);
-    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "0.1.2"), false);
-    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1-beta", "1.1.2"), false);
+  withinMinorRange() {
+    assert.strictEqual(WebdaConsole.withinMinorVersion("1.1.1", "1.1.2"), true);
+    assert.strictEqual(WebdaConsole.withinMinorVersion("1.1.3", "1.1.2"), true);
+    assert.strictEqual(WebdaConsole.withinMinorVersion("1.2.1", "1.1.2"), true);
+    assert.strictEqual(WebdaConsole.withinMinorVersion("1.2.1", "1.3.2"), true);
+    assert.strictEqual(WebdaConsole.withinMinorVersion("1.2.1", "2.2.1"), false);
+    assert.strictEqual(WebdaConsole.withinMinorVersion("1.2.1", "0.1.2"), false);
+    assert.strictEqual(WebdaConsole.withinMinorVersion("1.2.1-beta", "1.1.2"), true);
   }
 
   @test

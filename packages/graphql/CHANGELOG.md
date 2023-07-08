@@ -16,6 +16,14 @@
   * devDependencies
     * @webda/shell bumped from ^3.1.2 to ^3.1.3
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.2.0 to ^3.2.1
+  * devDependencies
+    * @webda/shell bumped from ^3.1.3 to ^3.1.4
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/graphql-v3.1.0...graphql-v3.1.1) (2023-06-30)
 
 

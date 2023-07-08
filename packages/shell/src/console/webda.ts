@@ -968,14 +968,14 @@ ${Object.keys(operationsExport.operations)
   }
 
   /**
-   * Return if a package is within patch version of each others
+   * Return if a package is within minor version of each others
    * @param package1
    * @param package2
    */
-  static withinPatchVersion(package1: string, package2: string): boolean {
+  static withinMinorVersion(package1: string, package2: string): boolean {
     return (
-      semver.satisfies(package1.replace(/-.*/, ""), "~" + package2.replace(/-.*/, "")) ||
-      semver.satisfies(package2.replace(/-.*/, ""), "~" + package1.replace(/-.*/, ""))
+      semver.satisfies(package1.replace(/-.*/, ""), "^" + package2.replace(/-.*/, "")) ||
+      semver.satisfies(package2.replace(/-.*/, ""), "^" + package1.replace(/-.*/, ""))
     );
   }
 
@@ -1081,7 +1081,7 @@ ${Object.keys(operationsExport.operations)
 
     try {
       // Display warning for versions mismatch
-      if (!this.withinPatchVersion(versions["@webda/core"].version, versions["@webda/shell"].version)) {
+      if (!this.withinMinorVersion(versions["@webda/core"].version, versions["@webda/shell"].version)) {
         output.log(
           "WARN",
           `Versions mismatch: @webda/core (${versions["@webda/core"].version}) and @webda/shell (${versions["@webda/shell"].version}) are not within patch versions`

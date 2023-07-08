@@ -88,15 +88,25 @@
                   "properties": {
                     "w": {
                       "$ref": "#/definitions/W",
-                      "description": "request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags."
+                      "description": "Request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags."
+                    },
+                    "journal": {
+                      "type": "boolean",
+                      "description": "Request acknowledgment that the write operation has been written to the on-disk journal"
+                    },
+                    "wtimeoutMS": {
+                      "type": "number",
+                      "description": "Specify a time limit to prevent write operations from blocking indefinitely"
                     },
                     "wtimeout": {
                       "type": "number",
-                      "description": "specify a time limit to prevent write operations from blocking indefinitely"
+                      "description": "Specify a time limit to prevent write operations from blocking indefinitely.",
+                      "deprecated": "Will be removed in the next major version. Please use wtimeoutMS."
                     },
                     "j": {
                       "type": "boolean",
-                      "description": "request acknowledgment that the write operation has been written to the on-disk journal"
+                      "description": "Request acknowledgment that the write operation has been written to the on-disk journal.",
+                      "deprecated": "Will be removed in the next major version. Please use journal."
                     },
                     "fsync": {
                       "anyOf": [
@@ -108,7 +118,8 @@
                           "const": 1
                         }
                       ],
-                      "description": "equivalent to the j option"
+                      "description": "Equivalent to the j option.",
+                      "deprecated": "Will be removed in the next major version. Please use journal."
                     }
                   },
                   "description": "A MongoDB WriteConcern, which describes the level of acknowledgement requested from MongoDB for write operations."
@@ -130,11 +141,13 @@
                     },
                     "j": {
                       "type": "boolean",
-                      "description": "The journal write concern"
+                      "description": "The journal write concern.",
+                      "deprecated": "Will be removed in the next major version. Please use the journal option."
                     },
                     "wtimeout": {
                       "type": "number",
-                      "description": "The write concern timeout"
+                      "description": "The write concern timeout.",
+                      "deprecated": "Will be removed in the next major version. Please use the wtimeoutMS option."
                     },
                     "fsync": {
                       "anyOf": [
@@ -146,7 +159,8 @@
                           "const": 1
                         }
                       ],
-                      "description": "The file sync write concern"
+                      "description": "The file sync write concern.",
+                      "deprecated": "Will be removed in the next major version. Please use the journal option."
                     }
                   }
                 }

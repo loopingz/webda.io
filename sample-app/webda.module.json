@@ -1074,7 +1074,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-178760925-1801-2285-178760925-0-8095976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-2914-3398-178760925-0-9208976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -1087,7 +1087,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-178760925-1801-2285-178760925-0-8095976353190>": {
+        "Partial<class-178760925-2914-3398-178760925-0-9208976353190>": {
           "type": "object",
           "properties": {
             "type": {

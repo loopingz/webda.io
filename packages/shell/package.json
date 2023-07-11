@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.18.0",
-    "@phenomnomnominal/tsquery": "^5.0.0",
+    "@phenomnomnominal/tsquery": "^6.1.0",
     "@webda/core": "^3.2.1",
     "@webda/kubernetes": "^3.0.7",
     "@webda/tsc-esm": "^1.0.5",

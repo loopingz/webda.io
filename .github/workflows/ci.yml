@@ -79,7 +79,7 @@ jobs:
       - name: Setup postgresql
         uses: Softwarepark/postgresql-action@v2
         with:
-          postgresql version: "13" # See https://hub.docker.com/_/postgres for available versions
+          postgresql version: "15" # See https://hub.docker.com/_/postgres for available versions
           postgresql password: webda.io
           postgresql user: webda.io
           postgresql db: webda.io

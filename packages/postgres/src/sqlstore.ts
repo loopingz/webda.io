@@ -47,12 +47,12 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
   T,
   K
 > {
-  sqlQuery(q: string): Promise<SQLResult<T>> {
+  sqlQuery(q: string, values: any[]): Promise<SQLResult<T>> {
     q = this.completeQuery(q);
-    return this.executeQuery(q);
+    return this.executeQuery(q, values);
   }
 
-  abstract executeQuery(q: string): Promise<SQLResult<T>>;
+  abstract executeQuery(q: string, values: any[]): Promise<SQLResult<T>>;
 
   completeQuery(q: string): string {
     // Should add the INNER JOIN from map
@@ -69,11 +69,12 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    * @override
    */
   async _delete(uid: string, writeCondition: any, writeConditionField: string) {
-    let query = `DELETE FROM ${this.parameters.table} WHERE uuid='${uid}'`;
+    let query = `DELETE FROM ${this.parameters.table} WHERE uuid=$1`;
+    const args = [uid];
     if (writeCondition) {
-      query += this.getQueryCondition(writeCondition, writeConditionField);
+      query += this.getQueryCondition(writeCondition, writeConditionField, args);
     }
-    let res = await this.sqlQuery(query);
+    let res = await this.sqlQuery(query, args);
     if (res.rowCount === 0 && writeCondition) {
       throw new UpdateConditionFailError(uid, writeConditionField, writeCondition);
     }
@@ -131,7 +132,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     if (offset) {
       sql += ` OFFSET ${offset}`;
     }
-    const results = (await this.sqlQuery(sql)).rows.map(c => this.initModel(c));
+    const results = (await this.sqlQuery(sql, [])).rows.map(c => this.initModel(c));
     return {
       results,
       continuationToken: query.limit <= results.length ? (offset + query.limit).toString() : undefined,
@@ -144,7 +145,8 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    */
   async _exists(uid: string): Promise<boolean> {
     let res = await this.sqlQuery(
-      `SELECT uuid FROM ${this.parameters.table} WHERE ${this.getModel().getUuidField()} = '${this.getUuid(uid)}'`
+      `SELECT uuid FROM ${this.parameters.table} WHERE ${this.getModel().getUuidField()} = $1`,
+      [this.getUuid(uid)]
     );
     return res.rowCount === 1;
   }
@@ -153,7 +155,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    * @override
    */
   async _get(uid: string, raiseIfNotFound?: boolean): Promise<T> {
-    let res = await this.sqlQuery(`${this.getModel().getUuidField()} = '${this.getUuid(uid)}'`);
+    let res = await this.sqlQuery(`${this.getModel().getUuidField()} = $1`, [this.getUuid(uid)]);
     if (res.rowCount === 0 && raiseIfNotFound) {
       throw new StoreNotFoundError(uid, this.getName());
     }
@@ -165,22 +167,29 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    */
   async getAll(list?: string[]): Promise<T[]> {
     if (list) {
-      return (await this.sqlQuery(list.map(uuid => `uuid='${this.getUuid(uuid)}'`).join(" OR "))).rows;
+      return (await this.sqlQuery(list.map((_,index) => `uuid=$${index+1}`).join(" OR "), list)).rows;
     }
-    return (await this.sqlQuery("TRUE")).rows;
+    return (await this.sqlQuery("TRUE", [])).rows;
   }
 
-  abstract getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string);
+  /**
+   * 
+   * @param itemWriteCondition 
+   * @param itemWriteConditionField 
+   * @param offset parameter offset
+   */
+  abstract getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string, values:any[]);
 
   /**
    * @override
    */
   async _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
-    let q = `UPDATE ${this.parameters.table} SET data='${object.toStoredJSON(true)}' WHERE uuid='${this.getUuid(uid)}'`;
+    let q = `UPDATE ${this.parameters.table} SET data=$1 WHERE uuid=$2`;
+    const args = [object.toStoredJSON(true), this.getUuid(uid)];
     if (itemWriteCondition) {
-      q += this.getQueryCondition(itemWriteCondition, itemWriteConditionField);
+      q += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
     }
-    let res = await this.sqlQuery(q);
+    let res = await this.sqlQuery(q, args);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
@@ -201,14 +210,18 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    */
   async _save(object: T): Promise<any> {
     await this.sqlQuery(
-      `INSERT INTO ${this.parameters.table}(uuid,data) VALUES('${this.getUuid(object)}', '${object.toStoredJSON(
-        true
-      )}')`
+      `INSERT INTO ${this.parameters.table}(uuid,data) VALUES($1, $2)`,
+      [
+        this.getUuid(object),
+        object.toStoredJSON(
+          true
+        )
+      ]
     );
     return object;
   }
 
   async __clean() {
-    await this.sqlQuery(`DELETE FROM ${this.parameters.table}`);
+    await this.sqlQuery(`DELETE FROM ${this.parameters.table}`, []);
   }
 }

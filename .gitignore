@@ -18,3 +18,6 @@ built-docs
 yarn.lock
 received-emails
 .webda-shell
+docs.log
+docs.json
+.DS_Store

@@ -15,7 +15,7 @@ import { Readable, Writable } from "stream";
 import * as yaml from "yaml";
 import { Core } from "../core";
 
-type WalkerOptionsType = { followSymlinks?: boolean; includeDir?: boolean; maxDepth?: number };
+type WalkerOptionsType = { followSymlinks?: boolean; resolveSymlink?: boolean, includeDir?: boolean; maxDepth?: number };
 type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor?: (filepath: string) => void };
 
 /**
@@ -111,7 +111,7 @@ export const FileUtils: StorageFinder & {
             // unless we reached the maximum depth
             FileUtils.walk(p, processor, options, state);
           }
-        } else if (stat.isSymbolicLink()) {
+        } else if (stat.isSymbolicLink() && options.followSymlinks) {
           const realPath = realpathSync(p);
           const stat = lstatSync(realPath);
           if (stat.isDirectory()) {
@@ -120,12 +120,13 @@ export const FileUtils: StorageFinder & {
               // following below
               if (!options.maxDepth || state.depth < options.maxDepth) {
                 // unless we reached the maximum depth
-                FileUtils.walk(p, processor, options, state);
+                FileUtils.walk(options.resolveSymlink ? realPath : p, processor, options, state);
               }
             }
           } else {
             // symlink targets a file
-            processor(realPath);
+            // we should still send the symlink to the processor
+            processor(options.resolveSymlink ? realPath : p);
           }
         } else if (stat.isFile()) {
           processor(p);

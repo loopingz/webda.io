@@ -1,6 +1,6 @@
 {
   "name": "@webda/elasticsearch",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -32,7 +32,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@elastic/elasticsearch": "^8.1.0",
-    "@webda/core": "^3.2.1",
+    "@webda/core": "^3.2.2",
     "dateformat": "^5.0.3",
     "yaml": "^2.0.0"
   },
@@ -54,7 +54,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "14.6.0",
-    "@webda/shell": "^3.1.4",
+    "@webda/shell": "^3.1.5",
     "sinon": "^15.0.0"
   },
   "type": "module",

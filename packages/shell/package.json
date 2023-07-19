@@ -1,6 +1,6 @@
 {
   "name": "@webda/shell",
-  "version": "3.1.4",
+  "version": "3.1.5",
   "description": "Deploy a Webda app or configure it",
   "keywords": [
     "aws",
@@ -34,8 +34,8 @@
   "dependencies": {
     "@kubernetes/client-node": "^0.18.0",
     "@phenomnomnominal/tsquery": "^6.1.2",
-    "@webda/core": "^3.2.1",
-    "@webda/kubernetes": "^3.0.7",
+    "@webda/core": "^3.2.2",
+    "@webda/kubernetes": "^3.0.8",
     "@webda/tsc-esm": "^1.0.5",
     "@webda/workout": "^3.0.2",
     "archiver": "^5.3.0",

@@ -47,13 +47,23 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
   T,
   K
 > {
-  sqlQuery(q: string, values: any[]): Promise<SQLResult<T>> {
+  sqlQuery(q: string, values?: any[]): Promise<SQLResult<T>> {
     q = this.completeQuery(q);
     return this.executeQuery(q, values);
   }
 
-  abstract executeQuery(q: string, values: any[]): Promise<SQLResult<T>>;
+  /**
+   * Execute a SQL query
+   * @param q the query
+   * @param values to be added to the query
+   */
+  abstract executeQuery(q: string, values?: any[]): Promise<SQLResult<T>>;
 
+  /**
+   * Add the SELECT * FROM table if the query is not a full query
+   * @param q query to complete
+   * @returns 
+   */
   completeQuery(q: string): string {
     // Should add the INNER JOIN from map
     // this.parameters.map

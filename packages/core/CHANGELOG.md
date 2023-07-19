@@ -19,6 +19,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.2.2](https://github.com/loopingz/webda.io/compare/core-v3.2.1...core-v3.2.2) (2023-07-19)
+
+
+### Bug Fixes
+
+* allow no resolution for symlink to fix aspect_build_js all symlink ([a6a97ad](https://github.com/loopingz/webda.io/commit/a6a97ad4ada88b83b8c32ab2ef40e6482944b333))
+* make values optional to allow downward compatibility ([c0fec4f](https://github.com/loopingz/webda.io/commit/c0fec4fb21dba5e6c97f3ff87e15bf0abf2334bc))
+
 ## [3.2.1](https://github.com/loopingz/webda.io/compare/core-v3.2.0...core-v3.2.1) (2023-07-08)
 
 

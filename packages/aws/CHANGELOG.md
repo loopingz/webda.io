@@ -30,6 +30,15 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/async bumped from ^3.0.6 to ^3.0.7
     * @webda/shell bumped from ^3.1.3 to ^3.1.4
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.2.1 to ^3.2.2
+  * devDependencies
+    * @webda/async bumped from ^3.0.7 to ^3.0.8
+    * @webda/shell bumped from ^3.1.4 to ^3.1.5
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/aws-v3.1.0...aws-v3.1.1) (2023-06-30)
 
 

@@ -32,7 +32,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@webda/core": "^3.2.2",
-    "google-auth-library": "^8.0.1"
+    "google-auth-library": "^9.0.0"
   },
   "c8": {
     "report-dir": "./reports",

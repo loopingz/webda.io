@@ -1,7 +1,7 @@
 {
   "packages/amqp": "3.0.8",
   "packages/async": "3.0.8",
-  "packages/aws": "3.1.5",
+  "packages/aws": "3.1.6",
   "packages/core": "3.2.2",
   "packages/codmod": "3.0.0",
   "packages/elasticsearch": "3.0.8",

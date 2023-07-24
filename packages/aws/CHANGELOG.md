@@ -39,6 +39,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/async bumped from ^3.0.7 to ^3.0.8
     * @webda/shell bumped from ^3.1.4 to ^3.1.5
 
+## [3.1.6](https://github.com/loopingz/webda.io/compare/aws-v3.1.5...aws-v3.1.6) (2023-07-24)
+
+
+### Bug Fixes
+
+* move @webda/async devDep to dev on @webda/aws ([5ed6c58](https://github.com/loopingz/webda.io/commit/5ed6c5865fc8ce05b57c51353e74c3ec2b6a950f))
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/aws-v3.1.0...aws-v3.1.1) (2023-06-30)
 
 

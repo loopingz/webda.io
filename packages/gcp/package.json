@@ -33,7 +33,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@google-cloud/firestore": "^6.0.0",
-    "@google-cloud/pubsub": "^3.0.0",
+    "@google-cloud/pubsub": "^4.0.1",
     "@google-cloud/storage": "~7.0.1",
     "@webda/core": "^3.2.2",
     "mime-types": "^2.1.35"

@@ -325,7 +325,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   async getMeta({ bucket, key }: StorageObject): Promise<StorageObjectMeta> {
     const [metadata] = await this.getStorageBucket(bucket).file(key).getMetadata();
     return {
-      size: parseInt(metadata.size),
+      size: typeof metadata.size === "string" ? parseInt(metadata.size) : metadata.size,
       contentType: metadata.contentType
     };
   }

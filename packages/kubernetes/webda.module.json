@@ -32,7 +32,7 @@
                     },
                     "arguments": {},
                     "caller": {
-                      "$ref": "#/definitions/interface-1867433179-9884-11311-1867433179-0-213601"
+                      "$ref": "#/definitions/interface-260526370-9884-11311-260526370-0-213601"
                     }
                   },
                   "required": [
@@ -89,7 +89,7 @@
       "description": "Parameters for the KubeRunner",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "interface-1867433179-9884-11311-1867433179-0-213601": {
+        "interface-260526370-9884-11311-260526370-0-213601": {
           "type": "object",
           "properties": {
             "prototype": {},
@@ -98,7 +98,7 @@
             },
             "arguments": {},
             "caller": {
-              "$ref": "#/definitions/interface-1867433179-9884-11311-1867433179-0-213601"
+              "$ref": "#/definitions/interface-260526370-9884-11311-260526370-0-213601"
             }
           },
           "required": [

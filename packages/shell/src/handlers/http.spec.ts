@@ -43,6 +43,18 @@ class WebdaServerTest {
   }
 
   @test
+  async testIsDebug() {
+    await WebdaSampleApplication.load();
+    WebdaSampleApplication.setCurrentDeployment("Dev");
+    this.server = new WebdaServer(WebdaSampleApplication);
+    assert.strictEqual(this.server.isDebug(), false);
+    this.server['devMode'] = true;
+    assert.strictEqual(this.server.isDebug(), true);
+    this.server['devMode'] = false;
+    assert.strictEqual(this.server.isDebug(), false);
+  }
+
+  @test
   async testAlreadyBind() {
     let server = http.createServer(() => {}).listen(this.port);
     const logs = [];

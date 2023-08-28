@@ -70,12 +70,17 @@
           "description": "Expose current user in the context with me",
           "default": true
         },
+        "exposeGraphiQL": {
+          "type": "boolean",
+          "description": "Expose the schema"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
         }
       },
       "required": [
+        "exposeGraphiQL",
         "exposeMe",
         "maxOperationsPerRequest",
         "models",

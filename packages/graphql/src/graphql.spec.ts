@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, FileBinary, getCommonJS } from "@webda/core";
+import { CoreModel, FileBinary, getCommonJS, WebdaError } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as path from "path";
@@ -166,15 +166,38 @@ class GraphQLServiceTest extends WebdaTest {
   }
 
   @test
-  async schema() {
+  async graphiql() {
+    this.service.getParameters().exposeGraphiQL = true;
     let body = await this.http({
       url: "/graphql",
       headers: {
         "content-type": "application/json; charset=utf-8"
       }
     });
-    // Check for Companies and Company
+    assert.ok(body.includes("graphiql.min.js"), "Should contain graphiql");
+    // Ensure {{URL}} is replaced
+    assert.ok(body.includes("http://test.webda.io/graphql"), "Should contain graphiql");
+
+    body = await this.http({
+      url: "/graphql",
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "X-GraphiQL-Schema": "true"
+      }
+    });
     console.log(body);
+    assert.ok(body.includes("type Query"), "Should contain schema");
+    assert.ok(body.match(/type Query {[\w\W]*Teacher\(uuid: String\): Teacher[\w\W]*Me: User[\w\W]*}/gm), "Should contain schema");
+    // Check schema is retrieved
+
+    this.service.getParameters().exposeGraphiQL = false;
+    // Check for Companies and Company
+    await assert.rejects(() => this.http({
+      url: "/graphql",
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      }
+    }), WebdaError.NotFound);
   }
 
   @test

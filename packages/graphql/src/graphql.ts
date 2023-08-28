@@ -7,7 +7,8 @@ import {
   Route,
   Service,
   ServiceParameters,
-  WebContext
+  WebContext,
+  WebdaError
 } from "@webda/core";
 import {
   FieldNode,
@@ -24,6 +25,83 @@ import {
 } from "graphql";
 import { createHandler, Handler, OperationContext } from "graphql-http";
 import { JSONSchema7 } from "json-schema";
+
+const GraphIQL = `
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>GraphiQL</title>
+    <style>
+      body {
+        height: 100%;
+        margin: 0;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      #graphiql {
+        height: 100vh;
+      }
+    </style>
+    <!--
+      This GraphiQL example depends on Promise and fetch, which are available in
+      modern browsers, but can be "polyfilled" for older browsers.
+      GraphiQL itself depends on React DOM.
+      If you do not want to rely on a CDN, you can host these files locally or
+      include them directly in your favored resource bundler.
+    -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
+    <!--
+      These two files can be found in the npm module, however you may wish to
+      copy them directly into your environment, or perhaps include them in your
+      favored resource bundler.
+     -->
+    <script
+      src="https://unpkg.com/graphiql/graphiql.min.js"
+      type="application/javascript"
+    ></script>
+    <link rel="stylesheet" href="https://unpkg.com/graphiql/graphiql.min.css" />
+    <!-- 
+      These are imports for the GraphIQL Explorer plugin.
+     -->
+    <script
+      src="https://unpkg.com/@graphiql/plugin-explorer/dist/index.umd.js"
+      crossorigin
+    ></script>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@graphiql/plugin-explorer/dist/style.css"
+    />
+  </head>
+
+  <body>
+    <div id="graphiql">Loading...</div>
+    <script>
+      const root = ReactDOM.createRoot(document.getElementById('graphiql'));
+      const fetcher = GraphiQL.createFetcher({
+        url: '{{URL}}',
+        headers: { 'X-GraphiQL-Schema': 'true' },
+      });
+      const explorerPlugin = GraphiQLPluginExplorer.explorerPlugin();
+      root.render(
+        React.createElement(GraphiQL, {
+          fetcher,
+          defaultEditorToolsVisibility: true,
+          plugins: [explorerPlugin],
+        }),
+      );
+    </script>
+  </body>
+</html>
+`;
 
 export interface GraphQLContextExtension {
   /**
@@ -51,6 +129,10 @@ export class GraphQLParameters extends DomainServiceParameters {
    * @default true
    */
   exposeMe: boolean;
+  /**
+   * Expose the schema
+   */
+  exposeGraphiQL: boolean;
 
   constructor(params: any) {
     super(params);
@@ -390,6 +472,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       const model = models[i];
       const schema = model?.getSchema();
       if (!schema) {
+        this.log("INFO", "Schema not valid for root query", i);
         continue;
       }
       rootFields[this.app.getModelPlural(i).split("/").pop()] = {
@@ -447,6 +530,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    */
   async init(): Promise<this> {
     await super.init();
+    // If not define then fallback to debug mode
+    this.parameters.exposeGraphiQL ??= this.getWebda().isDebug();
     this.app = this.getWebda().getApplication();
     this.generateSchema();
     // Generate GraphQL schema
@@ -467,9 +552,18 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   @Route(".", ["POST", "GET"])
   async endpoint(ctx: WebContext<any>) {
     const httpContext = ctx.getHttpContext();
+    // Serve schema and graphqli
     if (httpContext.getMethod() === "GET") {
-      ctx.writeHead(200, { "Content-Type": "application/graphql" });
-      ctx.write(printSchema(this.schema));
+      if (!this.parameters.exposeGraphiQL) {
+        throw new WebdaError.NotFound("GraphiQL not exposed");
+      }
+      if (httpContext.getHeader("X-GraphiQL-Schema") === "true") {
+        ctx.writeHead(200, { "Content-Type": "application/graphql" });
+        ctx.write(printSchema(this.schema));
+      } else {
+        ctx.writeHead(200, { "Content-Type": "text/html" });
+        ctx.write(GraphIQL.replace("{{URL}}", httpContext.getAbsoluteUrl()));
+      }
       return;
     }
     ctx.setExtension("graphql", { count: 0 });

@@ -42,6 +42,14 @@ export class WebdaServer extends Webda {
     this.devMode = devMode;
   }
 
+  /**
+   * Return true if devMode is enabled
+   * @returns 
+   */
+  isDebug(): boolean {
+    return this.devMode ?? false;
+  }
+
   output(...args) {
     this.log("INFO", ...args);
   }

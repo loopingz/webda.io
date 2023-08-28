@@ -211,7 +211,7 @@ export default class ConfigurationService<
       this.configuration = newConfig;
       // Add the webda parameters logical
       if (this.configuration && this.configuration.services) {
-        // Merge parameters with each service
+        // Merge parameters with each service - cannot add new services for security
         for (let i in this.configuration.services) {
           if (this.getWebda().getService(i)) {
             this.configuration.services[i] = this.getWebda().getServiceParams(i, this.configuration);

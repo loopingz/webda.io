@@ -255,10 +255,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected services: { [key: string]: Service } = {};
   /**
-   * Webda Beans
-   */
-  protected beans: { [key: string]: Modda } = {};
-  /**
    * Application that generates this Core
    */
   protected application: Application;
@@ -611,7 +607,15 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         if (cfg) {
           cfg.parameters ??= {};
           cfg.services ??= {};
-          this.configuration.parameters = { ...this.configuration.parameters, ...cfg.parameters };
+          this.configuration.parameters = deepmerge(this.configuration.parameters, cfg.parameters);
+          // Ensure beans are known too
+          // @ts-ignore
+          Object.keys(process.webdaBeans || {}).forEach(bean => {
+            this.configuration.services[bean] ??= {
+              type: `Beans/${bean}`
+            };
+          });
+          // Merge services - for security reason we cannot add new services from configuration
           for (let i in this.configuration.services) {
             this.configuration.services[i] = {
               ...deepmerge(this.configuration.services[i], cfg.services[i] || {}),

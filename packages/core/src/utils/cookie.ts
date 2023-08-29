@@ -12,15 +12,19 @@ const SPLIT = 4096;
 /**
  * Cookie Options
  */
-export class CookieOptions implements CookieSerializeOptions {
+export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
   /**
    * @default lax
    */
   sameSite?: "none" | "strict" | "lax";
   /**
-   * @default to request hostname
+   * if true domain will be set to the request hostname
+   * if undefined no domain will be output (browser will use the current domain and only this one)
+   * if a string is provided it will be used as the domain
+   * 
+   * When provided a domain is setting the cookie to be available to all subdomains
    */
-  domain?: string;
+  domain?: string | true;
   /**
    * @minimum 1
    * @default 86400 * 7
@@ -57,7 +61,9 @@ export class CookieOptions implements CookieSerializeOptions {
     this.sameSite ??= "lax";
     this.name ??= "webda";
     if (httpContext) {
-      this.domain ??= httpContext.getHostName();
+      if (this.domain === true) {
+        this.domain = httpContext.getHostName();
+      }
       this.secure ??= httpContext.getProtocol() === "https:";
     }
   }
@@ -158,7 +164,7 @@ export class SecureCookie {
     name ??= "webda";
     let cookieName = name;
     let limit;
-    const mapLength = cookieSerialize(name, "", params).length;
+    const mapLength = cookieSerialize(name, "", <CookieSerializeOptions>params).length;
     for (let i = 0; i < value.length; ) {
       limit = SPLIT - mapLength;
       if (j > 1) {

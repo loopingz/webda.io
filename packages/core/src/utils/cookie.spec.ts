@@ -41,11 +41,17 @@ class CookieTest extends WebdaTest {
     assert.ok(!new CookieOptions({}, ctx.getHttpContext()).secure);
     ctx.getHttpContext().protocol = "https:";
     assert.ok(new CookieOptions({}, ctx.getHttpContext()).secure);
+    let opts = new CookieOptions({domain: true}, ctx.getHttpContext());
+    assert.strictEqual(opts.domain, "test.webda.io");
+    opts = new CookieOptions({}, ctx.getHttpContext());
+    assert.strictEqual(opts.domain, undefined);
+    opts = new CookieOptions({domain: "google.com"}, ctx.getHttpContext());
+    assert.strictEqual(opts.domain, "google.com");
   }
 
   @test("Oversize cookie") async testOversize() {
     var cookie = new Session().getProxy();
-    cookie.identUsed = "PLOP".repeat(3000);
+    cookie.identUsed = "PLOP".repeat(3005);
     assert.strictEqual(cookie.isDirty(), true);
     await SecureCookie.save("test", this._ctx, cookie);
     assert.strictEqual(Object.keys(this._ctx.getResponseCookies()).length, 5);
@@ -60,6 +66,6 @@ class CookieTest extends WebdaTest {
       ctx.getHttpContext().cookies[k] = cookies[k].value;
     });
     await ctx.init();
-    assert.strictEqual(ctx.getSession().identUsed, "PLOP".repeat(3000));
+    assert.strictEqual(ctx.getSession().identUsed, "PLOP".repeat(3005));
   }
 }

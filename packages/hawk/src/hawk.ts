@@ -138,6 +138,10 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     // Manage hawk server signature
     this.getWebda().on("Webda.Result", async ({ context }) => {
       try {
+        // Flushed headers
+        if (context.hasFlushedHeaders()) {
+          return;
+        }
         const headers = context.getResponseHeaders();
         const contentType = headers["Content-Type"] || headers["content-type"] || "application/json";
         // Send current time to be able to detect any time synchronization issue

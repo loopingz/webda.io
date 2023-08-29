@@ -167,6 +167,8 @@ class HawkServiceTest extends WebdaTest {
     await this.webda.emitSync("Webda.Result", { context: this.context });
     this.context.setExtension("hawk", undefined);
     await this.webda.emitSync("Webda.Result", { context: this.context });
+    this.context.hasFlushedHeaders = () => true;
+    await this.webda.emitSync("Webda.Result", { context: this.context });
   }
 
   async doValidRequest(url = "/", method: HttpMethodType = "GET", headers = {}) {

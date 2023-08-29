@@ -38,7 +38,7 @@ export class CookieSessionParameters extends ServiceParameters {
 
   constructor(params: any) {
     super(params);
-    this.cookie ??= new CookieOptions({});
+    this.cookie ??= new CookieOptions(params.cookie || {});
   }
 }
 

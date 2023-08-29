@@ -105,7 +105,12 @@ jobs:
         run: yarn run build
 
       - name: Run tests
-        run: yarn run test --exclude @webda/shell
+        run: yarn run test --exclude @webda/shell --exclude @webda/gcp
+        env:
+          NODE_OPTIONS: "--max-old-space-size=6144"
+
+      - name: Run GCP tests
+        run: yarn nx run @webda/gcp:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

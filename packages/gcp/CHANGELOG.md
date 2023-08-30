@@ -36,6 +36,23 @@
     * @webda/async bumped from ^3.0.7 to ^3.0.8
     * @webda/shell bumped from ^3.1.4 to ^3.1.5
 
+## [3.1.6](https://github.com/loopingz/webda.io/compare/gcp-v3.1.5...gcp-v3.1.6) (2023-08-30)
+
+
+### Bug Fixes
+
+* update in metadata.size type ([9638683](https://github.com/loopingz/webda.io/commit/9638683d18a642474d14a51ec3bab3a2ba7efeb3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.2.2 to ^3.3.0
+  * devDependencies
+    * @webda/async bumped from ^3.0.8 to ^3.0.9
+    * @webda/shell bumped from ^3.1.5 to ^3.2.0
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/gcp-v3.1.0...gcp-v3.1.1) (2023-06-30)
 
 

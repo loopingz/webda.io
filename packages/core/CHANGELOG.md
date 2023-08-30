@@ -19,6 +19,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.3.0](https://github.com/loopingz/webda.io/compare/core-v3.2.2...core-v3.3.0) (2023-08-30)
+
+
+### Features
+
+* allow no domain on cookie to default on domain only ([308fa49](https://github.com/loopingz/webda.io/commit/308fa493e3f2e813d919f1375839302512eb7969))
+
+
+### Bug Fixes
+
+* beans local configuration without config declaration ([5186555](https://github.com/loopingz/webda.io/commit/5186555a5d5318e750ea585ca90ea693a41db47e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.0.2 to ^3.0.3
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.0.5 to ^1.0.6
+
 ## [3.2.2](https://github.com/loopingz/webda.io/compare/core-v3.2.1...core-v3.2.2) (2023-07-19)
 
 

@@ -32,6 +32,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.1.4 to ^3.1.5
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/graphql-v3.1.5...graphql-v3.2.0) (2023-08-30)
+
+
+### Features
+
+* add graphiql in devmode or flag enable ([c87098f](https://github.com/loopingz/webda.io/commit/c87098fde1c04f0b4353ee92565d535cfd59a0de))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.2.2 to ^3.3.0
+  * devDependencies
+    * @webda/shell bumped from ^3.1.5 to ^3.2.0
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/graphql-v3.1.0...graphql-v3.1.1) (2023-06-30)
 
 

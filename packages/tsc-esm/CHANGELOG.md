@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.0.5...tsc-esm-v1.0.6) (2023-08-30)
+
+
+### Bug Fixes
+
+* usage of single quote instead of double for import/export ([8c30f18](https://github.com/loopingz/webda.io/commit/8c30f183082084e82bfa34df1cc4f69e7c1d67ca))
+
 ## [1.0.5](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.0.4...tsc-esm-v1.0.5) (2023-06-30)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.2.2 to ^3.3.0
+  * devDependencies
+    * @webda/shell bumped from ^3.1.5 to ^3.2.0
+
 ## [3.0.8](https://github.com/loopingz/webda.io/compare/postgres-v3.0.7...postgres-v3.0.8) (2023-07-19)
 
 

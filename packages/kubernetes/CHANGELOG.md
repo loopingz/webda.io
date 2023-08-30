@@ -28,6 +28,23 @@
     * @webda/async bumped from ^3.0.7 to ^3.0.8
     * @webda/core bumped from ^3.2.1 to ^3.2.2
 
+## [3.0.9](https://github.com/loopingz/webda.io/compare/kubernetes-v3.0.8...kubernetes-v3.0.9) (2023-08-30)
+
+
+### Bug Fixes
+
+* update in metadata.size type ([9638683](https://github.com/loopingz/webda.io/commit/9638683d18a642474d14a51ec3bab3a2ba7efeb3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.0.8 to ^3.0.9
+    * @webda/core bumped from ^3.2.2 to ^3.3.0
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.0.5 to ^1.0.6
+
 ## [3.0.4](https://github.com/loopingz/webda.io/compare/kubernetes-v3.0.3...kubernetes-v3.0.4) (2023-06-30)
 
 

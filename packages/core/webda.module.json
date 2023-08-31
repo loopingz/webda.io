@@ -840,11 +840,6 @@
         "cookie": {
           "type": "object",
           "properties": {
-            "domain": {
-              "type": "string",
-              "description": "Specifies the value for the  {@link  https://tools.ietf.org/html/rfc6265#section-5.2.3Domain Set-Cookie attribute } . By default, no domain is set, and most clients will consider the cookie to apply to only the current domain.",
-              "default": "to request hostname"
-            },
             "expires": {
               "type": "string",
               "format": "date-time",
@@ -879,6 +874,18 @@
             "secure": {
               "type": "boolean",
               "description": "If not set will be true if https request and false otherwise If defined it will be set to the value"
+            },
+            "domain": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean",
+                  "const": true
+                }
+              ],
+              "description": "if true domain will be set to the request hostname if undefined no domain will be output (browser will use the current domain and only this one) if a string is provided it will be used as the domain\n\nWhen provided a domain is setting the cookie to be available to all subdomains"
             },
             "name": {
               "type": "string",

@@ -545,27 +545,32 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Serve schema and graphqli
+   * @params ctx
+   */
+  @Route(".", ["GET"], { hidden: true })
+  async schemaRoute(ctx: WebContext<any>) {
+    const httpContext = ctx.getHttpContext();
+    if (!this.parameters.exposeGraphiQL) {
+      throw new WebdaError.NotFound("GraphiQL not exposed");
+    }
+    if (httpContext.getHeader("X-GraphiQL-Schema") === "true") {
+      ctx.writeHead(200, { "Content-Type": "application/graphql" });
+      ctx.write(printSchema(this.schema));
+    } else {
+      ctx.writeHead(200, { "Content-Type": "text/html" });
+      ctx.write(GraphIQL.replace("{{URL}}", httpContext.getAbsoluteUrl()));
+    }
+  }
+
+  /**
    * Endpoint for the GraphQL schema
    * @param ctx
    * @returns
    */
-  @Route(".", ["POST", "GET"])
+  @Route(".", ["POST"])
   async endpoint(ctx: WebContext<any>) {
     const httpContext = ctx.getHttpContext();
-    // Serve schema and graphqli
-    if (httpContext.getMethod() === "GET") {
-      if (!this.parameters.exposeGraphiQL) {
-        throw new WebdaError.NotFound("GraphiQL not exposed");
-      }
-      if (httpContext.getHeader("X-GraphiQL-Schema") === "true") {
-        ctx.writeHead(200, { "Content-Type": "application/graphql" });
-        ctx.write(printSchema(this.schema));
-      } else {
-        ctx.writeHead(200, { "Content-Type": "text/html" });
-        ctx.write(GraphIQL.replace("{{URL}}", httpContext.getAbsoluteUrl()));
-      }
-      return;
-    }
     ctx.setExtension("graphql", { count: 0 });
     const [body, init] = await this.handler({
       url: httpContext.getUrl(),

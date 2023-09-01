@@ -185,7 +185,6 @@ class GraphQLServiceTest extends WebdaTest {
         "X-GraphiQL-Schema": "true"
       }
     });
-    console.log(body);
     assert.ok(body.includes("type Query"), "Should contain schema");
     assert.ok(body.match(/type Query {[\w\W]*Teacher\(uuid: String\): Teacher[\w\W]*Me: User[\w\W]*}/gm), "Should contain schema");
     // Check schema is retrieved

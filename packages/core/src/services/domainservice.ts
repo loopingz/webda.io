@@ -8,10 +8,12 @@ import {
   Methods,
   ModelAction,
   OperationDefinition,
+  Route,
   Service,
   ServiceParameters,
   Store,
-  WebContext
+  WebContext,
+  WebdaError
 } from "../index";
 
 /**
@@ -206,6 +208,49 @@ export class DomainServiceParameters extends ServiceParameters {
 }
 
 /**
+ * Swagger static html
+ */
+const swagger = `
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css" >
+    <style>
+      .topbar {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js"> </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js"> </script>
+    <script>
+      const spec = {{OPENAPI}};
+      window.onload = function() {
+        const ui = SwaggerUIBundle({
+          spec: spec,
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          plugins: [
+            SwaggerUIBundle.plugins.DownloadUrl
+          ],
+          layout: "StandaloneLayout"
+        })
+     
+        window.ui = ui
+      }
+  </script>
+  </body>
+</html>
+`;
+
+/**
  * Domain Service expose all the models as Route and Operations
  *
  * Model are exposed if they have a Expose decorator
@@ -298,10 +343,46 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
 }
 
 /**
+ * 
+ */
+export class RESTDomainServiceParameters extends DomainServiceParameters {
+  /**
+   * Expose the OpenAPI
+   * 
+   * @default true if debug false otherwise
+   */
+  exposeOpenAPI: boolean;
+
+  /**
+   * Set default url to /
+   * @param params 
+   */
+  constructor(params: any) {
+    super(params);
+    this.url ??= "/";
+  }
+}
+
+/**
  * Expose all models via a REST API
  * @WebdaModda
  */
-export class RESTDomainService<T extends DomainServiceParameters = DomainServiceParameters> extends DomainService<T> {
+export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomainServiceParameters> extends DomainService<T> {
+  /**
+   * OpenAPI cache
+   */
+  openapiContent: string;
+  /**
+   * Override to fallback on isDebug for exposeOpenAPI
+   * @returns 
+   */
+  async init() {
+    await super.init();
+    // If not define then fallback to debug mode
+    this.parameters.exposeOpenAPI ??= this.getWebda().isDebug();
+    return this;
+  }
+
   /**
    * Handle one model and expose it based on the service
    * @param model
@@ -355,7 +436,7 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
     };
 
     // Update prefix
-    const prefix = (context.prefix || this.parameters.url || "/") + this.transformName(name);
+    const prefix = (context.prefix || this.parameters.url) + this.transformName(name);
     context.prefix = prefix + `/{pid.${depth}}/`;
 
     model.Expose.restrict.query ||
@@ -437,5 +518,18 @@ export class RESTDomainService<T extends DomainServiceParameters = DomainService
     });
 
     return true;
+  }
+
+  /**
+   * Serve the openapi with the swagger-ui
+   * @param ctx 
+   */
+  @Route(".", ["GET"], { hidden: true })
+  async openapi(ctx: WebContext) {
+    if (!this.parameters.exposeOpenAPI) {
+      throw new WebdaError.NotFound("OpenAPI not available");
+    }
+    this.openapiContent ??= swagger.replace("{{OPENAPI}}", JSON.stringify(this.getWebda().exportOpenAPI(true)));
+    ctx.write(this.openapiContent);
   }
 }

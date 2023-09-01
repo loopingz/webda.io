@@ -1091,7 +1091,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   protected createService(services: any, service: string) {
-    let type = services[service].type;
+    let type = services[service]?.type;
     if (type === undefined) {
       type = service;
     }
@@ -1149,7 +1149,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         try {
           this.services[s].resolve();
         } catch (err) {
-          this.log("ERROR", err);
+          this.log("ERROR", `Service(${s})`, err);
         }
       });
     this.emit("Webda.Create.Services", this.services);

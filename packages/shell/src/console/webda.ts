@@ -228,7 +228,7 @@ export type Models = ${Object.keys(modelsExport.models)
 
 // Schema definitions
 `;
-      code += Object.keys(modelsExport.models)
+      code += Object.keys(modelsExport.models).filter(k => modelsExport.models[k] !== undefined)
         .map(k => {
           const name = k.replace(/\//, "_");
           return `const ${name}Schema = ${JSON.stringify(modelsExport.models[k], undefined, 2)} as const;
@@ -1084,7 +1084,7 @@ ${Object.keys(operationsExport.operations)
       if (!this.withinMinorVersion(versions["@webda/core"].version, versions["@webda/shell"].version)) {
         output.log(
           "WARN",
-          `Versions mismatch: @webda/core (${versions["@webda/core"].version}) and @webda/shell (${versions["@webda/shell"].version}) are not within patch versions`
+          `Versions mismatch: @webda/core (${versions["@webda/core"].version}) and @webda/shell (${versions["@webda/shell"].version}) are not within minor versions`
         );
       }
       // Load Application

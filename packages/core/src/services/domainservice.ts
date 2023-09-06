@@ -443,7 +443,7 @@ export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomai
 
     model.Expose.restrict.query ||
       this.addRoute(
-        `${prefix}${this.parameters.queryMethod==="GET"?"{?q}":""}`,
+        `${prefix}${this.parameters.queryMethod==="GET"?"{?q?}":""}`,
         [this.parameters.queryMethod],
         injector(model.store(), "httpQuery", "QUERY", model.store().handleModel(model))
       );

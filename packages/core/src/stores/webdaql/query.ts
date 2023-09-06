@@ -130,7 +130,15 @@ export namespace WebdaQL {
       for (let i = 1; i < ctx.childCount - 1; i++) {
         this.visit(ctx.getChild(i));
       }
-
+      // If the first element is a sub expression, it means we have a filter
+      if (ctx.getChild(0) instanceof SubExpressionContext) {
+        return {
+          filter: <Expression>(<unknown>this.visit(ctx.getChild(0).getChild(1))) || new AndExpression([]),
+          limit: this.limit,
+          continuationToken: this.offset,
+          orderBy: this.orderBy
+        };
+      }
       // Go down one level - if expression empty it means no expression were provided
       return {
         filter: <Expression>(<unknown>this.visit(ctx.getChild(0))) || new AndExpression([]),

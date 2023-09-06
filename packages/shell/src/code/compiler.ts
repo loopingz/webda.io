@@ -79,6 +79,7 @@ class WebdaSchemaResults {
         if (schemaNode) {
           schemas[name] = compiler.generateSchema(schemaNode, title || name);
           if (addOpenApi && schemas[name]) {
+            schemas[name].properties ??= {};
             schemas[name].properties["openapi"] = {
               type: "object",
               additionalProperties: true

@@ -419,6 +419,8 @@ export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomai
           }
           if (args[0] !== 0) {
             query = `__types CONTAINS "${model.getIdentifier()}"` + query;
+          } else if (query.startsWith(" AND ")) {
+            query = query.substring(5);
           }
           if (context.getHttpContext().getMethod() === "GET") {
             context.getParameters().q = query;

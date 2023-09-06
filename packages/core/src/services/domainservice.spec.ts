@@ -47,6 +47,14 @@ class DomainServiceTest extends WebdaTest {
       url: `/companies`
     });
     assert.strictEqual(result.results.length, 2);
+    this.webda.getModel("Company").store().handleModel = () => 0;
+    // Reinit the routes
+    rest.resolve();
+    result = await this.http({
+      method: "GET",
+      url: `/companies?q=name="Plop"`
+    });
+    
     result = await this.http({
       method: "PUT",
       url: `/companies/${companies[0].uuid}/users`,
@@ -334,5 +342,20 @@ class DomainServiceTest extends WebdaTest {
     assert.strictEqual(userModel.images[1].hash, "974e716f2142b8df60108602703a8602");
     assert.strictEqual(userModel.images[0].name, "file.txt");
     assert.strictEqual(userModel.images[1].name, "file2.txt");
+  }
+
+  @test
+  async testOpenApi() {
+    const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService", {exposeOpenAPI: true, url: "/openapi"})).resolve().init();
+    let result = await this.http({
+      method: "GET",
+      url: "/openapi"
+    });
+    assert.ok(result.includes("spec = {\"openapi\""));
+    rest.getParameters().exposeOpenAPI = false;
+    await assert.rejects(() => this.http({
+      method: "GET",
+      url: "/openapi"
+    }), /OpenAPI not available/);
   }
 }

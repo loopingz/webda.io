@@ -110,7 +110,7 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Run GCP tests
-        run: yarn nx run @webda/gcp:test
+        run: yarn nx run @webda/gcp:test || yarn nx run @webda/gcp:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

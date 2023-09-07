@@ -40,3 +40,15 @@ In the above example:
 
 If no query params is defined as mandatory, then query is optional
 If you want to collect all params while making the query params mandatory use the `+` sign instead of `*`
+
+## Prefix
+
+You can prefix all routes by adding a `routePrefix` in your global parameters of webda.
+To override the prefix you can use the `//` in your route definition, to define it as absolute.
+
+```
+# With a api prefix defined
+//test/plop => /test/plop
+/api/plop => /api/plop
+/plop2 => /api/plop2
+```

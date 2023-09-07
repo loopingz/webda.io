@@ -52,7 +52,7 @@ class DomainServiceTest extends WebdaTest {
     rest.resolve();
     result = await this.http({
       method: "GET",
-      url: `/companies?q=name="Plop"`
+      url: `/companies?q=${encodeURIComponent('name="Plop"')}`
     });
     
     result = await this.http({

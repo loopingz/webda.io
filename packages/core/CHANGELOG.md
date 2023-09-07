@@ -19,6 +19,20 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/core-v3.3.0...core-v3.4.0) (2023-09-07)
+
+
+### Features
+
+* add swagger-ui for dev ([a6adb77](https://github.com/loopingz/webda.io/commit/a6adb77fcfb38c6e6398d2404a9351d8871a0dc9))
+
+
+### Bug Fixes
+
+* DomainService collection query ([6f81d7c](https://github.com/loopingz/webda.io/commit/6f81d7c10ab2d554c3c309fdca4063b3db83c2f1))
+* query parameters on collection for DomainService ([ef6d18d](https://github.com/loopingz/webda.io/commit/ef6d18d8283d789fceb278d1a969eb49db061d0b))
+* query SubExpression only ([36bccd7](https://github.com/loopingz/webda.io/commit/36bccd7992f4260a6f27ad15388f5f0c320d4dec))
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/core-v3.2.2...core-v3.3.0) (2023-08-30)
 
 

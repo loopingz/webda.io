@@ -28,6 +28,13 @@
     * @webda/async bumped from ^3.0.7 to ^3.0.8
     * @webda/core bumped from ^3.2.1 to ^3.2.2
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.0.9 to ^3.0.10
+    * @webda/core bumped from ^3.3.0 to ^3.4.0
+
 ## [3.0.9](https://github.com/loopingz/webda.io/compare/kubernetes-v3.0.8...kubernetes-v3.0.9) (2023-08-30)
 
 

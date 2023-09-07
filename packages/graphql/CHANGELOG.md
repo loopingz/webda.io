@@ -32,6 +32,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.1.4 to ^3.1.5
 
+## [3.3.0](https://github.com/loopingz/webda.io/compare/graphql-v3.2.0...graphql-v3.3.0) (2023-09-07)
+
+
+### Features
+
+* add swagger-ui for dev ([a6adb77](https://github.com/loopingz/webda.io/commit/a6adb77fcfb38c6e6398d2404a9351d8871a0dc9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.3.0 to ^3.4.0
+  * devDependencies
+    * @webda/shell bumped from ^3.2.0 to ^3.2.1
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/graphql-v3.1.5...graphql-v3.2.0) (2023-08-30)
 
 

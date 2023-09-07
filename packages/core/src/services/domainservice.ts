@@ -267,9 +267,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param params
    * @param name
    */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
-    return new DomainServiceParameters(params);
-  }
+  abstract loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters;
 
   /**
    * Return the model name for this service
@@ -330,7 +328,6 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    */
   resolve(): this {
     super.resolve();
-
     this.app = this.getWebda().getApplication();
     // Add all routes per model
     this.app.getRootExposedModels().forEach(name => {
@@ -376,11 +373,17 @@ export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomai
    * Override to fallback on isDebug for exposeOpenAPI
    * @returns 
    */
-  async init() {
-    await super.init();
-    // If not define then fallback to debug mode
+  resolve() {
     this.parameters.exposeOpenAPI ??= this.getWebda().isDebug();
+    super.resolve();
     return this;
+  }
+
+  /**
+   * @override
+   */
+  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
+    return new RESTDomainServiceParameters(params);
   }
 
   /**

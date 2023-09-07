@@ -2448,12 +2448,18 @@
             "*"
           ]
         },
+        "exposeOpenAPI": {
+          "type": "boolean",
+          "description": "Expose the OpenAPI",
+          "default": "true if debug false otherwise"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
         }
       },
       "required": [
+        "exposeOpenAPI",
         "models",
         "nameTransfomer",
         "operations",

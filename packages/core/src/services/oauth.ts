@@ -323,14 +323,16 @@ export abstract class OAuthService<
 
   /**
    * Check if the url is authorized
-   * @param redirect 
-   * @param context 
-   * @returns 
+   * @param redirect
+   * @param context
+   * @returns
    */
   isAuthorizedUri(redirect: string, context: WebContext): boolean {
-    return !this.parameters.authorized_uris // If no authorized_uris defined, allow all
-              || this.authorized_uris?.validate(redirect) // If redirect is included in authorized_uris
-              || (this.parameters.no_referer && !context.getHttpContext().getUniqueHeader("referer")); // If no_referer is allowed
+    return (
+      !this.parameters.authorized_uris || // If no authorized_uris defined, allow all
+      this.authorized_uris?.validate(redirect) || // If redirect is included in authorized_uris
+      (this.parameters.no_referer && !context.getHttpContext().getUniqueHeader("referer"))
+    ); // If no_referer is allowed
   }
 
   /**

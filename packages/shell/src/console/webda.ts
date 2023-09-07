@@ -1,4 +1,12 @@
-import { CancelablePromise, FileUtils, getCommonJS, JSONUtils, Logger, PackageDescriptorAuthor, Store } from "@webda/core";
+import {
+  CancelablePromise,
+  FileUtils,
+  getCommonJS,
+  JSONUtils,
+  Logger,
+  PackageDescriptorAuthor,
+  Store
+} from "@webda/core";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
@@ -228,7 +236,8 @@ export type Models = ${Object.keys(modelsExport.models)
 
 // Schema definitions
 `;
-      code += Object.keys(modelsExport.models).filter(k => modelsExport.models[k] !== undefined)
+      code += Object.keys(modelsExport.models)
+        .filter(k => modelsExport.models[k] !== undefined)
         .map(k => {
           const name = k.replace(/\//, "_");
           return `const ${name}Schema = ${JSON.stringify(modelsExport.models[k], undefined, 2)} as const;
@@ -519,13 +528,13 @@ ${Object.keys(operationsExport.operations)
 
   /**
    * Add a system to recompile if needed
-   * @returns 
+   * @returns
    */
-  static requireCompilation() : boolean {
+  static requireCompilation(): boolean {
     const f = this.app.getAppPath(".webda");
-    let webdaCache : WebdaCache = {};
+    let webdaCache: WebdaCache = {};
     if (fs.existsSync(f)) {
-        webdaCache = JSONUtils.loadFile(f);
+      webdaCache = JSONUtils.loadFile(f);
     }
     const digest = webdaCache.digest;
     // This is a cache key not cryptographic need
@@ -533,13 +542,15 @@ ${Object.keys(operationsExport.operations)
     const tsCfg = fs.readFileSync(this.app.getAppPath("tsconfig.json"));
     current.update(tsCfg);
     const ts = JSON.parse(tsCfg.toString());
-    glob.sync(ts.include || ["**/*"], {
-      ignore: ts.exclude,
-      nodir: true,
-    }).forEach(f => {
-      current.update(fs.readFileSync(f));
-    });
-    webdaCache.digest = current.digest('hex');
+    glob
+      .sync(ts.include || ["**/*"], {
+        ignore: ts.exclude,
+        nodir: true
+      })
+      .forEach(f => {
+        current.update(fs.readFileSync(f));
+      });
+    webdaCache.digest = current.digest("hex");
     if (webdaCache.digest == digest) {
       this.log("DEBUG", "Skipping compilation as nothing changed");
       return false;

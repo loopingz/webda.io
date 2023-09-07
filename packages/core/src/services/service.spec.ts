@@ -70,13 +70,8 @@ class FakeOperationContext extends OperationContext {
 class RegExpStringValidatorTest {
   @test
   async validate() {
-    let validator = new RegExpStringValidator([
-      "test1",
-      "regex:test[2-3]+",
-      "regex:^itest[4-5]b$",
-      "test[1-9]+"
-    ]);
-    
+    let validator = new RegExpStringValidator(["test1", "regex:test[2-3]+", "regex:^itest[4-5]b$", "test[1-9]+"]);
+
     assert.ok(validator.validate("test1"));
     assert.ok(validator.validate("test[1-9]+"));
     assert.ok(validator.validate("test2"));
@@ -90,7 +85,6 @@ class RegExpStringValidatorTest {
     assert.ok(!validator.validate("test6"));
   }
 }
-
 
 @suite
 class ServiceTest extends WebdaTest {

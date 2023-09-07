@@ -6,7 +6,11 @@ class ThrottlerItem {
    * Once the promise is in progress
    */
   public promise?: Promise<any>;
-  constructor(public method: () => Promise<any>, public callbacks: ((res?: any) => void)[], public name: string) {}
+  constructor(
+    public method: () => Promise<any>,
+    public callbacks: ((res?: any) => void)[],
+    public name: string
+  ) {}
   toString() {
     return `${this.name}: ${this.promise ? "IN-PROGRESS" : "QUEUED"}`;
   }

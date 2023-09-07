@@ -15,7 +15,12 @@ import { Readable, Writable } from "stream";
 import * as yaml from "yaml";
 import { Core } from "../core";
 
-type WalkerOptionsType = { followSymlinks?: boolean; resolveSymlink?: boolean, includeDir?: boolean; maxDepth?: number };
+type WalkerOptionsType = {
+  followSymlinks?: boolean;
+  resolveSymlink?: boolean;
+  includeDir?: boolean;
+  maxDepth?: number;
+};
 type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor?: (filepath: string) => void };
 
 /**
@@ -51,16 +56,16 @@ export interface StorageFinder {
 
 /**
  * Guess format to use for a filename
- * @param filename 
- * @returns 
+ * @param filename
+ * @returns
  */
 function getFormatFromFilename(filename: string): Format {
-    if (filename.match(/\.ya?ml$/i)) {
-      return "yaml";
-    } else if (filename.match(/\.jsonc?$/i)) {
-      return "json";
-    }
-    throw new Error("Unknown format: " + filename);
+  if (filename.match(/\.ya?ml$/i)) {
+    return "yaml";
+  } else if (filename.match(/\.jsonc?$/i)) {
+    return "json";
+  }
+  throw new Error("Unknown format: " + filename);
 }
 /**
  * Allow save/load of yaml or json file
@@ -313,8 +318,8 @@ export const JSONUtils = {
   /**
    * Helper to FileUtils.save
    */
-  saveFile: (object: any, filename: string, publicAudience?: boolean) => FileUtils.save(object, filename, publicAudience, "json"),
-  
+  saveFile: (object: any, filename: string, publicAudience?: boolean) =>
+    FileUtils.save(object, filename, publicAudience, "json"),
 
   /**
    * Sort object keys
@@ -346,7 +351,8 @@ export const YAMLUtils = {
   /**
    * Helper to FileUtils.save
    */
-  saveFile: (object: any, filename: string, publicAudience?: boolean) => FileUtils.save(object, filename, publicAudience, "yaml"),
+  saveFile: (object: any, filename: string, publicAudience?: boolean) =>
+    FileUtils.save(object, filename, publicAudience, "yaml"),
   /**
    * Duplicate an object using serializer
    */

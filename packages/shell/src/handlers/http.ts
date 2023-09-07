@@ -44,7 +44,7 @@ export class WebdaServer extends Webda {
 
   /**
    * Return true if devMode is enabled
-   * @returns 
+   * @returns
    */
   isDebug(): boolean {
     return this.devMode ?? false;

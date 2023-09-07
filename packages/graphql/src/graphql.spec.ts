@@ -186,17 +186,24 @@ class GraphQLServiceTest extends WebdaTest {
       }
     });
     assert.ok(body.includes("type Query"), "Should contain schema");
-    assert.ok(body.match(/type Query {[\w\W]*Teacher\(uuid: String\): Teacher[\w\W]*Me: User[\w\W]*}/gm), "Should contain schema");
+    assert.ok(
+      body.match(/type Query {[\w\W]*Teacher\(uuid: String\): Teacher[\w\W]*Me: User[\w\W]*}/gm),
+      "Should contain schema"
+    );
     // Check schema is retrieved
 
     this.service.getParameters().exposeGraphiQL = false;
     // Check for Companies and Company
-    await assert.rejects(() => this.http({
-      url: "/graphql",
-      headers: {
-        "content-type": "application/json; charset=utf-8"
-      }
-    }), WebdaError.NotFound);
+    await assert.rejects(
+      () =>
+        this.http({
+          url: "/graphql",
+          headers: {
+            "content-type": "application/json; charset=utf-8"
+          }
+        }),
+      WebdaError.NotFound
+    );
   }
 
   @test

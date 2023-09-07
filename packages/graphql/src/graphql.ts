@@ -515,13 +515,32 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         this.log("WARN", "Cannot expose me, user model is not exposed or get is restricted or type is not unavailable");
       }
     }
-    this.schema = new GraphQLSchema({
+    this.schema = this.getGraphQLSchema(rootFields);
+  }
+
+  /**
+   *
+   * @param rootFields
+   * @param mutation
+   * @returns
+   */
+  getGraphQLSchema(
+    rootFields: ThunkObjMap<GraphQLFieldConfig<any, any, any>>,
+    mutations: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {}
+  ): GraphQLSchema {
+    // Emit Webda.GraphQL.Schema to allow other services to contribute
+    this.emit("Webda.GraphQL.Schema", {
+      rootFields,
+      mutations
+    });
+    return new GraphQLSchema({
       query: new GraphQLObjectType({
         name: "Query",
         fields: rootFields
       }),
       types: Object.values(this.modelsMap),
-      mutation: null
+      mutation:
+        Object.keys(mutations).length > 0 ? new GraphQLObjectType({ fields: mutations, name: "Mutations" }) : null
     });
   }
 

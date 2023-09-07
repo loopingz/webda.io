@@ -108,7 +108,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.queryStringParameters = { test: "Plop" };
     this.handler.registerRequestFilter({
       checkRequest: async () => {
-        throw new WebdaError.Redirect("Need Auth", "https://google.com")
+        throw new WebdaError.Redirect("Need Auth", "https://google.com");
       }
     });
     let res = await this.handler.handleRequest(this.evt, this.context);

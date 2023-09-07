@@ -41,11 +41,11 @@ class CookieTest extends WebdaTest {
     assert.ok(!new CookieOptions({}, ctx.getHttpContext()).secure);
     ctx.getHttpContext().protocol = "https:";
     assert.ok(new CookieOptions({}, ctx.getHttpContext()).secure);
-    let opts = new CookieOptions({domain: true}, ctx.getHttpContext());
+    let opts = new CookieOptions({ domain: true }, ctx.getHttpContext());
     assert.strictEqual(opts.domain, "test.webda.io");
     opts = new CookieOptions({}, ctx.getHttpContext());
     assert.strictEqual(opts.domain, undefined);
-    opts = new CookieOptions({domain: "google.com"}, ctx.getHttpContext());
+    opts = new CookieOptions({ domain: "google.com" }, ctx.getHttpContext());
     assert.strictEqual(opts.domain, "google.com");
   }
 

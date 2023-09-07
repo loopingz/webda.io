@@ -340,19 +340,19 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
 }
 
 /**
- * 
+ *
  */
 export class RESTDomainServiceParameters extends DomainServiceParameters {
   /**
    * Expose the OpenAPI
-   * 
+   *
    * @default true if debug false otherwise
    */
   exposeOpenAPI: boolean;
 
   /**
    * Set default url to /
-   * @param params 
+   * @param params
    */
   constructor(params: any) {
     super(params);
@@ -364,14 +364,16 @@ export class RESTDomainServiceParameters extends DomainServiceParameters {
  * Expose all models via a REST API
  * @WebdaModda
  */
-export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomainServiceParameters> extends DomainService<T> {
+export class RESTDomainService<
+  T extends RESTDomainServiceParameters = RESTDomainServiceParameters
+> extends DomainService<T> {
   /**
    * OpenAPI cache
    */
   openapiContent: string;
   /**
    * Override to fallback on isDebug for exposeOpenAPI
-   * @returns 
+   * @returns
    */
   resolve() {
     this.parameters.exposeOpenAPI ??= this.getWebda().isDebug();
@@ -441,13 +443,14 @@ export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomai
     };
 
     // Update prefix
-    const prefix = (context.prefix || (this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + 
-    "/")) + this.transformName(name);
+    const prefix =
+      (context.prefix || (this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + "/")) +
+      this.transformName(name);
     context.prefix = prefix + `/{pid.${depth}}/`;
 
     model.Expose.restrict.query ||
       this.addRoute(
-        `${prefix}${this.parameters.queryMethod==="GET"?"{?q?}":""}`,
+        `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
         [this.parameters.queryMethod],
         injector(model.store(), "httpQuery", "QUERY", model.store().handleModel(model))
       );
@@ -528,7 +531,7 @@ export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomai
 
   /**
    * Serve the openapi with the swagger-ui
-   * @param ctx 
+   * @param ctx
    */
   @Route(".", ["GET"], { hidden: true })
   async openapi(ctx: WebContext) {

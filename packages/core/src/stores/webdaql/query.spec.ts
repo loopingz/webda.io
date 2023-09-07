@@ -53,7 +53,7 @@ class QueryTest {
       "a = 1 AND b=2 OR a=1 AND b=3": "( a = 1 AND b = 2 ) OR ( a = 1 AND b = 3 )", // TODO Might want to auto-simplify to a = 1 AND b IN [2,3]
       "a = 1 ORDER BY a": null,
       "a = 1 ORDER BY a DESC, b ASC": null,
-      "(attr3 >= 12)": true,
+      "(attr3 >= 12)": true
     };
     for (let query in queryMap) {
       const validator = new WebdaQL.QueryValidator(query);

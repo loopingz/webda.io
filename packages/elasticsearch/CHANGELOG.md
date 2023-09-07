@@ -51,6 +51,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.1.5 to ^3.2.0
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.3.0 to ^3.4.0
+  * devDependencies
+    * @webda/shell bumped from ^3.2.0 to ^3.2.1
+
 ## [3.0.4](https://github.com/loopingz/webda.io/compare/elasticsearch-v3.0.3...elasticsearch-v3.0.4) (2023-06-30)
 
 

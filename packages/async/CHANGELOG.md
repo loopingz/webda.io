@@ -33,6 +33,12 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.0.5 to ^1.0.6
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.3.0 to ^3.4.0
+
 ## [3.0.4](https://github.com/loopingz/webda.io/compare/async-v3.0.3...async-v3.0.4) (2023-06-30)
 
 

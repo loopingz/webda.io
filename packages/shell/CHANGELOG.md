@@ -24,6 +24,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.2.1 to ^3.2.2
     * @webda/kubernetes bumped from ^3.0.7 to ^3.0.8
 
+## [3.2.1](https://github.com/loopingz/webda.io/compare/shell-v3.2.0...shell-v3.2.1) (2023-09-07)
+
+
+### Bug Fixes
+
+* do not export unknown schema ([905ccc0](https://github.com/loopingz/webda.io/commit/905ccc0029ff515e13977f678ceaeeb5b9f1178b))
+* ensure schema properties exist before adding openapi ([68b7650](https://github.com/loopingz/webda.io/commit/68b76504a59723dfeb12a6bb12a55ecb68765cdc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.3.0 to ^3.4.0
+    * @webda/kubernetes bumped from ^3.0.9 to ^3.0.10
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/shell-v3.1.5...shell-v3.2.0) (2023-08-30)
 
 

@@ -63,7 +63,10 @@ export class StoreListener {
     }
   };
 
-  constructor(private store: Store, private wsclient: WSService) {
+  constructor(
+    private store: Store,
+    private wsclient: WSService
+  ) {
     wsclient.log("DEBUG", "Add store listeners", store.getName());
     for (let evt in this.listeners) {
       store.on(<any>evt, this.listeners[evt]);

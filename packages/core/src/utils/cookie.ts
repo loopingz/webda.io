@@ -21,7 +21,7 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
    * if true domain will be set to the request hostname
    * if undefined no domain will be output (browser will use the current domain and only this one)
    * if a string is provided it will be used as the domain
-   * 
+   *
    * When provided a domain is setting the cookie to be available to all subdomains
    */
   domain?: string | true;

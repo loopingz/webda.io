@@ -91,16 +91,11 @@ export default class PostgresStore<
    */
   async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
     let query = `UPDATE ${this.parameters.table} SET data = data || $1::jsonb WHERE uuid = $2`;
-    const args = [
-      JSON.stringify(
-        object
-      ),
-      this.getUuid(uid)
-    ]
+    const args = [JSON.stringify(object), this.getUuid(uid)];
     if (itemWriteCondition) {
       query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
     }
-    let res = await this.sqlQuery(query,args);
+    let res = await this.sqlQuery(query, args);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
@@ -116,10 +111,7 @@ export default class PostgresStore<
     itemWriteConditionField?: string
   ): Promise<void> {
     let query = `UPDATE ${this.parameters.table} SET data = data - $1 WHERE uuid = $2`;
-    const args = [
-      attribute,
-      this.getUuid(uuid),
-    ];
+    const args = [attribute, this.getUuid(uuid)];
     if (itemWriteCondition) {
       query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
     }
@@ -151,14 +143,12 @@ export default class PostgresStore<
     updateDate: Date
   ): Promise<any> {
     let data = "data";
-    const args : any[] = [
-      this.getUuid(
-        uid
-      )
-    ];
+    const args: any[] = [this.getUuid(uid)];
     params.forEach((p, index) => {
       args.push(p.value);
-      data = `jsonb_set(${data}, '{${p.property}}', (COALESCE(data->>'${p.property}','0')::int + $${index+2})::text::jsonb)::jsonb`;
+      data = `jsonb_set(${data}, '{${p.property}}', (COALESCE(data->>'${p.property}','0')::int + $${
+        index + 2
+      })::text::jsonb)::jsonb`;
     });
     let query = `UPDATE ${
       this.parameters.table
@@ -182,11 +172,7 @@ export default class PostgresStore<
     updateDate: Date
   ): Promise<any> {
     let query = `UPDATE ${this.parameters.table} SET data = jsonb_set(jsonb_set(data::jsonb, array['${attribute}'],`;
-    const args = [
-      this.getUuid(
-        uuid
-      )
-    ];
+    const args = [this.getUuid(uuid)];
     if (index === undefined) {
       query += `COALESCE((data->'${attribute}')::jsonb, '[]'::jsonb) || '[${JSON.stringify(item)}]'::jsonb)::jsonb`;
     } else {
@@ -221,11 +207,7 @@ export default class PostgresStore<
     updateDate: Date
   ): Promise<any> {
     let query = `UPDATE ${this.parameters.table} SET data = jsonb_set(jsonb_set(data::jsonb, array['${attribute}'], COALESCE(`;
-    const args = [
-      this.getUuid(
-        uuid
-      )
-    ];
+    const args = [this.getUuid(uuid)];
     query += `((data->'${attribute}')::jsonb - ${index})`;
     query += `, '[]'::jsonb))::jsonb, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = $1`;
     if (itemWriteCondition) {

@@ -77,7 +77,10 @@ export type ModelLink<T extends CoreModel, _FK extends keyof T = any> = ModelLoa
   };
   */
 export class ModelLink<T extends CoreModel> {
-  constructor(protected uuid: string, protected model: CoreModelDefinition<T>) {}
+  constructor(
+    protected uuid: string,
+    protected model: CoreModelDefinition<T>
+  ) {}
   async get(): Promise<T> {
     return this.model.ref(this.uuid).get();
   }
@@ -114,7 +117,10 @@ type ModelCollectionManager<T> = {
 };
 
 export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T>> {
-  constructor(protected model: CoreModelDefinition<T>, content: any[] = []) {
+  constructor(
+    protected model: CoreModelDefinition<T>,
+    content: any[] = []
+  ) {
     super();
     content.forEach(c => this.add(c));
   }
@@ -134,7 +140,10 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
 export class ModelLinksArray<T extends CoreModel, K> extends Array<
   ModelRefCustomProperties<T, (K & { uuid: string }) | { getUuid: () => string }>
 > {
-  constructor(protected model: CoreModelDefinition<T>, content: any[] = []) {
+  constructor(
+    protected model: CoreModelDefinition<T>,
+    content: any[] = []
+  ) {
     super();
     this.push(
       ...content.filter(c => c && c.uuid).map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c))

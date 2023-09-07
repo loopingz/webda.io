@@ -220,7 +220,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * Proxy WebService 
+   * Proxy WebService
    */
   async proxyWS(req, socket, head) {
     if (!req.url.startsWith(this.parameters.url)) {
@@ -382,8 +382,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
 
   /**
    * Simplify override for dynamic backend
-   * @param _ctx 
-   * @returns 
+   * @param _ctx
+   * @returns
    */
   getBackend(_ctx: WebContext) {
     return this.parameters.backend;

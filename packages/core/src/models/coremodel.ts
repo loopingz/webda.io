@@ -328,7 +328,10 @@ export class ModelRef<T extends CoreModel> {
   @NotEnumerable
   protected model: CoreModelDefinition<T>;
 
-  constructor(protected uuid: string, model: CoreModelDefinition<T>) {
+  constructor(
+    protected uuid: string,
+    model: CoreModelDefinition<T>
+  ) {
     this.model = model;
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
     this.store = Core.get().getModelStore(model);
@@ -424,7 +427,11 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
 }
 
 export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
-  constructor(public uuid: string, model: CoreModelDefinition<T>, data: any) {
+  constructor(
+    public uuid: string,
+    model: CoreModelDefinition<T>,
+    data: any
+  ) {
     super(uuid, model);
     Object.assign(this, data);
   }
@@ -504,7 +511,9 @@ class CoreModel {
     // Get the type automatically now
     this.__type = process.env.WEBDA_V2_COMPATIBLE
       ? Core.get()?.getApplication().getModelFromInstance(this)
-      : Core.get()?.getApplication().getShortId(Core.get()?.getApplication().getModelFromInstance(this));
+      : Core.get()
+          ?.getApplication()
+          .getShortId(Core.get()?.getApplication().getModelFromInstance(this));
   }
 
   /**

@@ -179,7 +179,7 @@ export class RegExpValidator {
     this.validators = info.map(i => RegExpValidator.getRegExp(i));
   }
 
-  static getRegExp(reg: string) : RegExp {
+  static getRegExp(reg: string): RegExp {
     if (!reg.startsWith("^")) {
       reg = "^" + reg;
     }
@@ -195,15 +195,15 @@ export class RegExpValidator {
 }
 /**
  * Standardized way to allow string/regex validation within configuration
- * 
+ *
  * If url is prefixed with `regex:` it is considered a regex
- * 
+ *
  * @example
  * ```typescript
  * class MyServiceParameters extends ServiceParameters {
  *    urls: string[];
  * }
- * 
+ *
  * class MyService extends Service {
  *    loadParameters(params:any) {
  *      const parameters = new MyServiceParameters(params);
@@ -223,8 +223,8 @@ export class RegExpStringValidator extends RegExpValidator {
 
   /**
    * Add string validation
-   * @param value 
-   * @returns 
+   * @param value
+   * @returns
    */
   validate(value: string) {
     return this.stringValidators.find(p => p === value) !== undefined || super.validate(value);

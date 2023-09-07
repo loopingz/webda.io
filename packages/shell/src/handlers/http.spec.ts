@@ -48,9 +48,9 @@ class WebdaServerTest {
     WebdaSampleApplication.setCurrentDeployment("Dev");
     this.server = new WebdaServer(WebdaSampleApplication);
     assert.strictEqual(this.server.isDebug(), false);
-    this.server['devMode'] = true;
+    this.server["devMode"] = true;
     assert.strictEqual(this.server.isDebug(), true);
-    this.server['devMode'] = false;
+    this.server["devMode"] = false;
     assert.strictEqual(this.server.isDebug(), false);
   }
 
@@ -112,8 +112,8 @@ class WebdaServerTest {
     });
     assert.strictEqual(res.status, 404);
     stub.callsFake(() => {
-      throw new WebdaError.Redirect("Need Auth", "https://google.com")
-    })
+      throw new WebdaError.Redirect("Need Auth", "https://google.com");
+    });
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" },
       redirect: "manual"
@@ -150,7 +150,6 @@ class WebdaServerTest {
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
-    
 
     stub.restore();
 

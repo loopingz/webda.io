@@ -62,7 +62,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
   /**
    * Add the SELECT * FROM table if the query is not a full query
    * @param q query to complete
-   * @returns 
+   * @returns
    */
   completeQuery(q: string): string {
     // Should add the INNER JOIN from map
@@ -177,18 +177,18 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    */
   async getAll(list?: string[]): Promise<T[]> {
     if (list) {
-      return (await this.sqlQuery(list.map((_,index) => `uuid=$${index+1}`).join(" OR "), list)).rows;
+      return (await this.sqlQuery(list.map((_, index) => `uuid=$${index + 1}`).join(" OR "), list)).rows;
     }
     return (await this.sqlQuery("TRUE", [])).rows;
   }
 
   /**
-   * 
-   * @param itemWriteCondition 
-   * @param itemWriteConditionField 
+   *
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
    * @param offset parameter offset
    */
-  abstract getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string, values:any[]);
+  abstract getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string, values: any[]);
 
   /**
    * @override
@@ -219,15 +219,10 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    * @override
    */
   async _save(object: T): Promise<any> {
-    await this.sqlQuery(
-      `INSERT INTO ${this.parameters.table}(uuid,data) VALUES($1, $2)`,
-      [
-        this.getUuid(object),
-        object.toStoredJSON(
-          true
-        )
-      ]
-    );
+    await this.sqlQuery(`INSERT INTO ${this.parameters.table}(uuid,data) VALUES($1, $2)`, [
+      this.getUuid(object),
+      object.toStoredJSON(true)
+    ]);
     return object;
   }
 

@@ -11,8 +11,8 @@
     "test:debug": "mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts",
     "new-model": "webda init webda:model",
     "new-service": "webda init webda:service",
-    "lint": "lerna run lint --parallel",
-    "lint:fix": "lerna run lint:fix --parallel"
+    "lint": "prettier --check src/**/*",
+    "lint:fix": "prettier --write src/**/*"
   },
   "keywords": [
     "webda-module"

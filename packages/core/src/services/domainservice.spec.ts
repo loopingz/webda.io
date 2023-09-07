@@ -54,7 +54,7 @@ class DomainServiceTest extends WebdaTest {
       method: "GET",
       url: `/companies?q=${encodeURIComponent('name="Plop"')}`
     });
-    
+
     result = await this.http({
       method: "PUT",
       url: `/companies/${companies[0].uuid}/users`,
@@ -346,16 +346,24 @@ class DomainServiceTest extends WebdaTest {
 
   @test
   async testOpenApi() {
-    const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService", {exposeOpenAPI: true, url: "/openapi"})).resolve().init();
+    const rest = await this.registerService(
+      new RESTDomainService(this.webda, "DomainService", { exposeOpenAPI: true, url: "/openapi" })
+    )
+      .resolve()
+      .init();
     let result = await this.http({
       method: "GET",
       url: "/openapi"
     });
-    assert.ok(result.includes("spec = {\"openapi\""));
+    assert.ok(result.includes('spec = {"openapi"'));
     rest.getParameters().exposeOpenAPI = false;
-    await assert.rejects(() => this.http({
-      method: "GET",
-      url: "/openapi"
-    }), /OpenAPI not available/);
+    await assert.rejects(
+      () =>
+        this.http({
+          method: "GET",
+          url: "/openapi"
+        }),
+      /OpenAPI not available/
+    );
   }
 }

@@ -222,32 +222,32 @@ export default class LambdaServer extends Webda {
         throw 403;
       }
 
-    if (protocol === "https") {
-      // Add the HSTS header
-      ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-    }
-    // Might want to customize this one
-    ctx.setHeader("Access-Control-Max-Age", 3600);
-    ctx.setHeader("Access-Control-Allow-Credentials", "true");
-    ctx.setHeader("Access-Control-Allow-Headers", headers["access-control-request-headers"] || "content-type");
-    if (method === "OPTIONS") {
-      // Return allow all methods for now
-      let routes = this.router.getRouteMethodsFromUrl(ctx.getHttpContext().getRelativeUri());
-      if (routes.length == 0) {
+      if (protocol === "https") {
+        // Add the HSTS header
+        ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+      }
+      // Might want to customize this one
+      ctx.setHeader("Access-Control-Max-Age", 3600);
+      ctx.setHeader("Access-Control-Allow-Credentials", "true");
+      ctx.setHeader("Access-Control-Allow-Headers", headers["access-control-request-headers"] || "content-type");
+      if (method === "OPTIONS") {
+        // Return allow all methods for now
+        let routes = this.router.getRouteMethodsFromUrl(ctx.getHttpContext().getRelativeUri());
+        if (routes.length == 0) {
+          ctx.statusCode = 404;
+          return this.handleLambdaReturn(ctx);
+        }
+        routes.push("OPTIONS");
+        ctx.setHeader("Access-Control-Allow-Methods", routes.join(","));
+        return this.handleLambdaReturn(ctx);
+      }
+
+      if (!this.updateContextWithRoute(ctx)) {
+        this.emitSync("Webda.404", { context: ctx });
         ctx.statusCode = 404;
         return this.handleLambdaReturn(ctx);
       }
-      routes.push("OPTIONS");
-      ctx.setHeader("Access-Control-Allow-Methods", routes.join(","));
-      return this.handleLambdaReturn(ctx);
-    }
-
-    if (!this.updateContextWithRoute(ctx)) {
-      this.emitSync("Webda.404", { context: ctx });
-      ctx.statusCode = 404;
-      return this.handleLambdaReturn(ctx);
-    }
-    await ctx.init();
+      await ctx.init();
 
       await ctx.execute();
       return this.handleLambdaReturn(ctx);

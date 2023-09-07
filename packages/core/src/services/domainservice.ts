@@ -441,7 +441,8 @@ export class RESTDomainService<T extends RESTDomainServiceParameters = RESTDomai
     };
 
     // Update prefix
-    const prefix = (context.prefix || this.parameters.url) + this.transformName(name);
+    const prefix = (context.prefix || (this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + 
+    "/")) + this.transformName(name);
     context.prefix = prefix + `/{pid.${depth}}/`;
 
     model.Expose.restrict.query ||

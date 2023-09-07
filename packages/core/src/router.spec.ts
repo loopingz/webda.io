@@ -33,6 +33,7 @@ class RouterTest extends WebdaTest {
     this.webda.getGlobalParams().routePrefix = "/reprefix";
     assert.strictEqual(this.webda.getRouter().getFinalUrl("/test/plop"), "/reprefix/test/plop");
     assert.strictEqual(this.webda.getRouter().getFinalUrl("/reprefix/test/plop"), "/reprefix/test/plop");
+    assert.strictEqual(this.webda.getRouter().getFinalUrl("//test/plop"), "/test/plop");
     this.webda.getRouter().remapRoutes();
   }
 

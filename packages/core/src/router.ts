@@ -113,6 +113,10 @@ export class Router {
     if (prefix && url.startsWith(prefix)) {
       return url;
     }
+    // Absolute url
+    if (url.startsWith("//")) {
+      return url.substring(1);
+    }
     return `${prefix}${url}`;
   }
 

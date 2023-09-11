@@ -358,13 +358,17 @@ export const YAMLUtils = {
    */
   duplicate: JSONUtils.duplicate,
   /**
-   * Parse a single document yaml
+   * Parse a single or multiple document yaml
    *
    * @param value to parse
    * @returns object parsed
    */
   parse: value => {
-    return yaml.parse(value);
+    let res = yaml.parseAllDocuments(value);
+    if (res.length === 1) {
+      return res.pop().toJSON();
+    }
+    return res.map(d => d.toJSON());
   },
   /**
    * YAML helper

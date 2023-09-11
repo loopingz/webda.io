@@ -169,6 +169,7 @@ export class WebsiteOriginFilter implements RequestFilter<WebContext> {
       this.websites = [...website];
     }
   }
+  
   async checkRequest(context: WebContext): Promise<boolean> {
     let httpContext = context.getHttpContext();
     if (

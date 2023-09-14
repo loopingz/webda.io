@@ -81,7 +81,7 @@
     "aws-lambda": "^1.0.7",
     "aws-sdk-client-mock": "^3.0.0",
     "node-fetch": "^3.3.1",
-    "sinon": "^15.0.0"
+    "sinon": "^16.0.0"
   },
   "type": "module",
   "engines": {

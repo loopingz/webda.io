@@ -21,7 +21,7 @@ export interface KubernetesObject {
 export const K8S_DEFAULT_CRON_DEFINITION = `apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: \${cron.serviceName}-\${cron.method.toLowerCase()}-\${cron.cronId}
+  name: \${cron.serviceName.toLowerCase()}-\${cron.method.toLowerCase()}-\${cron.cronId}
 spec:
   concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 1

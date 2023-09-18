@@ -20,7 +20,7 @@ class GetKubernetesApiClient {
     );
     assert.throws(
       () =>
-        getKubernetesApiClient({
+        getKubernetesApiClient(<any>{
           config: {}
         }),
       /No active cluster/

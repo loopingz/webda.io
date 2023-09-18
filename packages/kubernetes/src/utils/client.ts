@@ -8,7 +8,7 @@ export interface KubernetesParameters {
   /**
    * Kubernetes configuration
    */
-  config?: string | Object;
+  config?: string | K8sConfiguration;
   /**
    * Default context to use
    */
@@ -36,6 +36,13 @@ export function getKubeConfig(params: KubernetesParameters) : k8s.KubeConfig {
     kc.setCurrentContext(params.context);
   }
   return kc;
+}
+
+export interface K8sConfiguration {
+    clusters: k8s.Cluster[];
+    contexts: k8s.Context[];
+    currentContext: string;
+    users: k8s.User[];
 }
 
 /**

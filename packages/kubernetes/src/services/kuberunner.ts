@@ -1,7 +1,7 @@
 import * as k8s from "@kubernetes/client-node";
 import { AsyncAction, JobInfo, Runner, RunnerParameters } from "@webda/async";
 import { FileUtils, ServiceParameters, YAMLUtils } from "@webda/core";
-import { getKubernetesApiClient, KubernetesParameters } from "../utils/client";
+import { getKubernetesApiClient, K8sConfiguration, KubernetesParameters } from "../utils/client";
 
 const DEFAULT_JOB_DEFINITION = `apiVersion: batch/v1
 kind: Job
@@ -24,7 +24,7 @@ export class KubeRunnerParameters extends RunnerParameters implements Kubernetes
   /**
    * Kubernetes configuration
    */
-  config: string | Object;
+  config: string | K8sConfiguration;
   /**
    * Default context to use
    */

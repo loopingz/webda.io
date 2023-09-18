@@ -10,7 +10,7 @@ export class KubernetesShell {
       const shellModule = <any>await import("@webda/shell");
       const target = args.target || "./crons";
       let template = args.template;
-      const filenameTemplate = args.filenameTemplate || "${serviceName}.${method}-${cronId}.${ext}";
+      const filenameTemplate = args.filenameTemplate || "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}";
       let ext;
       if (template) {
         ext = extname(template).substring(1);

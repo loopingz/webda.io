@@ -10,6 +10,7 @@ export class KubernetesShell {
       const shellModule = <any>await import("@webda/shell");
       const target = args.target || "./crons";
       let template = args.template;
+      const filenameTemplate = args.filenameTemplate || "${serviceName}.${method}-${cronId}.${ext}";
       let ext;
       if (template) {
         ext = extname(template).substring(1);
@@ -25,7 +26,8 @@ export class KubernetesShell {
       const crons = CronService.loadAnnotations(Console.webda.getServices());
       crons.forEach((cron: CronDefinition & { cronId: string }) => {
         cron.cronId = CronService.getCronId(cron, "export");
-        const filename = join(target, `${cron.serviceName}.${cron.method}-${cron.cronId}.${ext}`);
+
+        const filename = join(target, Console.app.replaceVariables(filenameTemplate, { ...cron, ext }));
         Console.log("DEBUG", `Exporting ${filename} cron with ${cron.toString()}`);
         FileUtils.save(CronReplace(template, cron, Console.app), filename);
       });
@@ -41,7 +43,12 @@ export class KubernetesShell {
  * @returns
  */
 function yargs(y) {
-  return y.command("cronExport [template] [targetDir]", "Export all application Cron as template");
+  return y.command("cronExport [template] [targetDir]", "Export all application Cron as template", (yarg) => {
+    yarg.option("filenameTemplate", {
+      default: "${serviceName}.${method}-${cronId}.${ext}",
+      description: "Filename template to use",
+    })
+  });
 }
 
 const ShellCommand = KubernetesShell.shellCommand;

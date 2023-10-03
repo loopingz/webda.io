@@ -255,17 +255,38 @@ class DomainServiceTest extends WebdaTest {
     assert.strictEqual(res.results.length, 2);
 
     // Cov part
+    rest.handleModel = () => false;
+    rest.walkModel(<any>{ Expose: {} }, "coremodel");
+  }
+
+  @test
+  transformName() {
+    const rest = new RESTDomainService(null, "DomainService", {});
     assert.strictEqual(rest.transformName("Users"), "users");
     assert.strictEqual(rest.transformName("Users_Test"), "usersTest");
+    assert.strictEqual(rest.transformName("UsersTest"), "usersTest");
     rest.getParameters().nameTransfomer = "lowercase";
     assert.strictEqual(rest.transformName("Users"), "users");
     assert.strictEqual(rest.transformName("Users_Test"), "users_test");
+    assert.strictEqual(rest.transformName("UsersTest"), "userstest");
     rest.getParameters().nameTransfomer = "none";
     assert.strictEqual(rest.transformName("Users"), "Users");
     assert.strictEqual(rest.transformName("Users_Test"), "Users_Test");
-
-    rest.handleModel = () => false;
-    rest.walkModel(<any>{ Expose: {} }, "coremodel");
+    assert.strictEqual(rest.transformName("UsersTest"), "UsersTest");
+    rest.getParameters().nameTransfomer = "snake_case";
+    assert.strictEqual(rest.transformName("Users"), "users");
+    assert.strictEqual(rest.transformName("Users_Test"), "users_test");
+    assert.strictEqual(rest.transformName("Users-Test"), "users_test");
+    assert.strictEqual(rest.transformName("UsersTest"), "users_test");
+    assert.strictEqual(rest.transformName("U_Test"), "u_test");
+    rest.getParameters().nameTransfomer = "PascalCase";
+    assert.strictEqual(rest.transformName("users"), "Users");
+    assert.strictEqual(rest.transformName("users_test"), "UsersTest");
+    assert.strictEqual(rest.transformName("UsersTest"), "UsersTest");
+    rest.getParameters().nameTransfomer = "kebab-case";
+    assert.strictEqual(rest.transformName("Users"), "users");
+    assert.strictEqual(rest.transformName("Users_Test"), "users-test");
+    assert.strictEqual(rest.transformName("UsersTest"), "users-test");
   }
 
   @test

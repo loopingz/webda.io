@@ -1,5 +1,5 @@
 import { CronDefinition, CronService, FileUtils } from "@webda/core";
-import { mkdirSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { extname, join } from "path";
 import { CronReplace } from "./cron";
 
@@ -14,7 +14,7 @@ export class KubernetesShell {
       let ext;
       if (template) {
         ext = extname(template).substring(1);
-        template = FileUtils.load(template);
+        template = readFileSync(template).toString();
       } else {
         template = shellModule.K8S_DEFAULT_CRON_DEFINITION;
         ext = "yaml";
@@ -29,7 +29,7 @@ export class KubernetesShell {
 
         const filename = join(target, Console.app.replaceVariables(filenameTemplate, { ...cron, ext }));
         Console.log("DEBUG", `Exporting ${filename} cron with ${cron.toString()}`);
-        FileUtils.save(CronReplace(template, cron, Console.app), filename);
+        writeFileSync(filename, CronReplace(template, cron, Console.app));
       });
       Console.log("INFO", `Exported ${crons.length} crons`);
     }

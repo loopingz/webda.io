@@ -851,6 +851,11 @@ ${Object.keys(operationsExport.operations)
           return y.command("name", "Deployment name to create");
         }
       },
+      stores: {
+        command: "stores",
+        handler: WebdaConsole.stores,
+        description: "Display current stores",
+      },
       store: {
         command: "store <storeName> <action>",
         handler: WebdaConsole.store,
@@ -973,9 +978,11 @@ ${Object.keys(operationsExport.operations)
    * Output all types of Deployers, Services and Models
    */
   static async types() {
+    const webda = new WebdaServer(this.app);
+    await webda.init();
     this.log("INFO", "Deployers:", Object.keys(this.app.getDeployers()).join(", "));
     this.log("INFO", "Moddas:", Object.keys(this.app.getModdas()).join(", "));
-    this.log("INFO", "Models:", Object.keys(this.app.getModels()).join(", "));
+    this.log("INFO", "Models:", Object.keys(this.app.getModels()).map(model => `${model} [${webda.getModelStore(webda.getModel(model)).getName()}]`).join(", "));
   }
 
   /**
@@ -1202,6 +1209,25 @@ ${Object.keys(operationsExport.operations)
   static async executeShellExtension(ext: WebdaShellExtension, relPath: string, argv: any) {
     ext.export ??= "default";
     return (await import(path.join(relPath, ext.require)))[ext.export](this, argv);
+  }
+
+  /**
+   * Display stores and their managed models
+   */
+  static async stores() : Promise<number> {
+    this.webda = new WebdaServer(this.app);
+    await this.webda.init();
+    const models = this.webda.getModels();
+    const stores = {};
+    for (let model in models) {
+      const name = this.webda.getModelStore(models[model]).getName();
+      stores[name] ??= [];
+      stores[name].push(model);
+    }
+    Object.values(this.webda.getStores()).forEach(store => {
+      this.log("INFO", `Store ${store.getName()}: ${(stores[store.getName()] || [""]).join(", ")} (default:${store.getParameters().model})`);
+    });
+    return 0;
   }
 
   /**

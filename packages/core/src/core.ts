@@ -1180,6 +1180,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   getMachineId() {
     try {
       return process.env["WEBDA_MACHINE_ID"] || machineIdSync();
+      /* c8 ignore next 4 */
     } catch (err) {
       // Useful in k8s pod
       return process.env["HOSTNAME"];

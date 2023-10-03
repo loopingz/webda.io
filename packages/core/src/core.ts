@@ -1177,6 +1177,15 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return value;
   }
 
+  getMachineId() {
+    try {
+      return process.env["WEBDA_MACHINE_ID"] || machineIdSync();
+    } catch (err) {
+      // Useful in k8s pod
+      return process.env["HOSTNAME"];
+    }
+  }
+
   /**
    * Init services and Beans along with Routes
    */
@@ -1187,7 +1196,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       type: "Webda/MemoryStore",
       persistence: {
         path: ".registry",
-        key: process.env["WEBDA_MACHINE_ID"] || machineIdSync()
+        key: this.getMachineId()
       }
     };
     this.createService(this.configuration.services, "Registry");

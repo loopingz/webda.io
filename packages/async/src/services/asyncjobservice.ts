@@ -24,7 +24,6 @@ import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";
 import { JSONSchema7 } from "json-schema";
 import { schedule as crontabSchedule } from "node-cron";
-import { v4 as uuidv4 } from "uuid";
 import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction, AsyncWebdaAction } from "../models";
 import { Runner } from "./runner";
 import ServiceRunner from "./servicerunner";
@@ -547,7 +546,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   async launchAction(action: AsyncAction) {
     action.status = "QUEUED";
     action.type = action.constructor.name;
-    action.__secretKey = uuidv4();
+    action.__secretKey = this.getWebda().getUuid();
     await this.store.save(action);
     if (this.parameters.localLaunch) {
       return this.handleEvent({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });

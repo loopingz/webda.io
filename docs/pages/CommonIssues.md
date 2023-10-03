@@ -11,3 +11,13 @@ You can in your package.json
     "typescript": "^4.7.4"
 }
 ```
+
+### Machine Id
+
+If no registry is defined the machineId is read from different method that can fail in your environment (for example distroless images)
+
+You can use the env variable `WEBDA_MACHINE_ID` to avoid any call to subsystem.
+
+## pnpm
+
+pnpm can create easily several duplicated webda package, you need to be careful to ensure each module is only present once. The use of `"overrides"` within the package.json is helpful.

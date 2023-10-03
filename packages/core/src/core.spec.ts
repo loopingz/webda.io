@@ -5,6 +5,7 @@ import * as sinon from "sinon";
 import { stub } from "sinon";
 import { Core, OriginFilter, WebsiteOriginFilter } from "./core";
 import {
+  Application,
   Authentication,
   Bean,
   ConsoleLoggerService,
@@ -600,6 +601,18 @@ class CoreTest extends WebdaTest {
     // @ts-ignore
     assert.strictEqual(this.webda._contextProviders[0], provider);
     assert.throws(() => this.webda.registerOperation("__proto__", undefined), Error);
+
+    assert.ok(Core['getSingletonInfo'](this.webda).match(/- file:\/\/.*packages\/core\/src\/core.ts \/ \d+.\d+.\d+/));
+  }
+
+  @test
+  async testSingleton() {
+    new Core(this.webda.getApplication());
+    // @ts-ignore
+    process.webda = this.webda;
+    // This should generate a warning
+    Core.get();
+    // Could check things here
   }
 
   @test

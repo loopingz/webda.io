@@ -428,15 +428,37 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Get the current script location
+   * @returns 
+   */
+  private getScriptUrl() {
+    return import.meta.url;
+  }
+
+  /**
+   * Return information on the singleton import and version
+   * @param singleton 
+   * @returns 
+   */
+  private static getSingletonInfo(singleton: Core) : string {
+    let res = `- `
+    if (singleton.getScriptUrl) {
+      res += singleton.getScriptUrl();
+    }    
+    res += " / " + singleton.getVersion();
+    return res;
+  }
+
+  /**
    * Get the singleton of Webda Core
    * @returns
    */
   static get(): Core {
     // @ts-ignore
     let singleton: Core = process.webda;
-    if (Core.singleton !== singleton && !singleton._dualImportWarn) {
+    if (Core.singleton !== singleton && !singleton._dualImportWarn && Core.singleton !== undefined && singleton !== undefined) {
       singleton._dualImportWarn = true;
-      singleton.log("WARN", "Several import version of WebdaCore has been identified");
+      singleton.log("ERROR", `Several import version of WebdaCore has been identified.\n\tIt can impact your models.\n\t- ${this.getSingletonInfo(singleton)}\n\t- ${this.getSingletonInfo(Core.singleton)}`);
     }
     // Store WebdaCore in process to avoid conflict with import
     return singleton;

@@ -152,8 +152,10 @@ export class DomainServiceParameters extends ServiceParameters {
   operations: boolean;
   /**
    * Transform the name of the model to be used in the URL
+   * 
+   * @see https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go
    */
-  nameTransfomer: "camelCase" | "lowercase" | "none";
+  nameTransfomer: "camelCase" | "lowercase" | "none" | "snake_case" | "PascalCase" | "kebab-case";
   /**
    * Method used for query objects
    *
@@ -273,12 +275,24 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * Return the model name for this service
    * @param name
    * @returns
+   * 
+   * @see https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go
    */
   transformName(name: string): string {
     if (this.parameters.nameTransfomer === "camelCase") {
       return name.substring(0, 1).toLowerCase() + name.substring(1).replace(/_(.)/g, (match, p1) => p1.toUpperCase());
     } else if (this.parameters.nameTransfomer === "lowercase") {
       return name.toLowerCase();
+    } else if (this.parameters.nameTransfomer === "snake_case") {
+      return name[0].toLowerCase() + name.slice(1).replace(/-/g, "_").replace(/[^_]([A-Z])/g, l => {
+        return `${l[0]}_${l[1].toLowerCase()}`
+      }).toLowerCase();
+    } else if (this.parameters.nameTransfomer === "PascalCase") {
+      return name[0].toUpperCase() + name.slice(1).replace(/[-_][a-zA-Z0-9]/g, l => l[1].toUpperCase());
+    } else if (this.parameters.nameTransfomer === "kebab-case") {
+      return name[0].toLowerCase() + name.slice(1).replace(/_/g, "-").replace(/[^-]([A-Z])/g, l => {
+        return `${l[0]}-${l[1].toLowerCase()}`
+      }).toLowerCase();
     }
     return name;
   }

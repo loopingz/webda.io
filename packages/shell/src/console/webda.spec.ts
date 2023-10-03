@@ -526,12 +526,24 @@ class DynamicService extend Service {
   @test
   async types() {
     await this.commandLine("types");
-    let logs = this.logger.getLogs().filter(l => !l.log?.args[0].startsWith("Cannot find logo"));
+    let logs = this.logger.getLogs().filter(l => !l.log?.args[0].startsWith("Cannot find logo") && l.log?.level === "INFO");
     console.log(logs.map(l => l.log?.level + ": " + l.log?.args.join(" ")).join("\n"));
     assert.strictEqual(
       logs.length,
-      5,
-      "We should have 5 logs with Deployers, Services, Models and the two configuration misses"
+      4,
+      "We should have 4 logs with Deployers, Services, Models and the one configuration miss"
+    );
+  }
+
+  @test
+  async stores() {
+    await this.commandLine("stores");
+    let logs = this.logger.getLogs().filter(l => l.log?.args[0].startsWith("Store "));
+    console.log(logs.map(l => l.log?.level + ": " + l.log?.args.join(" ")).join("\n"));
+    assert.strictEqual(
+      logs.length,
+      2,
+      "We should have 2 Stores (Registry, contacts)"
     );
   }
 

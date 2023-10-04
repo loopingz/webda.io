@@ -19,6 +19,32 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/core-v3.4.0...core-v3.5.0) (2023-10-04)
+
+
+### Features
+
+* add absolute url when prefix is in use for Router ([8ea07f7](https://github.com/loopingz/webda.io/commit/8ea07f7f66a09ebf95a79a9edea2cef2dc399128))
+* add more cases to transformName for RESTDomainService ([b1071f2](https://github.com/loopingz/webda.io/commit/b1071f20157932ccbd4e0150791300f624a6e25c))
+* ensure YAMLUtils.parse can handle multiple documents ([11061f9](https://github.com/loopingz/webda.io/commit/11061f92c0e91e8c80f92027392942eb0ed2b810))
+
+
+### Bug Fixes
+
+* . route on / url service ([426ec2a](https://github.com/loopingz/webda.io/commit/426ec2a386ca409c581827a294e11af09536cf65))
+* default toLowerCase for k8s resources name ([aaa0d58](https://github.com/loopingz/webda.io/commit/aaa0d5844f12532d2eb3a5813968a730deb4d4d0))
+* display of double import warning ([c55f2d8](https://github.com/loopingz/webda.io/commit/c55f2d83f75143a24a6af2035d82b6c593e0014f))
+* ensure a / exists before root collection for RESTDomainService ([555782e](https://github.com/loopingz/webda.io/commit/555782e4c8bd5f2a43cff4e7ee447a64e2982cd1))
+* machineIdSync catch error ([7a29f5c](https://github.com/loopingz/webda.io/commit/7a29f5c548e4db50f3bebc5b8e248ddfaf485dad))
+* set devMode prior to initialization ([cb62746](https://github.com/loopingz/webda.io/commit/cb627464a23c9f0741a2353654f30b700676823c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.0.3 to ^3.0.4
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/core-v3.3.0...core-v3.4.0) (2023-09-07)
 
 

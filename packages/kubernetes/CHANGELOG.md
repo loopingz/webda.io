@@ -35,6 +35,28 @@
     * @webda/async bumped from ^3.0.9 to ^3.0.10
     * @webda/core bumped from ^3.3.0 to ^3.4.0
 
+## [3.1.0](https://github.com/loopingz/webda.io/compare/kubernetes-v3.0.10...kubernetes-v3.1.0) (2023-10-04)
+
+
+### Features
+
+* add filenameTemplate to allow customize cronExport ([102092b](https://github.com/loopingz/webda.io/commit/102092b42fde28271e0ec5165000686522319d1a))
+* update CronReplace for kubernetes cron generation ([7117c6b](https://github.com/loopingz/webda.io/commit/7117c6b74451c2f4501ecb44cfd317848a3d53ec))
+
+
+### Bug Fixes
+
+* default toLowerCase for k8s resources name ([aaa0d58](https://github.com/loopingz/webda.io/commit/aaa0d5844f12532d2eb3a5813968a730deb4d4d0))
+* set devMode prior to initialization ([cb62746](https://github.com/loopingz/webda.io/commit/cb627464a23c9f0741a2353654f30b700676823c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.0.10 to ^3.1.0
+    * @webda/core bumped from ^3.4.0 to ^3.5.0
+
 ## [3.0.9](https://github.com/loopingz/webda.io/compare/kubernetes-v3.0.8...kubernetes-v3.0.9) (2023-08-30)
 
 

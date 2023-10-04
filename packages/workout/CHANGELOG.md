@@ -6,6 +6,13 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.0.5 to ^1.0.6
 
+## [3.0.4](https://github.com/loopingz/webda.io/compare/workout-v3.0.3...workout-v3.0.4) (2023-10-04)
+
+
+### Bug Fixes
+
+* default toLowerCase for k8s resources name ([aaa0d58](https://github.com/loopingz/webda.io/commit/aaa0d5844f12532d2eb3a5813968a730deb4d4d0))
+
 ## [3.0.2](https://github.com/loopingz/webda.io/compare/workout-v3.0.1...workout-v3.0.2) (2023-06-30)
 
 

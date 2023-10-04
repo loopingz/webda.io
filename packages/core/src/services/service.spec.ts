@@ -233,6 +233,7 @@ class ServiceTest extends WebdaTest {
     service.getParameters().url = "/";
     assert.strictEqual(service.getUrl("./plop", ["GET"]), "/plop");
     assert.strictEqual(service.getUrl("plop", ["GET"]), "plop");
+    assert.strictEqual(service.getUrl(".", ["GET"]), "/");
   }
   /**
    * Ensure a message is displayed if listener is long

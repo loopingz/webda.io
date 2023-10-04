@@ -45,6 +45,23 @@
     * @webda/async bumped from ^3.0.9 to ^3.0.10
     * @webda/shell bumped from ^3.2.0 to ^3.2.1
 
+## [3.1.8](https://github.com/loopingz/webda.io/compare/gcp-v3.1.7...gcp-v3.1.8) (2023-10-04)
+
+
+### Bug Fixes
+
+* default toLowerCase for k8s resources name ([aaa0d58](https://github.com/loopingz/webda.io/commit/aaa0d5844f12532d2eb3a5813968a730deb4d4d0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.4.0 to ^3.5.0
+  * devDependencies
+    * @webda/async bumped from ^3.0.10 to ^3.1.0
+    * @webda/shell bumped from ^3.2.1 to ^3.3.0
+
 ## [3.1.6](https://github.com/loopingz/webda.io/compare/gcp-v3.1.5...gcp-v3.1.6) (2023-08-30)
 
 

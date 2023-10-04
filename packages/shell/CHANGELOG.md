@@ -24,6 +24,29 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.2.1 to ^3.2.2
     * @webda/kubernetes bumped from ^3.0.7 to ^3.0.8
 
+## [3.3.0](https://github.com/loopingz/webda.io/compare/shell-v3.2.1...shell-v3.3.0) (2023-10-04)
+
+
+### Features
+
+* add more cases to transformName for RESTDomainService ([b1071f2](https://github.com/loopingz/webda.io/commit/b1071f20157932ccbd4e0150791300f624a6e25c))
+* add stores command to webda ([5e692b8](https://github.com/loopingz/webda.io/commit/5e692b8bf288b6dd6fa594a34306cec752537404))
+
+
+### Bug Fixes
+
+* default toLowerCase for k8s resources name ([aaa0d58](https://github.com/loopingz/webda.io/commit/aaa0d5844f12532d2eb3a5813968a730deb4d4d0))
+* set devMode prior to initialization ([cb62746](https://github.com/loopingz/webda.io/commit/cb627464a23c9f0741a2353654f30b700676823c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.4.0 to ^3.5.0
+    * @webda/kubernetes bumped from ^3.0.10 to ^3.1.0
+    * @webda/workout bumped from ^3.0.3 to ^3.0.4
+
 ## [3.2.1](https://github.com/loopingz/webda.io/compare/shell-v3.2.0...shell-v3.2.1) (2023-09-07)
 
 

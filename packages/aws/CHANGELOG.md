@@ -58,6 +58,24 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.2.0 to ^3.2.1
 
+## [3.1.9](https://github.com/loopingz/webda.io/compare/aws-v3.1.8...aws-v3.1.9) (2023-10-04)
+
+
+### Bug Fixes
+
+* default toLowerCase for k8s resources name ([aaa0d58](https://github.com/loopingz/webda.io/commit/aaa0d5844f12532d2eb3a5813968a730deb4d4d0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.0.10 to ^3.1.0
+    * @webda/core bumped from ^3.4.0 to ^3.5.0
+    * @webda/workout bumped from ^3.0.3 to ^3.0.4
+  * devDependencies
+    * @webda/shell bumped from ^3.2.1 to ^3.3.0
+
 ## [3.1.6](https://github.com/loopingz/webda.io/compare/aws-v3.1.5...aws-v3.1.6) (2023-07-24)
 
 

@@ -131,8 +131,8 @@ export default class WebdaConsole {
           this.output("Serve as development");
         }
         WebdaConsole.webda = new WebdaServer(this.app);
-        await this.webda.init();
         this.webda.setDevMode(argv.devMode);
+        await this.webda.init();
         if (argv.devMode) {
           this.output("Dev mode activated : wildcard CORS enabled");
         }

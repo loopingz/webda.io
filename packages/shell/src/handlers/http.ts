@@ -416,6 +416,6 @@ export class WebdaServer extends Webda {
    * Stop the http server
    */
   async stop() {
-    return Promise.all([super.stop(), this.stopHttp()]);
+    await Promise.all([super.stop(), this.stopHttp()]);
   }
 }

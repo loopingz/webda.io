@@ -1,5 +1,5 @@
 import { ModelAction, OperationContext, Store, User, WebContext, WebdaError } from "../index";
-import { CoreModel } from "./coremodel";
+import { Action, CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
 
@@ -23,19 +23,6 @@ export default class AclModel extends CoreModel {
   protected _permissions?: string[];
 
   /**
-   * Add acls actions
-   * @returns
-   */
-  static getActions(): { [key: string]: ModelAction } {
-    return {
-      ...super.getActions(),
-      acl: {
-        methods: ["PUT", "GET"]
-      }
-    };
-  }
-
-  /**
    * Ensure creator has all permissions by default
    */
   async _onSave() {
@@ -53,6 +40,8 @@ export default class AclModel extends CoreModel {
     const ctx = this.getContext();
     if (!ctx.isGlobal()) {
       this._permissions = await this.getPermissions(ctx);
+    } else {
+      this._permissions = [];
     }
   }
 
@@ -77,7 +66,8 @@ export default class AclModel extends CoreModel {
    * @param ctx
    * @returns
    */
-  _acl(ctx: WebContext) {
+  @Action({ methods: ["GET", "PUT"] })
+  async acl(ctx: WebContext) {
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this._httpPutAcls(ctx);
     } else if (ctx.getHttpContext().getMethod() === "GET") {
@@ -90,18 +80,28 @@ export default class AclModel extends CoreModel {
    * @param ctx
    */
   async _httpGetAcls(ctx: OperationContext) {
-    ctx.write({
+    return {
       raw: this.__acl,
       resolved: await Promise.all(
         Object.keys(this.__acl).map(async ace => {
-          let user = await this.getService<Store<User>>("Users").get(ace);
           return {
             permission: this.__acl[ace],
-            actor: user?.toPublicEntry()
+            actor: await this.getUserPublicEntry(ace)
           };
         })
       )
-    });
+    };
+  }
+
+  /**
+   * Get the user public entry
+   *
+   * Override if using a custom User without backward compatibility
+   * @param ace
+   * @returns
+   */
+  async getUserPublicEntry(ace: string) {
+    return (await User.ref(ace).get())?.toPublicEntry();
   }
 
   /**

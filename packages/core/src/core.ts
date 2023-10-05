@@ -1193,6 +1193,21 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return this.cryptoService;
   }
 
+  /**
+   * Stop all services
+   */
+  async stop() {
+    const services = this.getServices();
+    await Promise.all(
+      Object.keys(services).map(async s => {
+        try {
+          await services[s].stop()
+        } catch(err) {
+          this.log("ERROR", `Cannot stop service ${s}`, err)
+        }
+      }));
+  }
+
   protected jsonFilter(key: string, value: any): any {
     if (key[0] === "_") return undefined;
     return value;

@@ -392,10 +392,7 @@ export class WebdaServer extends Webda {
     );
   }
 
-  /**
-   * Stop the http server
-   */
-  async stop() {
+  async stopHttp() {
     if (this.http && this.serverStatus === ServerStatus.Starting) {
       await this.waitForStatus(ServerStatus.Started);
     }
@@ -413,5 +410,12 @@ export class WebdaServer extends Webda {
     }
     this.serverStatus = ServerStatus.Stopped;
     this.http = undefined;
+  }
+
+  /**
+   * Stop the http server
+   */
+  async stop() {
+    return Promise.all([super.stop(), this.stopHttp()]);
   }
 }

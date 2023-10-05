@@ -7,6 +7,7 @@ import { JSONUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import { WebdaQL } from "./webdaql/query";
+import sinon from "sinon";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -264,6 +265,9 @@ class MemoryStoreTest extends StoreTest {
     // Check basic load of persistence
     await identStore.init();
     assert.notStrictEqual(identStore.storage.test, undefined);
+    const mock = sinon.stub(identStore, "persist").returns();
+    await identStore.stop();
+    assert.strictEqual(mock.callCount, 1);
   }
 }
 

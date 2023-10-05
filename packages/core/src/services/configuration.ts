@@ -151,11 +151,12 @@ export default class ConfigurationService<
   /**
    * Clear the check interval if exist
    */
-  stop() {
+  async stop() {
     if (this.interval !== undefined) {
       // @ts-ignore
       clearInterval(this.interval);
     }
+    return super.stop();
   }
 
   /**

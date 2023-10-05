@@ -1161,17 +1161,18 @@ ${Object.keys(operationsExport.operations)
         this.terminal.setDefaultLogo();
       }
 
+      let result;
       // Launch builtin commands
       if (WebdaConsole.builtinCommands()[argv._[0]]) {
-        return (await WebdaConsole.builtinCommands()[argv._[0]].handler.bind(this)(argv)) ?? 0;
-      }
-
-      if (extension) {
+        result = (await WebdaConsole.builtinCommands()[argv._[0]].handler.bind(this)(argv)) ?? 0;
+      } else if (extension) {
         this.log("DEBUG", "Launching extension " + argv._[0], extension);
         // Load lib
         argv._.shift();
-        return await this.executeShellExtension(extension, extension.relPath, argv);
+        result = await this.executeShellExtension(extension, extension.relPath, argv);
       }
+      this.webda.stop();
+      return result;
       // Would need to create a fake app with a throw exception in a module to generate this
       /* c8 ignore next 4 */
     } catch (err) {

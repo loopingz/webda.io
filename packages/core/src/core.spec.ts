@@ -5,7 +5,6 @@ import * as sinon from "sinon";
 import { stub } from "sinon";
 import { Core, OriginFilter, WebsiteOriginFilter } from "./core";
 import {
-  Application,
   Authentication,
   Bean,
   ConsoleLoggerService,
@@ -598,6 +597,11 @@ class CoreTest extends WebdaTest {
       }
     };
     this.webda.registerContextProvider(provider);
+    this.webda.getService("Registry").stop = async () => {
+      throw new Error("Test");
+    }
+    // Stop webda
+    await this.webda.stop();
     // @ts-ignore
     assert.strictEqual(this.webda._contextProviders[0], provider);
     assert.throws(() => this.webda.registerOperation("__proto__", undefined), Error);

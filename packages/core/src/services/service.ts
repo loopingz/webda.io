@@ -358,6 +358,13 @@ abstract class Service<
   }
 
   /**
+   * Shutdown the current service if action need to be taken
+   */
+  async stop() : Promise<void> {
+    // Nothing to do
+  }
+
+  /**
    * Return service representation
    */
   toString() {

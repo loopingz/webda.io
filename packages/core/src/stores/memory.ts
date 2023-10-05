@@ -143,6 +143,15 @@ class MemoryStore<
   }
 
   /**
+   * Ensure the store is saved if persistence is on
+   */
+  async stop() : Promise<void>{
+    if (this.parameters.persistence) {
+      this.persist();
+    }
+  }
+
+  /**
    * @override
    */
   async _exists(uid) {

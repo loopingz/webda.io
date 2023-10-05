@@ -358,8 +358,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     }
     // Caching the answer
     if (!this.user || refresh) {
-      this.user = <User>await this._webda.getApplication().getModel("User").ref(this.getCurrentUserId()).get();
-      //this.user = <any>User; //await User.ref(this.getCurrentUserId()).get();
+      this.user = <User>await this._webda.getApplication().getModel("User").ref(this.getCurrentUserId()).get(this);
     }
     return <K>this.user;
   }
@@ -369,6 +368,17 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   getCurrentUserId() {
     return undefined;
+  }
+
+  /**
+   * Global context is the default Context
+   * 
+   * Whenever a request is internal to the system
+   * or not linked to a user request
+   * @returns 
+   */
+  isGlobal() {
+    return false;
   }
 }
 
@@ -380,6 +390,13 @@ export class GlobalContext extends OperationContext {
     this.session.login("system", "system");
     // Disable logout
     this.session.logout = () => {};
+  }
+
+  /**
+   * @override
+   */
+  isGlobal() {
+    return true;
   }
 }
 /**

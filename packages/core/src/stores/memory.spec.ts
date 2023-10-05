@@ -121,7 +121,7 @@ class MemoryStoreTest extends StoreTest {
         return { test: { global: true } };
       }
     };
-    await assert.throws(() => identStore.initRoutes(), /Action static method \/_\?test\/ does not exist/);
+    await assert.throws(() => identStore.initRoutes(), /Action static method test does not exist/);
     // @ts-ignore
     identStore._model = {
       // @ts-ignore
@@ -130,7 +130,7 @@ class MemoryStoreTest extends StoreTest {
         return { test: { global: false } };
       }
     };
-    await assert.throws(() => identStore.initRoutes(), /Action method \/_\?test\/ does not exist/);
+    await assert.throws(() => identStore.initRoutes(), /Action method test does not exist/);
   }
 
   @test

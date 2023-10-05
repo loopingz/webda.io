@@ -772,15 +772,15 @@ abstract class Store<
         let executer;
         if (action.global) {
           // By default will grab the object and then call the action
-          if (!this._model[name] && !this._model["_" + name]) {
-            throw Error("Action static method /_?" + name + "/ does not exist");
+          if (!this._model[name]) {
+            throw Error("Action static method " + name + " does not exist");
           }
           executer = this.httpGlobalAction;
           this.addRoute(`./${name}`, action.methods, executer, action.openapi);
         } else {
           // By default will grab the object and then call the action
-          if (!this._model.prototype[name] && !this._model.prototype["_" + name]) {
-            throw Error("Action method /_?" + name + "/ does not exist");
+          if (!this._model.prototype[name]) {
+            throw Error("Action method " + name + " does not exist");
           }
           executer = this.httpAction;
 

@@ -32,11 +32,16 @@ class AclModelTest {
     };
   }
 
+  @test cov() {
+    assert.deepStrictEqual(this.model.getGroups(undefined, undefined), []);
+  }
+  
   @test async get() {
     await assert.rejects(() => this.model.checkAct(this._ctx, "get"));
     this.model.__acl["gip-123"] = "get";
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
   }
+  
   @test async multipermissions() {
     await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     this.model.__acl["gip-123"] = "get,action";
@@ -122,14 +127,14 @@ class AclModelTest {
     assert.notStrictEqual(actions.acl, undefined);
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "PUT", "/"));
     this._ctx.getHttpContext().setBody({ acl: "mine" });
-    await this.model._acl(this._ctx);
+    await this.model.acl(this._ctx);
     // @ts-ignore
     assert.strictEqual(this.model.getAcl().acl, "mine");
     this._ctx.reinit();
     this._ctx.getHttpContext().setBody({ raw: { acl: "mine" } });
-    await assert.rejects(() => this.model._acl(this._ctx));
+    await assert.rejects(() => this.model.acl(this._ctx));
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/"));
-    await this.model._acl(this._ctx);
+    await this.model.acl(this._ctx);
     assert.deepStrictEqual(JSON.parse(<string>this._ctx.getResponseBody()), {
       raw: {
         acl: "mine"

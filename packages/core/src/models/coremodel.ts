@@ -337,7 +337,7 @@ export class ModelRef<T extends CoreModel> {
     this.store = Core.get().getModelStore(model);
   }
   async get(context?: OperationContext): Promise<T> {
-    return (await this.store.get(this.uuid)).setContext(context);
+    return (await this.store.get(this.uuid))?.setContext(context);
   }
   set(id: string | T) {
     this.uuid = id instanceof CoreModel ? id.getUuid() : id;

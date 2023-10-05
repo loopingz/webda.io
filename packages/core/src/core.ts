@@ -1046,7 +1046,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   public setGlobalContext(context: GlobalContext): void {
     this.globalContext = context;
-    context.getSession().login("system", "system");
   }
 
   /**

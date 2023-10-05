@@ -50,8 +50,9 @@ export default class AclModel extends CoreModel {
    * Add the permissions for current user
    */
   async _onGet() {
-    if (this.getContext()) {
-      this._permissions = await this.getPermissions(this.getContext());
+    const ctx = this.getContext();
+    if (!ctx.isGlobal()) {
+      this._permissions = await this.getPermissions(ctx);
     }
   }
 

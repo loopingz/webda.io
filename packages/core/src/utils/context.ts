@@ -578,7 +578,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     if (this.statusCode === 204) {
       this.statusCode = 200;
     }
-    if (typeof output === "object" && !(output instanceof Buffer)) {
+    if (typeof output === "object" && !(output instanceof Buffer) && !this.hasFlushedHeaders()) {
       this.setHeader("Content-type", "application/json");
     }
     return super.write(output, encoding, cb);

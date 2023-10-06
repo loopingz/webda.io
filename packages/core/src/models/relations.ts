@@ -1,3 +1,4 @@
+import { Core } from "../core";
 import {
   CoreModel,
   CoreModelDefinition,
@@ -77,12 +78,19 @@ export type ModelLink<T extends CoreModel, _FK extends keyof T = any> = ModelLoa
   };
   */
 export class ModelLink<T extends CoreModel> {
+  @NotEnumerable
+  protected parent: CoreModel;
+
   constructor(
     protected uuid: string,
-    protected model: CoreModelDefinition<T>
-  ) {}
+    protected model: CoreModelDefinition<T>,
+    parent?: CoreModel
+  ) {
+    this.parent = parent;
+  }
+  
   async get(): Promise<T> {
-    return this.model.ref(this.uuid).get();
+    return (await this.model.ref(this.uuid).get())?.setContext(this.parent?.getContext());
   }
   set(id: string | T) {
     this.uuid = typeof id === "string" ? id : id.getUuid();
@@ -117,16 +125,21 @@ type ModelCollectionManager<T> = {
 };
 
 export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T>> {
+  @NotEnumerable
+  private parent: CoreModel;
+
   constructor(
     protected model: CoreModelDefinition<T>,
-    content: any[] = []
+    content: any[] = [],
+    parent?: CoreModel
   ) {
     super();
     content.forEach(c => this.add(c));
+    this.parent = parent;
   }
 
   add(model: string | ModelRef<T> | T) {
-    this.push(typeof model === "string" ? new ModelRef(model, this.model) : new ModelRef(model.getUuid(), this.model));
+    this.push(typeof model === "string" ? new ModelRef(model, this.model, this.parent) : new ModelRef(model.getUuid(), this.model, this.parent));
   }
 
   remove(model: ModelRef<T> | string | T) {
@@ -140,13 +153,17 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
 export class ModelLinksArray<T extends CoreModel, K> extends Array<
   ModelRefCustomProperties<T, (K & { uuid: string }) | { getUuid: () => string }>
 > {
+  @NotEnumerable
+  parent: CoreModel;
   constructor(
     protected model: CoreModelDefinition<T>,
-    content: any[] = []
+    content: any[] = [],
+    parent?: CoreModel,
   ) {
     super();
+    this.parent = parent;
     this.push(
-      ...content.filter(c => c && c.uuid).map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c))
+      ...content.filter(c => c && c.uuid).map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c, this.parent))
     );
   }
 
@@ -162,7 +179,8 @@ export class ModelLinksArray<T extends CoreModel, K> extends Array<
           : new ModelRefCustom(
               (<{ uuid: string }>model).uuid || (<{ getUuid: () => string }>model).getUuid(),
               this.model,
-              model
+              model,
+              this.parent
             ))
       )
     );
@@ -187,7 +205,7 @@ export type ModelLinksMap<T extends CoreModel, K> = Readonly<{
 }> &
   ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
 
-export function createModelLinksMap<T extends CoreModel>(model: CoreModelDefinition<any>, data: any = {}) {
+export function createModelLinksMap<T extends CoreModel>(model: CoreModelDefinition<any>, data: any = {}, parent?: CoreModel) {
   let result = {
     add: (model: ModelRefCustomProperties<T, any>) => {
       result[model.uuid || model.getUuid()] = model;
@@ -201,7 +219,7 @@ export function createModelLinksMap<T extends CoreModel>(model: CoreModelDefinit
   Object.keys(data)
     .filter(k => k !== "__proto__")
     .forEach(key => {
-      result[key] = new ModelRefCustom(data[key].uuid, model, data[key]);
+      result[key] = new ModelRefCustom(data[key].uuid, model, data[key], parent);
     });
   return result;
 }
@@ -226,15 +244,18 @@ export type ModelActions = {
  */
 export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
   @NotEnumerable
-  protected _model;
+  protected _model: CoreModelDefinition<T>;
+  @NotEnumerable
+  protected _parent: CoreModel;
   /**
    * The uuid of the object
    */
   public uuid: string;
 
-  constructor(model: CoreModelDefinition<T>, data: { uuid: string } & K) {
+  constructor(model: CoreModelDefinition<T>, data: { uuid: string } & K, parent: CoreModel) {
     Object.assign(this, data);
     this._model = model;
+    this._parent = parent;
   }
 
   /**
@@ -242,7 +263,7 @@ export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
    * @returns the model
    */
   async get(): Promise<T> {
-    return this._model.ref(this.uuid).get();
+    return this._model.ref(this.uuid).get(this._parent.getContext());
   }
 }
 

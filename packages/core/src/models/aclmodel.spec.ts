@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { AclModel, Core, HttpContext, Session, SimpleUser, WebContext, WebdaError } from "../index";
+import { AclModel, Core, HttpContext, Session, SimpleUser, User, WebContext, WebdaError } from "../index";
 import { TestApplication } from "../test";
 import { getCommonJS } from "../utils/esm";
 
@@ -133,16 +133,24 @@ class AclModelTest {
     this._ctx.reinit();
     this._ctx.getHttpContext().setBody({ raw: { acl: "mine" } });
     await assert.rejects(() => this.model.acl(this._ctx));
+    this._ctx.reinit();
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/"));
-    await this.model.acl(this._ctx);
-    assert.deepStrictEqual(JSON.parse(<string>this._ctx.getResponseBody()), {
+    // Action return their result directly
+    await User.ref("acl").create({
+      displayName: "Plopi"
+    });
+    let res = await this.model.acl(this._ctx);
+    assert.deepStrictEqual(res, {
       raw: {
         acl: "mine"
       },
       resolved: [
         {
           actor: {
-            displayName: "Plopi"
+            avatar: undefined,
+            displayName: "Plopi",
+            email: undefined,
+            uuid: "acl"
           },
           permission: "mine"
         }

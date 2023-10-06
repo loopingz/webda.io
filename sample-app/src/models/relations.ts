@@ -79,7 +79,15 @@ class Classroom extends DefaultTestModel {
   hardwares: ModelRelated<Hardware, "classroom">;
 
   @Action()
-  test(context: OperationContext<{ test: string; id: string }>) {}
+  async test(context: OperationContext<{ test: string; id: string }>) {
+    // Testing action is waited for
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        context.write({});
+        resolve();
+      }, 50);
+    });
+  }
 }
 
 @Expose({ root: true })
@@ -89,7 +97,14 @@ class Hardware extends DefaultTestModel {
   brands: ModelRelated<Brand, "name">;
 
   @Action()
-  static globalAction(context: OperationContext) {
+  static async globalAction(context: OperationContext) {
+    // Testing action is waited for
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        context.write({});
+        resolve();
+      }, 50);
+    });
     return;
   }
 }

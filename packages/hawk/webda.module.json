@@ -10,7 +10,7 @@
         "links": [
           {
             "attribute": "_user",
-            "model": "Webda/User",
+            "model": "unknown",
             "type": "LINK"
           }
         ]
@@ -36,7 +36,7 @@
         "___checker": "(address: string) => boolean",
         "origins": "string[]",
         "whitelist": "string[]",
-        "_user": "ModelLink<User>",
+        "_user": "ModelLink<T>",
         "public": "boolean",
         "uuid": "string",
         "___class": "CoreModelDefinition",

@@ -80,7 +80,7 @@ class FileStoreTest extends StoreTest {
       );
       await user.refresh();
       assert.strictEqual(user.plop, undefined);
-      user.idents[0] = new ModelMapLoaderImplementation(identStore._model, user.idents[0]);
+      user.idents[0] = new ModelMapLoaderImplementation(identStore._model, user.idents[0], user);
       userStore["initModel"](user);
       await identStore.delete(user.getUuid());
     } finally {

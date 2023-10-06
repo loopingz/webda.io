@@ -27,7 +27,7 @@ export class OwnerModel extends UuidModel {
    * @param uuid
    */
   setOwner(uuid: string): void {
-    this._user ??= new ModelLink<User>(uuid, <any>User);
+    this._user ??= new ModelLink<User>(uuid, <any>User, this);
     this._user.set(uuid);
   }
 

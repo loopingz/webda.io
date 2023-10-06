@@ -327,17 +327,20 @@ export class ModelRef<T extends CoreModel> {
   protected store: Store<T>;
   @NotEnumerable
   protected model: CoreModelDefinition<T>;
+  @NotEnumerable 
+  protected parent: CoreModel;
 
   constructor(
     protected uuid: string,
-    model: CoreModelDefinition<T>
+    model: CoreModelDefinition<T>,
+    parent?: CoreModel,
   ) {
     this.model = model;
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
     this.store = Core.get().getModelStore(model);
   }
   async get(context?: OperationContext): Promise<T> {
-    return (await this.store.get(this.uuid))?.setContext(context);
+    return (await this.store.get(this.uuid))?.setContext(context || this.parent?.getContext());
   }
   set(id: string | T) {
     this.uuid = id instanceof CoreModel ? id.getUuid() : id;
@@ -430,9 +433,10 @@ export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
   constructor(
     public uuid: string,
     model: CoreModelDefinition<T>,
-    data: any
+    data: any,
+    parent: CoreModel
   ) {
-    super(uuid, model);
+    super(uuid, model, parent);
     Object.assign(this, data);
   }
 
@@ -974,19 +978,19 @@ class CoreModel {
       if (link.type === "LINK") {
         this[link.attribute] ??= "";
         if (typeof this[link.attribute] === "string") {
-          this[link.attribute] = new ModelRef(this[link.attribute], model);
+          this[link.attribute] = new ModelRef(this[link.attribute], model, this);
         }
       } else if (link.type === "LINKS_ARRAY") {
-        this[link.attribute] = new ModelLinksArray(model, this[link.attribute]);
+        this[link.attribute] = new ModelLinksArray(model, this[link.attribute], this);
       } else if (link.type === "LINKS_SIMPLE_ARRAY") {
-        this[link.attribute] = new ModelLinksSimpleArray(model, this[link.attribute]);
+        this[link.attribute] = new ModelLinksSimpleArray(model, this[link.attribute], this);
       } else if (link.type === "LINKS_MAP") {
-        this[link.attribute] = createModelLinksMap(model, this[link.attribute]);
+        this[link.attribute] = createModelLinksMap(model, this[link.attribute], this);
       }
     }
     for (let link of rel.maps || []) {
       this[link.attribute] = (this[link.attribute] || []).map(
-        el => new ModelMapLoaderImplementation(Core.get().getModel(link.model), el)
+        el => new ModelMapLoaderImplementation(Core.get().getModel(link.model), el, this)
       );
     }
     for (let query of rel.queries || []) {
@@ -995,7 +999,7 @@ class CoreModel {
     if (rel.parent) {
       this[rel.parent.attribute] ??= "";
       if (typeof this[rel.parent.attribute] === "string") {
-        this[rel.parent.attribute] = new ModelRef(this[rel.parent.attribute], Core.get().getModel(rel.parent.model));
+        this[rel.parent.attribute] = new ModelRef(this[rel.parent.attribute], Core.get().getModel(rel.parent.model), this);
       }
     }
     for (let binary of rel.binaries || []) {

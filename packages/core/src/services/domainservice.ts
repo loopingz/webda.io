@@ -484,12 +484,12 @@ export class RESTDomainService<
       this.addRoute(
         action.global ? `${prefix}/${actionName}` : `${prefix}/{uuid}/${actionName}`,
         action.methods || ["PUT"],
-        ctx => {
+        async ctx => {
           if (action.global) {
-            model.store().httpGlobalAction(ctx, model);
+            return model.store().httpGlobalAction(ctx, model);
           } else {
             ctx.getParameters().uuid = model.completeUid(ctx.getParameters().uuid);
-            model.store().httpAction(ctx);
+            return model.store().httpAction(ctx);
           }
         },
         action.openapi

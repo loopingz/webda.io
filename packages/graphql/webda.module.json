@@ -32,7 +32,10 @@
           "enum": [
             "camelCase",
             "lowercase",
-            "none"
+            "none",
+            "snake_case",
+            "PascalCase",
+            "kebab-case"
           ],
           "description": "Transform the name of the model to be used in the URL"
         },

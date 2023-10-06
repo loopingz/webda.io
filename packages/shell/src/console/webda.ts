@@ -1171,7 +1171,7 @@ ${Object.keys(operationsExport.operations)
         argv._.shift();
         result = await this.executeShellExtension(extension, extension.relPath, argv);
       }
-      this.webda.stop();
+      this.webda?.stop();
       return result;
       // Would need to create a fake app with a throw exception in a module to generate this
       /* c8 ignore next 4 */

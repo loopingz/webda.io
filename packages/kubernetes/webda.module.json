@@ -23,28 +23,107 @@
             {
               "type": "object",
               "properties": {
-                "constructor": {
-                  "type": "object",
-                  "properties": {
-                    "prototype": {},
-                    "length": {
-                      "type": "number"
+                "clusters": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "caData": {
+                        "type": "string"
+                      },
+                      "caFile": {
+                        "type": "string"
+                      },
+                      "server": {
+                        "type": "string"
+                      },
+                      "skipTLSVerify": {
+                        "type": "boolean"
+                      },
+                      "tlsServerName": {
+                        "type": "string"
+                      }
                     },
-                    "arguments": {},
-                    "caller": {
-                      "$ref": "#/definitions/interface-1867433179-9884-11311-1867433179-0-213601"
-                    }
-                  },
-                  "required": [
-                    "prototype",
-                    "length",
-                    "arguments",
-                    "caller"
-                  ]
+                    "required": [
+                      "name",
+                      "server"
+                    ]
+                  }
+                },
+                "contexts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "cluster": {
+                        "type": "string"
+                      },
+                      "user": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "namespace": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cluster",
+                      "user",
+                      "name"
+                    ]
+                  }
+                },
+                "currentContext": {
+                  "type": "string"
+                },
+                "users": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "certData": {
+                        "type": "string"
+                      },
+                      "certFile": {
+                        "type": "string"
+                      },
+                      "exec": {},
+                      "keyData": {
+                        "type": "string"
+                      },
+                      "keyFile": {
+                        "type": "string"
+                      },
+                      "authProvider": {},
+                      "token": {
+                        "type": "string"
+                      },
+                      "username": {
+                        "type": "string"
+                      },
+                      "password": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ]
+                  }
                 }
               },
               "required": [
-                "constructor"
+                "clusters",
+                "contexts",
+                "currentContext",
+                "users"
               ]
             }
           ],
@@ -88,27 +167,6 @@
       ],
       "description": "Parameters for the KubeRunner",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "interface-1867433179-9884-11311-1867433179-0-213601": {
-          "type": "object",
-          "properties": {
-            "prototype": {},
-            "length": {
-              "type": "number"
-            },
-            "arguments": {},
-            "caller": {
-              "$ref": "#/definitions/interface-1867433179-9884-11311-1867433179-0-213601"
-            }
-          },
-          "required": [
-            "prototype",
-            "length",
-            "arguments",
-            "caller"
-          ]
-        }
-      },
       "title": "KubeRunner"
     }
   }

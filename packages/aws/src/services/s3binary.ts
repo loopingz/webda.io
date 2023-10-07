@@ -381,7 +381,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @inheritdoc
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
-    this.checkMap(object.getStore().getName(), property);
+    this.checkMap(object, property);
     await file.getHashes();
     let data = await this._getS3(file.hash);
     if (data === undefined) {

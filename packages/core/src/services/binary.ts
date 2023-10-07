@@ -760,17 +760,25 @@ export abstract class BinaryService<
    * @param name
    * @param property
    */
-  protected checkMap(name: string, property: string, modelName?: string) {
-    if (modelName && this.handleBinary(modelName, property) !== -1) {
+  protected checkMap(object: CoreModel, property: string) {
+    if (this.handleBinary(object.__type, property) !== -1) {
       return;
     }
+    // DELETE_IN_4.0.0
+    const name = object.getStore().getName();
     let map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
     if (map === undefined) {
-      throw Error("Unknown mapping");
+      throw new Error("Unknown mapping");
     }
     if (Array.isArray(map) && map.indexOf(property) === -1) {
-      throw Error("Unknown mapping");
+      throw new Error("Unknown mapping");
     }
+    /*
+    // END_DELETE_IN_4.0.0
+    throw new Error("Unknown mapping");
+    // DELETE_IN_4.0.0
+    */
+    // END_DELETE_IN_4.0.0
   }
 
   /**

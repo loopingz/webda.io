@@ -198,7 +198,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @inheritdoc
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
-    this.checkMap(object.getStore().getName(), property);
+    this.checkMap(object, property);
     await file.getHashes();
 
     const [exists] = await this.getStorageBucket().file(this._getKey(file.hash)).exists();

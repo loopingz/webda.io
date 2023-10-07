@@ -265,7 +265,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.binaryStore = this.getService<CloudBinary>(this.parameters.binaryStore);
       // Call directly Webda addRoute as we are setting a route for another service in fact
       this.getWebda().addRoute(`${this.parameters.url}/download/{store}/{uid}/{property}/{index}`, {
-        _method: this.binaryStore.getRedirectUrlInfo,
+        _method: this.binaryStore.httpGet,
         executor: this.parameters.binaryStore,
         openapi: { hidden: true },
         methods: ["GET"]

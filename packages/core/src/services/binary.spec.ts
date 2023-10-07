@@ -226,8 +226,9 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
   @test
   checkMap() {
     let binary = this.getBinary();
+    binary.handleBinary = () => -1;
     // @ts-ignore
-    assert.throws(() => binary.checkMap("plop", "pouf"), /Unknown mapping/);
+    assert.throws(() => binary.checkMap(new CoreModel(), "pouf"), /Unknown mapping/);
   }
 
   @test

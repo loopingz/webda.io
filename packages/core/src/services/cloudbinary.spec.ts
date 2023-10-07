@@ -109,7 +109,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
       restrict: {}
     };
     service.initRoutes();
-    assert.strictEqual(stub.callCount, 7);
+    assert.strictEqual(stub.callCount, 6);
     stub.callCount = 0;
     service.getParameters().expose = {
       url: "plop",
@@ -136,7 +136,11 @@ export class FakeCloudBinaryTest extends WebdaTest {
       writeHead: (...arg) => {
         wroteHead = arg;
       },
-      getParameters: () => ({ index: 1, hash: "hash", property: "property" })
+      getParameters: () => ({ index: 1, hash: "hash", property: "property" }),
+      getHttpContext: () => ({
+        getAbsoluteUrl: () => "http://myhost/test",
+        getRelativeUri: () => "/test"
+      })
     };
     let storeGetResult;
     // @ts-ignore
@@ -148,21 +152,15 @@ export class FakeCloudBinaryTest extends WebdaTest {
       };
     });
     await assert.rejects(
-      () => service.getRedirectUrl(context),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
+      () => service.httpGet(context),
+      WebdaError.NotFound
     );
     storeGetResult = {
-      property: "plop"
+      property: [1],
+      checkAct: () => {},
     };
     await assert.rejects(
-      () => service.getRedirectUrl(context),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
-    );
-    storeGetResult = {
-      property: [1]
-    };
-    await assert.rejects(
-      () => service.getRedirectUrl(context),
+      () => service.httpGet(context),
       (err: WebdaError.HttpError) => err.getResponseCode() === 404
     );
     let myEvt;
@@ -184,9 +182,14 @@ export class FakeCloudBinaryTest extends WebdaTest {
     service.on("Binary.Get", () => {
       counter++;
     });
-    await service.getRedirectUrl(context);
+    await service.httpGet(context);
     assert.deepStrictEqual(wroteHead, [302, { Location: "myhash:30" }]);
-    await service.getRedirectUrlInfo(context);
+    // @ts-ignore
+    context.getHttpContext = () => ({
+      getAbsoluteUrl: () => "http://myhost/test/url",
+      getRelativeUri: () => "/test/url"
+    })
+    await service.httpGet(context);
     assert.strictEqual(counter, 2);
     assert.deepStrictEqual(wrote, [
       {

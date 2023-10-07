@@ -504,9 +504,11 @@ export class RESTDomainService<
     PUT to upload a binary with challenge
     DELETE /{hash} to delete a binary
     PUT /{hash} to update metadata
+    GET /url to get a signed url
 
     If cardinality is MANY
     GET /{index} to download the binary
+    GET /{index}/url to get a signed url
     POST to upload a binary directly
     PUT to upload a binary with challenge
     DELETE /{index}/{hash} to delete a binary
@@ -525,14 +527,21 @@ export class RESTDomainService<
         ctx.getParameters().property = name.attribute;
         await store.httpChallenge(ctx);
       };
+      const modelInjectorGet = async (ctx: WebContext) => {
+        ctx.getParameters().model = model.getIdentifier();
+        ctx.getParameters().property = name.attribute;
+        await store.httpGet(ctx);
+      };
       if (name.cardinality === "ONE") {
-        this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["GET"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["GET"], modelInjectorGet);
         this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["PUT"], modelInjectorChallenge);
         this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["POST"], modelInjector);
         this.addRoute(`${prefix}/{uuid}/${name.attribute}/{hash}`, ["DELETE"], modelInjector);
         this.addRoute(`${prefix}/{uuid}/${name.attribute}/{hash}`, ["PUT"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/url`, ["GET"], modelInjectorGet);
       } else {
-        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{index}`, ["GET"], modelInjector);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{index}`, ["GET"], modelInjectorGet);
+        this.addRoute(`${prefix}/{uuid}/${name.attribute}/{index}/url`, ["GET"], modelInjectorGet);
         this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["PUT"], modelInjectorChallenge);
         this.addRoute(`${prefix}/{uuid}/${name.attribute}`, ["POST"], modelInjector);
         this.addRoute(`${prefix}/{uuid}/${name.attribute}/{index}/{hash}`, ["DELETE"], modelInjector);

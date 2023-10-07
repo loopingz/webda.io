@@ -24,6 +24,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.2.1 to ^3.2.2
     * @webda/kubernetes bumped from ^3.0.7 to ^3.0.8
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/shell-v3.3.0...shell-v3.4.0) (2023-10-07)
+
+
+### Features
+
+* add stop function for service ([c4fb0ec](https://github.com/loopingz/webda.io/commit/c4fb0ec6cc1b1ee49105193cedad32538742113a))
+
+
+### Bug Fixes
+
+* display help command ([3d0b790](https://github.com/loopingz/webda.io/commit/3d0b79090f1fc23e3d02a7e7b0c3ce023f85f586))
+* remove completely the _ prefix of action method ([3530b60](https://github.com/loopingz/webda.io/commit/3530b60fe51ee3f913b71801009dbace2b68188d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.5.0 to ^3.6.0
+    * @webda/kubernetes bumped from ^3.1.0 to ^3.1.1
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/shell-v3.2.1...shell-v3.3.0) (2023-10-04)
 
 

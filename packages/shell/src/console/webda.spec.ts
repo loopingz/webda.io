@@ -331,9 +331,8 @@ class DynamicService extend Service {
     this.logger.setLogLevel("TRACE");
     // Test launch aswell
     await this.commandLine("launch CustomService");
-    let logs = this.logger.getLogs();
-    let ind = logs.length - 2;
-
+    let logs = this.logger.getLogs().slice(-2);
+    let ind = 0;
     assert.strictEqual(logs[ind].log.args.length, 1);
     assert.strictEqual(logs[ind].log.args[0], "Result: void");
     ind++;
@@ -526,8 +525,7 @@ class DynamicService extend Service {
   @test
   async types() {
     await this.commandLine("types");
-    let logs = this.logger.getLogs().filter(l => !l.log?.args[0].startsWith("Cannot find logo") && l.log?.level === "INFO");
-    console.log(logs.map(l => l.log?.level + ": " + l.log?.args.join(" ")).join("\n"));
+    let logs = this.logger.getLogs().filter(l => !l.log?.args[0].startsWith("Cannot find logo") && !l.log?.args[0].startsWith("[Registry]") && l.log?.level === "INFO");
     assert.strictEqual(
       logs.length,
       4,
@@ -539,7 +537,6 @@ class DynamicService extend Service {
   async stores() {
     await this.commandLine("stores");
     let logs = this.logger.getLogs().filter(l => l.log?.args[0].startsWith("Store "));
-    console.log(logs.map(l => l.log?.level + ": " + l.log?.args.join(" ")).join("\n"));
     assert.strictEqual(
       logs.length,
       2,

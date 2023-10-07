@@ -12,6 +12,8 @@ export class BeanService extends Service {
 export class SampleAppBadBean {
   @Operation()
   operation(context: OperationContext<{ projectId: string }>) {}
+
+  async stop() {}
 }
 
 @Bean

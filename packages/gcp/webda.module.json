@@ -196,7 +196,7 @@
                 "retry": {
                   "anyOf": [
                     {
-                      "$ref": "#/definitions/Partial%3Cclass-478043683-735-3044-478043683-0-15050%3E"
+                      "$ref": "#/definitions/Partial%3Cclass-657338214-735-3044-657338214-0-15050%3E"
                     },
                     {
                       "type": "null"
@@ -1134,7 +1134,7 @@
             }
           }
         },
-        "Partial<class-478043683-735-3044-478043683-0-15050>": {
+        "Partial<class-657338214-735-3044-657338214-0-15050>": {
           "type": "object",
           "properties": {
             "retryCodes": {

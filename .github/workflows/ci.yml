@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["16", "18"]
+        node: ["18", "20"]
     name: Build with NodeJS v${{ matrix.node }}
     env:
       FORCE_COLOR: 1
@@ -57,7 +57,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - uses: actions/setup-node@v2
         with:
@@ -105,7 +105,12 @@ jobs:
         run: yarn run build
 
       - name: Run tests
-        run: yarn run test --exclude @webda/shell --exclude @webda/gcp
+        run: yarn run test --exclude @webda/aws --exclude @webda/shell --exclude @webda/gcp
+        env:
+          NODE_OPTIONS: "--max-old-space-size=6144"
+
+      - name: Run AWS tests
+        run: yarn nx run @webda/aws:test || yarn nx run @webda/gcp:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

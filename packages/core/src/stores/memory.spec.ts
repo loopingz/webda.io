@@ -113,6 +113,21 @@ class MemoryStoreTest extends StoreTest {
   }
 
   @test
+  async additionalModels() {
+    const subProject = this.webda.getModel("WebdaDemo/SubProject");
+    const project = this.webda.getModel("WebdaDemo/Project");
+    let store = new MemoryStore(this.webda, "additionalModel", {model: "WebdaDemo/SubProject"}).resolve();
+    assert.strictEqual(store.handleModel(project), -1);
+    assert.strictEqual(store.handleModel(subProject), 0);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
+    store = new MemoryStore(this.webda, "additionalModel", {model: "WebdaDemo/SubProject", additionalModels: ["WebdaDemo/Project"]}).resolve();
+    assert.strictEqual(store.handleModel(project), 0);
+    assert.strictEqual(store.handleModel(subProject), 0);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), 1);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/SubSubProject")), 2);
+  }
+
+  @test
   async badActions() {
     let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     // @ts-ignore

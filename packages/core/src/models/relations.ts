@@ -1,4 +1,3 @@
-import { Core } from "../core";
 import {
   CoreModel,
   CoreModelDefinition,

@@ -1170,8 +1170,12 @@ ${Object.keys(operationsExport.operations)
         // Load lib
         argv._.shift();
         result = await this.executeShellExtension(extension, extension.relPath, argv);
+      } else {    
+        // Display help if nothing is found
+        this.displayHelp(parser);
       }
       this.webda?.stop();
+
       return result;
       // Would need to create a fake app with a throw exception in a module to generate this
       /* c8 ignore next 4 */
@@ -1187,8 +1191,6 @@ ${Object.keys(operationsExport.operations)
         logger.close();
       }
     }
-    // Display help if nothing is found
-    this.displayHelp(parser);
   }
 
   /**

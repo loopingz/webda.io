@@ -328,6 +328,14 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
+        "additionalModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional models\n\nAllow this store to manage other models",
+          "default": []
+        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
@@ -1515,6 +1523,14 @@
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
         },
+        "additionalModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional models\n\nAllow this store to manage other models",
+          "default": []
+        },
         "asyncDelete": {
           "type": "boolean",
           "description": "async delete"
@@ -2044,6 +2060,14 @@
           "type": "string",
           "description": "Webda model to use within the Store",
           "default": "Webda/CoreModel"
+        },
+        "additionalModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional models\n\nAllow this store to manage other models",
+          "default": []
         },
         "asyncDelete": {
           "type": "boolean",

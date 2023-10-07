@@ -373,6 +373,14 @@ export class StoreParameters extends ServiceParameters {
    */
   model?: string;
   /**
+   * Additional models
+   * 
+   * Allow this store to manage other models
+   * 
+   * @default []
+   */
+  additionalModels?: string[];
+  /**
    * async delete
    */
   asyncDelete: boolean;
@@ -448,6 +456,7 @@ export class StoreParameters extends ServiceParameters {
     this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
     this.modelAliases ??= {};
+    this.additionalModels ??= [];
   }
 }
 
@@ -592,6 +601,20 @@ abstract class Store<
     // Strict Store only store their model
     if (!this.parameters.strict) {
       recursive(this._model.getHierarchy().children, 1);
+    }
+    // Add additional models
+    if (this.parameters.additionalModels.length) {
+      // Strict mode is to only allow one model per store
+      if (this.parameters.strict) {
+        this.log("ERROR", "Cannot add additional models in strict mode");
+      } else {
+        for (let modelType of this.parameters.additionalModels) {
+          const model = app.getModel(modelType);
+          this._modelsHierarchy[model.getIdentifier(false)] = 0;
+          this._modelsHierarchy[model.getIdentifier()] = 0;
+          recursive(model.getHierarchy().children, 1);
+        }
+      }
     }
     if (this.getParameters().expose) {
       this.log("WARN", "Exposing a store is not recommended, use a DomainService instead to expose all your CoreModel");

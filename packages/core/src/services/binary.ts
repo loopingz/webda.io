@@ -141,7 +141,8 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
       mimetype: this.mimetype,
       metadata: this.metadata,
       challenge: this.challenge,
-      name: this.name
+      // Fallback on original name
+      name: this.name || this.originalname,
     };
   }
 

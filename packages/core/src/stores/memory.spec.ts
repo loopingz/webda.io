@@ -125,6 +125,10 @@ class MemoryStoreTest extends StoreTest {
     assert.strictEqual(store.handleModel(subProject), 0);
     assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), 1);
     assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/SubSubProject")), 2);
+    store = new MemoryStore(this.webda, "additionalModel", {model: "WebdaDemo/SubProject", additionalModels: ["WebdaDemo/Project"], strict: true}).resolve();
+    assert.strictEqual(store.handleModel(project), -1);
+    assert.strictEqual(store.handleModel(subProject), 0);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
   }
 
   @test

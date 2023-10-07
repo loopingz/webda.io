@@ -567,6 +567,66 @@ export abstract class BinaryService<
   }
 
   /**
+   * Redirect to the temporary link to S3 object
+   * or return it if returnInfo=true
+   *
+   * @param ctx of the request
+   * @param returnInfo
+   */
+  async httpGet(context: WebContext) {
+    const returnInfo = context.getHttpContext().getRelativeUri().endsWith("/url");
+    const { uuid, index, property } = context.getParameters();
+    let targetStore = this._verifyMapAndStore(context);
+    let object = await targetStore.get(uuid);
+    if (!object || (Array.isArray(object[property]) && object[property].length <= index)) {
+      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
+    }
+    await object.checkAct(context, "get_binary");
+    const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
+    await this.emitSync("Binary.Get", {
+      object: file,
+      service: this,
+      context: context
+    });
+    let url = await this.getRedirectUrlFromObject(file, context);
+    // No url, we return the file
+    if (url === null) {
+      if (returnInfo) {
+        // Redirect to same url without /url
+        context.write({ Location: context.getHttpContext().getAbsoluteUrl().replace(/\/url$/, ""), Map: file });
+      } else {
+        // Output
+        context.writeHead(200, {
+          "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
+          "Content-Length": file.size
+        });
+        let readStream: any = await this.get(file);
+        await new Promise<void>((resolve, reject) => {
+          // We replaced all the event handlers with a simple call to readStream.pipe()
+          context._stream.on("finish", resolve);
+          context._stream.on("error", reject);
+          readStream.pipe(context._stream);
+        });
+      }
+    } else if (returnInfo) {
+      context.write({ Location: url, Map: file });
+    } else {
+      context.writeHead(302, {
+        Location: url
+      });
+    }
+  }
+
+
+  /**
+   * Get a UrlFromObject
+   *
+   */
+  async getRedirectUrlFromObject(binaryMap: BinaryMap, _context: OperationContext, _expires: number = 30): Promise<null | string> {
+    return null;
+  }
+
+  /**
    * Define if binary is managed by the store
    * @param modelName
    * @param attribute
@@ -880,7 +940,7 @@ export abstract class BinaryService<
 
     if (!this.parameters.expose.restrict.get) {
       url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}";
-      this.addRoute(url, ["GET"], this.httpRoute, {
+      this.addRoute(url, ["GET"], this.httpGet, {
         get: {
           operationId: `get${name}Binary`,
           description: "Download a binary linked to an object",
@@ -888,6 +948,27 @@ export abstract class BinaryService<
           responses: {
             "200": {
               description: "Binary stream"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
+          }
+        }
+      });
+      this.addRoute(url + "/url", ["GET"], this.httpGet, {
+        get: {
+          operationId: `get${name}BinaryInfo`,
+          description: "Return the url and information of a binary linked to an object",
+          summary: "GetInfo of a binary",
+          responses: {
+            "200": {
+              description: "Url and BinaryMap"
             },
             "403": {
               description: "You don't have permissions"
@@ -1097,18 +1178,13 @@ export abstract class BinaryService<
     const { property, index } = ctx.getParameters();
 
     // Current file - would be empty on creation
-    const file =
-      ctx.getHttpContext().getMethod() === "POST"
-        ? undefined
-        : Array.isArray(object[property])
+    const file = Array.isArray(object[property])
         ? object[property][index]
         : object[property];
 
     // Check permissions
     let action = "unknown";
-    if (ctx.getHttpContext().getMethod() === "GET") {
-      action = "get_binary";
-    } else if (ctx.getHttpContext().getMethod() === "DELETE") {
+    if (ctx.getHttpContext().getMethod() === "DELETE") {
       action = "detach_binary";
     } else if (ctx.getHttpContext().getMethod() === "POST") {
       action = "attach_binary";
@@ -1118,20 +1194,6 @@ export abstract class BinaryService<
     await object.checkAct(ctx, action);
 
     // Now do the action
-    if (ctx.getHttpContext().getMethod() === "GET") {
-      // Most implementation override this to do a REDIRECT to a GET url
-      ctx.writeHead(200, {
-        "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
-        "Content-Length": file.size
-      });
-      let readStream: any = await this.get(file);
-      await new Promise<void>((resolve, reject) => {
-        // We replaced all the event handlers with a simple call to readStream.pipe()
-        ctx._stream.on("finish", resolve);
-        ctx._stream.on("error", reject);
-        readStream.pipe(ctx._stream);
-      });
-    } else {
       if (ctx.getHttpContext().getMethod() === "POST") {
         await this.store(object, property, await this._getFile(ctx));
       } else {
@@ -1168,6 +1230,5 @@ export abstract class BinaryService<
           await this.emitSync("Binary.MetadataUpdated", evt);
         }
       }
-    }
   }
 }

@@ -14,6 +14,7 @@ import { SourceApplication } from "../code/sourceapplication";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
+import { existsSync, unlinkSync } from "fs";
 const { __dirname } = getCommonJS(import.meta.url);
 
 class DebugLogger extends MemoryLogger {
@@ -165,6 +166,11 @@ class ConsoleTest {
 
   @test
   async serveCommandLine() {
+    // Ensure to compile at least one
+    const cacheFile = WebdaSampleApplication.getAppPath(".webda");
+    if (existsSync(cacheFile)) {
+      unlinkSync(WebdaSampleApplication.getAppPath(".webda"));
+    }
     this.commandLine(`serve -d Dev --port 28080`);
     await this.waitForWebda();
     await WebdaConsole.webda.waitForStatus(ServerStatus.Started);

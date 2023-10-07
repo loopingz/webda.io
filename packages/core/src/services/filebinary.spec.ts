@@ -292,6 +292,7 @@ class BinaryAbstractTest extends WebdaTest {
   @test
   async cov() {
     let service = new TestBinaryService(undefined, "plop", {});
+    assert.strictEqual(await service.getRedirectUrlFromObject(undefined, undefined, 60), null);
     let ctx = await this.newContext();
     await assert.rejects(
       () => service.putRedirectUrl(undefined),
@@ -341,6 +342,11 @@ class BinaryAbstractTest extends WebdaTest {
         checkAct: async () => {}
       };
       stubs.push(
+        sinon.stub(binary, "getRedirectUrlFromObject").callsFake(() => {
+          return null;
+        })
+      );
+      stubs.push(
         sinon.stub(binary, "_verifyMapAndStore").callsFake(() => {
           return (<any>{
             get: async () => {
@@ -352,14 +358,25 @@ class BinaryAbstractTest extends WebdaTest {
       stubs.push(
         // @ts-ignore
         sinon.stub(binary, "get").callsFake(async () => {
-          return {
-            pipe: stream => {
-              stream.emit("error", new Error("I/O"));
-            }
-          };
+          return Readable.from("PLOP");
         })
       );
-      await assert.rejects(() => binary.httpRoute(ctx));
+      await binary.httpGet(ctx);
+      assert.strictEqual(ctx.getResponseBody().toString(), "PLOP");
+      stubs[stubs.length - 1].callsFake(async () => {
+        return {
+          pipe: stream => {
+            stream.emit("error", new Error("I/O"));
+          }
+        };
+      });
+      await assert.rejects(() => binary.httpGet(ctx));
+      let uri = ctx.getHttpContext().getRelativeUri();
+      let url = ctx.getHttpContext().getAbsoluteUrl();
+      ctx.getHttpContext().getRelativeUri = () => uri + "/url";
+      ctx.getHttpContext().getAbsoluteUrl = () => url + "/url";
+      await binary.httpGet(ctx);
+      assert.strictEqual(ctx.getResponseBody(), `{"Location":"http://test.webda.io/","Map":{"size":10}}`);
     } finally {
       stubs.forEach(stub => stub.restore());
     }

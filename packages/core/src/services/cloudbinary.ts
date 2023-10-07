@@ -19,92 +19,6 @@ export class CloudBinaryParameters extends BinaryParameters {
  * CloudBinary abstraction
  */
 export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryParameters> extends BinaryService<T> {
-  /**
-   * @inheritdoc
-   */
-  _initRoutes(): void {
-    super._initRoutes();
-    // Will use getRedirectUrl so override the default route
-    let url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}";
-    let name = this.getOperationName();
-    if (!this.parameters.expose.restrict.get) {
-      this.addRoute(
-        url,
-        ["GET"],
-        this.getRedirectUrl,
-        {
-          get: {
-            description: "Download a binary linked to an object",
-            summary: "Download a binary",
-            operationId: `get${name}Binary`,
-            responses: {
-              "302": {
-                description: "Redirect to download url"
-              },
-              "403": {
-                description: "You don't have permissions"
-              },
-              "404": {
-                description: "Object does not exist or attachment does not exist"
-              },
-              "412": {
-                description: "Provided hash does not match"
-              }
-            }
-          }
-        },
-        true
-      );
-      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}/url";
-      name = this._name === "Binary" ? "" : this._name;
-      this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {
-        get: {
-          description: "Get a redirect url to binary linked to an object",
-          summary: "Get redirect url of a binary",
-          operationId: `get${name}BinaryURL`,
-          responses: {
-            "200": {
-              description: "Containing the URL"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-    }
-  }
-
-  /**
-   * Redirect to the temporary link to S3 object
-   * or return it if returnInfo=true
-   *
-   * @param ctx of the request
-   * @param returnInfo
-   */
-  async getRedirectUrl(ctx, returnInfo: boolean = false) {
-    const { uuid, index, property } = ctx.getParameters();
-    let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(uuid);
-    if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
-      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
-    }
-    await object.checkAct(ctx, "get_binary");
-    let url = await this.getRedirectUrlFromObject(object[property][index], ctx);
-    if (returnInfo) {
-      ctx.write({ Location: url, Map: object[property][index] });
-    } else {
-      ctx.writeHead(302, {
-        Location: url
-      });
-    }
-  }
 
   /**
    * @override
@@ -114,23 +28,10 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   }
 
   /**
-   * Return the temporary link to S3 object
-   * @param ctx
-   * @returns
-   */
-  async getRedirectUrlInfo(ctx) {
-    return this.getRedirectUrl(ctx, true);
-  }
-  /**
    * Get a UrlFromObject
    *
    */
-  async getRedirectUrlFromObject(binaryMap, context, expires = 30) {
-    await this.emitSync("Binary.Get", {
-      object: binaryMap,
-      service: this,
-      context: context
-    });
+  async getRedirectUrlFromObject(binaryMap, context, expires: number = 30) {
     return this.getSignedUrlFromMap(binaryMap, expires, context);
   }
 

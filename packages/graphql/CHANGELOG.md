@@ -32,6 +32,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.1.4 to ^3.1.5
 
+## [3.3.2](https://github.com/loopingz/webda.io/compare/graphql-v3.3.1...graphql-v3.3.2) (2023-10-07)
+
+
+### Bug Fixes
+
+* display help command ([3d0b790](https://github.com/loopingz/webda.io/commit/3d0b79090f1fc23e3d02a7e7b0c3ce023f85f586))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.5.0 to ^3.6.0
+  * devDependencies
+    * @webda/shell bumped from ^3.3.0 to ^3.4.0
+
 ## [3.3.1](https://github.com/loopingz/webda.io/compare/graphql-v3.3.0...graphql-v3.3.1) (2023-10-04)
 
 

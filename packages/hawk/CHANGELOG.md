@@ -48,6 +48,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.2.1 to ^3.3.0
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/hawk-v3.1.2...hawk-v3.2.0) (2023-10-07)
+
+
+### Features
+
+* allow context propagation in linked model ([e84df9a](https://github.com/loopingz/webda.io/commit/e84df9a7435db40d56d498b624d5f71e9f2d0ebe))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.5.0 to ^3.6.0
+  * devDependencies
+    * @webda/shell bumped from ^3.3.0 to ^3.4.0
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/hawk-v3.0.8...hawk-v3.1.0) (2023-08-30)
 
 

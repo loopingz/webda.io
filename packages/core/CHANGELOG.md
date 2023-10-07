@@ -19,6 +19,24 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.6.0](https://github.com/loopingz/webda.io/compare/core-v3.5.0...core-v3.6.0) (2023-10-07)
+
+
+### Features
+
+* add isGlobal to Context ([6423ba7](https://github.com/loopingz/webda.io/commit/6423ba7a23e96c6132ca468074e5e6fdd66d71ce))
+* add stop function for service ([c4fb0ec](https://github.com/loopingz/webda.io/commit/c4fb0ec6cc1b1ee49105193cedad32538742113a))
+* allow context propagation in linked model ([e84df9a](https://github.com/loopingz/webda.io/commit/e84df9a7435db40d56d498b624d5f71e9f2d0ebe))
+
+
+### Bug Fixes
+
+* display help command ([3d0b790](https://github.com/loopingz/webda.io/commit/3d0b79090f1fc23e3d02a7e7b0c3ce023f85f586))
+* domainservice model actions ([48a899a](https://github.com/loopingz/webda.io/commit/48a899adac3c81a611702defccee4871a7941df7))
+* remove completely the _ prefix of action method ([3530b60](https://github.com/loopingz/webda.io/commit/3530b60fe51ee3f913b71801009dbace2b68188d))
+* setContext on undefined reference ([030db1b](https://github.com/loopingz/webda.io/commit/030db1bc6166a8d18248d304b6bf3bf988e8a9f7))
+* write on flushed header ([2d1ef2e](https://github.com/loopingz/webda.io/commit/2d1ef2e59d3809e5c1dbe82b5312e31fb2015eca))
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/core-v3.4.0...core-v3.5.0) (2023-10-04)
 
 

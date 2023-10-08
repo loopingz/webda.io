@@ -421,7 +421,7 @@ class WebdaTest {
    */
   async nextTick(ticks: number = 1): Promise<void> {
     while (ticks-- > 0) {
-      await new Promise(resolve => process.nextTick(resolve));
+      await new Promise(resolve => setImmediate(resolve));
     }
   }
 

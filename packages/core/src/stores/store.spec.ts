@@ -54,8 +54,8 @@ abstract class StoreTest extends WebdaTest {
 
   async before() {
     await super.before();
-    await this.getUserStore().__clean();
-    await this.getIdentStore().__clean();
+    await this.getUserStore()?.__clean();
+    await this.getIdentStore()?.__clean();
     await this.recreateIndex();
   }
 

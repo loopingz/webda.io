@@ -19,6 +19,10 @@ on:
     # The branches below must be a subset of the branches above
     branches: [main]
 
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
 jobs:
   test:
     # Cannot rely on Github Azure hosted action because of GCP connection

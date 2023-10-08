@@ -40,6 +40,9 @@ export class WebdaServer extends Webda {
    */
   setDevMode(devMode: boolean) {
     this.devMode = devMode;
+    if (devMode) {
+      this.output("Dev mode activated : wildcard CORS enabled");
+    }
   }
 
   /**

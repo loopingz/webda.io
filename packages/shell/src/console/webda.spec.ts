@@ -100,7 +100,7 @@ class ConsoleTest {
   async waitForInput(output: WorkerOutput): Promise<string> {
     let timeout = 100;
     while (!Object.keys(output.inputs).length) {
-      await new Promise(resolve => process.nextTick(resolve));
+      await new Promise(resolve => setImmediate(resolve));
       if (--timeout <= 0) {
         throw new Error("Wait for input timeout");
       }

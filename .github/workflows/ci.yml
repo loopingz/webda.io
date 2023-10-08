@@ -114,7 +114,7 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Run AWS tests
-        run: yarn nx run @webda/aws:test || yarn nx run @webda/gcp:test
+        run: yarn nx run @webda/aws:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

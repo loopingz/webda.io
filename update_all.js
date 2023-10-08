@@ -1,11 +1,12 @@
-const fs = require("fs");
-const glob = require("glob");
-const jp = require("jsonpath");
+import fs from "fs";
+import glob from "glob";
+import jp from "jsonpath";
 
 if (process.argv.length < 5) {
   console.log(
     "Usage: \nnode update_all.js filename jsonquery value\nnode update_all.js filename jsonquery value apply"
   );
+  console.log(`\tExample: node update_all.js package.json '$.engines.node' ">=18.0.0" apply\n`);
   process.exit(1);
 }
 let pretend = process.argv[5] !== "apply";

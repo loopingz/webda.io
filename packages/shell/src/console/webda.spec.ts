@@ -113,8 +113,9 @@ class ConsoleTest {
     // Just to initiate it
     await this.commandLine("service-configuration Test");
     let output = WebdaConsole.app.getWorkerOutput();
-    output.setInteractive(true);
+    
     let deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf.json");
+    this.cleanFiles.push(deploymentPath);
     if (fs.existsSync(deploymentPath)) {
       fs.unlinkSync(deploymentPath);
     }
@@ -122,17 +123,25 @@ class ConsoleTest {
     assert.ok(fs.existsSync(deploymentPath));
 
     // @ts-ignore
-    let cl = this.commandLine("new-deployment");
-    let input = await this.waitForInput(output);
-    output.returnInput(input, "bouzouf");
-    input = await this.waitForInput(output);
-    output.returnInput(input, "bouzouf2");
-    // Might want to sleep more
-    await new Promise(resolve => process.nextTick(resolve));
-    fs.unlinkSync(deploymentPath);
-    deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf2.json");
-    assert.ok(fs.existsSync(deploymentPath));
-    fs.unlinkSync(deploymentPath);
+    let stub = sinon.stub(output, "requestInput").callsFake(async () => {
+      if (stub.callCount === 1) {
+        return "bouzouf";
+      } else if (stub.callCount === 2) {
+        return "bouzouf2";
+      } else if (stub.callCount > 2) {
+        fs.unlinkSync(deploymentPath);
+        return "bouzouf2"
+      }
+      
+    });
+    try {
+      await this.commandLine("new-deployment");
+      deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf2.json");
+      assert.ok(fs.existsSync(deploymentPath));
+      this.cleanFiles.push(deploymentPath);
+    } finally {
+      stub.restore();
+    }
   }
 
   @test
@@ -177,8 +186,6 @@ class ConsoleTest {
     assert.strictEqual(WebdaConsole.webda.getServerStatus(), ServerStatus.Started);
     let app = new SampleApplicationTest(`http://localhost:28080`);
     await app.testApi();
-    await WebdaConsole.webda.stop();
-    this.commandLine(`serve --devMode --port 28081`);
     await WebdaConsole.webda.stop();
     let p = WebdaConsole.serve({
       port: Math.floor(Math.random() * 10000 + 10000)
@@ -678,13 +685,9 @@ export default class FakeTerminal {
     assert.strictEqual(await this.commandLine(`deploy -d Dev`), 0);
     assert.strictEqual(await this.commandLine(`deploy -d Bouzouf`), -1);
     let badFile = WebdaSampleApplication.getAppPath("deployments/Bad.json");
-    // TODO Add a faulty deployment
-    try {
-      fs.writeFileSync(badFile, "plop");
-      assert.strictEqual(await this.commandLine(`deploy -d Bad`), -1);
-    } finally {
-      fs.unlinkSync(badFile);
-    }
+    this.cleanFiles.push(badFile);
+    fs.writeFileSync(badFile, "plop");
+    assert.strictEqual(await this.commandLine(`deploy -d Bad`), -1);
   }
 
   @test

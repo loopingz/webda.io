@@ -187,7 +187,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    */
   getGraphQLSchemaFromSchema(schema: JSONSchema7, defaultName: string): any {
     let type: any;
-    if (!schema.type) {
+    if (!schema || !schema.type) {
       return;
     } else if (schema.type === "string") {
       type = GraphQLString;

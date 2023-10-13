@@ -420,14 +420,28 @@ class CoreModelTest extends WebdaTest {
     assert.strictEqual((await test.links_simple[0].get()).card, "plop");
     assert.strictEqual((await test.parent.get()).card, "plop");
     assert.strictEqual((await test.maps[0].get()).card, "plop");
-    assert.strictEqual((await test.queries.getAll()).length, 2);
-    console.log("Test query now");
+    let info = await test.queries.getAll();
+    assert.strictEqual(info.length, 2);
     assert.strictEqual((await test.queries.query("card = 'pliX?XXXX?XXXX?X???'")).results.length, 1);
-    console.log("Test for each");
     let count = 0;
     await test.queries.forEach(async () => {
       count++;
     });
     assert.strictEqual(count, 2);
+    info = [];
+    for await (const item of TestMask.iterate('side="uuid-test"')) {
+      info.push(item);
+    }
+    assert.strictEqual(count, 2);
+    await test.setAttribute("side", "uuid-test2");
+    await test.incrementAttribute("counter", 1);
+    let test2 = await TestMask.ref(test.getUuid()).get();
+    assert.strictEqual(test2.counter, test.counter);
+    assert.strictEqual(test2.side, "uuid-test2");
+    assert.strictEqual(test2.counter, 1);
+    await test.removeAttribute("counter");
+    await test2.refresh();
+    assert.strictEqual(test.counter, undefined);
+    assert.strictEqual(test2.counter, undefined);
   }
 }

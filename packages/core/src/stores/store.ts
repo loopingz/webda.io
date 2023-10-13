@@ -292,6 +292,7 @@ export interface EventStoreWebDelete extends EventWithContext {
   store: Store;
 }
 
+// REFACTOR . >= 4
 /**
  * @deprecated Store should not be exposed directly anymore
  * You should use the DomainService instead
@@ -339,6 +340,7 @@ export type StoreExposeParameters = {
    */
   queryMethod?: "PUT" | "GET";
 };
+// END_REFACTOR
 
 /**
  * Represent a query result on the Store
@@ -374,9 +376,9 @@ export class StoreParameters extends ServiceParameters {
   model?: string;
   /**
    * Additional models
-   * 
+   *
    * Allow this store to manage other models
-   * 
+   *
    * @default []
    */
   additionalModels?: string[];
@@ -384,13 +386,14 @@ export class StoreParameters extends ServiceParameters {
    * async delete
    */
   asyncDelete: boolean;
-
+  // REFACTOR . >= 4.0
   /**
    * Expose the service to an urls
    *
    * @deprecated will probably be removed in 4.0 in favor of Expose annotation
    */
   expose?: StoreExposeParameters;
+  // END_REFACTOR
 
   /**
    * Allow to load object that does not have the type data
@@ -1071,27 +1074,46 @@ abstract class Store<
   }
 
   /**
-   * Get all results without pagination
+   * Iterate through the results
    *
    * This can be resource consuming
    *
    * @param query
    * @param context
    */
-  async queryAll(query: string, context?: OperationContext): Promise<T[]> {
-    const res: T[] = [];
+  async *iterate(query: string = "", context?: OperationContext): AsyncGenerator<T> {
     if (query.includes("OFFSET")) {
-      throw new Error("Cannot contain an OFFSET for queryAll method");
+      throw new Error("Cannot contain an OFFSET for iterate method");
     }
     let continuationToken;
     do {
       let q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
       let page = await this.query(q, context);
+      for (let item of page.results) {
+        yield item;
+      }
       continuationToken = page.continuationToken;
-      res.push(...page.results);
     } while (continuationToken);
+  }
+
+  // REFACTOR . >= 4
+  /**
+   * Query all the results
+   *
+   *
+   * @param query
+   * @param context
+   * @returns
+   * @deprecated use iterate instead
+   */
+  async queryAll(query: string, context?: OperationContext): Promise<T[]> {
+    let res = [];
+    for await (let item of this.iterate(query, context)) {
+      res.push(item);
+    }
     return res;
   }
+  // END_REFACTOR
 
   /**
    * Check that __type Comparison is only used with = and CONTAINS

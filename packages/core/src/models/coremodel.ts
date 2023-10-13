@@ -100,24 +100,31 @@ class CoreModelQuery {
   ) {
     const throttler = new Throttler();
     throttler.setConcurrency(parallelism);
-    let continuationToken: string | undefined;
-    do {
-      const result = await this.query(query + continuationToken ? "OFFSET " + continuationToken : "", context);
-      continuationToken = result.continuationToken;
-      for (const model of result.results) {
-        throttler.queue(() => callback(model));
-      }
-      await throttler.waitForCompletion();
-    } while (continuationToken);
+    for await (const model of this.iterate(query, context)) {
+      throttler.execute(() => callback(model));
+    }
+    return throttler.wait();
   }
 
   /**
-   * Get all objects linked
+   * Iterate through all
    * @param context
    * @returns
    */
-  async getAll(query?: string, context?: OperationContext) {
-    return Core.get().getModelStore(this.getTargetModel()).queryAll(this.completeQuery(query), context);
+  iterate(query?: string, context?: OperationContext) {
+    return Core.get().getModelStore(this.getTargetModel()).iterate(this.completeQuery(query), context);
+  }
+
+  /**
+   * Get all the objects
+   * @returns
+   */
+  async getAll(context?: OperationContext): Promise<this[]> {
+    let res = [];
+    for await (const item of this.iterate(this.completeQuery(), context)) {
+      res.push(item);
+    }
+    return res;
   }
 }
 
@@ -282,6 +289,9 @@ export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
 
 /**
  * Make a property hidden from json
+ *
+ * This property will not be saved in the store
+ *
  * @param target
  * @param propertyKey
  */
@@ -327,13 +337,13 @@ export class ModelRef<T extends CoreModel> {
   protected store: Store<T>;
   @NotEnumerable
   protected model: CoreModelDefinition<T>;
-  @NotEnumerable 
+  @NotEnumerable
   protected parent: CoreModel;
 
   constructor(
     protected uuid: string,
     model: CoreModelDefinition<T>,
-    parent?: CoreModel,
+    parent?: CoreModel
   ) {
     this.model = model;
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
@@ -676,6 +686,46 @@ class CoreModel {
   }
 
   /**
+   * Complete the query with __type/__types
+   * @param query
+   * @param includeSubclass
+   * @returns
+   */
+  protected static completeQuery(query: string, includeSubclass: boolean = true): string {
+    if (!query.includes("__type")) {
+      if (query.trim() !== "") {
+        query = ` AND ${query}`;
+      }
+      const app = Core.get().getApplication();
+      const name = app.getShortId(app.getModelName(this));
+      if (includeSubclass) {
+        query = `__types CONTAINS "${name}"${query}`;
+      } else {
+        query = `__type = "${name}"${query}`;
+      }
+    }
+    return query;
+  }
+
+  /**
+   * Iterate through the model
+   * @param this
+   * @param query
+   * @param includeSubclass
+   * @param context
+   * @returns
+   */
+  static iterate<T extends CoreModel>(
+    this: Constructor<T>,
+    query: string = "",
+    includeSubclass: boolean = true,
+    context?: OperationContext
+  ): AsyncGenerator<T> {
+    // @ts-ignore
+    return this.store().iterate(this.completeQuery(query, includeSubclass), context);
+  }
+
+  /**
    * Query for models
    * @param this
    * @param id
@@ -690,20 +740,8 @@ class CoreModel {
     results: T[];
     continuationToken?: string;
   }> {
-    if (!query.includes("__type")) {
-      if (query.trim() !== "") {
-        query = ` AND ${query}`;
-      }
-      const app = Core.get().getApplication();
-      const name = app.getShortId(app.getModelName(this));
-      if (includeSubclass) {
-        query = `__types CONTAINS "${name}"${query}`;
-      } else {
-        query = `__type = "${name}"${query}`;
-      }
-    }
     // @ts-ignore
-    return <any>this.store().query(query, context);
+    return <any>this.store().query(this.completeQuery(query, includeSubclass), context);
   }
 
   /**
@@ -999,7 +1037,11 @@ class CoreModel {
     if (rel.parent) {
       this[rel.parent.attribute] ??= "";
       if (typeof this[rel.parent.attribute] === "string") {
-        this[rel.parent.attribute] = new ModelRef(this[rel.parent.attribute], Core.get().getModel(rel.parent.model), this);
+        this[rel.parent.attribute] = new ModelRef(
+          this[rel.parent.attribute],
+          Core.get().getModel(rel.parent.model),
+          this
+        );
       }
     }
     for (let binary of rel.binaries || []) {
@@ -1248,6 +1290,46 @@ class CoreModel {
    */
   async _onUpdated() {
     // Empty to be overriden
+  }
+
+  /**
+   * Set attribute on the object and database
+   * @param property
+   * @param value
+   */
+  async setAttribute(property: keyof this, value: any) {
+    await this.getStore().setAttribute(this.getUuid(), property, value);
+    this[property] = value;
+  }
+
+  /**
+   * Remove attribute from both the object and db
+   * @param property
+   */
+  async removeAttribute(property: keyof this) {
+    await this.getStore().removeAttribute(this.getUuid(), property);
+    delete this[property];
+  }
+
+  /**
+   * Increment an attribute both in store and object
+   * @param property
+   * @param value
+   */
+  async incrementAttribute(property: FilterKeys<this, number>, value: number) {
+    return this.incrementAttributes([<any>{ property, value }]);
+  }
+
+  /**
+   * Increment a attributes both in store and object
+   * @param info
+   */
+  async incrementAttributes(info: { property: string; value: number }[]) {
+    await this.getStore().incrementAttributes(this.getUuid(), <any>info);
+    for (let inc of info) {
+      this[inc.property] ??= 0;
+      this[inc.property] += inc.value;
+    }
   }
 }
 

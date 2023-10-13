@@ -10,7 +10,7 @@ class ThrottlerTest {
     let t = new Throttler(2);
     t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P1");
     t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P2");
-    t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P3");
+    t.execute(() => new Promise<void>(resolve => resolvers.push(resolve)), "P3");
     t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P4");
     t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P5");
     t.queue(() => new Promise<void>((_, reject) => resolvers.push(reject)), "P6");
@@ -27,11 +27,13 @@ class ThrottlerTest {
     assert.strictEqual(curs.length, 1, `Currents ${curs}`);
     t.setConcurrency(3);
     assert.strictEqual(t.getInProgress().length, 3);
+    // REFACTOR . >= 4.0.0 | replace("waitForCompletion", "wait")
     let p = t.waitForCompletion();
+    // END_REFACTOR
     resolvers.forEach(r => r());
     await new Promise(resolve => setImmediate(resolve));
     resolvers.forEach(r => r());
     await p;
-    await t.waitForCompletion();
+    await t.wait();
   }
 }

@@ -59,8 +59,12 @@ export abstract class AbstractAliasStore<
     if (list) {
       return this._targetStore.getAll(list.map(id => this.generateUuidFromPublicId(id)));
     } else {
+      let res = [];
+      for await (const item of this._targetStore.iterate(`__type = '${this._modelType}'`)) {
+        res.push(item);
+      }
       // Get all from find
-      return this._targetStore.queryAll(`__type = '${this._modelType}'`);
+      return res;
     }
   }
 

@@ -142,7 +142,7 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
       metadata: this.metadata,
       challenge: this.challenge,
       // Fallback on original name
-      name: this.name || this.originalname,
+      name: this.name || this.originalname
     };
   }
 
@@ -288,10 +288,21 @@ export class Binary<T = any> extends BinaryMap<T> {
   protected model: CoreModel;
   @NotEnumerable
   protected attribute: string;
+  @NotEnumerable
+  protected empty: boolean;
   constructor(attribute: string, model: CoreModel) {
     super(Core.get().getBinaryStore(model, attribute), model[attribute] || {});
+    this.empty = model[attribute] !== undefined;
     this.attribute = attribute;
     this.model = model;
+  }
+
+  /**
+   * isEmpty
+   * @returns
+   */
+  isEmpty() {
+    return this.empty;
   }
   /**
    * Replace the binary
@@ -593,7 +604,13 @@ export abstract class BinaryService<
     if (url === null) {
       if (returnInfo) {
         // Redirect to same url without /url
-        context.write({ Location: context.getHttpContext().getAbsoluteUrl().replace(/\/url$/, ""), Map: file });
+        context.write({
+          Location: context
+            .getHttpContext()
+            .getAbsoluteUrl()
+            .replace(/\/url$/, ""),
+          Map: file
+        });
       } else {
         // Output
         context.writeHead(200, {
@@ -617,12 +634,15 @@ export abstract class BinaryService<
     }
   }
 
-
   /**
    * Get a UrlFromObject
    *
    */
-  async getRedirectUrlFromObject(binaryMap: BinaryMap, _context: OperationContext, _expires: number = 30): Promise<null | string> {
+  async getRedirectUrlFromObject(
+    binaryMap: BinaryMap,
+    _context: OperationContext,
+    _expires: number = 30
+  ): Promise<null | string> {
     return null;
   }
 
@@ -1178,9 +1198,7 @@ export abstract class BinaryService<
     const { property, index } = ctx.getParameters();
 
     // Current file - would be empty on creation
-    const file = Array.isArray(object[property])
-        ? object[property][index]
-        : object[property];
+    const file = Array.isArray(object[property]) ? object[property][index] : object[property];
 
     // Check permissions
     let action = "unknown";
@@ -1194,41 +1212,41 @@ export abstract class BinaryService<
     await object.checkAct(ctx, action);
 
     // Now do the action
-      if (ctx.getHttpContext().getMethod() === "POST") {
-        await this.store(object, property, await this._getFile(ctx));
-      } else {
-        if (file.hash !== ctx.parameter("hash")) {
-          throw new WebdaError.BadRequest("Hash does not match");
-        }
-        if (ctx.getHttpContext().getMethod() === "DELETE") {
-          await this.delete(object, property, index);
-        } else if (ctx.getHttpContext().getMethod() === "PUT") {
-          let metadata: BinaryMetadata = await ctx.getRequestBody();
-          // Limit metadata to 4kb
-          if (JSON.stringify(metadata).length >= 4096) {
-            throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
-          }
-          let evt = {
-            service: this,
-            object: file,
-            target: object
-          };
-          await this.emitSync("Binary.MetadataUpdate", {
-            ...evt,
-            metadata
-          });
-          file.metadata = metadata;
-          // Update mapper on purpose
-          await object.getStore().patch(
-            {
-              [object.__class.getUuidField()]: object.getUuid(),
-              [property]: object[property]
-            },
-            false
-          );
-          this.metrics.metadataUpdate.inc();
-          await this.emitSync("Binary.MetadataUpdated", evt);
-        }
+    if (ctx.getHttpContext().getMethod() === "POST") {
+      await this.store(object, property, await this._getFile(ctx));
+    } else {
+      if (file.hash !== ctx.parameter("hash")) {
+        throw new WebdaError.BadRequest("Hash does not match");
       }
+      if (ctx.getHttpContext().getMethod() === "DELETE") {
+        await this.delete(object, property, index);
+      } else if (ctx.getHttpContext().getMethod() === "PUT") {
+        let metadata: BinaryMetadata = await ctx.getRequestBody();
+        // Limit metadata to 4kb
+        if (JSON.stringify(metadata).length >= 4096) {
+          throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
+        }
+        let evt = {
+          service: this,
+          object: file,
+          target: object
+        };
+        await this.emitSync("Binary.MetadataUpdate", {
+          ...evt,
+          metadata
+        });
+        file.metadata = metadata;
+        // Update mapper on purpose
+        await object.getStore().patch(
+          {
+            [object.__class.getUuidField()]: object.getUuid(),
+            [property]: object[property]
+          },
+          false
+        );
+        this.metrics.metadataUpdate.inc();
+        await this.emitSync("Binary.MetadataUpdated", evt);
+      }
+    }
   }
 }

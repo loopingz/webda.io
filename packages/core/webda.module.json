@@ -2445,15 +2445,7 @@
           "description": "Expose objects as operations too"
         },
         "nameTransfomer": {
-          "type": "string",
-          "enum": [
-            "camelCase",
-            "lowercase",
-            "none",
-            "snake_case",
-            "PascalCase",
-            "kebab-case"
-          ],
+          "$ref": "#/definitions/TransformCaseType",
           "description": "Transform the name of the model to be used in the URL"
         },
         "queryMethod": {
@@ -2494,6 +2486,22 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "TransformCaseType": {
+          "type": "string",
+          "enum": [
+            "none",
+            "camelCase",
+            "ENV_VAR",
+            "snake_case",
+            "PascalCase",
+            "kebab-case",
+            "UPPERCASE",
+            "lowercase"
+          ],
+          "description": "Transform the name of the model to be used in the URL"
+        }
+      },
       "title": "RESTDomainService"
     },
     "Webda/RoleModel": {

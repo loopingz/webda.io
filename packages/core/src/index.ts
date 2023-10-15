@@ -1,14 +1,14 @@
 // organize-imports-ignore
 // Export a default Cache - we might recode this to be able to specify custom provider
 export { MemoryCache as Cache } from "ts-method-cache";
+export { CacheService };
 import { MethodCacheService } from "ts-method-cache";
 const CacheService = new MethodCacheService();
-export { CacheService };
 
 export * from "./application";
-export * from "./unpackedapplication";
 export * from "./core";
 export * from "./errors";
+export * from "./unpackedapplication";
 
 // Models
 export * from "./models/aclmodel";
@@ -50,8 +50,8 @@ export * from "./services/service";
 export * from "./services/version";
 
 // Stores
-export * from "./stores/aliasstore";
 export * from "./stores/aggregator";
+export * from "./stores/aliasstore";
 export * from "./stores/file";
 export * from "./stores/mapper";
 export * from "./stores/memory";
@@ -59,14 +59,15 @@ export * from "./stores/store";
 
 // Utils
 export * from "./utils/abstractdeployer";
+export * from "./utils/case";
 export * from "./utils/context";
 export * from "./utils/cookie";
 export * from "./utils/esm";
 export * from "./utils/httpcontext";
 export * from "./utils/logger";
-export * from "./utils/throttler";
 export * from "./utils/serializers";
 export * from "./utils/session";
+export * from "./utils/throttler";
 export * from "./utils/waiter";
 
 export * from "./stores/webdaql/query";

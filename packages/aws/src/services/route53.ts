@@ -1,4 +1,4 @@
-import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, Route53 } from "@aws-sdk/client-route-53";
+import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, RRType, Route53 } from "@aws-sdk/client-route-53";
 import { JSONUtils, Service } from "@webda/core";
 
 export class Route53Service extends Service {
@@ -49,7 +49,7 @@ export class Route53Service extends Service {
    */
   static async createDNSEntry(
     domain: string,
-    type: string,
+    type: RRType,
     value: string,
     targetZone: HostedZone = undefined,
     Comment: string = "@webda/aws-created"

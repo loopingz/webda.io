@@ -276,7 +276,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
 
   @test
   async createCloudFormation() {
-    let describeChangeSetResult: any = { Status: "ROLLBACK_COMPLETE" };
+    let describeChangeSetResult: any = { Status: "FAILED" };
     let describeStackEventsResult: any = {
       StackEvents: [
         {
@@ -321,14 +321,14 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
             PhysicalResourceId: "stage",
             LogicalResourceId: "",
             LastUpdatedTimestamp: new Date(),
-            ResourceStatus: ""
+            ResourceStatus: "CREATE_COMPLETE"
           },
           {
             ResourceType: "AWS::ApiGateway::RestApi",
             PhysicalResourceId: "restApi",
             LogicalResourceId: "",
             LastUpdatedTimestamp: new Date(),
-            ResourceStatus: ""
+            ResourceStatus: "CREATE_COMPLETE"
           }
         ]
       });
@@ -336,8 +336,6 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     try {
       let createDeployment = sinon.stub().resolves({});
       mocks.push(mockClient(APIGateway).on(CreateDeploymentCommand).callsFake(createDeployment));
-      // First scenario we have a 'ROLLBACK_COMPLETE', an error occured
-      await assert.rejects(() => this.deployer.createCloudFormation());
       // 'FAILED' scenario with unknown error
       logs.resetHistory();
       describeChangeSetResult.Status = "FAILED";

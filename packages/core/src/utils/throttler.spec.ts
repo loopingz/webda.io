@@ -36,4 +36,9 @@ class ThrottlerTest {
     await p;
     await t.wait();
   }
+
+  @test
+  async staticMethod() {
+    await Throttler.run(<any>[async () => {}], 2);
+  }
 }

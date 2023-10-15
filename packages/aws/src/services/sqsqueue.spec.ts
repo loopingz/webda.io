@@ -58,7 +58,7 @@ class SQSQueueTest extends QueueTest {
     } catch (err) {
       await sqs.createQueue({
         QueueName: "webda-test2.fifo",
-        Attributes: {
+        Attributes: <any>{
           FifoQueue: "true"
         }
       });

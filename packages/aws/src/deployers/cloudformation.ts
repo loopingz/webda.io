@@ -723,7 +723,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     this.logger.log("TRACE", `ChangeSet: ${changeSet}`);
     // It will trigger an exception if timeout
     let changes = await this.waitFor(
-      async (resolve, reject) => {
+      async resolve => {
         let localChanges = await cloudformation.describeChangeSet({
           ChangeSetName: "WebdaCloudFormationDeployer",
           StackName: this.resources.StackName
@@ -731,9 +731,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         if (localChanges.Status === "FAILED" || localChanges.Status === "CREATE_COMPLETE") {
           resolve(localChanges);
           return true;
-        }
-        if (localChanges.Status === "ROLLBACK_COMPLETE") {
-          reject();
         }
       },
       50,
@@ -1179,4 +1176,4 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 }
 
-export { LAMBDA_LATEST_VERSION, CloudFormationDeployer };
+export { CloudFormationDeployer, LAMBDA_LATEST_VERSION };

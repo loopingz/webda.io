@@ -96,11 +96,11 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
           service_account: ${{ secrets.GCP_OIDC_SA}}
 
-      - name: Restore Lerna/NX Cache
-        uses: actions/cache@v3
-        with:
-          path: node_modules/.cache
-          key: ${{ runner.os }}-${{ matrix.node }}
+#      - name: Restore Lerna/NX Cache
+#        uses: actions/cache@v3
+#        with:
+#          path: node_modules/.cache
+#          key: ${{ runner.os }}-${{ matrix.node }}
 
       - name: Install dependencies
         run: yarn

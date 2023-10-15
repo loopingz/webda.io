@@ -1,5 +1,6 @@
 import {
   BatchWriteItemCommand,
+  CreateTableCommandInput,
   DescribeTableCommand,
   DynamoDB,
   DynamoDBClient,
@@ -8,12 +9,12 @@ import {
 import { suite, test } from "@testdeck/mocha";
 import {
   CoreModel,
-  getCommonJS,
   Ident,
   Store,
   StoreEvents,
   StoreParameters,
-  UpdateConditionFailError
+  UpdateConditionFailError,
+  getCommonJS
 } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import { TestApplication } from "@webda/core/lib/test";
@@ -75,7 +76,7 @@ export class DynamoDBTest extends StoreTest {
       });
     } catch (err) {
       if (err.name === "ResourceNotFoundException") {
-        let createTable = {
+        let createTable: CreateTableCommandInput = {
           TableName,
           ProvisionedThroughput: {
             ReadCapacityUnits: 5,

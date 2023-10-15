@@ -1,4 +1,4 @@
-import { CoreModel } from "@webda/core";
+import { Binaries, Binary, CoreModel } from "@webda/core";
 
 /**
  * @WebdaModel Contact
@@ -44,4 +44,12 @@ export default class Contact extends CoreModel {
    * @SchemaOptional
    */
   optional: string;
+  /**
+   * Contact avatar
+   */
+  avatar: Binary;
+  /**
+   * Contact photos
+   */
+  photos: Binaries;
 }

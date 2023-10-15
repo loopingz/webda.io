@@ -292,7 +292,7 @@ export class Binary<T = any> extends BinaryMap<T> {
   protected empty: boolean;
   constructor(attribute: string, model: CoreModel) {
     super(Core.get().getBinaryStore(model, attribute), model[attribute] || {});
-    this.empty = model[attribute] !== undefined;
+    this.empty = model[attribute] === undefined;
     this.attribute = attribute;
     this.model = model;
   }

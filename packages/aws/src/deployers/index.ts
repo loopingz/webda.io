@@ -1,6 +1,6 @@
-import { ACM, CertificateDetail, ListCertificatesResponse } from "@aws-sdk/client-acm";
+import { ACM, CertificateDetail, ListCertificatesResponse, RequestCertificateCommandInput } from "@aws-sdk/client-acm";
 import { EC2 } from "@aws-sdk/client-ec2";
-import { HostedZone, Route53 } from "@aws-sdk/client-route-53";
+import { HostedZone, RRType, Route53 } from "@aws-sdk/client-route-53";
 import { NotFound, S3 } from "@aws-sdk/client-s3";
 import { GetCallerIdentityResponse, STS } from "@aws-sdk/client-sts";
 import { Cache, DeployerResources, WaitFor, WaitLinearDelay, WebdaError } from "@webda/core";
@@ -333,7 +333,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (domain.endsWith(".")) {
       domain = domain.substring(0, domain.length - 1);
     }
-    let params = {
+    let params: RequestCertificateCommandInput = {
       DomainName: domain,
       DomainValidationOptions: [
         {
@@ -402,7 +402,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    */
   public async createDNSEntry(
     domain: string,
-    type: string,
+    type: RRType,
     value: string,
     targetZone: HostedZone = undefined
   ): Promise<void> {

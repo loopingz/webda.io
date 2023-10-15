@@ -108,7 +108,6 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     let queueArg: ReceiveMessageRequest = {
       QueueUrl: this.parameters.queue,
       WaitTimeSeconds: this.parameters.WaitTimeSeconds,
-      AttributeNames: ["MessageGroupId"],
       MaxNumberOfMessages: this.parameters.maxConsumers > 10 ? 10 : this.parameters.maxConsumers
     };
     let data = await this.sqs.receiveMessage(queueArg);

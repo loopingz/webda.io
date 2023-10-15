@@ -84,7 +84,18 @@
           }
         ]
       },
-      "WebdaDemo/Contact": {},
+      "WebdaDemo/Contact": {
+        "binaries": [
+          {
+            "attribute": "avatar",
+            "cardinality": "ONE"
+          },
+          {
+            "attribute": "photos",
+            "cardinality": "MANY"
+          }
+        ]
+      },
       "WebdaDemo/Course": {
         "links": [
           {
@@ -348,6 +359,8 @@
         "custom": "string",
         "readonly": "number",
         "optional": "string",
+        "avatar": "Binary",
+        "photos": "Binaries",
         "___class": "CoreModelDefinition",
         "___type": "string",
         "___types": "string[]",
@@ -601,7 +614,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -616,7 +629,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -950,6 +963,48 @@
         "optional": {
           "type": "string",
           "description": "Useful to auto complete on the creation side without forcing UI to push the attribute"
+        },
+        "avatar": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "type": "string",
+              "description": "Will be computed by the service\n\nhash of the content"
+            },
+            "challenge": {
+              "type": "string",
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+            },
+            "size": {
+              "type": "number",
+              "description": "Size of the binary"
+            },
+            "name": {
+              "type": "string",
+              "description": "Current name"
+            },
+            "mimetype": {
+              "type": "string",
+              "description": "Mimetype of the binary"
+            },
+            "metadata": {
+              "description": "Metadatas stored along with the binary"
+            },
+            "originalname": {
+              "type": "string",
+              "description": "Original name"
+            }
+          },
+          "required": [
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "description": "Contact avatar"
+        },
+        "photos": {
+          "$ref": "#/definitions/Binaries",
+          "description": "Contact photos"
         }
       },
       "required": [
@@ -959,6 +1014,18 @@
         "age"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Binaries": {
+          "type": "object",
+          "properties": {
+            "upload": {}
+          },
+          "required": [
+            "upload"
+          ],
+          "description": "Define a collection of Binary with a Readonly and the upload method"
+        }
+      },
       "title": "Contact"
     },
     "WebdaDemo/Course": {
@@ -1074,7 +1141,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-2914-3398-1131383939-0-9314976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-2914-3398-178760925-0-9314976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -1087,7 +1154,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-2914-3398-1131383939-0-9314976353190>": {
+        "Partial<class-178760925-2914-3398-178760925-0-9314976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -1118,7 +1185,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -1139,7 +1206,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -1341,7 +1408,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -1356,7 +1423,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-246-294-829200435-0-1238>": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
           "type": "object",
           "properties": {
             "test": {

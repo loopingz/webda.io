@@ -48,6 +48,18 @@ export class Throttler {
   constructor(protected concurrency: number = 10) {}
 
   /**
+   * Run a Throttler without having to instanciate it
+   * @param method
+   * @param concurrency
+   * @returns
+   */
+  static run(method: () => Promise<any> | (() => Promise<any>)[], concurrency: number = 10): Promise<void> {
+    let t = new Throttler(concurrency);
+    t.queue(method);
+    return t.wait();
+  }
+
+  /**
    * Execute a new promise
    *
    * Alias for queue
@@ -55,7 +67,10 @@ export class Throttler {
    * @param name
    * @returns
    */
-  execute(method: () => Promise<any>, name: string = `Promise_${this.getSize()}`): Promise<any> {
+  execute(
+    method: () => Promise<any> | (() => Promise<any>)[],
+    name: string = `Promise_${this.getSize()}`
+  ): Promise<any> {
     return this.queue(method, name);
   }
 
@@ -66,10 +81,12 @@ export class Throttler {
    * @param name of the task, usefull when calling getInProgress
    * @returns
    */
-  queue(method: () => Promise<any>, name: string = `Promise_${this.getSize()}`): Promise<any> {
+  queue(method: () => Promise<any> | (() => Promise<any>)[], name: string = `Promise_${this.getSize()}`): Promise<any> {
     return new Promise<any>((...callbacks) => {
-      this._queue.push(new ThrottlerItem(method, callbacks, name));
-      this.add();
+      (Array.isArray(method) ? method : [method]).forEach(m => {
+        this._queue.push(new ThrottlerItem(m, callbacks, name));
+        this.add();
+      });
     });
   }
 

@@ -36,7 +36,7 @@
     "@aws-sdk/client-api-gateway": "^3.58.0",
     "@aws-sdk/client-cloudformation": "^3.58.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.58.0",
-    "@aws-sdk/client-dynamodb": "^3.58.0",
+    "@aws-sdk/client-dynamodb": ">= 3.58.0 < 3.428.0",
     "@aws-sdk/client-ec2": "^3.58.0",
     "@aws-sdk/client-lambda": "^3.58.0",
     "@aws-sdk/client-route-53": "^3.58.0",

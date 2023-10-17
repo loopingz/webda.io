@@ -87,7 +87,7 @@ export class ModelLink<T extends CoreModel> {
   ) {
     this.parent = parent;
   }
-  
+
   async get(): Promise<T> {
     return (await this.model.ref(this.uuid).get())?.setContext(this.parent?.getContext());
   }
@@ -138,7 +138,11 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
   }
 
   add(model: string | ModelRef<T> | T) {
-    this.push(typeof model === "string" ? new ModelRef(model, this.model, this.parent) : new ModelRef(model.getUuid(), this.model, this.parent));
+    this.push(
+      typeof model === "string"
+        ? new ModelRef(model, this.model, this.parent)
+        : new ModelRef(model.getUuid(), this.model, this.parent)
+    );
   }
 
   remove(model: ModelRef<T> | string | T) {
@@ -157,12 +161,14 @@ export class ModelLinksArray<T extends CoreModel, K> extends Array<
   constructor(
     protected model: CoreModelDefinition<T>,
     content: any[] = [],
-    parent?: CoreModel,
+    parent?: CoreModel
   ) {
     super();
     this.parent = parent;
     this.push(
-      ...content.filter(c => c && c.uuid).map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c, this.parent))
+      ...content
+        .filter(c => c && c.uuid)
+        .map(c => <ModelRefCustomProperties<T, K>>new ModelRefCustom(c.uuid, model, c, this.parent))
     );
   }
 
@@ -204,7 +210,11 @@ export type ModelLinksMap<T extends CoreModel, K> = Readonly<{
 }> &
   ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
 
-export function createModelLinksMap<T extends CoreModel>(model: CoreModelDefinition<any>, data: any = {}, parent?: CoreModel) {
+export function createModelLinksMap<T extends CoreModel>(
+  model: CoreModelDefinition<any>,
+  data: any = {},
+  parent?: CoreModel
+) {
   let result = {
     add: (model: ModelRefCustomProperties<T, any>) => {
       result[model.uuid || model.getUuid()] = model;

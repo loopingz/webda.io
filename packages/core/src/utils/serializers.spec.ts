@@ -157,16 +157,16 @@ kind: Service
 ---
 apiVersion: v1
 kind: Pod
-`)
+`);
     assert.deepStrictEqual(res, [
-      {apiVersion: "v1", kind: "Service"},
-      {apiVersion: "v1", kind: "Pod"}
+      { apiVersion: "v1", kind: "Service" },
+      { apiVersion: "v1", kind: "Pod" }
     ]);
     res = YAMLUtils.parse(`
 apiVersion: v1
 kind: Service
-`)
-    assert.deepStrictEqual(res, {apiVersion: "v1", kind: "Service"});
+`);
+    assert.deepStrictEqual(res, { apiVersion: "v1", kind: "Service" });
   }
 
   @test("YAML octal")

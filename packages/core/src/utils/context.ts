@@ -372,10 +372,10 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
 
   /**
    * Global context is the default Context
-   * 
+   *
    * Whenever a request is internal to the system
    * or not linked to a user request
-   * @returns 
+   * @returns
    */
   isGlobal() {
     return false;

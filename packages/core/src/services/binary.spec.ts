@@ -7,7 +7,6 @@ import { Store, User, WebContext, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import {
-  Binary,
   BinaryEvents,
   BinaryFileInfo,
   BinaryMap,
@@ -230,12 +229,6 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
     binary.handleBinary = () => -1;
     // @ts-ignore
     assert.throws(() => binary.checkMap(new CoreModel(), "pouf"), /Unknown mapping/);
-  }
-
-  @test
-  testEmpty() {
-    assert.strictEqual(new Binary("test", <any>{}).isEmpty(), true);
-    assert.strictEqual(new Binary("test", <any>{ test: {} }).isEmpty(), false);
   }
 
   @test

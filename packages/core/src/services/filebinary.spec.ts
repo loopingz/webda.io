@@ -52,6 +52,12 @@ class FileBinaryTest extends CloudBinaryTest {
   }
 
   @test
+  testEmpty() {
+    assert.strictEqual(new Binary("test", <any>{}).isEmpty(), true);
+    assert.strictEqual(new Binary("test", <any>{ test: {} }).isEmpty(), false);
+  }
+
+  @test
   async _getFile() {
     let binary = this.getBinary();
     let ctx = await this.newContext();

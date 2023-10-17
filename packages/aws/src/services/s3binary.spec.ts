@@ -26,12 +26,6 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     await super.before();
   }
 
-  // Cancel testEmpty for now
-  @test
-  async testEmpty() {
-    // Empty for now
-  }
-
   async tweakApp(app: TestApplication) {
     super.tweakApp(app);
     app.addService(

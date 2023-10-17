@@ -113,7 +113,7 @@ class ConsoleTest {
     // Just to initiate it
     await this.commandLine("service-configuration Test");
     let output = WebdaConsole.app.getWorkerOutput();
-    
+
     let deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf.json");
     this.cleanFiles.push(deploymentPath);
     if (fs.existsSync(deploymentPath)) {
@@ -130,9 +130,8 @@ class ConsoleTest {
         return "bouzouf2";
       } else if (stub.callCount > 2) {
         fs.unlinkSync(deploymentPath);
-        return "bouzouf2"
+        return "bouzouf2";
       }
-      
     });
     try {
       await this.commandLine("new-deployment");
@@ -538,7 +537,14 @@ class DynamicService extend Service {
   @test
   async types() {
     await this.commandLine("types");
-    let logs = this.logger.getLogs().filter(l => !l.log?.args[0].startsWith("Cannot find logo") && !l.log?.args[0].startsWith("[Registry]") && l.log?.level === "INFO");
+    let logs = this.logger
+      .getLogs()
+      .filter(
+        l =>
+          !l.log?.args[0].startsWith("Cannot find logo") &&
+          !l.log?.args[0].startsWith("[Registry]") &&
+          l.log?.level === "INFO"
+      );
     assert.strictEqual(
       logs.length,
       4,
@@ -550,11 +556,7 @@ class DynamicService extend Service {
   async stores() {
     await this.commandLine("stores");
     let logs = this.logger.getLogs().filter(l => l.log?.args[0].startsWith("Store "));
-    assert.strictEqual(
-      logs.length,
-      2,
-      "We should have 2 Stores (Registry, contacts)"
-    );
+    assert.strictEqual(logs.length, 2, "We should have 2 Stores (Registry, contacts)");
   }
 
   @test

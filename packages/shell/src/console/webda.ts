@@ -850,7 +850,7 @@ ${Object.keys(operationsExport.operations)
       stores: {
         command: "stores",
         handler: WebdaConsole.stores,
-        description: "Display current stores",
+        description: "Display current stores"
       },
       store: {
         command: "store <storeName> <action>",
@@ -978,7 +978,13 @@ ${Object.keys(operationsExport.operations)
     await webda.init();
     this.log("INFO", "Deployers:", Object.keys(this.app.getDeployers()).join(", "));
     this.log("INFO", "Moddas:", Object.keys(this.app.getModdas()).join(", "));
-    this.log("INFO", "Models:", Object.keys(this.app.getModels()).map(model => `${model} [${webda.getModelStore(webda.getModel(model)).getName()}]`).join(", "));
+    this.log(
+      "INFO",
+      "Models:",
+      Object.keys(this.app.getModels())
+        .map(model => `${model} [${webda.getModelStore(webda.getModel(model)).getName()}]`)
+        .join(", ")
+    );
   }
 
   /**
@@ -1166,7 +1172,7 @@ ${Object.keys(operationsExport.operations)
         // Load lib
         argv._.shift();
         result = await this.executeShellExtension(extension, extension.relPath, argv);
-      } else {    
+      } else {
         // Display help if nothing is found
         this.displayHelp(parser);
       }
@@ -1213,7 +1219,7 @@ ${Object.keys(operationsExport.operations)
   /**
    * Display stores and their managed models
    */
-  static async stores() : Promise<number> {
+  static async stores(): Promise<number> {
     this.webda = new WebdaServer(this.app);
     await this.webda.init();
     const models = this.webda.getModels();
@@ -1224,7 +1230,12 @@ ${Object.keys(operationsExport.operations)
       stores[name].push(model);
     }
     Object.values(this.webda.getStores()).forEach(store => {
-      this.log("INFO", `Store ${store.getName()}: ${(stores[store.getName()] || [""]).join(", ")} (default:${store.getParameters().model})`);
+      this.log(
+        "INFO",
+        `Store ${store.getName()}: ${(stores[store.getName()] || [""]).join(", ")} (default:${
+          store.getParameters().model
+        })`
+      );
     });
     return 0;
   }

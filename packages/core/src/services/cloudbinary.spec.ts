@@ -151,13 +151,10 @@ export class FakeCloudBinaryTest extends WebdaTest {
         }
       };
     });
-    await assert.rejects(
-      () => service.httpGet(context),
-      WebdaError.NotFound
-    );
+    await assert.rejects(() => service.httpGet(context), WebdaError.NotFound);
     storeGetResult = {
       property: [1],
-      checkAct: () => {},
+      checkAct: () => {}
     };
     await assert.rejects(
       () => service.httpGet(context),
@@ -188,7 +185,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
     context.getHttpContext = () => ({
       getAbsoluteUrl: () => "http://myhost/test/url",
       getRelativeUri: () => "/test/url"
-    })
+    });
     await service.httpGet(context);
     assert.strictEqual(counter, 2);
     assert.deepStrictEqual(wrote, [

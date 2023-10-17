@@ -19,7 +19,6 @@ export class CloudBinaryParameters extends BinaryParameters {
  * CloudBinary abstraction
  */
 export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryParameters> extends BinaryService<T> {
-
   /**
    * @override
    */

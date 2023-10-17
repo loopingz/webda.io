@@ -35,13 +35,13 @@ class AclModelTest {
   @test cov() {
     assert.deepStrictEqual(this.model.getGroups(undefined, undefined), []);
   }
-  
+
   @test async get() {
     await assert.rejects(() => this.model.checkAct(this._ctx, "get"));
     this.model.__acl["gip-123"] = "get";
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
   }
-  
+
   @test async multipermissions() {
     await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
     this.model.__acl["gip-123"] = "get,action";

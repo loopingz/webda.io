@@ -21,9 +21,9 @@ export class Ident extends OwnerModel {
    */
   uid: string;
   /**
-   * Profile provided by the provider if exists
+   * Provider profile
    */
-  __profile: any;
+  __profile: unknown;
   __tokens: IdentTokens;
   _lastUsed: Date;
   _user: ModelLink<User>;
@@ -45,10 +45,7 @@ export class Ident extends OwnerModel {
    * Provider id
    */
   provider?: string;
-  /**
-   * Provider profile
-   */
-  profile?: any;
+  
 
   static init(
     type: string,

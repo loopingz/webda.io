@@ -1,12 +1,14 @@
+import { EventEmitter } from "events";
 import { JSONSchema7 } from "json-schema";
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
 import { ModelGraph, ModelsTree } from "../application";
-import { Core } from "../core";
+import { Core, EventEmitterUtils } from "../core";
 import { WebdaError } from "../errors";
+import { EventService } from "../services/asyncevents";
 import { BinariesImpl, Binary } from "../services/binary";
 import { Service } from "../services/service";
-import { Store } from "../stores/store";
+import { Store, StoreEvents } from "../stores/store";
 import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
@@ -129,9 +131,18 @@ class CoreModelQuery {
 }
 
 /**
+ * Attribute of an object
+ *
+ * Filter out methods
+ */
+export type Attributes<T extends object> = {
+  [K in keyof T]: T[K] extends Function ? never : K;
+}[keyof T];
+
+/**
  * Filter type keys by type
  */
-export type FilterKeys<T extends CoreModel, K> = {
+export type FilterAttributes<T extends CoreModel, K> = {
   [L in keyof T]: T[L] extends K ? L : never;
 }[keyof T];
 
@@ -223,7 +234,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
    * @param object to load data from
    * @param context if the data is unsafe from http
    */
-  factory(model: new () => T, object: any, context?: OperationContext): T;
+  factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T;
   /**
    * Get the model actions
    */
@@ -283,6 +294,24 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
     includeSubclass?: boolean,
     context?: OperationContext
   ): Promise<{ results: T[]; continuationToken?: string }>;
+
+  on<T extends CoreModel, Key extends keyof StoreEvents>(
+    this: Constructor<T>,
+    event: Key,
+    listener: (evt: StoreEvents[Key]) => any,
+    async?: boolean
+  ): void;
+  onAsync<T extends CoreModel, Key extends keyof StoreEvents>(
+    this: Constructor<T>,
+    event: Key,
+    listener: (evt: StoreEvents[Key]) => any
+  );
+  emit<T extends CoreModel, Key extends keyof StoreEvents>(this: Constructor<T>, event: Key, evt: StoreEvents[Key]);
+  emitSync<T extends CoreModel, Key extends keyof StoreEvents>(
+    this: Constructor<T>,
+    event: Key,
+    evt: StoreEvents[Key]
+  ): Promise<void>;
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -364,22 +393,60 @@ export class ModelRef<T extends CoreModel> {
   getUuid(): string {
     return this.uuid;
   }
-  deleteItemFromCollection(
-    prop: FilterKeys<T, any[]>,
+  async deleteItemFromCollection(
+    prop: FilterAttributes<T, any[]>,
     index: number,
     itemWriteCondition: any,
     itemWriteConditionField?: string
-  ): Promise<void> {
-    return this.store.deleteItemFromCollection(this.uuid, prop, index, itemWriteCondition, itemWriteConditionField);
+  ): Promise<this> {
+    const updateDate = await this.store.deleteItemFromCollection(
+      this.uuid,
+      prop,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField
+    );
+    await this.model.emitSync("Store.PartialUpdated", {
+      object_id: this.uuid,
+      store: this.store,
+      updateDate,
+      partial_update: {
+        deleteItem: {
+          property: <string>prop,
+          index: index
+        }
+      }
+    });
+    return this;
   }
-  upsertItemToCollection(
-    prop: FilterKeys<T, any[]>,
+  async upsertItemToCollection(
+    prop: FilterAttributes<T, any[]>,
     item: any,
     index?: number,
     itemWriteCondition?: any,
     itemWriteConditionField?: string
-  ) {
-    return this.store.upsertItemToCollection(this.uuid, prop, item, index, itemWriteCondition, itemWriteConditionField);
+  ): Promise<this> {
+    const updateDate = await this.store.upsertItemToCollection(
+      this.uuid,
+      prop,
+      item,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField
+    );
+    await this.model.emitSync("Store.PartialUpdated", {
+      object_id: this.uuid,
+      store: this.store,
+      updateDate,
+      partial_update: {
+        addItem: {
+          value: item,
+          property: <string>prop,
+          index: index
+        }
+      }
+    });
+    return this;
   }
   exists(): Promise<boolean> {
     return this.store.exists(this.uuid);
@@ -393,19 +460,41 @@ export class ModelRef<T extends CoreModel> {
   patch(updates: Partial<T>): Promise<boolean> {
     return this.store.conditionalPatch(this.uuid, updates, null, undefined);
   }
-  setAttribute(attribute: keyof T, value: any): Promise<void> {
-    return this.store.setAttribute(this.uuid, attribute, value);
+  async setAttribute(attribute: keyof T, value: any): Promise<this> {
+    await this.store.setAttribute(this.uuid, attribute, value);
+    return this;
   }
-  removeAttribute(attribute: keyof T, itemWriteCondition?: any, itemWriteConditionField?: keyof T): Promise<void> {
-    return this.store.removeAttribute(this.uuid, attribute, itemWriteCondition, itemWriteConditionField);
+  async removeAttribute(
+    attribute: keyof T,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: keyof T
+  ): Promise<this> {
+    await this.store.removeAttribute(this.uuid, attribute, itemWriteCondition, itemWriteConditionField);
+    await this.model?.emitSync("Store.PartialUpdated", {
+      object_id: this.uuid,
+      store: this.store,
+      partial_update: {
+        deleteAttribute: <any>attribute
+      }
+    });
+    return this;
   }
-  incrementAttributes(
+  async incrementAttributes(
     info: {
-      property: FilterKeys<T, number>;
+      property: FilterAttributes<T, number>;
       value: number;
     }[]
-  ): Promise<any[]> {
-    return this.store.incrementAttributes(this.uuid, info);
+  ): Promise<this> {
+    const updateDate = await this.store.incrementAttributes(this.uuid, info);
+    await this.model.emitSync("Store.PartialUpdated", {
+      object_id: this.uuid,
+      store: this.store,
+      updateDate,
+      partial_update: {
+        increments: <{ property: string; value: number }[]>info
+      }
+    });
+    return this;
   }
 }
 
@@ -460,6 +549,8 @@ export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
 
 export type ModelRefCustomProperties<T extends CoreModel, K> = ModelRefCustom<T> & K;
 
+const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakMap();
+
 /**
  * Basic Object in Webda
  *
@@ -475,7 +566,7 @@ class CoreModel {
    * Class reference to the object
    */
   @NotEnumerable
-  __class: CoreModelDefinition;
+  __class: CoreModelDefinition<this>;
   /**
    * Type name
    */
@@ -519,7 +610,7 @@ class CoreModel {
   __deleted: boolean;
 
   constructor() {
-    this.__class = new.target;
+    this.__class = <CoreModelDefinition<this>>(<any>new.target);
     // Get the store automatically now
     this.__store = <Store<this>>Core.get()?.getModelStore(new.target);
     // Get the type automatically now
@@ -530,6 +621,93 @@ class CoreModel {
           .getShortId(Core.get()?.getApplication().getModelFromInstance(this));
   }
 
+  /**
+   * Listen to events on the model
+   * @param event
+   * @param listener
+   * @param async
+   */
+  static on<T extends CoreModel, Key extends keyof StoreEvents>(
+    this: Constructor<T>,
+    event: Key,
+    listener: (evt: StoreEvents[Key]) => any,
+    async: boolean = false
+  ) {
+    if (!Emitters.has(this)) {
+      Emitters.set(this, new EventEmitter());
+    }
+    // TODO Manage async
+    if (async) {
+      Core.get()
+        .getService<EventService>("AsyncEvents")
+        .bindAsyncListener(<CoreModelDefinition>(<unknown>this), event, listener);
+    } else {
+      Emitters.get(this).on(event, listener);
+    }
+  }
+
+  /**
+   * Emit an event for this class
+   * @param this
+   * @param event
+   * @param evt
+   */
+  static emit<T extends CoreModel, Key extends keyof StoreEvents>(
+    this: Constructor<T>,
+    event: Key,
+    evt: StoreEvents[Key]
+  ) {
+    let clazz = this;
+    // @ts-ignore
+    while (clazz) {
+      // Emit for all parent class
+      if (Emitters.has(clazz)) {
+        EventEmitterUtils.emit(Emitters.get(clazz), event, evt);
+      }
+      // @ts-ignore
+      if (clazz === CoreModel) {
+        break;
+      }
+      clazz = Object.getPrototypeOf(clazz);
+    }
+  }
+
+  /**
+   * Emit an event for this class and wait for all listeners to finish
+   * @param this
+   * @param event
+   * @param evt
+   */
+  static async emitSync<T extends CoreModel, Key extends keyof StoreEvents>(
+    this: Constructor<T>,
+    event: Key,
+    evt: StoreEvents[Key]
+  ) {
+    let clazz = this;
+    let p = [];
+    // @ts-ignore
+    while (clazz) {
+      // Emit for all parent class
+      if (Emitters.has(clazz)) {
+        p.push(EventEmitterUtils.emitSync(Emitters.get(clazz), event, evt));
+      }
+      // @ts-ignore
+      if (clazz === CoreModel) {
+        break;
+      }
+      clazz = Object.getPrototypeOf(clazz);
+    }
+    await Promise.all(p);
+  }
+
+  /**
+   * Listen to events on the model asynchronously
+   * @param event
+   * @param listener
+   */
+  static onAsync<Key extends keyof StoreEvents>(event: Key, listener: (evt: StoreEvents[Key]) => any) {
+    this.on(event, listener, true);
+  }
   /**
    *
    * @returns
@@ -903,8 +1081,8 @@ class CoreModel {
    * Create an object
    * @returns
    */
-  static factory(model: new () => CoreModel, object: any, context?: OperationContext): CoreModel {
-    return new model().setContext(context).load(object, context === undefined);
+  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T {
+    return new this().setContext(context).load(object, context === undefined);
   }
 
   /**
@@ -1225,6 +1403,8 @@ class CoreModel {
       if (value === undefined) continue;
       if (value instanceof ModelRef) {
         obj[i] = value.toString();
+      } else if (value instanceof Binary) {
+        obj[i] = value.toJSON();
       } else {
         obj[i] = value;
       }
@@ -1298,7 +1478,7 @@ class CoreModel {
    * @param value
    */
   async setAttribute(property: keyof this, value: any) {
-    await this.getStore().setAttribute(this.getUuid(), property, value);
+    await this.getRef().setAttribute(property, value);
     this[property] = value;
   }
 
@@ -1307,7 +1487,7 @@ class CoreModel {
    * @param property
    */
   async removeAttribute(property: keyof this) {
-    await this.getStore().removeAttribute(this.getUuid(), property);
+    await this.getRef().removeAttribute(property);
     delete this[property];
   }
 
@@ -1316,8 +1496,16 @@ class CoreModel {
    * @param property
    * @param value
    */
-  async incrementAttribute(property: FilterKeys<this, number>, value: number) {
+  async incrementAttribute(property: FilterAttributes<this, number>, value: number) {
     return this.incrementAttributes([<any>{ property, value }]);
+  }
+
+  /**
+   * Return a model ref
+   * @returns
+   */
+  getRef<T extends this>(): ModelRef<T> {
+    return <any>new ModelRef<this>(this.getUuid(), <any>this.__class);
   }
 
   /**
@@ -1325,7 +1513,7 @@ class CoreModel {
    * @param info
    */
   async incrementAttributes(info: { property: string; value: number }[]) {
-    await this.getStore().incrementAttributes(this.getUuid(), <any>info);
+    await this.getRef().incrementAttributes(<any>info);
     for (let inc of info) {
       this[inc.property] ??= 0;
       this[inc.property] += inc.value;

@@ -65,7 +65,7 @@ class CookieTest extends WebdaTest {
     Object.keys(cookies).forEach(k => {
       ctx.getHttpContext().cookies[k] = cookies[k].value;
     });
-    await ctx.init();
-    assert.strictEqual(ctx.getSession().identUsed, "PLOP".repeat(3005));
+    await ctx.init(true);
+    assert.ok(ctx.getSession().identUsed === "PLOP".repeat(3005));
   }
 }

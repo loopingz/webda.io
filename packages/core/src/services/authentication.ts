@@ -582,7 +582,7 @@ class Authentication<
     ident = new this._identModel().load(
       {
         uuid: identId,
-        profile,
+        __profile: profile,
         __tokens: tokens,
         provider
       },

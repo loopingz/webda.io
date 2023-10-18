@@ -61,8 +61,15 @@
         "maps": [
           {
             "attribute": "_idents",
+            "cascadeDelete": false,
             "model": "Webda/Ident",
-            "targetAttribute": "_type | uuid | email"
+            "targetLink": "_user",
+            "targetAttributes": [
+              "_type",
+              "uuid",
+              "email",
+              "uuid"
+            ]
           }
         ]
       },
@@ -97,7 +104,7 @@
         "_creator": "string",
         "___acl": "Acl",
         "_permissions": "string[]",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -108,7 +115,7 @@
         "___deleted": "boolean"
       },
       "Webda/CoreModel": {
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -121,7 +128,7 @@
       "Webda/Ident": {
         "_type": "string",
         "uid": "string",
-        "___profile": "any",
+        "___profile": "unknown",
         "___tokens": "IdentTokens",
         "_lastUsed": "Date",
         "_user": "ModelLink<User>",
@@ -131,10 +138,9 @@
         "_validation": "Date",
         "email": "string",
         "provider": "string",
-        "profile": "any",
         "public": "boolean",
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -148,7 +154,7 @@
         "_user": "ModelLink<User>",
         "public": "boolean",
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -159,7 +165,7 @@
         "___deleted": "boolean"
       },
       "Webda/RoleModel": {
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -172,14 +178,14 @@
       "Webda/SimpleUser": {
         "_groups": "string[]",
         "_roles": "string[]",
-        "_idents": "ModelsMapped<Ident, \"_type\" | \"uuid\" | \"email\">",
+        "_idents": "ModelsMapped<Ident, \"_user\", \"_type\" | \"uuid\" | \"email\">",
         "___password": "string",
         "displayName": "string",
         "_lastPasswordRecovery": "number",
         "_avatar": "string",
         "locale": "string",
         "email": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -196,7 +202,7 @@
         "_avatar": "string",
         "locale": "string",
         "email": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -208,7 +214,7 @@
       },
       "Webda/UuidModel": {
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -1709,9 +1715,6 @@
         "provider": {
           "type": "string",
           "description": "Provider id"
-        },
-        "profile": {
-          "description": "Provider profile"
         }
       },
       "required": [

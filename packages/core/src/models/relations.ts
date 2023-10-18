@@ -1,21 +1,14 @@
 import {
+  Attributes,
   CoreModel,
   CoreModelDefinition,
+  FilterAttributes,
   ModelAction,
   ModelRef,
   ModelRefCustom,
   ModelRefCustomProperties,
   NotEnumerable
 } from "./coremodel";
-
-/**
- * Attribute of an object
- *
- * Filter out methods
- */
-export type Attributes<T extends object> = {
-  [K in keyof T]: T[K] extends Function ? never : K;
-}[keyof T];
 
 /**
  * Raw model without methods
@@ -67,6 +60,8 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
   getAll: () => Promise<T[]>;
 };
 
+// Empty class to allow filtering it
+export interface ModelLinker {}
 /**
  * Define a link to 1:n relation
  */
@@ -76,7 +71,7 @@ export type ModelLink<T extends CoreModel, _FK extends keyof T = any> = ModelLoa
     set: (id: string) => void;
   };
   */
-export class ModelLink<T extends CoreModel> {
+export class ModelLink<T extends CoreModel> implements ModelLinker {
   @NotEnumerable
   protected parent: CoreModel;
 
@@ -123,7 +118,7 @@ type ModelCollectionManager<T> = {
   remove: (model: T | string) => void;
 };
 
-export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T>> {
+export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T>> implements ModelLinker {
   @NotEnumerable
   private parent: CoreModel;
 
@@ -153,9 +148,10 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
   }
 }
 
-export class ModelLinksArray<T extends CoreModel, K> extends Array<
-  ModelRefCustomProperties<T, (K & { uuid: string }) | { getUuid: () => string }>
-> {
+export class ModelLinksArray<T extends CoreModel, K>
+  extends Array<ModelRefCustomProperties<T, (K & { uuid: string }) | { getUuid: () => string }>>
+  implements ModelLinker
+{
   @NotEnumerable
   parent: CoreModel;
   constructor(
@@ -208,7 +204,8 @@ export class ModelLinksArray<T extends CoreModel, K> extends Array<
 export type ModelLinksMap<T extends CoreModel, K> = Readonly<{
   [key: string]: ModelRefCustomProperties<T, K & ({ uuid: string } | { getUuid: () => string })>;
 }> &
-  ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })>;
+  ModelCollectionManager<K & ({ uuid: string } | { getUuid: () => string })> &
+  ModelLinker;
 
 export function createModelLinksMap<T extends CoreModel>(
   model: CoreModelDefinition<any>,
@@ -286,5 +283,12 @@ export type ModelMapLoader<T extends CoreModel, K extends keyof T> = ModelMapLoa
 
 /**
  * Define a ModelMap attribute
+ *
+ * K is used by the compiler to define the field it comes from
  */
-export type ModelsMapped<T extends CoreModel, K extends Attributes<T>> = Readonly<ModelMapLoader<T, K>[]>;
+export type ModelsMapped<
+  T extends CoreModel,
+  // Do not remove used by the compiler
+  K extends FilterAttributes<T, ModelLinker>,
+  L extends Attributes<T>
+> = Readonly<ModelMapLoader<T, L>[]>;

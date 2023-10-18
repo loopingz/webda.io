@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { CoreModel, FilterKeys } from "../models/coremodel";
+import { CoreModel, FilterAttributes } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { MemoryStore } from "./memory";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
@@ -123,7 +123,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       // Need to keep sync to avoid conflicts
       return await this.simulateUpsertItemToCollection(
         this.initModel(JSONUtils.loadFile(this.file(uid))),
-        <FilterKeys<T, any[]>>prop,
+        <FilterAttributes<T, any[]>>prop,
         item,
         updateDate,
         index,
@@ -159,7 +159,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     let res = await this._get(uid, true);
     this.checkCollectionUpdateCondition(
       res,
-      <FilterKeys<T, any[]>>prop,
+      <FilterAttributes<T, any[]>>prop,
       <keyof T>itemWriteConditionField,
       itemWriteCondition,
       index

@@ -1,7 +1,7 @@
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
-import { Constructor, Core, Counter, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
+import { Constructor, Core, Counter, EventEmitterUtils, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
 import { HttpMethodType } from "../utils/httpcontext";
 import { EventService } from "./asyncevents";
@@ -546,39 +546,10 @@ abstract class Service<
   }
 
   /**
-   * Display a message if the listener takes too long
-   * @param start
-   */
-  elapse(start: number) {
-    let elapsed = Date.now() - start;
-    if (elapsed > 100) {
-      this.log("INFO", "Long listener", elapsed, "ms");
-    }
-  }
-
-  /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
   emitSync<Key extends keyof E>(event: Key, data: E[Key]): Promise<any[]> {
-    let promises = [];
-    for (let listener of this.listeners(<string>event)) {
-      let start = Date.now();
-      let result = listener(data);
-      if (result instanceof Promise) {
-        promises.push(
-          result
-            .catch(err => {
-              this.log("ERROR", "Listener error", err);
-            })
-            .then(() => {
-              this.elapse(start);
-            })
-        );
-      } else {
-        this.elapse(start);
-      }
-    }
-    return Promise.all(promises);
+    return EventEmitterUtils.emitSync(this, event, data);
   }
 
   /**
@@ -586,12 +557,7 @@ abstract class Service<
    * @override
    */
   emit<Key extends keyof E>(event: Key | symbol, data: E[Key]): boolean {
-    for (let listener of this.listeners(<string>event)) {
-      let start = Date.now();
-      listener(data);
-      this.elapse(start);
-    }
-    return true;
+    return EventEmitterUtils.emit(this, event, data);
   }
 
   /**

@@ -334,7 +334,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[0], context)
           );
           let attrs = this.childNodeParser.createType(
-            (<ts.NodeWithTypeArguments>member.type).typeArguments[1],
+            (<ts.NodeWithTypeArguments>member.type).typeArguments[2],
             context
           );
           let keep = [];
@@ -975,12 +975,23 @@ export class Compiler {
                 break;
               case "ModelsMapped":
                 graph[name].maps ??= [];
-                graph[name].maps.push({
+                const cascadeDelete = prop.getJsDocTags().find(p => p.name === "CascadeDelete") !== undefined;
+                const map = {
                   attribute: prop.escapedName.toString(),
+                  cascadeDelete,
                   // @ts-ignore
                   model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
-                  targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
-                });
+                  targetLink: pType.typeArguments[1].getText().replace(/"/g, ""),
+                  targetAttributes: pType.typeArguments[2]
+                    .getText()
+                    .replace(/"/g, "")
+                    .split("|")
+                    .map(t => t.trim())
+                };
+                if (map.targetAttributes.includes("uuid")) {
+                  map.targetAttributes.push("uuid");
+                }
+                graph[name].maps.push(map);
                 break;
               case "ModelLink":
                 addLinkToGraph("LINK");

@@ -51,7 +51,7 @@ class Student extends DefaultTestModel {
 @Expose()
 class Teacher extends DefaultTestModel {
   uuid: string;
-  courses: ModelsMapped<Course, "name">;
+  courses: ModelsMapped<Course, "teacher", "name">;
   name: string;
   senior: boolean;
 }
@@ -75,13 +75,13 @@ class Course extends DefaultTestModel {
 class Classroom extends DefaultTestModel {
   uuid: string;
   name: string;
-  courses: ModelsMapped<Course, "name">;
+  courses: ModelsMapped<Course, "classroom", "name">;
   hardwares: ModelRelated<Hardware, "classroom">;
 
   @Action()
   async test(context: OperationContext<{ test: string; id: string }>) {
     // Testing action is waited for
-    await new Promise<void>((resolve) => {
+    await new Promise<void>(resolve => {
       setTimeout(() => {
         context.write({});
         resolve();
@@ -99,7 +99,7 @@ class Hardware extends DefaultTestModel {
   @Action()
   static async globalAction(context: OperationContext) {
     // Testing action is waited for
-    await new Promise<void>((resolve) => {
+    await new Promise<void>(resolve => {
       setTimeout(() => {
         context.write({});
         resolve();
@@ -121,4 +121,4 @@ export class Brand extends UuidModel {
   "name": string;
 }
 
-export { Student, Teacher, Course, Classroom, Hardware };
+export { Classroom, Course, Hardware, Student, Teacher };

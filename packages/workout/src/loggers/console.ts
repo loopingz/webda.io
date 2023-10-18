@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { sprintf } from "sprintf-js";
 import * as util from "util";
 import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
-import { Logger } from "./index";
+import { WorkerLogger } from "./index";
 
 interface WorkerLogMessage {
   m: string;
@@ -13,7 +13,7 @@ interface WorkerLogMessage {
 /**
  * ConsoleLogger
  */
-class ConsoleLogger extends Logger {
+class ConsoleLogger extends WorkerLogger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
   format: string;
 

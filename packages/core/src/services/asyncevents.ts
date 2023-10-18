@@ -1,3 +1,4 @@
+import { CoreModelDefinition } from "../models/coremodel";
 import { Queue } from "../queues/queueservice";
 import { Service, ServiceParameters } from "./service";
 
@@ -27,8 +28,14 @@ export class AsyncEvent {
    */
   static ServiceTag = "#Webda:Service:";
 
-  constructor(service: string, type, payload = {}) {
-    this.service = service;
+  constructor(service: string | Service | CoreModelDefinition, type, payload = {}) {
+    if (service instanceof Service) {
+      this.service = `service:${service.getName()}`;
+    } else if (typeof service === "string") {
+      this.service = service;
+    } else {
+      this.service = `model:${service.name}`;
+    }
     this.type = type;
     this.payload = payload;
     this.time = new Date();
@@ -176,16 +183,20 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @param callback
    * @param queue
    */
-  bindAsyncListener(service: Service, event: string, callback, queue: string) {
+  bindAsyncListener(service: Service | CoreModelDefinition, event: string, callback, queue?: string) {
     if (!this._async) {
       throw Error("EventService is not configured for asynchronous");
     }
     if (!queue) {
       queue = this._defaultQueue;
     }
-    let mapper = new AsyncEvent(service.getName(), event).getMapper();
+    let mapper = new AsyncEvent(service, event).getMapper();
     if (!this._callbacks[mapper]) {
-      service.on(event, this.pushEvent.bind(this, service, event, queue));
+      if (service instanceof Service) {
+        service.on(event, data => this.pushEvent(service, event, queue, data));
+      } else {
+        service.on(<any>event, data => this.pushEvent(service, event, queue, data));
+      }
       this._callbacks[mapper] = [];
     }
     this._callbacks[mapper].push(callback);
@@ -200,8 +211,8 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @param payload
    * @returns
    */
-  async pushEvent(service: Service, type: string, queue: string, payload: any) {
-    let event = new AsyncEvent(service.getName(), type, payload);
+  async pushEvent(service: Service | CoreModelDefinition, type: string, queue: string, payload: any) {
+    let event = new AsyncEvent(service, type, payload);
     if (this._async) {
       return this._queues[queue].sendMessage(event);
     } else {

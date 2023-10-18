@@ -7,7 +7,7 @@ import { User } from "./user";
  */
 @Expose()
 export class Company extends CoreModel {
-  _projects: ModelsMapped<Project, "name" | "type">;
+  _projects: ModelsMapped<Project, "_company", "name" | "type">;
   users: ModelRelated<User, "_company">;
   name: string;
 

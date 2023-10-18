@@ -30,8 +30,12 @@
         "maps": [
           {
             "attribute": "courses",
+            "cascadeDelete": false,
             "model": "WebdaDemo/Course",
-            "targetAttribute": "name"
+            "targetLink": "classroom",
+            "targetAttributes": [
+              "name"
+            ]
           }
         ],
         "queries": [
@@ -49,8 +53,13 @@
         "maps": [
           {
             "attribute": "_projects",
+            "cascadeDelete": false,
             "model": "WebdaDemo/Project",
-            "targetAttribute": "name | type"
+            "targetLink": "_company",
+            "targetAttributes": [
+              "name",
+              "type"
+            ]
           }
         ],
         "queries": [
@@ -93,6 +102,13 @@
           {
             "attribute": "photos",
             "cardinality": "MANY"
+          }
+        ],
+        "links": [
+          {
+            "attribute": "owner",
+            "model": "WebdaDemo/User",
+            "type": "LINK"
           }
         ]
       },
@@ -164,8 +180,12 @@
         "maps": [
           {
             "attribute": "courses",
+            "cascadeDelete": false,
             "model": "WebdaDemo/Course",
-            "targetAttribute": "name"
+            "targetLink": "teacher",
+            "targetAttributes": [
+              "name"
+            ]
           }
         ]
       },
@@ -189,6 +209,18 @@
             "attribute": "computers",
             "model": "WebdaDemo/Computer",
             "targetAttribute": "_user"
+          }
+        ],
+        "maps": [
+          {
+            "attribute": "contacts",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Contact",
+            "targetLink": "owner",
+            "targetAttributes": [
+              "firstName",
+              "lastName"
+            ]
           }
         ],
         "children": [
@@ -250,7 +282,7 @@
         "_creator": "string",
         "___acl": "Acl",
         "_permissions": "string[]",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -269,7 +301,7 @@
         "_creator": "string",
         "___acl": "Acl",
         "_permissions": "string[]",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -282,7 +314,7 @@
       "WebdaDemo/Brand": {
         "name": "string",
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -295,9 +327,9 @@
       "WebdaDemo/Classroom": {
         "uuid": "string",
         "name": "string",
-        "courses": "ModelsMapped<Course, \"name\">",
+        "courses": "ModelsMapped<Course, \"classroom\", \"name\">",
         "hardwares": "ModelRelated<Hardware, \"classroom\">",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -308,10 +340,10 @@
         "___deleted": "boolean"
       },
       "WebdaDemo/Company": {
-        "_projects": "ModelsMapped<Project, \"name\" | \"type\">",
+        "_projects": "ModelsMapped<Project, \"_company\", \"name\" | \"type\">",
         "users": "ModelRelated<User, \"_company\">",
         "name": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -324,7 +356,7 @@
       "WebdaDemo/Computer": {
         "_user": "ModelParent<User>",
         "name": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -341,7 +373,7 @@
         "name": "string",
         "brands": "ModelRelated<Brand, \"name\">",
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -361,7 +393,8 @@
         "optional": "string",
         "avatar": "Binary",
         "photos": "Binaries",
-        "___class": "CoreModelDefinition",
+        "owner": "ModelLink<User>",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -377,7 +410,7 @@
         "classroom": "ModelLink<Classroom>",
         "teacher": "ModelLink<Teacher>",
         "students": "ModelLinksArray<\n    Student,\n    {\n      email: string;\n      firstName: string;\n      lastName?: string;\n    }\n  >",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -392,7 +425,7 @@
         "name": "string",
         "brands": "ModelRelated<Brand, \"name\">",
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -411,7 +444,7 @@
         "_creator": "string",
         "___acl": "Acl",
         "_permissions": "string[]",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -429,7 +462,7 @@
         "teachers": "ModelLinksSimpleArray<Teacher>",
         "constraints": "null",
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -448,7 +481,7 @@
         "_creator": "string",
         "___acl": "Acl",
         "_permissions": "string[]",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -468,7 +501,7 @@
         "_creator": "string",
         "___acl": "Acl",
         "_permissions": "string[]",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -480,10 +513,10 @@
       },
       "WebdaDemo/Teacher": {
         "uuid": "string",
-        "courses": "ModelsMapped<Course, \"name\">",
+        "courses": "ModelsMapped<Course, \"teacher\", \"name\">",
         "name": "string",
         "senior": "boolean",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -499,13 +532,14 @@
         "profilePicture": "Binary<{ width: number; height: number }>",
         "images": "Binaries",
         "computers": "ModelRelated<Computer, \"_user\">",
+        "contacts": "ModelsMapped<Contact, \"owner\", \"firstName\" | \"lastName\">",
         "___password": "string",
         "displayName": "string",
         "_lastPasswordRecovery": "number",
         "_avatar": "string",
         "locale": "string",
         "email": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",
@@ -1005,13 +1039,17 @@
         "photos": {
           "$ref": "#/definitions/Binaries",
           "description": "Contact photos"
+        },
+        "owner": {
+          "type": "string"
         }
       },
       "required": [
         "firstName",
         "lastName",
         "type",
-        "age"
+        "age",
+        "owner"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
@@ -1141,7 +1179,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-178760925-2914-3398-178760925-0-9314976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-2914-3398-178760925-0-9189976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -1154,7 +1192,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-178760925-2914-3398-178760925-0-9314976353190>": {
+        "Partial<class-178760925-2914-3398-178760925-0-9189976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -1861,6 +1899,31 @@
         },
         "images": {
           "$ref": "#/definitions/Binaries"
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "firstName": {
+                "type": "string",
+                "description": "Contact firstname"
+              },
+              "lastName": {
+                "type": "string",
+                "description": "Contact lastname"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "firstName",
+              "lastName",
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [

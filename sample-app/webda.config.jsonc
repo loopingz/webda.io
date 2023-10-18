@@ -6,6 +6,12 @@
     "memorylogger": {
       "type": "MemoryLogger"
     },
+    "mapper": {
+      "type": "Mapper",
+      "attribute": "owner",
+      "target": "WebdaDemo/User",
+      "targetAttribute": "contacts"
+    },
     "images": {
       "type": "FileBinary",
       "folder": "./data/images",

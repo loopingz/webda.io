@@ -29,7 +29,7 @@
         "units": "any[]",
         "_type": "string",
         "callback": "any",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",

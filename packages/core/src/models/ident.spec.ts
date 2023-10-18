@@ -16,7 +16,7 @@ class IdentTest {
     assert.strictEqual(ident._type, "plop");
     assert.strictEqual(ident.uid, "me");
     assert.strictEqual(ident.uuid, "me_plop");
-    assert.strictEqual(ident.__profile.test, "ok");
+    assert.strictEqual((<any>ident.__profile).test, "ok");
     assert.strictEqual(ident.__tokens.access, "t1");
     assert.strictEqual(ident.__tokens.refresh, "t2");
     ident = Ident.init("ploP", "Me");

@@ -1,10 +1,10 @@
 import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
-import { Logger } from "./index";
+import { WorkerLogger } from "./index";
 
 /**
  * Record all messages in memory
  */
-export class MemoryLogger extends Logger {
+export class MemoryLogger extends WorkerLogger {
   /**
    * Messages received
    */

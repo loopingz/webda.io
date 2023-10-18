@@ -49,7 +49,7 @@ class SessionStoreTest extends WebdaTest {
     ctx2.getHttpContext().cookies = {
       test: ctx.getResponseCookies()["test"].value
     };
-    await ctx2.init();
+    await ctx2.init(true);
     let session = ctx2.getSession<UnknownSession>();
     assert.strictEqual(session.uuid, sessions[0].getUuid());
     assert.strictEqual(session.identUsed, "bouzouf");

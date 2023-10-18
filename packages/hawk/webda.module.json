@@ -39,7 +39,7 @@
         "_user": "ModelLink<User>",
         "public": "boolean",
         "uuid": "string",
-        "___class": "CoreModelDefinition",
+        "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
         "___ctx": "OperationContext",

@@ -29,7 +29,10 @@ class LoggerTest extends WebdaTest {
   }
 
   @test
-  fileLogger() {
-    let logger = new FileLoggerService(this.webda, "flogger", {});
+  async fileLogger() {
+    this.cleanFiles.push("test.log");
+    let logger = new FileLoggerService(this.webda, "flogger", {
+      file: "test.log"
+    });
   }
 }

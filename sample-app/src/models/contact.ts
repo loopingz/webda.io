@@ -1,4 +1,5 @@
-import { Binaries, Binary, CoreModel } from "@webda/core";
+import { Binaries, Binary, CoreModel, ModelLink } from "@webda/core";
+import { User } from "./user";
 
 /**
  * @WebdaModel Contact
@@ -52,4 +53,9 @@ export default class Contact extends CoreModel {
    * Contact photos
    */
   photos: Binaries;
+
+  /**
+   * Contact owner
+   */
+  owner: ModelLink<User>;
 }

@@ -1,12 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
-import { Logger } from "./index";
+import { WorkerLogger } from "./index";
 
 /**
  * Record all messages in file
  */
-export class FileLogger extends Logger {
+export class FileLogger extends WorkerLogger {
   // File descriptor
   outputStream?: fs.WriteStream;
   outputCount: number = 0;
@@ -24,6 +24,9 @@ export class FileLogger extends Logger {
   ) {
     super(output, level);
     this.filepath = filepath;
+    if (!filepath) {
+      throw new Error("FileLogger: filepath is required");
+    }
     this.sizeLimit = sizeLimit;
     this.format = format;
     this.level = level;

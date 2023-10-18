@@ -73,4 +73,9 @@ class FileConsoleTest {
     await new Promise(resolve => process.nextTick(resolve));
     this.clean();
   }
+
+  @test
+  cov() {
+    assert.throws(() => new FileLogger(this.output, "TRACE", <any>undefined));
+  }
 }

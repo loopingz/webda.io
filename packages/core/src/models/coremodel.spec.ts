@@ -27,7 +27,7 @@ class TestMask extends CoreModel {
   links: ModelLinksArray<Task, { card: string }>;
   links_simple: ModelLinksSimpleArray<Task>;
   links_map: ModelLinksMap<Task, { card: string }>;
-  maps: ModelsMapped<Task, "uuid">;
+  maps: ModelsMapped<Task, "owner", "uuid">;
   queries: ModelRelated<Task, "side">;
   parent: ModelParent<Task>;
   side: string;
@@ -390,7 +390,10 @@ class CoreModelTest extends WebdaTest {
         maps: [
           {
             model: "webdatest/testmask",
-            attribute: "maps"
+            attribute: "maps",
+            targetAttributes: [],
+            targetLink: "",
+            cascadeDelete: false
           }
         ],
         queries: [

@@ -5,10 +5,12 @@ import {
   Expose,
   ModelParent,
   ModelRelated,
+  ModelsMapped,
   OperationContext,
   User as WebdaUser
 } from "@webda/core";
 import { Company } from "./company";
+import Contact from "./contact";
 
 /**
  * @WebdaModel
@@ -20,6 +22,10 @@ export class User extends WebdaUser {
   profilePicture: Binary<{ width: number; height: number }>;
   images: Binaries;
   computers: ModelRelated<Computer, "_user">;
+  /**
+   * Map of favorites contacts
+   */
+  contacts: ModelsMapped<Contact, "owner", "firstName" | "lastName">;
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
     return value;

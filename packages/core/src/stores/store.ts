@@ -1,6 +1,6 @@
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
 import { ConfigurationProvider, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
-import { Constructor, CoreModel, CoreModelDefinition, FilterKeys, ModelAction } from "../models/coremodel";
+import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
 import { OperationContext, WebContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
@@ -884,10 +884,10 @@ abstract class Store<
           if (!this.parameters.defaultModel) {
             throw new Error(`Unknown model ${object.__type} found for Store(${this.getName()})`);
           }
-          object = this._model.factory(this._model, object);
+          object = this._model.factory(object);
         }
       } else {
-        object = this._model.factory(this._model, object);
+        object = this._model.factory(object);
       }
     }
     if (!object.getUuid()) {
@@ -942,7 +942,10 @@ abstract class Store<
    * @param info
    * @returns
    */
-  async incrementAttributes<FK extends FilterKeys<T, number>>(uid: string, info: { property: FK; value: number }[]) {
+  async incrementAttributes<FK extends FilterAttributes<T, number>>(
+    uid: string,
+    info: { property: FK; value: number }[]
+  ) {
     let params = <{ property: string; value: number }[]>info.filter(i => i.value !== 0);
     // If value === 0 no need to update anything
     if (params.length === 0) {
@@ -952,7 +955,7 @@ abstract class Store<
     this.metrics.operations_total.inc({ operation: "increment" });
     await this._incrementAttributes(uid, params, updateDate);
     await this._cacheStore?._incrementAttributes(uid, params, updateDate);
-    return this.emitSync("Store.PartialUpdated", {
+    this.emitSync("Store.PartialUpdated", {
       object_id: uid,
       store: this,
       updateDate,
@@ -960,6 +963,7 @@ abstract class Store<
         increments: params
       }
     });
+    return updateDate;
   }
 
   /**
@@ -969,7 +973,7 @@ abstract class Store<
    * @param value
    * @returns
    */
-  async incrementAttribute<FK extends FilterKeys<T, number>>(uid: string, prop: FK, value: number) {
+  async incrementAttribute<FK extends FilterAttributes<T, number>>(uid: string, prop: FK, value: number) {
     return this.incrementAttributes(uid, [{ property: prop, value }]);
   }
 
@@ -983,7 +987,7 @@ abstract class Store<
    * @param itemWriteCondition value of the condition to test (in case of update)
    * @param itemWriteConditionField field to read the condition from (in case of update)
    */
-  async upsertItemToCollection<FK extends FilterKeys<T, Array<any>>>(
+  async upsertItemToCollection<FK extends FilterAttributes<T, Array<any>>>(
     uid: string,
     prop: FK,
     item: any,
@@ -1024,6 +1028,7 @@ abstract class Store<
         }
       }
     });
+    return updateDate;
   }
 
   /**
@@ -1035,7 +1040,7 @@ abstract class Store<
    * @param itemWriteCondition value of the condition
    * @param itemWriteConditionField field to read the condition from
    */
-  async deleteItemFromCollection<FK extends FilterKeys<T, Array<any>>>(
+  async deleteItemFromCollection<FK extends FilterAttributes<T, Array<any>>>(
     uid: string,
     prop: FK,
     index: number,
@@ -1071,6 +1076,7 @@ abstract class Store<
         }
       }
     });
+    return updateDate;
   }
 
   /**
@@ -1292,23 +1298,32 @@ abstract class Store<
     if (ctx) {
       object.setContext(ctx);
     }
-    await this.emitSync("Store.Save", {
+    // Handle object auto listener
+    const evt = {
       object: object,
       store: this,
       context: ctx
-    });
-    // Handle object auto listener
-    await object._onSave();
+    };
+    await Promise.all([
+      this.emitSync("Store.Save", evt),
+      object?.__class.emitSync("Store.Save", evt),
+      object._onSave()
+    ]);
+
     this.metrics.operations_total.inc({ operation: "save" });
     let res = await this._save(object);
     await this._cacheStore?._save(object);
     object = this.initModel(res);
-    await this.emitSync("Store.Saved", {
+    const evtSaved = {
       object: object,
       store: this,
       context: ctx
-    });
-    await object._onSaved();
+    };
+    await Promise.all([
+      this.emitSync("Store.Saved", evtSaved),
+      object?.__class.emitSync("Store.Saved", evtSaved),
+      object._onSaved()
+    ]);
 
     return object;
   }
@@ -1352,7 +1367,7 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkCollectionUpdateCondition<FK extends FilterKeys<T, Array<any>>, CK extends keyof T>(
+  checkCollectionUpdateCondition<FK extends FilterAttributes<T, Array<any>>, CK extends keyof T>(
     model: T,
     collection: FK,
     conditionField?: CK,
@@ -1409,7 +1424,7 @@ abstract class Store<
    * @param itemWriteConditionField
    * @param updateDate
    */
-  async simulateUpsertItemToCollection<FK extends FilterKeys<T, Array<any>>>(
+  async simulateUpsertItemToCollection<FK extends FilterAttributes<T, Array<any>>>(
     model: T,
     prop: FK,
     item: any,
@@ -1480,21 +1495,17 @@ abstract class Store<
     if (object instanceof CoreModel) {
       loaded.setContext(object.getContext());
     }
-    if (partial) {
-      await this.emitSync(`Store.PatchUpdate`, {
-        object: loaded,
-        store: this,
-        update: object
-      });
-    } else {
-      await this.emitSync(`Store.Update`, {
-        object: loaded,
-        store: this,
-        update: object
-      });
-    }
+    const evt = {
+      object: loaded,
+      store: this,
+      update: object
+    };
+    await Promise.all([
+      this.emitSync(partial ? `Store.PatchUpdate` : `Store.Update`, evt),
+      object?.__class?.emitSync(partial ? `Store.PatchUpdate` : `Store.Update`, evt),
+      loaded._onUpdate(object)
+    ]);
 
-    await loaded._onUpdate(object);
     let res: any;
     if (conditionField !== null) {
       conditionField ??= <CK>"_lastUpdate";
@@ -1523,19 +1534,15 @@ abstract class Store<
       loaded[i] = object[i];
     }
     saved = this.initModel(loaded);
-    if (partial) {
-      await this.emitSync(`Store.PatchUpdated`, {
-        object: saved,
-        store: this
-      });
-    } else {
-      await this.emitSync(`Store.Updated`, {
-        object: saved,
-        store: this
-      });
-    }
-
-    await saved._onUpdated();
+    const evtUpdated = {
+      object: saved,
+      store: this
+    };
+    await Promise.all([
+      this.emitSync(partial ? `Store.PatchUpdated` : `Store.Updated`, evtUpdated),
+      saved?.__class.emitSync(partial ? `Store.PatchUpdated` : `Store.Updated`, evtUpdated),
+      saved._onUpdated()
+    ]);
     return saved;
   }
 
@@ -1785,12 +1792,16 @@ abstract class Store<
         throw new UpdateConditionFailError(to_delete.getUuid(), <string>writeConditionField, writeCondition);
       }
     }
-    // Send preevent
-    await this.emitSync("Store.Delete", {
+    const evt = {
       object: to_delete,
       store: this
-    });
-    await to_delete._onDelete();
+    };
+    // Send preevent
+    await Promise.all([
+      this.emitSync("Store.Delete", evt),
+      to_delete?.__class.emitSync("Store.Delete", evt),
+      to_delete._onDelete()
+    ]);
 
     // If async we just tag the object as deleted
     if (this.parameters.asyncDelete && !sync) {
@@ -1815,11 +1826,15 @@ abstract class Store<
     }
 
     // Send post event
-    await this.emitSync("Store.Deleted", {
+    const evtDeleted = {
       object: to_delete,
       store: this
-    });
-    await to_delete._onDeleted();
+    };
+    await Promise.all([
+      this.emitSync("Store.Deleted", evtDeleted),
+      to_delete?.__class.emitSync("Store.Deleted", evtDeleted),
+      to_delete._onDeleted()
+    ]);
   }
 
   /**
@@ -1887,12 +1902,12 @@ abstract class Store<
     }
     object = this.initModel(object);
     object.setContext(ctx);
-    await this.emitSync("Store.Get", {
+    const evt = {
       object: object,
       store: this,
       context: ctx
-    });
-    await object._onGet();
+    };
+    await Promise.all([this.emitSync("Store.Get", evt), object.__class.emitSync("Store.Get", evt), object._onGet()]);
     return object;
   }
 
@@ -2036,7 +2051,7 @@ abstract class Store<
   async operationCreate(ctx: OperationContext, model: string) {
     let body = await ctx.getInput();
     const modelPrototype = this.getWebda().getApplication().getModel(model);
-    let object = modelPrototype.factory(modelPrototype, body, ctx);
+    let object = modelPrototype.factory(body, ctx);
     object._creationDate = new Date();
     await object.checkAct(ctx, "create");
     try {
@@ -2050,12 +2065,13 @@ abstract class Store<
     }
     await this.save(object, ctx);
     ctx.write(object);
-    await this.emitSync("Store.WebCreate", {
+    const evt = {
       context: ctx,
       values: body,
       object: object,
       store: this
-    });
+    };
+    await Promise.all([object.__class.emitSync("Store.WebCreate", evt), this.emitSync("Store.WebCreate", evt)]);
   }
 
   /**
@@ -2069,23 +2085,28 @@ abstract class Store<
       throw new WebdaError.NotFound("Object not found or is deleted");
     }
     await object.checkAct(ctx, action);
-    await this.emitSync("Store.Action", {
+    const evt = {
       action: action,
       object: object,
       store: this,
       context: ctx
-    });
+    };
+    await Promise.all([this.emitSync("Store.Action", evt), object.__class.emitSync("Store.Action", evt)]);
     const res = await object[action](ctx);
     if (res) {
       ctx.write(res);
     }
-    await this.emitSync("Store.Actioned", {
+    const evtActioned = {
       action: action,
       object: object,
       store: this,
       context: ctx,
       result: res
-    });
+    };
+    await Promise.all([
+      this.emitSync("Store.Actioned", evtActioned),
+      object?.__class.emitSync("Store.Actioned", evtActioned)
+    ]);
   }
 
   /**
@@ -2094,23 +2115,25 @@ abstract class Store<
    */
   async httpGlobalAction(ctx: WebContext, model: CoreModelDefinition = this._model) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
-    await this.emitSync("Store.Action", {
+    const evt = {
       action: action,
       store: this,
       context: ctx,
       model
-    });
+    };
+    await Promise.all([this.emitSync("Store.Action", evt), model.emitSync("Store.Action", evt)]);
     const res = await model[action](ctx);
     if (res) {
       ctx.write(res);
     }
-    await this.emitSync("Store.Actioned", {
+    const evtActioned = {
       action: action,
       store: this,
       context: ctx,
       result: res,
       model
-    });
+    };
+    await Promise.all([this.emitSync("Store.Actioned", evtActioned), model?.emitSync("Store.Actioned", evtActioned)]);
   }
 
   /**
@@ -2209,13 +2232,14 @@ abstract class Store<
       object = await this.update(updateObject);
     }
     ctx.write(object);
-    await this.emitSync("Store.WebUpdate", {
+    const evt = {
       context: ctx,
       updates: body,
       object: object,
       store: this,
       method: <"PATCH" | "PUT">ctx.getHttpContext().getMethod()
-    });
+    };
+    await Promise.all([object?.__class.emitSync("Store.WebUpdate", evt), this.emitSync("Store.WebUpdate", evt)]);
   }
 
   /**
@@ -2258,11 +2282,12 @@ abstract class Store<
     }
     await object.checkAct(ctx, "get");
     ctx.write(object);
-    await this.emitSync("Store.WebGet", {
+    const evt = {
       context: ctx,
       object: object,
       store: this
-    });
+    };
+    await Promise.all([this.emitSync("Store.WebGet", evt), object.__class.emitSync("Store.WebGet", evt)]);
     ctx.write(object);
   }
 
@@ -2300,11 +2325,12 @@ abstract class Store<
     // Might still run into: Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
     ctx.writeHead(204, { "Content-Length": "0" });
     await this.delete(uuid);
-    await this.emitSync("Store.WebDelete", {
+    const evt = {
       context: ctx,
       object_id: uuid,
       store: this
-    });
+    };
+    await Promise.all([this.emitSync("Store.WebDelete", evt), object.__class.emitSync("Store.WebDelete", evt)]);
   }
 
   /**

@@ -243,7 +243,7 @@ class ServiceTest extends WebdaTest {
   async longListener() {
     let service = new FakeService(this.webda, "plop", {});
     let logs = [];
-    service.log = (...args) => {
+    Core.get().log = (...args) => {
       logs.push(args);
     };
     service.on("test", async () => {

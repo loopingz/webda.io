@@ -3,7 +3,7 @@ import { WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 /**
  * Abstract Logger class
  */
-export abstract class Logger {
+export abstract class WorkerLogger {
   level: WorkerLogLevel;
   listener: (msg: WorkerMessage) => void;
   output: WorkerOutput;

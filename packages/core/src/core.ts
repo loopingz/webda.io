@@ -42,6 +42,49 @@ import CryptoService from "./services/cryptoservice";
 import { JSONUtils } from "./utils/serializers";
 const { machineIdSync } = pkg;
 
+export class EventEmitterUtils {
+  static emit(eventEmitter: events.EventEmitter, event: string | number | symbol, data: any) {
+    for (let listener of eventEmitter.listeners(<string>event)) {
+      let start = Date.now();
+      listener(data);
+      this.elapse(start);
+    }
+    return true;
+  }
+
+  static async emitSync(eventEmitter: events.EventEmitter, event: string | number | symbol, data: any) {
+    let promises = [];
+    for (let listener of eventEmitter.listeners(<string>event)) {
+      let start = Date.now();
+      let result = listener(data);
+      if (result instanceof Promise) {
+        promises.push(
+          result
+            .catch(err => {
+              Core.get().log("ERROR", "Listener error", err);
+            })
+            .then(() => {
+              this.elapse(start);
+            })
+        );
+      } else {
+        this.elapse(start);
+      }
+    }
+    return Promise.all(promises);
+  }
+
+  /**
+   * Display a message if the listener takes too long
+   * @param start
+   */
+  static elapse(start: number) {
+    let elapsed = Date.now() - start;
+    if (elapsed > 100) {
+      Core.get().log("INFO", "Long listener", elapsed, "ms");
+    }
+  }
+}
 /**
  * Copy from https://github.com/ajv-validator/ajv/blob/master/lib/runtime/validation_error.ts
  * It is not exported by ajv
@@ -62,7 +105,10 @@ export class ValidationError extends Error {
  * Operation
  */
 export class OperationError extends Error {
-  constructor(public operation: string, public type: "Unknown" | "PermissionDenied" | "InvalidInput") {
+  constructor(
+    public operation: string,
+    public type: "Unknown" | "PermissionDenied" | "InvalidInput"
+  ) {
     super(`Operation ${operation} ${type}`);
   }
 }
@@ -169,7 +215,7 @@ export class WebsiteOriginFilter implements RequestFilter<WebContext> {
       this.websites = [...website];
     }
   }
-  
+
   async checkRequest(context: WebContext): Promise<boolean> {
     let httpContext = context.getHttpContext();
     if (
@@ -429,7 +475,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
   /**
    * Get the current script location
-   * @returns 
+   * @returns
    */
   private getScriptUrl() {
     return import.meta.url;
@@ -437,14 +483,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
   /**
    * Return information on the singleton import and version
-   * @param singleton 
-   * @returns 
+   * @param singleton
+   * @returns
    */
-  private static getSingletonInfo(singleton: Core) : string {
-    let res = `- `
+  private static getSingletonInfo(singleton: Core): string {
+    let res = `- `;
     if (singleton.getScriptUrl) {
       res += singleton.getScriptUrl();
-    }    
+    }
     res += " / " + singleton.getVersion();
     return res;
   }
@@ -456,9 +502,19 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   static get(): Core {
     // @ts-ignore
     let singleton: Core = process.webda;
-    if (Core.singleton !== singleton && !singleton._dualImportWarn && Core.singleton !== undefined && singleton !== undefined) {
+    if (
+      Core.singleton !== singleton &&
+      !singleton._dualImportWarn &&
+      Core.singleton !== undefined &&
+      singleton !== undefined
+    ) {
       singleton._dualImportWarn = true;
-      singleton.log("ERROR", `Several import version of WebdaCore has been identified.\n\tIt can impact your models.\n\t- ${this.getSingletonInfo(singleton)}\n\t- ${this.getSingletonInfo(Core.singleton)}`);
+      singleton.log(
+        "ERROR",
+        `Several import version of WebdaCore has been identified.\n\tIt can impact your models.\n\t- ${this.getSingletonInfo(
+          singleton
+        )}\n\t- ${this.getSingletonInfo(Core.singleton)}`
+      );
     }
     // Store WebdaCore in process to avoid conflict with import
     return singleton;
@@ -996,7 +1052,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     ctx.setRoute({ ...this.configuration, ...route });
     ctx.setExecutor(this.getService(route.executor));
-    this.emit("Webda.UpdateContextRoute", {context: ctx});
+    this.emit("Webda.UpdateContextRoute", { context: ctx });
     return true;
   }
 
@@ -1201,11 +1257,12 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     await Promise.all(
       Object.keys(services).map(async s => {
         try {
-          await services[s].stop()
-        } catch(err) {
-          this.log("ERROR", `Cannot stop service ${s}`, err)
+          await services[s].stop();
+        } catch (err) {
+          this.log("ERROR", `Cannot stop service ${s}`, err);
         }
-      }));
+      })
+    );
   }
 
   protected jsonFilter(key: string, value: any): any {

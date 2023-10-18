@@ -29,21 +29,14 @@ PUT /models/{uuid}       - Update a model
 PATCH /models/{uuid}     - Patch a model
 ```
 
-You can define your action by returning a map of `ModelAction` with the `getActions` method, you control the access to the action by adding the right control within the `canAct` method, by default the action is denied
+You can define your action by returning a map of `ModelAction` with the `@Action` annotation in front of your method, you control the access to the action by adding the right control within the `canAct` method, by default the action is denied.
+Action are using the method `PUT` by default.
 
 ```
 class MyModel extends CoreModel {
-	static getActions(): { [key: string]: ModelAction } {
-    return {
-      ...super.getActions(),
-      export: {
-        methods: ["GET"],
-        global: false
-      }
-    };
-  }
 
-  _export(context: Context) {
+  @Action()
+  export(context: Context) {
   	ctx.write("My export");
   }
 

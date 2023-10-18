@@ -210,9 +210,14 @@ export class MemoryBinaryFile extends BinaryFile {
    */
   buffer: Buffer;
 
-  constructor(buffer: Buffer, info: BinaryFileInfo) {
-    super(info);
-    this.buffer = buffer;
+  constructor(buffer: Buffer | string, info: Partial<BinaryFileInfo> = {}) {
+    super({
+      ...info,
+      size: info.size || buffer.length,
+      name: info.name || "data.bin",
+      mimetype: info.mimetype || "application/octet-stream"
+    });
+    this.buffer = typeof buffer === "string" ? Buffer.from(buffer) : buffer;
   }
 
   /**
@@ -304,6 +309,16 @@ export class Binary<T = any> extends BinaryMap<T> {
   isEmpty() {
     return this.empty;
   }
+
+  /**
+   * Ensure empty is set correctly
+   * @param info
+   */
+  set(info: BinaryFileInfo): void {
+    super.set(info);
+    this.empty = false;
+  }
+
   /**
    * Replace the binary
    * @param id

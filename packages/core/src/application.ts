@@ -29,7 +29,13 @@ export type ModelGraph = {
     model: string;
     targetAttribute: string;
   }[];
-  maps?: any[];
+  maps?: {
+    attribute: string;
+    model: string;
+    targetAttributes: string[];
+    targetLink: string;
+    cascadeDelete: boolean;
+  }[];
   children?: string[];
   binaries?: {
     attribute: string;

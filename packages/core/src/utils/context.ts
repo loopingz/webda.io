@@ -275,7 +275,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 
   /**
-   * Remove samitized body
+   * Remove sanitized body
    */
   public reinit() {
     this._sanitized = undefined;
@@ -482,6 +482,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   protected parameters: any = undefined;
   protected _pathParams: any = {};
   protected _serviceParams: any = {};
+  private _init: boolean;
 
   /**
    * Set current http context
@@ -882,7 +883,10 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     this.processParameters();
   }
 
-  async init(): Promise<this> {
+  async init(force: boolean = false): Promise<this> {
+    if (this._init && !force) {
+      return this;
+    }
     this._stream.on("pipe", () => {
       this._webda.flushHeaders(this);
       this.headersFlushed = true;
@@ -890,6 +894,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     if (this.getExtension("http")) {
       this.session = (await this._webda.getService<SessionManager>("SessionManager").load(this)).getProxy();
     }
+    this._init = true;
     return super.init();
   }
 

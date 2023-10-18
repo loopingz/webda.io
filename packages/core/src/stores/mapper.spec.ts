@@ -30,7 +30,7 @@ class MapperTest extends WebdaTest {
       undefined
     );
 
-    let stb = sinon.stub(service.targetStore, "upsertItemToCollection").callsFake(async () => {});
+    let stb = sinon.stub(service.targetStore, "upsertItemToCollection").callsFake(async () => new Date());
     await service._handleUpdatedMapMapper(
       ident,
       // @ts-ignore

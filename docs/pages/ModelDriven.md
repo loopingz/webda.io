@@ -1,6 +1,6 @@
 ## Definitions
 
- - Ancestor:
+- Ancestor:
 
 An Ancestor is a Model that is part of the class hierarchy of another model
 
@@ -11,16 +11,14 @@ class ClassC extends ClassA {}
 ```
 
 In this example `ClassA` is an ancestor of `ClassB` and `ClassC`, and `CoreModel` is a common ancestor to all. `ClassB` is **NOT** an ancestor of `ClassC`
-  
- - Parent
+
+- Parent
 
 A parent is defined in the class relationship. It is not linked to any of the class hierarchy.
 
- - Store
+- Store
 
 This is the service that is in-charge of persisting the models somewhere (NoSQL, File, Memory)
-
-
 
 Define your model we can:
 
@@ -43,7 +41,7 @@ CoreModel will always have a Store, default is the Registry.
 
 The relationships between models can be:
 
-- ModelParent: Define the parent of current model, model is only accessible via its parent
+- ModelParent: Define the parent of current model
 - ModelLink: Define a 1:1 or 1:n link from current model
 - ModelArrayLinks: Define a n:1 or n:m link from current model (the ids are defined within an array)
 - ModelMapLinks: Define a n:1 or n:m link from current model (the ids are the map key, and value is usually a subset of target object with or without additional properties)
@@ -95,7 +93,7 @@ The graph of model is deduced from your models:
 
 You can now access directly from your model class:
 
-CoreModel.get() -> CoreModel.store().get()
+CoreModel.ref().get() -> CoreModel.store().get()
 CoreModel.query() -> CoreModel.store().query()
 CoreModel.store().patch()
 CoreModel.store().delete()

@@ -72,7 +72,7 @@ export class User extends CoreModel {
     return this.displayName;
   }
 
-  getIdents(): ModelsMapped<Ident, "_type" | "uuid" | "email"> {
+  getIdents(): Readonly<Pick<Ident, "_type" | "uuid" | "email">[]> {
     return [];
   }
 
@@ -114,7 +114,7 @@ export class SimpleUser extends User {
   /**
    * Normal ident
    */
-  _idents: ModelsMapped<Ident, "_type" | "uuid" | "email"> = [];
+  _idents: ModelsMapped<Ident, "_user", "_type" | "uuid" | "email"> = [];
 
   /**
    * Return idents

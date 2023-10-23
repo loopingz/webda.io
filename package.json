@@ -2,7 +2,7 @@
   "name": "webda.io",
   "private": true,
   "devDependencies": {
-    "@commitlint/config-conventional": "^17.0.0",
+    "@commitlint/config-conventional": "^18.0.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@knodes/typedoc-plugin-pages": "^0.23.1",
     "@types/json-schema": "^7.0.8",

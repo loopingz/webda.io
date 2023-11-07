@@ -40,7 +40,7 @@
     "@webda/workout": "^3.0.4",
     "archiver": "^6.0.0",
     "chalk": "^5.0.1",
-    "cookie": "^0.5.0",
+    "cookie": "^0.6.0",
     "dateformat": "^5.0.3",
     "fs-extra": "^11.0.0",
     "generator-webda": "^1.2.0",

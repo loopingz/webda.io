@@ -34,7 +34,7 @@
   "dependencies": {
     "@google-cloud/firestore": "^7.0.0",
     "@google-cloud/pubsub": "^4.0.1",
-    "@google-cloud/storage": "~7.3.0",
+    "@google-cloud/storage": "~7.6.0",
     "@webda/core": "^3.6.0",
     "mime-types": "^2.1.35"
   },

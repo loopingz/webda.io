@@ -865,11 +865,7 @@ abstract class Store<
    * @returns
    */
   protected initModel(object: any = {}): T {
-    if (object instanceof CoreModel) {
-      object.__type ??= this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
-    } else {
-      object.__type ??= this._modelType;
-    }
+    object.__type ??= this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
 
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
@@ -1290,8 +1286,11 @@ abstract class Store<
     object = this.initModel(object);
 
     // Dates should be store by the Store
-    object._creationDate ??= new Date();
-    object._lastUpdate = new Date();
+    if (!object._creationDate) {
+      object._creationDate = object._lastUpdate = new Date();
+    } else {
+      object._lastUpdate = new Date();
+    }
     const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
     object.__types = [object.__type, ...ancestors].filter(i => i !== "Webda/CoreModel" && i !== "CoreModel");
 
@@ -1832,7 +1831,7 @@ abstract class Store<
     };
     await Promise.all([
       this.emitSync("Store.Deleted", evtDeleted),
-      to_delete?.__class.emitSync("Store.Deleted", evtDeleted),
+      to_delete.__class.emitSync("Store.Deleted", evtDeleted),
       to_delete._onDeleted()
     ]);
   }

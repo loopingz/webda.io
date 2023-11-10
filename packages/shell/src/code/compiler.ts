@@ -988,7 +988,7 @@ export class Compiler {
                     .split("|")
                     .map(t => t.trim())
                 };
-                if (map.targetAttributes.includes("uuid")) {
+                if (!map.targetAttributes.includes("uuid")) {
                   map.targetAttributes.push("uuid");
                 }
                 graph[name].maps.push(map);

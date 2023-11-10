@@ -34,7 +34,8 @@
             "model": "WebdaDemo/Course",
             "targetLink": "classroom",
             "targetAttributes": [
-              "name"
+              "name",
+              "uuid"
             ]
           }
         ],
@@ -58,7 +59,8 @@
             "targetLink": "_company",
             "targetAttributes": [
               "name",
-              "type"
+              "type",
+              "uuid"
             ]
           }
         ],
@@ -184,7 +186,8 @@
             "model": "WebdaDemo/Course",
             "targetLink": "teacher",
             "targetAttributes": [
-              "name"
+              "name",
+              "uuid"
             ]
           }
         ]
@@ -219,7 +222,9 @@
             "targetLink": "owner",
             "targetAttributes": [
               "firstName",
-              "lastName"
+              "lastName",
+              "age",
+              "uuid"
             ]
           }
         ],
@@ -532,7 +537,7 @@
         "profilePicture": "Binary<{ width: number; height: number }>",
         "images": "Binaries",
         "computers": "ModelRelated<Computer, \"_user\">",
-        "contacts": "ModelsMapped<Contact, \"owner\", \"firstName\" | \"lastName\">",
+        "contacts": "ModelsMapped<Contact, \"owner\", \"firstName\" | \"lastName\" | \"age\">",
         "___password": "string",
         "displayName": "string",
         "_lastPasswordRecovery": "number",
@@ -1913,6 +1918,11 @@
                 "type": "string",
                 "description": "Contact lastname"
               },
+              "age": {
+                "type": "number",
+                "description": "Contact age",
+                "minimum": 0
+              },
               "uuid": {
                 "type": "string"
               }
@@ -1920,6 +1930,7 @@
             "required": [
               "firstName",
               "lastName",
+              "age",
               "uuid"
             ],
             "additionalProperties": false

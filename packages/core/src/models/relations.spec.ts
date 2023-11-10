@@ -13,7 +13,7 @@ import { CoreModel } from "./coremodel";
 import { ModelLink, ModelsMapped } from "./relations";
 
 interface UserInterface extends CoreModel {
-  contacts: ModelsMapped<ContactInterface, "owner", "firstName" | "lastName">;
+  contacts: ModelsMapped<ContactInterface, "owner", "firstName" | "lastName" | "age">;
 }
 
 interface ContactInterface extends CoreModel {
@@ -31,12 +31,26 @@ interface ContactInterface extends CoreModel {
 export class ModelDrivenTest extends WebdaTest {
   @test
   async test() {
+    // Init mapper
+    let mapper = new ModelMapper(this.webda, "test", {}).resolve();
+    await mapper.init();
+
     const Contact = this.webda.getModel<ContactInterface>("Contact");
     const User = this.webda.getModel<UserInterface>("User");
+
+    // Create a User
+    let user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, undefined, true);
+
     Contact.factory({ firstName: "test", lastName: "" });
-    let contact = new Contact().load({ firstName: "test", lastName: "" }, true);
+    let contact = new Contact().load({ firstName: "test", lastName: "", age: 18 }, true);
     // Saving contact
     await contact.save();
+
+    // Creation date need to exist
+    assert.notStrictEqual(contact._creationDate, undefined);
+    // Last update should match creation date
+    assert.strictEqual(contact._creationDate, contact._lastUpdate);
+
     assert.strictEqual((await Contact.ref(contact.getUuid()).get()).firstName, contact.firstName);
     assert.strictEqual(contact.avatar.isEmpty(), true);
     assert.strictEqual(contact.toStoredJSON().avatar, undefined);
@@ -48,12 +62,41 @@ export class ModelDrivenTest extends WebdaTest {
     assert.strictEqual((await BinaryService.streamToBuffer(await contact.avatar.get())).toString(), "fake");
     assert.strictEqual((await BinaryService.streamToBuffer(await contact.photos[0].get())).toString(), "firstPhoto");
     assert.strictEqual(await contact.owner.get(), undefined);
-    // Create a User
-    let user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, undefined, true);
+
     contact.owner.set("user1");
     assert.notStrictEqual(await contact.owner.get(), undefined);
     await contact.save();
-    this.log("INFO", await user.refresh());
+
+    await user.refresh();
+    assert.strictEqual(user.contacts.length, 1);
+
+    // Update
+    contact.lastName = "updatedName";
+    await contact.save();
+    await user.refresh();
+    assert.strictEqual(user.contacts.length, 1);
+    assert.strictEqual(user.contacts[0].lastName, "updatedName");
+    assert.strictEqual(user.contacts[0].firstName, "test");
+    assert.strictEqual(user.contacts[0].age, 18);
+
+    // Patch
+    await contact.incrementAttribute("age", 1);
+    await user.refresh();
+    assert.strictEqual(user.contacts.length, 1);
+    assert.strictEqual(user.contacts[0].age, 19);
+    await contact.patch({ firstName: "Loopz" });
+    await user.refresh();
+    assert.strictEqual(user.contacts.length, 1);
+    assert.strictEqual(user.contacts[0].firstName, "Loopz");
+    await contact.removeAttribute("firstName");
+    await user.refresh();
+    assert.strictEqual(user.contacts.length, 1);
+    assert.strictEqual(user.contacts[0].firstName, undefined);
+
+    // Delete
+    await contact.delete();
+    await user.refresh();
+    assert.strictEqual(user.contacts.length, 0);
   }
 
   @test

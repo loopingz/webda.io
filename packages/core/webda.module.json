@@ -67,8 +67,7 @@
             "targetAttributes": [
               "_type",
               "uuid",
-              "email",
-              "uuid"
+              "email"
             ]
           }
         ]

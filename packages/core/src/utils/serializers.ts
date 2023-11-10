@@ -117,7 +117,13 @@ export const FileUtils: StorageFinder & {
             FileUtils.walk(p, processor, options, state);
           }
         } else if (stat.isSymbolicLink() && options.followSymlinks) {
-          const realPath = realpathSync(p);
+          let realPath;
+          try {
+            // realpathSync will throw if the symlink is broken
+            realPath = realpathSync(p);
+          } catch (err) {
+            return;
+          }
           const stat = lstatSync(realPath);
           if (stat.isDirectory()) {
             // symlink targets a folder

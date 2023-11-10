@@ -383,6 +383,7 @@ export class ModelRef<T extends CoreModel> {
   }
   set(id: string | T) {
     this.uuid = id instanceof CoreModel ? id.getUuid() : id;
+    this.parent?.__dirty.add(Object.keys(this.parent).find(k => this.parent[k] === this));
   }
   toString(): string {
     return this.uuid;
@@ -1082,7 +1083,7 @@ class CoreModel {
    * @returns
    */
   static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T {
-    return new this().setContext(context).load(object, context === undefined);
+    return object instanceof this ? object : new this().setContext(context).load(object, context === undefined);
   }
 
   /**
@@ -1289,7 +1290,7 @@ class CoreModel {
    * @throws Error if the object is not coming from a store
    */
   async delete(): Promise<void> {
-    return this.__store.delete(this.getUuid());
+    return this.__store.delete(this);
   }
 
   /**

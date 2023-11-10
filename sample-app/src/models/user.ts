@@ -25,7 +25,7 @@ export class User extends WebdaUser {
   /**
    * Map of favorites contacts
    */
-  contacts: ModelsMapped<Contact, "owner", "firstName" | "lastName">;
+  contacts: ModelsMapped<Contact, "owner", "firstName" | "lastName" | "age">;
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext) {
     return value;

@@ -205,9 +205,11 @@ plop: test
       if (!existsSync("./test/link")) {
         symlinkSync("../templates", "test/link");
       }
-      if (!existsSync("./test/badlink")) {
-        symlinkSync("../non-existing", "test/badlink");
-      }
+      try {
+        if (!existsSync("./test/badlink")) {
+          symlinkSync("../non-existing", "test/badlink");
+        }
+      } catch (err) {}
       FileUtils.walk("test", f => res.push(f));
       assert.ok(
         ["test/models/ident.js", "test/jsonutils/mdocs.yaml", "test/data/test.png"]

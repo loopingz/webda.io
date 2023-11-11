@@ -11,6 +11,7 @@ import {
   ContextProvider,
   CoreModel,
   MemoryStore,
+  OperationContext,
   Route,
   Service,
   User,
@@ -364,12 +365,12 @@ class CoreTest extends WebdaTest {
   @test
   getStores() {
     let moddas = this.webda.getStores();
-    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 7);
+    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 8);
   }
   @test
   getServicesImplementationsWithType() {
     let stores = this.webda.getServicesOfType(<any>Store);
-    assert.strictEqual(Object.keys(stores).filter(k => !k.startsWith("Auto/")).length, 7);
+    assert.strictEqual(Object.keys(stores).filter(k => !k.startsWith("Auto/")).length, 8);
   }
 
   @test
@@ -596,17 +597,18 @@ class CoreTest extends WebdaTest {
         return undefined;
       }
     };
+    assert.ok(this.webda["_contextProviders"][0].getContext({}) instanceof OperationContext);
     this.webda.registerContextProvider(provider);
     this.webda.getService("Registry").stop = async () => {
       throw new Error("Test");
-    }
+    };
     // Stop webda
     await this.webda.stop();
     // @ts-ignore
     assert.strictEqual(this.webda._contextProviders[0], provider);
     assert.throws(() => this.webda.registerOperation("__proto__", undefined), Error);
 
-    assert.ok(Core['getSingletonInfo'](this.webda).match(/- file:\/\/.*packages\/core\/src\/core.ts \/ \d+.\d+.\d+/));
+    assert.ok(Core["getSingletonInfo"](this.webda).match(/- file:\/\/.*packages\/core\/src\/core.ts \/ \d+.\d+.\d+/));
   }
 
   @test

@@ -550,7 +550,7 @@ export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
 
 export type ModelRefCustomProperties<T extends CoreModel, K> = ModelRefCustom<T> & K;
 
-const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakMap();
+export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakMap();
 
 /**
  * Basic Object in Webda

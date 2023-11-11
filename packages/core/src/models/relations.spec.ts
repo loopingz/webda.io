@@ -9,7 +9,7 @@ import * as assert from "assert";
 import { Binaries, Binary, BinaryService, MemoryBinaryFile } from "../services/binary";
 import { ModelMapper } from "../stores/modelmapper";
 import { WebdaTest } from "../test";
-import { CoreModel } from "./coremodel";
+import { CoreModel, Emitters } from "./coremodel";
 import { ModelLink, ModelsMapped } from "./relations";
 
 interface UserInterface extends CoreModel {
@@ -29,6 +29,11 @@ interface ContactInterface extends CoreModel {
 }
 @suite
 export class ModelDrivenTest extends WebdaTest {
+  after() {
+    // Ensure we remove all listeners
+    Object.values(this.webda.getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
+  }
+
   @test
   async test() {
     // Init mapper
@@ -97,11 +102,10 @@ export class ModelDrivenTest extends WebdaTest {
     await contact.delete();
     await user.refresh();
     assert.strictEqual(user.contacts.length, 0);
-  }
 
-  @test
-  async modelMapper() {
-    new ModelMapper(this.webda, "test", {}).resolve();
+    await new Contact().load({ firstName: "test", lastName: "", age: 18, owner: "user1" }, true).save();
+    await user.refresh();
+    assert.strictEqual(user.contacts.length, 1);
   }
 
   @test

@@ -82,7 +82,8 @@ export class ModelMapper extends Service {
     const p = [];
     for (let mapper of this.mappers[modelName]) {
       if (type === "Store.Deleted") {
-        const targetModel = await evt.object[mapper.attribute].get();
+        const targetModel = await evt.object[mapper.attribute]?.get();
+        if (!targetModel) continue;
         const ind = targetModel[mapper.modelAttribute].findIndex(p => p.uuid === uuid);
         this.log("TRACE", "Should delete a mapper to object", mapper, evt.object[mapper.attribute], ind);
         if (ind >= 0) {
@@ -102,7 +103,7 @@ export class ModelMapper extends Service {
         );
         continue;
       } else if (type === "Store.Updated") {
-        const targetModel = await evt.object[mapper.attribute].get();
+        const targetModel = await evt.object[mapper.attribute]?.get();
         if (!targetModel) continue;
         const ind = targetModel[mapper.modelAttribute].findIndex(p => p.uuid === uuid);
         this.log("TRACE", "Should update a mapper based on Store.Updated", targetModel[mapper.modelAttribute], uuid);

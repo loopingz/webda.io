@@ -45,6 +45,25 @@
   * dependencies
     * @webda/core bumped from ^3.5.0 to ^3.6.0
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/async-v3.1.1...async-v3.2.0) (2023-11-12)
+
+
+### Features
+
+* add CoreModel listeners system ([977dd9d](https://github.com/loopingz/webda.io/commit/977dd9d8a04f5b3e6d19f09f8755277b26242a18))
+* drop node16 as it is EOL ([a6b795a](https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9))
+* RESTDomainService: add the url info retriever on Binaries ([13fe77c](https://github.com/loopingz/webda.io/commit/13fe77ccd0082432ea79ec9b7c32ac261cebeb01))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.6.0 to ^3.7.0
+    * @webda/workout bumped from ^3.0.4 to ^3.1.0
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.0.6 to ^1.1.0
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/async-v3.0.10...async-v3.1.0) (2023-10-04)
 
 

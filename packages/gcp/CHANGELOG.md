@@ -45,6 +45,24 @@
     * @webda/async bumped from ^3.0.9 to ^3.0.10
     * @webda/shell bumped from ^3.2.0 to ^3.2.1
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/gcp-v3.1.9...gcp-v3.2.0) (2023-11-12)
+
+
+### Features
+
+* drop node16 as it is EOL ([a6b795a](https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9))
+* RESTDomainService: add the url info retriever on Binaries ([13fe77c](https://github.com/loopingz/webda.io/commit/13fe77ccd0082432ea79ec9b7c32ac261cebeb01))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.6.0 to ^3.7.0
+  * devDependencies
+    * @webda/async bumped from ^3.1.1 to ^3.2.0
+    * @webda/shell bumped from ^3.4.0 to ^3.5.0
+
 ## [3.1.9](https://github.com/loopingz/webda.io/compare/gcp-v3.1.8...gcp-v3.1.9) (2023-10-07)
 
 

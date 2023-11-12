@@ -56,6 +56,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.3.0 to ^3.4.0
 
+## [3.1.0](https://github.com/loopingz/webda.io/compare/websockets-v3.0.12...websockets-v3.1.0) (2023-11-12)
+
+
+### Features
+
+* drop node16 as it is EOL ([a6b795a](https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.6.0 to ^3.7.0
+  * devDependencies
+    * @webda/shell bumped from ^3.4.0 to ^3.5.0
+
 ## [3.0.11](https://github.com/loopingz/webda.io/compare/websockets-v3.0.10...websockets-v3.0.11) (2023-10-04)
 
 

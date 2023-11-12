@@ -19,6 +19,35 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.7.0](https://github.com/loopingz/webda.io/compare/core-v3.6.0...core-v3.7.0) (2023-11-12)
+
+
+### Features
+
+* add an isEmpty method for Binary ([daf5832](https://github.com/loopingz/webda.io/commit/daf5832f4ca8b867eff1669e455f9761f1a15834))
+* add CoreModel listeners system ([977dd9d](https://github.com/loopingz/webda.io/commit/977dd9d8a04f5b3e6d19f09f8755277b26242a18))
+* add execute/wait method to Throttler ([b6cd66b](https://github.com/loopingz/webda.io/commit/b6cd66b49cc051f1eec085542fa4cf76f822f19f))
+* add iterate generator methods ([ff45183](https://github.com/loopingz/webda.io/commit/ff45183625bdce480f396f88f594fe196415d3da))
+* drop node16 as it is EOL ([a6b795a](https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9))
+* modelmapper service ([e5eee5f](https://github.com/loopingz/webda.io/commit/e5eee5f9c79f513a6bd9efe2e464c4491ac6924b))
+* RESTDomainService: add the url info retriever on Binaries ([13fe77c](https://github.com/loopingz/webda.io/commit/13fe77ccd0082432ea79ec9b7c32ac261cebeb01))
+* Store: add additionalModels to compose models in store ([e0f1d69](https://github.com/loopingz/webda.io/commit/e0f1d69c7a1302c9df1ea2fa365e422b141c0d89))
+* Throttler add a static method ([dd5178e](https://github.com/loopingz/webda.io/commit/dd5178e385bd970ab0e36a6f4ecb6dd63b438bc2))
+
+
+### Bug Fixes
+
+* BinaryFile: fallback on originalname if name is not present ([245a24b](https://github.com/loopingz/webda.io/commit/245a24b97963d51c2b5085fa29c5b54e40bf46d4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.0.4 to ^3.1.0
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.0.6 to ^1.1.0
+
 ## [3.6.0](https://github.com/loopingz/webda.io/compare/core-v3.5.0...core-v3.6.0) (2023-10-07)
 
 

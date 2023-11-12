@@ -1,6 +1,6 @@
 {
   "name": "@webda/websockets",
-  "version": "3.0.12",
+  "version": "3.1.0",
   "description": "Implements WebSockets on webda",
   "keywords": [
     "websockets",
@@ -19,7 +19,7 @@
     "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
-    "@webda/core": "^3.6.0",
+    "@webda/core": "^3.7.0",
     "socket.io": "^4.5.4",
     "socket.io-client": "^4.5.4"
   },
@@ -49,7 +49,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "14.6.0",
-    "@webda/shell": "^3.4.0",
+    "@webda/shell": "^3.5.0",
     "sinon": "^17.0.0",
     "ts-node": "^10.9.1"
   },

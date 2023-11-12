@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.0.6...tsc-esm-v1.1.0) (2023-11-12)
+
+
+### Features
+
+* drop node16 as it is EOL ([a6b795a](https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9))
+
 ## [1.0.6](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.0.5...tsc-esm-v1.0.6) (2023-08-30)
 
 

@@ -32,6 +32,27 @@
   * devDependencies
     * @webda/shell bumped from ^3.1.4 to ^3.1.5
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/graphql-v3.3.2...graphql-v3.4.0) (2023-11-12)
+
+
+### Features
+
+* drop node16 as it is EOL ([a6b795a](https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9))
+
+
+### Bug Fixes
+
+* **graphql:** prevent to fail if schema is unavailable ([6f84c00](https://github.com/loopingz/webda.io/commit/6f84c00308de8a3299688ad8243d1e7214f5b8b4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.6.0 to ^3.7.0
+  * devDependencies
+    * @webda/shell bumped from ^3.4.0 to ^3.5.0
+
 ## [3.3.2](https://github.com/loopingz/webda.io/compare/graphql-v3.3.1...graphql-v3.3.2) (2023-10-07)
 
 

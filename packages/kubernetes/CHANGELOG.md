@@ -35,6 +35,23 @@
     * @webda/async bumped from ^3.0.9 to ^3.0.10
     * @webda/core bumped from ^3.3.0 to ^3.4.0
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/kubernetes-v3.1.1...kubernetes-v3.2.0) (2023-11-12)
+
+
+### Features
+
+* drop node16 as it is EOL ([a6b795a](https://github.com/loopingz/webda.io/commit/a6b795a76e5089a0cf81269c49e00131bc17c1a9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.1.1 to ^3.2.0
+    * @webda/core bumped from ^3.6.0 to ^3.7.0
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.0.6 to ^1.1.0
+
 ## [3.1.1](https://github.com/loopingz/webda.io/compare/kubernetes-v3.1.0...kubernetes-v3.1.1) (2023-10-07)
 
 

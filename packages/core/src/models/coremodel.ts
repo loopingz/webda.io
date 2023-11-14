@@ -1153,7 +1153,7 @@ class CoreModel {
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: RawModel<this>, secure: boolean = false): this {
+  load(raw: RawModel<this>, secure: boolean = false, relations: boolean = true): this {
     // Object assign with filter
     for (let prop in raw) {
       let val = raw[prop];
@@ -1176,8 +1176,9 @@ class CoreModel {
     if (!this.getUuid()) {
       this.setUuid(this.generateUid(raw));
     }
-
-    this.handleRelations();
+    if (relations) {
+      this.handleRelations();
+    }
     return this;
   }
 

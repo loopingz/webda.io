@@ -41,11 +41,12 @@ CoreModel will always have a Store, default is the Registry.
 
 The relationships between models can be:
 
-- ModelParent: Define the parent of current model
-- ModelLink: Define a 1:1 or 1:n link from current model
-- ModelArrayLinks: Define a n:1 or n:m link from current model (the ids are defined within an array)
-- ModelMapLinks: Define a n:1 or n:m link from current model (the ids are the map key, and value is usually a subset of target object with or without additional properties)
-- ModelLinked: Define a subcollection accessible via query
+- **ModelParent**: Define the parent of current model
+- **ModelLink**: Define a 1:1 or 1:n link from current model
+- **ModelArrayLinks**: Define a n:1 or n:m link from current model (the ids are defined within an array)
+- **ModelMapLinks**: Define a n:1 or n:m link from current model (the ids are the map key, and value is usually a subset of target object with or without additional properties)
+- **ModelLinked**: Define a subcollection accessible via query
+- **ModelMapped**: Define a collection that is synchronized by `ModelMapper`
 
 These relations will be compiled with additional behavior.
 Getter/setter will be added for you at compile time, the source code would also be updated by the build.
@@ -95,10 +96,10 @@ You can now access directly from your model class:
 
 CoreModel.ref().get() -> CoreModel.store().get()
 CoreModel.query() -> CoreModel.store().query()
-CoreModel.store().patch()
-CoreModel.store().delete()
+CoreModel.ref().patch()
+CoreModel.ref().delete()
 
-A StoreResolver should match from a class the Store
+A `StoreResolver` should match from a class the Store
 
 Store(strict): Only handle its model
 Store(no-strict): Handle any declared models and their child classes

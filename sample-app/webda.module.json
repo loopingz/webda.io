@@ -129,7 +129,7 @@
           {
             "attribute": "students",
             "model": "WebdaDemo/Student",
-            "type": "LINKS_ARRAY"
+            "type": "LINKS_MAP"
           }
         ]
       },
@@ -157,12 +157,24 @@
           {
             "attribute": "friends",
             "model": "WebdaDemo/Student",
-            "type": "LINKS_MAP"
+            "type": "LINKS_ARRAY"
           },
           {
             "attribute": "teachers",
             "model": "WebdaDemo/Teacher",
             "type": "LINKS_SIMPLE_ARRAY"
+          }
+        ],
+        "maps": [
+          {
+            "attribute": "courses",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Course",
+            "targetLink": "students",
+            "targetAttributes": [
+              "name",
+              "uuid"
+            ]
           }
         ]
       },
@@ -187,6 +199,18 @@
             "targetLink": "teacher",
             "targetAttributes": [
               "name",
+              "uuid"
+            ]
+          },
+          {
+            "attribute": "students",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Student",
+            "targetLink": "teachers",
+            "targetAttributes": [
+              "firstName",
+              "lastName",
+              "email",
               "uuid"
             ]
           }
@@ -414,7 +438,7 @@
         "name": "string",
         "classroom": "ModelLink<Classroom>",
         "teacher": "ModelLink<Teacher>",
-        "students": "ModelLinksArray<\n    Student,\n    {\n      email: string;\n      firstName: string;\n      lastName?: string;\n    }\n  >",
+        "students": "ModelLinksMap<\n    Student,\n    {\n      firstName: string;\n      lastName?: string;\n    }\n  >",
         "___class": "CoreModelDefinition<this>",
         "___type": "string",
         "___types": "string[]",
@@ -463,8 +487,9 @@
         "email": "string",
         "firstName": "string",
         "lastName": "string",
-        "friends": "ModelLinksMap<Student, { email: string; firstName: string; lastName: string }>",
+        "friends": "ModelLinksArray<Student, { email: string; firstName: string; lastName: string }>",
         "teachers": "ModelLinksSimpleArray<Teacher>",
+        "courses": "ModelsMapped<Course, \"students\", \"name\">",
         "constraints": "null",
         "uuid": "string",
         "___class": "CoreModelDefinition<this>",
@@ -519,6 +544,7 @@
       "WebdaDemo/Teacher": {
         "uuid": "string",
         "courses": "ModelsMapped<Course, \"teacher\", \"name\">",
+        "students": "ModelsMapped<Student, \"teachers\", \"firstName\" | \"lastName\" | \"email\">",
         "name": "string",
         "senior": "boolean",
         "___class": "CoreModelDefinition<this>",
@@ -1099,13 +1125,10 @@
           "type": "string"
         },
         "students": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "type": "object",
             "properties": {
-              "email": {
-                "type": "string"
-              },
               "firstName": {
                 "type": "string"
               },
@@ -1117,7 +1140,6 @@
               }
             },
             "required": [
-              "email",
               "firstName",
               "uuid"
             ]
@@ -1528,8 +1550,8 @@
           "type": "string"
         },
         "friends": {
-          "type": "object",
-          "additionalProperties": {
+          "type": "array",
+          "items": {
             "type": "object",
             "properties": {
               "email": {
@@ -1557,6 +1579,25 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
           }
         },
         "constraints": {
@@ -1736,6 +1777,33 @@
             },
             "required": [
               "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "students": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "firstName",
+              "lastName",
               "uuid"
             ],
             "additionalProperties": false

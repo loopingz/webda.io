@@ -1,4 +1,4 @@
-import { Binaries, Binary, CoreModel, ModelLink } from "@webda/core";
+import { Binaries, Binary, CoreModel, ModelLink, OperationContext } from "@webda/core";
 import { User } from "./user";
 
 /**
@@ -58,4 +58,14 @@ export default class Contact extends CoreModel {
    * Contact owner
    */
   owner: ModelLink<User>;
+
+  /**
+   * Allow all manipulations
+   * @param _context
+   * @param _action
+   * @returns
+   */
+  canAct(_context: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+    return Promise.resolve(true);
+  }
 }

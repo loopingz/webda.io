@@ -121,7 +121,83 @@
                 "keepAlive": {
                   "type": "boolean"
                 },
-                "stream": {},
+                "stream": {
+                  "type": "object",
+                  "properties": {
+                    "writable": {
+                      "type": "boolean"
+                    },
+                    "writableEnded": {
+                      "type": "boolean"
+                    },
+                    "writableFinished": {
+                      "type": "boolean"
+                    },
+                    "writableHighWaterMark": {
+                      "type": "number"
+                    },
+                    "writableLength": {
+                      "type": "number"
+                    },
+                    "writableObjectMode": {
+                      "type": "boolean"
+                    },
+                    "writableCorked": {
+                      "type": "number"
+                    },
+                    "destroyed": {
+                      "type": "boolean"
+                    },
+                    "readable": {
+                      "type": "boolean"
+                    },
+                    "readableEncoding": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/BufferEncoding"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "readableEnded": {
+                      "type": "boolean"
+                    },
+                    "readableFlowing": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "readableHighWaterMark": {
+                      "type": "number"
+                    },
+                    "readableLength": {
+                      "type": "number"
+                    },
+                    "readableObjectMode": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "destroyed",
+                    "readable",
+                    "readableEncoding",
+                    "readableEnded",
+                    "readableFlowing",
+                    "readableHighWaterMark",
+                    "readableLength",
+                    "readableObjectMode",
+                    "writable",
+                    "writableCorked",
+                    "writableEnded",
+                    "writableFinished",
+                    "writableHighWaterMark",
+                    "writableLength",
+                    "writableObjectMode"
+                  ]
+                },
                 "statement_timeout": {
                   "anyOf": [
                     {
@@ -132,6 +208,9 @@
                       "type": "number"
                     }
                   ]
+                },
+                "parseInputDatesAsUTC": {
+                  "type": "boolean"
                 },
                 "ssl": {
                   "anyOf": [
@@ -1009,16 +1088,11 @@
                 "types": {
                   "type": "object",
                   "properties": {
-                    "getTypeParser": {
-                      "$comment": "(oid: number | TypeId) ->  TypeParser<string, T | string>"
-                    }
+                    "getTypeParser": {}
                   },
                   "required": [
                     "getTypeParser"
                   ]
-                },
-                "options": {
-                  "type": "string"
                 }
               }
             },
@@ -1051,7 +1125,83 @@
                 "keepAlive": {
                   "type": "boolean"
                 },
-                "stream": {},
+                "stream": {
+                  "type": "object",
+                  "properties": {
+                    "writable": {
+                      "type": "boolean"
+                    },
+                    "writableEnded": {
+                      "type": "boolean"
+                    },
+                    "writableFinished": {
+                      "type": "boolean"
+                    },
+                    "writableHighWaterMark": {
+                      "type": "number"
+                    },
+                    "writableLength": {
+                      "type": "number"
+                    },
+                    "writableObjectMode": {
+                      "type": "boolean"
+                    },
+                    "writableCorked": {
+                      "type": "number"
+                    },
+                    "destroyed": {
+                      "type": "boolean"
+                    },
+                    "readable": {
+                      "type": "boolean"
+                    },
+                    "readableEncoding": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/BufferEncoding"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "readableEnded": {
+                      "type": "boolean"
+                    },
+                    "readableFlowing": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "readableHighWaterMark": {
+                      "type": "number"
+                    },
+                    "readableLength": {
+                      "type": "number"
+                    },
+                    "readableObjectMode": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "destroyed",
+                    "readable",
+                    "readableEncoding",
+                    "readableEnded",
+                    "readableFlowing",
+                    "readableHighWaterMark",
+                    "readableLength",
+                    "readableObjectMode",
+                    "writable",
+                    "writableCorked",
+                    "writableEnded",
+                    "writableFinished",
+                    "writableHighWaterMark",
+                    "writableLength",
+                    "writableObjectMode"
+                  ]
+                },
                 "statement_timeout": {
                   "anyOf": [
                     {
@@ -1062,6 +1212,9 @@
                       "type": "number"
                     }
                   ]
+                },
+                "parseInputDatesAsUTC": {
+                  "type": "boolean"
                 },
                 "ssl": {
                   "anyOf": [
@@ -1939,16 +2092,11 @@
                 "types": {
                   "type": "object",
                   "properties": {
-                    "getTypeParser": {
-                      "$comment": "(oid: number | TypeId) ->  TypeParser<string, T | string>"
-                    }
+                    "getTypeParser": {}
                   },
                   "required": [
                     "getTypeParser"
                   ]
-                },
-                "options": {
-                  "type": "string"
                 },
                 "max": {
                   "type": "number"
@@ -1962,12 +2110,6 @@
                 "log": {},
                 "Promise": {
                   "$ref": "#/definitions/PromiseConstructorLike"
-                },
-                "allowExitOnIdle": {
-                  "type": "boolean"
-                },
-                "maxUses": {
-                  "type": "number"
                 }
               }
             }
@@ -2035,6 +2177,21 @@
           },
           "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
         },
+        "BufferEncoding": {
+          "type": "string",
+          "enum": [
+            "ascii",
+            "utf8",
+            "utf-8",
+            "utf16le",
+            "ucs2",
+            "ucs-2",
+            "base64",
+            "latin1",
+            "binary",
+            "hex"
+          ]
+        },
         "ArrayBufferLike": {
           "anyOf": [
             {
@@ -2058,21 +2215,6 @@
             "TLSv1.2",
             "TLSv1.1",
             "TLSv1"
-          ]
-        },
-        "BufferEncoding": {
-          "type": "string",
-          "enum": [
-            "ascii",
-            "utf8",
-            "utf-8",
-            "utf16le",
-            "ucs2",
-            "ucs-2",
-            "base64",
-            "latin1",
-            "binary",
-            "hex"
           ]
         },
         "LookupFunction": {},

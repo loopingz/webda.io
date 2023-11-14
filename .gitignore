@@ -22,3 +22,4 @@ docs.log
 docs.json
 .DS_Store
 pnpm-lock.yaml
+.nx

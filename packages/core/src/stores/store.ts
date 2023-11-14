@@ -90,7 +90,7 @@ export interface EventStoreActioned extends EventStoreAction {
 /**
  * Event called before update of an object
  */
-export interface EventStoreUpdate extends EventStoreUpdated {
+export interface EventStoreUpdate extends EventStore {
   /**
    * Update content
    */
@@ -99,7 +99,12 @@ export interface EventStoreUpdate extends EventStoreUpdated {
 /**
  * Event called after update of an object
  */
-export interface EventStoreUpdated extends EventStore {}
+export interface EventStoreUpdated extends EventStoreUpdate {
+  /**
+   * Object before update
+   */
+  previous: any;
+}
 /**
  * Event called before patch update of an object
  */
@@ -1482,22 +1487,21 @@ abstract class Store<
 
     object._lastUpdate = new Date();
     this.metrics.operations_total.inc({ operation: "get" });
-    let load = await this._getFromCache(object[this._uuidField], true);
+    const uuid = object.getUuid ? object.getUuid() : object[this._uuidField];
+    let load = await this._getFromCache(uuid, true);
     if (load.__type !== this._modelType && this.parameters.strict) {
-      this.log(
-        "WARN",
-        `Object '${object[this._uuidField]}' was not created by this store ${load.__type}:${this._modelType}`
-      );
-      throw new StoreNotFoundError(object[this._uuidField], this.getName());
+      this.log("WARN", `Object '${uuid}' was not created by this store ${load.__type}:${this._modelType}`);
+      throw new StoreNotFoundError(uuid, this.getName());
     }
     loaded = this.initModel(load);
     if (object instanceof CoreModel) {
       loaded.setContext(object.getContext());
     }
+    const update = object;
     const evt = {
       object: loaded,
       store: this,
-      update: object
+      update
     };
     await Promise.all([
       this.emitSync(partial ? `Store.PatchUpdate` : `Store.Update`, evt),
@@ -1512,8 +1516,10 @@ abstract class Store<
     }
     if (partial) {
       this.metrics.operations_total.inc({ operation: "partialUpdate" });
-      await this._patch(object, object[this._uuidField], conditionValue, <string>conditionField);
-      await this._cacheStore?._patch(object, object[this._uuidField], load._lastUpdate, "_lastUpdate");
+      await Promise.all([
+        this._patch(object, uuid, conditionValue, <string>conditionField),
+        this._cacheStore?._patch(object, uuid, load._lastUpdate, "_lastUpdate")
+      ]);
       res = object;
     } else {
       // Copy back the mappers
@@ -1522,20 +1528,23 @@ abstract class Store<
       }
       object = this.initModel(object);
       this.metrics.operations_total.inc({ operation: "update" });
-      res = await this._update(object, object[this._uuidField], conditionValue, <string>conditionField);
-      await this._cacheStore?._update(object, object[this._uuidField], load._lastUpdate, "_lastUpdate");
+      res = (
+        await Promise.all([
+          this._update(object, uuid, conditionValue, <string>conditionField),
+          this._cacheStore?._update(object, uuid, load._lastUpdate, "_lastUpdate")
+        ])
+      )[0];
     }
-    // Return updated
-    for (let i in res) {
-      loaded[i] = res[i];
-    }
-    for (let i in object) {
-      loaded[i] = object[i];
-    }
-    saved = this.initModel(loaded);
+    // Reinit save
+    saved = this.initModel({
+      ...loaded,
+      ...res
+    });
     const evtUpdated = {
       object: saved,
-      store: this
+      store: this,
+      update,
+      previous: loaded
     };
     await Promise.all([
       this.emitSync(partial ? `Store.PatchUpdated` : `Store.Updated`, evtUpdated),
@@ -2207,7 +2216,8 @@ abstract class Store<
           delete updateObject[i];
         });
       updateObject.setContext(ctx);
-      updateObject.load(body);
+      updateObject.setUuid(uuid);
+      updateObject.load(body, false, false);
       await this.patch(updateObject);
       object = undefined;
     } else {

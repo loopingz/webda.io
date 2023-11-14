@@ -33,8 +33,9 @@ class Student extends DefaultTestModel {
   email: string;
   firstName: string;
   lastName: string;
-  friends: ModelLinksMap<Student, { email: string; firstName: string; lastName: string }>;
+  friends: ModelLinksArray<Student, { email: string; firstName: string; lastName: string }>;
   teachers: ModelLinksSimpleArray<Teacher>;
+  courses: ModelsMapped<Course, "students", "name">;
   // For cov
   constraints: null;
 
@@ -52,6 +53,7 @@ class Student extends DefaultTestModel {
 class Teacher extends DefaultTestModel {
   uuid: string;
   courses: ModelsMapped<Course, "teacher", "name">;
+  students: ModelsMapped<Student, "teachers", "firstName" | "lastName" | "email">;
   name: string;
   senior: boolean;
 }
@@ -62,10 +64,9 @@ class Course extends DefaultTestModel {
   name: string;
   classroom: ModelLink<Classroom>;
   teacher: ModelLink<Teacher>;
-  students: ModelLinksArray<
+  students: ModelLinksMap<
     Student,
     {
-      email: string;
       firstName: string;
       lastName?: string;
     }

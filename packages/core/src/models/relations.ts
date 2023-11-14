@@ -65,12 +65,6 @@ export interface ModelLinker {}
 /**
  * Define a link to 1:n relation
  */
-/*
-export type ModelLink<T extends CoreModel, _FK extends keyof T = any> = ModelLoader<T> &
-  String & {
-    set: (id: string) => void;
-  };
-  */
 export class ModelLink<T extends CoreModel> implements ModelLinker {
   @NotEnumerable
   protected parent: CoreModel;
@@ -88,6 +82,12 @@ export class ModelLink<T extends CoreModel> implements ModelLinker {
   }
   set(id: string | T) {
     this.uuid = typeof id === "string" ? id : id.getUuid();
+    // Set dirty for parent
+    this.parent?.__dirty.add(
+      Object.keys(this.parent)
+        .filter(k => this.parent[k] === this)
+        .pop()
+    );
   }
 
   toString(): string {
@@ -118,6 +118,9 @@ type ModelCollectionManager<T> = {
   remove: (model: T | string) => void;
 };
 
+/**
+ * Link to a collection of objects
+ */
 export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T>> implements ModelLinker {
   @NotEnumerable
   private parent: CoreModel;
@@ -138,6 +141,11 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
         ? new ModelRef(model, this.model, this.parent)
         : new ModelRef(model.getUuid(), this.model, this.parent)
     );
+    this.parent?.__dirty.add(
+      Object.keys(this.parent)
+        .filter(k => this.parent[k] === this)
+        .pop()
+    );
   }
 
   remove(model: ModelRef<T> | string | T) {
@@ -145,9 +153,17 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
     if (index >= 0) {
       this.splice(index, 1);
     }
+    this.parent?.__dirty.add(
+      Object.keys(this.parent)
+        .filter(k => this.parent[k] === this)
+        .pop()
+    );
   }
 }
 
+/**
+ * Link to a collection of objects including some additional data
+ */
 export class ModelLinksArray<T extends CoreModel, K>
   extends Array<ModelRefCustomProperties<T, (K & { uuid: string }) | { getUuid: () => string }>>
   implements ModelLinker
@@ -185,6 +201,11 @@ export class ModelLinksArray<T extends CoreModel, K>
             ))
       )
     );
+    this.parent?.__dirty.add(
+      Object.keys(this.parent)
+        .filter(k => this.parent[k] === this)
+        .pop()
+    );
   }
 
   remove(model: ModelRefCustomProperties<T, K> | string | T) {
@@ -192,6 +213,11 @@ export class ModelLinksArray<T extends CoreModel, K>
     let index = this.findIndex(m => m.getUuid() === uuid);
     if (index >= 0) {
       this.splice(index, 1);
+      this.parent?.__dirty.add(
+        Object.keys(this.parent)
+          .filter(k => this.parent[k] === this)
+          .pop()
+      );
     }
   }
 }
@@ -215,11 +241,21 @@ export function createModelLinksMap<T extends CoreModel>(
   let result = {
     add: (model: ModelRefCustomProperties<T, any>) => {
       result[model.uuid || model.getUuid()] = model;
+      parent?.__dirty.add(
+        Object.keys(parent)
+          .filter(k => parent[k] === result)
+          .pop()
+      );
     },
     remove: (model: ModelRefCustomProperties<T, any> | string) => {
       // @ts-ignore
       const uuid = typeof model === "string" ? model : model.uuid || model.getUuid();
       delete result[uuid];
+      parent?.__dirty.add(
+        Object.keys(parent)
+          .filter(k => parent[k] === result)
+          .pop()
+      );
     }
   };
   Object.keys(data)
@@ -227,6 +263,8 @@ export function createModelLinksMap<T extends CoreModel>(
     .forEach(key => {
       result[key] = new ModelRefCustom(data[key].uuid, model, data[key], parent);
     });
+  Object.defineProperty(result, "add", { enumerable: false });
+  Object.defineProperty(result, "remove", { enumerable: false });
   return result;
 }
 
@@ -285,6 +323,14 @@ export type ModelMapLoader<T extends CoreModel, K extends keyof T> = ModelMapLoa
  * Define a ModelMap attribute
  *
  * K is used by the compiler to define the field it comes from
+ *
+ * This will instructed a ModelMapper to deduplicate information from the T model into this
+ * current model attribute.
+ *
+ * The attribute where the current model uuid is found is defined by K
+ * The attributes to dedepulicate are defined by the L type
+ *
+ * In the T model, the K attribute should be of type ModelLink
  */
 export type ModelsMapped<
   T extends CoreModel,

@@ -323,7 +323,7 @@ export class HttpContext {
    * Used for test
    * @param body
    */
-  setBody(body: Buffer | string | Readable | any) {
+  setBody(body: Buffer | string | Readable | any): this {
     if (body instanceof Readable || body instanceof Buffer) {
       this.body = body;
     } else if (typeof body === "string") {
@@ -333,6 +333,7 @@ export class HttpContext {
     } else {
       this.body = Buffer.from(JSON.stringify(body));
     }
+    return this;
   }
   /**
    * Get request path name

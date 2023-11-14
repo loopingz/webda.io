@@ -24,6 +24,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.2.1 to ^3.2.2
     * @webda/kubernetes bumped from ^3.0.7 to ^3.0.8
 
+## [3.6.0](https://github.com/loopingz/webda.io/compare/shell-v3.5.0...shell-v3.6.0) (2023-11-14)
+
+
+### Features
+
+* add otel module ([1841c28](https://github.com/loopingz/webda.io/commit/1841c28ab6225f6e2df3068f6869f1487b470d52))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.7.0 to ^3.8.0
+    * @webda/kubernetes bumped from ^3.2.0 to ^3.2.1
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/shell-v3.4.0...shell-v3.5.0) (2023-11-12)
 
 

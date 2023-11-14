@@ -19,6 +19,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.8.0](https://github.com/loopingz/webda.io/compare/core-v3.7.0...core-v3.8.0) (2023-11-14)
+
+
+### Features
+
+* add otel module ([1841c28](https://github.com/loopingz/webda.io/commit/1841c28ab6225f6e2df3068f6869f1487b470d52))
+
 ## [3.7.0](https://github.com/loopingz/webda.io/compare/core-v3.6.0...core-v3.7.0) (2023-11-12)
 
 

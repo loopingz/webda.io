@@ -1,0 +1,113 @@
+{
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/OtelService": "lib/otel:OtelService"
+  },
+  "models": {
+    "graph": {},
+    "tree": {},
+    "plurals": {},
+    "list": {},
+    "reflections": {}
+  },
+  "schemas": {
+    "Webda/OtelService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "traceExporter": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "console",
+                "otlp"
+              ]
+            },
+            "enable": {
+              "type": "boolean",
+              "description": "Allow to disable the logger",
+              "default": true
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        "metricExporter": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "console",
+                "otlp"
+              ]
+            },
+            "enable": {
+              "type": "boolean",
+              "description": "Allow to disable the logger",
+              "default": true
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        "loggerExporter": {
+          "type": "object",
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "description": "Allow to disable the logger",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "otlp"
+            },
+            "url": {
+              "type": "string",
+              "default": "http://localhost:4317"
+            }
+          },
+          "description": "Logger export If empty it is disabled"
+        },
+        "diagnostic": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE",
+            "ALL"
+          ],
+          "default": "NONE"
+        },
+        "name": {
+          "type": "string"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OtelService"
+    }
+  }
+}

@@ -21,7 +21,7 @@
 <ul class="tsd-hierarchy">
 <li><span class="target">WebdaConsole</span></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L57">packages/shell/src/console/webda.ts:57</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L77">packages/shell/src/console/webda.ts:77</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -70,6 +70,7 @@
 <a href="_webda_shell.WebdaConsole.html#operations" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>operations</span></a>
 <a href="_webda_shell.WebdaConsole.html#output" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>output</span></a>
 <a href="_webda_shell.WebdaConsole.html#parser" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>parser</span></a>
+<a href="_webda_shell.WebdaConsole.html#requireCompilation" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>require<wbr/>Compilation</span></a>
 <a href="_webda_shell.WebdaConsole.html#rotateKeys" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>rotate<wbr/>Keys</span></a>
 <a href="_webda_shell.WebdaConsole.html#schema" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>schema</span></a>
 <a href="_webda_shell.WebdaConsole.html#serve" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>serve</span></a>
@@ -77,8 +78,9 @@
 <a href="_webda_shell.WebdaConsole.html#setDebuggerStatus" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>set<wbr/>Debugger<wbr/>Status</span></a>
 <a href="_webda_shell.WebdaConsole.html#stopDebugger" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>stop<wbr/>Debugger</span></a>
 <a href="_webda_shell.WebdaConsole.html#store" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>store</span></a>
+<a href="_webda_shell.WebdaConsole.html#stores" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>stores</span></a>
 <a href="_webda_shell.WebdaConsole.html#types" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>types</span></a>
-<a href="_webda_shell.WebdaConsole.html#withinPatchVersion" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>within<wbr/>Patch<wbr/>Version</span></a>
+<a href="_webda_shell.WebdaConsole.html#withinMinorVersion" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>within<wbr/>Minor<wbr/>Version</span></a>
 <a href="_webda_shell.WebdaConsole.html#worker" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>worker</span></a>
 </div></section></div></details></section></section>
 <section class="tsd-panel-group tsd-member-group">
@@ -95,12 +97,12 @@
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>app</span><a href="#app" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">app<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">SourceApplication</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L63">packages/shell/src/console/webda.ts:63</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L83">packages/shell/src/console/webda.ts:83</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="debuggerStatus" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>debugger<wbr/>Status</span><a href="#debuggerStatus" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">debugger<wbr/>Status<span class="tsd-signature-symbol">:</span> <a href="../enums/_webda_shell.DebuggerStatus.html" class="tsd-signature-type" data-tsd-kind="Enumeration">DebuggerStatus</a><span class="tsd-signature-symbol"> = DebuggerStatus.Stopped</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L64">packages/shell/src/console/webda.ts:64</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L84">packages/shell/src/console/webda.ts:84</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="extensions" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>extensions</span><a href="#extensions" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">extensions<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span><br/><span>    </span>[key: <span class="tsd-signature-type">string</span>]<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_shell.WebdaShellExtension.html" class="tsd-signature-type" data-tsd-kind="Interface">WebdaShellExtension</a><span class="tsd-signature-symbol">; </span><br/><span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol"> = {}</span></div>
@@ -110,12 +112,12 @@
 <li class="tsd-parameter-index-signature">
 <h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><a href="../interfaces/_webda_shell.WebdaShellExtension.html" class="tsd-signature-type" data-tsd-kind="Interface">WebdaShellExtension</a></h5></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L66">packages/shell/src/console/webda.ts:66</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L86">packages/shell/src/console/webda.ts:86</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="logger" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>logger</span><a href="#logger" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L61">packages/shell/src/console/webda.ts:61</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L81">packages/shell/src/console/webda.ts:81</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="onSIGINT" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>onSIGINT</span><a href="#onSIGINT" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">onSIGINT<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">never</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> = undefined</span></div>
@@ -128,27 +130,27 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">never</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L65">packages/shell/src/console/webda.ts:65</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L85">packages/shell/src/console/webda.ts:85</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="serverProcess" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>server<wbr/>Process</span><a href="#serverProcess" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">server<wbr/>Process<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ChildProcess</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L59">packages/shell/src/console/webda.ts:59</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L79">packages/shell/src/console/webda.ts:79</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="terminal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>terminal</span><a href="#terminal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">terminal<span class="tsd-signature-symbol">:</span> <a href="_webda_shell.WebdaTerminal.html" class="tsd-signature-type" data-tsd-kind="Class">WebdaTerminal</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L62">packages/shell/src/console/webda.ts:62</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L82">packages/shell/src/console/webda.ts:82</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="tscCompiler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>tsc<wbr/>Compiler</span><a href="#tscCompiler" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">tsc<wbr/>Compiler<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ChildProcess</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L60">packages/shell/src/console/webda.ts:60</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L80">packages/shell/src/console/webda.ts:80</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="webda" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>webda</span><a href="#webda" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">webda<span class="tsd-signature-symbol">:</span> <a href="_webda_shell.WebdaServer.html" class="tsd-signature-type" data-tsd-kind="Class">WebdaServer</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L58">packages/shell/src/console/webda.ts:58</a></li></ul></aside></section></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L78">packages/shell/src/console/webda.ts:78</a></li></ul></aside></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Methods</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="build" class="tsd-anchor"></a>
@@ -165,7 +167,7 @@
 <h5>argv: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">-1</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L711">packages/shell/src/console/webda.ts:711</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L764">packages/shell/src/console/webda.ts:764</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="builtinCommands" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>builtin<wbr/>Commands</span><a href="#builtinCommands" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -187,7 +189,7 @@
 <li class="tsd-parameter">
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> module<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span></h5></li></ul></li></ul><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L761">packages/shell/src/console/webda.ts:761</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L814">packages/shell/src/console/webda.ts:814</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="config" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>config</span><a href="#config" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -206,7 +208,7 @@ Otherwise launch the configuration UI</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L514">packages/shell/src/console/webda.ts:514</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L564">packages/shell/src/console/webda.ts:564</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="configurationWatch" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>configuration<wbr/>Watch</span><a href="#configurationWatch" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -223,7 +225,7 @@ Otherwise launch the configuration UI</p>
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> deployment: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L487">packages/shell/src/console/webda.ts:487</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L504">packages/shell/src/console/webda.ts:504</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="debug" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>debug</span><a href="#debug" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -243,7 +245,7 @@ Relaunching the serve command on any new modification</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L369">packages/shell/src/console/webda.ts:369</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L386">packages/shell/src/console/webda.ts:386</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="deploy" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>deploy</span><a href="#deploy" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -261,7 +263,7 @@ Relaunching the serve command on any new modification</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L543">packages/shell/src/console/webda.ts:543</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L593">packages/shell/src/console/webda.ts:593</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="diagram" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>diagram</span><a href="#diagram" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -277,7 +279,7 @@ Relaunching the serve command on any new modification</p>
 <h5>argv: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">0</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">-1</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L737">packages/shell/src/console/webda.ts:737</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L790">packages/shell/src/console/webda.ts:790</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="displayHelp" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>display<wbr/>Help</span><a href="#displayHelp" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -293,7 +295,7 @@ Relaunching the serve command on any new modification</p>
 <h5>parser: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1135">packages/shell/src/console/webda.ts:1135</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1204">packages/shell/src/console/webda.ts:1204</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="executeShellExtension" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>execute<wbr/>Shell<wbr/>Extension</span><a href="#executeShellExtension" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -316,7 +318,7 @@ Relaunching the serve command on any new modification</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1145">packages/shell/src/console/webda.ts:1145</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1214">packages/shell/src/console/webda.ts:1214</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="fakeTerm" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>fake<wbr/>Term</span><a href="#fakeTerm" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -328,7 +330,7 @@ as there is no value in it</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L680">packages/shell/src/console/webda.ts:680</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L733">packages/shell/src/console/webda.ts:733</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="generateOpenAPI" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>generate<wbr/>OpenAPI</span><a href="#generateOpenAPI" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -347,7 +349,7 @@ as there is no value in it</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1198">packages/shell/src/console/webda.ts:1198</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1291">packages/shell/src/console/webda.ts:1291</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="getApplicationExport" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>get<wbr/>Application<wbr/>Export</span><a href="#getApplicationExport" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -365,7 +367,7 @@ as there is no value in it</p>
 <li class="tsd-parameter">
 <h5>version<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5></li></ul></li></ul><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L147">packages/shell/src/console/webda.ts:147</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L163">packages/shell/src/console/webda.ts:163</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="getDebuggerStatus" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>get<wbr/>Debugger<wbr/>Status</span><a href="#getDebuggerStatus" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -375,7 +377,7 @@ as there is no value in it</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../enums/_webda_shell.DebuggerStatus.html" class="tsd-signature-type" data-tsd-kind="Enumeration">DebuggerStatus</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1221">packages/shell/src/console/webda.ts:1221</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1314">packages/shell/src/console/webda.ts:1314</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="getVersion" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>get<wbr/>Version</span><a href="#getVersion" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -385,7 +387,7 @@ as there is no value in it</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L504">packages/shell/src/console/webda.ts:504</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L521">packages/shell/src/console/webda.ts:521</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="getYeoman" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>get<wbr/>Yeoman</span><a href="#getYeoman" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -395,7 +397,7 @@ as there is no value in it</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L552">packages/shell/src/console/webda.ts:552</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L602">packages/shell/src/console/webda.ts:602</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="handleCommand" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>handle<wbr/>Command</span><a href="#handleCommand" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -418,7 +420,7 @@ Run the command or display help</p>
 <h5>output: <span class="tsd-signature-type">WorkerOutput</span><span class="tsd-signature-symbol"> = undefined</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L598">packages/shell/src/console/webda.ts:598</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L651">packages/shell/src/console/webda.ts:651</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="handleCommandInternal" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>handle<wbr/>Command<wbr/>Internal</span><a href="#handleCommandInternal" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -435,7 +437,7 @@ Run the command or display help</p>
 <h5>output: <span class="tsd-signature-type">WorkerOutput</span><span class="tsd-signature-symbol"> = undefined</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L936">packages/shell/src/console/webda.ts:936</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1002">packages/shell/src/console/webda.ts:1002</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="init" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>init</span><a href="#init" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -455,7 +457,7 @@ Run the command or display help</p>
 <h5>generatorName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &quot;webda&quot;</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L562">packages/shell/src/console/webda.ts:562</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L612">packages/shell/src/console/webda.ts:612</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="initLogger" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>init<wbr/>Logger</span><a href="#initLogger" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -473,7 +475,7 @@ Run the command or display help</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L582">packages/shell/src/console/webda.ts:582</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L632">packages/shell/src/console/webda.ts:632</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="loadExtensions" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>load<wbr/>Extensions</span><a href="#loadExtensions" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -486,7 +488,7 @@ Run the command or display help</p>
 <h5>appPath: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L606">packages/shell/src/console/webda.ts:606</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L659">packages/shell/src/console/webda.ts:659</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="log" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>log</span><a href="#log" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -501,7 +503,7 @@ Run the command or display help</p>
 <h5><code class="tsd-tag ts-flagRest">Rest</code> <span class="tsd-signature-symbol">...</span>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1233">packages/shell/src/console/webda.ts:1233</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1326">packages/shell/src/console/webda.ts:1326</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="models" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>models</span><a href="#models" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -517,7 +519,7 @@ Run the command or display help</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L161">packages/shell/src/console/webda.ts:161</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L177">packages/shell/src/console/webda.ts:177</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="operations" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>operations</span><a href="#operations" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -533,7 +535,7 @@ Run the command or display help</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L236">packages/shell/src/console/webda.ts:236</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L253">packages/shell/src/console/webda.ts:253</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="output" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>output</span><a href="#output" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -546,7 +548,7 @@ Run the command or display help</p>
 <h5><code class="tsd-tag ts-flagRest">Rest</code> <span class="tsd-signature-symbol">...</span>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1229">packages/shell/src/console/webda.ts:1229</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1322">packages/shell/src/console/webda.ts:1322</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="parser" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>parser</span><a href="#parser" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -559,7 +561,18 @@ Run the command or display help</p>
 <h5>_args: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Argv</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">{}</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L68">packages/shell/src/console/webda.ts:68</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L88">packages/shell/src/console/webda.ts:88</a></li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="requireCompilation" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>require<wbr/>Compilation</span><a href="#requireCompilation" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+<li class="tsd-signature tsd-anchor-link" id="requireCompilation.requireCompilation-1">require<wbr/>Compilation<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><a href="#requireCompilation.requireCompilation-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Add a system to recompile if needed</p>
+
+<h3>Returns</h3></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L529">packages/shell/src/console/webda.ts:529</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="rotateKeys" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>rotate<wbr/>Keys</span><a href="#rotateKeys" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -569,7 +582,7 @@ Run the command or display help</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L532">packages/shell/src/console/webda.ts:532</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L582">packages/shell/src/console/webda.ts:582</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="schema" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>schema</span><a href="#schema" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -587,7 +600,7 @@ Run the command or display help</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L661">packages/shell/src/console/webda.ts:661</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L714">packages/shell/src/console/webda.ts:714</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="serve" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>serve</span><a href="#serve" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -600,7 +613,7 @@ Run the command or display help</p>
 <h5>argv: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">CancelablePromise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L104">packages/shell/src/console/webda.ts:104</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L124">packages/shell/src/console/webda.ts:124</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="serviceConfig" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>service<wbr/>Config</span><a href="#serviceConfig" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -615,7 +628,7 @@ Run the command or display help</p>
 <h5>argv: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L134">packages/shell/src/console/webda.ts:134</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L150">packages/shell/src/console/webda.ts:150</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="setDebuggerStatus" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>set<wbr/>Debugger<wbr/>Status</span><a href="#setDebuggerStatus" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -628,7 +641,7 @@ Run the command or display help</p>
 <h5>status: <a href="../enums/_webda_shell.DebuggerStatus.html" class="tsd-signature-type" data-tsd-kind="Enumeration">DebuggerStatus</a></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1225">packages/shell/src/console/webda.ts:1225</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1318">packages/shell/src/console/webda.ts:1318</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="stopDebugger" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>stop<wbr/>Debugger</span><a href="#stopDebugger" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -638,7 +651,7 @@ Run the command or display help</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1209">packages/shell/src/console/webda.ts:1209</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1302">packages/shell/src/console/webda.ts:1302</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="store" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>store</span><a href="#store" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -656,7 +669,17 @@ Run the command or display help</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L1154">packages/shell/src/console/webda.ts:1154</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1247">packages/shell/src/console/webda.ts:1247</a></li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="stores" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>stores</span><a href="#stores" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+<li class="tsd-signature tsd-anchor-link" id="stores.stores-1">stores<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span><a href="#stores.stores-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Display stores and their managed models</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L1222">packages/shell/src/console/webda.ts:1222</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="types" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>types</span><a href="#types" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -666,13 +689,13 @@ Run the command or display help</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L918">packages/shell/src/console/webda.ts:918</a></li></ul></aside></li></ul></section>
-<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="withinPatchVersion" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>within<wbr/>Patch<wbr/>Version</span><a href="#withinPatchVersion" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L976">packages/shell/src/console/webda.ts:976</a></li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="withinMinorVersion" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>within<wbr/>Minor<wbr/>Version</span><a href="#withinMinorVersion" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-<li class="tsd-signature tsd-anchor-link" id="withinPatchVersion.withinPatchVersion-1">within<wbr/>Patch<wbr/>Version<span class="tsd-signature-symbol">(</span>package1<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, package2<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><a href="#withinPatchVersion.withinPatchVersion-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="withinMinorVersion.withinMinorVersion-1">within<wbr/>Minor<wbr/>Version<span class="tsd-signature-symbol">(</span>package1<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, package2<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><a href="#withinMinorVersion.withinMinorVersion-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Return if a package is within patch version of each others</p>
+<div class="tsd-comment tsd-typography"><p>Return if a package is within minor version of each others</p>
 </div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
@@ -683,7 +706,7 @@ Run the command or display help</p>
 <h5>package2: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L929">packages/shell/src/console/webda.ts:929</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L995">packages/shell/src/console/webda.ts:995</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="worker" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>worker</span><a href="#worker" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -701,7 +724,7 @@ Run the command or display help</p>
 <h5><span class="tsd-signature-symbol">[</span>argName: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">unknown</span></h5></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">-1</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/shell/src/console/webda.ts#L319">packages/shell/src/console/webda.ts:319</a></li></ul></aside></li></ul></section></section></div>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/shell/src/console/webda.ts#L336">packages/shell/src/console/webda.ts:336</a></li></ul></aside></li></ul></section></section></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
@@ -780,6 +803,7 @@ Run the command or display help</p>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#operations" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>operations</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#output" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>output</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#parser" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>parser</a></li>
+<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#requireCompilation" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>require<wbr/>Compilation</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#rotateKeys" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>rotate<wbr/>Keys</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#schema" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>schema</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#serve" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>serve</a></li>
@@ -787,8 +811,9 @@ Run the command or display help</p>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#setDebuggerStatus" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>set<wbr/>Debugger<wbr/>Status</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#stopDebugger" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>stop<wbr/>Debugger</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#store" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>store</a></li>
+<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#stores" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>stores</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#types" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>types</a></li>
-<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#withinPatchVersion" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>within<wbr/>Patch<wbr/>Version</a></li>
+<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#withinMinorVersion" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>within<wbr/>Minor<wbr/>Version</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.WebdaConsole.html#worker" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>worker</a></li></ul></li></ul></nav></div></div>
 <div class="container tsd-generator">
 <p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div>

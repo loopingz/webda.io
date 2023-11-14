@@ -34,7 +34,7 @@
 <ul class="tsd-hierarchy">
 <li><span class="target">AggregatorService</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/aggregator.ts#L23">packages/core/src/stores/aggregator.ts:23</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/aggregator.ts#L23">packages/core/src/stores/aggregator.ts:23</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -69,7 +69,6 @@
 <a href="_webda_core.AggregatorService.html#computeParameters" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>compute<wbr/>Parameters</span></a>
 <a href="_webda_core.AggregatorService.html#createAggregate" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>create<wbr/>Aggregate</span></a>
 <a href="_webda_core.AggregatorService.html#createMapper" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>create<wbr/>Mapper</span></a>
-<a href="_webda_core.AggregatorService.html#elapse" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>elapse</span></a>
 <a href="_webda_core.AggregatorService.html#emit" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>emit</span></a>
 <a href="_webda_core.AggregatorService.html#emitSync" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>emit<wbr/>Sync</span></a>
 <a href="_webda_core.AggregatorService.html#getMapper" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>get<wbr/>Mapper</span></a>
@@ -94,6 +93,7 @@
 <a href="_webda_core.AggregatorService.html#recompute" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>recompute</span></a>
 <a href="_webda_core.AggregatorService.html#reinit" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>reinit</span></a>
 <a href="_webda_core.AggregatorService.html#resolve" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>resolve</span></a>
+<a href="_webda_core.AggregatorService.html#stop" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>stop</span></a>
 <a href="_webda_core.AggregatorService.html#toPublicJSON" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>to<wbr/>PublicJSON</span></a>
 <a href="_webda_core.AggregatorService.html#toString" class="tsd-index-link tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>to<wbr/>String</span></a>
 </div></section></div></details></section></section>
@@ -108,7 +108,7 @@
 <h4>Type Parameters</h4>
 <ul class="tsd-type-parameters">
 <li>
-<h4>T<span class="tsd-signature-symbol"> extends </span><a href="_webda_core.AggregatorParameters.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorParameters</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span> = <a href="_webda_core.AggregatorParameters.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorParameters</a></h4></li></ul></section>
+<h4>T<span class="tsd-signature-symbol"> extends </span><a href="_webda_core.AggregatorParameters.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorParameters</a> = <a href="_webda_core.AggregatorParameters.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorParameters</a></h4></li></ul></section>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
@@ -127,7 +127,7 @@
 <h4 class="tsd-returns-title">Returns <a href="_webda_core.AggregatorService.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#constructor">constructor</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L261">packages/core/src/services/service.ts:261</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L324">packages/core/src/services/service.ts:324</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Properties</h2>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="_createException" class="tsd-anchor"></a>
@@ -135,19 +135,19 @@
 <div class="tsd-signature">_create<wbr/>Exception<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_createException">_createException</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L242">packages/core/src/services/service.ts:242</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L305">packages/core/src/services/service.ts:305</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="_initException" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_init<wbr/>Exception</span><a href="#_initException" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">_init<wbr/>Exception<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> = undefined</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_initException">_initException</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L244">packages/core/src/services/service.ts:244</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L307">packages/core/src/services/service.ts:307</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="_initTime" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_init<wbr/>Time</span><a href="#_initTime" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">_init<wbr/>Time<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_initTime">_initTime</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L243">packages/core/src/services/service.ts:243</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L306">packages/core/src/services/service.ts:306</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-inherited"><a id="_name" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_name</span><a href="#_name" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">_name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
@@ -155,7 +155,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_name">_name</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L235">packages/core/src/services/service.ts:235</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L298">packages/core/src/services/service.ts:298</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-inherited"><a id="_webda" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>_webda</span><a href="#_webda" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">_webda<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Core.html" class="tsd-signature-type" data-tsd-kind="Class">Core</a><span class="tsd-signature-symbol">&lt;</span><a href="../types/_webda_core.CoreEvents.html" class="tsd-signature-type" data-tsd-kind="Type alias">CoreEvents</a><span class="tsd-signature-symbol">&gt;</span></div>
@@ -163,7 +163,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_webda">_webda</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L231">packages/core/src/services/service.ts:231</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L294">packages/core/src/services/service.ts:294</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-inherited"><a id="logger" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>logger</span><a href="#logger" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">logger<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Logger.html" class="tsd-signature-type" data-tsd-kind="Class">Logger</a></div>
@@ -171,7 +171,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#logger">logger</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L248">packages/core/src/services/service.ts:248</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L311">packages/core/src/services/service.ts:311</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-inherited"><a id="metrics" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <code class="tsd-tag ts-flagOptional">Optional</code> <span>metrics</span><a href="#metrics" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">metrics<span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">any</span></div>
@@ -179,7 +179,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#metrics">metrics</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L252">packages/core/src/services/service.ts:252</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L315">packages/core/src/services/service.ts:315</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected tsd-is-inherited"><a id="parameters" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>parameters</span><a href="#parameters" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">parameters<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></div>
@@ -188,19 +188,19 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#parameters">parameters</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L241">packages/core/src/services/service.ts:241</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L304">packages/core/src/services/service.ts:304</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="sourceService" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>source<wbr/>Service</span><a href="#sourceService" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">source<wbr/>Service<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Store.html" class="tsd-signature-type" data-tsd-kind="Class">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type" data-tsd-kind="Class">StoreParameters</a><span class="tsd-signature-symbol">, </span><a href="../types/_webda_core.StoreEvents.html" class="tsd-signature-type" data-tsd-kind="Type alias">StoreEvents</a><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#sourceService">sourceService</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L71">packages/core/src/stores/mapper.ts:71</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L71">packages/core/src/stores/mapper.ts:71</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="targetStore" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>target<wbr/>Store</span><a href="#targetStore" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">target<wbr/>Store<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Store.html" class="tsd-signature-type" data-tsd-kind="Class">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-symbol">{ </span><br/><span>    </span>[key: <span class="tsd-signature-type">string</span>]<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">; </span><br/><span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type" data-tsd-kind="Class">StoreParameters</a><span class="tsd-signature-symbol">, </span><a href="../types/_webda_core.StoreEvents.html" class="tsd-signature-type" data-tsd-kind="Type alias">StoreEvents</a><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#targetStore">targetStore</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L68">packages/core/src/stores/mapper.ts:68</a></li></ul></aside></section></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L68">packages/core/src/stores/mapper.ts:68</a></li></ul></aside></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Methods</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="__clean" class="tsd-anchor"></a>
@@ -214,11 +214,11 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#__clean">__clean</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L566">packages/core/src/services/service.ts:566</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L605">packages/core/src/services/service.ts:605</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="_handleCreatedMap" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_handle<wbr/>Created<wbr/>Map</span><a href="#_handleCreatedMap" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-<li class="tsd-signature tsd-anchor-link" id="_handleCreatedMap._handleCreatedMap-1">_handle<wbr/>Created<wbr/>Map<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleCreatedMap._handleCreatedMap-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="_handleCreatedMap._handleCreatedMap-1">_handle<wbr/>Created<wbr/>Map<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleCreatedMap._handleCreatedMap-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Add the mapper for a newly created object</p>
 
@@ -230,14 +230,14 @@
 <h5>source: <a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a></h5></li>
 <li>
 <h5>target: <a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a></h5></li></ul></div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_handleCreatedMap">_handleCreatedMap</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L240">packages/core/src/stores/mapper.ts:240</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L240">packages/core/src/stores/mapper.ts:240</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="_handleDeletedMap" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_handle<wbr/>Deleted<wbr/>Map</span><a href="#_handleDeletedMap" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-<li class="tsd-signature tsd-anchor-link" id="_handleDeletedMap._handleDeletedMap-1">_handle<wbr/>Deleted<wbr/>Map<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleDeletedMap._handleDeletedMap-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="_handleDeletedMap._handleDeletedMap-1">_handle<wbr/>Deleted<wbr/>Map<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleDeletedMap._handleDeletedMap-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Remove the mapper for a deleted object</p>
 
@@ -249,10 +249,10 @@
 <h5>source: <a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a></h5></li>
 <li>
 <h5>target: <a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a></h5></li></ul></div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_handleDeletedMap">_handleDeletedMap</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L216">packages/core/src/stores/mapper.ts:216</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L216">packages/core/src/stores/mapper.ts:216</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="_handleMapFromPartial" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_handle<wbr/>Map<wbr/>From<wbr/>Partial</span><a href="#_handleMapFromPartial" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -272,11 +272,11 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_handleMapFromPartial">_handleMapFromPartial</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L263">packages/core/src/stores/mapper.ts:263</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L263">packages/core/src/stores/mapper.ts:263</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="_handleUpdatedMap" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_handle<wbr/>Updated<wbr/>Map</span><a href="#_handleUpdatedMap" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-<li class="tsd-signature tsd-anchor-link" id="_handleUpdatedMap._handleUpdatedMap-1">_handle<wbr/>Updated<wbr/>Map<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleUpdatedMap._handleUpdatedMap-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="_handleUpdatedMap._handleUpdatedMap-1">_handle<wbr/>Updated<wbr/>Map<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleUpdatedMap._handleUpdatedMap-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Update a mapper after source object was modified</p>
 
@@ -290,14 +290,14 @@
 <h5>target: <a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a></h5></li>
 <li>
 <h5>updates: <span class="tsd-signature-type">any</span></h5></li></ul></div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_handleUpdatedMap">_handleUpdatedMap</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L172">packages/core/src/stores/mapper.ts:172</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L172">packages/core/src/stores/mapper.ts:172</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="_handleUpdatedMapMapper" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>_handle<wbr/>Updated<wbr/>Map<wbr/>Mapper</span><a href="#_handleUpdatedMapMapper" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-<li class="tsd-signature tsd-anchor-link" id="_handleUpdatedMapMapper._handleUpdatedMapMapper-1">_handle<wbr/>Updated<wbr/>Map<wbr/>Mapper<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, mapper<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.Mapper.html" class="tsd-signature-type" data-tsd-kind="Interface">Mapper</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleUpdatedMapMapper._handleUpdatedMapMapper-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="_handleUpdatedMapMapper._handleUpdatedMapMapper-1">_handle<wbr/>Updated<wbr/>Map<wbr/>Mapper<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, target<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a>, mapper<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.Mapper.html" class="tsd-signature-type" data-tsd-kind="Interface">Mapper</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span><a href="#_handleUpdatedMapMapper._handleUpdatedMapMapper-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Update a mapper after source object was modified without change in target</p>
 
@@ -311,10 +311,10 @@
 <h5>target: <a href="_webda_core.CoreModel.html" class="tsd-signature-type" data-tsd-kind="Class">CoreModel</a></h5></li>
 <li>
 <h5>mapper: <a href="../interfaces/_webda_core.Mapper.html" class="tsd-signature-type" data-tsd-kind="Interface">Mapper</a></h5></li></ul></div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#_handleUpdatedMapMapper">_handleUpdatedMapMapper</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L191">packages/core/src/stores/mapper.ts:191</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L191">packages/core/src/stores/mapper.ts:191</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected tsd-is-inherited"><a id="addRoute" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>add<wbr/>Route</span><a href="#addRoute" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected tsd-is-inherited">
@@ -342,7 +342,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#addRoute">addRoute</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L380">packages/core/src/services/service.ts:380</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L453">packages/core/src/services/service.ts:453</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="computeParameters" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>compute<wbr/>Parameters</span><a href="#computeParameters" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -353,7 +353,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#computeParameters">computeParameters</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L279">packages/core/src/services/service.ts:279</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L342">packages/core/src/services/service.ts:342</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="createAggregate" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>create<wbr/>Aggregate</span><a href="#createAggregate" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -363,7 +363,7 @@
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/aggregator.ts#L44">packages/core/src/stores/aggregator.ts:44</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/aggregator.ts#L44">packages/core/src/stores/aggregator.ts:44</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="createMapper" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>create<wbr/>Mapper</span><a href="#createMapper" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -387,23 +387,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">[</span>mapper<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.Mapper.html" class="tsd-signature-type" data-tsd-kind="Interface">Mapper</a><span class="tsd-signature-symbol">, </span>found<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">]</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#createMapper">createMapper</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L146">packages/core/src/stores/mapper.ts:146</a></li></ul></aside></li></ul></section>
-<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="elapse" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><span>elapse</span><a href="#elapse" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
-<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-<li class="tsd-signature tsd-anchor-link" id="elapse.elapse-1">elapse<span class="tsd-signature-symbol">(</span>start<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><a href="#elapse.elapse-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
-<li class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Display a message if the listener takes too long</p>
-</div>
-<div class="tsd-parameters">
-<h4 class="tsd-parameters-title">Parameters</h4>
-<ul class="tsd-parameter-list">
-<li>
-<h5>start: <span class="tsd-signature-type">number</span></h5></li></ul></div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
-<p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#elapse">elapse</a></p>
-<ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L479">packages/core/src/services/service.ts:479</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L146">packages/core/src/stores/mapper.ts:146</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="emit" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>emit</span><a href="#emit" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -426,7 +410,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#emit">emit</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L515">packages/core/src/services/service.ts:515</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L559">packages/core/src/services/service.ts:559</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="emitSync" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>emit<wbr/>Sync</span><a href="#emitSync" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -449,7 +433,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#emitSync">emitSync</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L489">packages/core/src/services/service.ts:489</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L551">packages/core/src/services/service.ts:551</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getMapper" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Mapper</span><a href="#getMapper" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -468,11 +452,11 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getMapper">getMapper</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L129">packages/core/src/stores/mapper.ts:129</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L129">packages/core/src/stores/mapper.ts:129</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getMetric" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Metric</span><a href="#getMetric" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-<li class="tsd-signature tsd-anchor-link" id="getMetric.getMetric-1">get<wbr/>Metric<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><a href="../types/_webda_core.Constructor.html" class="tsd-signature-type" data-tsd-kind="Type alias">Constructor</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-symbol">[</span><a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span>, configuration<span class="tsd-signature-symbol">: </span><a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><a href="#getMetric.getMetric-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-signature tsd-anchor-link" id="getMetric.getMetric-1">get<wbr/>Metric<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><a href="../types/_webda_core.Constructor.html" class="tsd-signature-type" data-tsd-kind="Type alias">Constructor</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-symbol">[</span><a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span>, configuration<span class="tsd-signature-symbol">: </span><a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><a href="#getMetric.getMetric-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Add service name label</p>
 
@@ -486,13 +470,13 @@
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
-<h5>type: <a href="../types/_webda_core.Constructor.html" class="tsd-signature-type" data-tsd-kind="Type alias">Constructor</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-symbol">[</span><a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></h5></li>
+<h5>type: <a href="../types/_webda_core.Constructor.html" class="tsd-signature-type" data-tsd-kind="Type alias">Constructor</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-symbol">[</span><a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></h5></li>
 <li>
-<h5>configuration: <a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h5></li></ul></div>
+<h5>configuration: <a href="../types/_webda_core.MetricConfiguration.html" class="tsd-signature-type" data-tsd-kind="Type alias">MetricConfiguration</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getMetric">getMetric</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L334">packages/core/src/services/service.ts:334</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L404">packages/core/src/services/service.ts:404</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getName" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Name</span><a href="#getName" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -503,7 +487,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getName">getName</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L557">packages/core/src/services/service.ts:557</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L596">packages/core/src/services/service.ts:596</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getOpenApiReplacements" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Open<wbr/>Api<wbr/>Replacements</span><a href="#getOpenApiReplacements" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -515,7 +499,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getOpenApiReplacements">getOpenApiReplacements</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L405">packages/core/src/services/service.ts:405</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L478">packages/core/src/services/service.ts:478</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getOperationId" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Operation<wbr/>Id</span><a href="#getOperationId" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -532,7 +516,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getOperationId">getOperationId</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L369">packages/core/src/services/service.ts:369</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L442">packages/core/src/services/service.ts:442</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getParameters" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Parameters</span><a href="#getParameters" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -543,7 +527,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getParameters">getParameters</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L286">packages/core/src/services/service.ts:286</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L349">packages/core/src/services/service.ts:349</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getService" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Service</span><a href="#getService" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -555,7 +539,7 @@
 <h4>Type Parameters</h4>
 <ul class="tsd-type-parameters">
 <li>
-<h4>K<span class="tsd-signature-symbol"> extends </span><a href="_webda_core.Service.html" class="tsd-signature-type" data-tsd-kind="Class">Service</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.ServiceParameters.html" class="tsd-signature-type" data-tsd-kind="Class">ServiceParameters</a><span class="tsd-signature-symbol">, </span><a href="../types/_webda_core.Events.html" class="tsd-signature-type" data-tsd-kind="Type alias">Events</a><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">K</span><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></section>
+<h4>K<span class="tsd-signature-symbol"> extends </span><a href="_webda_core.Service.html" class="tsd-signature-type" data-tsd-kind="Class">Service</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.ServiceParameters.html" class="tsd-signature-type" data-tsd-kind="Class">ServiceParameters</a><span class="tsd-signature-symbol">, </span><a href="../types/_webda_core.Events.html" class="tsd-signature-type" data-tsd-kind="Type alias">Events</a><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></section>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
@@ -566,7 +550,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">K</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getService">getService</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L550">packages/core/src/services/service.ts:550</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L589">packages/core/src/services/service.ts:589</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getUrl" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Url</span><a href="#getUrl" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -590,7 +574,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getUrl">getUrl</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L350">packages/core/src/services/service.ts:350</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L420">packages/core/src/services/service.ts:420</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="getWebda" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Webda</span><a href="#getWebda" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -601,7 +585,7 @@
 <h4 class="tsd-returns-title">Returns <a href="_webda_core.Core.html" class="tsd-signature-type" data-tsd-kind="Class">Core</a><span class="tsd-signature-symbol">&lt;</span><a href="../types/_webda_core.CoreEvents.html" class="tsd-signature-type" data-tsd-kind="Type alias">CoreEvents</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#getWebda">getWebda</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L293">packages/core/src/services/service.ts:293</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L356">packages/core/src/services/service.ts:356</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="handleMap" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>handle<wbr/>Map</span><a href="#handleMap" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -620,7 +604,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#handleMap">handleMap</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/aggregator.ts#L59">packages/core/src/stores/aggregator.ts:59</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/aggregator.ts#L59">packages/core/src/stores/aggregator.ts:59</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="init" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>init</span><a href="#init" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -632,7 +616,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.AggregatorService.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#init">init</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/aggregator.ts#L29">packages/core/src/stores/aggregator.ts:29</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/aggregator.ts#L29">packages/core/src/stores/aggregator.ts:29</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="initMetrics" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>init<wbr/>Metrics</span><a href="#initMetrics" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -643,7 +627,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#initMetrics">initMetrics</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L324">packages/core/src/services/service.ts:324</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L394">packages/core/src/services/service.ts:394</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="initOperations" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>init<wbr/>Operations</span><a href="#initOperations" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -654,7 +638,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#initOperations">initOperations</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L426">packages/core/src/services/service.ts:426</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L499">packages/core/src/services/service.ts:499</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="initRoutes" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>init<wbr/>Routes</span><a href="#initRoutes" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -665,7 +649,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#initRoutes">initRoutes</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L412">packages/core/src/services/service.ts:412</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L485">packages/core/src/services/service.ts:485</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="isMapped" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>is<wbr/>Mapped</span><a href="#isMapped" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -682,7 +666,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#isMapped">isMapped</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L252">packages/core/src/stores/mapper.ts:252</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L252">packages/core/src/stores/mapper.ts:252</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="loadParameters" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>load<wbr/>Parameters</span><a href="#loadParameters" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -696,7 +680,7 @@
 <h4 class="tsd-returns-title">Returns <a href="_webda_core.AggregatorParameters.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorParameters</a></h4><aside class="tsd-sources">
 <p>Overrides <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#loadParameters">loadParameters</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/aggregator.ts#L37">packages/core/src/stores/aggregator.ts:37</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/aggregator.ts#L37">packages/core/src/stores/aggregator.ts:37</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="log" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>log</span><a href="#log" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -714,7 +698,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#log">log</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L586">packages/core/src/services/service.ts:586</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L625">packages/core/src/services/service.ts:625</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="on" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>on</span><a href="#on" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -749,7 +733,7 @@
 <h4 class="tsd-returns-title">Returns <a href="_webda_core.AggregatorService.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#on">on</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L531">packages/core/src/services/service.ts:531</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L570">packages/core/src/services/service.ts:570</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="onAsync" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>on<wbr/>Async</span><a href="#onAsync" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -787,7 +771,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#onAsync">onAsync</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L542">packages/core/src/services/service.ts:542</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L581">packages/core/src/services/service.ts:581</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="recompute" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>recompute</span><a href="#recompute" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -798,7 +782,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#recompute">recompute</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L347">packages/core/src/stores/mapper.ts:347</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L347">packages/core/src/stores/mapper.ts:347</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="reinit" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>reinit</span><a href="#reinit" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -814,7 +798,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.AggregatorService.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#reinit">reinit</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L469">packages/core/src/services/service.ts:469</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L542">packages/core/src/services/service.ts:542</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="resolve" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>resolve</span><a href="#resolve" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -823,7 +807,18 @@
 <h4 class="tsd-returns-title">Returns <a href="_webda_core.AggregatorService.html" class="tsd-signature-type" data-tsd-kind="Class">AggregatorService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">T</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#resolve">resolve</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/stores/mapper.ts#L83">packages/core/src/stores/mapper.ts:83</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/stores/mapper.ts#L83">packages/core/src/stores/mapper.ts:83</a></li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="stop" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><span>stop</span><a href="#stop" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+<li class="tsd-signature tsd-anchor-link" id="stop.stop-1">stop<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span><a href="#stop.stop-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Shutdown the current service if action need to be taken</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#stop">stop</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L363">packages/core/src/services/service.ts:363</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="toPublicJSON" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>to<wbr/>PublicJSON</span><a href="#toPublicJSON" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -843,7 +838,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#toPublicJSON">toPublicJSON</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L450">packages/core/src/services/service.ts:450</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L523">packages/core/src/services/service.ts:523</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="toString" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>to<wbr/>String</span><a href="#toString" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -854,7 +849,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_webda_core.MapperService.html">MapperService</a>.<a href="_webda_core.MapperService.html#toString">toString</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/67704355/packages/core/src/services/service.ts#L300">packages/core/src/services/service.ts:300</a></li></ul></aside></li></ul></section></section></div>
+<li>Defined in <a href="https://github.com/loopingz/webda.io/blob/534c3e9/packages/core/src/services/service.ts#L370">packages/core/src/services/service.ts:370</a></li></ul></aside></li></ul></section></section></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
@@ -919,7 +914,6 @@
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#computeParameters" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>compute<wbr/>Parameters</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.AggregatorService.html#createAggregate" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>create<wbr/>Aggregate</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#createMapper" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>create<wbr/>Mapper</a></li>
-<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#elapse" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>elapse</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#emit" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>emit</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#emitSync" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>emit<wbr/>Sync</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#getMapper" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>get<wbr/>Mapper</a></li>
@@ -944,6 +938,7 @@
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#recompute" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>recompute</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#reinit" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>reinit</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#resolve" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>resolve</a></li>
+<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#stop" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>stop</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#toPublicJSON" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>to<wbr/>PublicJSON</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AggregatorService.html#toString" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>to<wbr/>String</a></li></ul></li></ul></nav></div></div>
 <div class="container tsd-generator">

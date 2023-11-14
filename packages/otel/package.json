@@ -58,6 +58,9 @@
       "test/**/*"
     ]
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"
   },

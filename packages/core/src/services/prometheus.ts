@@ -160,6 +160,10 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
     if (!this.parameters.portNumber) {
       this.addRoute(this.parameters.url || "/metrics", ["GET"], this.serveMetrics);
     } else {
+      this.log(
+        "INFO",
+        `Listening for prometheus scraper on ${this.parameters.bind || ""}:${this.parameters.portNumber}`
+      );
       this.http = http
         .createServer(async (req, res) => {
           if (req.method === "GET" && req.url === this.parameters.url) {

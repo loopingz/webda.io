@@ -58,7 +58,7 @@
     "unzipper": "^0.10.11",
     "yaml": "^2.0.0",
     "yargs": "^17.0.1",
-    "yeoman-environment": "^3.5.1"
+    "yeoman-environment": "^4.1.3"
   },
   "c8": {
     "report-dir": "./reports",

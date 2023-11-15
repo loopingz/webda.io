@@ -642,7 +642,10 @@ export class Application {
    * Get model graph
    */
   getRelations(model: string | Constructor<CoreModel> | CoreModel) {
-    return this.getGraph()[typeof model === "string" ? this.completeNamespace(model) : this.getModelName(model)] || {};
+    const name = typeof model === "string" ? this.completeNamespace(model) : this.getModelName(model);
+    // Get relations should not be case-sensitive until v4
+    const key = Object.keys(this.graph).find(k => k?.toLowerCase() === name?.toLowerCase());
+    return this.getGraph()[key] || {};
   }
 
   /**

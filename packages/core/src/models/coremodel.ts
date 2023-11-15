@@ -39,7 +39,7 @@ export function Expose(params: Partial<ExposeParameters> = {}) {
 /**
  *
  */
-class CoreModelQuery {
+export class CoreModelQuery {
   @NotEnumerable
   private type: string;
   @NotEnumerable

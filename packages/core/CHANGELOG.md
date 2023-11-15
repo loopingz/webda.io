@@ -19,6 +19,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.8.1](https://github.com/loopingz/webda.io/compare/core-v3.8.0...core-v3.8.1) (2023-11-15)
+
+
+### Bug Fixes
+
+* getGraph case insensitive ([a35ea49](https://github.com/loopingz/webda.io/commit/a35ea49ad5f0e676f0c483ae2a23ab90fe0c4315))
+
 ## [3.8.0](https://github.com/loopingz/webda.io/compare/core-v3.7.0...core-v3.8.0) (2023-11-14)
 
 

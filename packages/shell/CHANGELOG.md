@@ -24,6 +24,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.2.1 to ^3.2.2
     * @webda/kubernetes bumped from ^3.0.7 to ^3.0.8
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.8.0 to ^3.8.1
+    * @webda/kubernetes bumped from ^3.2.1 to ^3.2.2
+
 ## [3.6.0](https://github.com/loopingz/webda.io/compare/shell-v3.5.0...shell-v3.6.0) (2023-11-14)
 
 

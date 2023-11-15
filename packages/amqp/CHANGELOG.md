@@ -64,6 +64,14 @@
   * devDependencies
     * @webda/shell bumped from ^3.5.0 to ^3.6.0
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.8.0 to ^3.8.1
+  * devDependencies
+    * @webda/shell bumped from ^3.6.0 to ^3.6.1
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/amqp-v3.0.12...amqp-v3.1.0) (2023-11-12)
 
 

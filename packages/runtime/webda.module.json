@@ -1,0 +1,148 @@
+{
+  "beans": {},
+  "deployers": {},
+  "moddas": {
+    "Webda/MigrationStore": "lib/stores/migration:MigrationStore"
+  },
+  "models": {
+    "graph": {},
+    "tree": {},
+    "plurals": {},
+    "list": {},
+    "reflections": {}
+  },
+  "schemas": {
+    "Webda/MigrationStore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "additionalModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional models\n\nAllow this store to manage other models",
+          "default": []
+        },
+        "asyncDelete": {
+          "type": "boolean",
+          "description": "async delete"
+        },
+        "expose": {
+          "$ref": "#/definitions/StoreExposeParameters",
+          "description": "Expose the service to an urls",
+          "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
+          "default": false
+        },
+        "defaultModel": {
+          "type": "boolean",
+          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
+          "default": true
+        },
+        "forceModel": {
+          "type": "boolean",
+          "description": "If set, Store will ignore the __type",
+          "default": false
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
+        },
+        "modelAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model Aliases to allow easier rename of Model"
+        },
+        "from": {
+          "type": "string",
+          "description": "From store"
+        },
+        "to": {
+          "type": "string",
+          "description": "To store"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "asyncDelete",
+        "from",
+        "slowQueryThreshold",
+        "to",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "StoreExposeParameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL endpoint to use to expose REST Resources API",
+              "default": "service.getName().toLowerCase()"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Do not expose the POST"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Do not expose the PUT and PATCH"
+                },
+                "get": {
+                  "type": "boolean",
+                  "description": "Do not expose the GET"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Do not expose the DELETE"
+                },
+                "query": {
+                  "type": "boolean",
+                  "description": "Do not expose the query endpoint"
+                }
+              },
+              "description": "You can restrict any part of the CRUD",
+              "default": {}
+            },
+            "queryMethod": {
+              "type": "string",
+              "enum": [
+                "PUT",
+                "GET"
+              ],
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
+              "default": "GET"
+            }
+          },
+          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
+        }
+      },
+      "title": "MigrationStore"
+    }
+  }
+}

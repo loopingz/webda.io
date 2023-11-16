@@ -1678,7 +1678,11 @@ abstract class Store<
    * @param name
    * @param patcher
    */
-  async migration(name: string, patcher: (object: T) => Promise<Partial<T> | undefined>, batchSize: number = 500) {
+  async migration(
+    name: string,
+    patcher: (object: T) => Promise<Partial<T> | (() => Promise<void>) | undefined>,
+    batchSize: number = 500
+  ) {
     let status: RegistryEntry<{
       continuationToken?: string;
       count: number;
@@ -1697,9 +1701,13 @@ abstract class Store<
         let updated = await patcher(item);
         if (updated !== undefined) {
           status.updated++;
-          worker.queue(async () => {
-            await item.patch(updated, null);
-          });
+          if (typeof updated === "function") {
+            worker.queue(updated);
+          } else {
+            worker.queue(async () => {
+              await item.patch(<Partial<T>>updated, null);
+            });
+          }
         }
       }
       this.log(
@@ -1707,7 +1715,7 @@ abstract class Store<
         `storeMigration.${this.getName()}.${name}: Migrated ${status.count} items: ${status.updated} updated`
       );
       status.continuationToken = res.continuationToken;
-      await worker.waitForCompletion();
+      await worker.wait();
       await status.save();
     } while (status.continuationToken);
   }

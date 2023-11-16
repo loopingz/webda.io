@@ -11,6 +11,10 @@ class PostgresParameters extends SQLStoreParameters {
    * By default use environment variables
    */
   postgresqlServer?: ClientConfig | PoolConfig;
+  /**
+   * Auto create table if not exists
+   */
+  autoCreateTable?: boolean;
 }
 
 /**
@@ -52,8 +56,21 @@ export default class PostgresStore<
       this.client = new pg.Client(this.parameters.postgresqlServer);
     }
     await this.client.connect();
+    await this.checkTable();
     await super.init();
     return this;
+  }
+
+  /**
+   * Ensure your table exists
+   */
+  async checkTable() {
+    if (!this.parameters.autoCreateTable) {
+      return;
+    }
+    await this.sqlQuery(
+      `CREATE TABLE IF NOT EXISTS ${this.parameters.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.parameters.table}_pkey PRIMARY KEY (uuid))`
+    );
   }
 
   /**

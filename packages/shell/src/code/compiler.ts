@@ -948,12 +948,12 @@ export class Compiler {
             captureNext = children[i].kind === ts.SyntaxKind.ColonToken;
           }
 
-          reflections[name][prop.escapedName.toString()] = type?.getText() || "unknown";
+          reflections[name][prop.getName()] = type?.getText() || "unknown";
           if (pType) {
             const addLinkToGraph = (type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY") => {
               graph[name].links ??= [];
               graph[name].links.push({
-                attribute: prop.escapedName.toString(),
+                attribute: prop.getName(),
                 model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
                 type
               });
@@ -961,14 +961,14 @@ export class Compiler {
             switch (pType.typeName.getText()) {
               case "ModelParent":
                 graph[name].parent = {
-                  attribute: prop.escapedName.toString(),
+                  attribute: prop.getName(),
                   model: this.getTypeIdFromTypeNode(pType.typeArguments[0])
                 };
                 break;
               case "ModelRelated":
                 graph[name].queries ??= [];
                 graph[name].queries.push({
-                  attribute: prop.escapedName.toString(),
+                  attribute: prop.getName(),
                   model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
                   targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
                 });
@@ -977,7 +977,7 @@ export class Compiler {
                 graph[name].maps ??= [];
                 const cascadeDelete = prop.getJsDocTags().find(p => p.name === "CascadeDelete") !== undefined;
                 const map = {
-                  attribute: prop.escapedName.toString(),
+                  attribute: prop.getName(),
                   cascadeDelete,
                   // @ts-ignore
                   model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
@@ -1008,14 +1008,14 @@ export class Compiler {
               case "Binary":
                 graph[name].binaries ??= [];
                 graph[name].binaries.push({
-                  attribute: prop.escapedName.toString(),
+                  attribute: prop.getName(),
                   cardinality: "ONE"
                 });
                 break;
               case "Binaries":
                 graph[name].binaries ??= [];
                 graph[name].binaries.push({
-                  attribute: prop.escapedName.toString(),
+                  attribute: prop.getName(),
                   cardinality: "MANY"
                 });
                 break;

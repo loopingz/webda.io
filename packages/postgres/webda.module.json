@@ -2116,6 +2116,10 @@
           ],
           "description": "By default use environment variables"
         },
+        "autoCreateTable": {
+          "type": "boolean",
+          "description": "Auto create table if not exists"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true

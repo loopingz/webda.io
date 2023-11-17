@@ -29,15 +29,15 @@
         "units": "any[]",
         "_type": "string",
         "callback": "any",
-        "___class": "CoreModelDefinition<this>",
-        "___type": "string",
-        "___types": "string[]",
-        "___ctx": "OperationContext",
-        "___store": "Store<this>",
-        "___dirty": "Set<string | symbol>",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
         "_creationDate": "Date",
         "_lastUpdate": "Date",
-        "___deleted": "boolean"
+        "__deleted": "boolean"
       }
     }
   },

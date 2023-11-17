@@ -266,6 +266,13 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
   }
 
   /**
+   * Get into a buffer
+   */
+  async getAsBuffer(): Promise<Buffer> {
+    return BinaryService.streamToBuffer(await this.get());
+  }
+
+  /**
    * Download the binary to a path
    *
    * Shortcut to call {@link Binary.downloadTo} with current object

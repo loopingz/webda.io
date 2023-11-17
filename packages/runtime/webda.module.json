@@ -5,13 +5,60 @@
     "Webda/MigrationStore": "lib/stores/migration:MigrationStore"
   },
   "models": {
-    "graph": {},
-    "tree": {},
+    "graph": {
+      "Webda/BinaryModel": {
+        "binaries": [
+          {
+            "attribute": "__binary",
+            "cardinality": "ONE"
+          }
+        ]
+      }
+    },
+    "tree": {
+      "Webda/BinaryModel": {}
+    },
     "plurals": {},
-    "list": {},
-    "reflections": {}
+    "list": {
+      "Webda/BinaryModel": "lib/models/binarymodel:BinaryModel"
+    },
+    "reflections": {
+      "Webda/BinaryModel": {
+        "__data": "T",
+        "__binary": "Binary",
+        "__dataUpdated": "boolean",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      }
+    }
   },
   "schemas": {
+    "Webda/BinaryModel": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BinaryModel"
+    },
     "Webda/MigrationStore": {
       "type": "object",
       "properties": {

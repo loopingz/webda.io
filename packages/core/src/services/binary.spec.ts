@@ -183,7 +183,9 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
     // cov
     let buf2 = await BinaryService.streamToBuffer(await binary._get(user1[map][0]));
 
+    const buf3 = await user1[map][0].getAsBuffer();
     assert.strictEqual(buf1.toString(), buf2.toString());
+    assert.strictEqual(buf1.toString(), buf3.toString());
     this.log("DEBUG", "Delete CoreModel and ensure usage count");
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);

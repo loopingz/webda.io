@@ -45,7 +45,6 @@ export class Ident extends OwnerModel {
    * Provider id
    */
   provider?: string;
-  
 
   static init(
     type: string,

@@ -8,12 +8,10 @@ import {
   Methods,
   ModelAction,
   OperationDefinition,
-  Route,
   Service,
   ServiceParameters,
   Store,
-  WebContext,
-  WebdaError
+  WebContext
 } from "../index";
 import { TransformCase, TransformCaseType } from "../utils/case";
 
@@ -378,6 +376,9 @@ export class RESTDomainService<
   resolve() {
     this.parameters.exposeOpenAPI ??= this.getWebda().isDebug();
     super.resolve();
+    if (this.parameters.exposeOpenAPI) {
+      this.addRoute(".", ["GET"], this.openapi, { hidden: true });
+    }
     return this;
   }
 
@@ -542,11 +543,7 @@ export class RESTDomainService<
    * Serve the openapi with the swagger-ui
    * @param ctx
    */
-  @Route(".", ["GET"], { hidden: true })
   async openapi(ctx: WebContext) {
-    if (!this.parameters.exposeOpenAPI) {
-      throw new WebdaError.NotFound("OpenAPI not available");
-    }
     this.openapiContent ??= swagger.replace("{{OPENAPI}}", JSON.stringify(this.getWebda().exportOpenAPI(true)));
     ctx.write(this.openapiContent);
   }

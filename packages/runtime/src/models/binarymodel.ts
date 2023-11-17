@@ -1,4 +1,4 @@
-import { Binary, Core, CoreModel, MemoryBinaryFile, NotEnumerable } from "@webda/core";
+import { Binary, CoreModel, MemoryBinaryFile, NotEnumerable } from "@webda/core";
 import { gunzipSync, gzipSync } from "zlib";
 export class BinaryModel<T = any> extends CoreModel {
   @NotEnumerable

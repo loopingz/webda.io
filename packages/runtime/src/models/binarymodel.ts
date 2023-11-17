@@ -1,5 +1,5 @@
 import { Binary, Core, CoreModel, MemoryBinaryFile, NotEnumerable } from "@webda/core";
-
+import { gunzipSync, gzipSync } from "zlib";
 export class BinaryModel<T = any> extends CoreModel {
   @NotEnumerable
   __data: T;
@@ -64,7 +64,7 @@ export class BinaryModel<T = any> extends CoreModel {
     if (this.__data && !force) {
       return;
     }
-    this.__data = JSON.parse((await this.__binary.getAsBuffer()).toString());
+    this.__data = JSON.parse(gunzipSync(await this.__binary.getAsBuffer()).toString());
   }
 
   async save() {
@@ -77,7 +77,11 @@ export class BinaryModel<T = any> extends CoreModel {
     if (!this.__dataUpdated) {
       return;
     }
-    await this.__binary.upload(new MemoryBinaryFile(JSON.stringify(this.__data)));
+    await this.__binary.upload(
+      new MemoryBinaryFile(gzipSync(Buffer.from(JSON.stringify(this.__data))), {
+        name: `data.json.gz`
+      })
+    );
     this.__dataUpdated = false;
   }
 }

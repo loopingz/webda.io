@@ -1,13 +1,13 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync, unlinkSync } from "fs";
+import sinon from "sinon";
 import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User, WebdaError } from "../index";
 import { HttpContext } from "../utils/httpcontext";
 import { JSONUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import { WebdaQL } from "./webdaql/query";
-import sinon from "sinon";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -252,6 +252,10 @@ class MemoryStoreTest extends StoreTest {
     });
     await usersStore.getMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
     await usersStore.cancelMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
+
+    await usersStore.migration("test", async () => {
+      return async () => {};
+    });
   }
 
   @test

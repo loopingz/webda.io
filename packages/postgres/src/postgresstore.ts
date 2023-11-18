@@ -68,7 +68,7 @@ export default class PostgresStore<
     if (!this.parameters.autoCreateTable) {
       return;
     }
-    await this.sqlQuery(
+    await this.client.query(
       `CREATE TABLE IF NOT EXISTS ${this.parameters.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.parameters.table}_pkey PRIMARY KEY (uuid))`
     );
   }
@@ -87,7 +87,7 @@ export default class PostgresStore<
    * @param query
    * @returns
    */
-  async executeQuery(query: string, values: any[]): Promise<SQLResult<T>> {
+  async executeQuery(query: string, values: any[] = []): Promise<SQLResult<T>> {
     this.log("DEBUG", "Query", query);
     let res = await this.client.query(query, values);
     return {

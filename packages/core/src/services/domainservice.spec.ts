@@ -377,14 +377,16 @@ class DomainServiceTest extends WebdaTest {
       url: "/openapi"
     });
     assert.ok(result.includes('spec = {"openapi"'));
+    this.webda.getRouter().removeRoute("/openapi");
     rest.getParameters().exposeOpenAPI = false;
+    await rest.resolve().init();
     await assert.rejects(
       () =>
         this.http({
           method: "GET",
           url: "/openapi"
         }),
-      /OpenAPI not available/
+      /route not found/
     );
   }
 }

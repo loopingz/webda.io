@@ -19,6 +19,20 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.9.0](https://github.com/loopingz/webda.io/compare/core-v3.8.1...core-v3.9.0) (2023-11-18)
+
+
+### Features
+
+* add a BinaryModel for big json ([7849fac](https://github.com/loopingz/webda.io/commit/7849facb86118ee1d2eb19fc0479ba1ea769901f))
+* allow return of async function for StoreMigration ([baebc5f](https://github.com/loopingz/webda.io/commit/baebc5fe781a5030b73059a53a4e39ad2b4dcc6e))
+
+
+### Bug Fixes
+
+* avoid exposing OpenAPI root if not defined ([e525412](https://github.com/loopingz/webda.io/commit/e52541277f7e6e2d3a9f0974ea0c2ab46492435c))
+* links with __ prefix misplaced with ___ by escapeName ([6a5a8b9](https://github.com/loopingz/webda.io/commit/6a5a8b91ae9e02d65b0a8db6c3647d5108de104f))
+
 ## [3.8.1](https://github.com/loopingz/webda.io/compare/core-v3.8.0...core-v3.8.1) (2023-11-15)
 
 

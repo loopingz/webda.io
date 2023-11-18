@@ -40,6 +40,27 @@
   * devDependencies
     * @webda/shell bumped from ^3.6.0 to ^3.6.1
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/postgres-v3.1.2...postgres-v3.2.0) (2023-11-18)
+
+
+### Features
+
+* add autoCreate table ([67678bd](https://github.com/loopingz/webda.io/commit/67678bdf0b7e039eeb6909d06c25e7076b0453bb))
+
+
+### Bug Fixes
+
+* links with __ prefix misplaced with ___ by escapeName ([6a5a8b9](https://github.com/loopingz/webda.io/commit/6a5a8b91ae9e02d65b0a8db6c3647d5108de104f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.8.1 to ^3.9.0
+  * devDependencies
+    * @webda/shell bumped from ^3.6.1 to ^3.6.2
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/postgres-v3.0.12...postgres-v3.1.0) (2023-11-12)
 
 

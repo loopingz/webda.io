@@ -31,6 +31,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.8.0 to ^3.8.1
     * @webda/kubernetes bumped from ^3.2.1 to ^3.2.2
 
+## [3.6.2](https://github.com/loopingz/webda.io/compare/shell-v3.6.1...shell-v3.6.2) (2023-11-18)
+
+
+### Bug Fixes
+
+* links with __ prefix misplaced with ___ by escapeName ([6a5a8b9](https://github.com/loopingz/webda.io/commit/6a5a8b91ae9e02d65b0a8db6c3647d5108de104f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.8.1 to ^3.9.0
+    * @webda/kubernetes bumped from ^3.2.2 to ^3.2.3
+
 ## [3.6.0](https://github.com/loopingz/webda.io/compare/shell-v3.5.0...shell-v3.6.0) (2023-11-14)
 
 

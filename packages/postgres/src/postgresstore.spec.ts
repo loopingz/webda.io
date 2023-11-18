@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
+import pg from "pg";
 import PostgresStore from "./postgresstore";
 
 @suite
@@ -20,6 +21,29 @@ export class PostgresTest extends StoreTest {
   @test
   async deleteConcurrent() {
     return super.deleteConcurrent();
+  }
+
+  @test
+  async createTable() {
+    const client = new pg.Client({
+      host: "localhost",
+      user: "webda.io",
+      database: "webda.io",
+      password: "webda.io"
+    });
+    try {
+      await client.connect();
+      await client.query("DROP TABLE IF EXISTS create_test");
+      let store: PostgresStore = this.getService<PostgresStore>("idents");
+      store.getParameters().table = "create_test";
+      store.getParameters().autoCreateTable = true;
+      await store.init();
+      await store.save({ test: 1 });
+      const res = await store.getClient().query("SELECT * FROM create_test");
+      assert.strictEqual(res.rowCount, 1);
+    } finally {
+      await client.end();
+    }
   }
 
   @test

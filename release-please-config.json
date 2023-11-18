@@ -1,23 +1,24 @@
 {
-    "bootstrap-sha": "bcea7b61edda56452f03ab7f25e3cc97a23ba909",
-    "plugins": ["node-workspace"],
-    "packages": {
-      "packages/amqp": { },
-      "packages/async": { },
-      "packages/aws": { },
-      "packages/core": { },
-      "packages/elasticsearch": { },
-      "packages/gcp": { },
-      "packages/google-auth": { },
-      "packages/graphql": { },
-      "packages/hawk": { },
-      "packages/kubernetes": { },
-      "packages/mongodb": { },
-      "packages/otel": { },
-      "packages/postgres": { },
-      "packages/shell": { },
-      "packages/tsc-esm": { },
-      "packages/websockets": { },
-      "packages/workout": { }
-    }
+  "bootstrap-sha": "bcea7b61edda56452f03ab7f25e3cc97a23ba909",
+  "plugins": ["node-workspace"],
+  "packages": {
+    "packages/amqp": {},
+    "packages/async": {},
+    "packages/aws": {},
+    "packages/core": {},
+    "packages/elasticsearch": {},
+    "packages/gcp": {},
+    "packages/google-auth": {},
+    "packages/graphql": {},
+    "packages/hawk": {},
+    "packages/kubernetes": {},
+    "packages/mongodb": {},
+    "packages/otel": {},
+    "packages/postgres": {},
+    "packages/runtime": {},
+    "packages/shell": {},
+    "packages/tsc-esm": {},
+    "packages/websockets": {},
+    "packages/workout": {}
   }
+}

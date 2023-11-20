@@ -3,6 +3,7 @@ import {
   Binary,
   CoreModel,
   Expose,
+  ModelLink,
   ModelParent,
   ModelRelated,
   ModelsMapped,
@@ -42,5 +43,6 @@ export class User extends WebdaUser {
 @Expose()
 export class Computer extends CoreModel {
   _user: ModelParent<User>;
+  _loanTo: ModelLink<User>;
   name: string;
 }

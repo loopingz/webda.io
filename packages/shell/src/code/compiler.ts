@@ -306,19 +306,25 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         if (ignore) {
           return undefined;
         }
-        let optional = jsDocs.filter(n => ["SchemaOptional", "readOnly"].includes(n.tagName.text)).length > 0;
+        let optional =
+          jsDocs.filter(n => ["SchemaOptional", "readOnly"].includes(n.tagName.text)).length > 0 ||
+          this.getPropertyName(member.name).startsWith("_");
         // @ts-ignore
         let typeName = member.type?.typeName?.escapedText;
         if (typeName === "ModelParent" || typeName === "ModelLink") {
-          return new ObjectProperty(this.getPropertyName(member.name), new StringType(), true);
+          return new ObjectProperty(
+            this.getPropertyName(member.name),
+            new StringType(),
+            !optional || typeName === "ModelParent"
+          );
         } else if (typeName === "ModelLinksSimpleArray") {
-          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(new StringType()), true);
+          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(new StringType()), !optional);
         } else if (typeName === "ModelLinksArray") {
           let type = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
           );
           type.properties.push(new ObjectProperty("uuid", new StringType(), true));
-          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(type), false);
+          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(type), !optional);
         } else if (typeName === "ModelLinksMap") {
           let type = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
@@ -327,7 +333,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
           return new ObjectProperty(
             this.getPropertyName(member.name),
             new ObjectType("modellinksmap-test", [], [], type),
-            false
+            !optional
           );
         } else if (typeName === "ModelsMapped") {
           let type = <any>(

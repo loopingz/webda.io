@@ -85,4 +85,22 @@ class CompilerTest {
     // Check if getSchema return null: 747
     // Check if getSchema return object without properties: 751
   }
+
+  @test
+  async SampleAppSchemas() {
+    const app = new SourceApplication(path.join(__dirname, "..", "..", "..", "..", "sample-app"), undefined);
+    await app.load();
+    let compiler = new Compiler(app);
+    compiler.compile();
+    let mod = compiler.generateModule();
+    // Check schema have no properties that start with _ in required
+    assert.deepStrictEqual(
+      mod.schemas["WebdaDemo/SubProject"].required.filter(i => i.startsWith("_")),
+      ["_company"]
+    );
+    assert.deepStrictEqual(
+      mod.schemas["WebdaDemo/Computer"].required.filter(i => i.startsWith("_")),
+      ["_user"]
+    );
+  }
 }

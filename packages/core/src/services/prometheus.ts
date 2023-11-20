@@ -151,6 +151,14 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
   }
 
   /**
+   * Close the http server if exists
+   */
+  async stop(): Promise<void> {
+    this.http?.close();
+    this.http = undefined;
+  }
+
+  /**
    *
    * @returns
    */
@@ -164,7 +172,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
         "INFO",
         `Listening for prometheus scraper on ${this.parameters.bind || ""}:${this.parameters.portNumber}`
       );
-      this.http = http
+      this.http ??= http
         .createServer(async (req, res) => {
           if (req.method === "GET" && req.url === this.parameters.url) {
             res.writeHead(200, { "Content-Type": register.contentType });

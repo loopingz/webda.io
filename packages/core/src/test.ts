@@ -1,15 +1,15 @@
 // organize-imports-ignore
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { Core, HttpContext, HttpMethodType, MemoryStore, Service, UuidModel, WebContext } from "./index";
-import { ConsoleLoggerService } from "./utils/logger";
-import * as path from "path";
 import { execSync } from "child_process";
-import { CachedModule, SectionEnum } from "./application";
 import { existsSync, unlinkSync } from "fs";
-import { UnpackedApplication } from "./unpackedapplication";
-import { FileUtils } from "./utils/serializers";
-import { PrometheusService } from "./services/prometheus";
+import * as path from "path";
 import { register } from "prom-client";
+import { CachedModule, SectionEnum } from "./application";
+import { Core, HttpContext, HttpMethodType, MemoryStore, Service, UuidModel, WebContext } from "./index";
+import { PrometheusService } from "./services/prometheus";
+import { UnpackedApplication } from "./unpackedapplication";
+import { ConsoleLoggerService } from "./utils/logger";
+import { FileUtils } from "./utils/serializers";
 
 /**
  * TestApplication ensure we load the typescript sources instead of compiled version
@@ -170,6 +170,8 @@ class WebdaTest {
     // Clean all remaining files
     this.cleanFiles.filter(f => existsSync(f)).forEach(f => unlinkSync(f));
     this.cleanFiles = [];
+    //
+    this.webda.stop();
   }
 
   /**
@@ -453,4 +455,4 @@ class WebdaSimpleTest extends WebdaTest {
     return undefined;
   }
 }
-export { WebdaTest, WebdaSimpleTest };
+export { WebdaSimpleTest, WebdaTest };

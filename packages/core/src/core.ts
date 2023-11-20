@@ -95,7 +95,7 @@ export class ValidationError extends Error {
   readonly validation: true;
 
   constructor(errors: Partial<ErrorObject>[]) {
-    super("validation failed");
+    super(`validation failed: ${errors.map(e => e.message).join("; ")}`);
     this.errors = errors;
     this.ajv = this.validation = true;
   }
@@ -794,7 +794,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         throw new OperationError(operationId, "InvalidInput");
       }
     } catch (err) {
-      if (err.message === "validation failed") {
+      if (err instanceof ValidationError) {
         throw new OperationError(operationId, "InvalidInput");
       }
       throw err;

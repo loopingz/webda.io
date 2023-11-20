@@ -488,6 +488,31 @@ class CoreTest extends WebdaTest {
   }
 
   @test
+  validateSchemaWithEnum() {
+    assert.strictEqual(
+      this.webda.validateSchema(
+        "WebdaDemo/Company",
+        {
+          permissions: ["PRODUCT_1", "PRODUCT_2"]
+        },
+        true
+      ),
+      true
+    );
+    assert.throws(
+      () =>
+        this.webda.validateSchema(
+          "WebdaDemo/Company",
+          {
+            permissions: ["RANDOM", "PRODUCT_2"]
+          },
+          true
+        ),
+      /validation failed/
+    );
+  }
+
+  @test
   covGetModules() {
     this.webda.getModules();
   }

@@ -1,15 +1,16 @@
-// organize-imports-ignore
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { execSync } from "child_process";
 import { existsSync, unlinkSync } from "fs";
 import * as path from "path";
 import { register } from "prom-client";
-import { CachedModule, SectionEnum } from "./application";
 import { Core, HttpContext, HttpMethodType, MemoryStore, Service, UuidModel, WebContext } from "./index";
 import { PrometheusService } from "./services/prometheus";
-import { UnpackedApplication } from "./unpackedapplication";
 import { ConsoleLoggerService } from "./utils/logger";
 import { FileUtils } from "./utils/serializers";
+
+// Separation on purpose to keep application import separated
+import { CachedModule, SectionEnum } from "./application";
+import { UnpackedApplication } from "./unpackedapplication";
 
 /**
  * TestApplication ensure we load the typescript sources instead of compiled version

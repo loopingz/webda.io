@@ -1717,7 +1717,6 @@
         }
       },
       "required": [
-        "_user",
         "uid",
         "uuid"
       ],
@@ -2284,7 +2283,6 @@
         }
       },
       "required": [
-        "_user",
         "uuid"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",

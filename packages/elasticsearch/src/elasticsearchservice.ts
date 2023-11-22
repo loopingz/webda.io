@@ -1,5 +1,13 @@
 import { Client } from "@elastic/elasticsearch";
-import { CoreModel, RegistryEntry, Service, ServiceParameters, Store, WebdaError } from "@webda/core";
+import {
+  CoreModel,
+  CoreModelDefinition,
+  RegistryEntry,
+  Service,
+  ServiceParameters,
+  Store,
+  WebdaError
+} from "@webda/core";
 import dateFormat from "dateformat";
 
 interface IndexParameter {
@@ -46,7 +54,8 @@ interface IndexParameter {
 }
 
 interface IndexInfo extends IndexParameter {
-  _store: Store;
+  _store?: Store;
+  _model?: CoreModelDefinition;
   name: string;
 }
 
@@ -103,19 +112,9 @@ export default class ElasticSearchService<
     this._client = new Client(this.parameters.client);
     this.log("DEBUG", "Indexes", this.parameters.indexes);
     for (let i in this.parameters.indexes) {
-      let index = (this.indexes[i] = {
-        ...this.parameters.indexes[i],
-        name: i,
-        _store: this.getService<Store<CoreModel>>(this.parameters.indexes[i].store)
-      });
-      let store = index._store;
-      if (!store) {
-        this.log("ERROR", "Cannot initiate index", index.name, ": missing store", index.store);
-        return;
-      }
-      this.log("INFO", "Setup the Store listeners");
-      // Plug on every modification on the store to update the index accordingly
-      store.on("Store.PartialUpdated", evt => {
+      let index;
+
+      const partialUpdatedListener = evt => {
         if (evt.partial_update.increments) {
           return this._increments(index.name, evt.object_id, evt.partial_update.increments);
         } else if (evt.partial_update.addItem) {
@@ -135,19 +134,57 @@ export default class ElasticSearchService<
         } else if (evt.partial_update.deleteAttribute) {
           return this._deleteAttribute(index.name, evt.object_id, evt.partial_update.deleteAttribute);
         }
-      });
-      store.on("Store.Updated", evt => {
+      };
+      const updatedListener = evt => {
         return this._update(index.name, evt.object);
-      });
-      store.on("Store.PatchUpdated", evt => {
-        return this._update(index.name, evt.object);
-      });
-      store.on("Store.Saved", async evt => {
+      };
+      const savedListener = evt => {
         return this._create(index.name, evt.object);
-      });
-      store.on("Store.Deleted", evt => {
+      };
+      const deletedListener = evt => {
         return this._delete(index.name, evt.object.getUuid());
-      });
+      };
+
+      if (this.parameters.indexes[i].store) {
+        index = this.indexes[i] = {
+          ...this.parameters.indexes[i],
+          name: i,
+          _store: this.getService<Store<CoreModel>>(this.parameters.indexes[i].store)
+        };
+        let store = index._store;
+
+        if (!store) {
+          this.log("ERROR", "Cannot initiate index", index.name, ": missing store", index.store);
+          continue;
+        }
+
+        this.log("DEBUG", "Setup the Store listeners");
+        store.on("Store.PartialUpdated", partialUpdatedListener);
+        store.on("Store.Updated", updatedListener);
+        store.on("Store.PatchUpdated", updatedListener);
+        store.on("Store.Saved", savedListener);
+        store.on("Store.Deleted", deletedListener);
+      } else if (this.parameters.indexes[i].model) {
+        index = this.indexes[i] = {
+          ...this.parameters.indexes[i],
+          name: i,
+          _model: this.getWebda().getModels()[this.parameters.indexes[i].model]
+        };
+        let model = <CoreModelDefinition>index._model;
+
+        if (!model) {
+          this.log("ERROR", "Cannot initiate index", index.name, ": missing model", index.model);
+          continue;
+        }
+        // Set the store
+        index._store = model.store();
+        this.log("DEBUG", "Setup the Model listeners");
+        model.on("Store.PartialUpdated", partialUpdatedListener);
+        model.on("Store.Updated", updatedListener);
+        model.on("Store.PatchUpdated", updatedListener);
+        model.on("Store.Saved", savedListener);
+        model.on("Store.Deleted", deletedListener);
+      }
     }
     return this;
   }
@@ -176,7 +213,7 @@ export default class ElasticSearchService<
         status.continuationToken ? `LIMIT 1000 OFFSET ${status.continuationToken}` : "LIMIT 1000"
       );
       await this._client.helpers.bulk({
-        datasource: page.results,
+        datasource: page.results.filter(r => (info._model ? r instanceof info._model : true)),
         onDocument: doc => {
           return [
             {
@@ -487,6 +524,7 @@ export default class ElasticSearchService<
             }
           }
         });
+        await this.flush(index.name);
       })
     );
   }

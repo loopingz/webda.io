@@ -87,4 +87,4 @@ The **webda.config.json** contains the configuration of the app, defining Servic
 
 ## Requirements
 
-Node.js >= 14.0.0
+Node.js >= 18.0.0

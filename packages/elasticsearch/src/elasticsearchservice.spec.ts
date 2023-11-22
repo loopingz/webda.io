@@ -1,8 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, Store } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { CoreModel, CoreModelDefinition, MemoryStore, Store } from "@webda/core";
+import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { ElasticSearchService, ESUnknownIndexError } from "./elasticsearchservice";
+import { ESUnknownIndexError, ElasticSearchService } from "./elasticsearchservice";
 
 type TestCoreModel = CoreModel & {
   uuid: string;
@@ -13,14 +13,35 @@ type TestCoreModel = CoreModel & {
   items: any[];
 };
 @suite
-class ElasticSearchTest extends WebdaTest {
+class ElasticSearchTest extends WebdaSimpleTest {
   service: ElasticSearchService;
   store: Store<TestCoreModel>;
 
   async before() {
     await super.before();
-    this.service = this.getService<ElasticSearchService>("ESService");
-    this.store = this.getService<Store<TestCoreModel>>("MemoryStore");
+    await this.createServices();
+  }
+
+  async createServices() {
+    this.store = await this.registerService(new MemoryStore<TestCoreModel>(this.webda, "MemoryStore", {}))
+      .resolve()
+      .init();
+    this.service = await this.registerService(
+      new ElasticSearchService(this.webda, "ESService", {
+        client: {
+          node: "http://localhost:9200"
+        },
+        indexes: {
+          articles: {
+            store: "MemoryStore",
+            url: "/articles/search"
+          }
+        }
+      })
+    )
+      .resolve()
+      .init();
+
     try {
       await this.service.__clean();
     } catch (err) {
@@ -29,7 +50,7 @@ class ElasticSearchTest extends WebdaTest {
   }
 
   @test
-  async test() {
+  async testStore() {
     let model: any = await this.store.save({});
     model.testor = "plop";
     this.service.setRefreshMode("wait_for");
@@ -73,6 +94,10 @@ class ElasticSearchTest extends WebdaTest {
 
     // Should display an ERROR msg
     this.service.getParameters().indexes["articles"].store = "plop";
+    // @ts-ignore
+    this.service.getParameters().indexes["projects"] = {
+      model: "plop"
+    };
     this.service.resolve();
   }
 
@@ -214,5 +239,126 @@ class ElasticSearchTest extends WebdaTest {
     assert.ok(await this.service.exists("articles", "2"));
     // @ts-ignore
     this.service._client = undefined;
+  }
+}
+
+@suite
+class ModelElasticSearchTest extends WebdaSimpleTest {
+  service: ElasticSearchService;
+  store: Store<TestCoreModel>;
+  SubProject: CoreModelDefinition<CoreModel & { name: string }>;
+  Project: CoreModelDefinition<CoreModel & { name: string }>;
+
+  async before() {
+    await super.before();
+    this.Project = <any>this.webda.getModels()["WebdaDemo/Project"];
+    this.SubProject = <any>this.webda.getModels()["WebdaDemo/SubProject"];
+    this.store = await this.registerService(
+      new MemoryStore<TestCoreModel>(this.webda, "MemoryStore", {
+        model: "WebdaDemo/Project"
+      })
+    )
+      .resolve()
+      .init();
+  }
+
+  @test
+  async reindex() {
+    const indexName = `projects_${Date.now()}`;
+    await this.SubProject.ref("subproject_1").getOrCreate({
+      name: "subproject_1"
+    });
+    await this.SubProject.ref("subproject_2").getOrCreate({
+      name: "subproject_2"
+    });
+    // create a project
+    await this.Project.ref("project_1").getOrCreate({ name: "project_1" });
+    await this.Project.ref("project_2").getOrCreate({ name: "project_2" });
+    this.service = await this.registerService(
+      new ElasticSearchService(this.webda, "ESService", {
+        client: {
+          node: "http://localhost:9200"
+        },
+        indexes: {
+          [indexName]: {
+            model: "WebdaDemo/SubProject",
+            url: "/projects/search"
+          }
+        }
+      })
+    )
+      .resolve()
+      .init();
+
+    try {
+      await this.service.__clean();
+    } catch (err) {
+      console.log(err);
+    }
+    await this.service.reindex(indexName);
+    await this.waitAsyncEnded();
+    assert.ok(await this.service.exists(indexName, "subproject_1"));
+    assert.ok(await this.service.exists(indexName, "subproject_2"));
+    assert.ok(!(await this.service.exists(indexName, "project_1")));
+    assert.ok(!(await this.service.exists(indexName, "project_2")));
+  }
+
+  async waitAsyncEnded() {
+    try {
+      await this.service.flush("projects");
+    } catch (err) {}
+  }
+
+  @test
+  async testModel() {
+    const indexName = `projects_${Date.now()}`;
+    this.service = await this.registerService(
+      new ElasticSearchService(this.webda, "ESService", {
+        client: {
+          node: "http://localhost:9200"
+        },
+        indexes: {
+          [indexName]: {
+            model: "WebdaDemo/SubProject",
+            url: "/projects/search"
+          }
+        }
+      })
+    )
+      .resolve()
+      .init();
+
+    try {
+      await this.service.__clean();
+    } catch (err) {
+      console.log(err);
+    }
+    await this.waitAsyncEnded();
+    // create a subproject
+    let model = await this.SubProject.ref("subproject_1").getOrCreate({
+      name: "subproject_1"
+    });
+    // create a project
+    await this.Project.ref("project_1").getOrCreate({ name: "project_1" });
+    this.service.setRefreshMode("wait_for");
+    await model.patch({ name: "subproject_1b" });
+    await this.waitAsyncEnded();
+    assert.ok(await this.service.exists(indexName, model.getUuid()));
+    assert.ok(!(await this.service.exists(indexName, "project_1")));
+    //assert.strictEqual(await this.service.count("projects"), 1);
+    let results = await this.service.search(indexName, {
+      query: { match_all: {} }
+    });
+    assert.strictEqual(results.length, 1);
+    results = await this.service.search(indexName, "*");
+    assert.strictEqual(results.length, 1);
+    //assert.strictEqual(results[0].testor, "plop");
+    await model.delete();
+    await this.waitAsyncEnded();
+    assert.ok(!(await this.service.exists(indexName, model.getUuid())));
+    await this.waitAsyncEnded();
+
+    // Some documents get be created on init so no test on 0
+    assert.strictEqual(await this.service.count(indexName), 0);
   }
 }

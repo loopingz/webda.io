@@ -31,6 +31,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.8.0 to ^3.8.1
     * @webda/kubernetes bumped from ^3.2.1 to ^3.2.2
 
+## [3.6.3](https://github.com/loopingz/webda.io/compare/shell-v3.6.2...shell-v3.6.3) (2023-11-22)
+
+
+### Bug Fixes
+
+* ensure ModelLink are not required by default ([fba9844](https://github.com/loopingz/webda.io/commit/fba9844e8ac4decb888931a81eb74371b5aea7ff))
+* organize imports ([0326b4b](https://github.com/loopingz/webda.io/commit/0326b4b973a307b91cb619a3ec79382bf7f8d101))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.9.0 to ^3.9.1
+    * @webda/kubernetes bumped from ^3.2.3 to ^3.2.4
+
 ## [3.6.2](https://github.com/loopingz/webda.io/compare/shell-v3.6.1...shell-v3.6.2) (2023-11-18)
 
 

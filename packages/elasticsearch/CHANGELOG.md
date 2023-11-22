@@ -91,6 +91,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.6.1 to ^3.6.2
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/elasticsearch-v3.1.3...elasticsearch-v3.2.0) (2023-11-22)
+
+
+### Features
+
+* elasticsearch CoreModel indexes ([4ecf9f6](https://github.com/loopingz/webda.io/commit/4ecf9f6dde4f29d7fb68ed54db5860da17031427))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.9.0 to ^3.9.1
+  * devDependencies
+    * @webda/shell bumped from ^3.6.2 to ^3.6.3
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/elasticsearch-v3.0.12...elasticsearch-v3.1.0) (2023-11-12)
 
 

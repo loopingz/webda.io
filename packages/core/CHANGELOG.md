@@ -19,6 +19,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.9.1](https://github.com/loopingz/webda.io/compare/core-v3.9.0...core-v3.9.1) (2023-11-22)
+
+
+### Bug Fixes
+
+* add more explicit message for ValidationError ([9cf3d64](https://github.com/loopingz/webda.io/commit/9cf3d64d9fc9ed14dcbc194a3e0a28d9230d1311))
+* organize imports ([0326b4b](https://github.com/loopingz/webda.io/commit/0326b4b973a307b91cb619a3ec79382bf7f8d101))
+
 ## [3.9.0](https://github.com/loopingz/webda.io/compare/core-v3.8.1...core-v3.9.0) (2023-11-18)
 
 

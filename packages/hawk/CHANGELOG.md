@@ -64,6 +64,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.6.0 to ^3.6.1
 
+## [3.3.4](https://github.com/loopingz/webda.io/compare/hawk-v3.3.3...hawk-v3.3.4) (2023-11-22)
+
+
+### Bug Fixes
+
+* organize imports ([0326b4b](https://github.com/loopingz/webda.io/commit/0326b4b973a307b91cb619a3ec79382bf7f8d101))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.9.0 to ^3.9.1
+  * devDependencies
+    * @webda/shell bumped from ^3.6.2 to ^3.6.3
+
 ## [3.3.3](https://github.com/loopingz/webda.io/compare/hawk-v3.3.2...hawk-v3.3.3) (2023-11-18)
 
 

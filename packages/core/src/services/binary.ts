@@ -516,7 +516,10 @@ export class BinaryParameters extends ServiceParameters {
       this.expose.restrict = this.expose.restrict || {};
     }
     this.map ??= {};
-    this.models ??= {};
+    // Store all models in it by default
+    this.models ??= {
+      "*": ["*"]
+    };
   }
 }
 

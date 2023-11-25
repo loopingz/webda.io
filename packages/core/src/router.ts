@@ -121,6 +121,14 @@ export class Router {
   }
 
   /**
+   * Return routes
+   * @returns
+   */
+  getRoutes() {
+    return this.routes;
+  }
+
+  /**
    * Add a route dynamicaly
    *
    * @param {String} url of the route can contains dynamic part like {uuid}

@@ -3,7 +3,16 @@ import { execSync } from "child_process";
 import { existsSync, unlinkSync } from "fs";
 import * as path from "path";
 import { register } from "prom-client";
-import { Core, HttpContext, HttpMethodType, MemoryStore, Service, UuidModel, WebContext } from "./index";
+import {
+  Core,
+  CoreModelDefinition,
+  HttpContext,
+  HttpMethodType,
+  MemoryStore,
+  Service,
+  UuidModel,
+  WebContext
+} from "./index";
 import { PrometheusService } from "./services/prometheus";
 import { ConsoleLoggerService } from "./utils/logger";
 import { FileUtils } from "./utils/serializers";
@@ -448,6 +457,15 @@ class WebdaTest {
     // @ts-ignore
     this.webda.services[name] = service;
     return service;
+  }
+
+  /**
+   * Dynamic add a model to webda
+   * @param model
+   * @param klass
+   */
+  registerModel<T extends CoreModelDefinition>(model: T, name: string = model.constructor.name) {
+    this.webda.getApplication().addModel(name, model);
   }
 }
 

@@ -343,7 +343,7 @@ const ActionsAnnotated: Map<any, ModelActions> = new Map();
  * @param target
  * @param propertyKey
  */
-export function Action(options: { methods?: HttpMethodType[]; openapi?: any } = {}) {
+export function Action(options: { methods?: HttpMethodType[]; openapi?: any; name?: string } = {}) {
   return function (target: any, propertyKey: string) {
     let custom: Record<"Actions", ModelActions> = target;
     const global = typeof target === "function";
@@ -354,7 +354,7 @@ export function Action(options: { methods?: HttpMethodType[]; openapi?: any } = 
       ActionsAnnotated.set(custom, {});
     }
     const actions = ActionsAnnotated.get(custom);
-    actions[propertyKey] = {
+    actions[options.name || propertyKey] = {
       ...options,
       global
     };

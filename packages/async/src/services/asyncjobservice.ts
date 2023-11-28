@@ -289,38 +289,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // Only for status endpoint - operations endpoint should still be authorized by something else
     if (url === `${this.parameters.url}/status`) {
       // Allow status url to be called without other mechanism
-      await this.verifyJobRequest(context);
       return true;
     }
     return false;
-  }
-
-  /**
-   *
-   * @param context
-   * @param action
-   */
-  async verifyJobRequest<K extends AsyncAction = AsyncAction>(context: WebContext): Promise<K> {
-    const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
-    if (!jobId) {
-      this.log("TRACE", "Require Job Id");
-      throw new WebdaError.NotFound("X-Job-Id header required");
-    }
-    const action = await this.store.get(jobId);
-    if (!action) {
-      this.log("TRACE", `Unknown Job Id '${jobId}'`);
-      throw new WebdaError.NotFound(`Unknown Job Id '${jobId}'`);
-    }
-    const jobTime = context.getHttpContext().getUniqueHeader("X-Job-Time");
-    const jobHash = context.getHttpContext().getUniqueHeader("X-Job-Hash");
-    // Ensure hash mac is correct
-    if (jobHash !== crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex")) {
-      this.log("TRACE", "Invalid Job HMAC");
-      throw new WebdaError.Forbidden("Invalid Job HMAC");
-    }
-    // Set the context extension
-    context.setExtension("asyncJob", action);
-    return <K>action;
   }
 
   /**
@@ -329,44 +300,15 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)
    */
   protected async statusHook(context: WebContext) {
-    let action = await this.verifyJobRequest(context);
-    const body = await context.getRequestBody();
-    action = await this.updateAction(
-      action,
-      body,
-      Number.parseInt(context.getHttpContext().getUniqueHeader("X-Job-Time")) || 0
-    );
-    context.write({ ...action, logs: undefined, statusDetails: undefined });
-  }
-
-  /**
-   * Update the async action from hook
-   * @param action
-   * @param body
-   * @param lastUpdate
-   * @returns
-   */
-  protected async updateAction(action: AsyncAction, body: Partial<AsyncAction>, lastUpdate: number = 0) {
-    action._lastJobUpdate = lastUpdate;
-    if (Date.now() - action._lastJobUpdate > 60) {
-      action._lastJobUpdate = Date.now();
+    if (!context.getHttpContext().getUniqueHeader("X-Job-Id")) {
+      throw new WebdaError.NotFound("X-Job-Id header required");
     }
-
-    if (body.logs && Array.isArray(body.logs)) {
-      action.logs.push(...body.logs);
-      // Prevent having too much logs
-      if (action.logs.length > this.parameters.logsLimit) {
-        action.logs = action.logs.slice(-1 * this.parameters.logsLimit);
-      }
+    const action = await AsyncAction.ref(context.getHttpContext().getUniqueHeader("X-Job-Id")).get();
+    if (!action) {
+      throw new WebdaError.NotFound(`Unknown Job Id '${context.getHttpContext().getUniqueHeader("X-Job-Id")}'`);
     }
-    ["status", "errorMessage", "statusDetails", "results"].forEach(k => {
-      if (body[k] !== undefined) {
-        // @ts-ignore
-        action[k] = body[k];
-      }
-    });
-    await this.store.patch(action, true, null);
-    return action;
+    await action.checkAct(context, "status");
+    await action.statusAction(context);
   }
 
   /**
@@ -401,25 +343,18 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     if (selectedRunner === undefined) {
       this.log("ERROR", `Cannot find a runner for action ${event.uuid}`);
-      await this.store.patch(
-        {
-          uuid: event.uuid,
-          status: "ERROR",
-          errorMessage: `No runner found for the job`
-        },
-        null
-      );
+      await AsyncAction.ref(event.uuid).patch({
+        status: "ERROR",
+        errorMessage: `No runner found for the job`
+      });
       return;
     }
     this.log("INFO", `Starting action ${event.uuid}`);
-    await this.store.patch(
-      {
-        uuid: event.uuid,
-        status: "STARTING"
-      },
-      null
-    );
-    const action = await this.store.get(event.uuid);
+    await AsyncAction.ref(event.uuid).patch({
+      uuid: event.uuid,
+      status: "STARTING"
+    });
+    const action = await AsyncAction.ref(event.uuid).get();
     let job = await selectedRunner.launchAction(action, this.getJobInfo(action));
     await action.patch({ job }, null);
     return job.promise || Promise.resolve();
@@ -547,7 +482,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     action.status = "QUEUED";
     action.type = action.constructor.name;
     action.__secretKey = this.getWebda().getUuid();
-    await this.store.save(action);
+    await action.save();
     if (this.parameters.localLaunch) {
       return this.handleEvent({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
     }
@@ -565,7 +500,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     action.type = action.constructor.name;
     // Schedule based on the scheduler resolution
     action.scheduled = timestamp - (timestamp % this.parameters.schedulerResolution);
-    await this.store.save(action);
+    await action.save();
   }
 
   /**
@@ -602,7 +537,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       ).data;
     } else if (jobInfo.JOB_HOOK === "store") {
       // If executor and orchestrator runs within same privilege it simplify the infrastructure
-      return <Promise<AsyncWebdaAction>>this.updateAction(await this.store.get(jobInfo.JOB_ID), message);
+      return <Promise<AsyncWebdaAction>>(await AsyncAction.ref(jobInfo.JOB_ID).get()).update(message);
     }
   }
 
@@ -741,9 +676,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       time -= time % this.parameters.schedulerResolution;
       // Queue all actions
       await Promise.all(
-        (
-          await this.store.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)
-        ).results.map(a => this.launchAction(a))
+        (await AsyncAction.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)).results.map(a =>
+          this.launchAction(a)
+        )
       );
       time += this.parameters.schedulerResolution;
       // Wait for next scheduler resolution

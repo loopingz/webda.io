@@ -23,12 +23,6 @@ class FakeService extends Service {
 @suite
 class AsyncJobServiceTest extends WebdaTest {
   service: AsyncJobService;
-  store: Store<AsyncAction>;
-
-  async before() {
-    await super.before();
-    this.store = this.getService("AsyncJobs");
-  }
 
   @test
   async worker() {
@@ -100,7 +94,7 @@ class AsyncJobServiceTest extends WebdaTest {
   async checkRequest() {
     this.service = this.getValidService();
     // @ts-ignore
-    let action = await this.service.store.save({ uuid: "plop", __secretKey: "plop" });
+    let action = await AsyncAction.create({ uuid: "plop", __secretKey: "plop" });
     let jobTime = Date.now().toString();
     let jobHash = crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex");
     let context = await this.newContext();
@@ -143,20 +137,6 @@ class AsyncJobServiceTest extends WebdaTest {
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), true);
-    assert.notStrictEqual(context.getExtension("asyncJob"), undefined);
-    context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
-        "X-Job-Id": "plop",
-        "X-Job-Time": jobTime
-      })
-    );
-    await assert.rejects(() => this.service.checkRequest(context), WebdaError.Forbidden);
-    context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
-        "X-Job-Time": jobTime
-      })
-    );
-    await assert.rejects(() => this.service.checkRequest(context), WebdaError.NotFound);
   }
 
   @test
@@ -165,7 +145,7 @@ class AsyncJobServiceTest extends WebdaTest {
     // @ts-ignore protected field
     let stub = sinon.stub(service, "handleEvent");
     await service.launchAction(new AsyncAction());
-    const actions = await service.getService<Store<AsyncAction>>("AsyncJobs").getAll();
+    const actions = (await AsyncAction.query()).results;
     assert.strictEqual(actions.length, 1);
     assert.strictEqual(await service.getService<Queue>("AsyncQueue").size(), 1);
     assert.strictEqual(actions[0].status, "QUEUED");
@@ -209,7 +189,7 @@ class AsyncJobServiceTest extends WebdaTest {
       })
     );
     await assert.rejects(() => hook(context), WebdaError.NotFound);
-    await this.store.save({
+    await AsyncAction.create({
       uuid: "plop",
       __secretKey: "mine",
       logs: ["prev1"],
@@ -217,6 +197,14 @@ class AsyncJobServiceTest extends WebdaTest {
         param1: "plop"
       }
     });
+    await assert.rejects(() => hook(context), WebdaError.Forbidden);
+    context.setHttpContext(
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
+        "X-Job-Time": "12345",
+        "X-Job-Hash": crypto.createHmac("sha256", "mine2").update("12345").digest("hex"),
+        "X-Job-Id": "plop"
+      })
+    );
     await assert.rejects(() => hook(context), WebdaError.Forbidden);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
@@ -247,7 +235,7 @@ class AsyncJobServiceTest extends WebdaTest {
     const res = JSON.parse(<string>context.getResponseBody());
     assert.strictEqual(res.job.param1, "plop");
     const logs = [];
-    for (let i = 1; i < 200; i++) {
+    for (let i = 1; i < 1100; i++) {
       logs.push(`newline ${i}`);
     }
     context.setHttpContext(
@@ -263,7 +251,7 @@ class AsyncJobServiceTest extends WebdaTest {
 
     await hook(context);
     assert.strictEqual(JSON.parse(<string>context.getResponseBody())._lastJobUpdate - res._lastJobUpdate > 0, true);
-    assert.strictEqual((await this.store.get("plop")).logs.length, 100);
+    assert.strictEqual((await AsyncAction.ref("plop").get()).logs.length, 1000);
   }
 
   @test
@@ -274,7 +262,7 @@ class AsyncJobServiceTest extends WebdaTest {
     const action = new AsyncAction();
     assert.strictEqual(action.__class.name, "AsyncAction");
     action.uuid = "plop";
-    await this.store.save(action);
+    await AsyncAction.create(action);
     // @ts-ignore
     service.runners = [
       // @ts-ignore
@@ -284,7 +272,7 @@ class AsyncJobServiceTest extends WebdaTest {
       }
     ];
     await handler();
-    assert.strictEqual((await this.store.get("plop")).status, "STARTING");
+    assert.strictEqual((await AsyncAction.ref("plop").get()).status, "STARTING");
     // @ts-ignore
     service.runners = [
       // @ts-ignore
@@ -294,25 +282,45 @@ class AsyncJobServiceTest extends WebdaTest {
       }
     ];
     await handler();
-    assert.strictEqual((await this.store.get("plop")).status, "ERROR");
+    assert.strictEqual((await AsyncAction.ref("plop").get()).status, "ERROR");
     service.getParameters().fallbackOnFirst = true;
     await handler();
-    assert.strictEqual((await this.store.get("plop")).status, "STARTING");
+    assert.strictEqual((await AsyncAction.ref("plop").get()).status, "STARTING");
   }
 
   @test
-  async runAsyncOperationActionLocal() {
+  async postHook() {
     const service = this.getValidService();
-    this.runAsyncOperationAction("store", service, service, "updateAction");
+    const action = await AsyncAction.create({ __secretKey: "plop" });
+    let stub = sinon.stub(axios, "post").callsFake(async () => ({
+      data: {}
+    }));
+    const jobInfo = {
+      JOB_ORCHESTRATOR: "mine",
+      JOB_ID: action.getUuid(),
+      JOB_SECRET_KEY: action.__secretKey,
+      JOB_HOOK: "http://plop"
+    };
+    await service.postHook(jobInfo, { status: "RUNNING", logs: ["axios"] });
+    assert.strictEqual(stub.callCount, 1);
+    assert.deepStrictEqual(stub.getCall(0).args[0], "http://plop");
+    assert.deepStrictEqual(stub.getCall(0).args[1], { status: "RUNNING", logs: ["axios"] });
+    assert.strictEqual(((stub.getCall(0).args[2] || {}).headers || {})["X-Job-Id"], action.getUuid());
+    await service.postHook(
+      {
+        JOB_ORCHESTRATOR: "mine",
+        JOB_ID: action.getUuid(),
+        JOB_SECRET_KEY: action.__secretKey,
+        JOB_HOOK: "store"
+      },
+      { status: "RUNNING", logs: ["store"] }
+    );
+    await action.refresh();
+    assert.deepStrictEqual(action.logs, ["store"]);
   }
 
   @test
-  async runAsyncOperationAction(
-    hook = "http://...",
-    service = this.getValidService(),
-    stubbed: any = axios,
-    method: string = "post"
-  ) {
+  async runAsyncOperationAction(hook = "http://...", service = this.getValidService()) {
     // @ts-ignore
     await assert.rejects(() => service.runAsyncOperationAction({}), /Cannot run AsyncAction/);
     await assert.rejects(
@@ -382,7 +390,7 @@ class AsyncJobServiceTest extends WebdaTest {
       this.registerService(service);
 
       // Set a true action
-      const action = new AsyncWebdaAction("mine", "myMethod");
+      const action = await new AsyncWebdaAction("mine", "myMethod").save();
       service.getParameters().onlyHttpHook = true;
       service.launchAction(action);
 
@@ -391,125 +399,90 @@ class AsyncJobServiceTest extends WebdaTest {
       process.env.JOB_SECRET_KEY = action.__secretKey;
       process.env.JOB_HOOK = hook;
 
-      const stub = sinon.stub(stubbed, method).callsFake(async (...args) => {
+      const stub = sinon.stub(service, "postHook").callsFake(async (...args) => {
         let ctx = await this.newContext(args[1]);
         // @ts-ignore
         if (args.length > 2 && args[2].headers) {
           // @ts-ignore
           for (let k in args[2].headers) {
             // @ts-ignore
-            ctx.getHttpContext().headers[k.toLowerCase()] = args[2].headers[k].toString();
           }
         }
+        let headers = ctx.getHttpContext()?.headers || {};
+        headers["x-job-id"] = action.getUuid();
+        headers["x-job-time"] = Date.now().toString();
+        headers["x-job-hash"] = crypto
+          .createHmac("sha256", action.__secretKey)
+          .update(headers["x-job-time"])
+          .digest("hex");
         // @ts-ignore
         await service.statusHook(ctx);
-        if (stubbed === axios) {
-          return {
-            data: JSON.parse(<string>ctx.getResponseBody())
-          };
-        } else {
-          return JSON.parse(<string>ctx.getResponseBody());
-        }
+        return JSON.parse(<string>ctx.getResponseBody());
       });
 
       // First run call with no method
-      if (stubbed === axios) {
-        stub.onCall(0).returns({
-          // @ts-ignore
-          data: {
-            serviceName: "plop"
-          }
-        });
-      } else {
-        stub.onCall(0).returns({
-          // @ts-ignore
-          serviceName: "plop"
-        });
-      }
+      stub.onCall(0).returns({
+        // @ts-ignore
+        serviceName: "plop"
+      });
+
       await service.runAsyncOperationAction();
+
       let args: any[] = stub.getCall(0).args;
-      if (stubbed === axios) {
-        assert.deepStrictEqual(args.slice(0, 2), [
-          hook,
-          {
-            agent: { ...Runner.getAgentInfo(), nodeVersion: process.version },
-            status: "RUNNING"
-          }
-        ]);
-        assert.strictEqual(args[2].headers["X-Job-Id"], action.getUuid());
-      }
+      assert.deepStrictEqual(args[1], {
+        agent: { ...Runner.getAgentInfo(), nodeVersion: process.version },
+        status: "RUNNING"
+      });
+
       await action.refresh();
       assert.strictEqual(action.status, "ERROR");
       assert.strictEqual(action.errorMessage, "WebdaAsyncAction must have method and serviceName defined at least");
 
       // Run without serviceName
-      await this.store.patch({
-        uuid: action.getUuid(),
+      await action.patch({
         status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();
-      if (stubbed === axios) {
-        stub.onCall(0).returns({
-          data: {
-            method: "plop"
-          }
-        });
-      } else {
-        stub.onCall(0).returns({
-          method: "plop"
-        });
-      }
+      stub.onCall(0).returns({
+        // @ts-ignore
+        method: "plop"
+      });
       await service.runAsyncOperationAction();
       await action.refresh();
       assert.strictEqual(action.status, "ERROR");
       assert.strictEqual(action.errorMessage, "WebdaAsyncAction must have method and serviceName defined at least");
 
       // Run with unknown service
-      await this.store.patch({
-        uuid: action.getUuid(),
+      await action.patch({
         status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();
-      if (stubbed === axios) {
-        stub.onCall(0).returns({
-          data: {
-            serviceName: "plop",
-            method: "plop"
-          }
-        });
-      } else {
-        stub.onCall(0).returns({
-          serviceName: "plop",
-          method: "plop"
-        });
-      }
+      stub.onCall(0).returns({
+        // @ts-ignore
+        serviceName: "plop",
+        method: "plop"
+      });
       await service.runAsyncOperationAction();
       await action.refresh();
       assert.strictEqual(action.status, "ERROR");
       assert.strictEqual(action.errorMessage, "WebdaAsyncAction Service 'plop' not found: mismatch app version");
 
       // Run with known service but incorrect method
-      await this.store.patch({
+      await action.patch({
         uuid: action.getUuid(),
         status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();
-      if (stubbed === axios) {
-        stub.onCall(0).returns({
-          data: {
-            serviceName: "mine",
-            method: "plop"
-          }
-        });
-      } else {
-        stub.onCall(0).returns({
-          serviceName: "mine",
-          method: "plop"
-        });
-      }
+
+      stub.onCall(0).returns({
+        // @ts-ignore
+        serviceName: "mine",
+        method: "plop"
+      });
+
       await service.runAsyncOperationAction();
       await action.refresh();
       assert.strictEqual(action.status, "ERROR");
@@ -519,27 +492,20 @@ class AsyncJobServiceTest extends WebdaTest {
       );
 
       // Run with known service but incorrect method
-      await this.store.patch({
+      await action.patch({
         uuid: action.getUuid(),
         status: "RUNNING",
         errorMessage: ""
       });
       stub.resetHistory();
-      if (stubbed === axios) {
-        stub.onCall(0).returns({
-          data: {
-            serviceName: "mine",
-            method: "myMethod",
-            arguments: ["plop", 666]
-          }
-        });
-      } else {
-        stub.onCall(0).returns({
-          serviceName: "mine",
-          method: "myMethod",
-          arguments: ["plop", 666]
-        });
-      }
+
+      stub.onCall(0).returns({
+        // @ts-ignore
+        serviceName: "mine",
+        method: "myMethod",
+        arguments: ["plop", 666]
+      });
+
       await service.runAsyncOperationAction();
       await action.refresh();
       assert.strictEqual(action.status, "SUCCESS");

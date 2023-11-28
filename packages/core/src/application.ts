@@ -924,11 +924,11 @@ export class Application {
     }
     let tree = this.baseConfiguration?.cachedModules?.models?.tree || {};
     ancestors.forEach(ancestor => {
-      tree = tree[ancestor];
+      tree = tree[ancestor] || {};
     });
     ancestors.unshift(this.getShortId("Webda/CoreModel"));
     ancestors.reverse();
-    return { ancestors: ancestors.map(i => this.getShortId(i)), children: tree[model] };
+    return { ancestors: ancestors.map(i => this.getShortId(i)), children: tree[model] || {} };
   }
 
   /**

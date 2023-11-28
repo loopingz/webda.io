@@ -14,7 +14,7 @@ import { Company } from "./company";
 import Contact from "./contact";
 
 /**
- * @WebdaModel
+ *
  */
 @Expose()
 export class User extends WebdaUser {

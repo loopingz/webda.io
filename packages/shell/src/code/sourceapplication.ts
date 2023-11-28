@@ -300,6 +300,21 @@ export class BuildSourceApplication extends SourceApplication {
   }
 
   /**
+   * Override to empty if moduleReady is false
+   * @returns
+   */
+  getModulesCache() {
+    if (!this.moduleReady) {
+      return {};
+    }
+    // @ts-ignore
+    const cacheModules = process.webdaModules || {};
+    // @ts-ignore
+    process.webdaModules ??= cacheModules;
+    return cacheModules;
+  }
+
+  /**
    * @override
    */
   async generateModule() {

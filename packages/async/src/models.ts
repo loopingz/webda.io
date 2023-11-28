@@ -1,5 +1,6 @@
-import { CoreModel, OperationContext } from "@webda/core";
+import { Action, CoreModel, OperationContext, WebContext, WebdaError } from "@webda/core";
 import { WorkerLogLevel } from "@webda/workout";
+import * as crypto from "crypto";
 
 /**
  * Represent an item for processing queue
@@ -109,6 +110,97 @@ export default class AsyncAction extends CoreModel {
    * It should be a verb
    */
   public action?: "STOP" | string;
+
+  getLogsLimit() {
+    return 1000;
+  }
+
+  /**
+   * Allow to report status for a job
+   * @param context
+   */
+  @Action({ name: "status", openapi: { hidden: true } })
+  public async statusAction(context: WebContext) {
+    await this.update(await context.getRequestBody(), context.getHttpContext().getUniqueHeader("X-Job-Time"));
+    context.write({ ...this, logs: undefined, statusDetails: undefined });
+  }
+
+  /**
+   *
+   * @param body
+   */
+  public async update(body: any, time: string = undefined) {
+    if (body.logs && Array.isArray(body.logs)) {
+      this.logs ??= [];
+      this.logs.push(...body.logs);
+      // Prevent having too much logs
+      if (this.logs.length > this.getLogsLimit()) {
+        this.logs = this.logs.slice(-1 * this.getLogsLimit());
+      }
+    }
+    this._lastJobUpdate = Number.parseInt(time || "0") || 0;
+    if (Date.now() - this._lastJobUpdate > 60) {
+      this._lastJobUpdate = Date.now();
+    }
+    await this.patch(<any>{
+      _lastJobUpdate: this._lastJobUpdate,
+      logs: this.logs,
+      status: body.status || this.status,
+      errorMessage: body.errorMessage || this.errorMessage,
+      statusDetails: body.statusDetails || this.statusDetails,
+      results: body.results || this.results
+    });
+    return this;
+  }
+
+  /**
+   *
+   * @param context
+   * @param action
+   */
+  protected async verifyJobRequest<K extends AsyncAction = AsyncAction>(context: WebContext): Promise<void> {
+    const jobTime = context.getHttpContext().getUniqueHeader("X-Job-Time");
+    const jobHash = context.getHttpContext().getUniqueHeader("X-Job-Hash");
+
+    // Ensure hash mac is correct
+    if (jobHash !== this.getHmac(jobTime)) {
+      context.log("TRACE", "Invalid Job HMAC");
+      throw new WebdaError.Forbidden("Invalid Job HMAC");
+    }
+    // Set the context extension
+    context.setExtension("asyncJob", this);
+  }
+
+  /**
+   * Get the hmac for the job
+   * @param jobTime
+   * @returns
+   */
+  getHmac(jobTime: string) {
+    return crypto.createHmac("sha256", this.__secretKey).update(jobTime).digest("hex");
+  }
+
+  /**
+   * Ensure action hook is ok
+   * @param context
+   * @param _action
+   * @returns
+   */
+  public async checkAct(context: OperationContext<any, any>, action: string): Promise<void> {
+    if (action === "status") {
+      if (context instanceof WebContext) {
+        if (
+          context.getHttpContext().getUniqueHeader("X-Job-Hash") &&
+          context.getHttpContext().getUniqueHeader("X-Job-Time") &&
+          action === "status"
+        ) {
+          return await this.verifyJobRequest(context);
+        }
+      }
+      throw new WebdaError.Forbidden("Only Job runner can call this action");
+    }
+    return super.checkAct(context, action);
+  }
 }
 
 /**
@@ -124,7 +216,11 @@ export class AsyncWebdaAction extends AsyncAction {
    * @param method method to call
    * @param arguments to call with the method
    */
-  constructor(public serviceName?: string, public method?: string, ...args: any[]) {
+  constructor(
+    public serviceName?: string,
+    public method?: string,
+    ...args: any[]
+  ) {
     super();
     this.arguments = args;
   }
@@ -144,7 +240,11 @@ export class AsyncWebdaAction extends AsyncAction {
  * @WebdaModel
  */
 export class AsyncOperationAction extends AsyncAction {
-  constructor(public operationId: string, public context: OperationContext, public logLevel: WorkerLogLevel = "INFO") {
+  constructor(
+    public operationId: string,
+    public context: OperationContext,
+    public logLevel: WorkerLogLevel = "INFO"
+  ) {
     super();
   }
 

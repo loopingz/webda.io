@@ -12,6 +12,11 @@ class DomainServiceTest extends WebdaTest {
     return process.cwd() + "/../../sample-app";
   }
 
+  protected async buildWebda(): Promise<void> {
+    await super.buildWebda();
+    this.webda.getBeans = () => {};
+  }
+
   async after() {
     await this.getService("Users").__clean();
   }

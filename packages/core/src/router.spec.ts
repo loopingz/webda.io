@@ -195,5 +195,6 @@ class RouterTest extends WebdaTest {
     this.webda.addRoute("/cov", info);
     this.webda.addRoute("/cov", { ...info, methods: ["PUT"] });
     this.webda.getRouter().removeRoute("/cov", info);
+    this.webda.getRouter().getRoutes();
   }
 }

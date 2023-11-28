@@ -688,8 +688,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
           cfg.services ??= {};
           this.configuration.parameters = deepmerge(this.configuration.parameters, cfg.parameters);
           // Ensure beans are known too
-          // @ts-ignore
-          Object.keys(process.webdaBeans || {}).forEach(bean => {
+          Object.keys(this.getBeans()).forEach(bean => {
             this.configuration.services[bean] ??= {
               type: `Beans/${bean}`
             };
@@ -1192,14 +1191,18 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
   }
 
+  getBeans() {
+    // @ts-ignore
+    return process.webdaBeans || {};
+  }
+
   /**
    * @hidden
    *
    */
   protected createServices(excludes: string[] = []): void {
     const services = this.configuration.services;
-    // @ts-ignore
-    const beans: { [key: string]: Modda } = process.webdaBeans || {};
+    const beans: { [key: string]: Modda } = this.getBeans();
     this.log("DEBUG", "BEANS", beans);
     for (let i in beans) {
       let name = beans[i].name;

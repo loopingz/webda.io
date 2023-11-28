@@ -230,11 +230,13 @@ class FileBinaryTest extends CloudBinaryTest {
   async handleBinary() {
     this.registerService(
       new FileBinary(Core.get(), "second", {
-        folder: "./test/data/binaries"
+        folder: "./test/data/binaries",
+        models: {}
       })
     );
     const binaries: { [key: string]: BinaryService } = <any>Core.get().getServicesOfType(<any>BinaryService);
     const user = Core.get().getModel("WebdaDemo/User");
+
     assert.strictEqual(Core.get().getBinaryStore(user, "images"), binaries["binary"]);
     binaries["binary"].getParameters().models = {};
     assert.throws(

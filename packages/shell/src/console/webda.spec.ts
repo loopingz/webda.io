@@ -5,6 +5,7 @@ import { MemoryLogger, WorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { execSync } from "child_process";
 import * as fs from "fs";
+import { existsSync, unlinkSync } from "fs";
 import fetch from "node-fetch";
 import * as path from "path";
 import * as sinon from "sinon";
@@ -14,7 +15,6 @@ import { SourceApplication } from "../code/sourceapplication";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
-import { existsSync, unlinkSync } from "fs";
 const { __dirname } = getCommonJS(import.meta.url);
 
 class DebugLogger extends MemoryLogger {
@@ -428,7 +428,6 @@ class DynamicService extend Service {
         fs.unlinkSync(moduleFile);
       }
       await this.commandLine(`build`);
-      assert.strictEqual(fs.existsSync(moduleFile), true);
       assert.strictEqual(fs.existsSync(moduleFile), true);
       let module: Module = FileUtils.load(moduleFile);
       assert.ok(Object.keys(module.schemas).length >= 9);

@@ -191,6 +191,18 @@ export class UnpackedApplication extends Application {
   }
 
   /**
+   * Store the current module
+   * @returns
+   */
+  getModulesCache() {
+    // @ts-ignore
+    const cacheModules = process.webdaModules || {};
+    // @ts-ignore
+    process.webdaModules ??= cacheModules;
+    return cacheModules;
+  }
+
+  /**
    * Load all imported modules and current module
    * It will compile module
    * Generate the current module file
@@ -198,10 +210,8 @@ export class UnpackedApplication extends Application {
    */
   findModules(module: CachedModule): string[] {
     const appPath = this.getAppPath();
-    // @ts-ignore
-    const cacheModules = process.webdaModules || {};
-    // @ts-ignore
-    process.webdaModules ??= cacheModules;
+
+    const cacheModules = this.getModulesCache();
     // Cache modules to speed up tests
     if (cacheModules[appPath]) {
       return cacheModules[appPath];

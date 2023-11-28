@@ -1068,7 +1068,7 @@ class CoreModel {
       | "subscribe" // To manage MQTT or Websockets
       | string
   ): Promise<string | boolean> {
-    return "This model does not support any action: override checkAct";
+    return "This model does not support any action: override canAct";
   }
 
   /**

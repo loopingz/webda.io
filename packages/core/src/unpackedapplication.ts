@@ -197,6 +197,15 @@ export class UnpackedApplication extends Application {
    * Load any imported webda.module.json
    */
   findModules(module: CachedModule): string[] {
+    const appPath = this.getAppPath();
+    // @ts-ignore
+    const cacheModules = process.webdaModules || {};
+    // @ts-ignore
+    process.webdaModules ??= cacheModules;
+    // Cache modules to speed up tests
+    if (cacheModules[appPath]) {
+      return cacheModules[appPath];
+    }
     // Modules should be cached on deploy
     let files = [];
     let currentModule = this.getAppPath("webda.module.json");
@@ -228,7 +237,8 @@ export class UnpackedApplication extends Application {
     }
 
     // Ensure we are not adding many times the same modules
-    return Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(f => this.filterModule(f));
+    cacheModules[appPath] = Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(f => this.filterModule(f));
+    return cacheModules[appPath];
   }
 
   /**

@@ -18,7 +18,7 @@ import { ConsoleLoggerService } from "./utils/logger";
 import { FileUtils } from "./utils/serializers";
 
 // Separation on purpose to keep application import separated
-import { CachedModule, SectionEnum } from "./application";
+import { CachedModule, ModelGraph, SectionEnum } from "./application";
 import { UnpackedApplication } from "./unpackedapplication";
 
 /**
@@ -464,8 +464,13 @@ class WebdaTest {
    * @param model
    * @param klass
    */
-  registerModel<T extends CoreModelDefinition>(model: T, name: string = model.constructor.name) {
+  registerModel<T extends CoreModelDefinition>(
+    model: T,
+    name: string = model.constructor.name,
+    graph: ModelGraph = {}
+  ) {
     this.webda.getApplication().addModel(name, model);
+    this.webda.getApplication().getGraph()[name] = graph;
   }
 }
 

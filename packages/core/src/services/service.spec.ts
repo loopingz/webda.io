@@ -88,6 +88,11 @@ class RegExpStringValidatorTest {
 
 @suite
 class ServiceTest extends WebdaTest {
+  protected async buildWebda(): Promise<void> {
+    await super.buildWebda();
+    this.webda.getBeans = () => {};
+  }
+
   @test
   async injector() {
     let service = new FakeService(this.webda, "plop");

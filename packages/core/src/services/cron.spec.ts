@@ -14,6 +14,10 @@ class MyService extends Service {
 }
 @suite
 class CronServiceTest extends WebdaTest {
+  protected async buildWebda(): Promise<void> {
+    await super.buildWebda();
+    this.webda.getBeans = () => {};
+  }
   @test
   annotations() {
     this.registerService(new MyService(this.webda, "myService", {}));

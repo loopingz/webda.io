@@ -13,6 +13,7 @@ import * as jsonc from "jsonc-parser";
 import { join } from "path";
 import { Readable, Writable } from "stream";
 import * as yaml from "yaml";
+import { gunzipSync, gzipSync } from "zlib";
 import { Core } from "../core";
 
 type WalkerOptionsType = {
@@ -182,7 +183,13 @@ export const FileUtils: StorageFinder & {
     if (!existsSync(filename)) {
       throw new Error(`File '${filename}' does not exist.`);
     }
-    let content = readFileSync(filename, "utf-8");
+    let content;
+    if (filename.endsWith(".gz")) {
+      content = gunzipSync(readFileSync(filename)).toString();
+      filename = filename.slice(0, -3);
+    } else {
+      content = readFileSync(filename, "utf-8");
+    }
     format ??= getFormatFromFilename(filename);
     if (format === "yaml") {
       let res = yaml.parseAllDocuments(content);
@@ -205,15 +212,21 @@ export const FileUtils: StorageFinder & {
    * @returns
    */
   save: (object, filename = "", publicAudience: boolean = false, format?: Format) => {
-    format ??= getFormatFromFilename(filename);
-    if (format === "yaml") {
-      return writeFileSync(
-        filename,
-        yaml.stringify(JSON.parse(JSONUtils.stringify(object, undefined, 0, publicAudience)))
-      );
-    } else if (format === "json") {
-      return writeFileSync(filename, JSONUtils.stringify(object, undefined, 2, publicAudience));
+    if (filename.endsWith(".gz")) {
+      format ??= getFormatFromFilename(filename.slice(0, -3));
+    } else {
+      format ??= getFormatFromFilename(filename);
     }
+    let res;
+    if (format === "yaml") {
+      res = yaml.stringify(JSON.parse(JSONUtils.stringify(object, undefined, 0, publicAudience)));
+    } else if (format === "json") {
+      res = JSONUtils.stringify(object, undefined, 2, publicAudience);
+    }
+    if (filename.endsWith(".gz")) {
+      res = gzipSync(res);
+    }
+    writeFileSync(filename, res);
   },
   /**
    * Delete files if exists

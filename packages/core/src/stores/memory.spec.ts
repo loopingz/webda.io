@@ -1,10 +1,10 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { existsSync, unlinkSync } from "fs";
+import { existsSync } from "fs";
 import sinon from "sinon";
 import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User, WebdaError } from "../index";
 import { HttpContext } from "../utils/httpcontext";
-import { JSONUtils } from "../utils/serializers";
+import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import { WebdaQL } from "./webdaql/query";
@@ -260,26 +260,24 @@ class MemoryStoreTest extends StoreTest {
 
   @test
   async persistence() {
-    // Remove the path if exists
-    if (existsSync(".test.json")) {
-      unlinkSync(".test.json");
-    }
+    this.cleanFiles.push(".test.json.gz");
+
     let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     identStore.getParameters().persistence = {
-      path: ".test.json",
+      path: ".test.json.gz",
       delay: 10
     };
     await identStore.init();
     await identStore.put("test", {});
     await this.sleep(10);
     // Check basic persistence
-    assert.ok(existsSync(".test.json"));
-    assert.notStrictEqual(JSONUtils.loadFile(".test.json").test, undefined);
+    assert.ok(existsSync(".test.json.gz"));
+    assert.notStrictEqual(FileUtils.load(".test.json.gz").test, undefined);
     identStore.storage = {};
     // Check basic load of persistence
     await identStore.init();
     assert.notStrictEqual(identStore.storage.test, undefined);
-
+    FileUtils.save({ test: "ok" }, ".test.json");
     // Check encryption
     identStore.getParameters().persistence = {
       path: ".test.json",

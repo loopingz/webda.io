@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 import { existsSync, readFileSync, writeFileSync } from "fs";
+import { gunzipSync, gzipSync } from "zlib";
 import { CoreModel } from "../models/coremodel";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 import { WebdaQL } from "./webdaql/query";
@@ -82,15 +83,28 @@ class MemoryStore<
    * Encrypt data with provided key
    * @returns
    */
-  encrypt() {
-    let data = JSON.stringify(this.storage, undefined, 2);
+  encrypt(): Buffer {
+    let data = Buffer.from(JSON.stringify(this.storage, undefined, 2));
     if (!this.key) {
-      return data;
+      return gzipSync(data);
     }
     // Initialization Vector
     let iv = crypto.randomBytes(16);
     let cipher = crypto.createCipheriv(this.parameters.persistence.cipher, this.key, iv);
-    return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
+    return Buffer.concat([iv, cipher.update(gzipSync(data)), cipher.final()]);
+  }
+
+  /**
+   * Decompress data if compressed
+   * @param data
+   * @returns
+   */
+  uncompress(data: Buffer): string {
+    // gzip header
+    if (data[0] === 0x1f && data[1] === 0x8b) {
+      return gunzipSync(data).toString();
+    }
+    return data.toString();
   }
 
   /**
@@ -98,14 +112,14 @@ class MemoryStore<
    * @param data
    * @returns
    */
-  decrypt(data: string) {
+  decrypt(input: Buffer): string {
     if (!this.key) {
-      return data;
+      return this.uncompress(input);
     }
-    let input = Buffer.from(data, "base64");
     let iv = input.slice(0, 16);
     let decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, this.key, iv);
-    return decipher.update(input.slice(16)).toString() + decipher.final().toString();
+    let decrypted = Buffer.concat([decipher.update(input.slice(16)), decipher.final()]);
+    return this.uncompress(decrypted);
   }
 
   /**
@@ -125,7 +139,7 @@ class MemoryStore<
       }
       try {
         if (existsSync(this.parameters.persistence.path)) {
-          this.storage = JSON.parse(this.decrypt(readFileSync(this.parameters.persistence.path).toString()));
+          this.storage = JSON.parse(this.decrypt(readFileSync(this.parameters.persistence.path)));
         }
       } catch (err) {
         this.log("INFO", "Cannot loaded persisted memory data", err);
@@ -318,4 +332,4 @@ class MemoryStore<
   }
 }
 
-export { MemoryStore, StorageMap, MemoryStore as Plop };
+export { MemoryStore, MemoryStore as Plop, StorageMap };

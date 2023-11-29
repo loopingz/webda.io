@@ -724,6 +724,7 @@ abstract class Store<
     return super.getUrl(url, methods);
   }
 
+  static getOpenAPI() {}
   /**
    * @inheritdoc
    */
@@ -734,6 +735,7 @@ abstract class Store<
     super.initRoutes();
     // We enforce ExposeParameters within the constructor
     const expose = this.parameters.expose;
+    this.getWebda().getRouter().registerModelUrl(this.parameters.model, expose.url);
 
     // Query endpoint
     if (!expose.restrict.query) {
@@ -754,10 +756,10 @@ abstract class Store<
         };
       }
       this.addRoute(expose.queryMethod === "GET" ? `.{?q}` : ".", [expose.queryMethod], this.httpQuery, {
-        model: this._model.name,
+        model: this.parameters.model,
         [expose.queryMethod.toLowerCase()]: {
-          description: `Query on ${this._model.name} model with WebdaQL`,
-          summary: "Query " + this._model.name,
+          description: `Query on ${this.parameters.model} model with WebdaQL`,
+          summary: "Query " + this.parameters.model,
           operationId: `query${this._model.name}`,
           requestBody,
           responses: {
@@ -767,7 +769,7 @@ abstract class Store<
                 "application/json": {
                   schema: {
                     properties: {
-                      contiuationToken: {
+                      continuationToken: {
                         type: "string"
                       },
                       results: {
@@ -2099,6 +2101,17 @@ abstract class Store<
     let object = await this.get(ctx.parameter("uuid"), ctx);
     if (object === undefined || object.__deleted) {
       throw new WebdaError.NotFound("Object not found or is deleted");
+    }
+    const inputSchema = `${object.__class.getIdentifier(false)}.${action}.input`;
+    if (this.getWebda().getApplication().hasSchema(inputSchema)) {
+      const input = await ctx.getInput();
+      try {
+        this.getWebda().validateSchema(inputSchema, input);
+      } catch (err) {
+        this.log("INFO", "Object invalid", err);
+        this.log("INFO", "Object invalid", inputSchema, input, this.getWebda().getApplication().getSchema(inputSchema));
+        throw new WebdaError.BadRequest("Body is invalid");
+      }
     }
     await object.checkAct(ctx, action);
     const evt = {

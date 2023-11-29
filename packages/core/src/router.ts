@@ -2,6 +2,7 @@ import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import uriTemplates from "uri-templates";
 import { Core } from "./core";
+import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { WebContext } from "./utils/context";
 import { HttpMethodType } from "./utils/httpcontext";
 
@@ -44,6 +45,7 @@ export interface OpenAPIWebdaDefinition extends RecursivePartial<OpenAPIV3.PathI
  * Route Information default information
  */
 export interface RouteInfo {
+  model?: CoreModelDefinition;
   /**
    * HTTP Method to expose
    */
@@ -91,9 +93,31 @@ export class Router {
   protected initiated: boolean = false;
   protected pathMap: { url: string; config: RouteInfo }[];
   protected webda: Core;
+  protected models: Map<string, string> = new Map();
 
   constructor(webda: Core) {
     this.webda = webda;
+  }
+
+  /**
+   * Registration of a model
+   * @param model
+   * @param url
+   */
+  registerModelUrl(model: string, url: string) {
+    this.models.set(model, url);
+  }
+
+  /**
+   * Return the route for model
+   * @param model
+   * @returns
+   */
+  getModelUrl(model: string | CoreModel) {
+    if (typeof model !== "string") {
+      model = this.webda.getApplication().getModelName(model);
+    }
+    return this.models.get(model);
   }
 
   /**

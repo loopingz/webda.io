@@ -1,4 +1,4 @@
-import { Action, CoreModel, OperationContext, WebContext, WebdaError } from "@webda/core";
+import { Action, Core, CoreModel, OperationContext, WebContext, WebdaError } from "@webda/core";
 import { WorkerLogLevel } from "@webda/workout";
 import * as crypto from "crypto";
 
@@ -123,6 +123,14 @@ export default class AsyncAction extends CoreModel {
   public async statusAction(context: WebContext) {
     await this.update(await context.getRequestBody(), context.getHttpContext().getUniqueHeader("X-Job-Time"));
     context.write({ ...this, logs: undefined, statusDetails: undefined });
+  }
+
+  /**
+   * Return the hook url if empty fallback to the service url
+   * @returns
+   */
+  public getHookUrl(): string {
+    return Core.get().getRouter().getModelUrl(this);
   }
 
   /**

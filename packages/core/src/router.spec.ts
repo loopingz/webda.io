@@ -1,5 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
+import { User } from "./models/user";
 import { RouteInfo } from "./router";
 import { WebdaTest } from "./test";
 import { HttpContext } from "./utils/httpcontext";
@@ -196,5 +197,13 @@ class RouterTest extends WebdaTest {
     this.webda.addRoute("/cov", { ...info, methods: ["PUT"] });
     this.webda.getRouter().removeRoute("/cov", info);
     this.webda.getRouter().getRoutes();
+  }
+
+  @test
+  getModelUrl() {
+    let routes = this.webda.getRouter().getRoutes();
+    console.log(routes["/memory/users{?q}"][0].openapi);
+    let url = this.webda.getRouter().getModelUrl(new User());
+    console.log(url);
   }
 }

@@ -1513,6 +1513,21 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       this.application.getConfiguration().openapi || {}
     );
     let models = this.application.getModels();
+    const schemas = this.application.getSchemas();
+    // Copy all input/output from actions
+    for (let i in schemas) {
+      if (!(i.endsWith(".input") || i.endsWith(".output"))) {
+        continue;
+      }
+      // @ts-ignore
+      openapi.components.schemas[i] ??= schemas[i];
+      // Not sure how to test following
+      /* c8 ignore next 3 */
+      for (let j in schemas[i].definitions) {
+        // @ts-ignore
+        openapi.components.schemas[j] ??= schemas[i].definitions[j];
+      }
+    }
     for (let i in models) {
       let model = models[i];
       let desc: JSONSchema7 = {

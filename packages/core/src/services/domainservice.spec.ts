@@ -160,22 +160,35 @@ class DomainServiceTest extends WebdaTest {
       },
       context
     });
+    await assert.rejects(
+      () =>
+        this.http({
+          method: "PUT",
+          url: `/classrooms/${result.results[0].uuid}/test`,
+          body: {
+            q: ""
+          },
+          context
+        }),
+      WebdaError.BadRequest
+    );
     await this.http({
       method: "PUT",
       url: `/classrooms/${result.results[0].uuid}/test`,
       body: {
-        q: ""
+        test: "123",
+        id: "123"
       },
       context
-    });
-    await this.http({
-      method: "PUT",
-      url: `/classrooms/${result.results[0].uuid}/hardwares/globalAction`,
-      body: {
-        q: ""
-      },
-      context
-    });
+    }),
+      await this.http({
+        method: "PUT",
+        url: `/classrooms/${result.results[0].uuid}/hardwares/globalAction`,
+        body: {
+          q: ""
+        },
+        context
+      });
     await this.http({
       method: "PUT",
       url: `/hardwares/globalAction`,

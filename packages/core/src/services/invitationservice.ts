@@ -221,7 +221,133 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     this.model = this.getWebda().getModel(this.parameters.model);
     const url =
       this.getParameters().url || `/${this.getWebda().getApplication().getModelPlural(this.parameters.model)}`;
-    this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite);
+    // Register routes
+    this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite, {
+      tags: [this.getWebda().getApplication().getModelPlural(this.model.getIdentifier())],
+      summary: "Invite users to this object",
+      get: {
+        summary: "Retrieve all pending invitations",
+        responses: {
+          "200": {
+            description: "List of pending invitations",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  additionalProperties: {
+                    type: "object"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            description: "Forbidden"
+          }
+        }
+      },
+      put: {
+        summary: "Accept/Refuse an invitation",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  accept: {
+                    type: "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "204": {
+            description: "Operation successful"
+          },
+          "410": {
+            description: "Invitation is gone"
+          }
+        }
+      },
+      delete: {
+        summary: "Remove invitation",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  users: {
+                    type: "array",
+                    items: {
+                      type: "string"
+                    }
+                  },
+                  idents: {
+                    type: "array",
+                    items: {
+                      type: "string"
+                    }
+                  },
+                  metadata: {
+                    type: "object"
+                  },
+                  notification: {
+                    type: "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "204": {},
+          "403": {
+            description: "Forbidden"
+          }
+        }
+      },
+      post: {
+        summary: "Invite users",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  users: {
+                    type: "array",
+                    items: {
+                      type: "string"
+                    }
+                  },
+                  idents: {
+                    type: "array",
+                    items: {
+                      type: "string"
+                    }
+                  },
+                  metadata: {
+                    type: "object"
+                  },
+                  notification: {
+                    type: "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "204": {},
+          "403": {
+            description: "Forbidden"
+          }
+        }
+      }
+    });
     return this;
   }
 

@@ -24,7 +24,23 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
    */
   initRoutes() {
     super.initRoutes();
-    this.addRoute(this.parameters.url, ["GET"], this.version);
+    this.addRoute(this.parameters.url, ["GET"], this.version, {
+      get: {
+        summary: "Get the version of the application",
+        responses: {
+          200: {
+            description: "Version of the application",
+            content: {
+              "text/plain": {
+                schema: {
+                  type: "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    });
   }
 
   /**

@@ -521,6 +521,18 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Enforce a specific store for a model
+   *
+   * Useful in some specific case when you want to update store dynamically
+   *
+   * @param model
+   * @param store
+   */
+  setModelStore(model: Constructor<CoreModel>, store: Store) {
+    this._modelStoresCache.set(model, store);
+  }
+
+  /**
    * Get the store assigned to this model
    * @param model
    * @returns

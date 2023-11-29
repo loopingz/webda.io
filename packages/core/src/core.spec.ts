@@ -634,6 +634,11 @@ class CoreTest extends WebdaTest {
     assert.throws(() => this.webda.registerOperation("__proto__", undefined), Error);
 
     assert.ok(Core["getSingletonInfo"](this.webda).match(/- file:\/\/.*packages\/core\/src\/core.ts \/ \d+.\d+.\d+/));
+
+    assert.strictEqual(User.store().getName(), "MemoryUsers");
+    const memoryStore = new MemoryStore(this.webda, "test", {});
+    this.webda.setModelStore(User, memoryStore);
+    assert.strictEqual(User.store().getName(), "test");
   }
 
   @test

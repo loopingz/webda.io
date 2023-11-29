@@ -3,6 +3,7 @@ import * as assert from "assert";
 import { existsSync, readFileSync, symlinkSync } from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { gunzipSync } from "zlib";
 import { FileUtils, JSONUtils, YAMLUtils } from "./serializers";
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../../test/jsonutils/";
@@ -118,9 +119,22 @@ class UtilsTest {
       file = path.join(TEST_FOLDER, "writeTest.json");
       FileUtils.save({ test: "plop" }, file);
       assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+
+      // Gzip
+      file = path.join(TEST_FOLDER, "writeTest.json.gz");
+      FileUtils.save({ test: "plop" }, file);
+      const buf = readFileSync(file);
+      assert.strictEqual(buf[0], 0x1f);
+      assert.strictEqual(buf[1], 0x8b);
+      assert.deepStrictEqual(JSON.parse(gunzipSync(buf).toString()), { test: "plop" });
+
       assert.throws(() => FileUtils.save({}, "./Dockerfile.zzz"), /Unknown format/);
     } finally {
-      FileUtils.clean("test/jsonutils/writeTest.json", "test/jsonutils/writeTest.yaml");
+      FileUtils.clean(
+        "test/jsonutils/writeTest.json.gz",
+        "test/jsonutils/writeTest.json",
+        "test/jsonutils/writeTest.yaml"
+      );
     }
   }
 

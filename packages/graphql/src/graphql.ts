@@ -20,10 +20,10 @@ import {
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLString,
-  printSchema,
-  ThunkObjMap
+  ThunkObjMap,
+  printSchema
 } from "graphql";
-import { createHandler, Handler, OperationContext } from "graphql-http";
+import { Handler, OperationContext, createHandler } from "graphql-http";
 import { JSONSchema7 } from "json-schema";
 
 const GraphIQL = `
@@ -587,7 +587,28 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @param ctx
    * @returns
    */
-  @Route(".", ["POST"])
+  @Route(".", ["POST"], {
+    post: {
+      summary: "GraphQL endpoint",
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                query: {
+                  type: "string"
+                },
+                variables: {
+                  type: "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
   async endpoint(ctx: WebContext<any>) {
     const httpContext = ctx.getHttpContext();
     ctx.setExtension("graphql", { count: 0 });

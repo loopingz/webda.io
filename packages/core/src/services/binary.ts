@@ -79,6 +79,7 @@ export type BinaryFiles = BinaryFileInfo[];
 
 /**
  * Represent a file to store
+ * @WebdaSchema
  */
 export abstract class BinaryFile<T = any> implements BinaryFileInfo {
   /**

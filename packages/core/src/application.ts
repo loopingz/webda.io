@@ -630,6 +630,14 @@ export class Application {
   }
 
   /**
+   * Get schemas
+   * @returns
+   */
+  getSchemas(): { [key: string]: JSONSchema7 } {
+    return this.baseConfiguration.cachedModules.schemas;
+  }
+
+  /**
    * Check if a schema exists
    * @param type
    * @returns schema name if it exists

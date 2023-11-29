@@ -1,4 +1,4 @@
-import { ModelAction, OperationContext, Store, User, WebContext, WebdaError } from "../index";
+import { OperationContext, User, WebContext, WebdaError } from "../index";
 import { Action, CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -66,7 +66,61 @@ export default class AclModel extends CoreModel {
    * @param ctx
    * @returns
    */
-  @Action({ methods: ["GET", "PUT"] })
+  @Action({
+    methods: ["GET", "PUT"],
+    openapi: {
+      get: {
+        summary: "Get ACLs",
+        responses: {
+          "200": {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    raw: {
+                      type: "object"
+                    },
+                    resolved: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          permission: {
+                            type: "string"
+                          },
+                          actor: {
+                            type: "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      put: {
+        summary: "Update ACLs",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  raw: {
+                    type: "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
   async acl(ctx: WebContext) {
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this._httpPutAcls(ctx);

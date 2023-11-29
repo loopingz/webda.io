@@ -370,7 +370,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       JOB_SECRET_KEY: action.__secretKey,
       JOB_ID: action.getUuid(),
       JOB_HOOK:
-        this.parameters.onlyHttpHook || !action.isInternal() ? this.getWebda().getApiUrl(this.parameters.url) : "store", // How to find the absolute url
+        this.parameters.onlyHttpHook || !action.isInternal()
+          ? action.getHookUrl() || this.getWebda().getApiUrl(this.parameters.url)
+          : "store", // How to find the absolute url
       JOB_ORCHESTRATOR: this.getName()
     };
   }

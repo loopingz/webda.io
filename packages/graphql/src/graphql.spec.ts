@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, FileBinary, getCommonJS, WebdaError } from "@webda/core";
+import { CoreModel, FileBinary, WebdaError, getCommonJS } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as path from "path";
@@ -49,7 +49,7 @@ class GraphQLServiceTest extends WebdaTest {
   @test
   async query() {
     const { users } = await this.createLocalGraphObjects();
-    let q = `{ ping, Teachers(query:"") { results { name, _lastUpdate, uuid } }, Teacher(uuid:"test") { name } }`;
+    let q = `{ Teachers(query:"") { results { name, _lastUpdate, uuid } }, Teacher(uuid:"test") { name } }`;
     let result = await this.http({
       method: "POST",
       url: "/graphql",
@@ -73,7 +73,7 @@ class GraphQLServiceTest extends WebdaTest {
     });
     assert.strictEqual(result.data.Teachers.results.length, 2);
     const uuid = result.data.Teachers.results[0].uuid;
-    q = `{ ping, Teacher(uuid:"${uuid}") { name } }`;
+    q = `{ Teacher(uuid:"${uuid}") { name } }`;
     result = await this.http({
       method: "POST",
       url: "/graphql",
@@ -85,7 +85,7 @@ class GraphQLServiceTest extends WebdaTest {
     assert.strictEqual(result.errors[0].message, "Permission denied");
 
     context.getSession().login("test", "test");
-    q = `{ ping, Teacher(uuid:"${uuid}") { name } }`;
+    q = `{ Teacher(uuid:"${uuid}") { name } }`;
     result = await this.http({
       method: "POST",
       url: "/graphql",
@@ -213,7 +213,16 @@ class GraphQLServiceTest extends WebdaTest {
       Expose: {
         restrict: {},
         root: true
-      }
+      },
+      getIdentifier: () => "WebdaDemo/User2"
+    });
+    this.service.app.addModel("WebdaDemo/User3", {
+      getSchema: () => undefined,
+      Expose: {
+        restrict: {},
+        root: true
+      },
+      getIdentifier: () => "User3"
     });
     this.service.app.addModel("WebdaDemo/Cov", {
       getSchema: () => ({
@@ -233,7 +242,8 @@ class GraphQLServiceTest extends WebdaTest {
       Expose: {
         restrict: {},
         root: true
-      }
+      },
+      getIdentifier: () => "WebdaDemo/Cov"
     });
     this.service.app.addModel("WebdaDemo/Cov2", {
       getSchema: () => ({
@@ -256,9 +266,11 @@ class GraphQLServiceTest extends WebdaTest {
       Expose: {
         restrict: {},
         root: true
-      }
+      },
+      getIdentifier: () => "WebdaDemo/Cov2"
     });
     this.service.getParameters().userModel = "User2";
+    this.service.getParameters()["excludedModels"].push("User3");
     await this.service.resolve().init();
   }
 }

@@ -1,12 +1,12 @@
 import {
   Application,
+  CoreModel,
   CoreModelDefinition,
   DeepPartial,
+  DomainService,
   DomainServiceParameters,
   ModelGraph,
   Route,
-  Service,
-  ServiceParameters,
   WebContext,
   WebdaError
 } from "@webda/core";
@@ -135,7 +135,7 @@ export class GraphQLParameters extends DomainServiceParameters {
   exposeGraphiQL: boolean;
 
   constructor(params: any) {
-    super(params);
+    super({ ...params, nameTransfomer: params.nameTransfomer || "PascalCase" });
     this.url ??= "/graphql";
     this.maxOperationsPerRequest ??= 10;
     this.userModel ??= "User";
@@ -151,12 +151,12 @@ export class GraphQLParameters extends DomainServiceParameters {
  *
  * @WebdaModda
  */
-export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> extends Service<T> {
+export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> extends DomainService<T> {
   schema: GraphQLSchema;
   handler: Handler;
   modelsMap: {};
   app: Application;
-  loadParameters(params: DeepPartial<T>): ServiceParameters {
+  loadParameters(params: DeepPartial<T>): GraphQLParameters {
     return new GraphQLParameters(params);
   }
 
@@ -167,7 +167,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @returns
    */
   getJsonSchemaDefinition(prop: JSONSchema7, definitions): JSONSchema7 {
-    if (prop.type) {
+    if (prop?.type) {
       if (prop.type === "array" && prop.items["$ref"]) {
         prop.items = this.getJsonSchemaDefinition(<JSONSchema7>prop.items, definitions);
       }
@@ -195,7 +195,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       type = GraphQLBoolean;
     } else if (schema.type === "array") {
       type = new GraphQLList(
-        this.getGraphQLSchemaFromSchema(schema.items as JSONSchema7, schema.title || defaultName).type
+        this.getGraphQLSchemaFromSchema(schema.items as JSONSchema7, schema.title || defaultName)?.type || GraphQLString
       );
     } else if (schema.type === "integer" || schema.type === "number") {
       type = GraphQLInt;
@@ -369,6 +369,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!prop) {
         continue;
       }
+
       fields[i] = prop;
     }
     return fields;
@@ -401,7 +402,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
     // Count the operation then and retrieve the model
     this.countOperation(context);
-    let modelInstance = await model.store().get(res.uuid || "");
+    let modelInstance = await model.ref(res.uuid || "").get();
     if (!modelInstance) {
       throw new GraphQLError("Object not found", {
         extensions: {
@@ -439,13 +440,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * Generate GraphQL schema
    */
   generateSchema() {
-    const rootFields: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {
-      ping: {
-        type: GraphQLString,
-        resolve: async () => `pong:${Date.now()}`
-      }
-    };
-
+    const rootFields: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
     const models = this.app.getModels();
     const graph = this.app.getGraph();
     const roots = this.app.getRootExposedModels();
@@ -453,7 +448,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (let i in models) {
       const model = models[i];
       // Not exposed
-      if (!model.Expose) {
+      if (!model.Expose || !this.parameters.isIncluded(model.getIdentifier())) {
         continue;
       }
       const schema = model.getSchema();
@@ -470,12 +465,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (let i of roots) {
       this.log("INFO", "Add GraphQL root query", i);
       const model = models[i];
+      if (!this.parameters.isIncluded(model.getIdentifier())) {
+        continue;
+      }
       const schema = model?.getSchema();
       if (!schema) {
         this.log("INFO", "Schema not valid for root query", i);
         continue;
       }
-      rootFields[this.app.getModelPlural(i).split("/").pop()] = {
+      rootFields[this.transformName(this.app.getModelPlural(i).split("/").pop())] = {
         type: this.getGraphQLQueryResult(this.modelsMap[i]),
         args: {
           query: {
@@ -486,7 +484,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           return await model.query(args.query || "", true, context);
         }
       };
-      rootFields[i.split("/")[1]] = {
+      rootFields[this.transformName(i.split("/").pop())] = {
         type: this.modelsMap[i],
         args: {
           [model.getUuidField()]: {
@@ -504,7 +502,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       const userGraph = this.app.completeNamespace(this.parameters.userModel);
       let model = this.app.getModel(this.parameters.userModel);
       if (this.modelsMap[userGraph] && model.Expose && model.Expose.restrict.get !== true) {
-        rootFields.Me = {
+        rootFields[this.transformName("Me")] = {
           type: this.modelsMap[userGraph],
           resolve: async (_, _args, context: WebContext) => {
             this.countOperation(context);
@@ -561,6 +559,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       }
     });
     return this;
+  }
+
+  handleModel(model: CoreModelDefinition<CoreModel>, name: string, context: any): boolean {
+    //throw new Error("Method not implemented.");
+    return true;
   }
 
   /**

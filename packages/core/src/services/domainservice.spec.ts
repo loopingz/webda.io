@@ -316,6 +316,10 @@ class DomainServiceTest extends WebdaTest {
     assert.ok(!params.isIncluded("User"));
     assert.ok(!params.isIncluded("Company"));
     assert.ok(params.isIncluded("Plop2"));
+    assert.ok(!params.isExcluded("Plop"));
+    assert.ok(params.isExcluded("User"));
+    assert.ok(params.isExcluded("Company"));
+    assert.ok(!params.isExcluded("Plop2"));
   }
 
   @test

@@ -1522,7 +1522,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       // @ts-ignore
       openapi.components.schemas[i] ??= schemas[i];
       // Not sure how to test following
-      /* c8 ignore next 3 */
+      /* c8 ignore next 5 */
       for (let j in schemas[i].definitions) {
         // @ts-ignore
         openapi.components.schemas[j] ??= schemas[i].definitions[j];

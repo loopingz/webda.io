@@ -64,6 +64,14 @@
   * devDependencies
     * @webda/shell bumped from ^3.6.0 to ^3.6.1
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.9.1 to ^3.10.0
+  * devDependencies
+    * @webda/shell bumped from ^3.6.3 to ^3.7.0
+
 ## [3.3.4](https://github.com/loopingz/webda.io/compare/hawk-v3.3.3...hawk-v3.3.4) (2023-11-22)
 
 

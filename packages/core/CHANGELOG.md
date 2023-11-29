@@ -19,6 +19,26 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.10.0](https://github.com/loopingz/webda.io/compare/core-v3.9.1...core-v3.10.0) (2023-11-29)
+
+
+### Features
+
+* add a setModelStore to force model store ([5354f46](https://github.com/loopingz/webda.io/commit/5354f4686fd93f3e573d7b6209f3b38ffce06073))
+* add action input validation and openapi definition ([fc0e28c](https://github.com/loopingz/webda.io/commit/fc0e28c30f3ca5866f4accad2ad8be0e2374d2b5))
+* add util registerModel in test ([059eee8](https://github.com/loopingz/webda.io/commit/059eee88f69821c9278a85ea9623883f57bfabf0))
+* allow to get routes from router ([dcdbd74](https://github.com/loopingz/webda.io/commit/dcdbd74d67abd1f52189ae647c1cdc63c0753661))
+* allow to specify action name in @Action ([ed1429f](https://github.com/loopingz/webda.io/commit/ed1429fe39a9e2c8340984a0b231c44464b4204a))
+* async module use AsyncAction model directly ([862d051](https://github.com/loopingz/webda.io/commit/862d0510f0104386459e51f80ef2650f64bdaa67))
+* compress MemoryStore persistence and handle .gz in FileUtils.save/load ([997e11b](https://github.com/loopingz/webda.io/commit/997e11b04661f3dd14ab68c568ff6d103df7572f))
+* manage all models by default for a BinaryService ([c3524da](https://github.com/loopingz/webda.io/commit/c3524daf10e237070d613d8e6dd1a2b222752def))
+* speed up test by cache unpackedapplication.load ([242ee04](https://github.com/loopingz/webda.io/commit/242ee0460088b2d4b7ddd87e1906aa2f682e9ab4))
+
+
+### Bug Fixes
+
+* graphql any[] type replaced by string[] ([c3ffe20](https://github.com/loopingz/webda.io/commit/c3ffe20a63c193b886345f7a4a73773f112fa747))
+
 ## [3.9.1](https://github.com/loopingz/webda.io/compare/core-v3.9.0...core-v3.9.1) (2023-11-22)
 
 

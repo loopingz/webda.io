@@ -64,6 +64,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.6.2 to ^3.6.3
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/graphql-v3.4.4...graphql-v3.5.0) (2023-11-29)
+
+
+### Features
+
+* add a setModelStore to force model store ([5354f46](https://github.com/loopingz/webda.io/commit/5354f4686fd93f3e573d7b6209f3b38ffce06073))
+* add action input validation and openapi definition ([fc0e28c](https://github.com/loopingz/webda.io/commit/fc0e28c30f3ca5866f4accad2ad8be0e2374d2b5))
+
+
+### Bug Fixes
+
+* graphql any[] type replaced by string[] ([c3ffe20](https://github.com/loopingz/webda.io/commit/c3ffe20a63c193b886345f7a4a73773f112fa747))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.9.1 to ^3.10.0
+  * devDependencies
+    * @webda/shell bumped from ^3.6.3 to ^3.7.0
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/graphql-v3.3.2...graphql-v3.4.0) (2023-11-12)
 
 

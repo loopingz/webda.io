@@ -56,6 +56,10 @@ class Teacher extends DefaultTestModel {
   students: ModelsMapped<Student, "teachers", "firstName" | "lastName" | "email">;
   name: string;
   senior: boolean;
+  /**
+   * Test that graphql can handle any[]
+   */
+  anyArray: any[];
 }
 
 @Expose()

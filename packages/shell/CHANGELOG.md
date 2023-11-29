@@ -31,6 +31,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.8.0 to ^3.8.1
     * @webda/kubernetes bumped from ^3.2.1 to ^3.2.2
 
+## [3.7.0](https://github.com/loopingz/webda.io/compare/shell-v3.6.3...shell-v3.7.0) (2023-11-29)
+
+
+### Features
+
+* add a setModelStore to force model store ([5354f46](https://github.com/loopingz/webda.io/commit/5354f4686fd93f3e573d7b6209f3b38ffce06073))
+* async module use AsyncAction model directly ([862d051](https://github.com/loopingz/webda.io/commit/862d0510f0104386459e51f80ef2650f64bdaa67))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.9.1 to ^3.10.0
+    * @webda/kubernetes bumped from ^3.2.4 to ^3.2.5
+
 ## [3.6.3](https://github.com/loopingz/webda.io/compare/shell-v3.6.2...shell-v3.6.3) (2023-11-22)
 
 

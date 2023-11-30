@@ -64,6 +64,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.6.2 to ^3.6.3
 
+## [3.6.0](https://github.com/loopingz/webda.io/compare/graphql-v3.5.0...graphql-v3.6.0) (2023-11-30)
+
+
+### Features
+
+* add ndjson streams and stream persistence for big MemoryStore ([d283948](https://github.com/loopingz/webda.io/commit/d2839481c4b8b28bf7c0f758a1ca2515517d960a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.10.0 to ^3.11.0
+  * devDependencies
+    * @webda/shell bumped from ^3.7.0 to ^3.8.0
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/graphql-v3.4.4...graphql-v3.5.0) (2023-11-29)
 
 

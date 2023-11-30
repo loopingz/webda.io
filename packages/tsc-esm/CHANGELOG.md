@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.1.0...tsc-esm-v1.1.1) (2023-11-30)
+
+
+### Bug Fixes
+
+* **tsc-esm:** node module import rewrite .js ([e4a15ae](https://github.com/loopingz/webda.io/commit/e4a15ae90a761620520cb890fa5a9121415c453b))
+
 ## [1.1.0](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.0.6...tsc-esm-v1.1.0) (2023-11-12)
 
 

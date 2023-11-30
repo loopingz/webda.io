@@ -18,6 +18,7 @@ import {
   Test
  } from "./index";
 import * as ind from './index';
+import { open } from "node:fs/promises";
 export { SinkService } from "./export";
 export * from './export';
 
@@ -29,11 +30,12 @@ let SinkService = class SinkService extends Service {
 }`
     );
     const content = readFileSync("./test/plop.js").toString();
-    
-    assert.ok(content.includes("\"./index.js\""));
+
+    assert.ok(content.includes('"./index.js"'));
     assert.ok(content.includes("'./index.js'"));
-    assert.ok(content.includes("\"./export.js\""));
+    assert.ok(content.includes('"./export.js"'));
     assert.ok(content.includes("'./export.js'"));
+    assert.ok(!content.includes('"node:fs/promises.js"'));
   }
 
   after() {

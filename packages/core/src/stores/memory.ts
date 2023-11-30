@@ -1,8 +1,8 @@
-import * as crypto from "crypto";
-import { createReadStream, createWriteStream, existsSync } from "fs";
-import { open } from "fs/promises";
-import { Readable, Writable } from "stream";
-import { createGzip } from "zlib";
+import * as crypto from "node:crypto";
+import { createReadStream, createWriteStream, existsSync } from "node:fs";
+import { open } from "node:fs/promises";
+import { Readable, Writable } from "node:stream";
+import { createGzip } from "node:zlib";
 import { CoreModel } from "../models/coremodel";
 import { GunzipConditional } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";

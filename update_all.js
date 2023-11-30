@@ -26,7 +26,6 @@ function saveFile(file, data) {
 
 let workspaces = loadFile("./package.json").workspaces;
 
-console.log(process.argv);
 let filename = process.argv[2]; //"tsconfig.json";
 let query = process.argv[3]; //"$.compilerOptions.target";
 let value = process.argv[4]; //"es2020";node update_all.js filename jsonquery value

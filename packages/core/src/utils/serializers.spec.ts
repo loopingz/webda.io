@@ -1,10 +1,11 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { existsSync, readFileSync, symlinkSync } from "fs";
+import { createReadStream, createWriteStream, existsSync, readFileSync, symlinkSync, unlinkSync } from "fs";
 import * as path from "path";
+import { pipeline } from "stream/promises";
 import { fileURLToPath } from "url";
 import { gunzipSync } from "zlib";
-import { FileUtils, JSONUtils, YAMLUtils } from "./serializers";
+import { FileUtils, JSONUtils, NDJSonReader as NDJSONReader, NDJSONStream, YAMLUtils } from "./serializers";
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../../test/jsonutils/";
 @suite
@@ -127,6 +128,7 @@ class UtilsTest {
       assert.strictEqual(buf[0], 0x1f);
       assert.strictEqual(buf[1], 0x8b);
       assert.deepStrictEqual(JSON.parse(gunzipSync(buf).toString()), { test: "plop" });
+      assert.deepStrictEqual(FileUtils.load(file), { test: "plop" });
 
       assert.throws(() => FileUtils.save({}, "./Dockerfile.zzz"), /Unknown format/);
     } finally {
@@ -135,6 +137,27 @@ class UtilsTest {
         "test/jsonutils/writeTest.json",
         "test/jsonutils/writeTest.yaml"
       );
+    }
+  }
+
+  @test
+  async ndjsonStream() {
+    try {
+      const data = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      const file = ".test.ndjson";
+      new NDJSONStream(data).pipe(createWriteStream(file));
+      let counter = 0;
+      await pipeline(
+        createReadStream(file),
+        new NDJSONReader().on("data", (d: any) => {
+          counter += d.id;
+        })
+      );
+      assert.strictEqual(counter, 6);
+    } finally {
+      if (existsSync(".test.ndjson")) {
+        unlinkSync(".test.ndjson");
+      }
     }
   }
 

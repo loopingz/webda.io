@@ -7,7 +7,7 @@
     "@knodes/typedoc-plugin-pages": "^0.23.1",
     "@types/json-schema": "^7.0.8",
     "@types/mocha": "^10.0.0",
-    "@types/node": "^14.0.0",
+    "@types/node": "18.11.13",
     "commitlint": "^18.1.0",
     "gh-pages": "^6.0.0",
     "husky": "^8.0.1",
@@ -19,12 +19,9 @@
     "prettier-plugin-organize-imports": "^3.0.0",
     "sinon": "^17.0.0",
     "ts-node": "^10.1.0",
-    "typedoc": "~0.23.24",
+    "typedoc": "~0.25.4",
     "typedoc-plugin-mermaid": "~1.10.0",
     "typescript": "~5.3.2"
-  },
-  "resolutions": {
-    "@types/ws": "=8.5.4"
   },
   "author": "loopingz",
   "license": "MIT",

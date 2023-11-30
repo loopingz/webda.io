@@ -20,7 +20,7 @@ on:
     branches: [main]
 
 concurrency:
-  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -96,14 +96,14 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
           service_account: ${{ secrets.GCP_OIDC_SA}}
 
-#      - name: Restore Lerna/NX Cache
-#        uses: actions/cache@v3
-#        with:
-#          path: node_modules/.cache
-#          key: ${{ runner.os }}-${{ matrix.node }}
+      #      - name: Restore Lerna/NX Cache
+      #        uses: actions/cache@v3
+      #        with:
+      #          path: node_modules/.cache
+      #          key: ${{ runner.os }}-${{ matrix.node }}
 
       - name: Install dependencies
-        run: yarn
+        run: yarn install
 
       - name: Build
         run: yarn run build
@@ -114,17 +114,17 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Run AWS tests
-        run: yarn nx run @webda/aws:test
+        run: yarn run nx run @webda/aws:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Run GCP tests
-        run: yarn nx run @webda/gcp:test || yarn nx run @webda/gcp:test
+        run: yarn run nx run @webda/gcp:test || yarn nx run @webda/gcp:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
       - name: Run shell tests
-        run: yarn nx run @webda/shell:test
+        run: yarn run nx run @webda/shell:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

@@ -1,12 +1,14 @@
 import * as crypto from "crypto";
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import { gunzipSync, gzipSync } from "zlib";
+import { createReadStream, createWriteStream, existsSync } from "fs";
+import { open } from "fs/promises";
+import { Readable, Writable } from "stream";
+import { createGzip } from "zlib";
 import { CoreModel } from "../models/coremodel";
+import { GunzipConditional } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 import { WebdaQL } from "./webdaql/query";
-
 interface StorageMap {
-  [key: string]: any;
+  [key: string]: string;
 }
 
 /**
@@ -35,6 +37,13 @@ class MemoryStoreParameters extends StoreParameters {
      * cipher to use
      */
     cipher?: string;
+    /**
+     * Compression level to use
+     * @default 9
+     * @max 9
+     * @min 0
+     */
+    compressionLevel?: number;
   };
 
   constructor(params: any, service: MemoryStore) {
@@ -42,7 +51,80 @@ class MemoryStoreParameters extends StoreParameters {
     if (this.persistence) {
       this.persistence.delay ??= 1000;
       this.persistence.cipher ??= "aes-256-ctr";
+      this.persistence.compressionLevel ??= 9;
     }
+  }
+}
+
+class LDJSONMemoryStreamWriter extends Readable {
+  private data: any[];
+  private index: number = 0;
+
+  constructor(protected storage: any) {
+    super();
+    this.data = Object.keys(storage);
+  }
+
+  _read() {
+    if (this.index >= this.data.length) {
+      this.push(null);
+      return;
+    }
+    const key = this.data[this.index++];
+    this.push(key + "\t" + this.storage[key] + "\n");
+  }
+}
+
+class LDJSONMemoryStreamReader extends Writable {
+  current: string = "";
+  oldFormat: string = undefined;
+  firstBytes: boolean = true;
+  constructor(protected data: any) {
+    super();
+  }
+
+  /**
+   * Handle old format by storing it to memory to JSON.parse it later
+   * Or read the new format to avoid parsing
+   *
+   * @returns
+   */
+  _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error) => void): void {
+    if (this.firstBytes) {
+      this.firstBytes = false;
+      if (chunk[0] === "{".charCodeAt(0)) {
+        this.oldFormat = "";
+      }
+    }
+    if (this.oldFormat !== undefined) {
+      this.oldFormat += chunk.toString();
+      callback();
+      return;
+    }
+
+    // Split by new line
+    const res = chunk.toString().split("\n");
+    // First chunk is the end of the last line
+    res[0] = this.current + res[0];
+    for (let i = 0; i < res.length - 1; i++) {
+      const info = res[i];
+      const split = info.indexOf("\t");
+      this.data[info.substring(0, split)] = info.substring(split + 1);
+    }
+    this.current = res[res.length - 1];
+
+    callback();
+  }
+
+  _final(callback: (error?: Error) => void): void {
+    // Parse the content if old format
+    if (this.oldFormat !== undefined) {
+      let data = JSON.parse(this.oldFormat);
+      for (let i in data) {
+        this.data[i] = data[i];
+      }
+    }
+    callback();
   }
 }
 
@@ -65,6 +147,10 @@ class MemoryStore<
    */
   private persistenceTimeout;
   /**
+   * Current persistence
+   */
+  persistencePromise = null;
+  /**
    * AES encryption key
    */
   private key: Buffer;
@@ -74,52 +160,69 @@ class MemoryStore<
    *
    * Called every this.parameters.persistence.delay ms
    */
-  persist() {
-    writeFileSync(this.parameters.persistence.path, this.encrypt());
-    this.persistenceTimeout = null;
+  async persist() {
+    if (this.persistenceTimeout) {
+      clearTimeout(this.persistenceTimeout);
+      this.persistenceTimeout = null;
+    }
+    const source = new LDJSONMemoryStreamWriter(this.storage);
+    let pipeline: Readable = source;
+    if (this.parameters.persistence.compressionLevel > 0) {
+      pipeline = pipeline.pipe(
+        createGzip({
+          level: this.parameters.persistence.compressionLevel
+        })
+      );
+    }
+
+    const dest = createWriteStream(this.parameters.persistence.path);
+    if (this.key) {
+      let iv = crypto.randomBytes(16);
+      let cipher = crypto.createCipheriv(this.parameters.persistence.cipher, this.key, iv);
+      pipeline = pipeline.pipe(cipher);
+      dest.write(iv);
+    }
+    pipeline.pipe(dest);
+    await new Promise<void>((resolve, reject) => {
+      dest.on("finish", () => {
+        this.log("DEBUG", "Persisted memory data");
+        resolve();
+      });
+      dest.on("error", err => {
+        this.log("ERROR", "Cannot persist memory data", err);
+        reject(err);
+      });
+    });
   }
 
   /**
-   * Encrypt data with provided key
-   * @returns
+   * Load a persisted memory data
    */
-  encrypt(): Buffer {
-    let data = Buffer.from(JSON.stringify(this.storage, undefined, 2));
-    if (!this.key) {
-      return gzipSync(data);
+  async load() {
+    let pipeline: Readable;
+    if (this.key) {
+      let fh = await open(this.parameters.persistence.path, "r");
+      let iv = Buffer.alloc(16);
+      await fh.read(iv, 0, 16);
+      let decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, this.key, iv);
+      pipeline = fh.createReadStream({ start: 16 }).pipe(decipher);
+    } else {
+      pipeline = createReadStream(this.parameters.persistence.path);
     }
-    // Initialization Vector
-    let iv = crypto.randomBytes(16);
-    let cipher = crypto.createCipheriv(this.parameters.persistence.cipher, this.key, iv);
-    return Buffer.concat([iv, cipher.update(gzipSync(data)), cipher.final()]);
-  }
+    // Uncompress if needed
+    pipeline = pipeline.pipe(new GunzipConditional());
 
-  /**
-   * Decompress data if compressed
-   * @param data
-   * @returns
-   */
-  uncompress(data: Buffer): string {
-    // gzip header
-    if (data[0] === 0x1f && data[1] === 0x8b) {
-      return gunzipSync(data).toString();
-    }
-    return data.toString();
-  }
-
-  /**
-   * Decrypt data with provided key
-   * @param data
-   * @returns
-   */
-  decrypt(input: Buffer): string {
-    if (!this.key) {
-      return this.uncompress(input);
-    }
-    let iv = input.slice(0, 16);
-    let decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, this.key, iv);
-    let decrypted = Buffer.concat([decipher.update(input.slice(16)), decipher.final()]);
-    return this.uncompress(decrypted);
+    const dest = new LDJSONMemoryStreamReader(this.storage);
+    pipeline.pipe(dest);
+    await new Promise<void>((resolve, reject) => {
+      dest.on("finish", () => {
+        this.log("DEBUG", "Load memory data");
+        resolve();
+      });
+      dest.on("error", err => {
+        reject(err);
+      });
+    });
   }
 
   /**
@@ -139,19 +242,33 @@ class MemoryStore<
       }
       try {
         if (existsSync(this.parameters.persistence.path)) {
-          this.storage = JSON.parse(this.decrypt(readFileSync(this.parameters.persistence.path)));
+          this.storage = {};
+          await this.load();
         }
       } catch (err) {
         this.log("INFO", "Cannot loaded persisted memory data", err);
         this.storage = {};
       }
-      this.storage = new Proxy(this.storage, {
-        set: (target: StorageMap, p: string, value: any): boolean => {
-          target[p] = value;
-          this.persistenceTimeout ??= setTimeout(() => this.persist(), this.parameters.persistence.delay);
-          return true;
-        }
-      });
+      // Set a proxy if we need to delay the persistence
+      if (this.parameters.persistence.delay > 0) {
+        this.storage = new Proxy(this.storage, {
+          set: (target: StorageMap, p: string, value: any): boolean => {
+            target[p] = value;
+            const timeout = async () => {
+              // If we are already persisting, wait for it to finish
+              if (this.persistencePromise) {
+                this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
+                return;
+              }
+              this.persistencePromise = this.persist();
+              await this.persistencePromise;
+              this.persistencePromise = null;
+            };
+            this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
+            return true;
+          }
+        });
+      }
     }
     return super.init();
   }
@@ -161,7 +278,7 @@ class MemoryStore<
    */
   async stop(): Promise<void> {
     if (this.parameters.persistence) {
-      this.persist();
+      await this.persist();
     }
   }
 

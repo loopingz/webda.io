@@ -2163,6 +2163,11 @@
             "cipher": {
               "type": "string",
               "description": "cipher to use"
+            },
+            "compressionLevel": {
+              "type": "number",
+              "description": "Compression level to use",
+              "default": 9
             }
           },
           "required": [

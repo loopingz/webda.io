@@ -11,9 +11,9 @@ import {
 } from "fs";
 import * as jsonc from "jsonc-parser";
 import { join } from "path";
-import { Readable, Writable } from "stream";
+import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
-import { gunzipSync, gzipSync } from "zlib";
+import { createGunzip, gunzipSync, gzipSync } from "zlib";
 import { Core } from "../core";
 
 type WalkerOptionsType = {
@@ -23,6 +23,80 @@ type WalkerOptionsType = {
   maxDepth?: number;
 };
 type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor?: (filepath: string) => void };
+
+/**
+ * NDJSONStream is a Readable stream that emits JSON objects separated by newlines.
+ */
+export class NDJSONStream extends Readable {
+  private data: any[];
+  private index: number = 0;
+
+  constructor(data: any[]) {
+    super();
+    this.data = data;
+  }
+
+  _read() {
+    if (this.index >= this.data.length) {
+      this.push(null);
+      return;
+    }
+    this.push(JSON.stringify(this.data[this.index++]) + "\n");
+  }
+}
+
+/**
+ * Read a NDJSON stream
+ */
+export class NDJSonReader extends Writable {
+  current: string = "";
+  _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
+    let res = chunk.toString().split("\n");
+    res[0] = this.current + res[0];
+    for (let i = 0; i < res.length - 1; i++) {
+      this.emit("data", JSON.parse(res[i]));
+    }
+    this.current = res[res.length - 1];
+    callback();
+  }
+}
+
+/**
+ * Gunzip a stream only if it is gzipped
+ */
+export class GunzipConditional extends Transform {
+  first: boolean = true;
+  zlib: Transform;
+  destination: NodeJS.WritableStream;
+  source: any;
+
+  constructor() {
+    super();
+    this.on("pipe", source => {
+      this.source = source;
+    });
+  }
+
+  pipe<T extends NodeJS.WritableStream>(destination: T, options?: { end?: boolean }): T {
+    this.destination = destination;
+    return super.pipe(destination, options);
+  }
+
+  _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {
+    if (this.first && chunk[0] === 0x1f && chunk[1] === 0x8b) {
+      this.zlib = createGunzip();
+      this.unpipe();
+      this.source.unpipe(this);
+      this.source.pipe(this.zlib);
+      this.zlib.pipe(this.destination);
+      this.zlib.write(chunk, encoding);
+    } else {
+      this.push(chunk, encoding);
+    }
+    this.first = false;
+    callback();
+  }
+}
 
 /**
  * Type of format managed

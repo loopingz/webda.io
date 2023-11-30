@@ -1,5 +1,5 @@
 import fs from "fs";
-import glob from "glob";
+import { globSync } from "glob";
 import jp from "jsonpath";
 
 if (process.argv.length < 5) {
@@ -47,7 +47,7 @@ for (let workspace of workspaces) {
   if (!workspace.endsWith("/")) {
     workspace += "/";
   }
-  let files = glob.GlobSync(workspace + filename).found;
+  let files = globSync(workspace + filename);
   console.log(files);
   for (let file of files) {
     let content = loadFile(file);

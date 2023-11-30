@@ -165,64 +165,130 @@
                   "type": "object",
                   "properties": {
                     "writable": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
                     },
                     "writableEnded": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is `true` after `writable.end()` has been called. This property does not indicate whether the data has been flushed, for this use `writable.writableFinished` instead."
                     },
                     "writableFinished": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is set to `true` immediately before the `'finish'` event is emitted."
                     },
                     "writableHighWaterMark": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Return the value of `highWaterMark` passed when creating this `Writable`."
                     },
                     "writableLength": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "This property contains the number of bytes (or objects) in the queue ready to be written. The value provides introspection data regarding the status of the `highWaterMark`."
                     },
                     "writableObjectMode": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Getter for the property `objectMode` of a given `Writable` stream."
                     },
                     "writableCorked": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Number of times `writable.uncork()` needs to be called in order to fully uncork the stream."
                     },
                     "destroyed": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is `true` after `readable.destroy()` has been called."
                     },
-                    "readable": {
-                      "type": "boolean"
+                    "closed": {
+                      "type": "boolean",
+                      "description": "Is true after 'close' has been emitted."
                     },
-                    "readableEncoding": {
+                    "errored": {
                       "anyOf": [
                         {
-                          "$ref": "#/definitions/BufferEncoding"
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "stack": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "message"
+                          ]
                         },
                         {
                           "type": "null"
                         }
-                      ]
+                      ],
+                      "description": "Returns error if the stream has been destroyed with an error."
+                    },
+                    "writableNeedDrain": {
+                      "type": "boolean",
+                      "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                    },
+                    "readable": {
+                      "type": "boolean",
+                      "description": "Is `true` if it is safe to call `readable.read()`, which means the stream has not been destroyed or emitted `'error'` or `'end'`."
+                    },
+                    "readableAborted": {
+                      "type": "boolean",
+                      "description": "Returns whether the stream was destroyed or errored before emitting `'end'`."
+                    },
+                    "readableDidRead": {
+                      "type": "boolean",
+                      "description": "Returns whether `'data'` has been emitted."
+                    },
+                    "readableEncoding": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/global.BufferEncoding"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Getter for the property `encoding` of a given `Readable` stream. The `encoding`property can be set using the `readable.setEncoding()` method."
                     },
                     "readableEnded": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Becomes `true` when `'end'` event is emitted."
                     },
                     "readableFlowing": {
                       "type": [
                         "boolean",
                         "null"
-                      ]
+                      ],
+                      "description": "This property reflects the current state of a `Readable` stream as described in the `Three states` section."
                     },
                     "readableHighWaterMark": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Returns the value of `highWaterMark` passed when creating this `Readable`."
                     },
                     "readableLength": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "This property contains the number of bytes (or objects) in the queue ready to be read. The value provides introspection data regarding the status of the `highWaterMark`."
                     },
                     "readableObjectMode": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Getter for the property `objectMode` of a given `Readable` stream."
+                    },
+                    "allowHalfOpen": {
+                      "type": "boolean",
+                      "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                     }
                   },
                   "required": [
+                    "allowHalfOpen",
+                    "closed",
                     "destroyed",
+                    "errored",
                     "readable",
+                    "readableAborted",
+                    "readableDidRead",
                     "readableEncoding",
                     "readableEnded",
                     "readableFlowing",
@@ -235,8 +301,10 @@
                     "writableFinished",
                     "writableHighWaterMark",
                     "writableLength",
+                    "writableNeedDrain",
                     "writableObjectMode"
-                  ]
+                  ],
+                  "description": "Duplex streams are streams that implement both the `Readable` and `Writable` interfaces.\n\nExamples of `Duplex` streams include:\n\n* `TCP sockets`\n* `zlib streams`\n* `crypto streams`"
                 },
                 "statement_timeout": {
                   "anyOf": [
@@ -391,8 +459,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -426,8 +493,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   }
                                 ]
                               }
@@ -465,8 +531,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -500,8 +565,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   }
                                 ]
                               }
@@ -551,8 +615,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -586,8 +649,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   }
                                 ]
                               }
@@ -625,8 +687,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             }
                           ],
                           "description": "Diffie Hellman parameters, required for Perfect Forward Secrecy. Use openssl dhparam to create the parameters. The key length must be greater than or equal to 1024 bits or else an error will be thrown. Although 1024 bits is permissible, use 2048 bits or larger for stronger security. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available."
@@ -669,13 +730,15 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
                               "items": {
                                 "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
                                   {
                                     "type": "object",
                                     "properties": {
@@ -701,8 +764,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   },
                                   {
                                     "type": "object",
@@ -737,8 +799,7 @@
                                               "byteLength",
                                               "byteOffset",
                                               "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                            ]
                                           }
                                         ],
                                         "description": "Private keys in PEM format."
@@ -808,8 +869,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -843,8 +903,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   },
                                   {
                                     "type": "object",
@@ -879,8 +938,7 @@
                                               "byteLength",
                                               "byteOffset",
                                               "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                            ]
                                           }
                                         ],
                                         "description": "PFX or PKCS12 encoded private key and certificate chain."
@@ -938,11 +996,11 @@
                             "byteOffset",
                             "length"
                           ],
-                          "description": "48 bytes of cryptographically strong pseudo-random data."
+                          "description": "48-bytes of cryptographically strong pseudo-random data. See Session Resumption for more information."
                         },
                         "sessionTimeout": {
                           "type": "number",
-                          "description": "The number of seconds after which a TLS session created by the server will no longer be resumable."
+                          "description": "The number of seconds after which a TLS session created by the server will no longer be resumable. See Session Resumption for more information. Default: 300."
                         },
                         "host": {
                           "type": "string"
@@ -957,97 +1015,130 @@
                           "type": "object",
                           "properties": {
                             "writable": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
                             },
                             "writableEnded": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is `true` after `writable.end()` has been called. This property does not indicate whether the data has been flushed, for this use `writable.writableFinished` instead."
                             },
                             "writableFinished": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is set to `true` immediately before the `'finish'` event is emitted."
                             },
                             "writableHighWaterMark": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "Return the value of `highWaterMark` passed when creating this `Writable`."
                             },
                             "writableLength": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "This property contains the number of bytes (or objects) in the queue ready to be written. The value provides introspection data regarding the status of the `highWaterMark`."
                             },
                             "writableObjectMode": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Getter for the property `objectMode` of a given `Writable` stream."
                             },
                             "writableCorked": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "Number of times `writable.uncork()` needs to be called in order to fully uncork the stream."
                             },
                             "destroyed": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is `true` after `readable.destroy()` has been called."
                             },
-                            "readable": {
-                              "type": "boolean"
+                            "closed": {
+                              "type": "boolean",
+                              "description": "Is true after 'close' has been emitted."
                             },
-                            "readableEncoding": {
+                            "errored": {
                               "anyOf": [
                                 {
-                                  "$ref": "#/definitions/BufferEncoding"
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "message": {
+                                      "type": "string"
+                                    },
+                                    "stack": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "message"
+                                  ]
                                 },
                                 {
                                   "type": "null"
                                 }
-                              ]
+                              ],
+                              "description": "Returns error if the stream has been destroyed with an error."
+                            },
+                            "writableNeedDrain": {
+                              "type": "boolean",
+                              "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                            },
+                            "readable": {
+                              "type": "boolean",
+                              "description": "Is `true` if it is safe to call `readable.read()`, which means the stream has not been destroyed or emitted `'error'` or `'end'`."
+                            },
+                            "readableAborted": {
+                              "type": "boolean",
+                              "description": "Returns whether the stream was destroyed or errored before emitting `'end'`."
+                            },
+                            "readableDidRead": {
+                              "type": "boolean",
+                              "description": "Returns whether `'data'` has been emitted."
+                            },
+                            "readableEncoding": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/definitions/global.BufferEncoding"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "Getter for the property `encoding` of a given `Readable` stream. The `encoding`property can be set using the `readable.setEncoding()` method."
                             },
                             "readableEnded": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Becomes `true` when `'end'` event is emitted."
                             },
                             "readableFlowing": {
                               "type": [
                                 "boolean",
                                 "null"
-                              ]
+                              ],
+                              "description": "This property reflects the current state of a `Readable` stream as described in the `Three states` section."
                             },
                             "readableHighWaterMark": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "Returns the value of `highWaterMark` passed when creating this `Readable`."
                             },
                             "readableLength": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "This property contains the number of bytes (or objects) in the queue ready to be read. The value provides introspection data regarding the status of the `highWaterMark`."
                             },
                             "readableObjectMode": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Getter for the property `objectMode` of a given `Readable` stream."
                             },
-                            "bufferSize": {
-                              "type": "number"
-                            },
-                            "bytesRead": {
-                              "type": "number"
-                            },
-                            "bytesWritten": {
-                              "type": "number"
-                            },
-                            "connecting": {
-                              "type": "boolean"
-                            },
-                            "localAddress": {
-                              "type": "string"
-                            },
-                            "localPort": {
-                              "type": "number"
-                            },
-                            "remoteAddress": {
-                              "type": "string"
-                            },
-                            "remoteFamily": {
-                              "type": "string"
-                            },
-                            "remotePort": {
-                              "type": "number"
+                            "allowHalfOpen": {
+                              "type": "boolean",
+                              "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                             }
                           },
                           "required": [
-                            "bufferSize",
-                            "bytesRead",
-                            "bytesWritten",
-                            "connecting",
+                            "allowHalfOpen",
+                            "closed",
                             "destroyed",
-                            "localAddress",
-                            "localPort",
+                            "errored",
                             "readable",
+                            "readableAborted",
+                            "readableDidRead",
                             "readableEncoding",
                             "readableEnded",
                             "readableFlowing",
@@ -1060,11 +1151,13 @@
                             "writableFinished",
                             "writableHighWaterMark",
                             "writableLength",
+                            "writableNeedDrain",
                             "writableObjectMode"
-                          ]
+                          ],
+                          "description": "Duplex streams are streams that implement both the `Readable` and `Writable` interfaces.\n\nExamples of `Duplex` streams include:\n\n* `TCP sockets`\n* `zlib streams`\n* `crypto streams`"
                         },
                         "checkServerIdentity": {
-                          "$comment": "(host: string, cert: PeerCertificate) ->  Error | undefined"
+                          "$comment": "(hostname: string, cert: PeerCertificate) ->  Error | undefined"
                         },
                         "servername": {
                           "type": "string"
@@ -1094,8 +1187,7 @@
                             "byteLength",
                             "byteOffset",
                             "length"
-                          ],
-                          "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                          ]
                         },
                         "minDHSize": {
                           "type": "number"
@@ -1169,64 +1261,130 @@
                   "type": "object",
                   "properties": {
                     "writable": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
                     },
                     "writableEnded": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is `true` after `writable.end()` has been called. This property does not indicate whether the data has been flushed, for this use `writable.writableFinished` instead."
                     },
                     "writableFinished": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is set to `true` immediately before the `'finish'` event is emitted."
                     },
                     "writableHighWaterMark": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Return the value of `highWaterMark` passed when creating this `Writable`."
                     },
                     "writableLength": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "This property contains the number of bytes (or objects) in the queue ready to be written. The value provides introspection data regarding the status of the `highWaterMark`."
                     },
                     "writableObjectMode": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Getter for the property `objectMode` of a given `Writable` stream."
                     },
                     "writableCorked": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Number of times `writable.uncork()` needs to be called in order to fully uncork the stream."
                     },
                     "destroyed": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Is `true` after `readable.destroy()` has been called."
                     },
-                    "readable": {
-                      "type": "boolean"
+                    "closed": {
+                      "type": "boolean",
+                      "description": "Is true after 'close' has been emitted."
                     },
-                    "readableEncoding": {
+                    "errored": {
                       "anyOf": [
                         {
-                          "$ref": "#/definitions/BufferEncoding"
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "stack": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "message"
+                          ]
                         },
                         {
                           "type": "null"
                         }
-                      ]
+                      ],
+                      "description": "Returns error if the stream has been destroyed with an error."
+                    },
+                    "writableNeedDrain": {
+                      "type": "boolean",
+                      "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                    },
+                    "readable": {
+                      "type": "boolean",
+                      "description": "Is `true` if it is safe to call `readable.read()`, which means the stream has not been destroyed or emitted `'error'` or `'end'`."
+                    },
+                    "readableAborted": {
+                      "type": "boolean",
+                      "description": "Returns whether the stream was destroyed or errored before emitting `'end'`."
+                    },
+                    "readableDidRead": {
+                      "type": "boolean",
+                      "description": "Returns whether `'data'` has been emitted."
+                    },
+                    "readableEncoding": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/global.BufferEncoding"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Getter for the property `encoding` of a given `Readable` stream. The `encoding`property can be set using the `readable.setEncoding()` method."
                     },
                     "readableEnded": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Becomes `true` when `'end'` event is emitted."
                     },
                     "readableFlowing": {
                       "type": [
                         "boolean",
                         "null"
-                      ]
+                      ],
+                      "description": "This property reflects the current state of a `Readable` stream as described in the `Three states` section."
                     },
                     "readableHighWaterMark": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "Returns the value of `highWaterMark` passed when creating this `Readable`."
                     },
                     "readableLength": {
-                      "type": "number"
+                      "type": "number",
+                      "description": "This property contains the number of bytes (or objects) in the queue ready to be read. The value provides introspection data regarding the status of the `highWaterMark`."
                     },
                     "readableObjectMode": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Getter for the property `objectMode` of a given `Readable` stream."
+                    },
+                    "allowHalfOpen": {
+                      "type": "boolean",
+                      "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                     }
                   },
                   "required": [
+                    "allowHalfOpen",
+                    "closed",
                     "destroyed",
+                    "errored",
                     "readable",
+                    "readableAborted",
+                    "readableDidRead",
                     "readableEncoding",
                     "readableEnded",
                     "readableFlowing",
@@ -1239,8 +1397,10 @@
                     "writableFinished",
                     "writableHighWaterMark",
                     "writableLength",
+                    "writableNeedDrain",
                     "writableObjectMode"
-                  ]
+                  ],
+                  "description": "Duplex streams are streams that implement both the `Readable` and `Writable` interfaces.\n\nExamples of `Duplex` streams include:\n\n* `TCP sockets`\n* `zlib streams`\n* `crypto streams`"
                 },
                 "statement_timeout": {
                   "anyOf": [
@@ -1395,8 +1555,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -1430,8 +1589,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   }
                                 ]
                               }
@@ -1469,8 +1627,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -1504,8 +1661,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   }
                                 ]
                               }
@@ -1555,8 +1711,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -1590,8 +1745,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   }
                                 ]
                               }
@@ -1629,8 +1783,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             }
                           ],
                           "description": "Diffie Hellman parameters, required for Perfect Forward Secrecy. Use openssl dhparam to create the parameters. The key length must be greater than or equal to 1024 bits or else an error will be thrown. Although 1024 bits is permissible, use 2048 bits or larger for stronger security. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available."
@@ -1673,13 +1826,15 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
                               "items": {
                                 "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
                                   {
                                     "type": "object",
                                     "properties": {
@@ -1705,8 +1860,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   },
                                   {
                                     "type": "object",
@@ -1741,8 +1895,7 @@
                                               "byteLength",
                                               "byteOffset",
                                               "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                            ]
                                           }
                                         ],
                                         "description": "Private keys in PEM format."
@@ -1812,8 +1965,7 @@
                                 "byteLength",
                                 "byteOffset",
                                 "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                              ]
                             },
                             {
                               "type": "array",
@@ -1847,8 +1999,7 @@
                                       "byteLength",
                                       "byteOffset",
                                       "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                    ]
                                   },
                                   {
                                     "type": "object",
@@ -1883,8 +2034,7 @@
                                               "byteLength",
                                               "byteOffset",
                                               "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                                            ]
                                           }
                                         ],
                                         "description": "PFX or PKCS12 encoded private key and certificate chain."
@@ -1942,11 +2092,11 @@
                             "byteOffset",
                             "length"
                           ],
-                          "description": "48 bytes of cryptographically strong pseudo-random data."
+                          "description": "48-bytes of cryptographically strong pseudo-random data. See Session Resumption for more information."
                         },
                         "sessionTimeout": {
                           "type": "number",
-                          "description": "The number of seconds after which a TLS session created by the server will no longer be resumable."
+                          "description": "The number of seconds after which a TLS session created by the server will no longer be resumable. See Session Resumption for more information. Default: 300."
                         },
                         "host": {
                           "type": "string"
@@ -1961,97 +2111,130 @@
                           "type": "object",
                           "properties": {
                             "writable": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
                             },
                             "writableEnded": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is `true` after `writable.end()` has been called. This property does not indicate whether the data has been flushed, for this use `writable.writableFinished` instead."
                             },
                             "writableFinished": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is set to `true` immediately before the `'finish'` event is emitted."
                             },
                             "writableHighWaterMark": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "Return the value of `highWaterMark` passed when creating this `Writable`."
                             },
                             "writableLength": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "This property contains the number of bytes (or objects) in the queue ready to be written. The value provides introspection data regarding the status of the `highWaterMark`."
                             },
                             "writableObjectMode": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Getter for the property `objectMode` of a given `Writable` stream."
                             },
                             "writableCorked": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "Number of times `writable.uncork()` needs to be called in order to fully uncork the stream."
                             },
                             "destroyed": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Is `true` after `readable.destroy()` has been called."
                             },
-                            "readable": {
-                              "type": "boolean"
+                            "closed": {
+                              "type": "boolean",
+                              "description": "Is true after 'close' has been emitted."
                             },
-                            "readableEncoding": {
+                            "errored": {
                               "anyOf": [
                                 {
-                                  "$ref": "#/definitions/BufferEncoding"
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "message": {
+                                      "type": "string"
+                                    },
+                                    "stack": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "message"
+                                  ]
                                 },
                                 {
                                   "type": "null"
                                 }
-                              ]
+                              ],
+                              "description": "Returns error if the stream has been destroyed with an error."
+                            },
+                            "writableNeedDrain": {
+                              "type": "boolean",
+                              "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                            },
+                            "readable": {
+                              "type": "boolean",
+                              "description": "Is `true` if it is safe to call `readable.read()`, which means the stream has not been destroyed or emitted `'error'` or `'end'`."
+                            },
+                            "readableAborted": {
+                              "type": "boolean",
+                              "description": "Returns whether the stream was destroyed or errored before emitting `'end'`."
+                            },
+                            "readableDidRead": {
+                              "type": "boolean",
+                              "description": "Returns whether `'data'` has been emitted."
+                            },
+                            "readableEncoding": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/definitions/global.BufferEncoding"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "Getter for the property `encoding` of a given `Readable` stream. The `encoding`property can be set using the `readable.setEncoding()` method."
                             },
                             "readableEnded": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Becomes `true` when `'end'` event is emitted."
                             },
                             "readableFlowing": {
                               "type": [
                                 "boolean",
                                 "null"
-                              ]
+                              ],
+                              "description": "This property reflects the current state of a `Readable` stream as described in the `Three states` section."
                             },
                             "readableHighWaterMark": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "Returns the value of `highWaterMark` passed when creating this `Readable`."
                             },
                             "readableLength": {
-                              "type": "number"
+                              "type": "number",
+                              "description": "This property contains the number of bytes (or objects) in the queue ready to be read. The value provides introspection data regarding the status of the `highWaterMark`."
                             },
                             "readableObjectMode": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "description": "Getter for the property `objectMode` of a given `Readable` stream."
                             },
-                            "bufferSize": {
-                              "type": "number"
-                            },
-                            "bytesRead": {
-                              "type": "number"
-                            },
-                            "bytesWritten": {
-                              "type": "number"
-                            },
-                            "connecting": {
-                              "type": "boolean"
-                            },
-                            "localAddress": {
-                              "type": "string"
-                            },
-                            "localPort": {
-                              "type": "number"
-                            },
-                            "remoteAddress": {
-                              "type": "string"
-                            },
-                            "remoteFamily": {
-                              "type": "string"
-                            },
-                            "remotePort": {
-                              "type": "number"
+                            "allowHalfOpen": {
+                              "type": "boolean",
+                              "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                             }
                           },
                           "required": [
-                            "bufferSize",
-                            "bytesRead",
-                            "bytesWritten",
-                            "connecting",
+                            "allowHalfOpen",
+                            "closed",
                             "destroyed",
-                            "localAddress",
-                            "localPort",
+                            "errored",
                             "readable",
+                            "readableAborted",
+                            "readableDidRead",
                             "readableEncoding",
                             "readableEnded",
                             "readableFlowing",
@@ -2064,11 +2247,13 @@
                             "writableFinished",
                             "writableHighWaterMark",
                             "writableLength",
+                            "writableNeedDrain",
                             "writableObjectMode"
-                          ]
+                          ],
+                          "description": "Duplex streams are streams that implement both the `Readable` and `Writable` interfaces.\n\nExamples of `Duplex` streams include:\n\n* `TCP sockets`\n* `zlib streams`\n* `crypto streams`"
                         },
                         "checkServerIdentity": {
-                          "$comment": "(host: string, cert: PeerCertificate) ->  Error | undefined"
+                          "$comment": "(hostname: string, cert: PeerCertificate) ->  Error | undefined"
                         },
                         "servername": {
                           "type": "string"
@@ -2098,8 +2283,7 @@
                             "byteLength",
                             "byteOffset",
                             "length"
-                          ],
-                          "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+                          ]
                         },
                         "minDHSize": {
                           "type": "number"
@@ -2221,7 +2405,7 @@
           },
           "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
         },
-        "BufferEncoding": {
+        "global.BufferEncoding": {
           "type": "string",
           "enum": [
             "ascii",
@@ -2231,6 +2415,7 @@
             "ucs2",
             "ucs-2",
             "base64",
+            "base64url",
             "latin1",
             "binary",
             "hex"

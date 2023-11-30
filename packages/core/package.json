@@ -59,7 +59,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
-    "@types/node": "14.6.0",
+    "@types/node": "18.11.13",
     "@types/nodemailer": "^6.4.4",
     "@webda/tsc-esm": "^1.1.0",
     "antlr4ts-cli": "^0.5.0-alpha.4",

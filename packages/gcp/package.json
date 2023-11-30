@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
-    "@types/node": "14.6.0",
+    "@types/node": "18.11.13",
     "@webda/async": "^3.3.0",
     "@webda/shell": "^3.7.0",
     "sinon": "^17.0.0",

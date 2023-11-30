@@ -375,38 +375,83 @@
               "type": "object",
               "properties": {
                 "writable": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
                 },
                 "writableEnded": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Is `true` after `writable.end()` has been called. This property does not indicate whether the data has been flushed, for this use `writable.writableFinished` instead."
                 },
                 "writableFinished": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Is set to `true` immediately before the `'finish'` event is emitted."
                 },
                 "writableHighWaterMark": {
-                  "type": "number"
+                  "type": "number",
+                  "description": "Return the value of `highWaterMark` passed when creating this `Writable`."
                 },
                 "writableLength": {
-                  "type": "number"
+                  "type": "number",
+                  "description": "This property contains the number of bytes (or objects) in the queue ready to be written. The value provides introspection data regarding the status of the `highWaterMark`."
                 },
                 "writableObjectMode": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Getter for the property `objectMode` of a given `Writable` stream."
                 },
                 "writableCorked": {
-                  "type": "number"
+                  "type": "number",
+                  "description": "Number of times `writable.uncork()` needs to be called in order to fully uncork the stream."
                 },
                 "destroyed": {
-                  "type": "boolean"
+                  "type": "boolean",
+                  "description": "Is `true` after `writable.destroy()` has been called."
+                },
+                "closed": {
+                  "type": "boolean",
+                  "description": "Is true after 'close' has been emitted."
+                },
+                "errored": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "stack": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Returns error if the stream has been destroyed with an error."
+                },
+                "writableNeedDrain": {
+                  "type": "boolean",
+                  "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
                 }
               },
               "required": [
+                "closed",
                 "destroyed",
+                "errored",
                 "writable",
                 "writableCorked",
                 "writableEnded",
                 "writableFinished",
                 "writableHighWaterMark",
                 "writableLength",
+                "writableNeedDrain",
                 "writableObjectMode"
               ],
               "description": "Output stream",
@@ -633,10 +678,49 @@
         "options": {
           "type": "object",
           "properties": {
+            "signal": {
+              "type": "object",
+              "properties": {
+                "aborted": {
+                  "type": "boolean"
+                },
+                "onabort": {
+                  "anyOf": [
+                    {},
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reason": {}
+              },
+              "required": [
+                "aborted",
+                "onabort",
+                "reason"
+              ],
+              "description": "When provided the corresponding `AbortController` can be used to cancel an asynchronous action."
+            },
             "serialization": {
               "$ref": "#/definitions/SerializationType",
               "description": "Specify the kind of serialization used for sending messages between processes.",
               "default": "json"
+            },
+            "killSignal": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/global.NodeJS.Signals"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "The signal value to be used when the spawned process will be killed by the abort signal.",
+              "default": "SIGTERM"
+            },
+            "timeout": {
+              "type": "number",
+              "default": 0
             },
             "uid": {
               "type": "number"
@@ -645,19 +729,93 @@
               "type": "number"
             },
             "cwd": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "hash": {
+                      "type": "string",
+                      "description": "Gets and sets the fragment portion of the URL.\n\n```js const myURL = new URL('https://example.org/foo#bar'); console.log(myURL.hash); // Prints #bar\n\nmyURL.hash = 'baz'; console.log(myURL.href); // Prints https://example.org/foo#baz ```\n\nInvalid URL characters included in the value assigned to the `hash` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+                    },
+                    "host": {
+                      "type": "string",
+                      "description": "Gets and sets the host portion of the URL.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.host); // Prints example.org:81\n\nmyURL.host = 'example.com:82'; console.log(myURL.href); // Prints https://example.com:82/foo ```\n\nInvalid host values assigned to the `host` property are ignored."
+                    },
+                    "hostname": {
+                      "type": "string",
+                      "description": "Gets and sets the host name portion of the URL. The key difference between`url.host` and `url.hostname` is that `url.hostname` does _not_ include the port.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.hostname); // Prints example.org\n\n// Setting the hostname does not change the port myURL.hostname = 'example.com:82'; console.log(myURL.href); // Prints https://example.com:81/foo\n\n// Use myURL.host to change the hostname and port myURL.host = 'example.org:82'; console.log(myURL.href); // Prints https://example.org:82/foo ```\n\nInvalid host name values assigned to the `hostname` property are ignored."
+                    },
+                    "href": {
+                      "type": "string",
+                      "description": "Gets and sets the serialized URL.\n\n```js const myURL = new URL('https://example.org/foo'); console.log(myURL.href); // Prints https://example.org/foo\n\nmyURL.href = 'https://example.com/bar'; console.log(myURL.href); // Prints https://example.com/bar ```\n\nGetting the value of the `href` property is equivalent to calling  {@link  toString } .\n\nSetting the value of this property to a new value is equivalent to creating a new `URL` object using `new URL(value)`. Each of the `URL`object's properties will be modified.\n\nIf the value assigned to the `href` property is not a valid URL, a `TypeError`will be thrown."
+                    },
+                    "origin": {
+                      "type": "string",
+                      "description": "Gets the read-only serialization of the URL's origin.\n\n```js const myURL = new URL('https://example.org/foo/bar?baz'); console.log(myURL.origin); // Prints https://example.org ```\n\n```js const idnURL = new URL('https://測試'); console.log(idnURL.origin); // Prints https://xn--g6w251d\n\nconsole.log(idnURL.hostname); // Prints xn--g6w251d ```"
+                    },
+                    "password": {
+                      "type": "string",
+                      "description": "Gets and sets the password portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.password); // Prints xyz\n\nmyURL.password = '123'; console.log(myURL.href); // Prints https://abc:123@example.com ```\n\nInvalid URL characters included in the value assigned to the `password` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+                    },
+                    "pathname": {
+                      "type": "string",
+                      "description": "Gets and sets the path portion of the URL.\n\n```js const myURL = new URL('https://example.org/abc/xyz?123'); console.log(myURL.pathname); // Prints /abc/xyz\n\nmyURL.pathname = '/abcdef'; console.log(myURL.href); // Prints https://example.org/abcdef?123 ```\n\nInvalid URL characters included in the value assigned to the `pathname`property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+                    },
+                    "port": {
+                      "type": "string",
+                      "description": "Gets and sets the port portion of the URL.\n\nThe port value may be a number or a string containing a number in the range`0` to `65535` (inclusive). Setting the value to the default port of the`URL` objects given `protocol` will result in the `port` value becoming the empty string (`''`).\n\nThe port value can be an empty string in which case the port depends on the protocol/scheme:\n\n<omitted>\n\nUpon assigning a value to the port, the value will first be converted to a string using `.toString()`.\n\nIf that string is invalid but it begins with a number, the leading number is assigned to `port`. If the number lies outside the range denoted above, it is ignored.\n\n```js const myURL = new URL('https://example.org:8888'); console.log(myURL.port); // Prints 8888\n\n// Default ports are automatically transformed to the empty string // (HTTPS protocol's default port is 443) myURL.port = '443'; console.log(myURL.port); // Prints the empty string console.log(myURL.href); // Prints https://example.org/\n\nmyURL.port = 1234; console.log(myURL.port); // Prints 1234 console.log(myURL.href); // Prints https://example.org:1234/\n\n// Completely invalid port strings are ignored myURL.port = 'abcd'; console.log(myURL.port); // Prints 1234\n\n// Leading numbers are treated as a port number myURL.port = '5678abcd'; console.log(myURL.port); // Prints 5678\n\n// Non-integers are truncated myURL.port = 1234.5678; console.log(myURL.port); // Prints 1234\n\n// Out-of-range numbers which are not represented in scientific notation // will be ignored. myURL.port = 1e10; // 10000000000, will be range-checked as described below console.log(myURL.port); // Prints 1234 ```\n\nNumbers which contain a decimal point, such as floating-point numbers or numbers in scientific notation, are not an exception to this rule. Leading numbers up to the decimal point will be set as the URL's port, assuming they are valid:\n\n```js myURL.port = 4.567e21; console.log(myURL.port); // Prints 4 (because it is the leading number in the string '4.567e21') ```"
+                    },
+                    "protocol": {
+                      "type": "string",
+                      "description": "Gets and sets the protocol portion of the URL.\n\n```js const myURL = new URL('https://example.org'); console.log(myURL.protocol); // Prints https:\n\nmyURL.protocol = 'ftp'; console.log(myURL.href); // Prints ftp://example.org/ ```\n\nInvalid URL protocol values assigned to the `protocol` property are ignored."
+                    },
+                    "search": {
+                      "type": "string",
+                      "description": "Gets and sets the serialized query portion of the URL.\n\n```js const myURL = new URL('https://example.org/abc?123'); console.log(myURL.search); // Prints ?123\n\nmyURL.search = 'abc=xyz'; console.log(myURL.href); // Prints https://example.org/abc?abc=xyz ```\n\nAny invalid URL characters appearing in the value assigned the `search`property will be `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+                    },
+                    "searchParams": {
+                      "type": "object",
+                      "properties": {},
+                      "description": "Gets the `URLSearchParams` object representing the query parameters of the URL. This property is read-only but the `URLSearchParams` object it provides can be used to mutate the URL instance; to replace the entirety of query parameters of the URL, use the  {@link  search }  setter. See `URLSearchParams` documentation for details.\n\nUse care when using `.searchParams` to modify the `URL` because, per the WHATWG specification, the `URLSearchParams` object uses different rules to determine which characters to percent-encode. For instance, the `URL` object will not percent encode the ASCII tilde (`~`) character, while `URLSearchParams` will always encode it:\n\n```js const myUrl = new URL('https://example.org/abc?foo=~bar');\n\nconsole.log(myUrl.search);  // prints ?foo=~bar\n\n// Modify the URL via searchParams... myUrl.searchParams.sort();\n\nconsole.log(myUrl.search);  // prints ?foo=%7Ebar ```"
+                    },
+                    "username": {
+                      "type": "string",
+                      "description": "Gets and sets the username portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.username); // Prints abc\n\nmyURL.username = '123'; console.log(myURL.href); // Prints https://123:xyz@example.com/ ```\n\nAny invalid URL characters appearing in the value assigned the `username`property will be `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+                    }
+                  },
+                  "required": [
+                    "hash",
+                    "host",
+                    "hostname",
+                    "href",
+                    "origin",
+                    "password",
+                    "pathname",
+                    "port",
+                    "protocol",
+                    "search",
+                    "searchParams",
+                    "username"
+                  ],
+                  "description": "Browser-compatible `URL` class, implemented by following the WHATWG URL Standard. [Examples of parsed URLs](https://url.spec.whatwg.org/#example-url-parsing) may be found in the Standard itself. The `URL` class is also available on the global object.\n\nIn accordance with browser conventions, all properties of `URL` objects are implemented as getters and setters on the class prototype, rather than as data properties on the object itself. Thus, unlike `legacy urlObject` s, using the `delete` keyword on any properties of `URL` objects (e.g. `delete myURL.protocol`, `delete myURL.pathname`, etc) has no effect but will still return `true`."
+                }
+              ]
             },
             "env": {
               "type": "object",
-              "properties": {}
+              "properties": {
+                "TZ": {
+                  "type": "string",
+                  "description": "Can be used to change the default timezone at runtime"
+                }
+              }
             },
             "windowsHide": {
               "type": "boolean",
               "default": true
-            },
-            "timeout": {
-              "type": "number",
-              "default": 0
             },
             "argv0": {
               "type": "string"
@@ -702,39 +860,63 @@
             "advanced"
           ]
         },
+        "global.NodeJS.Signals": {
+          "type": "string",
+          "enum": [
+            "SIGABRT",
+            "SIGALRM",
+            "SIGBUS",
+            "SIGCHLD",
+            "SIGCONT",
+            "SIGFPE",
+            "SIGHUP",
+            "SIGILL",
+            "SIGINT",
+            "SIGIO",
+            "SIGIOT",
+            "SIGKILL",
+            "SIGPIPE",
+            "SIGPOLL",
+            "SIGPROF",
+            "SIGPWR",
+            "SIGQUIT",
+            "SIGSEGV",
+            "SIGSTKFLT",
+            "SIGSTOP",
+            "SIGSYS",
+            "SIGTERM",
+            "SIGTRAP",
+            "SIGTSTP",
+            "SIGTTIN",
+            "SIGTTOU",
+            "SIGUNUSED",
+            "SIGURG",
+            "SIGUSR1",
+            "SIGUSR2",
+            "SIGVTALRM",
+            "SIGWINCH",
+            "SIGXCPU",
+            "SIGXFSZ",
+            "SIGBREAK",
+            "SIGLOST",
+            "SIGINFO"
+          ]
+        },
         "StdioOptions": {
           "anyOf": [
             {
-              "type": "string",
-              "const": "pipe"
-            },
-            {
-              "type": "string",
-              "const": "ignore"
-            },
-            {
-              "type": "string",
-              "const": "inherit"
+              "$ref": "#/definitions/IOType"
             },
             {
               "type": "array",
               "items": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "const": "pipe"
+                    "$ref": "#/definitions/IOType"
                   },
                   {
                     "type": "string",
                     "const": "ipc"
-                  },
-                  {
-                    "type": "string",
-                    "const": "ignore"
-                  },
-                  {
-                    "type": "string",
-                    "const": "inherit"
                   },
                   {
                     "type": "object",
@@ -752,6 +934,15 @@
                 ]
               }
             }
+          ]
+        },
+        "IOType": {
+          "type": "string",
+          "enum": [
+            "overlapped",
+            "pipe",
+            "ignore",
+            "inherit"
           ]
         }
       },

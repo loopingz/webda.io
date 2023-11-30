@@ -23,7 +23,6 @@
     "package.json"
   ],
   "dependencies": {
-    "@types/node": "^18.15.3",
     "@webda/core": "^3.10.0",
     "graphql": "^16.6.0",
     "graphql-http": "^1.16.0",

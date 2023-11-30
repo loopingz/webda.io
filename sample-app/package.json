@@ -23,11 +23,11 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@webda/aws": "link:../packages/aws/",
-    "@webda/core": "link:../packages/core/",
-    "@webda/shell": "link:../packages/shell/",
-    "@webda/tsc-esm": "link:../packages/tsc-esm/",
-    "@webda/workout": "link:../packages/workout/",
+    "@webda/aws": "^3.2.5",
+    "@webda/core": "^3.10.0",
+    "@webda/shell": "^3.7.0",
+    "@webda/tsc-esm": "^1.1.0",
+    "@webda/workout": "^3.1.0",
     "deepmerge": "^4.2.2",
     "merge": "^2.1.1",
     "yaml": "^2.0.0"

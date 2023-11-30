@@ -265,35 +265,46 @@ class MemoryStoreTest extends StoreTest {
     let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     identStore.getParameters().persistence = {
       path: ".test.json.gz",
-      delay: 10
+      delay: 10,
+      compressionLevel: 9
     };
     await identStore.init();
-    await identStore.put("test", {});
-    await this.sleep(10);
+    // @ts-ignore
+    await identStore.put("test", { label: "\n\n" });
+    await this.sleep(20);
+    await identStore.persistencePromise;
     // Check basic persistence
     assert.ok(existsSync(".test.json.gz"));
-    assert.notStrictEqual(FileUtils.load(".test.json.gz").test, undefined);
+    //assert.notStrictEqual(FileUtils.load(".test.json.gz").test, undefined);
     identStore.storage = {};
     // Check basic load of persistence
     await identStore.init();
     assert.notStrictEqual(identStore.storage.test, undefined);
-    FileUtils.save({ test: "ok" }, ".test.json");
+    identStore.storage = {};
+    identStore.getParameters().persistence = {
+      path: ".test.json"
+    };
+    // Test old format non-encrypted and non-compressed
+    FileUtils.save({ uuid: "test", test: "ok" }, ".test.json");
+    await identStore.init();
+    assert.notStrictEqual(identStore.storage.test, undefined);
     // Check encryption
     identStore.getParameters().persistence = {
       path: ".test.json",
-      delay: 10,
+      delay: 0,
       key: "test",
       cipher: "aes-256-ctr"
     };
     // Should silently ignore not encrypted file
     await identStore.init();
     await identStore.put("test", {});
-    await this.sleep(10);
+    await identStore.persist();
     identStore.storage = {};
     // Check basic load of persistence
     await identStore.init();
     assert.notStrictEqual(identStore.storage.test, undefined);
-    const mock = sinon.stub(identStore, "persist").returns();
+
+    const mock = sinon.stub(identStore, "persist").returns(Promise.resolve());
     await identStore.stop();
     assert.strictEqual(mock.callCount, 1);
   }

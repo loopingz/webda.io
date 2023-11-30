@@ -19,6 +19,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.11.0](https://github.com/loopingz/webda.io/compare/core-v3.10.0...core-v3.11.0) (2023-11-30)
+
+
+### Features
+
+* add ndjson streams and stream persistence for big MemoryStore ([d283948](https://github.com/loopingz/webda.io/commit/d2839481c4b8b28bf7c0f758a1ca2515517d960a))
+
+
+### Bug Fixes
+
+* **tsc-esm:** node module import rewrite .js ([e4a15ae](https://github.com/loopingz/webda.io/commit/e4a15ae90a761620520cb890fa5a9121415c453b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.1.0 to ^3.1.1
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.1.0 to ^1.1.1
+
 ## [3.10.0](https://github.com/loopingz/webda.io/compare/core-v3.9.1...core-v3.10.0) (2023-11-29)
 
 

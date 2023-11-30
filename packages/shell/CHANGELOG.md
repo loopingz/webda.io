@@ -31,6 +31,23 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.8.0 to ^3.8.1
     * @webda/kubernetes bumped from ^3.2.1 to ^3.2.2
 
+## [3.8.0](https://github.com/loopingz/webda.io/compare/shell-v3.7.0...shell-v3.8.0) (2023-11-30)
+
+
+### Features
+
+* add ndjson streams and stream persistence for big MemoryStore ([d283948](https://github.com/loopingz/webda.io/commit/d2839481c4b8b28bf7c0f758a1ca2515517d960a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.10.0 to ^3.11.0
+    * @webda/kubernetes bumped from ^3.2.5 to ^3.2.6
+    * @webda/tsc-esm bumped from ^1.1.0 to ^1.1.1
+    * @webda/workout bumped from ^3.1.0 to ^3.1.1
+
 ## [3.7.0](https://github.com/loopingz/webda.io/compare/shell-v3.6.3...shell-v3.7.0) (2023-11-29)
 
 

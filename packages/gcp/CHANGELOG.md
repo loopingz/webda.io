@@ -90,6 +90,23 @@
     * @webda/async bumped from ^3.2.4 to ^3.3.0
     * @webda/shell bumped from ^3.6.3 to ^3.7.0
 
+## [3.2.6](https://github.com/loopingz/webda.io/compare/gcp-v3.2.5...gcp-v3.2.6) (2023-11-30)
+
+
+### Bug Fixes
+
+* **tsc-esm:** node module import rewrite .js ([e4a15ae](https://github.com/loopingz/webda.io/commit/e4a15ae90a761620520cb890fa5a9121415c453b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.10.0 to ^3.11.0
+  * devDependencies
+    * @webda/async bumped from ^3.3.0 to ^3.3.1
+    * @webda/shell bumped from ^3.7.0 to ^3.8.0
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/gcp-v3.1.9...gcp-v3.2.0) (2023-11-12)
 
 

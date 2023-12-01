@@ -109,12 +109,7 @@ export interface StorageFinder {
   /**
    * Recursively browse the path and call processor on each
    */
-  walk(
-    path: string,
-    processor: (filepath: string) => void,
-    options?: WalkerOptionsType,
-    state?: { depth: number }
-  ): void;
+  walk(path: string, processor: (filepath: string) => void, options?: WalkerOptionsType, depth?: number): void;
   /**
    * Find
    */
@@ -175,9 +170,8 @@ export const FileUtils: StorageFinder & {
     path: string,
     processor: (filepath: string) => void,
     options: WalkerOptionsType = { maxDepth: 100 },
-    state: { depth: number } = { depth: 0 }
+    depth: number = 0
   ): void => {
-    state.depth++;
     let files = readdirSync(path);
     const fileItemCallback = p => {
       try {
@@ -187,9 +181,9 @@ export const FileUtils: StorageFinder & {
             processor(p);
           }
           // folder found, trying to dig further
-          if (!options.maxDepth || state.depth < options.maxDepth) {
+          if (!options.maxDepth || depth < options.maxDepth) {
             // unless we reached the maximum depth
-            FileUtils.walk(p, processor, options, state);
+            FileUtils.walk(p, processor, options, depth + 1);
           }
         } else if (stat.isSymbolicLink() && options.followSymlinks) {
           let realPath;
@@ -204,9 +198,9 @@ export const FileUtils: StorageFinder & {
             // symlink targets a folder
             if (options.followSymlinks) {
               // following below
-              if (!options.maxDepth || state.depth < options.maxDepth) {
+              if (!options.maxDepth || depth < options.maxDepth) {
                 // unless we reached the maximum depth
-                FileUtils.walk(options.resolveSymlink ? realPath : p, processor, options, state);
+                FileUtils.walk(options.resolveSymlink ? realPath : p, processor, options, depth + 1);
               }
             }
           } else {

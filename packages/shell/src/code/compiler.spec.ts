@@ -93,14 +93,50 @@ class CompilerTest {
     let compiler = new Compiler(app);
     compiler.compile();
     let mod = compiler.generateModule();
+    assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.avatar, { type: "object", readOnly: true });
+    assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.photos, {
+      items: {
+        properties: {
+          location: {
+            properties: {
+              lat: {
+                type: "number"
+              },
+              lng: {
+                type: "number"
+              }
+            },
+            required: ["lat", "lng"],
+            type: "object"
+          }
+        },
+        required: ["location"],
+        type: "object"
+      },
+      readOnly: true,
+      type: "array"
+    });
+    assert.deepStrictEqual(mod.schemas["WebdaDemo/User"].properties.profilePicture, {
+      type: "object",
+      properties: { width: { type: "number" }, height: { type: "number" } },
+      required: ["width", "height"],
+      readOnly: true
+    });
+    assert.deepStrictEqual(mod.schemas["WebdaDemo/User"].properties.images, {
+      type: "array",
+      items: { type: "object" },
+      readOnly: true
+    });
+    assert.strictEqual(mod.schemas["WebdaDemo/User"].properties.avatar, undefined);
+    assert.strictEqual(mod.schemas["WebdaDemo/User"].properties.photos, undefined);
     // Check schema have no properties that start with _ in required
     assert.deepStrictEqual(
       mod.schemas["WebdaDemo/SubProject"].required.filter(i => i.startsWith("_")),
-      ["_company"]
+      []
     );
     assert.deepStrictEqual(
       mod.schemas["WebdaDemo/Computer"].required.filter(i => i.startsWith("_")),
-      ["_user"]
+      []
     );
   }
 }

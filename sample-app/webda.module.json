@@ -430,7 +430,7 @@
         "readonly": "number",
         "optional": "string",
         "avatar": "Binary",
-        "photos": "Binaries",
+        "photos": "Binaries<{ location: { lat: number; lng: number } }>",
         "owner": "ModelLink<User>",
         "__class": "CoreModelDefinition<this>",
         "__type": "string",
@@ -736,7 +736,8 @@
           "readOnly": true
         },
         "_company": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -749,7 +750,6 @@
         }
       },
       "required": [
-        "_company",
         "name",
         "type",
         "uuid"
@@ -889,7 +889,8 @@
               "uuid"
             ],
             "additionalProperties": false
-          }
+          },
+          "readOnly": true
         }
       },
       "required": [
@@ -952,7 +953,8 @@
               "uuid"
             ],
             "additionalProperties": false
-          }
+          },
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -996,17 +998,18 @@
           "readOnly": true
         },
         "_user": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "_loanTo": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "name": {
           "type": "string"
         }
       },
       "required": [
-        "_user",
         "name"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1100,45 +1103,34 @@
         },
         "avatar": {
           "type": "object",
-          "properties": {
-            "hash": {
-              "type": "string",
-              "description": "Will be computed by the service\n\nhash of the content"
-            },
-            "challenge": {
-              "type": "string",
-              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
-            },
-            "size": {
-              "type": "number",
-              "description": "Size of the binary"
-            },
-            "name": {
-              "type": "string",
-              "description": "Current name"
-            },
-            "mimetype": {
-              "type": "string",
-              "description": "Mimetype of the binary"
-            },
-            "metadata": {
-              "description": "Metadatas stored along with the binary"
-            },
-            "originalname": {
-              "type": "string",
-              "description": "Original name"
-            }
-          },
-          "required": [
-            "mimetype",
-            "name",
-            "size"
-          ],
-          "description": "Contact avatar"
+          "readOnly": true
         },
         "photos": {
-          "$ref": "#/definitions/Binaries",
-          "description": "Contact photos"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lng"
+                ]
+              }
+            },
+            "required": [
+              "location"
+            ]
+          },
+          "readOnly": true
         },
         "owner": {
           "type": "string"
@@ -1152,18 +1144,6 @@
         "owner"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Binaries": {
-          "type": "object",
-          "properties": {
-            "upload": {}
-          },
-          "required": [
-            "upload"
-          ],
-          "description": "Define a collection of Binary with a Readonly and the upload method"
-        }
-      },
       "title": "Contact"
     },
     "WebdaDemo/Course": {
@@ -1423,7 +1403,8 @@
           "readOnly": true
         },
         "_company": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -1436,7 +1417,6 @@
         }
       },
       "required": [
-        "_company",
         "name",
         "type",
         "uuid"
@@ -1668,7 +1648,8 @@
               "uuid"
             ],
             "additionalProperties": false
-          }
+          },
+          "readOnly": true
         },
         "constraints": {
           "type": "null"
@@ -1707,7 +1688,8 @@
           "readOnly": true
         },
         "_company": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -1720,7 +1702,6 @@
         }
       },
       "required": [
-        "_company",
         "name",
         "type",
         "uuid"
@@ -1749,7 +1730,8 @@
           "readOnly": true
         },
         "_company": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -1765,7 +1747,6 @@
         }
       },
       "required": [
-        "_company",
         "attribute1",
         "name",
         "type",
@@ -1792,7 +1773,8 @@
       "type": "object",
       "properties": {
         "_company": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -1851,7 +1833,8 @@
               "uuid"
             ],
             "additionalProperties": false
-          }
+          },
+          "readOnly": true
         },
         "students": {
           "type": "array",
@@ -1878,7 +1861,8 @@
               "uuid"
             ],
             "additionalProperties": false
-          }
+          },
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -1991,7 +1975,8 @@
           "description": "Contain main user email if exists"
         },
         "_company": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "name": {
           "type": "string"
@@ -1999,56 +1984,25 @@
         "profilePicture": {
           "type": "object",
           "properties": {
-            "hash": {
-              "type": "string",
-              "description": "Will be computed by the service\n\nhash of the content"
+            "width": {
+              "type": "number"
             },
-            "challenge": {
-              "type": "string",
-              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
-            },
-            "size": {
-              "type": "number",
-              "description": "Size of the binary"
-            },
-            "name": {
-              "type": "string",
-              "description": "Current name"
-            },
-            "mimetype": {
-              "type": "string",
-              "description": "Mimetype of the binary"
-            },
-            "metadata": {
-              "type": "object",
-              "properties": {
-                "width": {
-                  "type": "number"
-                },
-                "height": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "width",
-                "height"
-              ],
-              "description": "Metadatas stored along with the binary"
-            },
-            "originalname": {
-              "type": "string",
-              "description": "Original name"
+            "height": {
+              "type": "number"
             }
           },
           "required": [
-            "mimetype",
-            "name",
-            "size"
+            "width",
+            "height"
           ],
-          "description": "One Binary instance"
+          "readOnly": true
         },
         "images": {
-          "$ref": "#/definitions/Binaries"
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "readOnly": true
         },
         "contacts": {
           "type": "array",
@@ -2079,27 +2033,15 @@
               "uuid"
             ],
             "additionalProperties": false
-          }
+          },
+          "readOnly": true
         }
       },
       "required": [
-        "_company",
         "displayName",
         "name"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "Binaries": {
-          "type": "object",
-          "properties": {
-            "upload": {}
-          },
-          "required": [
-            "upload"
-          ],
-          "description": "Define a collection of Binary with a Readonly and the upload method"
-        }
-      },
       "title": "User"
     }
   }

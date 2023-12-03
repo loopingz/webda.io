@@ -1709,7 +1709,8 @@
           "description": "UUID of the object"
         },
         "_user": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "public": {
           "type": "boolean",
@@ -2317,7 +2318,8 @@
           "description": "UUID of the object"
         },
         "_user": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true
         },
         "public": {
           "type": "boolean",

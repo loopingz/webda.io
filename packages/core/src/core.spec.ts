@@ -466,6 +466,62 @@ class CoreTest extends WebdaTest {
   }
 
   @test
+  validateSubSchema() {
+    const app = this.webda.getApplication();
+    if (!app.hasSchema("obj1")) {
+      app.registerSchema("obj1", {
+        type: "object",
+        properties: {
+          uuid: {
+            type: "string"
+          },
+          assets: {
+            $ref: "#/definitions/Binaries"
+          }
+        },
+        definitions: {
+          Binaries: {
+            type: "object",
+            properties: {
+              upload: {}
+            },
+            required: ["upload"],
+            description: "Define a collection of Binary with a Readonly and the upload method"
+          }
+        },
+        required: ["uuid"]
+      });
+    }
+    if (!app.hasSchema("obj2")) {
+      app.registerSchema("obj2", {
+        type: "object",
+        properties: {
+          uuid: {
+            type: "string"
+          },
+          assets: {
+            $ref: "#/definitions/Binaries",
+            readOnly: true
+          }
+        },
+        definitions: {
+          Binaries: {
+            type: "object",
+            properties: {
+              upload: {}
+            },
+            required: ["upload"],
+            description: "Define a collection of Binary with a Readonly and the upload method"
+          }
+        },
+        required: ["uuid"]
+      });
+    }
+    this.webda.validateSchema("obj1", { uuid: "test" });
+    this.webda.validateSchema("obj2", { uuid: "test2" });
+  }
+
+  @test
   covValidateSchema() {
     assert.strictEqual(this.webda.validateSchema("test", {}), null);
     assert.strictEqual(this.webda.validateSchema("test", {}, true), null);

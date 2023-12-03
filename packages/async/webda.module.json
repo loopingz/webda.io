@@ -198,16 +198,13 @@
         "url": {
           "type": "string",
           "description": "URL to expose job status report hook",
-          "default": "/async/jobs"
-        },
-        "store": {
-          "type": "string",
-          "description": "Store name to use for async actions",
-          "default": "AsyncActions"
+          "default": "/async/jobs",
+          "deprecated": "will be removed in 4.0 to only use object AsyncAction"
         },
         "binaryStore": {
           "type": "string",
-          "description": "If we want to expose a way to upload/download binary for the job\n\nIt will expose a /download and /upload additional url"
+          "description": "If we want to expose a way to upload/download binary for the job\n\nIt will expose a /download and /upload additional url",
+          "deprecated": "will be removed in 4.0 to only use object AsyncAction"
         },
         "localLaunch": {
           "type": "boolean",
@@ -279,7 +276,6 @@
         "logsLimit",
         "queue",
         "runners",
-        "store",
         "type",
         "url"
       ],

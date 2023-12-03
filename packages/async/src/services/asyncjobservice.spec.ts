@@ -44,7 +44,6 @@ class AsyncJobServiceTest extends WebdaTest {
   getValidService(): AsyncJobService {
     let service = new AsyncJobService(this.webda, "async", {
       queue: "AsyncQueue",
-      store: "AsyncJobs",
       runners: ["LocalRunner"]
     });
     service.resolve();
@@ -56,14 +55,11 @@ class AsyncJobServiceTest extends WebdaTest {
     this.service = new AsyncJobService(this.webda, "async", {});
     assert.throws(() => this.service.resolve(), /requires a valid queue/);
     this.service = new AsyncJobService(this.webda, "async", { queue: "AsyncQueue" });
-    assert.throws(() => this.service.resolve(), /requires a valid store/);
-    this.service = new AsyncJobService(this.webda, "async", { queue: "AsyncQueue", store: "AsyncJobs" });
     this.service.resolve();
     // @ts-ignore
     assert.strictEqual(this.service.runners.length, 0);
     this.service = new AsyncJobService(this.webda, "async", {
       queue: "AsyncQueue",
-      store: "AsyncJobs",
       runners: ["unknown"],
       url: "/cov"
     });
@@ -566,7 +562,6 @@ class AsyncJobServiceTest extends WebdaTest {
   async operations() {
     const service = new AsyncJobService(this.webda, "async", {
       queue: "AsyncQueue",
-      store: "AsyncJobs",
       runners: ["LocalRunner"],
       asyncOperationDefinition: "./test/asyncOperations.json"
     });

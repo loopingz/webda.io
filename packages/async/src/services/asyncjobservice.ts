@@ -3,6 +3,7 @@ import {
   CloudBinary,
   Constructor,
   Core,
+  CoreModelDefinition,
   CronDefinition,
   CronService,
   FileUtils,
@@ -43,14 +44,11 @@ export interface JobInfo {
  */
 export class AsyncJobServiceParameters extends ServiceParameters {
   /**
-   * Store name to use for async actions
-   * @default AsyncActions
-   */
-  store: string;
-  /**
    * If we want to expose a way to upload/download binary for the job
    *
    * It will expose a /download and /upload additional url
+   *
+   * @deprecated will be removed in 4.0 to only use object AsyncAction
    */
   binaryStore?: string;
   /**
@@ -68,6 +66,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    * URL to expose job status report hook
    *
    * @default /async/jobs
+   * @deprecated will be removed in 4.0 to only use object AsyncAction
    */
   url: string;
   /**
@@ -139,7 +138,6 @@ export class AsyncJobServiceParameters extends ServiceParameters {
     super(params);
     this.url ??= "/async/jobs";
     this.queue ??= "AsyncActionsQueue";
-    this.store ??= "AsyncActions";
     this.runners ??= [];
     this.schedulerResolution ??= 60000;
     this.onlyHttpHook ??= false;
@@ -183,7 +181,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Model to use when launching action
    */
-  model: Constructor<AsyncWebdaAction, [string, string, ...any[]]>;
+  model: Constructor<AsyncWebdaAction, [string, string, ...any[]]> & CoreModelDefinition<AsyncAction>;
   /**
    * Model to use when launching action
    */
@@ -216,10 +214,6 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     this.queue = this.getService(this.parameters.queue);
     if (!this.queue && !this.parameters.localLaunch) {
       throw new Error(`AsyncService requires a valid queue. '${this.parameters.queue}' is invalid`);
-    }
-    this.store = this.getService(this.parameters.store);
-    if (!this.store) {
-      throw new Error(`AsyncService requires a valid store. '${this.parameters.store}' is invalid`);
     }
     // Get all runners
     this.runners = this.parameters.runners
@@ -303,7 +297,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     if (!context.getHttpContext().getUniqueHeader("X-Job-Id")) {
       throw new WebdaError.NotFound("X-Job-Id header required");
     }
-    const action = await AsyncAction.ref(context.getHttpContext().getUniqueHeader("X-Job-Id")).get();
+    const action = await this.model.ref(context.getHttpContext().getUniqueHeader("X-Job-Id")).get();
     if (!action) {
       throw new WebdaError.NotFound(`Unknown Job Id '${context.getHttpContext().getUniqueHeader("X-Job-Id")}'`);
     }
@@ -343,18 +337,18 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     if (selectedRunner === undefined) {
       this.log("ERROR", `Cannot find a runner for action ${event.uuid}`);
-      await AsyncAction.ref(event.uuid).patch({
+      await this.model.ref(event.uuid).patch({
         status: "ERROR",
         errorMessage: `No runner found for the job`
       });
       return;
     }
     this.log("INFO", `Starting action ${event.uuid}`);
-    await AsyncAction.ref(event.uuid).patch({
+    await this.model.ref(event.uuid).patch({
       uuid: event.uuid,
       status: "STARTING"
     });
-    const action = await AsyncAction.ref(event.uuid).get();
+    const action = await this.model.ref(event.uuid).get();
     let job = await selectedRunner.launchAction(action, this.getJobInfo(action));
     await action.patch({ job }, null);
     return job.promise || Promise.resolve();
@@ -539,7 +533,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       ).data;
     } else if (jobInfo.JOB_HOOK === "store") {
       // If executor and orchestrator runs within same privilege it simplify the infrastructure
-      return <Promise<AsyncWebdaAction>>(await AsyncAction.ref(jobInfo.JOB_ID).get()).update(message);
+      return <Promise<AsyncWebdaAction>>(await this.model.ref(jobInfo.JOB_ID).get()).update(message);
     }
   }
 
@@ -678,7 +672,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       time -= time % this.parameters.schedulerResolution;
       // Queue all actions
       await Promise.all(
-        (await AsyncAction.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)).results.map(a =>
+        (await this.model.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)).results.map(a =>
           this.launchAction(a)
         )
       );

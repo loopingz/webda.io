@@ -40,12 +40,19 @@ class ModelTest extends WebdaSimpleTest {
 
   @test
   async testCanAct() {
-    const action = await AsyncAction.create({});
+    const action = await AsyncAction.create({ __secretKey: "test" });
     const context = await this.newContext();
     await assert.rejects(
       () => action.checkAct(context, "get"),
       /This model does not support any action: override canAct/
     );
     await assert.rejects(() => action.checkAct(context, "status"), /Only Job runner can call this action/);
+    await assert.rejects(
+      () => action.checkAct(context, "get_binary"),
+      /This model does not support any action: override canAct/
+    );
+    context.getHttpContext()!.headers["x-job-hash"] = "hash";
+    context.getHttpContext()!.headers["x-job-time"] = "time";
+    await assert.rejects(() => action.checkAct(context, "get_binary"), /Invalid Job HMAC/);
   }
 }

@@ -195,17 +195,30 @@ export default class AsyncAction extends CoreModel {
    * @returns
    */
   public async checkAct(context: OperationContext<any, any>, action: string): Promise<void> {
-    if (action === "status") {
+    // Only action runner can call status action
+    if ("status" === action) {
       if (context instanceof WebContext) {
         if (
           context.getHttpContext().getUniqueHeader("X-Job-Hash") &&
-          context.getHttpContext().getUniqueHeader("X-Job-Time") &&
-          action === "status"
+          context.getHttpContext().getUniqueHeader("X-Job-Time")
         ) {
           return await this.verifyJobRequest(context);
         }
       }
       throw new WebdaError.Forbidden("Only Job runner can call this action");
+    }
+    // Allow to retrieve/update binaries by action runner
+    if (
+      ["get_binary", "attach_binary", "update_binary_metadata"].includes(action) &&
+      context.getHttpContext()?.getUniqueHeader("X-Job-Hash") &&
+      context.getHttpContext()?.getUniqueHeader("X-Job-Time")
+    ) {
+      console.log(
+        action,
+        context.getHttpContext()?.getUniqueHeader("X-Job-Hash"),
+        context.getHttpContext()?.getUniqueHeader("X-Job-Time")
+      );
+      return await this.verifyJobRequest(<WebContext>context);
     }
     return super.checkAct(context, action);
   }

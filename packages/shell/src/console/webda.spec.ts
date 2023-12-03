@@ -57,6 +57,7 @@ class ConsoleTest {
   }
 
   async before() {
+    this.cleanFiles.push(".registry");
     await WebdaSampleApplication.load();
     let dynamicFile = path.join(WebdaSampleApplication.getAppPath(), "lib", "services", "dynamic.js");
     if (fs.existsSync(dynamicFile)) {

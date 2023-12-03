@@ -52,7 +52,7 @@ export default class Contact extends CoreModel {
   /**
    * Contact photos
    */
-  photos: Binaries;
+  photos: Binaries<{ location: { lat: number; lng: number } }>;
 
   /**
    * Contact owner

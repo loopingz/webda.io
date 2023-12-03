@@ -460,7 +460,7 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
 /**
  * Define a collection of Binary with a Readonly and the upload method
  */
-export type Binaries = Readonly<Array<BinariesItem>> & { upload: (file: BinaryFile) => Promise<void> };
+export type Binaries<T = any> = Readonly<Array<BinariesItem<T>>> & { upload: (file: BinaryFile) => Promise<void> };
 
 export class BinaryParameters extends ServiceParameters {
   /**

@@ -272,7 +272,6 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
     context: Context
   ): ObjectProperty[] | undefined {
     let hasRequiredNever = false;
-
     const properties = (node.members as ts.NodeArray<ts.TypeElement | ts.ClassElement>)
       .reduce(
         (members, member) => {
@@ -306,37 +305,34 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         if (ignore) {
           return undefined;
         }
-        let optional =
-          jsDocs.filter(n => ["SchemaOptional", "readOnly"].includes(n.tagName.text)).length > 0 ||
-          this.getPropertyName(member.name).startsWith("_");
+
         // @ts-ignore
         let typeName = member.type?.typeName?.escapedText;
+        let readOnly =
+          jsDocs.filter(n => n.tagName.text === "readOnly").length > 0 ||
+          this.getPropertyName(member.name).startsWith("_");
+        let optional =
+          readOnly || member.questionToken || jsDocs.find(n => "SchemaOptional" === n.tagName.text) !== undefined;
+        let type;
+
         if (typeName === "ModelParent" || typeName === "ModelLink") {
-          return new ObjectProperty(
-            this.getPropertyName(member.name),
-            new StringType(),
-            !optional || typeName === "ModelParent"
-          );
+          type = new StringType();
         } else if (typeName === "ModelLinksSimpleArray") {
-          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(new StringType()), !optional);
+          type = new ArrayType(new StringType());
         } else if (typeName === "ModelLinksArray") {
-          let type = <any>(
+          let subtype = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
           );
-          type.properties.push(new ObjectProperty("uuid", new StringType(), true));
-          return new ObjectProperty(this.getPropertyName(member.name), new ArrayType(type), !optional);
+          subtype.properties.push(new ObjectProperty("uuid", new StringType(), true));
+          type = new ArrayType(subtype);
         } else if (typeName === "ModelLinksMap") {
-          let type = <any>(
+          let subtype = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
           );
-          type.properties.push(new ObjectProperty("uuid", new StringType(), true));
-          return new ObjectProperty(
-            this.getPropertyName(member.name),
-            new ObjectType("modellinksmap-test", [], [], type),
-            !optional
-          );
+          subtype.properties.push(new ObjectProperty("uuid", new StringType(), true));
+          type = new ObjectType("modellinksmap-test", [], [], subtype);
         } else if (typeName === "ModelsMapped") {
-          let type = <any>(
+          let subtype = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[0], context)
           );
           let attrs = this.childNodeParser.createType(
@@ -354,34 +350,42 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
                 keep.push(t.getValue());
               });
           }
-          type.properties = type.properties.filter(o => keep.includes(o.name));
-          type.properties.push(new ObjectProperty("uuid", new StringType(), true));
-          return new ObjectProperty(
-            this.getPropertyName(member.name),
-            new ArrayType(
-              new ObjectType(
-                "modelmapped-test",
-                [],
-                type.properties.filter(o => !["get", "set", "toString"].includes(o.name)),
-                false
-              )
-            ),
-            false
+          subtype.properties = subtype.properties.filter(o => keep.includes(o.name));
+          subtype.properties.push(new ObjectProperty("uuid", new StringType(), true));
+          type = new ArrayType(
+            new ObjectType(
+              "modelmapped-test",
+              [],
+              subtype.properties.filter(o => !["get", "set", "toString"].includes(o.name)),
+              false
+            )
           );
+          optional = true;
+          readOnly = true;
         } else if (typeName === "ModelRelated") {
           // ModelRelated are only helpers for backend development
           return undefined;
         } else if (typeName === "Binary" || typeName === "Binaries") {
           // Binary and Binaries should be readonly as they are only modifiable by a BinaryService
           optional = true;
+          readOnly = true;
+          if ((<ts.NodeWithTypeArguments>member.type).typeArguments?.length) {
+            type = this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[0], context);
+          } else {
+            type = new ObjectType(typeName + "_" + this.getPropertyName(member.name), [], [], true);
+            //type["additionalProperties"] = true;
+          }
+          if (typeName !== "Binary") {
+            type = new ArrayType(type);
+          }
+          //return new ObjectProperty(this.getPropertyName(member.name), type, false);
         }
-        let type = this.childNodeParser.createType(member.type, context);
+        type ??= this.childNodeParser.createType(member.type, context);
+        if (readOnly) {
+          type = new AnnotatedType(type, { readOnly: true }, false);
+        }
         // If property is in readOnly then we do not want to require it
-        return new ObjectProperty(
-          this.getPropertyName(member.name),
-          type,
-          !member.questionToken && !optional && !this.getPropertyName(member.name).startsWith("_")
-        );
+        return new ObjectProperty(this.getPropertyName(member.name), type, !optional);
       })
       .filter(prop => {
         if (!prop) {

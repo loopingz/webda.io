@@ -19,6 +19,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.11.1](https://github.com/loopingz/webda.io/compare/core-v3.11.0...core-v3.11.1) (2023-12-04)
+
+
+### Bug Fixes
+
+* allow Binaries to define metadata and metadata schema ([2001b1e](https://github.com/loopingz/webda.io/commit/2001b1e9a43b415a25e9e7726e94d351d1749e51))
+* FileUtils.walk wrong depth limit ([9e6ce51](https://github.com/loopingz/webda.io/commit/9e6ce5181b0cd2533077253966ed80d6363d91ba))
+
 ## [3.11.0](https://github.com/loopingz/webda.io/compare/core-v3.10.0...core-v3.11.0) (2023-11-30)
 
 

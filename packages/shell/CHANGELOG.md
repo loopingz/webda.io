@@ -31,6 +31,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.8.0 to ^3.8.1
     * @webda/kubernetes bumped from ^3.2.1 to ^3.2.2
 
+## [3.8.1](https://github.com/loopingz/webda.io/compare/shell-v3.8.0...shell-v3.8.1) (2023-12-04)
+
+
+### Bug Fixes
+
+* allow Binaries to define metadata and metadata schema ([2001b1e](https://github.com/loopingz/webda.io/commit/2001b1e9a43b415a25e9e7726e94d351d1749e51))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.0 to ^3.11.1
+    * @webda/kubernetes bumped from ^3.2.6 to ^3.2.7
+
 ## [3.8.0](https://github.com/loopingz/webda.io/compare/shell-v3.7.0...shell-v3.8.0) (2023-11-30)
 
 

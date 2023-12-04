@@ -122,6 +122,23 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.7.0 to ^3.8.0
 
+## [3.2.7](https://github.com/loopingz/webda.io/compare/aws-v3.2.6...aws-v3.2.7) (2023-12-04)
+
+
+### Bug Fixes
+
+* allow Binaries to define metadata and metadata schema ([2001b1e](https://github.com/loopingz/webda.io/commit/2001b1e9a43b415a25e9e7726e94d351d1749e51))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.3.1 to ^3.4.0
+    * @webda/core bumped from ^3.11.0 to ^3.11.1
+  * devDependencies
+    * @webda/shell bumped from ^3.8.0 to ^3.8.1
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/aws-v3.1.10...aws-v3.2.0) (2023-11-12)
 
 

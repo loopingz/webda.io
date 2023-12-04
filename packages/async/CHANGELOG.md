@@ -72,6 +72,26 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.1.0 to ^1.1.1
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/async-v3.3.1...async-v3.4.0) (2023-12-04)
+
+
+### Features
+
+* allow binaries access by default on AsyncAction ([9d2fad4](https://github.com/loopingz/webda.io/commit/9d2fad4e6abe0858600387d281f07512171b9eb4))
+
+
+### Bug Fixes
+
+* allow Binaries to define metadata and metadata schema ([2001b1e](https://github.com/loopingz/webda.io/commit/2001b1e9a43b415a25e9e7726e94d351d1749e51))
+* remove store reference and use model to retrieve the action ([6ee4f89](https://github.com/loopingz/webda.io/commit/6ee4f89385d864de1f939254fdbadd32b9de2486))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.0 to ^3.11.1
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/async-v3.2.4...async-v3.3.0) (2023-11-29)
 
 

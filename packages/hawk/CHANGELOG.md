@@ -80,6 +80,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.7.0 to ^3.8.0
 
+## [3.3.7](https://github.com/loopingz/webda.io/compare/hawk-v3.3.6...hawk-v3.3.7) (2023-12-04)
+
+
+### Bug Fixes
+
+* allow Binaries to define metadata and metadata schema ([2001b1e](https://github.com/loopingz/webda.io/commit/2001b1e9a43b415a25e9e7726e94d351d1749e51))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.0 to ^3.11.1
+  * devDependencies
+    * @webda/shell bumped from ^3.8.0 to ^3.8.1
+
 ## [3.3.4](https://github.com/loopingz/webda.io/compare/hawk-v3.3.3...hawk-v3.3.4) (2023-11-22)
 
 

@@ -72,6 +72,22 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.1.0 to ^1.1.1
 
+## [3.4.1](https://github.com/loopingz/webda.io/compare/async-v3.4.0...async-v3.4.1) (2023-12-05)
+
+
+### Bug Fixes
+
+* Action override in subclass ([113f5a6](https://github.com/loopingz/webda.io/commit/113f5a60907f3e6dcea31bf82e0f476fe3b2d085))
+* named action execution ([931f4b2](https://github.com/loopingz/webda.io/commit/931f4b2e3362d947fa0ec379a4331b13be2a6db2))
+* upload/download util method ([6df18fd](https://github.com/loopingz/webda.io/commit/6df18fd529b2efc8c637e89d67773a0803193b44))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.1 to ^3.11.2
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/async-v3.3.1...async-v3.4.0) (2023-12-04)
 
 

@@ -19,6 +19,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.11.2](https://github.com/loopingz/webda.io/compare/core-v3.11.1...core-v3.11.2) (2023-12-05)
+
+
+### Bug Fixes
+
+* Action override in subclass ([113f5a6](https://github.com/loopingz/webda.io/commit/113f5a60907f3e6dcea31bf82e0f476fe3b2d085))
+* named action execution ([931f4b2](https://github.com/loopingz/webda.io/commit/931f4b2e3362d947fa0ec379a4331b13be2a6db2))
+
 ## [3.11.1](https://github.com/loopingz/webda.io/compare/core-v3.11.0...core-v3.11.1) (2023-12-04)
 
 

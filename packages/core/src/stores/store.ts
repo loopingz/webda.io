@@ -639,16 +639,16 @@ abstract class Store<
   initMetrics(): void {
     super.initMetrics();
     this.metrics.operations_total = this.getMetric(Counter, {
-      name: "store_operations_total",
+      name: "operations_total",
       help: "Operations counter for this store",
       labelNames: ["operation"]
     });
     this.metrics.slow_queries_total = this.getMetric(Counter, {
-      name: "store_slow_queries",
+      name: "slow_queries",
       help: "Number of slow queries encountered"
     });
     this.metrics.queries = this.getMetric(Histogram, {
-      name: "store_queries",
+      name: "queries",
       help: "Query duration"
     });
   }

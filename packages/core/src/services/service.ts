@@ -407,6 +407,7 @@ abstract class Service<
   ): T {
     configuration.labelNames ??= [];
     configuration.labelNames = [...configuration.labelNames, "service"];
+    configuration.name = `${this.getName().toLowerCase()}_${configuration.name}`;
     return this.getWebda().getMetric(type, configuration);
   }
 

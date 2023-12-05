@@ -166,7 +166,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @param definitions
    * @returns
    */
-  getJsonSchemaDefinition(prop: JSONSchema7, definitions): JSONSchema7 {
+  getJsonSchemaDefinition(prop: JSONSchema7, definitions = {}): JSONSchema7 {
     if (prop?.type) {
       if (prop.type === "array" && prop.items["$ref"]) {
         prop.items = this.getJsonSchemaDefinition(<JSONSchema7>prop.items, definitions);
@@ -481,6 +481,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           }
         },
         resolve: async (_, args, context) => {
+          this.log("INFO", model, model.store().getName(), this.getWebda().getModelStore(model).getName(), Object.values(this.getWebda().getStores()).map(i => i.getName()))
           return await model.query(args.query || "", true, context);
         }
       };

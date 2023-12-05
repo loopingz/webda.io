@@ -1,10 +1,10 @@
 import {
   ConsoleLogger,
   FileLogger,
-  Logger as WorkoutLogger,
   MemoryLogger,
   WorkerLogLevel,
-  WorkerOutput
+  WorkerOutput,
+  Logger as WorkoutLogger
 } from "@webda/workout";
 import { Core } from "../core";
 import { Service, ServiceParameters } from "../services/service";
@@ -104,6 +104,9 @@ export class FileLoggerService<
   workoutLogger: ConsoleLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
+    if (this.parameters.file === undefined) {
+      throw new Error("You must specify a file to log into");
+    }
     this.workoutLogger = new FileLogger(
       webda.getWorkerOutput(),
       this.parameters.logLevel,

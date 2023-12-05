@@ -162,9 +162,8 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       let currentJobsNamesMap = {};
       currentJobs.forEach(
         i =>
-          (currentJobsNamesMap[
-            i.metadata.name
-          ] = `${i.spec.schedule} ${i.metadata.annotations["webda.io/crondescription"]}`)
+          (currentJobsNamesMap[i.metadata.name] =
+            `${i.spec.schedule} ${i.metadata.annotations["webda.io/crondescription"]}`)
       );
       this.resources.resources = this.resources.resources || [];
       crons.forEach(cron => {

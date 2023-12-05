@@ -130,7 +130,7 @@ export default class AsyncAction extends CoreModel {
    * @returns
    */
   public getHookUrl(): string {
-    return Core.get().getRouter().getModelUrl(this);
+    return Core.get().getApiUrl(`${Core.get().getRouter().getModelUrl(this)}/${this.uuid}`);
   }
 
   /**

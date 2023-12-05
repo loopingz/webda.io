@@ -1017,7 +1017,8 @@ class CoreModel {
       }
       clazz = Object.getPrototypeOf(clazz);
     }
-    return actions.reduce((v, c) => ({ ...v, ...c }), {});
+    // Reduce right to give priority to the last class: 
+    return actions.reduceRight((v, c) => ({ ...v, ...c }), {});
   }
 
   /**

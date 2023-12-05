@@ -258,14 +258,14 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     if (this.parameters.binaryStore) {
       this.binaryStore = this.getService<CloudBinary>(this.parameters.binaryStore);
       // Call directly Webda addRoute as we are setting a route for another service in fact
-      this.getWebda().addRoute(`${this.parameters.url}/download/{store}/{uid}/{property}/{index}`, {
-        _method: this.binaryStore.httpGet,
+      this.getWebda().addRoute(`${this.parameters.url}/download/{store}/{uuid}/{property}/{index}`, {
+        _method: ctx => this.binaryStore.httpGet(ctx),
         executor: this.parameters.binaryStore,
         openapi: { hidden: true },
         methods: ["GET"]
       });
-      this.getWebda().addRoute(`${this.parameters.url}/upload/{store}/{uid}/{property}`, {
-        _method: this.binaryStore.httpChallenge,
+      this.getWebda().addRoute(`${this.parameters.url}/upload/{store}/{uuid}/{property}`, {
+        _method: ctx => this.binaryStore.httpChallenge(ctx),
         executor: this.parameters.binaryStore,
         openapi: { hidden: true },
         methods: ["PUT"]

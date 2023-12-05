@@ -799,23 +799,24 @@ abstract class Store<
       let actions = this._model.getActions();
       Object.keys(actions).forEach(name => {
         let action: ModelAction = actions[name];
+        action.method ??= name;
         if (!action.methods) {
           action.methods = ["PUT"];
         }
         let executer;
         if (action.global) {
           // By default will grab the object and then call the action
-          if (!this._model[name]) {
-            throw Error("Action static method " + name + " does not exist");
+          if (!this._model[action.method]) {
+            throw Error("Action static method " + action.method + " does not exist");
           }
           executer = this.httpGlobalAction;
           this.addRoute(`./${name}`, action.methods, executer, action.openapi);
         } else {
           // By default will grab the object and then call the action
-          if (!this._model.prototype[name]) {
-            throw Error("Action method " + name + " does not exist");
+          if (!this._model.prototype[action.method]) {
+            throw Error("Action method " + action.method + " does not exist");
           }
-          executer = this.httpAction;
+          executer = ctx => this.httpAction(ctx, action.method);
 
           this.addRoute(`./{uuid}/${name}`, action.methods, executer, action.openapi);
         }
@@ -2096,8 +2097,9 @@ abstract class Store<
    * Handle obect action
    * @param ctx
    */
-  async httpAction(ctx: WebContext) {
+  async httpAction(ctx: WebContext, actionMethod?: string) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
+    actionMethod ??= action;
     let object = await this.get(ctx.parameter("uuid"), ctx);
     if (object === undefined || object.__deleted) {
       throw new WebdaError.NotFound("Object not found or is deleted");
@@ -2121,7 +2123,7 @@ abstract class Store<
       context: ctx
     };
     await Promise.all([this.emitSync("Store.Action", evt), object.__class.emitSync("Store.Action", evt)]);
-    const res = await object[action](ctx);
+    const res = await object[actionMethod](ctx);
     if (res) {
       ctx.write(res);
     }

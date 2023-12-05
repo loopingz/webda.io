@@ -170,6 +170,10 @@ export interface ModelAction {
    * Additional openapi info
    */
   openapi?: any;
+  /**
+   * Method of the action
+   */
+  method?: string;
 }
 
 /**
@@ -356,7 +360,8 @@ export function Action(options: { methods?: HttpMethodType[]; openapi?: any; nam
     const actions = ActionsAnnotated.get(custom);
     actions[options.name || propertyKey] = {
       ...options,
-      global
+      global,
+      method: propertyKey
     };
   };
 }
@@ -1017,7 +1022,7 @@ class CoreModel {
       }
       clazz = Object.getPrototypeOf(clazz);
     }
-    // Reduce right to give priority to the last class: 
+    // Reduce right to give priority to the last class:
     return actions.reduceRight((v, c) => ({ ...v, ...c }), {});
   }
 

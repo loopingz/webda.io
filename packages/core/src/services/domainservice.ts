@@ -708,7 +708,7 @@ export class RESTDomainService<
             return model.store().httpGlobalAction(ctx, model);
           } else {
             ctx.getParameters().uuid = model.completeUid(ctx.getParameters().uuid);
-            return model.store().httpAction(ctx);
+            return model.store().httpAction(ctx, action.method);
           }
         },
         openapi

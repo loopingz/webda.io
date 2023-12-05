@@ -47,8 +47,8 @@ class TestMask extends CoreModel {
     return super.attributePermission(key, value, mode, context);
   }
 
-  @Action()
-  static globalAction() {}
+  @Action({ name: "globalAction" })
+  static globalActionMethod() {}
 
   @Action()
   localAction() {}
@@ -57,6 +57,9 @@ class TestMask extends CoreModel {
 class SubTestMask extends TestMask {
   @Action()
   secondAction() {}
+
+  @Action({ name: "localAction" })
+  localActionMethod(): void {}
 }
 @suite
 class CoreModelTest extends WebdaTest {
@@ -80,13 +83,13 @@ class CoreModelTest extends WebdaTest {
   actionAnnotation() {
     assert.deepStrictEqual(CoreModel.getActions(), {});
     assert.deepStrictEqual(TestMask.getActions(), {
-      localAction: { global: false },
-      globalAction: { global: true }
+      localAction: { global: false, method: "localAction" },
+      globalAction: { global: true, method: "globalActionMethod", name: "globalAction" }
     });
     assert.deepStrictEqual(SubTestMask.getActions(), {
-      secondAction: { global: false },
-      localAction: { global: false },
-      globalAction: { global: true }
+      secondAction: { global: false, method: "secondAction" },
+      localAction: { global: false, method: "localActionMethod", name: "localAction" },
+      globalAction: { global: true, method: "globalActionMethod", name: "globalAction" }
     });
   }
 

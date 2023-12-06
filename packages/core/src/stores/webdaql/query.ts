@@ -11,14 +11,14 @@ import {
   LikeExpressionContext,
   LimitExpressionContext,
   OffsetExpressionContext,
+  OrLogicExpressionContext,
   OrderExpressionContext,
   OrderFieldExpressionContext,
-  OrLogicExpressionContext,
   SetExpressionContext,
   StringLiteralContext,
   SubExpressionContext,
-  WebdaqlContext,
-  WebdaQLParserParser
+  WebdaQLParserParser,
+  WebdaqlContext
 } from "./WebdaQLParserParser";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 
@@ -35,6 +35,27 @@ export namespace WebdaQL {
     direction: "ASC" | "DESC";
   }
 
+  export function PrependCondition(query: string = "", condition?: string): string {
+    if (!condition) {
+      return query;
+    }
+    query = query.trim();
+    // Find the right part of the query this regex will always be true as all part are optional
+    const rightPart = query.match(/(?<order>ORDER BY ([a-zA-Z0-9\._]+,?)+ ?)?(?<offset>OFFSET ["']\w+["'] ?)?(?<limit>LIMIT \d+)?$/);
+    // Remove it if found
+    query = query.substring(0, query.length - rightPart[0].length).trim();
+    // Add the condition to the query now
+    if (!query) {
+      query = condition;
+    } else {
+      query = `(${condition}) AND (${query})`;
+    }
+    // Re-add the right part
+    if (rightPart[0].length) {
+      query += " " + rightPart[0];
+    }
+    return query;
+  }
   /**
    * Create Expression based on the parsed token
    *

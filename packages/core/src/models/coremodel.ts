@@ -9,6 +9,7 @@ import { EventService } from "../services/asyncevents";
 import { BinariesImpl, Binary } from "../services/binary";
 import { Service } from "../services/service";
 import { Store, StoreEvents } from "../stores/store";
+import { WebdaQL } from "../stores/webdaql/query";
 import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
@@ -84,9 +85,7 @@ export class CoreModelQuery {
    * @returns
    */
   protected completeQuery(query?: string): string {
-    query = query ? `(${query}) AND` : "";
-    query += ` ${this.attribute} = '${this.model.getUuid()}'`;
-    return query;
+    return WebdaQL.PrependCondition(query, `${this.attribute} = '${this.model.getUuid()}'`);
   }
 
   /**
@@ -877,16 +876,15 @@ class CoreModel {
    */
   protected static completeQuery(query: string, includeSubclass: boolean = true): string {
     if (!query.includes("__type")) {
-      if (query.trim() !== "") {
-        query = ` AND ${query}`;
-      }
+      let condition;
       const app = Core.get().getApplication();
       const name = app.getShortId(app.getModelName(this));
       if (includeSubclass) {
-        query = `__types CONTAINS "${name}"${query}`;
+        condition = `__types CONTAINS "${name}"`;
       } else {
-        query = `__type = "${name}"${query}`;
+        condition = `__type = "${name}"`;
       }
+      return WebdaQL.PrependCondition(query, condition)
     }
     return query;
   }

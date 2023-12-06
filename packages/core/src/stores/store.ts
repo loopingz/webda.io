@@ -1141,16 +1141,10 @@ abstract class Store<
   async query(query: string, context?: OperationContext): Promise<{ results: T[]; continuationToken?: string }> {
     let permissionQuery = this._model.getPermissionQuery(context);
     let partialPermission = true;
-    let fullQuery;
+    let fullQuery = query;
     if (permissionQuery) {
       partialPermission = permissionQuery.partial;
-      if (query.trim() !== "") {
-        fullQuery = `(${permissionQuery.query}) AND ${query}`;
-      } else {
-        fullQuery = permissionQuery.query;
-      }
-    } else {
-      fullQuery = query;
+      fullQuery = WebdaQL.PrependCondition(query, permissionQuery.query);
     }
     let queryValidator = new WebdaQL.QueryValidator(fullQuery);
     let offset = queryValidator.getOffset();

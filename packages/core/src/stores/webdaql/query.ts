@@ -41,7 +41,7 @@ export namespace WebdaQL {
     }
     query = query.trim();
     // Find the right part of the query this regex will always be true as all part are optional
-    const rightPart = query.match(/(?<order>ORDER BY ([a-zA-Z0-9\._]+,?)+ ?)?(?<offset>OFFSET ["']\w+["'] ?)?(?<limit>LIMIT \d+)?$/);
+    const rightPart = query.match(/(?<order>ORDER BY ([a-zA-Z0-9\._]+( DESC| ASC)?,?)+ ?)?(?<offset>OFFSET ["']\w+["'] ?)?(?<limit>LIMIT \d+)?$/);
     // Remove it if found
     query = query.substring(0, query.length - rightPart[0].length).trim();
     // Add the condition to the query now

@@ -891,6 +891,15 @@ class CoreModel {
 
   /**
    * Iterate through the model
+   * 
+   * How to use a iterator is:
+   * 
+   * ```
+   * for await (const model of CoreModel.iterate()) {
+   *    // Do something with my model
+   * }
+   * ```
+   * 
    * @param this
    * @param query
    * @param includeSubclass

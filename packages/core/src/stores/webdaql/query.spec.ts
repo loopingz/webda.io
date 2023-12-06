@@ -74,6 +74,19 @@ class QueryTest {
   }
 
   @test
+  prependQuery() {
+    assert.strictEqual(WebdaQL.PrependCondition("", "test='plop'"), "test='plop'");
+    assert.strictEqual(WebdaQL.PrependCondition("test='plop'", ""), "test='plop'");
+    assert.strictEqual(WebdaQL.PrependCondition("test='plip'", "test='plop'"), "(test='plop') AND (test='plip')");
+    assert.strictEqual(WebdaQL.PrependCondition("ORDER BY test", "test='plop'"), "test='plop' ORDER BY test");
+    assert.strictEqual(WebdaQL.PrependCondition("ORDER BY test LIMIT 100", "test='plop'"), "test='plop' ORDER BY test LIMIT 100");
+    assert.strictEqual(WebdaQL.PrependCondition("test='plip' LIMIT 100", "test='plop'"), "(test='plop') AND (test='plip') LIMIT 100");
+    assert.strictEqual(WebdaQL.PrependCondition("test='plip' OFFSET 'test'", "test='plop'"), "(test='plop') AND (test='plip') OFFSET 'test'");
+    assert.strictEqual(WebdaQL.PrependCondition("test='ORDER BY plop' OFFSET 'test'", "test='plop'"), "(test='plop') AND (test='ORDER BY plop') OFFSET 'test'");
+    assert.strictEqual(WebdaQL.PrependCondition("test=\"ORDER BY plop\" LIMIT 100", "test='plop'"), "(test='plop') AND (test=\"ORDER BY plop\") LIMIT 100");
+  }
+
+  @test
   likeRegexp() {
     assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("test"), /test/);
     assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t_est"), /t.{1}est/);

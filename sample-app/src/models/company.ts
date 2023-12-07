@@ -1,4 +1,4 @@
-import { CoreModel, Expose, ModelRelated, ModelsMapped, OperationContext } from "@webda/core";
+import { CoreModel, Expose, ModelRelated, ModelsMapped, NotEnumerable, OperationContext } from "@webda/core";
 import { Project } from "./project";
 import { User } from "./user";
 
@@ -12,6 +12,19 @@ export class Company extends CoreModel {
   _projects: ModelsMapped<Project, "_company", "name" | "type">;
   users: ModelRelated<User, "_company">;
   name: string;
+  /**
+   * This should not be in the schema
+   */
+  @NotEnumerable
+  testNotEnumerable: string;
+  /**
+   * Test of maps for GraphQL
+   */
+  mapString: { [key: string]: string };
+  mapAny: { [key: string]: any };
+  mapNumber: { [key: string]: number };
+  mapBoolean: { [key: string]: boolean };
+  mapObject: { [key: string]: { test: number; b: boolean; status: string } };
   /**
    * @SchemaOptional
    */

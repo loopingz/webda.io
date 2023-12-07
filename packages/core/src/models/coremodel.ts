@@ -320,9 +320,10 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
 
 /**
- * Make a property hidden from json
+ * Make a property hidden from json and schema
  *
  * This property will not be saved in the store
+ * Nor it will be exposed in the API
  *
  * @param target
  * @param propertyKey
@@ -884,22 +885,22 @@ class CoreModel {
       } else {
         condition = `__type = "${name}"`;
       }
-      return WebdaQL.PrependCondition(query, condition)
+      return WebdaQL.PrependCondition(query, condition);
     }
     return query;
   }
 
   /**
    * Iterate through the model
-   * 
+   *
    * How to use a iterator is:
-   * 
+   *
    * ```
    * for await (const model of CoreModel.iterate()) {
    *    // Do something with my model
    * }
    * ```
-   * 
+   *
    * @param this
    * @param query
    * @param includeSubclass

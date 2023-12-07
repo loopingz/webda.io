@@ -2,6 +2,17 @@ import { CoreModel, StoreNotFoundError, UpdateConditionFailError } from "@webda/
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 
+/*
+ * Ideas:
+ *  - Make views for each models to have a better query: https://dba.stackexchange.com/questions/151838/postgresql-json-column-to-view
+ *  - Use STORED generated model to define FK: https://stackoverflow.com/questions/24489647/json-foreign-keys-in-postgresql
+ *  - FKs should be defined based on relationship
+ *  - Define colums dynamically based on the schema
+ */
+
+/**
+ *
+ */
 class PostgresParameters extends SQLStoreParameters {
   /**
    * @default false

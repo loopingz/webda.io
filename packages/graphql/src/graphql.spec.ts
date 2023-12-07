@@ -2,8 +2,11 @@ import { suite, test } from "@testdeck/mocha";
 import { CoreModel, FileBinary, WebdaError, getCommonJS } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
+import { Kind } from "graphql";
 import * as path from "path";
 import { GraphQLService } from "./graphql";
+import { AnyScalarType } from "./types/any";
+import { GraphQLLong } from "./types/long";
 const { __dirname } = getCommonJS(import.meta.url);
 
 //export const WebdaSampleApplication = new UnpackedApplication(path.resolve(`${__dirname}/../../../sample-app/`));
@@ -272,5 +275,33 @@ class GraphQLServiceTest extends WebdaTest {
     this.service.getParameters().userModel = "User2";
     this.service.getParameters()["excludedModels"].push("User3");
     await this.service.resolve().init();
+  }
+}
+
+@suite
+class TypesTest {
+  @test
+  any() {
+    const obj = { test: 1 };
+    AnyScalarType.parseValue(obj);
+    AnyScalarType.parseValue(JSON.stringify(obj));
+    AnyScalarType.parseLiteral({ kind: Kind.STRING, value: JSON.stringify(obj) });
+    assert.throws(
+      () => AnyScalarType.parseLiteral(<any>{ kind: Kind.OBJECT }),
+      /Not sure what to do with OBJECT for ObjectScalarType/
+    );
+    assert.strictEqual(AnyScalarType.parseLiteral(<any>{ kind: Kind.BOOLEAN }), null);
+  }
+
+  @test
+  long() {
+    GraphQLLong.parseValue("12344444");
+    assert.throws(() => GraphQLLong.parseValue(""));
+    assert.throws(() => GraphQLLong.parseValue("123456789012345678901234567890"), /Long cannot represent/);
+    assert.strictEqual(GraphQLLong.parseLiteral(<any>{ kind: Kind.BOOLEAN }), null);
+
+    assert.strictEqual(GraphQLLong.parseLiteral(<any>{ kind: Kind.INT, value: "−9007199254740992" }), null);
+    assert.strictEqual(GraphQLLong.parseLiteral(<any>{ kind: Kind.INT, value: "9007199254740992" }), null);
+    assert.strictEqual(GraphQLLong.parseLiteral(<any>{ kind: Kind.INT, value: "12345" }), 12345);
   }
 }

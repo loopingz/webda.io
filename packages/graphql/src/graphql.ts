@@ -15,7 +15,6 @@ import {
   GraphQLBoolean,
   GraphQLError,
   GraphQLFieldConfig,
-  GraphQLInt,
   GraphQLList,
   GraphQLObjectType,
   GraphQLSchema,
@@ -25,6 +24,8 @@ import {
 } from "graphql";
 import { Handler, OperationContext, createHandler } from "graphql-http";
 import { JSONSchema7 } from "json-schema";
+import { AnyScalarType } from "./types/any";
+import { GraphQLLong } from "./types/long";
 
 const GraphIQL = `
 <!doctype html>
@@ -188,7 +189,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   getGraphQLSchemaFromSchema(schema: JSONSchema7, defaultName: string): any {
     let type: any;
     if (!schema || !schema.type) {
-      return;
+      return AnyScalarType;
     } else if (schema.type === "string") {
       type = GraphQLString;
     } else if (schema.type === "boolean") {
@@ -198,12 +199,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         this.getGraphQLSchemaFromSchema(schema.items as JSONSchema7, schema.title || defaultName)?.type || GraphQLString
       );
     } else if (schema.type === "integer" || schema.type === "number") {
-      type = GraphQLInt;
+      // Use long to handle 2^52
+      type = GraphQLLong;
     } else if (schema.type === "null") {
       return undefined;
     } else if (schema.type === "object") {
       const fields: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {};
-
+      // Map does not fit well with graphql
+      if (!schema.properties && schema.additionalProperties) {
+        return { type: AnyScalarType, description: "Map" };
+      }
       for (let i in schema.properties) {
         let res = this.getGraphQLSchemaFromSchema(
           this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
@@ -213,6 +218,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         fields[i] = res;
       }
       if (Object.keys(fields).length === 0) {
+        this.log("INFO", "Return undefined for", defaultName, "because no fields");
         return undefined;
       }
       type = new GraphQLObjectType({
@@ -481,7 +487,6 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           }
         },
         resolve: async (_, args, context) => {
-          this.log("INFO", model, model.store().getName(), this.getWebda().getModelStore(model).getName(), Object.values(this.getWebda().getStores()).map(i => i.getName()))
           return await model.query(args.query || "", true, context);
         }
       };

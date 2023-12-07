@@ -280,8 +280,17 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
               ts.isParameterPropertyDeclaration(param, param.parent)
             ) as ts.ParameterPropertyDeclaration[];
             members.push(...params);
-          } else if (ts.isPropertySignature(member) || ts.isPropertyDeclaration(member)) {
+          } else if (ts.isPropertySignature(member)) {
             members.push(member);
+          } else if (ts.isPropertyDeclaration(member)) {
+            // Ensure NotEnumerable is not part of the property annotation
+            if (
+              !(ts.getDecorators(<ts.PropertyDeclaration>member) || []).find(annotation => {
+                return "NotEnumerable" === annotation?.expression?.getText();
+              })
+            ) {
+              members.push(member);
+            }
           }
           return members;
         },
@@ -302,6 +311,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
             ignore = true;
           }
         });
+
         if (ignore) {
           return undefined;
         }

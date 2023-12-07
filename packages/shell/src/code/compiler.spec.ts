@@ -93,6 +93,7 @@ class CompilerTest {
     let compiler = new Compiler(app);
     compiler.compile();
     let mod = compiler.generateModule();
+    assert.strictEqual(mod.schemas["WebdaDemo/Company"].properties.testNotEnumerable, undefined);
     assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.avatar, { type: "object", readOnly: true });
     assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.photos, {
       items: {

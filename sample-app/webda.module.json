@@ -379,6 +379,12 @@
         "_projects": "ModelsMapped<Project, \"_company\", \"name\" | \"type\">",
         "users": "ModelRelated<User, \"_company\">",
         "name": "string",
+        "testNotEnumerable": "string",
+        "mapString": "{ [key: string]: string }",
+        "mapAny": "{ [key: string]: any }",
+        "mapNumber": "{ [key: string]: number }",
+        "mapBoolean": "{ [key: string]: boolean }",
+        "mapObject": "{ [key: string]: { test: number; b: boolean; status: string } }",
         "permissions": "Permission[]",
         "__class": "CoreModelDefinition<this>",
         "__type": "string",
@@ -959,6 +965,50 @@
         "name": {
           "type": "string"
         },
+        "mapString": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Test of maps for GraphQL"
+        },
+        "mapAny": {
+          "type": "object"
+        },
+        "mapNumber": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "mapBoolean": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "mapObject": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "test": {
+                "type": "number"
+              },
+              "b": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "test",
+              "b",
+              "status"
+            ]
+          }
+        },
         "permissions": {
           "type": "array",
           "items": {
@@ -967,7 +1017,12 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "mapString",
+        "mapAny",
+        "mapNumber",
+        "mapBoolean",
+        "mapObject"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {

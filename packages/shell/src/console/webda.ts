@@ -10,7 +10,9 @@ import {
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
+import { createHash } from "crypto";
 import * as fs from "fs";
+import { glob } from "glob";
 import { JSONSchema7 } from "json-schema";
 import { createRequire } from "module";
 import * as path from "path";
@@ -24,8 +26,6 @@ import { BuildSourceApplication, SourceApplication } from "../code/sourceapplica
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
 import { WebdaTerminal } from "./terminal";
-import { glob } from "glob";
-import { createHash } from "crypto";
 const { __dirname } = getCommonJS(import.meta.url);
 
 export type WebdaCommand = (argv: any[]) => void;
@@ -130,10 +130,14 @@ export default class WebdaConsole {
         } else {
           this.output("Serve as development");
         }
+        /* c8 ignore next 3 - not trying to test message of deprecation */
+        if (argv.websockets) {
+          this.output("Deprecated usage of --websockets");
+        }
         WebdaConsole.webda = new WebdaServer(this.app);
         this.webda.setDevMode(argv.devMode);
         await this.webda.init();
-        await this.webda.serve(argv.port, argv.websockets);
+        await this.webda.serve(argv.port);
       },
       async () => {
         // Close server
@@ -423,10 +427,6 @@ ${Object.keys(operationsExport.operations)
       if (argv.bind) {
         args.push("--bind");
         args.push(<string>argv.bind);
-      }
-
-      if (argv.websockets) {
-        args.push("-w");
       }
 
       if (argv.logLevels) {
@@ -831,7 +831,8 @@ ${Object.keys(operationsExport.operations)
             default: "127.0.0.1"
           },
           websockets: {
-            alias: "w"
+            alias: "w",
+            deprecated: "websockets can be enable by adding specific modules now",
           }
         }
       },

@@ -13,13 +13,13 @@ class WebdaServerTest {
   port: number;
   badCheck: boolean = false;
 
-  async init(deployment: string = undefined, startHttp: boolean = false, websockets: boolean = false) {
+  async init(deployment: string = undefined, startHttp: boolean = false) {
     await WebdaSampleApplication.load();
     WebdaSampleApplication.setCurrentDeployment(deployment);
     this.server = new WebdaServer(WebdaSampleApplication);
     await this.server.init();
     if (startHttp) {
-      this.server.serve(this.port, websockets);
+      this.server.serve(this.port);
       await this.server.waitForStatus(ServerStatus.Started);
     }
   }
@@ -68,7 +68,7 @@ class WebdaServerTest {
     // @ts-ignore
     this.server.serverStatus = ServerStatus.Starting;
     try {
-      this.server.serve(this.port, false);
+      this.server.serve(this.port);
       await this.server.waitForStatus(ServerStatus.Stopped);
     } catch (err) {
       // ignore if failed
@@ -200,7 +200,7 @@ class WebdaServerTest {
 
   @test
   async testSampleApplicationStatic() {
-    await this.init("Production", true, true);
+    await this.init("Production", true);
     let app = new SampleApplicationTest(`http://localhost:${this.port}`);
     await app.testStatic();
     let stub = sinon.stub(this.server, "newContext").callsFake(() => {
@@ -240,38 +240,6 @@ class WebdaServerTest {
     this.server.onSIGINT();
   }
 
-  @test
-  async socketIOError() {
-    await this.init("Dev", true, true);
-    let corsFct: (origin: string, callback: () => void) => void;
-    let allowRequest;
-    // @ts-ignore
-    corsFct = this.server.io.engine.opts.cors.origin;
-    // @ts-ignore
-    allowRequest = this.server.io.engine.opts.allowRequest;
-    let receivedArgs;
-    const callback = (...args) => {
-      receivedArgs = args;
-    };
-    corsFct("test", callback);
-    assert.deepStrictEqual(receivedArgs, [null, "test"]);
-
-    let stub = sinon.stub(this.server, "getContextFromRequest").callsFake(async () => {
-      throw "Plop";
-    });
-    await allowRequest(null, callback);
-    assert.deepStrictEqual(receivedArgs, ["Plop", null]);
-    let ctx = await this.server.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
-    stub.callsFake(async () => <any>ctx);
-    await allowRequest(null, callback);
-    assert.deepStrictEqual(receivedArgs, ["Request not allowed", null]);
-    // @ts-ignore
-    sinon.stub(this.server, "checkCORSRequest").callsFake(async () => true);
-    // @ts-ignore
-    sinon.stub(this.server, "checkRequest").callsFake(async () => true);
-    await allowRequest({}, callback);
-    assert.deepStrictEqual(receivedArgs, [null, true]);
-  }
 
   @test
   async flushHeaders() {
@@ -311,7 +279,7 @@ class WebdaServerTest {
     await this.server.init();
     // To Trigger a bad reference access
     this.server.onSIGINT = null;
-    await assert.rejects(() => this.server.serve(this.port, false), TypeError);
+    await assert.rejects(() => this.server.serve(this.port), TypeError);
     assert.strictEqual(this.server.getServerStatus(), ServerStatus.Stopped);
   }
 }

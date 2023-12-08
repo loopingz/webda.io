@@ -293,10 +293,9 @@ export class WebdaServer extends Webda {
    * Start listening to serve request
    *
    * @param port to listen to
-   * @param websockets to enable websockets
    * @param bind address to bind
    */
-  async serve(port: number = 18080, websockets: boolean = false, bind: string = undefined) {
+  async serve(port: number = 18080, bind: string = undefined) {
     this.serverStatus = ServerStatus.Starting;
     try {
       this.http = http
@@ -315,41 +314,7 @@ export class WebdaServer extends Webda {
         this.serverStatus = ServerStatus.Stopped;
       });
       this.emit("Webda.Init.Http", this.http);
-      if (websockets) {
-        // Activate websocket
-        this.output("Activating socket.io");
-        this.io = new (await import("socket.io")).Server(this.http, {
-          cors: {
-            // Allow all origin as they should have been filtered by allowRequest
-            origin: (origin, callback) => callback(null, origin),
-            credentials: true
-          },
-          allowRequest: async (req, callback) => {
-            try {
-              // Use our checkRequest filtering system
-              const ctx = await this.getContextFromRequest(req);
-              // Check CORS and Request at the same time as the origin callback only provide origin string
-              if (!(this.devMode || (await this.checkCORSRequest(ctx))) || !(await this.checkRequest(ctx))) {
-                this.output("Request refused either CORSFilter or RequestFilter");
-                callback("Request not allowed", null);
-              } else {
-                // Load session
-                await ctx.init();
-                // Set session on object
-                // @ts-ignore
-                req.session = ctx.getSession();
-                // @ts-ignore
-                req.webdaContext = ctx;
-                callback(null, true);
-              }
-            } catch (err) {
-              callback(err, null);
-            }
-          }
-        });
-        this.emit("Webda.Init.SocketIO", this.io);
-      }
-      this.logger.logTitle(`Server running at http://0.0.0.0:${port}${websockets ? " with websockets" : ""}`);
+      this.logger.logTitle(`Server running at http://0.0.0.0:${port}`);
       this.serverStatus = ServerStatus.Started;
     } catch (err) {
       this.log("ERROR", err);

@@ -139,6 +139,6 @@ export class WebdaConfiguration extends WebdaServer {
   }
 
   async serve() {
-    return super.serve(18181, true);
+    return super.serve(18181);
   }
 }

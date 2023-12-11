@@ -53,14 +53,6 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   computeParameters() {
     super.computeParameters();
-    if (!this.parameters.noCache) {
-      this._cacheStore = new MemoryStore(this._webda, `_${this.getName()}_cache`, {
-        model: this.parameters.model
-      });
-      this._cacheStore.computeParameters();
-      this._cacheStore.initMetrics();
-      this.cacheStorePatchException();
-    }
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }

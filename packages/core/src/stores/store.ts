@@ -1,5 +1,5 @@
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
-import { ConfigurationProvider, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
+import { ConfigurationProvider, MemoryStore, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes, ModelAction } from "../models/coremodel";
 import { Route, Service, ServiceParameters } from "../services/service";
 import { OperationContext, WebContext } from "../utils/context";
@@ -100,6 +100,10 @@ export interface EventStoreUpdate extends EventStore {
  * Event called after update of an object
  */
 export interface EventStoreUpdated extends EventStoreUpdate {
+  /**
+   * Object uuid
+   */
+  object_id: string;
   /**
    * Object before update
    */
@@ -227,6 +231,10 @@ export interface EventStoreWebCreate extends EventWithContext {
    * Target object
    */
   object: CoreModel;
+  /**
+   * Object id
+   */
+  object_id: string;
   /**
    * Emitting store
    */
@@ -432,6 +440,10 @@ export class StoreParameters extends ServiceParameters {
    * Model Aliases to allow easier rename of Model
    */
   modelAliases?: { [key: string]: string };
+  /**
+   * Disable default memory cache
+   */
+  noCache?: boolean;
 
   constructor(params: any, service: Service<any>) {
     super(params);
@@ -571,6 +583,7 @@ abstract class Store<
    * {"email":"' UNION SELECT name as profileImage, tbl_name as email, '' AS column3 FROM sqlite_master --","password":"we"}
    */
   metrics: {
+    cache_invalidation: any;
     operations_total: Counter;
     slow_queries_total: Counter;
     queries: Histogram;
@@ -593,8 +606,14 @@ abstract class Store<
     this._model = app.getModel(p.model);
     this._modelType = this._model.getIdentifier();
     this._uuidField = this._model.getUuidField();
-    this._cacheStore?.computeParameters();
-    this.cacheStorePatchException();
+    if (!this.parameters.noCache) {
+      this._cacheStore = new MemoryStore(this._webda, `_${this.getName()}_cache`, {
+        model: this.parameters.model
+      });
+      this._cacheStore.computeParameters();
+      this._cacheStore.initMetrics();
+      this.cacheStorePatchException();
+    }
     const recursive = (tree, depth) => {
       for (let i in tree) {
         this._modelsHierarchy[i] ??= depth;
@@ -634,6 +653,17 @@ abstract class Store<
   }
 
   /**
+   * Invalidate a cache entry
+   * @param uid
+   */
+  async invalidateCache(uid: string): Promise<void> {
+    if (this._cacheStore) {
+      this.metrics.cache_invalidation.inc();
+      await this._cacheStore?.delete(uid, undefined, undefined, true);
+    }
+  }
+
+  /**
    * @override
    */
   initMetrics(): void {
@@ -646,6 +676,10 @@ abstract class Store<
     this.metrics.slow_queries_total = this.getMetric(Counter, {
       name: "slow_queries",
       help: "Number of slow queries encountered"
+    });
+    this.metrics.cache_invalidation = this.getMetric(Counter, {
+      name: "cache_invalidation",
+      help: "Number of cache invalidation encountered"
     });
     this.metrics.queries = this.getMetric(Histogram, {
       name: "queries",
@@ -674,14 +708,15 @@ abstract class Store<
 
   /**
    * Get From Cache or main
-   * @param uid
+   * @param uuid
    * @param raiseIfNotFound
    * @returns
    */
-  async _getFromCache(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
-    let res = await this._cacheStore?._get(uid);
+  async _getFromCache(uuid: string, raiseIfNotFound: boolean = false): Promise<T> {
+    let res = await this._cacheStore?._get(uuid);
     if (!res) {
-      res = await this._get(uid, raiseIfNotFound);
+      res = await this._get(uuid, raiseIfNotFound);
+      res && (await this._cacheStore?._save(res));
     } else {
       res.__store = this;
     }
@@ -959,7 +994,7 @@ abstract class Store<
     this.metrics.operations_total.inc({ operation: "increment" });
     await this._incrementAttributes(uid, params, updateDate);
     await this._cacheStore?._incrementAttributes(uid, params, updateDate);
-    this.emitSync("Store.PartialUpdated", {
+    await this.emit("Store.PartialUpdated", {
       object_id: uid,
       store: this,
       updateDate,
@@ -1260,6 +1295,38 @@ abstract class Store<
   }
 
   /**
+   * Handle StoreEvent and update cache based on it
+   * @param event
+   * @param data
+   */
+  async handleStoreEvent<Key extends keyof StoreEvents>(event: Key | symbol, data: E[Key]): Promise<void> {
+    if (event === "Store.Deleted") {
+      this._cacheStore?._delete((<EventStoreDeleted>data).object.getUuid());
+    } else if (event === "Store.PartialUpdated") {
+      const partialEvent = <EventStorePartialUpdated>data;
+      if (partialEvent.partial_update.increments) {
+        await this._cacheStore?._incrementAttributes(
+          partialEvent.object_id,
+          partialEvent.partial_update.increments,
+          partialEvent.updateDate
+        );
+      } else if (partialEvent.partial_update.deleteAttribute) {
+        await this._cacheStore?._removeAttribute(
+          partialEvent.object_id,
+          partialEvent.partial_update.deleteAttribute,
+          partialEvent.updateDate
+        );
+      } else {
+        await this._cacheStore?.invalidateCache(partialEvent.object_id);
+      }
+    } else if (event === "Store.Updated") {
+      this._cacheStore?._update((<EventStoreUpdated>data).object, (<EventStoreUpdated>data).object.getUuid());
+    } else if (event === "Store.PatchUpdated") {
+      this._cacheStore?._patch((<EventStoreUpdated>data).object, (<EventStoreUpdated>data).object.getUuid());
+    }
+  }
+
+  /**
    * Save an object
    *
    * @param {Object} Object to save
@@ -1539,6 +1606,7 @@ abstract class Store<
     });
     const evtUpdated = {
       object: saved,
+      object_id: saved.getUuid(),
       store: this,
       update,
       previous: loaded
@@ -2082,6 +2150,7 @@ abstract class Store<
       context: ctx,
       values: body,
       object: object,
+      object_id: object.getUuid(),
       store: this
     };
     await Promise.all([object.__class.emitSync("Store.WebCreate", evt), this.emitSync("Store.WebCreate", evt)]);

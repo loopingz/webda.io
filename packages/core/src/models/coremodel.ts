@@ -297,24 +297,56 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
     includeSubclass?: boolean,
     context?: OperationContext
   ): Promise<{ results: T[]; continuationToken?: string }>;
-
+  /**
+   * Listen to events on the model
+   * @param event
+   * @param listener
+   * @param async
+   */
   on<T extends CoreModel, Key extends keyof StoreEvents>(
     this: Constructor<T>,
     event: Key,
     listener: (evt: StoreEvents[Key]) => any,
     async?: boolean
   ): void;
+  /**
+   * Listen to events on the model asynchronously
+   * @param event
+   * @param listener
+   */
   onAsync<T extends CoreModel, Key extends keyof StoreEvents>(
     this: Constructor<T>,
     event: Key,
     listener: (evt: StoreEvents[Key]) => any
   );
+  /**
+   * Emit an event for this class
+   * @param this
+   * @param event
+   * @param evt
+   */
   emit<T extends CoreModel, Key extends keyof StoreEvents>(this: Constructor<T>, event: Key, evt: StoreEvents[Key]);
+  /**
+   * Emit an event for this class and wait for all listeners to finish
+   * @param this
+   * @param event
+   * @param evt
+   */
   emitSync<T extends CoreModel, Key extends keyof StoreEvents>(
     this: Constructor<T>,
     event: Key,
     evt: StoreEvents[Key]
   ): Promise<void>;
+  /**
+   * Return the event on the model that can be listened to
+   */
+  getPublicEvents(): ({ name: string; global?: boolean } | string)[];
+  /**
+   * Authorize a public event subscription
+   * @param event
+   * @param context
+   */
+  authorizePublicEvent(_event: string, _context: OperationContext, _model?: T): boolean;
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -711,7 +743,7 @@ class CoreModel {
    * @param event
    * @param listener
    */
-  static onAsync<Key extends keyof StoreEvents>(event: Key, listener: (evt: StoreEvents[Key]) => any) {
+  static onAsync<Key extends keyof StoreEvents>(event: Key, listener: (evt: StoreEvents[Key]) => any, queue?: string) {
     this.on(event, listener, true);
   }
   /**
@@ -720,6 +752,24 @@ class CoreModel {
    */
   static getRelations() {
     return Core.get()?.getApplication().getRelations(this);
+  }
+
+  /**
+   * Do not declare any public events by default
+   * @returns
+   */
+  static getPublicEvents() {
+    return [];
+  }
+
+  /**
+   * Does not allow any event by default
+   * @param _event
+   * @param _context
+   * @returns
+   */
+  static authorizePublicEvent(_event: string, _context: OperationContext, _model?: CoreModel) {
+    return false;
   }
 
   /**

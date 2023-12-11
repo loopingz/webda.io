@@ -1,7 +1,17 @@
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
-import { Constructor, Core, Counter, EventEmitterUtils, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
+import {
+  Constructor,
+  Core,
+  Counter,
+  EventEmitterUtils,
+  Gauge,
+  Histogram,
+  Logger,
+  MetricConfiguration,
+  OperationContext
+} from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
 import { HttpMethodType } from "../utils/httpcontext";
 import { EventService } from "./asyncevents";
@@ -412,6 +422,24 @@ abstract class Service<
   }
 
   /**
+   * Return the events that an external system can subscribe to
+   *
+   * @returns
+   */
+  getPublicEvents(): string[] {
+    return [];
+  }
+
+  /**
+   * Authorize a public event subscription
+   * @param event
+   * @param context
+   */
+  authorizePublicEvent(_event: string, _context: OperationContext): boolean {
+    return false;
+  }
+
+  /**
    * Return the full path url based on parameters
    *
    * @param url relative url to service
@@ -523,6 +551,14 @@ abstract class Service<
    */
   toPublicJSON(object: unknown) {
     return this._webda.toPublicJSON(object);
+  }
+
+  /**
+   * Prevent service to be serialized
+   * @returns
+   */
+  toJSON() {
+    return this._name;
   }
 
   /**

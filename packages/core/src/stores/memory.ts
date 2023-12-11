@@ -53,6 +53,8 @@ class MemoryStoreParameters extends StoreParameters {
       this.persistence.cipher ??= "aes-256-ctr";
       this.persistence.compressionLevel ??= 9;
     }
+    // Memory store cannot be cached
+    this.noCache = true;
   }
 }
 

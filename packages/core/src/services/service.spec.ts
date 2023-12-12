@@ -227,6 +227,13 @@ class ServiceTest extends WebdaTest {
   }
 
   @test
+  publicEvents() {
+    let service = new FakeService(this.webda, "plop", { type: "FakeService" });
+    assert.deepStrictEqual(service.getPublicEvents(), []);
+    assert.deepStrictEqual(service.authorizePublicEvent("plop", undefined), false);
+  }
+
+  @test
   getUrl() {
     let service = new FakeService(this.webda, "plop", { type: "FakeService" });
     assert.strictEqual(service.getUrl("/plop", ["GET"]), "/plop");

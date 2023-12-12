@@ -88,6 +88,15 @@ class FileStoreTest extends StoreTest {
     }
 
     identStore.incrementAttribute("test", "test", 12);
+    await identStore.create({ uuid: "test_cache" });
+    await identStore.get("test_cache");
+    assert.notStrictEqual(await identStore["_cacheStore"].get("test_cache"), undefined);
+    identStore.handleStoreEvent("Store.PartialUpdated", {
+      object_id: "test_cache",
+      partial_update: {},
+      store: identStore
+    });
+    assert.strictEqual(await identStore["_cacheStore"].get("test"), undefined);
     // Shoud return directly
     await identStore.incrementAttribute("test", "test", 0);
     removeSync(identStore.getParameters().folder);

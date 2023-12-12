@@ -29,6 +29,10 @@ interface EventStore {
    */
   object: CoreModel;
   /**
+   * Object id
+   */
+  object_id: string;
+  /**
    * Store emitting
    */
   store: Store;
@@ -167,6 +171,10 @@ export interface EventStorePartialUpdated<T extends CoreModel = CoreModel> {
        */
       index: number;
     };
+    /**
+     * If this is a patch
+     */
+    patch?: any;
     /**
      * Delete an item from collection
      */
@@ -594,6 +602,17 @@ abstract class Store<
    */
   abstract loadParameters(params: any): StoreParameters;
 
+  resolve() {
+    super.resolve();
+    // If we have a cache store then we need to keep it up to date
+    if (this._cacheStore) {
+      this.addListener("Store.PartialUpdated", evt => this.handleStoreEvent("Store.PartialUpdated", evt));
+      this.addListener("Store.Deleted", evt => this.handleStoreEvent("Store.Deleted", evt));
+      this.addListener("Store.PatchUpdated", evt => this.handleStoreEvent("Store.PatchUpdated", evt));
+      this.addListener("Store.Updated", evt => this.handleStoreEvent("Store.Updated", evt));
+    }
+    return this;
+  }
   /**
    * Retrieve the Model
    *
@@ -659,7 +678,7 @@ abstract class Store<
   async invalidateCache(uid: string): Promise<void> {
     if (this._cacheStore) {
       this.metrics.cache_invalidation.inc();
-      await this._cacheStore?.delete(uid, undefined, undefined, true);
+      await this._cacheStore.delete(uid, undefined, undefined, true);
     }
   }
 
@@ -716,7 +735,9 @@ abstract class Store<
     let res = await this._cacheStore?._get(uuid);
     if (!res) {
       res = await this._get(uuid, raiseIfNotFound);
-      res && (await this._cacheStore?._save(res));
+      if (res) {
+        await this._cacheStore?._save(res);
+      }
     } else {
       res.__store = this;
     }
@@ -873,9 +894,6 @@ abstract class Store<
    * We should ignore exception from the store
    */
   cacheStorePatchException() {
-    if (!this._cacheStore) {
-      return;
-    }
     const replacer = original => {
       return (...args) => {
         return original
@@ -993,15 +1011,15 @@ abstract class Store<
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "increment" });
     await this._incrementAttributes(uid, params, updateDate);
-    await this._cacheStore?._incrementAttributes(uid, params, updateDate);
-    await this.emit("Store.PartialUpdated", {
+    const evt = {
       object_id: uid,
       store: this,
       updateDate,
       partial_update: {
         increments: params
       }
-    });
+    };
+    await this.emit("Store.PartialUpdated", evt);
     return updateDate;
   }
 
@@ -1045,15 +1063,6 @@ abstract class Store<
       itemWriteConditionField,
       updateDate
     );
-    await this._cacheStore?._upsertItemToCollection(
-      uid,
-      <string>prop,
-      item,
-      index,
-      itemWriteCondition,
-      itemWriteConditionField,
-      updateDate
-    );
 
     await this.emitSync("Store.PartialUpdated", {
       object_id: uid,
@@ -1089,14 +1098,6 @@ abstract class Store<
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionDelete" });
     await this._deleteItemFromCollection(
-      uid,
-      <string>prop,
-      index,
-      itemWriteCondition,
-      itemWriteConditionField,
-      updateDate
-    );
-    await this._cacheStore?._deleteItemFromCollection(
       uid,
       <string>prop,
       index,
@@ -1301,7 +1302,7 @@ abstract class Store<
    */
   async handleStoreEvent<Key extends keyof StoreEvents>(event: Key | symbol, data: E[Key]): Promise<void> {
     if (event === "Store.Deleted") {
-      this._cacheStore?._delete((<EventStoreDeleted>data).object.getUuid());
+      await this._cacheStore?._delete((<EventStoreDeleted>data).object_id);
     } else if (event === "Store.PartialUpdated") {
       const partialEvent = <EventStorePartialUpdated>data;
       if (partialEvent.partial_update.increments) {
@@ -1316,13 +1317,35 @@ abstract class Store<
           partialEvent.partial_update.deleteAttribute,
           partialEvent.updateDate
         );
+      } else if (partialEvent.partial_update.addItem) {
+        await this._cacheStore?._upsertItemToCollection(
+          partialEvent.object_id,
+          partialEvent.partial_update.addItem.property,
+          partialEvent.partial_update.addItem.value,
+          partialEvent.partial_update.addItem.index,
+          undefined,
+          undefined,
+          partialEvent.updateDate
+        );
+      } else if (partialEvent.partial_update.deleteItem) {
+        await this._cacheStore?._deleteItemFromCollection(
+          partialEvent.object_id,
+          partialEvent.partial_update.deleteItem.property,
+          partialEvent.partial_update.deleteItem.index,
+          undefined,
+          undefined,
+          partialEvent.updateDate
+        );
+      } else if (partialEvent.partial_update.patch) {
+        await this._cacheStore?._patch(partialEvent.partial_update.patch, partialEvent.object_id);
       } else {
-        await this._cacheStore?.invalidateCache(partialEvent.object_id);
+        await this.invalidateCache(partialEvent.object_id);
       }
     } else if (event === "Store.Updated") {
-      this._cacheStore?._update((<EventStoreUpdated>data).object, (<EventStoreUpdated>data).object.getUuid());
+      this.log("INFO", "Process event Updated", data);
+      await this._cacheStore?._update((<EventStoreUpdated>data).update, (<EventStoreUpdated>data).object.getUuid());
     } else if (event === "Store.PatchUpdated") {
-      this._cacheStore?._patch((<EventStoreUpdated>data).object, (<EventStoreUpdated>data).object.getUuid());
+      await this._cacheStore?._patch((<EventStoreUpdated>data).object, (<EventStoreUpdated>data).object.getUuid());
     }
   }
 
@@ -1369,6 +1392,7 @@ abstract class Store<
     // Handle object auto listener
     const evt = {
       object: object,
+      object_id: object.getUuid(),
       store: this,
       context: ctx
     };
@@ -1384,6 +1408,7 @@ abstract class Store<
     object = this.initModel(res);
     const evtSaved = {
       object: object,
+      object_id: object.getUuid(),
       store: this,
       context: ctx
     };
@@ -1472,7 +1497,14 @@ abstract class Store<
   ): Promise<boolean> {
     try {
       await this._patch(updates, uuid, condition, <string>conditionField);
-      await this._cacheStore?.patch({ uuid, ...updates });
+      // CoreModel should also emit this one but cannot do within this context
+      await this.emitSync("Store.PartialUpdated", {
+        object_id: uuid,
+        partial_update: {
+          patch: updates
+        },
+        store: this
+      });
       return true;
     } catch (err) {
       if (err instanceof UpdateConditionFailError) {
@@ -1564,6 +1596,7 @@ abstract class Store<
     const update = object;
     const evt = {
       object: loaded,
+      object_id: loaded.getUuid(),
       store: this,
       update
     };
@@ -1580,10 +1613,7 @@ abstract class Store<
     }
     if (partial) {
       this.metrics.operations_total.inc({ operation: "partialUpdate" });
-      await Promise.all([
-        this._patch(object, uuid, conditionValue, <string>conditionField),
-        this._cacheStore?._patch(object, uuid, load._lastUpdate, "_lastUpdate")
-      ]);
+      await this._patch(object, uuid, conditionValue, <string>conditionField);
       res = object;
     } else {
       // Copy back the mappers
@@ -1592,12 +1622,7 @@ abstract class Store<
       }
       object = this.initModel(object);
       this.metrics.operations_total.inc({ operation: "update" });
-      res = (
-        await Promise.all([
-          this._update(object, uuid, conditionValue, <string>conditionField),
-          this._cacheStore?._update(object, uuid, load._lastUpdate, "_lastUpdate")
-        ])
-      )[0];
+      res = await this._update(object, uuid, conditionValue, <string>conditionField);
     }
     // Reinit save
     saved = this.initModel({
@@ -1800,12 +1825,6 @@ abstract class Store<
   ) {
     this.metrics.operations_total.inc({ operation: "attributeDelete" });
     await this._removeAttribute(uuid, <string>attribute, itemWriteCondition, <string>itemWriteConditionField);
-    await this._cacheStore?._removeAttribute(
-      uuid,
-      <string>attribute,
-      itemWriteCondition,
-      <string>itemWriteConditionField
-    );
     await this.emitSync("Store.PartialUpdated", {
       object_id: uuid,
       partial_update: {
@@ -1875,6 +1894,7 @@ abstract class Store<
     }
     const evt = {
       object: to_delete,
+      object_id: to_delete.getUuid(),
       store: this
     };
     // Send preevent
@@ -1909,6 +1929,7 @@ abstract class Store<
     // Send post event
     const evtDeleted = {
       object: to_delete,
+      object_id: to_delete.getUuid(),
       store: this
     };
     await Promise.all([
@@ -1985,6 +2006,7 @@ abstract class Store<
     object.setContext(ctx);
     const evt = {
       object: object,
+      object_id: object.getUuid(),
       store: this,
       context: ctx
     };

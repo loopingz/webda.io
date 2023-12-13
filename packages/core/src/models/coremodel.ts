@@ -222,7 +222,7 @@ export interface ExposeParameters {
 /**
  *
  */
-export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
+export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends EventEmitter {
   new (): T;
   /**
    * If the model have some Expose annotation
@@ -308,7 +308,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
     event: Key,
     listener: (evt: StoreEvents[Key]) => any,
     async?: boolean
-  ): void;
+  ): this;
   /**
    * Listen to events on the model asynchronously
    * @param event
@@ -318,7 +318,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
     this: Constructor<T>,
     event: Key,
     listener: (evt: StoreEvents[Key]) => any
-  );
+  ): this;
   /**
    * Emit an event for this class
    * @param this
@@ -338,15 +338,48 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
     evt: StoreEvents[Key]
   ): Promise<void>;
   /**
-   * Return the event on the model that can be listened to
+   * Return the event on the model that can be listened to by an
+   * external authorized source
+   * @see authorizeClientEvent
    */
-  getPublicEvents(): ({ name: string; global?: boolean } | string)[];
+  getClientEvents(): ({ name: string; global?: boolean } | string)[];
   /**
    * Authorize a public event subscription
    * @param event
    * @param context
    */
-  authorizePublicEvent(_event: string, _context: OperationContext, _model?: T): boolean;
+  authorizeClientEvent(_event: string, _context: OperationContext, _model?: T): boolean;
+
+  /**
+   * EventEmitter interface
+   * @param event
+   * @param listener
+   */
+  addListener(event: string | symbol, listener: (...args: any[]) => void): this;
+  /**
+   * EventEmitter interface
+   * @param event
+   * @param listener
+   */
+  once(event: string | symbol, listener: (...args: any[]) => void): this;
+  /**
+   * EventEmitter interface
+   * @param event
+   * @param listener
+   */
+  removeListener(event: string | symbol, listener: (...args: any[]) => void): this;
+  /**
+   * EventEmitter interface
+   * @param event
+   * @param listener
+   */
+  off(eventName: string | symbol, listener: (...args: any[]) => void): this;
+  /**
+   * EventEmitter interface
+   * @param event
+   * @param listener
+   */
+  removeAllListeners(eventName?): this;
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -682,6 +715,7 @@ class CoreModel {
     } else {
       Emitters.get(this).on(event, listener);
     }
+    return <any>this;
   }
 
   /**
@@ -744,7 +778,73 @@ class CoreModel {
    * @param listener
    */
   static onAsync<Key extends keyof StoreEvents>(event: Key, listener: (evt: StoreEvents[Key]) => any, queue?: string) {
-    this.on(event, listener, true);
+    return this.on(event, listener, true);
+  }
+
+  /**
+   *
+   * @param event
+   * @param listener
+   * @returns
+   */
+  static addListener<Key extends keyof StoreEvents>(event: Key, listener: (...args: any[]) => void) {
+    return this.on(event, listener);
+  }
+
+  static emitter(method, ...args) {
+    if (!Emitters.has(this)) {
+      Emitters.set(this, new EventEmitter());
+    }
+    // @ts-ignore
+    return Emitters.get(this)[method](...args);
+  }
+
+  static removeListener(...args) {
+    return this.emitter("removeListener", ...args);
+  }
+
+  static off(...args) {
+    return this.emitter("off", ...args);
+  }
+
+  static once(...args) {
+    return this.emitter("once", ...args);
+  }
+
+  static removeAllListeners(...args) {
+    return this.emitter("removeAllListeners", ...args);
+  }
+
+  static setMaxListeners(...args) {
+    return this.emitter("setMaxListeners", ...args);
+  }
+
+  static getMaxListeners(...args) {
+    return this.emitter("getMaxListeners", ...args);
+  }
+
+  static listeners(...args) {
+    return this.emitter("listeners", ...args);
+  }
+
+  static rawListeners(...args) {
+    return this.emitter("rawListeners", ...args);
+  }
+
+  static listenerCount(...args) {
+    return this.emitter("listenerCount", ...args);
+  }
+
+  static prependListener(...args) {
+    return this.emitter("prependListener", ...args);
+  }
+
+  static prependOnceListener(...args) {
+    return this.emitter("prependOnceListener", ...args);
+  }
+
+  static eventNames(...args) {
+    return this.emitter("eventNames", ...args);
   }
   /**
    *
@@ -758,7 +858,7 @@ class CoreModel {
    * Do not declare any public events by default
    * @returns
    */
-  static getPublicEvents() {
+  static getClientEvents() {
     return [];
   }
 
@@ -768,7 +868,7 @@ class CoreModel {
    * @param _context
    * @returns
    */
-  static authorizePublicEvent(_event: string, _context: OperationContext, _model?: CoreModel) {
+  static authorizeClientEvent(_event: string, _context: OperationContext, _model?: CoreModel) {
     return false;
   }
 

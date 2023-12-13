@@ -19,7 +19,7 @@ class PrometheusTest extends WebdaTest {
       await service.resolve().init();
       // Should be listen on 9090 now
       let res = await axios.get("http://localhost:9090/metrics");
-      assert.ok(res.data.includes("webda_filequeue_queue_size"));
+      assert.ok(res.data.includes("webda_filequeue_messages_pending"));
       await assert.rejects(() => axios.get("http://localhost:9090/metrics2"), /Request failed with status code 404/);
     } finally {
       service.http?.close();

@@ -27,6 +27,10 @@
         "channel": {
           "type": "string"
         },
+        "subscription": {
+          "type": "string",
+          "default": ""
+        },
         "exchange": {
           "type": "object",
           "properties": {

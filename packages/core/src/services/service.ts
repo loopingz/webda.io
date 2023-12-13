@@ -426,7 +426,7 @@ abstract class Service<
    *
    * @returns
    */
-  getPublicEvents(): string[] {
+  getClientEvents(): string[] {
     return [];
   }
 
@@ -435,7 +435,7 @@ abstract class Service<
    * @param event
    * @param context
    */
-  authorizePublicEvent(_event: string, _context: OperationContext): boolean {
+  authorizeClientEvent(_event: string, _context: OperationContext): boolean {
     return false;
   }
 

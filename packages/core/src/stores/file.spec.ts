@@ -91,7 +91,7 @@ class FileStoreTest extends StoreTest {
     await identStore.create({ uuid: "test_cache" });
     await identStore.get("test_cache");
     assert.notStrictEqual(await identStore["_cacheStore"].get("test_cache"), undefined);
-    identStore.handleStoreEvent("Store.PartialUpdated", {
+    identStore.emitStoreEvent("Store.PartialUpdated", {
       object_id: "test_cache",
       partial_update: {},
       store: identStore

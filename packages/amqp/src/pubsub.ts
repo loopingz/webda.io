@@ -4,6 +4,11 @@ import * as amqplib from "amqplib";
 export class AMQPPubSubParameters extends ServiceParameters {
   url: string;
   channel: string;
+  /**
+   * @default ""
+   * @SchemaOptional
+   */
+  subscription: string;
   exchange?: {
     /**
      * @default fanout
@@ -41,6 +46,7 @@ export class AMQPPubSubParameters extends ServiceParameters {
     super(params);
     this.exchange ??= {};
     this.exchange.type ??= "fanout";
+    this.subscription ??= "";
   }
 }
 
@@ -68,6 +74,7 @@ export default class AMQPPubSubService<
    * @override
    */
   async sendMessage(event: T, routingKey: string = ""): Promise<void> {
+    this.metrics.messages_sent.inc();
     await this.channel.publish(this.parameters.channel, routingKey, Buffer.from(JSONUtils.stringify(event)));
   }
 
@@ -89,6 +96,14 @@ export default class AMQPPubSubService<
   }
 
   /**
+   * Return queue size
+   * @returns
+   */
+  async size(): Promise<number> {
+    return (await this.channel.assertQueue(this.parameters.subscription)).messageCount;
+  }
+
+  /**
    * Work a queue calling the callback with every Event received
    * If the callback is called without exception the `deleteMessage` is called
    * @param callback
@@ -102,18 +117,29 @@ export default class AMQPPubSubService<
     let consumerTag: string;
     return new CancelablePromise(
       async (_resolve, reject) => {
-        let queue = await this.channel.assertQueue("", {
+        let queue = await this.channel.assertQueue(this.parameters.subscription, {
           exclusive: true,
           durable: false,
           autoDelete: true
         });
         await this.channel.bindQueue(queue.queue, this.parameters.channel, "*");
         consumerTag = (
-          await this.channel.consume(queue.queue, msg => {
+          await this.channel.consume(queue.queue, async msg => {
             if (msg === null) {
               reject("Cancelled by server");
+              return;
             }
-            callback(this.unserialize(msg?.content.toString() || "", eventPrototype));
+            this.metrics.messages_received.inc();
+            const end = this.metrics.processing_duration.startTimer();
+            try {
+              await callback(this.unserialize(msg?.content.toString() || "", eventPrototype));
+              await this.channel.ack(msg);
+            } catch (err) {
+              this.metrics.errors.inc();
+              this.getWebda().log("ERROR", `Message ${msg?.properties?.messageId}`, err);
+            } finally {
+              end();
+            }
           })
         ).consumerTag;
         if (onBind) {

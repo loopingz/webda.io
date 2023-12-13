@@ -38,7 +38,12 @@ export default class GCPPubSubService<
    * @override
    */
   async sendMessage(event: T): Promise<void> {
+    this.metrics.messages_sent.inc();
     await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(event)) });
+  }
+
+  async size() {
+    return 0;
   }
 
   /**
@@ -52,11 +57,16 @@ export default class GCPPubSubService<
     const subscriptionName = `${this.getName()}-${this.getWebda().getUuid()}`;
     let subscription: Subscription;
     const messageHandler = async (message: Message) => {
+      this.metrics.messages_received.inc();
+      const end = this.metrics.processing_duration.startTimer();
       try {
         await callback(this.unserialize(message.data.toString(), eventPrototype));
         message.ack();
       } catch (err) {
+        this.metrics.errors.inc();
         this.log("ERROR", `${this.getName()} consume message error`, err);
+      } finally {
+        end();
       }
     };
     return new CancelablePromise<void>(

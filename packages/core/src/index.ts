@@ -11,18 +11,18 @@ export * from "./errors";
 export * from "./unpackedapplication";
 
 // Models
-export * from "./models/aclmodel";
+export * from "./models/aclmodel"; // move to runtime
 export * from "./models/coremodel";
 export * from "./models/deployment";
 export * from "./models/ident";
-export * from "./models/ownermodel";
+export * from "./models/ownermodel"; // move to runtime
 export * from "./models/relations";
-export * from "./models/rolemodel";
+export * from "./models/rolemodel"; // move to runtime
 export * from "./models/user";
 
 // Queues
-export * from "./queues/filequeue";
-export * from "./queues/memoryqueue";
+export * from "./queues/filequeue"; // move to runtime
+export * from "./queues/memoryqueue"; // move to runtime ?
 export * from "./queues/pubsubservice";
 export * from "./queues/queueservice";
 
@@ -30,29 +30,27 @@ export * from "./queues/queueservice";
 export * from "./services/asyncevents";
 export * from "./services/authentication";
 export * from "./services/binary";
-export * from "./services/cloudbinary";
+export * from "./services/cloudbinary"; // move to runtime
 export * from "./services/configuration";
 export * from "./services/cron";
 export * from "./services/cryptoservice";
 export * from "./services/debugmailer";
-export * from "./services/domainservice";
-export * from "./services/echo";
-export * from "./services/filebinary";
+export * from "./services/domainservice"; // move rest to runtime
+export * from "./services/filebinary"; // move to runtime
 export * from "./services/fileconfiguration";
-export * from "./services/invitationservice";
-export * from "./services/kubernetesconfiguration";
+export * from "./services/invitationservice"; // move to runtime
+export * from "./services/kubernetesconfiguration"; // move to runtime
 export * from "./services/mailer";
 export * from "./services/notificationservice";
 export * from "./services/oauth";
-export * from "./services/proxy";
-export * from "./services/resource";
+export * from "./services/proxy"; // move to runtime
+export * from "./services/resource"; // move to runtime
 export * from "./services/service";
-export * from "./services/version";
 
 // Stores
-export * from "./stores/aggregator";
-export * from "./stores/aliasstore";
-export * from "./stores/file";
+export * from "./stores/aggregator"; // move to runtime
+export * from "./stores/aliasstore"; // move to runtime
+export * from "./stores/file"; // move to runtime
 export * from "./stores/mapper";
 export * from "./stores/memory";
 export * from "./stores/store";

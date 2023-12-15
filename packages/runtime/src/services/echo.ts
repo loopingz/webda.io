@@ -1,5 +1,4 @@
-import { WebContext } from "../utils/context";
-import { Service, ServiceParameters } from "./service";
+import { Service, ServiceParameters, WebContext } from "@webda/core";
 
 export class EchoServiceParameters extends ServiceParameters {
   /**

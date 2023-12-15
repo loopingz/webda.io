@@ -1,11 +1,11 @@
 import { suite, test } from "@testdeck/mocha";
+import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { WebdaTest } from "../test";
 import { EchoService } from "./echo";
 
 @suite
-class EchoTest extends WebdaTest {
+class EchoTest extends WebdaSimpleTest {
   @test
   async cov() {
     let service = new EchoService(this.webda, "test", {

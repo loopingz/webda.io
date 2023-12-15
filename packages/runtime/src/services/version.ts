@@ -1,4 +1,4 @@
-import { OperationContext, Service, ServiceParameters } from "../index";
+import { OperationContext, Service, ServiceParameters } from "@webda/core";
 
 /**
  * Version parameters

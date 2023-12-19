@@ -43,7 +43,6 @@ export * from "./services/kubernetesconfiguration"; // move to runtime
 export * from "./services/mailer";
 export * from "./services/notificationservice";
 export * from "./services/oauth";
-export * from "./services/proxy"; // move to runtime
 export * from "./services/resource"; // move to runtime
 export * from "./services/service";
 

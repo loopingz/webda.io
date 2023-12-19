@@ -27,6 +27,9 @@ class AMQPPubSubTest extends WebdaTest {
       consumers.push(
         pubsub.consume(async evt => {
           counter++;
+          if (counter > 2) {
+            throw new Error("Only consume 2");
+          }
         })
       );
       consumers.push(
@@ -40,6 +43,7 @@ class AMQPPubSubTest extends WebdaTest {
       );
     });
     await pubsub.sendMessage("plop");
+    await pubsub.size();
     await WaitFor(
       async resolve => {
         if (counter === 2) {
@@ -54,6 +58,21 @@ class AMQPPubSubTest extends WebdaTest {
       WaitLinearDelay(10)
     );
     assert.strictEqual(counter, 2);
+    await pubsub.sendMessage("error");
+    await WaitFor(
+      async resolve => {
+        if (counter === 4) {
+          resolve();
+          return true;
+        }
+        return false;
+      },
+      10,
+      "Events error",
+      undefined,
+      WaitLinearDelay(10)
+    );
+
     await Promise.all(consumers.map(p => p.cancel()));
     // Hack our way to test close by server
     // @ts-ignore

@@ -590,6 +590,13 @@
                         }
                       ],
                       "description": "BigQueryConfig state"
+                    },
+                    "useTableSchema": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "description": "BigQueryConfig useTableSchema"
                     }
                   },
                   "description": "Properties of a BigQueryConfig."

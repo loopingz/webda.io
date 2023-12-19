@@ -98,6 +98,39 @@ class ConsoleTest {
     await this.commandLine("--noCompile help");
   }
 
+  @test
+  async configEncrypt() {
+    const filePath = "/tmp/webda.test.json";
+    this.cleanFiles.push(filePath);
+    FileUtils.save(
+      {
+        test: "encrypt:local:plop",
+        other: {
+          test: "plop",
+          enc: "encrypt:local:plip",
+          plop: true
+        }
+      },
+      filePath
+    );
+    await this.commandLine("--noCompile config-encrypt " + filePath);
+    let data = FileUtils.load(filePath);
+    const oldTest = data.test.split(":").pop();
+    const oldEnc = data.other.enc.split(":").pop();
+    assert.ok(data.test.startsWith("crypt:local:"));
+    assert.ok(data.other.enc.startsWith("crypt:local:"));
+    assert.strictEqual(data.other.test, "plop");
+    await this.commandLine("--noCompile config-encrypt --migrate self " + filePath);
+    data = FileUtils.load(filePath);
+    assert.ok(data.test.startsWith("crypt:self:"));
+    assert.ok(data.other.enc.startsWith("crypt:self:"));
+    assert.notStrictEqual(data.test.split(":").pop(), oldTest);
+    assert.notStrictEqual(data.other.enc.split(":").pop(), oldEnc);
+    assert.strictEqual(data.other.test, "plop");
+    let res = await this.commandLine("--noCompile config-encrypt " + filePath + "d");
+    assert.strictEqual(res, -1);
+  }
+
   async waitForInput(output: WorkerOutput): Promise<string> {
     let timeout = 100;
     while (!Object.keys(output.inputs).length) {

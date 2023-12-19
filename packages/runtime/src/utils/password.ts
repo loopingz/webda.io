@@ -16,7 +16,8 @@ function getKey(password: string): Buffer {
 }
 
 async function requestPassword(): Promise<string> {
-  if (!Core.get().getWorkerOutput().interactive && process.stdin.isTTY) {
+  /* c8 ignore next 5 */
+  if (!Core.get().getWorkerOutput().interactive) {
     // Fallback to password-prompt as we have a tty
     let passwordLib = await import("password-prompt");
     return passwordLib.default("Configuration Encryption Password: ", { method: "hide" });

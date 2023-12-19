@@ -112,6 +112,10 @@
           },
           "description": "Model Aliases to allow easier rename of Model"
         },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
+        },
         "table": {
           "type": "string"
         },

@@ -20,11 +20,11 @@ export class Company extends CoreModel {
   /**
    * Test of maps for GraphQL
    */
-  mapString: { [key: string]: string };
-  mapAny: { [key: string]: any };
-  mapNumber: { [key: string]: number };
-  mapBoolean: { [key: string]: boolean };
-  mapObject: { [key: string]: { test: number; b: boolean; status: string } };
+  mapString?: { [key: string]: string };
+  mapAny?: { [key: string]: any };
+  mapNumber?: { [key: string]: number };
+  mapBoolean?: { [key: string]: boolean };
+  mapObject?: { [key: string]: { test: number; b: boolean; status: string } };
   /**
    * @SchemaOptional
    */

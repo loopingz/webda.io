@@ -288,7 +288,7 @@ plop: test
   }
 
   @test
-  jsoncUpdateFile() {
+  async jsoncUpdateFile() {
     const file = "/tmp/webda.jsonc";
     const JSONC_SOURCE = `{
       "test": "plop",
@@ -323,7 +323,7 @@ plop: test
     }`;
     try {
       writeFileSync(file, JSONC_SOURCE);
-      JSONUtils.updateFile(file, v => {
+      await JSONUtils.updateFile(file, v => {
         if (v === "bouzouf") {
           return "bouzouf2";
         }

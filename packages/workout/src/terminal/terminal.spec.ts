@@ -9,6 +9,7 @@ import { WorkerLogLevelEnum, WorkerOutput } from "..";
 import { WorkerProgress } from "../core";
 import { Terminal } from "./terminal";
 
+// This is needed to trigger stdin within github-actions
 const mockStdin = stdin();
 
 @suite

@@ -2,7 +2,11 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/MigrationStore": "lib/stores/migration:MigrationStore"
+    "Webda/ClusterService": "lib/services/cluster:ClusterService",
+    "Webda/EchoService": "lib/services/echo:EchoService",
+    "Webda/MigrationStore": "lib/stores/migration:MigrationStore",
+    "Webda/PasswordEncryptionService": "lib/utils/password:PasswordEncryptionService",
+    "Webda/VersionService": "lib/services/version:VersionService"
   },
   "models": {
     "graph": {
@@ -99,6 +103,80 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BinaryModel"
     },
+    "Webda/ClusterService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "pubsub": {
+          "type": "string",
+          "default": "PubSub"
+        },
+        "ttl": {
+          "type": "number",
+          "default": "twice keepAlive"
+        },
+        "keepAlive": {
+          "type": "number",
+          "default": 30000
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "keepAlive",
+        "pubsub",
+        "ttl",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ClusterService"
+    },
+    "Webda/EchoService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "Url to expose the service"
+        },
+        "mime": {
+          "type": "string",
+          "description": "Mime of the result"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {}
+          ],
+          "description": "result to write on the url"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "result",
+        "type",
+        "url"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EchoService"
+    },
     "Webda/MigrationStore": {
       "type": "object",
       "properties": {
@@ -158,6 +236,10 @@
             "type": "string"
           },
           "description": "Model Aliases to allow easier rename of Model"
+        },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
         },
         "from": {
           "type": "string",
@@ -230,6 +312,57 @@
         }
       },
       "title": "MigrationStore"
+    },
+    "Webda/PasswordEncryptionService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PasswordEncryptionService"
+    },
+    "Webda/VersionService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content",
+          "default": "/version"
+        },
+        "version": {
+          "type": "string",
+          "description": "To force version otherwise would read from package.json"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Version parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VersionService"
     }
   }
 }

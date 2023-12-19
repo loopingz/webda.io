@@ -13,7 +13,6 @@
     "Webda/CronService": "lib/services/cron:CronService",
     "Webda/CryptoService": "lib/services/cryptoservice:default",
     "Webda/DebugMailer": "lib/services/debugmailer:default",
-    "Webda/EchoService": "lib/services/echo:EchoService",
     "Webda/FileBinary": "lib/services/filebinary:FileBinary",
     "Webda/FileConfiguration": "lib/services/fileconfiguration:FileConfigurationService",
     "Webda/FileLogger": "lib/utils/logger:FileLoggerService",
@@ -29,10 +28,8 @@
     "Webda/ModelsOperationsService": "lib/services/domainservice:ModelsOperationsService",
     "Webda/MultiNotificationService": "lib/services/notificationservice:default",
     "Webda/PrometheusService": "lib/services/prometheus:PrometheusService",
-    "Webda/ProxyService": "lib/services/proxy:ProxyService",
     "Webda/RESTDomainService": "lib/services/domainservice:RESTDomainService",
-    "Webda/ResourceService": "lib/services/resource:default",
-    "Webda/VersionService": "lib/services/version:VersionService"
+    "Webda/ResourceService": "lib/services/resource:default"
   },
   "models": {
     "graph": {
@@ -376,6 +373,10 @@
             "type": "string"
           },
           "description": "Model Aliases to allow easier rename of Model"
+        },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
         },
         "targetStore": {
           "type": "string",
@@ -892,27 +893,6 @@
         "cookie": {
           "type": "object",
           "properties": {
-            "expires": {
-              "type": "string",
-              "format": "date-time",
-              "description": "Specifies the `Date` object to be the value for the  {@link  https://tools.ietf.org/html/rfc6265#section-5.2.1`Expires` `Set-Cookie` attribute } . By default, no expiration is set, and most clients will consider this a \"non-persistent cookie\" and will delete it on a condition like exiting a web browser application.\n\n*Note* the  {@link  https://tools.ietf.org/html/rfc6265#section-5.3cookie storage model specification }  states that if both `expires` and `maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this, so if both are set, they should point to the same date and time."
-            },
-            "httpOnly": {
-              "type": "boolean",
-              "description": "Specifies the boolean value for the  {@link  https://tools.ietf.org/html/rfc6265#section-5.2.6`HttpOnly` `Set-Cookie` attribute } . When truthy, the `HttpOnly` attribute is set, otherwise it is not. By default, the `HttpOnly` attribute is not set.\n\n*Note* be careful when setting this to true, as compliant clients will not allow client-side JavaScript to see the cookie in `document.cookie`.",
-              "default": true
-            },
-            "maxAge": {
-              "type": "number",
-              "description": "Specifies the number (in seconds) to be the value for the `Max-Age` `Set-Cookie` attribute. The given number will be converted to an integer by rounding down. By default, no maximum age is set.\n\n*Note* the  {@link  https://tools.ietf.org/html/rfc6265#section-5.3cookie storage model specification }  states that if both `expires` and `maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this, so if both are set, they should point to the same date and time.",
-              "minimum": 1,
-              "default": "86400 * 7"
-            },
-            "path": {
-              "type": "string",
-              "description": "Specifies the value for the  {@link  https://tools.ietf.org/html/rfc6265#section-5.2.4`Path` `Set-Cookie` attribute } . By default, the path is considered the \"default path\".",
-              "default": "/"
-            },
             "sameSite": {
               "type": "string",
               "enum": [
@@ -920,12 +900,7 @@
                 "strict",
                 "lax"
               ],
-              "description": "Specifies the boolean or string to be the value for the  {@link  https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-03#section-4.1.2.7`SameSite` `Set-Cookie` attribute } .\n\n- `true` will set the `SameSite` attribute to `Strict` for strict same site enforcement.\n- `false` will not set the `SameSite` attribute.\n- `'lax'` will set the `SameSite` attribute to Lax for lax same site enforcement.\n- `'strict'` will set the `SameSite` attribute to Strict for strict same site enforcement.  - `'none'` will set the SameSite attribute to None for an explicit  cross-site cookie.\n\nMore information about the different enforcement levels can be found in  {@link  https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-03#section-4.1.2.7the specification } .\n\n*note* This is an attribute that has not yet been fully standardized, and may change in the future. This also means many clients may ignore this attribute until they understand it.",
               "default": "lax"
-            },
-            "secure": {
-              "type": "boolean",
-              "description": "If not set will be true if https request and false otherwise If defined it will be set to the value"
             },
             "domain": {
               "anyOf": [
@@ -938,6 +913,23 @@
                 }
               ],
               "description": "if true domain will be set to the request hostname if undefined no domain will be output (browser will use the current domain and only this one) if a string is provided it will be used as the domain\n\nWhen provided a domain is setting the cookie to be available to all subdomains"
+            },
+            "maxAge": {
+              "type": "number",
+              "minimum": 1,
+              "default": "86400 * 7"
+            },
+            "path": {
+              "type": "string",
+              "default": "/"
+            },
+            "httpOnly": {
+              "type": "boolean",
+              "default": true
+            },
+            "secure": {
+              "type": "boolean",
+              "description": "If not set will be true if https request and false otherwise If defined it will be set to the value"
             },
             "name": {
               "type": "string",
@@ -1273,43 +1265,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DebugMailer"
     },
-    "Webda/EchoService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "Url to expose the service"
-        },
-        "mime": {
-          "type": "string",
-          "description": "Mime of the result"
-        },
-        "result": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {}
-          ],
-          "description": "result to write on the url"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "result",
-        "type",
-        "url"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "EchoService"
-    },
     "Webda/FileBinary": {
       "type": "object",
       "properties": {
@@ -1610,6 +1565,11 @@
           },
           "description": "Model Aliases to allow easier rename of Model"
         },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable memory cache\n\nUseful if several process update storage files",
+          "default": false
+        },
         "folder": {
           "type": "string",
           "description": "Local path where to store all `json` files"
@@ -1620,11 +1580,6 @@
             "number"
           ],
           "description": "Parameter sent to JSON.stringify when storing the json"
-        },
-        "noCache": {
-          "type": "boolean",
-          "description": "Disable memory cache\n\nUseful if several process update storage files",
-          "default": false
         },
         "openapi": {
           "type": "object",
@@ -2145,6 +2100,10 @@
           },
           "description": "Model Aliases to allow easier rename of Model"
         },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
+        },
         "persistence": {
           "type": "object",
           "properties": {
@@ -2391,45 +2350,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PrometheusService"
     },
-    "Webda/ProxyService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL to expose"
-        },
-        "backend": {
-          "type": "string",
-          "description": "URL to proxy to"
-        },
-        "requireAuthentication": {
-          "type": "boolean",
-          "description": "Helper to refuse any request if user is not auth"
-        },
-        "proxyHeaders": {
-          "type": "boolean",
-          "description": "Add X-Forwarded-* headers",
-          "default": true
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "backend",
-        "proxyHeaders",
-        "requireAuthentication",
-        "type"
-      ],
-      "description": "Proxy to a backend service",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProxyService"
-    },
     "Webda/ResourceService": {
       "type": "object",
       "properties": {
@@ -2638,34 +2558,6 @@
       "description": "CoreModel with a uuid",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UuidModel"
-    },
-    "Webda/VersionService": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content",
-          "default": "/version"
-        },
-        "version": {
-          "type": "string",
-          "description": "To force version otherwise would read from package.json"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "description": "Version parameters",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "VersionService"
     }
   }
 }

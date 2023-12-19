@@ -1,6 +1,14 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { createReadStream, createWriteStream, existsSync, readFileSync, symlinkSync, unlinkSync } from "fs";
+import {
+  createReadStream,
+  createWriteStream,
+  existsSync,
+  readFileSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync
+} from "fs";
 import * as path from "path";
 import { pipeline } from "stream/promises";
 import { fileURLToPath } from "url";
@@ -277,5 +285,59 @@ plop: test
     st.end();
     await p;
     FileUtils.getReadStream("/tmp/webda.stream");
+  }
+
+  @test
+  jsoncUpdateFile() {
+    const file = "/tmp/webda.jsonc";
+    const JSONC_SOURCE = `{
+      "test": "plop",
+      // Comment one
+      "test3": {
+        "bouzoufr": "plop"
+      },
+      "test4": {
+        "array": [
+          "plop",
+          "plop2",
+          {"id": "plop3"}
+        ],
+        "p": {
+          "v": "bouzouf"
+         }, /* c, */
+        "remove": true /* c */        
+      },
+      "test2": {
+        "plop3": "bouzouf", // Comment on 3
+        /* */ /* */ /* */ /* */ /* */ /* */ 
+        /*
+        Test of , comments
+        */
+        "plop2": "bouzouf", // Comment two with a , for fun
+        /**
+         * another , one
+         * */
+        "plop4": "bouzouf"
+      },
+      "removed": true
+    }`;
+    try {
+      writeFileSync(file, JSONC_SOURCE);
+      JSONUtils.updateFile(file, v => {
+        if (v === "bouzouf") {
+          return "bouzouf2";
+        }
+        return v;
+      });
+      const data = FileUtils.load(file);
+      assert.strictEqual(data.test4.p.v, "bouzouf2");
+      assert.strictEqual(data.test2.plop4, "bouzouf2");
+      assert.strictEqual(data.test2.plop2, "bouzouf2");
+      assert.strictEqual(data.test2.plop3, "bouzouf2");
+      const update = readFileSync(file).toString();
+      assert.strictEqual(update.length, JSONC_SOURCE.length + 4);
+    } finally {
+      FileUtils.clean(file);
+    }
   }
 }

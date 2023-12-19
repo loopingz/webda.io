@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import * as sinon from "sinon";
 import { WebdaTest } from "../test";
 import { JSONUtils } from "../utils/serializers";
-import CryptoService from "./cryptoservice";
+import CryptoService, { SecretString } from "./cryptoservice";
 
 /**
  *
@@ -122,5 +122,41 @@ class CryptoServiceTest extends WebdaTest {
   async cov() {
     this.webda.getCrypto().keys = undefined;
     await assert.rejects(() => this.webda.getCrypto().getCurrentKeys(), /not initialized/);
+  }
+}
+
+@suite
+class CryptoConfigurationTest {
+  @test
+  async nominal() {
+    CryptoService.registerEncrypter("test", {
+      encrypt: async (data: any) => {
+        return data;
+      },
+      decrypt: async (data: any) => {
+        return data;
+      }
+    });
+    let data = {
+      key: {
+        secret: "encrypt:local:plop",
+        port: 21
+      },
+      anotherSecret: "encrypt:local:plop2",
+      notEncrypted: "plop",
+      alreadyEncrypted: "crypt:test:plop3"
+    };
+    await CryptoService.encryptConfiguration(data);
+    assert.ok(data.key.secret.startsWith("crypt:local:"));
+    assert.ok(!data.key.secret.includes("plop"));
+    assert.ok(data.anotherSecret.startsWith("crypt:local:"));
+    assert.ok(!data.anotherSecret.includes("plop"));
+    assert.strictEqual(data.alreadyEncrypted, "crypt:test:plop3");
+    let decrypted = await CryptoService.decryptConfiguration(JSONUtils.duplicate(data));
+    assert.strictEqual(decrypted.anotherSecret.getValue(), "plop2");
+    assert.strictEqual(decrypted.anotherSecret.toString(), "********");
+    assert.strictEqual(SecretString.from(decrypted.alreadyEncrypted), "plop3");
+    assert.strictEqual(SecretString.from(decrypted.key.secret), "plop");
+    assert.strictEqual(`Test: ${decrypted.alreadyEncrypted}`, "Test: ********");
   }
 }

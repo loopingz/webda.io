@@ -1,5 +1,6 @@
 import {
   CancelablePromise,
+  CryptoService,
   FileUtils,
   getCommonJS,
   JSONUtils,
@@ -577,6 +578,38 @@ ${Object.keys(operationsExport.operations)
   }
 
   /**
+   * If deployment in argument: display or export the configuration
+   * Otherwise launch the configuration UI
+   *
+   * @param argv
+   */
+  static async configEncrypt(argv: yargs.Arguments): Promise<number> {
+    const filename = <string>argv.file;
+    if (!filename.match(/\.jsonc?$/)) {
+      this.log("ERROR", "Only json/jsonc format are handled for now");
+      return -1;
+    }
+    this.log("INFO", "Encrypting values in configuration file", filename);
+    WebdaConsole.webda = new WebdaServer(this.app);
+    await WebdaConsole.webda.init();
+    await JSONUtils.updateFile(filename, async value => {
+      if (typeof value === "string") {
+        // We want to migrate all encrypted string to another type of encryption
+        if (argv.migrate) {
+          let newValue = await CryptoService.decryptConfiguration(value);
+          if (value !== newValue) {
+            value = `encrypt:${argv.migrate}:${newValue.getValue()}`;
+          }
+        }
+        return await CryptoService.encryptConfiguration(value);
+      } else {
+        return value;
+      }
+    });
+    return 0;
+  }
+
+  /**
    * Rotate crypto keys
    */
   static async rotateKeys(): Promise<number> {
@@ -832,7 +865,7 @@ ${Object.keys(operationsExport.operations)
           },
           websockets: {
             alias: "w",
-            deprecated: "websockets can be enable by adding specific modules now",
+            deprecated: "websockets can be enable by adding specific modules now"
           }
         }
       },
@@ -908,6 +941,16 @@ ${Object.keys(operationsExport.operations)
         description: "Generate the configuration of the application",
         module: y => {
           return y.command("exportFile", "File to export configuration to");
+        }
+      },
+      "config-encrypt": {
+        handler: WebdaConsole.configEncrypt,
+        command: "config-encrypt [file]",
+        description: "Encrypt all fields due for encryption in the file",
+        module: {
+          migrate: {
+            type: "string"
+          }
         }
       },
       init: {

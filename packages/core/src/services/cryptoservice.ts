@@ -1,9 +1,41 @@
-import { createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPairSync, randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
-import { OperationContext, RegistryEntry, Store } from "../index";
+import * as util from "util";
+import { Core, OperationContext, RegistryEntry, Store } from "../index";
 import { JSONUtils } from "../utils/serializers";
 import { DeepPartial, Inject, Route, Service, ServiceParameters } from "./service";
+
+export class SecretString {
+  constructor(
+    protected str: string,
+    protected encrypter: string
+  ) {}
+
+  static from(value: string | SecretString, path?: string): string {
+    if (value instanceof SecretString) {
+      return value.getValue();
+    }
+    if (Core.get()) {
+      Core.get()?.log("WARN", "A secret string is not encrypted", value);
+    } else {
+      console.error("WARN", "A secret string is not encrypted");
+    }
+
+    return value;
+  }
+
+  getValue(): string {
+    return this.str;
+  }
+  toString(): string {
+    return "********";
+  }
+  [util.inspect.custom](depth, options, inspect) {
+    return "********";
+  }
+}
+
 export interface KeysRegistry {
   /**
    * Contains the instanceId of the last
@@ -22,6 +54,24 @@ export interface KeysRegistry {
    * Current key
    */
   current: string;
+}
+
+/**
+ * Encrypt/Decrypt string
+ */
+export interface StringEncrypter {
+  /**
+   * Encrypt a string
+   * @param data
+   * @returns
+   */
+  encrypt(data: string, options?: any): Promise<string>;
+  /**
+   * Decrypt a string
+   * @param data
+   * @returns
+   */
+  decrypt(data: string, options?: any): Promise<string>;
 }
 
 /**
@@ -176,7 +226,26 @@ interface KeysDefinition {
 /**
  * @WebdaModda
  */
-export default class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters> extends Service<T> {
+export default class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters>
+  extends Service<T>
+  implements StringEncrypter
+{
+  private static encrypters: { [key: string]: StringEncrypter } = {};
+
+  /**
+   * Register an encrypter for configuration
+   * @param name
+   * @param encrypter
+   */
+  static registerEncrypter(
+    name: string,
+    encrypter: { encrypt: (data: string) => Promise<string>; decrypt: (data: string) => Promise<string> }
+  ) {
+    if (CryptoService.encrypters[name]) {
+      console.error("Encrypter", name, "already registered");
+    }
+    CryptoService.encrypters[name] = encrypter;
+  }
   currentSymetricKey: string;
   currentAsymetricKey: { publicKey: string; privateKey: string };
   current: string;
@@ -209,6 +278,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
    */
   async init(): Promise<this> {
     await super.init();
+    CryptoService.encrypters["self"] = this;
     // Load keys
     if (!(await this.load()) && this.parameters.autoCreate) {
       await this.rotate();
@@ -438,18 +508,73 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   }
 
   /**
+   * Encrypt configuration
+   * @param data
+   */
+  public static async encryptConfiguration(data: any) {
+    if (data instanceof Object) {
+      for (let i in data) {
+        data[i] = await CryptoService.encryptConfiguration(data[i]);
+      }
+    } else if (typeof data === "string") {
+      if (data.startsWith("encrypt:") || data.startsWith("sencrypt:")) {
+        let str = data.substring(data.indexOf(":") + 1);
+        let type = str.substring(0, str.indexOf(":"));
+        str = str.substring(str.indexOf(":") + 1);
+        if (!CryptoService.encrypters[type]) {
+          throw new Error("Unknown encrypter " + type);
+        }
+        if (data.startsWith("s")) {
+          data = `scrypt:${type}:` + (await CryptoService.encrypters[type].encrypt(str));
+        } else {
+          data = `crypt:${type}:` + (await CryptoService.encrypters[type].encrypt(str));
+        }
+      }
+    }
+    return data;
+  }
+
+  /**
+   *
+   * @param data
+   */
+  public static async decryptConfiguration(data: any): Promise<any> {
+    if (data instanceof Object) {
+      for (let i in data) {
+        data[i] = await CryptoService.decryptConfiguration(data[i]);
+      }
+    } else if (typeof data === "string") {
+      if (data.startsWith("crypt:") || data.startsWith("scrypt:")) {
+        let str = data.substring(data.indexOf(":") + 1);
+        let type = str.substring(0, str.indexOf(":"));
+        str = str.substring(str.indexOf(":") + 1);
+        if (!CryptoService.encrypters[type]) {
+          throw new Error("Unknown encrypter " + type);
+        }
+        // We keep the ability to map to a simple string for incompatible module
+        if (data.startsWith("scrypt:")) {
+          return await CryptoService.encrypters[type].decrypt(str);
+        } else {
+          return new SecretString(await CryptoService.encrypters[type].decrypt(str), type);
+        }
+      }
+    }
+    return data;
+  }
+
+  /**
    * Decrypt data
    */
   public async decrypt(token: string): Promise<any> {
     let input = Buffer.from(await this.jwtVerify(token), "base64");
     let header = this.getJWTHeader(token);
-    let iv = input.slice(0, 16);
+    let iv = input.subarray(0, 16);
     let decipher = createDecipheriv(
       this.parameters.symetricCipher,
       Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64"),
       iv
     );
-    return JSON.parse(decipher.update(input.slice(16)).toString() + decipher.final().toString());
+    return JSON.parse(decipher.update(input.subarray(16)).toString() + decipher.final().toString());
   }
 
   /**
@@ -489,5 +614,25 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
     }
   }
 }
+
+/**
+ * Encrypt data with local machine id
+ */
+CryptoService.registerEncrypter("local", {
+  encrypt: async (data: string) => {
+    // Initialization Vector
+    let iv = randomBytes(16);
+    const key = createHash("sha256").update(Core.getMachineId()).digest();
+    let cipher = createCipheriv("aes-256-ctr", key, iv);
+    return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
+  },
+  decrypt: async (data: string) => {
+    let input = Buffer.from(data, "base64");
+    let iv = input.subarray(0, 16);
+    const key = createHash("sha256").update(Core.getMachineId()).digest();
+    let decipher = createDecipheriv("aes-256-ctr", key, iv);
+    return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
+  }
+});
 
 export { CryptoService };

@@ -1285,7 +1285,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return value;
   }
 
-  getMachineId() {
+  static getMachineId() {
     try {
       return process.env["WEBDA_MACHINE_ID"] || machineIdSync();
       /* c8 ignore next 4 */
@@ -1305,7 +1305,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       type: "Webda/MemoryStore",
       persistence: {
         path: ".registry",
-        key: this.getMachineId()
+        key: Core.getMachineId()
       }
     };
     this.createService(this.configuration.services, "Registry");
@@ -1635,8 +1635,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 export type MetricConfiguration<T = Counter | Gauge | Histogram, K extends string = string> = T extends Counter
   ? CounterConfiguration<K>
   : T extends Gauge
-  ? GaugeConfiguration<K>
-  : HistogramConfiguration<K>;
+    ? GaugeConfiguration<K>
+    : HistogramConfiguration<K>;
 
 /**
  * Export a Registry type alias

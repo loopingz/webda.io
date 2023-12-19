@@ -399,6 +399,30 @@ export const JSONUtils = {
     return JSON.parse(JSONUtils.stringify(value));
   },
   /**
+   * Visit a json/jsonc file for update
+   * @param filename
+   */
+  updateFile: async (filename: string, replacer: (value: any) => any) => {
+    const content = readFileSync(filename).toString().trim();
+    const edits: jsonc.EditResult = [];
+    const promises: Promise<void>[] = [];
+    jsonc.visit(content, {
+      onLiteralValue(value, offset, length, startLine, startCharacter, pathSupplier) {
+        promises.push(
+          (async () => {
+            const newValue = await replacer(value);
+            if (value !== newValue) {
+              edits.push({ offset, length, content: JSON.stringify(newValue, undefined, 2) });
+            }
+          })()
+        );
+      }
+    });
+    //
+    await Promise.all(promises);
+    writeFileSync(filename, jsonc.applyEdits(content, edits));
+  },
+  /**
    * Helper to FileUtils.save
    */
   loadFile: (filename: string) => FileUtils.load(filename, "json"),

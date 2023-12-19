@@ -1,14 +1,13 @@
 import { suite, test } from "@testdeck/mocha";
+import { HttpContext, WebdaError } from "@webda/core";
+import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { EventEmitter } from "events";
 import * as http from "http";
 import sinon from "sinon";
 import { WritableStreamBuffer } from "stream-buffers";
 import { WebSocket, WebSocketServer } from "ws";
-import { WebdaError } from "../errors";
-import { WebdaTest } from "../test";
-import { HttpContext } from "../utils/httpcontext";
-import { createHttpHeader, ProxyService } from "./proxy";
+import { ProxyService, createHttpHeader } from "./proxy";
 
 @suite
 class WSProxyTest extends WebdaTest {

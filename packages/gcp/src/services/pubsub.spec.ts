@@ -34,6 +34,8 @@ class GCPPubSubTest extends WebdaTest {
       );
     });
     await pubsub.sendMessage("plop");
+    // This is not logical w/o subscription value
+    assert.strictEqual(await pubsub.size(), 0);
     await WaitFor(
       async resolve => {
         if (counter === 2) {

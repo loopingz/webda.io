@@ -151,9 +151,9 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
       traceExporter: this.parameters.traceExporter?.enable !== false ? new OTLPTraceExporter() : undefined,
       metricReader:
         this.parameters.metricExporter?.enable !== false
-          ? new PeriodicExportingMetricReader({
+          ? (new PeriodicExportingMetricReader({
               exporter: new OTLPMetricExporter()
-            })
+            }) as any)
           : undefined,
       instrumentations: [getNodeAutoInstrumentations()]
     });

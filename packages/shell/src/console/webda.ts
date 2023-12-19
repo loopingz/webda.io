@@ -586,7 +586,7 @@ ${Object.keys(operationsExport.operations)
   static async configEncrypt(argv: yargs.Arguments): Promise<number> {
     const filename = <string>argv.file;
     if (!filename.match(/\.jsonc?$/)) {
-      this.log("ERROR", "Only json/jsonc format are handled for now");
+      this.log("ERROR", `Only json/jsonc format are handled for now: '${filename}'`);
       return -1;
     }
     this.log("INFO", "Encrypting values in configuration file", filename);

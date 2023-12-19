@@ -75,6 +75,10 @@ class Course extends DefaultTestModel {
       lastName?: string;
     }
   >;
+
+  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+    return true;
+  }
 }
 @Expose()
 class Classroom extends DefaultTestModel {

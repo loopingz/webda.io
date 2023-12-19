@@ -6,6 +6,7 @@
     "Webda/EchoService": "lib/services/echo:EchoService",
     "Webda/MigrationStore": "lib/stores/migration:MigrationStore",
     "Webda/PasswordEncryptionService": "lib/utils/password:PasswordEncryptionService",
+    "Webda/ProxyService": "lib/services/proxy:ProxyService",
     "Webda/VersionService": "lib/services/version:VersionService"
   },
   "models": {
@@ -335,6 +336,45 @@
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PasswordEncryptionService"
+    },
+    "Webda/ProxyService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to expose"
+        },
+        "backend": {
+          "type": "string",
+          "description": "URL to proxy to"
+        },
+        "requireAuthentication": {
+          "type": "boolean",
+          "description": "Helper to refuse any request if user is not auth"
+        },
+        "proxyHeaders": {
+          "type": "boolean",
+          "description": "Add X-Forwarded-* headers",
+          "default": true
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "backend",
+        "proxyHeaders",
+        "requireAuthentication",
+        "type"
+      ],
+      "description": "Proxy to a backend service",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProxyService"
     },
     "Webda/VersionService": {
       "type": "object",

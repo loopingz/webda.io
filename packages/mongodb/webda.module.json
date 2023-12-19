@@ -112,6 +112,10 @@
           },
           "description": "Model Aliases to allow easier rename of Model"
         },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
+        },
         "mongoUrl": {
           "type": "string",
           "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONDO_URL environment variable if not defined"

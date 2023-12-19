@@ -43,8 +43,9 @@ export class ConfigurationServiceParameters extends ServiceParameters {
 }
 
 export type ConfigurationEvents = {
-  "Configuration.Applied": undefined;
-  "Configuration.Applying": undefined;
+  "Configuration.Applied": any;
+  "Configuration.Applying": any;
+  "Configuration.Loaded": any;
 };
 
 /**
@@ -204,9 +205,10 @@ export default class ConfigurationService<
 
     this.log("DEBUG", "Refreshing configuration");
     const newConfig = (await this.loadConfiguration()) || this.parameters.default;
+    this.emit("Configuration.Loaded", newConfig);
     const serializedConfig = JSON.stringify(newConfig);
     if (serializedConfig !== this.serializedConfiguration) {
-      this.emit("Configuration.Applying", undefined);
+      this.emit("Configuration.Applying", newConfig);
       this.log("DEBUG", "Apply new configuration");
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
@@ -228,7 +230,7 @@ export default class ConfigurationService<
         }
       });
       await Promise.all(promises);
-      this.emit("Configuration.Applied", undefined);
+      this.emit("Configuration.Applied", newConfig);
     }
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this.interval) {
@@ -249,6 +251,7 @@ export default class ConfigurationService<
    */
   async loadAndStoreConfiguration(): Promise<{ [key: string]: any }> {
     let res = await this.loadConfiguration();
+    this.emit("Configuration.Loaded", res);
     this.serializedConfiguration = JSON.stringify(res);
     return res;
   }

@@ -3,6 +3,7 @@
   "deployers": {},
   "moddas": {
     "Webda/GoogleCloudFireStore": "lib/services/firestore:default",
+    "Webda/GoogleCloudKMS": "lib/services/kms:GCPKMSService",
     "Webda/GoogleCloudPubSub": "lib/services/pubsub:default",
     "Webda/GoogleCloudQueue": "lib/services/queue:default",
     "Webda/GoogleCloudStorage": "lib/services/storage:default"
@@ -115,6 +116,10 @@
           },
           "description": "Model Aliases to allow easier rename of Model"
         },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
+        },
         "collection": {
           "type": "string",
           "description": "Collection to use"
@@ -201,6 +206,34 @@
         }
       },
       "title": "FireStore"
+    },
+    "Webda/GoogleCloudKMS": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "defaultKey": {
+          "type": "string",
+          "description": "Encryption key to use by default",
+          "default": "WEBDA_GCP_KMS_KEY env variable"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Parameters for the KMS Service",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GCPKMSService"
     },
     "Webda/GoogleCloudPubSub": {
       "type": "object",

@@ -5,9 +5,12 @@ import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 /*
  * Ideas:
  *  - Make views for each models to have a better query: https://dba.stackexchange.com/questions/151838/postgresql-json-column-to-view
+ *        - CREATE VIEW my_view AS SELECT uuid,data->>'status' as status from table;
+ *            - could auto resolve FK
  *  - Use STORED generated model to define FK: https://stackoverflow.com/questions/24489647/json-foreign-keys-in-postgresql
  *  - FKs should be defined based on relationship
- *  - Define colums dynamically based on the schema
+ *  - Define colums dynamically based on the schema -> benchmark to see if it is useful
+ *  - Allow to define indexes on fields
  */
 
 /**

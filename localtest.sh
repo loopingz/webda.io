@@ -18,3 +18,7 @@ gcloud beta emulators pubsub start --host-port=localhost:19091
 
 echo "Launching RabbitMQ"
 docker run -d -p 5672:5672 --name webda-amqp rabbitmq:3
+
+echo "Launching etcd"
+docker run -p 2379:2379 --name webda-etcd -d quay.io/coreos/etcd:latest /usr/local/bin/etcd -name=node1 -advertise-client-urls=http://127.0.0.1:2379 -initial-advertise-peer-urls=http://127.0.0.1:2380 -listen-client-urls=http://0.0.0.0:2379 -listen-peer-urls=http://127.0.0.1:2380 -initial-cluster=node1=http://127.0.0.1:2380
+docker run -p 2379:2379 --rm quay.io/coreos/etcd:latest /usr/local/bin/etcd -name=node1 -advertise-client-urls=http://127.0.0.1:2379 -initial-advertise-peer-urls=http://127.0.0.1:2380 -listen-client-urls=http://0.0.0.0:2379 -listen-peer-urls=http://127.0.0.1:2380 -initial-cluster=node1=http://127.0.0.1:2380

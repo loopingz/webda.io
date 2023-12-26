@@ -165,7 +165,6 @@ class GraphQLServiceTest extends WebdaTest {
       },
       context
     });
-    console.log(JSON.stringify(result, undefined, 2));
   }
 
   @test
@@ -207,6 +206,81 @@ class GraphQLServiceTest extends WebdaTest {
         }),
       WebdaError.NotFound
     );
+  }
+
+  @test
+  async mutations() {
+    let context = await this.newContext();
+
+    // Test successfull creation and update
+    context.getSession().login("test", "test");
+    const Classroom = this.webda.getModel<CoreModel & { name: string; uuid: string }>("Classroom");
+    let result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query":"mutation createClassroom($classroom:ClassroomInput) { createClassroom(Classroom:$classroom) {    name    uuid  }}","variables":{"classroom":{"name":"test","uuid":"test"}},"operationName":"createClassroom"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.ok(await Classroom.ref("test").exists());
+    result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query":"mutation updateClassroom($classroom:ClassroomInput) { updateClassroom(Classroom:$classroom, uuid:\\"test\\") {    name    _lastUpdate  }}","variables":{"classroom":{"name":"test2"}},"operationName":"updateClassroom"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.strictEqual((<any>await Classroom.ref("test").get()).name, "test2");
+
+    // test2 user should not be able to do anything on Classroom
+    context.getSession().login("test2", "test2");
+    result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query":"mutation createClassroom($classroom:ClassroomInput) { createClassroom(Classroom:$classroom) {    name    uuid  }}","variables":{"classroom":{"name":"test2","uuid":"test2"}},"operationName":"createClassroom"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.ok(!(await this.webda.getModel("Course").ref("test2").exists()));
+    result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query":"mutation updateClassroom($classroom:ClassroomInput) { updateClassroom(Classroom:$classroom, uuid:\\"test\\") {    name    _lastUpdate  }}","variables":{"classroom":{"name":"test3"}},"operationName":"updateClassroom"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.strictEqual((<any>await Classroom.ref("test").get()).name, "test2");
+    result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query":"mutation deleteClassroom($uuid:String) { deleteClassroom(uuid:$uuid) {    success  }}","variables":{"uuid":"test"},"operationName":"deleteClassroom"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.ok(await Classroom.ref("test").exists());
+
+    // Finally delete the test object
+    context.getSession().login("test", "test");
+    result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query":"mutation deleteClassroom($uuid:String) { deleteClassroom(uuid:$uuid) {    success  }}","variables":{"uuid":"test"},"operationName":"deleteClassroom"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.ok(!(await Classroom.ref("test").exists()));
   }
 
   @test

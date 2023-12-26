@@ -135,6 +135,8 @@ export class WebdaServer extends Webda {
     try {
       res.on("error", this.log.bind(this, "ERROR"));
       ctx = await this.getContextFromRequest(req, res);
+      // @ts-ignore
+      req.webdaContext = ctx;
     } catch (err) {
       this.log("ERROR", err);
     }

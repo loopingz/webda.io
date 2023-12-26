@@ -1,4 +1,4 @@
-import { CronDefinition, CronService, FileUtils } from "@webda/core";
+import { CronDefinition, CronService } from "@webda/core";
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { extname, join } from "path";
 import { CronReplace } from "./cron";
@@ -10,7 +10,8 @@ export class KubernetesShell {
       const shellModule = <any>await import("@webda/shell");
       const target = args.target || "./crons";
       let template = args.template;
-      const filenameTemplate = args.filenameTemplate || "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}";
+      const filenameTemplate =
+        args.filenameTemplate || "${serviceName.toLowerCase()}.${method.toLowerCase()}-${cronId}.${ext}";
       let ext;
       if (template) {
         ext = extname(template).substring(1);
@@ -43,11 +44,11 @@ export class KubernetesShell {
  * @returns
  */
 function yargs(y) {
-  return y.command("cronExport [template] [targetDir]", "Export all application Cron as template", (yarg) => {
+  return y.command("cronExport [template] [targetDir]", "Export all application Cron as template", yarg => {
     yarg.option("filenameTemplate", {
       default: "${serviceName}.${method}-${cronId}.${ext}",
-      description: "Filename template to use",
-    })
+      description: "Filename template to use"
+    });
   });
 }
 

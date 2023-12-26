@@ -1,5 +1,4 @@
 import { join } from "path";
-import { WebdaError } from "../errors";
 import { OperationContext } from "../utils/context";
 import { BinaryMap, BinaryModel, BinaryParameters, BinaryService } from "./binary";
 

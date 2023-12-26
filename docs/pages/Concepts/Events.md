@@ -68,3 +68,12 @@ sequenceDiagram
 
 ### Store.Actionned
 
+## Runtime Events
+
+To implement some clients listeners we can allow listeners by uuid
+
+addModelListener(model: string, uuid: string) // fullUuid?
+removeModelListener(model: string, uuid: string) // fullUuid?
+
+Get the current map
+The Pub/Sub will then send all events for this uuid.

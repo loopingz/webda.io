@@ -9,8 +9,10 @@ import {
   ModelGraph,
   Route,
   WebContext,
-  WebdaError
+  WebdaError,
+  WebdaQL
 } from "@webda/core";
+import { EventIterator } from "@webda/runtime";
 import {
   FieldNode,
   GraphQLBoolean,
@@ -19,7 +21,6 @@ import {
   GraphQLInputObjectType,
   GraphQLList,
   GraphQLObjectType,
-  GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLString,
   ThunkObjMap,
@@ -31,7 +32,6 @@ import { JSONSchema7 } from "json-schema";
 import { nextTick } from "process";
 import { EventEmitter } from "stream";
 import { WebSocketServer } from "ws";
-import { EventIterator } from "./iterators";
 import { AnyScalarType } from "./types/any";
 import { GraphQLLong } from "./types/long";
 
@@ -330,8 +330,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               }
             },
             resolve: async (source, args, context, info) => {
+              let src = link.type === "LINKS_MAP" ? Object.values(source[link.attribute]) : source[link.attribute];
               return Promise.all(
-                source[link.attribute].map(i =>
+                src.map(i =>
                   this.loadModelInstance(
                     i,
                     source[link.attribute].model,
@@ -481,10 +482,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.getWebda().on("Webda.Init.Http", (http: any) => {
       http.on("upgrade", (req, socket, head) => {
         if (req.url === this.parameters.url) {
-          this.wss.handleUpgrade(req, socket, head, async ws => {
+          (async () => {
             req.webdaContext ??= await (<any>Core.get()).getContextFromRequest(req);
-            this.wss.emit("connection", ws, req);
-          });
+            await req.webdaContext.init();
+            this.wss.handleUpgrade(req, socket, head, ws => {
+              this.wss.emit("connection", ws, req);
+            });
+          })();
         }
       });
     });
@@ -553,7 +557,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (_, args, context) => {
             let object = await model.ref(args.uuid).get();
-            if ((await object.canAct(context, "update")) !== true) {
+            if ((await object?.canAct(context, "update")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -575,7 +579,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (_, args, context) => {
             let object = await model.ref(args.uuid).get();
-            if ((await object.canAct(context, "delete")) !== true) {
+            if ((await object?.canAct(context, "delete")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -590,51 +594,24 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         };
       }
       // Retrieval
-      rootFields[this.transformName(this.app.getModelPlural(i).split("/").pop())] = {
+      let plural = this.transformName(this.app.getModelPlural(i).split("/").pop());
+      rootFields[plural] = {
         type: this.getGraphQLQueryResult(this.modelsMap[i]),
         args: {
           query: {
-            type: GraphQLString
-          },
-          events: {
-            type: new GraphQLList(GraphQLString),
-            description: "Set a listener for this events on the model",
+            type: GraphQLString,
             defaultValue: ""
           }
         },
         resolve: async (_, args, context) => {
           return await model.query(args.query || "", true, context);
         },
-        subscribe: (source, args, context) => {
-          this.log("INFO", "Subscription called on", args);
-          /*
-          let models = await model.query(args.query || "", true, context);
-          models.results.map(m => m.getUuid());
-          */
-          return this.registerAsyncIteratorQuery(model, args.query || "", context);
+        subscribe: async (_source, args, context) => {
+          this.log("DEBUG", "Subscription called on", args);
+          return this.registerAsyncIteratorQuery(model, plural, args.query || "", context);
         }
-      };
-      subscriptions["Subscription"] = {
-        type: new GraphQLObjectType({
-          fields: () => {
-            return { ...rootFields };
-          },
-          name: "GlobalSubscription"
-        })
       };
       subscriptions[this.transformName(i.split("/").pop())] = {
-        type: this.modelsMap[i],
-        args: {
-          [model.getUuidField()]: {
-            type: GraphQLString
-          }
-        },
-        subscribe: async (source, args, context) => {
-          this.log("INFO", "Subscription called on", args);
-          return this.registerAsyncIterator(model, args[model.getUuidField()], context);
-        }
-      };
-      rootFields[this.transformName(i.split("/").pop())] = {
         type: this.modelsMap[i],
         args: {
           [model.getUuidField()]: {
@@ -646,13 +623,21 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             defaultValue: ""
           }
         },
-        resolve: async (source, args, context, info) => {
+        subscribe: async (_source, args, context) => {
+          this.log("DEBUG", "Subscription called on", args);
+          return this.registerAsyncIterator(model, args[model.getUuidField()], context);
+        }
+      };
+      rootFields[this.transformName(i.split("/").pop())] = {
+        type: this.modelsMap[i],
+        args: {
+          [model.getUuidField()]: {
+            type: GraphQLString
+          }
+        },
+        resolve: async (_source, args, context, _info) => {
           this.countOperation(context);
           return this.loadModelInstance(args[model.getUuidField()] || "", model, context);
-        },
-        subscribe: async (source, args, context) => {
-          this.log("INFO", "Subscription called on", args);
-          return this.registerAsyncIterator(model, args[model.getUuidField()], context);
         }
       };
     }
@@ -668,36 +653,32 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             return context.getCurrentUser();
           }
         };
-        subscriptions["ServiceEvent"] = {
-          type: GraphQLString,
-          args: {
-            service: {
-              type: GraphQLString
-            }
-          },
-          subscribe: async (...args) => {
-            return new EventIterator(this, "Test", "Test");
-          }
-        };
         subscriptions["Me"] = {
           type: this.modelsMap[userGraph],
-          subscribe: async (...args) => {
-            return new EventIterator(this, "Me", "Me").iterate();
+          args: {
+            events: {
+              type: new GraphQLList(GraphQLString),
+              description: "Set a listener for this events on the object",
+              defaultValue: ""
+            }
+          },
+          subscribe: async (_source, _args, context) => {
+            if (!context.getCurrentUserId()) {
+              throw new GraphQLError("Permission denied", {
+                extensions: {
+                  code: "PERMISSION_DENIED"
+                }
+              });
+            }
+            const user: CoreModel = await context.getCurrentUser();
+            return this.registerAsyncIterator(user.__class, context.getCurrentUserId(), context, "Me");
           }
         };
       } else {
         this.log("WARN", "Cannot expose me, user model is not exposed or get is restricted or type is not unavailable");
       }
     }
-    //const pingYield = ;
-    setInterval(() => this.emit("Ping", Date.now()), 5000);
-    subscriptions["Ping"] = {
-      type: GraphQLLong,
-      subscribe: async (source, args, context: any, info: GraphQLResolveInfo) => {
-        this.log("INFO", source, args, context?.getCurrentUserId());
-        return new EventIterator(this, "Ping", "Ping", Date.now()).iterate();
-      }
-    };
+
     // Copy the rootFields without resolver
     for (let i in rootFields) {
       subscriptions[i] ??= { ...rootFields[i], resolve: undefined };
@@ -706,16 +687,54 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
-   * 
-   * @param model 
-   * @param arg1 
-   * @param context 
-   * @returns 
+   *
+   * @param model
+   * @param arg1
+   * @param context
+   * @returns
    */
-  registerAsyncIteratorQuery(model: CoreModelDefinition<CoreModel>, arg1: any, context: any): AsyncIterator<any> {
-    this.modelListeners[model.getIdentifier()] ??= {};
-
-    return new EventIterator(this, model.getIdentifier(), model.getIdentifier()).iterate();
+  async registerAsyncIteratorQuery(
+    model: CoreModelDefinition<CoreModel>,
+    plural: string,
+    query: string,
+    context: any
+  ): Promise<AsyncIterator<any>> {
+    let result = await model.query(query, true, context);
+    let queryInfo = new WebdaQL.QueryValidator(query);
+    const updatedCallback = async evt => {
+      this.log("INFO", "Event from", evt.emitterId, evt.object_id);
+      if (!result.results.find(e => evt.object_id === e.getUuid())) return;
+      // We rely on the cache of the store to get the full object
+      // We let the other listeners finish before returning the object
+      await new Promise(resolve => nextTick(resolve));
+      return {
+        continuationToken: result.continuationToken,
+        results: await Promise.all(
+          result.results.map(r => (r.getUuid() === evt.object_id ? model.ref(evt.object_id).get() : r))
+        )
+      };
+    };
+    const events = {
+      "Store.Updated": updatedCallback,
+      // Deleted is different as we need to return null
+      "Store.Deleted": async evt => {
+        if (!result.results.find(e => evt.object_id === e.getUuid())) return;
+        result = await model.query(query, true, context);
+        return result;
+      },
+      "Store.Saved": async evt => {
+        // If object match the query and is not in the result and can be read by the user
+        if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object.canAct(context, "get")) {
+          // Should check with the order by of the query to see if we need to recompute
+          result = await model.query(query, true, context);
+          return result;
+        }
+        return;
+      },
+      "Store.PatchUpdated": updatedCallback,
+      "Store.PartialUpdated": updatedCallback
+    };
+    return new EventIterator(<EventEmitter>model.store(), events, plural, result).iterate();
   }
 
   /**
@@ -728,7 +747,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   async registerAsyncIterator(
     model: CoreModelDefinition<CoreModel>,
     uuid: any,
-    context: any
+    context: any,
+    identifier?: string
   ): Promise<AsyncIterator<any>> {
     const updatedCallback = async evt => {
       this.log("INFO", "Event from", evt.emitterId, evt.object_id);
@@ -750,14 +770,19 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     };
     let modelInstance = await model.ref(uuid).get();
     // Ensure we have the permission to get the object
-    if (!(await modelInstance.canAct(context, "get"))) {
+    if ((await modelInstance?.canAct(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
         extensions: {
           code: "PERMISSION_DENIED"
         }
       });
     }
-    return new EventIterator(<EventEmitter>model.store(), events, model.getIdentifier(), modelInstance).iterate();
+    return new EventIterator(
+      <EventEmitter>model.store(),
+      events,
+      identifier || model.getIdentifier(),
+      modelInstance
+    ).iterate();
   }
 
   /**
@@ -774,7 +799,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     // Emit Webda.GraphQL.Schema to allow other services to contribute
     this.emit("Webda.GraphQL.Schema", {
       rootFields,
-      mutations
+      mutations,
+      subscription
     });
     return new GraphQLSchema({
       query: new GraphQLObjectType({

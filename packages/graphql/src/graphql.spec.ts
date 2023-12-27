@@ -1,15 +1,26 @@
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, FileBinary, WebdaError, getCommonJS } from "@webda/core";
+import { CoreModel, FileBinary, HttpContext, SecureCookie, WebdaError, getCommonJS } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
+import { ServerStatus, WebdaServer } from "@webda/shell";
+import { WebdaSampleApplication } from "@webda/shell/lib/index.spec";
 import * as assert from "assert";
 import { Kind } from "graphql";
+import { createClient } from "graphql-ws";
 import * as path from "path";
+import WebSocket from "ws";
 import { GraphQLService } from "./graphql";
 import { AnyScalarType } from "./types/any";
 import { GraphQLLong } from "./types/long";
 const { __dirname } = getCommonJS(import.meta.url);
 
-//export const WebdaSampleApplication = new UnpackedApplication(path.resolve(`${__dirname}/../../../sample-app/`));
+class MyWebSocket extends WebSocket {
+  static headers: any = {};
+  constructor(address, protocols) {
+    super(address, protocols, {
+      headers: MyWebSocket.headers
+    });
+  }
+}
 
 @suite
 class GraphQLServiceTest extends WebdaTest {
@@ -349,6 +360,149 @@ class GraphQLServiceTest extends WebdaTest {
     this.service.getParameters().userModel = "User2";
     this.service.getParameters()["excludedModels"].push("User3");
     await this.service.resolve().init();
+    // Just for hitting the default GraphQLString
+    this.service.getGraphQLSchemaFromSchema({ type: "array", items: { type: "null" } }, "plop");
+  }
+}
+
+@suite
+class GraphQLSubscriptionTest {
+  @test
+  async subscriptions() {
+    await WebdaSampleApplication.load();
+    WebdaSampleApplication.getConfiguration().services.graphql = {
+      type: "GraphQLService",
+      exposeMe: true
+    };
+    const server = new WebdaServer(WebdaSampleApplication);
+    const Course = server.getModel<CoreModel & { name: string; value?: number; uuid: string }>("Course");
+    const User = server.getModel<CoreModel & { name: string; value?: number; uuid: string }>("WebdaDemo/User");
+    try {
+      await server.init();
+      await Course.store().__clean();
+      await Course.ref("test").getOrCreate({
+        name: "test"
+      });
+      server.serve(28080);
+      await server.waitForStatus(ServerStatus.Started);
+      const client = createClient({
+        url: "ws://localhost:28080/graphql",
+        webSocketImpl: MyWebSocket
+      });
+      // subscription for change
+      console.log("Starting subscription on Course(test)");
+      await (async () => {
+        const subscription = client.iterate({
+          query: `subscription { Course(uuid:"test") { name uuid } }`
+        });
+
+        for await (const event of subscription) {
+          const obj: any = event.data?.Course;
+          if (obj === null) {
+            break;
+          } else if (obj.name === "test2") {
+            Course.ref("test").delete();
+          } else {
+            Course.ref("test").patch({ name: "test2" });
+          }
+        }
+      })();
+      // subscription for change on non-existing
+      console.log("Starting subscription on Course(test2)", await Course.ref("test2").get());
+      await (async () => {
+        const subscription = client.iterate({
+          query: `subscription { Course(uuid:"test2") { name uuid } }`
+        });
+
+        for await (const event of subscription) {
+        }
+      })();
+      // subscription for new object
+      console.log("Starting subscription on Courses()");
+      await Course.ref("test").getOrCreate({
+        name: "test",
+        value: 10
+      });
+      await Course.ref("test2").getOrCreate({
+        name: "test2",
+        value: 10
+      });
+      let i = 0;
+      await (async () => {
+        const subscription = client.iterate({
+          query: `subscription { Courses(query:"value=10") { results { name uuid } continuationToken } }`
+        });
+        // Test several use case
+        for await (const evt of subscription) {
+          const event: any = evt;
+          i++;
+          if (i === 1) {
+            // Update test2
+            await Course.ref("test2").patch({ name: "test2b" });
+          } else if (i === 2) {
+            // Create test3
+            assert.strictEqual(event.data?.Courses.results[1].name, "test2b");
+            await Course.ref("test3").getOrCreate({ name: "test3", value: 10 });
+            // This one should not trigger anything
+            await Course.ref("test4").getOrCreate({ name: "test4", value: 1 });
+          } else if (i === 3) {
+            // Delete test
+            assert.strictEqual(event.data?.Courses.results.length, 3);
+            await Course.ref("test").delete();
+          } else if (i === 4) {
+            // Finishing the test
+            assert.deepStrictEqual(event.data?.Courses.results.map(c => c.name), ["test2b", "test3"]);
+            break;
+          }
+        }
+      })();
+      // subscription for me
+      console.log("Starting subscription on Me w/o auth");
+      await (async () => {
+        const subscription = client.iterate({
+          query: `subscription { Me { name } }`
+        });
+        for await (const event of subscription) {
+          if (event) {
+            break;
+          }
+        }
+      })();
+      // Close client
+      await client.dispose();
+
+      // Test with a cookie
+      User.ref("test").create({ name: "plop" });
+      let ctx = await server.newWebContext(new HttpContext("test.webda.io", "GET", "/graphql"));
+      await SecureCookie.save("webda", ctx, { userId: "test" });
+      // Test with a cookie
+      MyWebSocket.headers.Cookie = `webda=${ctx._cookie["webda"].value}`;
+      const client2 = createClient({
+        url: "ws://localhost:28080/graphql",
+        webSocketImpl: MyWebSocket
+      });
+      i = 0;
+      console.log("Starting subscription on Me with auth");
+      await (async () => {
+        const subscription = client2.iterate({
+          query: `subscription { Me { name } }`
+        });
+        for await (const evt of subscription) {
+          const event: any = evt;
+          i++;
+          if (i === 1) {
+            assert.strictEqual(event.data?.Me.name, "plop");
+            await User.ref("test").patch({ name: "plop2" });
+          } else if (i === 2) {
+            assert.strictEqual(event.data?.Me.name, "plop2");
+            break;
+          }
+        }
+      })();
+    } finally {
+      await Course.store().__clean();
+      await server.stop();
+    }
   }
 }
 

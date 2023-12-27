@@ -482,7 +482,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   protected parameters: any = undefined;
   protected _pathParams: any = {};
   protected _serviceParams: any = {};
-  private _init: boolean;
+  private _init: Promise<this>;
 
   /**
    * Set current http context
@@ -885,7 +885,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
 
   async init(force: boolean = false): Promise<this> {
     if (this._init && !force) {
-      return this;
+      return this._init;
     }
     this._stream.on("pipe", () => {
       this._webda.flushHeaders(this);
@@ -894,8 +894,8 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     if (this.getExtension("http")) {
       this.session = (await this._webda.getService<SessionManager>("SessionManager").load(this)).getProxy();
     }
-    this._init = true;
-    return super.init();
+    this._init = super.init();
+    return this._init;
   }
 
   emitError(err) {

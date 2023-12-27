@@ -1343,7 +1343,6 @@ abstract class Store<
         await this.invalidateCache(partialEvent.object_id);
       }
     } else if (event === "Store.Updated") {
-      this.log("INFO", "Process event Updated", data);
       await this._cacheStore?._update((<EventStoreUpdated>data).update, (<EventStoreUpdated>data).object_id);
     } else if (event === "Store.PatchUpdated") {
       await this._cacheStore?._patch((<EventStoreUpdated>data).object, (<EventStoreUpdated>data).object_id);

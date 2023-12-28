@@ -1277,7 +1277,7 @@ abstract class Store<
     if (ctx.getHttpContext().getMethod() === "GET") {
       query = ctx.getParameters().q;
     } else {
-      query = (await ctx.getRequestBody()).q;
+      query = WebdaQL.unsanitize((await ctx.getRequestBody()).q);
     }
     try {
       ctx.write(await this.query(query, ctx));

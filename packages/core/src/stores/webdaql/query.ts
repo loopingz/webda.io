@@ -797,4 +797,13 @@ export namespace WebdaQL {
       return new PartialComparisonExpression(this, "CONTAINS", left.text, value);
     }
   }
+
+  /**
+   * Remove artifact from sanitize-html inside query
+   * @param query
+   * @returns
+   */
+  export function unsanitize(query: string): string {
+    return query.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  }
 }

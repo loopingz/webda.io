@@ -3,6 +3,7 @@ import * as assert from "assert";
 import { Readable } from "stream";
 import { Core } from "../core";
 import { Service } from "../services/service";
+import { WebdaQL } from "../stores/webdaql/query";
 import { WebdaTest } from "../test";
 import { OperationContext, SimpleOperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
@@ -54,6 +55,19 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(ctx.getOrigin(), urlObject.origin);
     // Hash is not sent to server so no need in HttpContext (@see https://developer.mozilla.org/en-US/docs/Web/API/URL/hash)
     // Username and password would endup in a header no in the url
+  }
+
+  @test
+  async sanitize() {
+    let context = await this.newContext();
+    let input = "";
+    context.getRawInputAsString = async () => {
+      return input;
+    };
+    input = JSON.stringify({ q: "Inject <script>alert('plop')</script> > = != HTML" });
+    assert.deepStrictEqual(await context.getInput({ raw: true }), JSON.parse(input));
+    assert.deepStrictEqual((await context.getInput()).q, "Inject  &gt; = != HTML");
+    assert.strictEqual(WebdaQL.unsanitize("plop &gt; &lt;"), "plop > <");
   }
 
   @test

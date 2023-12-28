@@ -160,7 +160,7 @@ abstract class StoreTest extends WebdaTest {
     // To ensure we trigger slowQuery
     userStore.getParameters().slowQueryThreshold = 0;
     do {
-      q = `LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`;
+      q = `team.id > 10 LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`;
       context.setHttpContext(
         new HttpContext(
           "test.webda.io",
@@ -178,7 +178,7 @@ abstract class StoreTest extends WebdaTest {
       offset = res.continuationToken;
       total += res.results.length;
     } while (offset !== undefined);
-    assert.strictEqual(total, 400);
+    assert.strictEqual(total, 180);
     q = "BAD QUERY !";
     context.setHttpContext(new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443));
     context.getHttpContext().setBody({ q });

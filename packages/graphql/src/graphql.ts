@@ -331,16 +331,19 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             },
             resolve: async (source, args, context, info) => {
               let src = link.type === "LINKS_MAP" ? Object.values(source[link.attribute]) : source[link.attribute];
-              return Promise.all(
-                src.map(i =>
-                  this.loadModelInstance(
-                    i,
-                    source[link.attribute].model,
-                    context,
-                    info.fieldNodes.find(node => node.name.value === link.attribute)
+              return (
+                await Promise.all(
+                  src.map(i =>
+                    this.loadModelInstance(
+                      i,
+                      this.getWebda().getModel(link.model),
+                      context,
+                      info.fieldNodes.find(node => node.name.value === link.attribute),
+                      args.filter ? new WebdaQL.PartialValidator(WebdaQL.unsanitize(args.filter)) : undefined
+                    )
                   )
                 )
-              );
+              ).filter(i => i !== null);
             }
           };
         }
@@ -355,16 +358,19 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           },
           resolve: async (source, args, context, info) => {
             let modelDefinition = this.app.getModel(map.model);
-            return Promise.all(
-              source[map.attribute].map(i =>
-                this.loadModelInstance(
-                  i,
-                  modelDefinition,
-                  context,
-                  info.fieldNodes.find(node => node.name.value === map.attribute)
+            return (
+              await Promise.all(
+                source[map.attribute].map(i =>
+                  this.loadModelInstance(
+                    i,
+                    modelDefinition,
+                    context,
+                    info.fieldNodes.find(node => node.name.value === map.attribute),
+                    args.filter ? new WebdaQL.PartialValidator(WebdaQL.unsanitize(args.filter)) : undefined
+                  )
                 )
               )
-            );
+            ).filter(i => i !== null);
           }
         };
       });
@@ -377,7 +383,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (source, args, context, info) => {
-            let res = await source[query.attribute].query(args.query, context);
+            let res = await source[query.attribute].query(WebdaQL.unsanitize(args.query || ""), context);
             this.countOperation(context, res.results.length);
             return res;
           }
@@ -415,9 +421,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     knownFieldsOrId: string | { uuid: string; [key: string]: any },
     model: CoreModelDefinition,
     context: WebContext,
-    info?: FieldNode
+    info?: FieldNode,
+    filter?: WebdaQL.PartialValidator
   ) {
     let res = typeof knownFieldsOrId === "string" ? { uuid: knownFieldsOrId } : knownFieldsOrId;
+    if (filter && !filter.eval(res)) {
+      return null;
+    }
     let operation =
       // Check if we have a valid selection set
       info === undefined ||
@@ -433,7 +443,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       }
     }
     // We already know the whole answer so no more request needed
-    if (!operation) {
+    if (!operation && (!filter || !filter.wasPartialMatch())) {
       return res;
     }
     // Count the operation then and retrieve the model
@@ -452,6 +462,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           code: "PERMISSION_DENIED"
         }
       });
+    }
+    if (filter && !filter.eval(modelInstance, false)) {
+      return null;
     }
     return modelInstance;
   }
@@ -604,11 +617,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           }
         },
         resolve: async (_, args, context) => {
-          return await model.query(args.query || "", true, context);
+          return await model.query(WebdaQL.unsanitize(args.query || ""), true, context);
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
-          return this.registerAsyncIteratorQuery(model, plural, args.query || "", context);
+          return this.registerAsyncIteratorQuery(model, plural, WebdaQL.unsanitize(args.query || ""), context);
         }
       };
       subscriptions[this.transformName(i.split("/").pop())] = {

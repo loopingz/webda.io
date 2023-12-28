@@ -33,6 +33,7 @@ class Student extends DefaultTestModel {
   email: string;
   firstName: string;
   lastName: string;
+  order: number;
   friends: ModelLinksArray<Student, { email: string; firstName: string; lastName: string }>;
   teachers: ModelLinksSimpleArray<Teacher>;
   courses: ModelsMapped<Course, "students", "name">;

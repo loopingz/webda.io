@@ -165,6 +165,31 @@ class GraphQLServiceTest extends WebdaTest {
       context
     });
     assert.strictEqual(context.getExtension("graphql").count, 24);
+    q = `{ Courses { results { uuid, students(filter:"email LIKE '%4%'") { email } } } }`;
+    result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query": "${q.replace(/"/g, '\\"')}"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.strictEqual(result.data.Courses.results.map(c => c.students).filter(i => i.length > 0).length, 8);
+    q = `{ Courses { results { uuid, students(filter:"order > 7 AND email LIKE '%webda.io'") { email } } } }`;
+    result = await this.http({
+      method: "POST",
+      url: "/graphql",
+      body: `{"query": "${q.replace(/"/g, '\\"')}"}`,
+      headers: {
+        "content-type": "application/json; charset=utf-8"
+      },
+      context
+    });
+    assert.strictEqual(
+      result.data.Courses.results.map(c => c.students).filter(i => i !== null && i.length > 0).length,
+      4
+    );
     let course = result.data.Courses.results[0];
     q = `{ Course(uuid: "${course.uuid}") {  classroom { uuid, name, courses { uuid },  hardwares { results { uuid, classroom { uuid } } } } } }`;
     result = await this.http({

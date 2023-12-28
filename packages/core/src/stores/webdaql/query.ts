@@ -41,7 +41,9 @@ export namespace WebdaQL {
     }
     query = query.trim();
     // Find the right part of the query this regex will always be true as all part are optional
-    const rightPart = query.match(/(?<order>ORDER BY ([a-zA-Z0-9\._]+( DESC| ASC)?,?)+ ?)?(?<offset>OFFSET ["']\w+["'] ?)?(?<limit>LIMIT \d+)?$/);
+    const rightPart = query.match(
+      /(?<order>ORDER BY ([a-zA-Z0-9\._]+( DESC| ASC)?,?)+ ?)?(?<offset>OFFSET ["']\w+["'] ?)?(?<limit>LIMIT \d+)?$/
+    );
     // Remove it if found
     query = query.substring(0, query.length - rightPart[0].length).trim();
     // Add the condition to the query now
@@ -327,7 +329,7 @@ export namespace WebdaQL {
     abstract toString(depth?: number): string;
   }
 
-  type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS";
+  export type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS";
   /**
    * Comparison expression
    */
@@ -567,7 +569,7 @@ export namespace WebdaQL {
     protected query: Query;
     protected builder: ExpressionBuilder;
 
-    constructor(sql: string) {
+    constructor(sql: string, builder: ExpressionBuilder = new ExpressionBuilder()) {
       this.lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
       let tokenStream = new CommonTokenStream(this.lexer);
       let parser = new WebdaQLParserParser(tokenStream);
@@ -586,7 +588,7 @@ export namespace WebdaQL {
       });
       // Parse the input, where `compilationUnit` is whatever entry point you defined
       this.tree = parser.webdaql();
-      this.builder = new ExpressionBuilder();
+      this.builder = builder;
       this.query = this.builder.visit(this.tree);
     }
 
@@ -678,6 +680,121 @@ export namespace WebdaQL {
       } else {
         throw new SyntaxError(`Set Expression can only contain And and assignment expression '='`);
       }
+    }
+  }
+
+  export class PartialValidator extends QueryValidator {
+    builder: PartialExpressionBuilder;
+
+    constructor(query: string, builder: PartialExpressionBuilder = new PartialExpressionBuilder()) {
+      super(query, builder);
+    }
+
+    /**
+     * Eval the query
+     * @param target
+     * @param partial
+     * @returns
+     */
+    eval(target: any, partial: boolean = true): boolean {
+      this.builder.setPartial(partial);
+      this.builder.setPartialMatch(false);
+      return this.query.filter.eval(target);
+    }
+
+    /**
+     * Return if the result ignored some fields
+     * @returns
+     */
+    wasPartialMatch(): boolean {
+      return this.builder.partialMatch;
+    }
+  }
+
+  export class PartialComparisonExpression<
+    T extends ComparisonOperator = ComparisonOperator
+  > extends ComparisonExpression<T> {
+    constructor(
+      protected builder: PartialExpressionBuilder,
+      op: T,
+      attribute: string,
+      value: any
+    ) {
+      super(op, attribute, value);
+    }
+
+    /**
+     * Override the eval to check if the attribute is present
+     * if not and we are in partial mode, return true
+     *
+     * @param target
+     * @returns
+     */
+    eval(target: any): boolean {
+      if (this.builder.partial) {
+        const left = ComparisonExpression.getAttributeValue(target, this.attribute);
+        if (left === undefined) {
+          this.builder.setPartialMatch(true);
+          return true;
+        }
+      }
+      return super.eval(target);
+    }
+  }
+
+  export class PartialExpressionBuilder extends ExpressionBuilder {
+    /**
+     * Enforce the partial mode
+     */
+    partial: boolean;
+    /**
+     * If eval was called in partial mode
+     */
+    partialMatch: boolean;
+
+    setPartial(partial: boolean) {
+      this.partial = partial;
+    }
+
+    setPartialMatch(partial: boolean) {
+      this.partialMatch = partial;
+    }
+    /**
+     * a LIKE "%A?"
+     * @param ctx
+     * @returns
+     */
+    visitLikeExpression(ctx: any) {
+      const [left, _, right] = ctx.children;
+      let value = <any[]>(<unknown>this.visit(right));
+      return new PartialComparisonExpression(this, "LIKE", left.text, value);
+    }
+
+    /**
+     * Implement the BinaryComparison with all methods managed
+     */
+    visitBinaryComparisonExpression(ctx: any) {
+      const [left, op, right] = ctx.children;
+      // @ts-ignore
+      return new PartialComparisonExpression(this, op.text, left.text, this.visit(right));
+    }
+
+    /**
+     * Map the a IN ['b','c']
+     */
+    visitInExpression(ctx: any) {
+      const [left, _, right] = ctx.children;
+      let value = <any[]>(<unknown>this.visit(right));
+      return new PartialComparisonExpression(this, "IN", left.text, value);
+    }
+
+    /**
+     * Map the a CONTAINS 'b'
+     */
+    visitContainsExpression(ctx: any) {
+      const [left, _, right] = ctx.children;
+      let value = <any[]>(<unknown>this.visit(right));
+      return new PartialComparisonExpression(this, "CONTAINS", left.text, value);
     }
   }
 }

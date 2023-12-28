@@ -2,7 +2,7 @@ import { WorkerLogLevel } from "@webda/workout";
 import acceptLanguage from "accept-language";
 import { EventEmitter } from "events";
 import * as http from "http";
-import sanitizeHtml from "sanitize-html";
+import sanitize from "sanitize-html";
 import { Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
 import { Core } from "../core";
@@ -196,21 +196,24 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 
   async getInput(
-    sanitizedOptions: any = {
+    sanitizedOptions: sanitize.IOptions & { defaultValue?: any; raw?: boolean | string[] } = {
       allowedTags: [],
       allowedAttributes: {}
     }
   ): Promise<T> {
-    if (this._sanitized) {
+    if (this._sanitized && !sanitizedOptions.raw) {
       return this._sanitized;
     }
-    let recursiveSanitize = (obj, options = undefined) => {
+    let recursiveSanitize = (obj, options = undefined, path: string = "") => {
       if (typeof obj === "string") {
-        return sanitizeHtml(obj, options);
+        return sanitize(obj, options);
       }
       if (obj !== null && typeof obj === "object") {
         Object.keys(obj).forEach(key => {
-          obj[key] = recursiveSanitize(obj[key], options);
+          obj[key] =
+            Array.isArray(sanitizedOptions.raw) && sanitizedOptions.raw.includes(path + key)
+              ? obj[key]
+              : recursiveSanitize(obj[key], options, path + key + ".");
         });
       }
       return obj;
@@ -220,6 +223,9 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
         this.getWebda().getGlobalParams().requestLimit,
         this.getWebda().getGlobalParams().requestTimeout
       );
+      if (sanitizedOptions.raw === true) {
+        return JSON.parse(data || sanitizedOptions.defaultValue);
+      }
       if (!data || data.length === 0) {
         this._sanitized = sanitizedOptions.defaultValue;
         return this._sanitized;

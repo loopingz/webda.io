@@ -61,6 +61,7 @@
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "18.11.13",
     "@types/nodemailer": "^6.4.4",
+    "@types/sanitize-html": "^2.9.5",
     "@webda/tsc-esm": "^1.1.1",
     "antlr4ts-cli": "^0.5.0-alpha.4",
     "axios": "^1.1.3",

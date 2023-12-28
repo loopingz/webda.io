@@ -310,7 +310,9 @@ class WebdaTest {
       UuidModel & { name: string; classroom: string; teacher: string; students: any[] }
     >("Course");
     const Classroom = this.webda.getModel<UuidModel & { name: string; courses: any; hardwares: any }>("Classroom");
-    const Student = this.webda.getModel<UuidModel & { email: string; firstName: string; lastName: string }>("Student");
+    const Student = this.webda.getModel<
+      UuidModel & { order: number; email: string; firstName: string; lastName: string }
+    >("Student");
     const Hardware = this.webda.getModel<UuidModel & { name: string; classroom: string }>("Hardware");
     const ComputerScreen = this.webda.getModel<
       UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }
@@ -344,7 +346,8 @@ class WebdaTest {
         await Student.create({
           email: `student${i}@webda.io`,
           firstName: `Student ${i}`,
-          lastName: `Lastname ${i}`
+          lastName: `Lastname ${i}`,
+          order: i
         })
       );
     }

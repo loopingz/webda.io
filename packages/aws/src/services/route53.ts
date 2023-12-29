@@ -112,8 +112,15 @@ export class Route53Service extends Service {
    * Import all records to Route53
    * @param file
    */
-  static async import(file: string, Console) {
-    let data = JSONUtils.loadFile(file);
+  static async import(
+    options: {
+      file: string;
+      pretend?: boolean;
+      sync?: boolean;
+    },
+    Console
+  ) {
+    let data = JSONUtils.loadFile(options.file);
     const targetZone = await this.getZoneForDomainName(data.domain);
     const r53 = new Route53({});
     if (!targetZone) {
@@ -137,6 +144,39 @@ export class Route53Service extends Service {
             }))
         }
       });
+      if (!options.sync) {
+        return;
+      }
+      let continuationToken;
+      let toDelete = [];
+      do {
+        let records = await r53.listResourceRecordSets({
+          HostedZoneId: targetZone.Id,
+          StartRecordIdentifier: continuationToken
+        });
+        toDelete.push(
+          ...records.ResourceRecordSets.filter(r => {
+            return data.entries.findIndex(e => e.Name === r.Name && e.Type === r.Type) === -1;
+          })
+        );
+        continuationToken = records.NextRecordIdentifier;
+      } while (continuationToken);
+      Console.log("INFO", `Deleting ${toDelete.length} records`);
+      if (options.pretend) {
+        toDelete.forEach(r => {
+          Console.log("INFO", "Deleting entry\n", JSON.stringify(r, undefined, 2));
+        });
+      } else {
+        await r53.changeResourceRecordSets({
+          HostedZoneId: targetZone.Id,
+          ChangeBatch: {
+            Changes: toDelete.map(r => ({
+              Action: "DELETE",
+              ResourceRecordSet: r
+            }))
+          }
+        });
+      }
     } catch (err) {
       Console.log("ERROR", err);
     }
@@ -168,7 +208,10 @@ export class Route53Service extends Service {
     const command = args._.shift();
     switch (command) {
       case "import":
-        await this.import(args.file, Console);
+        await this.import(args, Console);
+        break;
+      case "sync":
+        await this.import({ ...args, sync: true }, Console);
         break;
       case "export":
         await this.export(args.domain, args.file);

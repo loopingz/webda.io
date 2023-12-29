@@ -32,7 +32,10 @@ function yargs(y) {
     .command("route53 <subcommand>", "Import or export DNS", y2 => {
       return y2
         .command("export <domain> <file>", "Export a Route53 domain to a json file")
-        .command("import <file>", "Import a Route53 exported format to Route53");
+        .command("import <file>", "Import a Route53 exported format to Route53")
+        .command("sync <file>", "Sync a Route53 exported format to Route53 (remove all others entries)", y3 => {
+          y3.option("pretend");
+        });
     })
     .command("copyTable <sourceTable> <targetTable>", "Import or export DNS");
 }

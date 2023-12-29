@@ -10,6 +10,13 @@ import { Route53Service } from "./route53";
 class Route53Test {
   @test
   async exportImport() {
+    let logs;
+    const Console = {
+      log: (...args) => {
+        console.log(...args);
+        logs = args;
+      }
+    };
     // Mock
     var callSpy2 = sinon.stub().callsFake(async () => {
       if (callSpy2.callCount == 1) {
@@ -20,7 +27,12 @@ class Route53Test {
         };
       } else {
         return {
-          ResourceRecordSets: [],
+          ResourceRecordSets: [
+            {
+              Name: "toremove",
+              Type: "TXT"
+            }
+          ],
           IsTruncated: false
         };
       }
@@ -41,7 +53,7 @@ class Route53Test {
       );
       await assert.rejects(() => Route53Service.getEntries("test.com"), /Domain 'test.com.?' is not handled on AWS/);
       await assert.rejects(
-        () => Route53Service.import("./test/zone-export.json", undefined),
+        () => Route53Service.import({ file: "./test/zone-export.json" }, undefined),
         /Domain 'webda.io.?' is not handled on AWS/
       );
 
@@ -60,16 +72,28 @@ class Route53Test {
         _: ["import"],
         file: "./test/zone-export.json"
       });
-
+      await Route53Service.shell(Console, {
+        _: ["sync"],
+        file: "./test/zone-export.json",
+        pretend: true
+      });
+      assert.deepStrictEqual(logs, ["INFO", "Deleting entry\n", '{\n  "Name": "toremove",\n  "Type": "TXT"\n}']);
+      await Route53Service.shell(Console, {
+        _: ["sync"],
+        file: "./test/zone-export.json"
+      });
+      assert.deepStrictEqual(logs, ["INFO", "Deleting 1 records"]);
       spyChanges.callsFake(() => {
         throw new Error("Cannot do this");
       });
-      let logs;
-      await Route53Service.import("./test/zone-export.json", {
-        log: (...args) => {
-          logs = args;
+      await Route53Service.import(
+        { file: "./test/zone-export.json" },
+        {
+          log: (...args) => {
+            logs = args;
+          }
         }
-      });
+      );
       assert.deepStrictEqual([logs[0], logs[1].toString()], ["ERROR", "Error: Cannot do this"]);
     } finally {
       mock.restore();

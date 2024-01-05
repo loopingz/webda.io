@@ -33,6 +33,7 @@ import { nextTick } from "process";
 import { EventEmitter } from "stream";
 import { WebSocketServer } from "ws";
 import { AnyScalarType } from "./types/any";
+import { DateScalar } from "./types/date";
 import { GraphQLLong } from "./types/long";
 
 const GraphIQL = `
@@ -206,7 +207,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     if (!schema || !schema.type) {
       type = AnyScalarType;
     } else if (schema.type === "string") {
-      type = GraphQLString;
+      if (schema.format === "date-time") {
+        type = DateScalar;
+      } else {
+        type = GraphQLString;
+      }
     } else if (schema.type === "boolean") {
       type = GraphQLBoolean;
     } else if (schema.type === "array") {

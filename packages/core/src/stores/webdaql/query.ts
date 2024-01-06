@@ -305,6 +305,10 @@ export namespace WebdaQL {
      * Order by clause
      */
     orderBy?: OrderBy[];
+    /**
+     * Get the string representation of the query
+     */
+    toString(): string;
   }
 
   /**
@@ -569,7 +573,10 @@ export namespace WebdaQL {
     protected query: Query;
     protected builder: ExpressionBuilder;
 
-    constructor(sql: string, builder: ExpressionBuilder = new ExpressionBuilder()) {
+    constructor(
+      protected sql: string,
+      builder: ExpressionBuilder = new ExpressionBuilder()
+    ) {
       this.lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
       let tokenStream = new CommonTokenStream(this.lexer);
       let parser = new WebdaQLParserParser(tokenStream);
@@ -621,7 +628,11 @@ export namespace WebdaQL {
      * @returns
      */
     getQuery(): Query {
-      return this.query;
+      return {
+        ...this.query,
+        // Use displayTree to get the truely executed query
+        toString: () => this.displayTree()
+      };
     }
 
     /**

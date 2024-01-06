@@ -16,6 +16,7 @@ export class EventIterator {
   events: { [key: string]: (data: any) => any };
   queue: any[] = [];
   resolve: () => void;
+  running: boolean;
 
   constructor(
     protected eventEmitter: EventEmitter,
@@ -46,7 +47,16 @@ export class EventIterator {
     this.resolve();
   }
 
+  /**
+   * Stop the iterator
+   */
+  stop() {
+    this.running = false;
+    this.resolve();
+  }
+
   async *iterate() {
+    this.running = true;
     // using a queue and not the once method in case 2 events are sent successively
     this.listeners = {};
     try {
@@ -73,7 +83,9 @@ export class EventIterator {
             this.resolve = resolve;
           });
         }
-
+        if (!this.running) {
+          break;
+        }
         // Prefix the answer into an object
         yield this.prefix ? { [this.prefix]: this.queue.shift() } : this.queue.shift();
       }
@@ -85,6 +97,67 @@ export class EventIterator {
       this.listeners = {};
       // Avoid creating a map to get one listener that will ultimately be the same as having multiple listeners
       this.eventEmitter.setMaxListeners(this.eventEmitter.getMaxListeners() - Object.keys(this.events).length);
+    }
+  }
+}
+
+function isAsyncGenerator(it: any): it is AsyncGenerator {
+  return (
+    typeof it[Symbol.asyncIterator] == "function" && typeof it["next"] == "function" && typeof it["throw"] == "function"
+  );
+}
+
+/**
+ * Assemble to event iterator into one
+ */
+export class MergedEventIterator {
+  static async *iterate(data: any, ignoreUndefined = false) {
+    let res = {};
+    let asyncs: {
+      [key: string]: {
+        attr: any;
+        value: Promise<any>;
+        type: string;
+      };
+    } = {};
+    for (let i in data) {
+      const attr = data[i];
+      const getPromise = async attr => {
+        let info = await attr.next();
+        if (info.done) {
+          delete asyncs[i];
+        } else {
+          asyncs[i].value = getPromise(attr);
+        }
+        if (info.value || !ignoreUndefined) {
+          res[i] = info.value;
+        }
+      };
+      // check the interface
+      if (isAsyncGenerator(attr)) {
+        asyncs[i] = {
+          attr,
+          value: getPromise(attr),
+          type: "asyncGenerator"
+        };
+      } else if (data[i] instanceof Promise) {
+        asyncs[i] = {
+          attr,
+          value: (async () => {
+            res[i] = await data[i];
+            delete asyncs[i];
+          })(),
+          type: "promise"
+        };
+      } else {
+        res[i] = data[i];
+      }
+    }
+    yield res;
+    while (Object.keys(asyncs).length) {
+      let p = Object.keys(asyncs).map(i => asyncs[i].value);
+      await Promise.race(p);
+      yield res;
     }
   }
 }

@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { EventEmitter } from "events";
-import { EventIterator } from "./iterators";
+import { EventIterator, MergedEventIterator } from "./iterators";
 
 @suite
 class IteratorsTest {
@@ -68,6 +68,56 @@ class IteratorsTest {
     ).iterate();
     for await (const evt of it) {
       break;
+    }
+  }
+
+  @test
+  async mergeIterator() {
+    let emitter = new EventEmitter();
+
+    let eventIterator = new EventIterator(emitter, "test");
+    let objectIterator = new EventIterator(emitter, {
+      test2: evt => {
+        return "test" + evt.evt;
+      }
+    });
+    let it = MergedEventIterator.iterate(
+      {
+        event: eventIterator.iterate(),
+        static: "static",
+        object: objectIterator.iterate(),
+        promise: (async () => {
+          return "promise";
+        })()
+      },
+      true
+    );
+    let i = 0;
+    for await (const evt of it) {
+      i++;
+
+      switch (i) {
+        case 1:
+          assert.deepStrictEqual(evt, { static: "static", promise: "promise" });
+          emitter.emit("test2", { evt: i, test: "test" });
+          break;
+        case 2:
+          assert.deepStrictEqual(evt, { static: "static", promise: "promise", object: "test1" });
+          emitter.emit("test", { full: true });
+          break;
+        case 3:
+          assert.deepStrictEqual(evt, { static: "static", promise: "promise", object: "test1", event: { full: true } });
+          emitter.emit("test2", { evt: i, test: "test" });
+          break;
+        case 4:
+          assert.deepStrictEqual(evt, { static: "static", promise: "promise", object: "test3", event: { full: true } });
+          eventIterator.stop();
+          break;
+        case 5:
+          assert.deepStrictEqual(evt, { static: "static", promise: "promise", object: "test3", event: { full: true } });
+          objectIterator.stop();
+          break;
+      }
     }
   }
 }

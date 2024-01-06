@@ -237,7 +237,7 @@ export default class DynamoStore<
         // Subfields like team.id needs to be #a1.#a2
         let attr = `a${count++}`;
         let fullAttr = `#${attr}`;
-        child.attribute.splice(1).forEach(v => {
+        child.attribute.slice(1).forEach(v => {
           let subAttr = `#a${count++}`;
           fullAttr += `.${subAttr}`;
           ExpressionAttributeNames[subAttr] = v;
@@ -286,20 +286,26 @@ export default class DynamoStore<
     if (!Object.keys(ExpressionAttributeValues).length) {
       ExpressionAttributeValues = undefined;
     }
-    const ExclusiveStartKey = query.continuationToken
+    let ExclusiveStartKey = query.continuationToken
       ? JSON.parse(Buffer.from(query.continuationToken, "base64").toString())
       : undefined;
     // Scan if not primary key was provided
     if (scan) {
       // SHould log bad query
-      result = await this._client.scan({
-        TableName: this.parameters.table,
-        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
-        ExclusiveStartKey,
-        ExpressionAttributeNames,
-        ExpressionAttributeValues,
-        Limit: query.limit
-      });
+      const Items = [];
+      do {
+        result = await this._client.scan({
+          TableName: this.parameters.table,
+          FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
+          ExclusiveStartKey,
+          ExpressionAttributeNames,
+          ExpressionAttributeValues,
+          Limit: query.limit - Items.length
+        });
+        Items.push(...result.Items);
+        result.Items = Items;
+        ExclusiveStartKey = result.LastEvaluatedKey;
+      } while (Items.length < query.limit && result.LastEvaluatedKey);
     } else {
       result = await this._client.query({
         TableName: this.parameters.table,

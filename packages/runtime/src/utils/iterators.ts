@@ -86,8 +86,9 @@ export class EventIterator {
         if (!this.running) {
           break;
         }
+        const value = this.queue.shift();
         // Prefix the answer into an object
-        yield this.prefix ? { [this.prefix]: this.queue.shift() } : this.queue.shift();
+        yield this.prefix ? { [this.prefix]: value } : value;
       }
     } finally {
       // Remove all listeners
@@ -110,9 +111,10 @@ function isAsyncGenerator(it: any): it is AsyncGenerator {
 /**
  * Assemble to event iterator into one
  */
-export class MergedEventIterator {
-  static async *iterate(data: any, ignoreUndefined = false) {
+export class MergedIterator {
+  static async *iterate(data: any, ignoreUndefined = false, transformer: (data: any) => any = a => a) {
     let res = {};
+    let available = false;
     let asyncs: {
       [key: string]: {
         attr: any;
@@ -124,13 +126,14 @@ export class MergedEventIterator {
       const attr = data[i];
       const getPromise = async attr => {
         let info = await attr.next();
+        available = true;
         if (info.done) {
           delete asyncs[i];
         } else {
           asyncs[i].value = getPromise(attr);
         }
         if (info.value || !ignoreUndefined) {
-          res[i] = info.value;
+          res[i] = transformer(info.value);
         }
       };
       // check the interface
@@ -155,9 +158,12 @@ export class MergedEventIterator {
     }
     yield res;
     while (Object.keys(asyncs).length) {
+      if (available) {
+        yield res;
+        available = false;
+      }
       let p = Object.keys(asyncs).map(i => asyncs[i].value);
       await Promise.race(p);
-      yield res;
     }
   }
 }

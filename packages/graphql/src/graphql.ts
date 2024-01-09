@@ -12,7 +12,7 @@ import {
   WebdaError,
   WebdaQL
 } from "@webda/core";
-import { EventIterator } from "@webda/runtime";
+import { EventIterator, MergedIterator } from "@webda/runtime";
 import {
   FieldNode,
   GraphQLBoolean,
@@ -21,8 +21,10 @@ import {
   GraphQLInputObjectType,
   GraphQLList,
   GraphQLObjectType,
+  GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLString,
+  GraphQLType,
   ThunkObjMap,
   printSchema
 } from "graphql";
@@ -147,6 +149,10 @@ export class GraphQLParameters extends DomainServiceParameters {
    * Expose the schema
    */
   exposeGraphiQL: boolean;
+  /**
+   * Expose a aggregation of all available subscriptions
+   */
+  globalSubscription: boolean;
 
   constructor(params: any) {
     super({ ...params, nameTransfomer: params.nameTransfomer || "PascalCase" });
@@ -154,6 +160,7 @@ export class GraphQLParameters extends DomainServiceParameters {
     this.maxOperationsPerRequest ??= 10;
     this.userModel ??= "User";
     this.exposeMe ??= true;
+    this.globalSubscription ??= true;
   }
 }
 
@@ -202,8 +209,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @param defaultName
    * @returns
    */
-  getGraphQLSchemaFromSchema(schema: JSONSchema7, defaultName: string, input?: boolean): any {
-    let type: any;
+  getGraphQLSchemaFromSchema(
+    schema: JSONSchema7,
+    defaultName: string,
+    input?: boolean
+  ): { type: GraphQLType; description?: string } {
+    let type: GraphQLType;
     if (!schema || !schema.type) {
       type = AnyScalarType;
     } else if (schema.type === "string") {
@@ -265,9 +276,6 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         },
         continuationToken: {
           type: GraphQLString
-        },
-        events: {
-          type: AnyScalarType
         }
       },
       name
@@ -629,16 +637,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           return this.registerAsyncIteratorQuery(model, plural, WebdaQL.unsanitize(args.query || ""), context);
         }
       };
+      /**
+       * Subscription for a specific object
+       */
       subscriptions[this.transformName(i.split("/").pop())] = {
         type: this.modelsMap[i],
         args: {
           [model.getUuidField()]: {
             type: GraphQLString
-          },
-          events: {
-            type: new GraphQLList(GraphQLString),
-            description: "Set a listener for this events on the object",
-            defaultValue: ""
           }
         },
         subscribe: async (_source, args, context) => {
@@ -646,6 +652,65 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           return this.registerAsyncIterator(model, args[model.getUuidField()], context);
         }
       };
+      const events = model.getClientEvents();
+      const modelEvents: string[] = events
+        .filter(e => typeof e !== "string" && e.global)
+        .map((e: { name: string; global: true }) => e.name);
+      const instanceEvents: string[] = events
+        .filter(e => typeof e === "string" || !e.global)
+        .map(e => (typeof e === "string" ? e : e.name));
+      if (modelEvents.length) {
+        const eventTypes = {};
+        modelEvents.forEach(e => {
+          eventTypes[e] = {
+            type: AnyScalarType
+          };
+        });
+        eventTypes["latestEventTime"] = { type: GraphQLLong };
+        /**
+         * Subscription for all events on a class of objects
+         */
+        subscriptions[plural + "Events"] = {
+          type: new GraphQLObjectType({ fields: eventTypes, name: plural + "Events" }),
+          subscribe: async (_source, args, context, info) => {
+            let subscribedEvents = this.getSubscribedEvents(info);
+            this.log("DEBUG", "Subscription called on", model, args[model.getUuidField()], subscribedEvents);
+            return this.registerAsyncEventIterator(model, null, subscribedEvents, context, plural + "Events");
+          }
+        };
+      }
+      if (instanceEvents.length) {
+        const eventTypes = {};
+        instanceEvents.forEach(e => {
+          eventTypes[e] = { type: AnyScalarType };
+        });
+        eventTypes["latestEventTime"] = { type: GraphQLLong };
+        /**
+         * Subscription for event on a specific object
+         */
+        subscriptions[this.transformName(i.split("/").pop()) + "Events"] = {
+          type: new GraphQLObjectType({ fields: eventTypes, name: this.transformName(i.split("/").pop()) + "Events2" }),
+          args: {
+            [model.getUuidField()]: {
+              type: GraphQLString
+            }
+          },
+          subscribe: async (_source, args, context, info) => {
+            let subscribedEvents = this.getSubscribedEvents(info);
+            this.log("DEBUG", "Subscription called on", model, args[model.getUuidField()], subscribedEvents);
+            return this.registerAsyncEventIterator(
+              model,
+              args[model.getUuidField()],
+              subscribedEvents,
+              context,
+              this.transformName(i.split("/").pop()) + "Events"
+            );
+          }
+        };
+      }
+      /**
+       * Query for a specific object
+       */
       rootFields[this.transformName(i.split("/").pop())] = {
         type: this.modelsMap[i],
         args: {
@@ -673,13 +738,6 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         };
         subscriptions["Me"] = {
           type: this.modelsMap[userGraph],
-          args: {
-            events: {
-              type: new GraphQLList(GraphQLString),
-              description: "Set a listener for this events on the object",
-              defaultValue: ""
-            }
-          },
           subscribe: async (_source, _args, context) => {
             if (!context.getCurrentUserId()) {
               throw new GraphQLError("Permission denied", {
@@ -692,6 +750,39 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             return this.registerAsyncIterator(user.__class, context.getCurrentUserId(), context, "Me");
           }
         };
+        const events = model.getClientEvents();
+        const instanceEvents: string[] = events
+          .filter(e => typeof e === "string" || !e.global)
+          .map(e => (typeof e === "string" ? e : e.name));
+        if (instanceEvents.length) {
+          const eventTypes = {};
+          instanceEvents.forEach(e => {
+            eventTypes[e] = { type: AnyScalarType };
+          });
+          subscriptions["MeEvents"] = {
+            type: new GraphQLObjectType({ fields: eventTypes, name: "MeEvents" }),
+            subscribe: async (_source, args, context, info) => {
+              if (!context.getCurrentUserId()) {
+                throw new GraphQLError("Permission denied", {
+                  extensions: {
+                    code: "PERMISSION_DENIED"
+                  }
+                });
+              }
+              const subscribedEvents = (info.fieldNodes[0].selectionSet?.selections || [])
+                .filter(node => node.kind === "Field")
+                .map(n => (<FieldNode>n).name.value);
+              const user: CoreModel = await context.getCurrentUser();
+              return this.registerAsyncEventIterator(
+                user.__class,
+                context.getCurrentUserId(),
+                subscribedEvents,
+                context,
+                "MeEvents"
+              );
+            }
+          };
+        }
       } else {
         this.log("WARN", "Cannot expose me, user model is not exposed or get is restricted or type is not unavailable");
       }
@@ -701,7 +792,53 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     for (let i in rootFields) {
       subscriptions[i] ??= { ...rootFields[i], resolve: undefined };
     }
+    if (this.parameters.globalSubscription) {
+      // Create global type based on all previous subscriptions
+      subscriptions["Aggregate"] = {
+        type: new GraphQLObjectType({
+          fields: subscriptions,
+          name: "AggregateSubscriptions"
+        }),
+        subscribe: async (_source, args2, context, info) => {
+          let iterators = {};
+          let p = [];
+          // Check if know all fields already
+          for (let field of (info.fieldNodes[0].selectionSet?.selections || []).filter(node => node.kind === "Field")) {
+            const name = (<FieldNode>field).name.value;
+            const args = {};
+            (<FieldNode>field).arguments?.forEach(arg => {
+              // @ts-ignore
+              args[arg.name.value] = arg.value.value;
+            });
+            p.push(
+              (async () => {
+                iterators[name] = await subscriptions[name].subscribe(_source, args, context, <any>{
+                  fieldNodes: [field] // Abusing a bit the builder currently
+                });
+              })()
+            );
+          }
+          await Promise.all(p);
+          return MergedIterator.iterate({
+            Aggregate: MergedIterator.iterate(iterators, true, data => {
+              return Object.values(data).pop();
+            })
+          });
+        }
+      };
+    }
     this.schema = this.getGraphQLSchema(rootFields, mutations, subscriptions);
+  }
+
+  /**
+   * Return the events to subscribe to
+   * @param info
+   * @returns
+   */
+  getSubscribedEvents(info: GraphQLResolveInfo) {
+    return (info.fieldNodes[0].selectionSet?.selections || [])
+      .filter(node => node.kind === "Field" && node.name.value !== "latestEventTime")
+      .map(n => (<FieldNode>n).name.value);
   }
 
   /**
@@ -801,6 +938,43 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       identifier || model.getIdentifier(),
       modelInstance
     ).iterate();
+  }
+
+  /**
+   *
+   * @param model
+   * @param uuid
+   * @param context
+   * @returns
+   */
+  async registerAsyncEventIterator(
+    model: CoreModelDefinition<CoreModel>,
+    uuid: string | null,
+    events: string[],
+    context: any,
+    identifier: string
+  ): Promise<AsyncIterator<any>> {
+    const updatedCallback = eventName => async evt => {
+      if (uuid === null || evt.object_id !== uuid) return;
+      // We rely on the cache of the store to get the full object
+      // We let the other listeners finish before returning the object
+      return { latestEventTime: Date.now(), [eventName]: evt };
+    };
+    const eventsMap = {};
+    let modelInstance = uuid !== null ? await model.ref(uuid).get() : undefined;
+    events
+      .filter(e => model.authorizeClientEvent(e, context, modelInstance))
+      .forEach(e => (eventsMap[e] = updatedCallback(e)));
+
+    // Ensure we have the permission to listen to the object
+    if (Object.keys(eventsMap).length === 0) {
+      throw new GraphQLError("Permission denied", {
+        extensions: {
+          code: "PERMISSION_DENIED"
+        }
+      });
+    }
+    return new EventIterator(model.store(), eventsMap, identifier, { logout: { evt: "nok?" } }).iterate();
   }
 
   /**

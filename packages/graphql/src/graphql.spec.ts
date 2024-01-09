@@ -328,7 +328,8 @@ class GraphQLServiceTest extends WebdaTest {
         restrict: {},
         root: true
       },
-      getIdentifier: () => "WebdaDemo/User2"
+      getIdentifier: () => "WebdaDemo/User2",
+      getClientEvents: () => []
     });
     this.service.app.addModel("WebdaDemo/User3", {
       getSchema: () => undefined,
@@ -336,7 +337,8 @@ class GraphQLServiceTest extends WebdaTest {
         restrict: {},
         root: true
       },
-      getIdentifier: () => "User3"
+      getIdentifier: () => "User3",
+      getClientEvents: () => []
     });
     this.service.app.addModel("WebdaDemo/Cov", {
       getSchema: () => ({
@@ -357,6 +359,7 @@ class GraphQLServiceTest extends WebdaTest {
         restrict: {},
         root: true
       },
+      getClientEvents: () => [],
       getIdentifier: () => "WebdaDemo/Cov"
     });
     this.service.app.addModel("WebdaDemo/Cov2", {
@@ -381,6 +384,7 @@ class GraphQLServiceTest extends WebdaTest {
         restrict: {},
         root: true
       },
+      getClientEvents: () => [],
       getIdentifier: () => "WebdaDemo/Cov2"
     });
     this.service.getParameters().userModel = "User2";
@@ -494,6 +498,21 @@ class GraphQLSubscriptionTest {
           }
         }
       })();
+
+      console.log("Starting subscription on MeEvents w/o auth");
+      await assert.rejects(
+        async () => {
+          const subscription = client.iterate({
+            query: `subscription { MeEvents { logout } }`
+          });
+          for await (const event of subscription) {
+            if (event.errors) {
+              throw event.errors[0];
+            }
+          }
+        },
+        (err: any) => err.message === "Permission denied"
+      );
       // Close client
       await client.dispose();
 
@@ -525,6 +544,63 @@ class GraphQLSubscriptionTest {
           }
         }
       })();
+
+      console.log("Starting subscription aggregation");
+      i = 0;
+      await (async () => {
+        const subscription = client2.iterate({
+          //  Courses(query:"value=10") { name uuid } CoursesEvents(events:["test2"]) {  } CourseEvents(uuid:"test", events:["plop"]) {  }
+          query: `subscription {  Aggregate { Me { name } Courses(query:"value=10") { results { name uuid } }  Course(uuid:"test2") { uuid name } CourseEvents(uuid:"test3") { test test4 } CoursesEvents { test2 } MeEvents { logout } } }`
+        });
+        for await (const evt of subscription) {
+          const event: any = evt;
+          i++;
+          console.log("iteration", i, JSON.stringify(event, undefined, 2));
+          if (i === 1) {
+            assert.strictEqual(event.data?.Aggregate.Me.name, "plop2");
+            // Update test2
+            await Course.ref("test2").patch({ name: "test2c" });
+          } else if (i === 2) {
+            // no-op
+          } else if (i === 3) {
+            await User.store().emitSync(<any>"logout", { test2: "test2", object_id: "test" });
+          } else if (i === 4) {
+            assert.ok(
+              event.data?.Aggregate.Courses.results[0].name === "test2c" &&
+                event.data?.Aggregate.Course.name === "test2c"
+            );
+            assert.strictEqual(event.data?.Aggregate.MeEvents.logout?.test2, "test2");
+            Course.store().emitSync(<any>"test", { object_id: "test3", type: "test1" });
+          } else if (i === 5) {
+            assert.deepStrictEqual(event.data.Aggregate.CourseEvents.test, {
+              object_id: "test3",
+              type: "test1"
+            });
+            Course.store().emitSync(<any>"test4", { object_id: "test3", type: "test4" });
+          } else if (i === 6) {
+            assert.deepStrictEqual(event.data.Aggregate.CourseEvents.test4, {
+              object_id: "test3",
+              type: "test4"
+            });
+            break;
+          }
+        }
+      })();
+      console.log("Starting subscription aggregation with wrong permission");
+      i = 0;
+      await assert.rejects(
+        async () => {
+          const subscription = client2.iterate({
+            query: `subscription {  CourseEvents(uuid:"test") { test3 }  }`
+          });
+          for await (const evt of subscription) {
+            if (evt.errors) {
+              throw evt.errors[0];
+            }
+          }
+        },
+        (err: any) => err.message === "Permission denied"
+      );
     } finally {
       await Course.store().__clean();
       await server.stop();

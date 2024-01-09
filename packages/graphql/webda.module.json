@@ -134,6 +134,10 @@
           "type": "boolean",
           "description": "Expose the schema"
         },
+        "globalSubscription": {
+          "type": "boolean",
+          "description": "Expose a aggregation of all available subscriptions"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
@@ -142,6 +146,7 @@
       "required": [
         "exposeGraphiQL",
         "exposeMe",
+        "globalSubscription",
         "maxOperationsPerRequest",
         "models",
         "nameTransfomer",

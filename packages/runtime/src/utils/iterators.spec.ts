@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { EventEmitter } from "events";
-import { EventIterator, MergedEventIterator } from "./iterators";
+import { EventIterator, MergedIterator } from "./iterators";
 
 @suite
 class IteratorsTest {
@@ -81,7 +81,7 @@ class IteratorsTest {
         return "test" + evt.evt;
       }
     });
-    let it = MergedEventIterator.iterate(
+    let it = MergedIterator.iterate(
       {
         event: eventIterator.iterate(),
         static: "static",

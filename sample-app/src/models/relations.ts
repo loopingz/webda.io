@@ -4,6 +4,7 @@
 
 import {
   Action,
+  CoreModel,
   Expose,
   ModelLink,
   ModelLinksArray,
@@ -40,10 +41,16 @@ class Student extends DefaultTestModel {
   // For cov
   constraints: null;
 
+  /**
+   * @Frontend
+   */
   getUuid(): string {
     return this.email;
   }
 
+  /**
+   * @Frontend
+   */
   static getUuidField(): string {
     // use email for uuid
     return "email";
@@ -79,6 +86,34 @@ class Course extends DefaultTestModel {
 
   async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
     return true;
+  }
+
+  /**
+   * Use for graphql eventing system
+   * @param _client
+   * @param event
+   * @returns
+   */
+  static getClientEvents(): (string | { name: string; global: boolean })[] {
+    return [
+      "test",
+      {
+        name: "test2",
+        global: true
+      },
+      "test3",
+      "test4"
+    ];
+  }
+
+  /**
+   * Use for graphql eventing system
+   * @param _client
+   * @param event
+   * @returns
+   */
+  static authorizeClientEvent(event: string, _context: OperationContext<any, any>, _model?: CoreModel): boolean {
+    return event !== "test3";
   }
 }
 @Expose()
@@ -128,7 +163,7 @@ export class ComputerScreen extends Hardware {
  * Model not exposed on purpose
  */
 export class Brand extends UuidModel {
-  "name": string;
+  name: string;
 }
 
 export { Classroom, Course, Hardware, Student, Teacher };

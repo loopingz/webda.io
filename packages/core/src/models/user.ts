@@ -94,6 +94,28 @@ export class User extends CoreModel {
     }
     return true;
   }
+
+  /**
+   * Add a login/logout event
+   * @returns
+   */
+  static getClientEvents(): string[] {
+    return [...CoreModel.getClientEvents(), "login", "logout"];
+  }
+
+  /**
+   * Only current user can see its own events
+   * @param _event
+   * @param context
+   * @param model
+   * @returns
+   */
+  static authorizeClientEvent(_event: string, context: OperationContext<any, any>, model?: CoreModel): boolean {
+    if (model && model.getUuid() === context.getCurrentUserId()) {
+      return true;
+    }
+    return false;
+  }
 }
 
 /**

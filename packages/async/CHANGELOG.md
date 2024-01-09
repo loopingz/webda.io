@@ -72,6 +72,24 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.1.0 to ^1.1.1
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/async-v3.4.1...async-v3.5.0) (2024-01-09)
+
+
+### Features
+
+* add mutations on graphql ([fa3d647](https://github.com/loopingz/webda.io/commit/fa3d647eea8883ecf20bfd4d947f3f99ad05a0f3))
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+    * @webda/workout bumped from ^3.1.1 to ^3.1.2
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.1.1 to ^1.2.0
+
 ## [3.4.1](https://github.com/loopingz/webda.io/compare/async-v3.4.0...async-v3.4.1) (2023-12-05)
 
 

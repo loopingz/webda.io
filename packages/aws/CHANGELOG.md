@@ -131,6 +131,29 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.3.0](https://github.com/loopingz/webda.io/compare/aws-v3.2.8...aws-v3.3.0) (2024-01-09)
+
+
+### Features
+
+* add route53 sync shell command ([933f359](https://github.com/loopingz/webda.io/commit/933f3596e6b7985484fc369ab5ee272bd8c786c3))
+
+
+### Bug Fixes
+
+* dynamodb scan query splice bad result ([5c3d657](https://github.com/loopingz/webda.io/commit/5c3d6575191d481dedd2365407eb6fc47f223bd5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.4.1 to ^3.5.0
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+    * @webda/workout bumped from ^3.1.1 to ^3.1.2
+  * devDependencies
+    * @webda/shell bumped from ^3.8.2 to ^3.9.0
+
 ## [3.2.7](https://github.com/loopingz/webda.io/compare/aws-v3.2.6...aws-v3.2.7) (2023-12-04)
 
 

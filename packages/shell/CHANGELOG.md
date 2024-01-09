@@ -31,6 +31,31 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.8.0 to ^3.8.1
     * @webda/kubernetes bumped from ^3.2.1 to ^3.2.2
 
+## [3.9.0](https://github.com/loopingz/webda.io/compare/shell-v3.8.2...shell-v3.9.0) (2024-01-09)
+
+
+### Features
+
+* add encrypter and configuration encryption ([b53611c](https://github.com/loopingz/webda.io/commit/b53611cf9c18838b250e732a14a77224abca484d))
+* add mutations on graphql ([fa3d647](https://github.com/loopingz/webda.io/commit/fa3d647eea8883ecf20bfd4d947f3f99ad05a0f3))
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+* **shell:** remove websockets as it was socketio ([2a78ba7](https://github.com/loopingz/webda.io/commit/2a78ba75fe03879fa0028e05df4cb5fd215a95ae))
+
+
+### Bug Fixes
+
+* NotEnumerable properties should not be in schema ([cb9e4ac](https://github.com/loopingz/webda.io/commit/cb9e4ace3053750e9ab3bfe5443d2cde577d6676))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+    * @webda/kubernetes bumped from ^3.2.8 to ^3.3.0
+    * @webda/tsc-esm bumped from ^1.1.1 to ^1.2.0
+    * @webda/workout bumped from ^3.1.1 to ^3.1.2
+
 ## [3.8.2](https://github.com/loopingz/webda.io/compare/shell-v3.8.1...shell-v3.8.2) (2023-12-05)
 
 

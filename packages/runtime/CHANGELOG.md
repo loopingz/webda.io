@@ -40,6 +40,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/runtime-v3.1.5...runtime-v3.2.0) (2024-01-09)
+
+
+### Features
+
+* add Aggregation for subscriptions and event listener subscriptions ([8bca3ce](https://github.com/loopingz/webda.io/commit/8bca3cebd45e3d91355bf3d862abab93d3be14b4))
+* add encrypter and configuration encryption ([b53611c](https://github.com/loopingz/webda.io/commit/b53611cf9c18838b250e732a14a77224abca484d))
+* add EventAsyncIterator ([f3eb7f9](https://github.com/loopingz/webda.io/commit/f3eb7f9953c908d8e3708b4d53978f2744817e94))
+* add MergedEventIterator to compile multiple Iterator in one ([4b8e53e](https://github.com/loopingz/webda.io/commit/4b8e53e3295d85a45f3ab4cb654ccd6a0100d64b))
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+* move ProxyService to runtime ([#342](https://github.com/loopingz/webda.io/issues/342)) ([a95a797](https://github.com/loopingz/webda.io/commit/a95a7977ed4e35b0f475fd3cb0648ae5a0c5cc75))
+* move some services from @webda/core to @webda/runtime ([#342](https://github.com/loopingz/webda.io/issues/342)) ([bf78ca9](https://github.com/loopingz/webda.io/commit/bf78ca90aadce5b92bc90986beeae3d6543631da))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+  * devDependencies
+    * @webda/shell bumped from ^3.8.2 to ^3.9.0
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/runtime-v3.0.0...runtime-v3.1.0) (2023-11-18)
 
 

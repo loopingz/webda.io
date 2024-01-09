@@ -64,6 +64,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.3.0](https://github.com/loopingz/webda.io/compare/postgres-v3.2.5...postgres-v3.3.0) (2024-01-09)
+
+
+### Features
+
+* add mutations on graphql ([fa3d647](https://github.com/loopingz/webda.io/commit/fa3d647eea8883ecf20bfd4d947f3f99ad05a0f3))
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+  * devDependencies
+    * @webda/shell bumped from ^3.8.2 to ^3.9.0
+
 ## [3.2.4](https://github.com/loopingz/webda.io/compare/postgres-v3.2.3...postgres-v3.2.4) (2023-12-04)
 
 

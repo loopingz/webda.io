@@ -120,6 +120,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/websockets-v3.1.8...websockets-v3.2.0) (2024-01-09)
+
+
+### Features
+
+* add mutations on graphql ([fa3d647](https://github.com/loopingz/webda.io/commit/fa3d647eea8883ecf20bfd4d947f3f99ad05a0f3))
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+  * devDependencies
+    * @webda/shell bumped from ^3.8.2 to ^3.9.0
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/websockets-v3.0.12...websockets-v3.1.0) (2023-11-12)
 
 

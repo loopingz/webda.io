@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.1.1...tsc-esm-v1.2.0) (2024-01-09)
+
+
+### Features
+
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+
+
+### Bug Fixes
+
+* import with comments ([2998903](https://github.com/loopingz/webda.io/commit/2998903a3a09910110041ee0d44c4526269226c6))
+
 ## [1.1.1](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.1.0...tsc-esm-v1.1.1) (2023-11-30)
 
 

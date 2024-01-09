@@ -19,6 +19,43 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.12.0](https://github.com/loopingz/webda.io/compare/core-v3.11.2...core-v3.12.0) (2024-01-09)
+
+
+### Features
+
+* add a PartialValidator for query ([1ef8dea](https://github.com/loopingz/webda.io/commit/1ef8dea2b6e96ee007ed278267e21d3e9e0ff41a))
+* add Aggregation for subscriptions and event listener subscriptions ([8bca3ce](https://github.com/loopingz/webda.io/commit/8bca3cebd45e3d91355bf3d862abab93d3be14b4))
+* add encrypter and configuration encryption ([b53611c](https://github.com/loopingz/webda.io/commit/b53611cf9c18838b250e732a14a77224abca484d))
+* add metrics to pubsub and update store for cache update ([5c6e196](https://github.com/loopingz/webda.io/commit/5c6e19619e00478baa332d8db1496ad0b8eb0cf9))
+* add mutations on graphql ([fa3d647](https://github.com/loopingz/webda.io/commit/fa3d647eea8883ecf20bfd4d947f3f99ad05a0f3))
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+* make CoreModel class fully compatible with EventEmitter ([76c3b9b](https://github.com/loopingz/webda.io/commit/76c3b9b16a855a15008e9afe1ff0b8c7ea47ebb3))
+* move ProxyService to runtime ([#342](https://github.com/loopingz/webda.io/issues/342)) ([a95a797](https://github.com/loopingz/webda.io/commit/a95a7977ed4e35b0f475fd3cb0648ae5a0c5cc75))
+* move some services from @webda/core to @webda/runtime ([#342](https://github.com/loopingz/webda.io/issues/342)) ([bf78ca9](https://github.com/loopingz/webda.io/commit/bf78ca90aadce5b92bc90986beeae3d6543631da))
+* use MemoryStore cache by default on all store ([85c9288](https://github.com/loopingz/webda.io/commit/85c92884736e5955ed749ca61361eb8e3f1b6bfc))
+
+
+### Bug Fixes
+
+* &gt; &lt; characters in query were sanitized ([ea19364](https://github.com/loopingz/webda.io/commit/ea193646b7603ec786413ccd74316127f2badc84))
+* append condition to query ([4c0e3fc](https://github.com/loopingz/webda.io/commit/4c0e3fc08a779c1b4c72ffa8472595cc35f85b6b))
+* ASC/DESC in ORDER BY query with prepended condition ([1903a12](https://github.com/loopingz/webda.io/commit/1903a126688615efb7f7ea3c66342827116e2267))
+* cache sync ([0475815](https://github.com/loopingz/webda.io/commit/047581528891dbb35f9904bad367e5e4d6e3a116))
+* dynamodb scan query splice bad result ([5c3d657](https://github.com/loopingz/webda.io/commit/5c3d6575191d481dedd2365407eb6fc47f223bd5))
+* getMetrics ensure service name is included ([00881b7](https://github.com/loopingz/webda.io/commit/00881b7f08da6cabce4f617cf9a692db6a230af8))
+* NotEnumerable properties should not be in schema ([cb9e4ac](https://github.com/loopingz/webda.io/commit/cb9e4ace3053750e9ab3bfe5443d2cde577d6676))
+* **test:** store metric now have the service name ([12baed4](https://github.com/loopingz/webda.io/commit/12baed4a8525278f401299989111fec552f2363a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.1.1 to ^3.1.2
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.1.1 to ^1.2.0
+
 ## [3.11.2](https://github.com/loopingz/webda.io/compare/core-v3.11.1...core-v3.11.2) (2023-12-05)
 
 

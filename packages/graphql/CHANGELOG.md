@@ -80,6 +80,35 @@
   * devDependencies
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.7.0](https://github.com/loopingz/webda.io/compare/graphql-v3.6.2...graphql-v3.7.0) (2024-01-09)
+
+
+### Features
+
+* add Aggregation for subscriptions and event listener subscriptions ([8bca3ce](https://github.com/loopingz/webda.io/commit/8bca3cebd45e3d91355bf3d862abab93d3be14b4))
+* add MergedEventIterator to compile multiple Iterator in one ([4b8e53e](https://github.com/loopingz/webda.io/commit/4b8e53e3295d85a45f3ab4cb654ccd6a0100d64b))
+* add mutations on graphql ([fa3d647](https://github.com/loopingz/webda.io/commit/fa3d647eea8883ecf20bfd4d947f3f99ad05a0f3))
+* add subscription system ([b4f625c](https://github.com/loopingz/webda.io/commit/b4f625c44a306f57c7cc44b3aae805b1e6537c52))
+* implement filter on linked collection ([a08ef9b](https://github.com/loopingz/webda.io/commit/a08ef9bd8185803489b33fa170e50c919ffd082f))
+
+
+### Bug Fixes
+
+* date serializer ([2e66a6e](https://github.com/loopingz/webda.io/commit/2e66a6e0a514f7bd0972f01ede1752055c8eec73))
+* dynamodb scan query splice bad result ([5c3d657](https://github.com/loopingz/webda.io/commit/5c3d6575191d481dedd2365407eb6fc47f223bd5))
+* getMetrics ensure service name is included ([00881b7](https://github.com/loopingz/webda.io/commit/00881b7f08da6cabce4f617cf9a692db6a230af8))
+* **graphql:** number 2^32 and maps type in models ([425b2c7](https://github.com/loopingz/webda.io/commit/425b2c7c89845c2dc36abb897ee482221a451749))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+    * @webda/runtime bumped from ^3.1.5 to ^3.2.0
+  * devDependencies
+    * @webda/shell bumped from ^3.8.2 to ^3.9.0
+
 ## [3.6.0](https://github.com/loopingz/webda.io/compare/graphql-v3.5.0...graphql-v3.6.0) (2023-11-30)
 
 

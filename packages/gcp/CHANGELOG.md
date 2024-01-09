@@ -99,6 +99,25 @@
     * @webda/async bumped from ^3.4.0 to ^3.4.1
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.3.0](https://github.com/loopingz/webda.io/compare/gcp-v3.2.8...gcp-v3.3.0) (2024-01-09)
+
+
+### Features
+
+* add encrypter and configuration encryption ([b53611c](https://github.com/loopingz/webda.io/commit/b53611cf9c18838b250e732a14a77224abca484d))
+* add metrics to pubsub and update store for cache update ([5c6e196](https://github.com/loopingz/webda.io/commit/5c6e19619e00478baa332d8db1496ad0b8eb0cf9))
+* move ProxyService to runtime ([#342](https://github.com/loopingz/webda.io/issues/342)) ([a95a797](https://github.com/loopingz/webda.io/commit/a95a7977ed4e35b0f475fd3cb0648ae5a0c5cc75))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.11.2 to ^3.12.0
+  * devDependencies
+    * @webda/async bumped from ^3.4.1 to ^3.5.0
+    * @webda/shell bumped from ^3.8.2 to ^3.9.0
+
 ## [3.2.7](https://github.com/loopingz/webda.io/compare/gcp-v3.2.6...gcp-v3.2.7) (2023-12-04)
 
 

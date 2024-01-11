@@ -21,6 +21,7 @@ class ClusterServiceTest extends WebdaSimpleTest {
 
   @test
   async test() {
+    process.env["CLUSTER_SERVICE"] = "Cluster";
     console.log(Object.keys(this.webda.getModels()));
     let CoreModel = this.webda.getModels()["Webda/CoreModel"];
     CoreModel.getClientEvents = () => ["test"];
@@ -28,6 +29,26 @@ class ClusterServiceTest extends WebdaSimpleTest {
     this.service = this.registerService(
       await new ClusterService(this.webda, "Cluster", { keepAlive: 10 }).resolve().init()
     );
+    assert.strictEqual(this.service.nodeData["SERVICE"], "Cluster");
+    this.service.setMemberInfo({ plop: true });
+    assert.strictEqual(this.service.nodeData["SERVICE"], "Cluster");
+    assert.strictEqual(this.service.nodeData["plop"], true);
+    this.service.setMemberInfo({ plop: true }, true);
+    assert.strictEqual(this.service.nodeData["SERVICE"], undefined);
+    assert.strictEqual(this.service.nodeData["plop"], true);
+    await this.service["handleMessage"]({
+      emitterId: "testor",
+      type: "cluster",
+      event: "ClusterService.MemberKeepAlive",
+      emitter: "",
+      time: Date.now(),
+      data: {
+        emitterId: "testor",
+        customData: true
+      }
+    });
+    assert.strictEqual(this.service.members["testor"]?.customData, true);
+    delete this.service.members["testor"];
     assert.strictEqual(this.service.ready(), false);
     let ctx = await this.newContext();
     await this.service.readyEndpoint(ctx);

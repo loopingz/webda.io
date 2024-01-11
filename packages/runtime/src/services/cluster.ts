@@ -15,7 +15,7 @@ import {
 /**
  * Message going through our pub/sub
  */
-interface ClusterMessage {
+export interface ClusterMessage {
   /**
    * Event name
    */
@@ -87,6 +87,10 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   members: {
     [key: string]: {
       lastSeen: number;
+      /**
+       * Any data you want to store on the member
+       */
+      [key: string]: any;
     };
   } = {};
   /**
@@ -119,19 +123,25 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    * Sent the welcome message
    */
   _ready: boolean = false;
+  /**
+   * Node data to send to other nodes
+   */
+  nodeData: any = {};
 
   /**
    * Return cluster members
    * @returns
    */
   getMembers() {
-    return { ...this.members, [this.emitterId]: { lastSeen: Date.now() } };
+    return { ...this.members, [this.emitterId]: { lastSeen: Date.now(), ...this.nodeData } };
   }
 
   /**
    * @override
    */
   loadParameters(params: DeepPartial<T>): ServiceParameters {
+    this.emitterId = Core.getMachineId();
+    this.log("DEBUG", `Cluster emitterId ${this.emitterId}`);
     return new ClusterServiceParameters(params);
   }
 
@@ -150,17 +160,13 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    */
   async init() {
     await super.init();
-    //
-    this.pubSub = this.getService<PubSubService<ClusterMessage>>("PubSub");
-    this.emitterId = Core.getMachineId();
-    this.log("DEBUG", `Cluster emitterId ${this.emitterId}`);
 
     this.models = this.getWebda().getModels();
     for (let i in this.models) {
       for (let event of this.models[i].getClientEvents()) {
         this.models[i].on(<any>event, data => {
           this.sendMessage({
-            event,
+            event: typeof event === "string" ? event : event.name,
             data,
             type: "model",
             emitter: i
@@ -212,15 +218,37 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
+   * Allow to set some data on the member
+   * @param data
+   * @param erase will remove any other data
+   */
+  setMemberInfo(data: any = {}, erase?: boolean) {
+    this.nodeData = erase ? data : { ...this.nodeData, ...data };
+  }
+
+  /**
+   * Return the keep alive message to be sent
+   *
+   * Useful to override to add some dynamic data
+   * If the data is static you can use setMemberInfo
+   * @returns
+   */
+  async getKeepAliveMessage(): Promise<Partial<ClusterMessage>> {
+    return {
+      event: "ClusterService.MemberKeepAlive",
+      data: {
+        ...this.nodeData
+      },
+      type: "cluster"
+    };
+  }
+
+  /**
    * Send a keep alive on pub/sub and remove any member that we haven't seen in the last 64s -> missed 2 ttl
    */
   async updateCluster(): Promise<void> {
     let time = Date.now();
-    const keepAliveEvent = {
-      event: "ClusterService.MemberKeepAlive",
-      data: {},
-      type: "cluster"
-    };
+    const keepAliveEvent: Partial<ClusterMessage> = await this.getKeepAliveMessage();
     await this.sendMessage(keepAliveEvent, true);
     // Clean members
     time -= this.parameters.ttl;
@@ -268,7 +296,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    * @param message
    * @returns
    */
-  async sendMessage(message: any, force?: boolean): Promise<void> {
+  async sendMessage(message: Partial<ClusterMessage>, force?: boolean): Promise<void> {
     // If no other member no point to use the pub/sub
     if (!force && Object.keys(this.members).length === 0) {
       return;
@@ -279,7 +307,26 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
       this.log("DEBUG", "Skip emitted message");
       return;
     }
-    await this.pubSub.sendMessage({ ...message, emitterId: this.emitterId, time: Date.now() });
+    await this.pubSub.sendMessage(<ClusterMessage>{ ...message, emitterId: this.emitterId, time: Date.now() });
+  }
+
+  resolve(): this {
+    super.resolve();
+    const packageInfo = this.getWebda().getApplication().getPackageDescription();
+    // By default we will send the package name and version and any CLUSTER_* variables
+    this.nodeData = {
+      version: packageInfo.version,
+      packageName: packageInfo.name,
+      id: this.emitterId,
+      name: process.env.HOSTNAME || process.env.HOST || "unknown",
+      ...Object.keys(process.env)
+        .filter(key => key.startsWith("CLUSTER_"))
+        .reduce((acc, key) => {
+          acc[key.substring(8)] = process.env[key];
+          return acc;
+        }, {})
+    };
+    return this;
   }
 
   /**
@@ -339,6 +386,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
       if (message.event === "ClusterService.MemberRemoved" && message.data.emitterId === this.emitterId) {
         this.log("WARN", "Received a ClusterService.MemberRemoved for myself - sending a KeepAlive");
         this.updateCluster();
+      } else if (message.event === "ClusterService.MemberKeepAlive") {
+        this.members[message.emitterId] = { ...message.data, lastSeen: Date.now() };
       }
     }
   }

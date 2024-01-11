@@ -1,5 +1,5 @@
 import { CreateSubscriptionOptions, Message, PubSub, Subscription } from "@google-cloud/pubsub";
-import { CancelablePromise, PubSubService, ServiceParameters } from "@webda/core";
+import { CancelablePromise, Core, PubSubService, ServiceParameters } from "@webda/core";
 
 export class GCPPubSubParameters extends ServiceParameters {
   /**
@@ -47,7 +47,7 @@ export default class GCPPubSubService<
   }
 
   getSubscriptionName(): string {
-    return `${this.getName()}-${this.getWebda().getMachineId()}`;
+    return `${this.getName()}-${Core.getMachineId()}`;
   }
   /**
    * @override

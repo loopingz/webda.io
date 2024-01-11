@@ -46,6 +46,9 @@ export default class GCPPubSubService<
     return 0;
   }
 
+  getSubscriptionName(): string {
+    return `${this.getName()}-${this.getWebda().getMachineId()}`;
+  }
   /**
    * @override
    */
@@ -54,7 +57,7 @@ export default class GCPPubSubService<
     eventPrototype?: new () => T,
     onBind?: (subscription: Subscription) => void
   ): CancelablePromise<void> {
-    const subscriptionName = `${this.getName()}-${this.getWebda().getUuid()}`;
+    const subscriptionName = this.getSubscriptionName();
     let subscription: Subscription;
     const messageHandler = async (message: Message) => {
       this.metrics.messages_received.inc();
@@ -73,10 +76,13 @@ export default class GCPPubSubService<
       async (_resolve, reject) => {
         try {
           subscription = this.pubsub.subscription(subscriptionName);
-          const [result] = await this.pubsub
-            .topic(this.parameters.topic)
-            .createSubscription(subscriptionName, this.parameters.subscriptionOptions);
-          subscription = result;
+          const [exists] = await subscription.exists();
+          if (!exists) {
+            const [result] = await this.pubsub
+              .topic(this.parameters.topic)
+              .createSubscription(subscriptionName, this.parameters.subscriptionOptions);
+            subscription = result;
+          }
 
           // Receive callbacks for new messages on the subscription
           subscription.on("message", messageHandler);

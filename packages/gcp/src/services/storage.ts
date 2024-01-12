@@ -1,5 +1,5 @@
 "use strict";
-import { Bucket, File, GetSignedUrlConfig, Storage as GCS } from "@google-cloud/storage";
+import { Bucket, File, Storage as GCS, GetSignedUrlConfig } from "@google-cloud/storage";
 import {
   BinaryFile,
   BinaryMap,
@@ -170,13 +170,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   async _cleanUsage(hash: string, uuid: string, property?: string) {
     const suffix = property ? `${property}_${uuid}` : `_${uuid}`;
     let files: File[] = (await this.getStorageBucket().getFiles({ prefix: this._getKey(hash, "") }))[0];
-    await Promise.all(
-      files
-        .filter(f => f.name.endsWith(suffix))
-        .map(f => {
-          f.delete();
-        })
-    );
+    await Promise.all(files.filter(f => f.name.endsWith(suffix)).map(f => f.delete()));
     // If no more usage, delete the data
     files = files.filter(f => !f.name.endsWith(suffix));
     if (files.length == 1) {

@@ -57,6 +57,18 @@ export class ClusterServiceParameters extends ServiceParameters {
    * @default 30000
    */
   keepAlive: number;
+  /**
+   * Display code alert when code is out of sync
+   *
+   * Can be disabled by setting it to false - in case different code is subscribing to
+   * the same pubsub
+   *
+   * If undefined it will display the alert only once
+   *
+   * true will force it to display every time
+   * @param params
+   */
+  unsyncCodeAlert?: boolean;
 
   constructor(params: any) {
     super(params);
@@ -80,6 +92,11 @@ export class ClusterServiceParameters extends ServiceParameters {
 export class ClusterService<T extends ClusterServiceParameters = ClusterServiceParameters> extends Service<T> {
   @Inject("params:pubsub", "PubSub")
   pubSub: PubSubService<ClusterMessage>;
+
+  /**
+   * If code is out of sync and warning has been displayed
+   */
+  hasCodeSyncAlert: boolean = false;
 
   /**
    * Cluster member
@@ -364,20 +381,35 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     // Dispatch the event
     if (message.type === "model") {
       let model = this.models[message.emitter];
-      if (!model) {
+      const shouldAlert =
+        !this.models[message.emitter] &&
+        ((this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
+          this.parameters.unsyncCodeAlert);
+      if (shouldAlert) {
+        this.hasCodeSyncAlert = true;
         this.log("WARN", `Model not found ${message.emitter} - code is probably out of sync`);
         return;
       }
       model.emit(<any>message.event, data);
     } else if (message.type === "store") {
-      if (!this.stores[message.emitter]) {
+      const shouldAlert =
+        !this.stores[message.emitter] &&
+        ((this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
+          this.parameters.unsyncCodeAlert);
+      if (shouldAlert) {
+        this.hasCodeSyncAlert = true;
         this.log("WARN", `Store not found ${message.emitter} - code is probably out of sync`);
         return;
       }
       // Store will emit the event but manage the cache first
       await this.stores[message.emitter]?.emitStoreEvent(<any>message.event, data);
     } else if (message.type === "service") {
-      if (!this.services[message.emitter]) {
+      const shouldAlert =
+        !this.services[message.emitter] &&
+        ((this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
+          this.parameters.unsyncCodeAlert);
+      if (shouldAlert) {
+        this.hasCodeSyncAlert = true;
         this.log("WARN", `Service not found ${message.emitter} - code is probably out of sync`);
         return;
       }

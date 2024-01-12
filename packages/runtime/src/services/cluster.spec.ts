@@ -119,6 +119,7 @@ class ClusterServiceTest extends WebdaSimpleTest {
 
     // Test the out of sync
     for (let type of ["Model", "Store", "Service"]) {
+      this.service.hasCodeSyncAlert = false;
       await this.service["handleMessage"]({
         emitterId: "testor",
         type: <any>type.toLowerCase(),

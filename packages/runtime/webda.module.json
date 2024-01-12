@@ -127,6 +127,10 @@
           "type": "number",
           "default": 30000
         },
+        "unsyncCodeAlert": {
+          "type": "boolean",
+          "description": "Display code alert when code is out of sync\n\nCan be disabled by setting it to false - in case different code is subscribing to the same pubsub\n\nIf undefined it will display the alert only once\n\ntrue will force it to display every time"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true

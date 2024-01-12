@@ -46,6 +46,10 @@ export default class GCPPubSubService<
     return 0;
   }
 
+  /**
+   * Get the subscription name
+   * @returns
+   */
   getSubscriptionName(): string {
     return `${this.getName()}-${Core.getMachineId()}`;
   }

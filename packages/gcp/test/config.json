@@ -40,7 +40,17 @@
     },
     "pubsub": {
       "type": "Webda/GoogleCloudPubSub",
-      "topic": "unit-tests"
+      "topic": "unit-tests",
+      "subscriptionOptions": {
+        "expirationPolicy": {
+          "ttl": {
+            "seconds": 86400
+          }
+        },
+        "messageRetentionDuration": {
+          "seconds": 600
+        }
+      }
     },
     "queue": {
       "type": "Webda/GoogleCloudQueue",

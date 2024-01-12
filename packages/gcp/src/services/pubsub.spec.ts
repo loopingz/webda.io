@@ -1,5 +1,6 @@
+import { PubSub } from "@google-cloud/pubsub";
 import { suite, test } from "@testdeck/mocha";
-import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
+import { CancelablePromise, Core, WaitFor, WaitLinearDelay } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
@@ -7,9 +8,29 @@ import { GCPPubSubService } from "./pubsub";
 
 @suite
 class GCPPubSubTest extends WebdaTest {
+  subscriptions: string[] = [];
+  async after() {
+    await super.after();
+    const pubsub = new PubSub();
+    for (let subscription of this.subscriptions) {
+      try {
+        const [exists] = await pubsub.subscription(subscription).exists();
+        if (exists) {
+          await pubsub.subscription(subscription).delete();
+        }
+      } catch (err) {}
+    }
+  }
   @test
   async basic() {
     let pubsub: GCPPubSubService = this.webda.getService<GCPPubSubService>("pubsub");
+    let subscriptionCount = 1;
+    assert.strictEqual(pubsub.getSubscriptionName(), `${pubsub.getName()}-${Core.getMachineId()}`);
+    sinon.stub(pubsub, "getSubscriptionName").callsFake(() => {
+      const name = `test-${Core.getMachineId()}-${subscriptionCount++}`;
+      this.subscriptions.push(name);
+      return name;
+    });
     let counter = 0;
     let consumers: CancelablePromise[] = [];
     let subscription;

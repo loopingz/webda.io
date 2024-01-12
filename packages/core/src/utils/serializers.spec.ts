@@ -153,7 +153,7 @@ class UtilsTest {
     try {
       const data = [{ id: 1 }, { id: 2 }, { id: 3 }];
       const file = ".test.ndjson";
-      new NDJSONStream(data).pipe(createWriteStream(file));
+      await pipeline(new NDJSONStream(data), createWriteStream(file));
       let counter = 0;
       await pipeline(
         createReadStream(file),

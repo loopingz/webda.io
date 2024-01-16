@@ -446,7 +446,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
      * SIGINT handler
      */
     process.on("SIGINT", async () => {
-      if (Core.get().interuptables.length > 0) {
+      if (Core.get()?.interuptables.length > 0) {
         console.log("Received SIGINT. Cancelling all interuptables.");
         await Promise.all(Core.get().interuptables.map(i => i.cancel()));
       }
@@ -492,7 +492,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param interuptable
    */
   public static registerInteruptableProcess(interuptable: { cancel: () => Promise<void> }) {
-    Core.get().interuptables.push(interuptable);
+    Core.get()?.interuptables.push(interuptable);
   }
 
   /**
@@ -500,7 +500,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param interuptable
    */
   public static unregisterInteruptableProcess(interuptable: { cancel: () => Promise<void> }) {
-    const id = Core.get().interuptables.findIndex(i => i === interuptable);
+    let id = Core.get()?.interuptables.findIndex(i => i === interuptable);
+    id ??= -1;
     if (id >= 0) {
       Core.get().interuptables.splice(id, 1);
     }

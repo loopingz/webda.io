@@ -80,6 +80,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.8.0](https://github.com/loopingz/webda.io/compare/graphql-v3.7.0...graphql-v3.8.0) (2024-01-16)
+
+
+### Features
+
+* add service client event option ([cf68e7f](https://github.com/loopingz/webda.io/commit/cf68e7fa59ec26fc4e49ff593a6de4f53ea029c4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.12.0 to ^3.13.0
+    * @webda/runtime bumped from ^3.2.0 to ^3.3.0
+  * devDependencies
+    * @webda/shell bumped from ^3.9.0 to ^3.9.1
+
 ## [3.7.0](https://github.com/loopingz/webda.io/compare/graphql-v3.6.2...graphql-v3.7.0) (2024-01-09)
 
 

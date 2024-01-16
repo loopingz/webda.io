@@ -18,6 +18,12 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.1.1 to ^1.2.0
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/workout-v3.0.4...workout-v3.1.0) (2023-11-12)
 
 

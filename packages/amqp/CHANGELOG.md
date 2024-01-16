@@ -120,6 +120,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.3.0](https://github.com/loopingz/webda.io/compare/amqp-v3.2.0...amqp-v3.3.0) (2024-01-16)
+
+
+### Features
+
+* add service client event option ([cf68e7f](https://github.com/loopingz/webda.io/commit/cf68e7fa59ec26fc4e49ff593a6de4f53ea029c4))
+
+
+### Bug Fixes
+
+* allow to add parameters to assertQueue ([c4e312e](https://github.com/loopingz/webda.io/commit/c4e312e5d68d739d6fdff3d95b57d86c9eac291b))
+* make amqp queueOptions optional ([1f40de1](https://github.com/loopingz/webda.io/commit/1f40de18b27d9fb7bed033e367e6ccb49c14f8b9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.12.0 to ^3.13.0
+  * devDependencies
+    * @webda/shell bumped from ^3.9.0 to ^3.9.1
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/amqp-v3.1.8...amqp-v3.2.0) (2024-01-09)
 
 

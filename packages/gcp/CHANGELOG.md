@@ -99,6 +99,30 @@
     * @webda/async bumped from ^3.4.0 to ^3.4.1
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/gcp-v3.3.0...gcp-v3.4.0) (2024-01-16)
+
+
+### Features
+
+* allow cluster member info to be extended ([cb1e982](https://github.com/loopingz/webda.io/commit/cb1e982814357145a47c5cfd039a7bacee379d86))
+
+
+### Bug Fixes
+
+* **gcp:** cleanUsage not being part of the transaction ([5dda48b](https://github.com/loopingz/webda.io/commit/5dda48bef855583b503494ce2c2ad6e1d75d2ec4))
+* make amqp queueOptions optional ([1f40de1](https://github.com/loopingz/webda.io/commit/1f40de18b27d9fb7bed033e367e6ccb49c14f8b9))
+* use machineId for pubsub subscription ([c099564](https://github.com/loopingz/webda.io/commit/c099564163dce7cc22b873a1535857ed1b970331))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.12.0 to ^3.13.0
+  * devDependencies
+    * @webda/async bumped from ^3.5.0 to ^3.5.1
+    * @webda/shell bumped from ^3.9.0 to ^3.9.1
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/gcp-v3.2.8...gcp-v3.3.0) (2024-01-09)
 
 

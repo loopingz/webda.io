@@ -19,6 +19,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.13.0](https://github.com/loopingz/webda.io/compare/core-v3.12.0...core-v3.13.0) (2024-01-16)
+
+
+### Features
+
+* add service client event option ([cf68e7f](https://github.com/loopingz/webda.io/commit/cf68e7fa59ec26fc4e49ff593a6de4f53ea029c4))
+
+
+### Bug Fixes
+
+* clean cancel on SIGINT ([90c8627](https://github.com/loopingz/webda.io/commit/90c862701bc2e17ff2f513c0a0e98af5aa8fc883))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.1.2 to ^3.1.3
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
+
 ## [3.12.0](https://github.com/loopingz/webda.io/compare/core-v3.11.2...core-v3.12.0) (2024-01-09)
 
 

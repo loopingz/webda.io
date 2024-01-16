@@ -18,7 +18,9 @@ import {
   Test
  } from "./index";
 import * as ind from './index';
+import { Bean, Inject, Queue, Service, ServiceParameters, Throttler } from "@webda/core";
 import { open } from "node:fs/promises";
+import { pipeline } from "node:stream/promises";
 export { SinkService } from "./export";
 export * from './export';
 
@@ -36,6 +38,7 @@ let SinkService = class SinkService extends Service {
     assert.ok(content.includes('"./export.js"'));
     assert.ok(content.includes("'./export.js'"));
     assert.ok(!content.includes('"node:fs/promises.js"'));
+    assert.ok(!content.includes('"node:stream/promises.js"'));
   }
 
   after() {

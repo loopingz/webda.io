@@ -7,6 +7,7 @@ import { Core, OriginFilter, WebsiteOriginFilter } from "./core";
 import {
   Authentication,
   Bean,
+  CancelablePromise,
   ConsoleLoggerService,
   ContextProvider,
   CoreModel,
@@ -662,6 +663,26 @@ class CoreTest extends WebdaTest {
     });
     // @ts-ignore
     core.createServices();
+  }
+
+  @test
+  async sigintPromises() {
+    let stub = sinon.stub(process, "exit").callsFake(<any>(() => {}));
+    try {
+      let found = false;
+      let p = new CancelablePromise(
+        () => {},
+        async () => {
+          found = true;
+        }
+      );
+      process.emit("SIGINT");
+      // It should be cancelled
+      await assert.rejects(p, /Cancelled/);
+      assert.strictEqual(found, true);
+    } finally {
+      stub.restore();
+    }
   }
 
   @test

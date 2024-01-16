@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { Logger } from "../index";
+import { Core, Logger } from "../index";
 
 /**
  * Function that define the amount of time between calls
@@ -150,10 +150,12 @@ export class CancelablePromise<T = void> extends Promise<T> {
           await onCancel();
         }
         reject("Cancelled");
+        Core.unregisterInteruptableProcess(this);
       };
       callback(resolve, reject);
     });
     this.cancel = localReject;
+    Core.registerInteruptableProcess(this);
   }
 }
 
@@ -171,6 +173,7 @@ export class CancelableLoopPromise extends Promise<void> {
           await onCancel();
         }
         shouldRun = false;
+        Core.unregisterInteruptableProcess(this);
       };
       let loop = () => {
         if (shouldRun) {
@@ -180,6 +183,7 @@ export class CancelableLoopPromise extends Promise<void> {
       resolve(callback(localReject).then(loop));
     });
     this.cancel = localReject;
+    Core.registerInteruptableProcess(this);
   }
 
   static get [Symbol.species]() {

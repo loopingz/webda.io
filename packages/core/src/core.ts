@@ -428,6 +428,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * System context
    */
   protected globalContext: GlobalContext;
+  /**
+   *
+   */
+  interuptables: { cancel: () => Promise<void> }[] = [];
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -438,6 +442,16 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     // Store WebdaCore in process to avoid conflict with import
     // @ts-ignore
     Core.singleton = process.webda = this;
+    /**
+     * SIGINT handler
+     */
+    process.on("SIGINT", async () => {
+      if (Core.get().interuptables.length > 0) {
+        console.log("Received SIGINT. Cancelling all interuptables.");
+        await Promise.all(Core.get().interuptables.map(i => i.cancel()));
+      }
+      process.exit(0);
+    });
     this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
     this.application = application || new UnpackedApplication(".");
@@ -471,6 +485,25 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
 
     this.setGlobalContext(new GlobalContext(this));
+  }
+
+  /**
+   * Register a cancelable process
+   * @param interuptable
+   */
+  public static registerInteruptableProcess(interuptable: { cancel: () => Promise<void> }) {
+    Core.get().interuptables.push(interuptable);
+  }
+
+  /**
+   * Unregister a cancelable process
+   * @param interuptable
+   */
+  public static unregisterInteruptableProcess(interuptable: { cancel: () => Promise<void> }) {
+    const id = Core.get().interuptables.findIndex(i => i === interuptable);
+    if (id >= 0) {
+      Core.get().interuptables.splice(id, 1);
+    }
   }
 
   /**

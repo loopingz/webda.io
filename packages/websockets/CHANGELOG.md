@@ -128,6 +128,14 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.0 to ^3.9.1
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.0 to ^3.13.1
+  * devDependencies
+    * @webda/shell bumped from ^3.9.1 to ^3.9.2
+
 ## [3.2.0](https://github.com/loopingz/webda.io/compare/websockets-v3.1.8...websockets-v3.2.0) (2024-01-09)
 
 

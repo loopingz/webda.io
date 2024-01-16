@@ -19,6 +19,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.13.1](https://github.com/loopingz/webda.io/compare/core-v3.13.0...core-v3.13.1) (2024-01-16)
+
+
+### Bug Fixes
+
+* registerInteruptableProcess before Core.get() exists ([0b9cbcb](https://github.com/loopingz/webda.io/commit/0b9cbcb87ab03316ad78c3ef3be89baaae4d92f7))
+
 ## [3.13.0](https://github.com/loopingz/webda.io/compare/core-v3.12.0...core-v3.13.0) (2024-01-16)
 
 

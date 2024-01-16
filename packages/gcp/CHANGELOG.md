@@ -99,6 +99,15 @@
     * @webda/async bumped from ^3.4.0 to ^3.4.1
     * @webda/shell bumped from ^3.8.1 to ^3.8.2
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.0 to ^3.13.1
+  * devDependencies
+    * @webda/async bumped from ^3.5.1 to ^3.5.2
+    * @webda/shell bumped from ^3.9.1 to ^3.9.2
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/gcp-v3.3.0...gcp-v3.4.0) (2024-01-16)
 
 

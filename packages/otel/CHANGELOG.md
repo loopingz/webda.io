@@ -49,6 +49,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.8.2 to ^3.9.0
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/otel-v3.1.8...otel-v3.2.0) (2024-01-16)
+
+
+### Features
+
+* add service client event option ([cf68e7f](https://github.com/loopingz/webda.io/commit/cf68e7fa59ec26fc4e49ff593a6de4f53ea029c4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.12.0 to ^3.13.0
+    * @webda/workout bumped from ^3.1.2 to ^3.1.3
+  * devDependencies
+    * @webda/shell bumped from ^3.9.0 to ^3.9.1
+
 ## [3.1.5](https://github.com/loopingz/webda.io/compare/otel-v3.1.4...otel-v3.1.5) (2023-11-30)
 
 

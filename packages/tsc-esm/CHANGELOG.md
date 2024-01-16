@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.2.0...tsc-esm-v1.3.0) (2024-01-16)
+
+
+### Features
+
+* add service client event option ([cf68e7f](https://github.com/loopingz/webda.io/commit/cf68e7fa59ec26fc4e49ff593a6de4f53ea029c4))
+
+
+### Bug Fixes
+
+* sub node module catches ([2b74cb5](https://github.com/loopingz/webda.io/commit/2b74cb59110483bbb6d081df8fb8ca8cec124414))
+
 ## [1.2.0](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.1.1...tsc-esm-v1.2.0) (2024-01-09)
 
 

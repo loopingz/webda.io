@@ -4,7 +4,7 @@ import * as amqplib from "amqplib";
 export class AMQPQueueParameters extends QueueParameters {
   url: string;
   queue: string;
-  queueOptions: any;
+  queueOptions?: any;
 }
 /**
  * Implements a Queue stored in AMQP

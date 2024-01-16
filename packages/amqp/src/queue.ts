@@ -4,6 +4,7 @@ import * as amqplib from "amqplib";
 export class AMQPQueueParameters extends QueueParameters {
   url: string;
   queue: string;
+  queueOptions: any;
 }
 /**
  * Implements a Queue stored in AMQP
@@ -27,7 +28,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
     await super.init();
     this.conn = await amqplib.connect(this.parameters.url);
     this.channel = await this.conn.createChannel();
-    await this.channel.assertQueue(this.parameters.queue);
+    await this.channel.assertQueue(this.parameters.queue, this.parameters.queueOptions);
     return this;
   }
 

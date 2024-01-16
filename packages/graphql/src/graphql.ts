@@ -788,6 +788,37 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       }
     }
 
+    const services = this.getWebda().getServices();
+    for (let i in services) {
+      if (services[i]?.getClientEvents === undefined) {
+        continue;
+      }
+
+      const events = services[i]?.getClientEvents() || [];
+      if (events.length === 0) {
+        continue;
+      }
+      const fields = {};
+      events.forEach(e => {
+        fields[e] = { type: AnyScalarType };
+      });
+      const id = `${i}Events`;
+      subscriptions[id] = {
+        type: new GraphQLObjectType({
+          fields,
+          name: id
+        }),
+        subscribe: async (_source, args, context, info) => {
+          const fieldsMap = {};
+          (info.fieldNodes[0].selectionSet?.selections || [])
+            .filter(node => node.kind === "Field")
+            .map(n => (<FieldNode>n).name.value)
+            .forEach(n => (fieldsMap[n] = true));
+          return new EventIterator(<EventEmitter>services[i], fieldsMap, id, {}).iterate();
+        }
+      };
+    }
+
     // Copy the rootFields without resolver
     for (let i in rootFields) {
       subscriptions[i] ??= { ...rootFields[i], resolve: undefined };

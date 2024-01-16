@@ -1,5 +1,14 @@
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, FileBinary, HttpContext, SecureCookie, WebdaError, getCommonJS } from "@webda/core";
+import {
+  CoreModel,
+  FileBinary,
+  HttpContext,
+  OperationContext,
+  SecureCookie,
+  Service,
+  WebdaError,
+  getCommonJS
+} from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import { ServerStatus, WebdaServer } from "@webda/shell";
 import { WebdaSampleApplication } from "@webda/shell/lib/index.spec";
@@ -20,6 +29,16 @@ class MyWebSocket extends WebSocket {
     super(address, protocols, {
       headers: MyWebSocket.headers
     });
+  }
+}
+
+class FakeService extends Service {
+  getClientEvents(): string[] {
+    return ["test", "test2"];
+  }
+
+  authorizeClientEvent(_event: string, _context: OperationContext<any, any>): boolean {
+    return true;
   }
 }
 
@@ -399,16 +418,23 @@ class GraphQLServiceTest extends WebdaTest {
 class GraphQLSubscriptionTest {
   @test
   async subscriptions() {
+    let fake: FakeService;
     await WebdaSampleApplication.load();
     WebdaSampleApplication.getConfiguration().services.graphql = {
       type: "GraphQLService",
       exposeMe: true
     };
+    WebdaSampleApplication.getConfiguration().services.fake = {
+      type: "FakeService"
+    };
+    WebdaSampleApplication.addService("FakeService", FakeService);
+
     const server = new WebdaServer(WebdaSampleApplication);
     const Course = server.getModel<CoreModel & { name: string; value?: number; uuid: string }>("Course");
     const User = server.getModel<CoreModel & { name: string; value?: number; uuid: string }>("WebdaDemo/User");
     try {
       await server.init();
+      fake = server.getService("fake");
       await Course.store().__clean();
       await Course.ref("test").getOrCreate({
         name: "test"
@@ -555,7 +581,6 @@ class GraphQLSubscriptionTest {
         for await (const evt of subscription) {
           const event: any = evt;
           i++;
-          console.log("iteration", i, JSON.stringify(event, undefined, 2));
           if (i === 1) {
             assert.strictEqual(event.data?.Aggregate.Me.name, "plop2");
             // Update test2
@@ -601,6 +626,24 @@ class GraphQLSubscriptionTest {
         },
         (err: any) => err.message === "Permission denied"
       );
+      console.log("Starting subscription service");
+      i = 0;
+      await (async () => {
+        const subscription = client2.iterate({
+          //  Courses(query:"value=10") { name uuid } CoursesEvents(events:["test2"]) {  } CourseEvents(uuid:"test", events:["plop"]) {  }
+          query: `subscription { fakeEvents { test } }`
+        });
+        for await (const evt of subscription) {
+          const event: any = evt;
+          i++;
+          if (i === 1) {
+            fake.emit("test", { test: "test" });
+          } else if (i === 2) {
+            // no-op
+            break;
+          }
+        }
+      })();
     } finally {
       await Course.store().__clean();
       await server.stop();

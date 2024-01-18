@@ -37,7 +37,7 @@ class KMSTest extends WebdaSimpleTest {
       "my-key-ring",
       "my-key"
     ]);
-    assert.strictEqual(encoded.split(":").pop(), "ciphertext");
+    assert.strictEqual(encoded.split(":").pop(), "Y2lwaGVydGV4dA==");
     let decoded = await service.decrypt(encoded);
     assert.strictEqual(decoded, "plaintext");
     assert.rejects(() => service.decrypt(Buffer.from("test:plop").toString("base64") + ":test"));

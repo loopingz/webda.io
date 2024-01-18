@@ -15,12 +15,14 @@ const encrypter = {
     return (
       Buffer.from(infos.join(":")).toString("base64") +
       ":" +
-      (
-        await client.encrypt({
-          name: key,
-          plaintext: Buffer.from(data)
-        })
-      )[0].ciphertext
+      Buffer.from(
+        (
+          await client.encrypt({
+            name: key,
+            plaintext: Buffer.from(data)
+          })
+        )[0].ciphertext
+      ).toString("base64")
     );
   },
   decrypt: async (data: string): Promise<string> => {
@@ -34,7 +36,7 @@ const encrypter = {
     return <string>(
       await client.decrypt({
         name: `projects/${infos[0]}/locations/${infos[1]}/keyRings/${infos[2]}/cryptoKeys/${infos[3]}`,
-        ciphertext: Buffer.from(data.substring(data.indexOf(":") + 1))
+        ciphertext: Buffer.from(data.substring(data.indexOf(":") + 1), "base64")
       })
     )[0].plaintext;
   }

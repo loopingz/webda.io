@@ -5,7 +5,7 @@
   "packages/core": "3.13.1",
   "packages/codmod": "3.0.0",
   "packages/elasticsearch": "3.2.7",
-  "packages/gcp": "3.4.1",
+  "packages/gcp": "3.4.2",
   "packages/google-auth": "3.1.11",
   "packages/graphql": "3.8.1",
   "packages/hawk": "3.3.11",

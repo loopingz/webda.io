@@ -108,6 +108,13 @@
     * @webda/async bumped from ^3.5.1 to ^3.5.2
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.4.2](https://github.com/loopingz/webda.io/compare/gcp-v3.4.1...gcp-v3.4.2) (2024-01-18)
+
+
+### Bug Fixes
+
+* use base64 for gcp encrypted kms ([ac44466](https://github.com/loopingz/webda.io/commit/ac444666dca398ad8b8c0143ed1becc611378b17))
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/gcp-v3.3.0...gcp-v3.4.0) (2024-01-16)
 
 

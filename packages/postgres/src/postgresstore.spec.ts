@@ -51,7 +51,7 @@ export class PostgresTest extends StoreTest {
     let store: PostgresStore = this.getService<PostgresStore>("idents");
     store.getParameters().usePool = false;
     await store.init();
-
+    await store.query("test = TRUE");
     //assert.rejects(() => store._find({}, 12, 10), /Query should be a string/);
     assert.strictEqual(store.getClient(), store.client);
   }

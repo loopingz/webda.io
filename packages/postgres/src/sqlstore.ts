@@ -35,11 +35,15 @@ export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
   }
 
   toStringAttribute(): string {
-    if ([">", "<", "<=", ">="].includes(this.operator)) {
-      // coalesce(data#>>'{${this.attribute[0]}}', '0') ?
-      return `CAST(${this.attribute[0]} AS integer)`;
+    switch (typeof this.value) {
+      case "boolean":
+        return `CAST(${this.attribute[0]} AS boolean)`;
+      case "number":
+        // coalesce(data#>>'{${this.attribute[0]}}', '0') ?
+        return `CAST(${this.attribute[0]} AS integer)`;
+      default:
+        return this.attribute[0];
     }
-    return this.attribute[0];
   }
 }
 

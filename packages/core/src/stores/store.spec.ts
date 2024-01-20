@@ -113,6 +113,7 @@ abstract class StoreTest extends WebdaTest {
       'state LIKE "C%"': 250,
       'state != "CA"': 750,
       'states CONTAINS "CA"': 500,
+      "role = 4": 100,
       "": 1000
     };
     for (let i in queries) {

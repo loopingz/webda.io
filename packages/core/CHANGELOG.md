@@ -19,6 +19,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.13.2](https://github.com/loopingz/webda.io/compare/core-v3.13.1...core-v3.13.2) (2024-01-22)
+
+
+### Bug Fixes
+
+* numeric equals on postgres ([75f5e36](https://github.com/loopingz/webda.io/commit/75f5e36e1517a29f99c99e7e4af0e4d5da9ba8bd))
+
 ## [3.13.1](https://github.com/loopingz/webda.io/compare/core-v3.13.0...core-v3.13.1) (2024-01-16)
 
 

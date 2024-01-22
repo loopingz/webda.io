@@ -1,6 +1,6 @@
 {
   "name": "@webda/amqp",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "Implements AMQP on webda",
   "keywords": [
     "activemq",
@@ -19,7 +19,7 @@
     "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
-    "@webda/core": "^3.13.1",
+    "@webda/core": "^3.13.2",
     "amqplib": "^0.10.0"
   },
   "files": [
@@ -50,7 +50,7 @@
     "@testdeck/mocha": "^0.3.3",
     "@types/amqplib": "^0.10.0",
     "@types/node": "18.11.13",
-    "@webda/shell": "^3.9.2",
+    "@webda/shell": "^3.9.3",
     "sinon": "^17.0.0"
   },
   "nx": {

@@ -80,6 +80,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.3.3](https://github.com/loopingz/webda.io/compare/postgres-v3.3.2...postgres-v3.3.3) (2024-01-22)
+
+
+### Bug Fixes
+
+* numeric equals on postgres ([75f5e36](https://github.com/loopingz/webda.io/commit/75f5e36e1517a29f99c99e7e4af0e4d5da9ba8bd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.1 to ^3.13.2
+  * devDependencies
+    * @webda/shell bumped from ^3.9.2 to ^3.9.3
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/postgres-v3.2.5...postgres-v3.3.0) (2024-01-09)
 
 

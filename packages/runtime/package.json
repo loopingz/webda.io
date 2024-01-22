@@ -1,6 +1,6 @@
 {
   "name": "@webda/runtime",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "@webda runtime services",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
-    "@webda/core": "^3.13.1",
+    "@webda/core": "^3.13.2",
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "ajv-formats": "^2.1.1",
@@ -55,7 +55,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "18.11.13",
-    "@webda/shell": "^3.9.2",
+    "@webda/shell": "^3.9.3",
     "c8": "^9.0.0",
     "fs-extra": "^11.0.0",
     "mocha": "^10.0.0",

@@ -80,6 +80,13 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.3.4](https://github.com/loopingz/webda.io/compare/postgres-v3.3.3...postgres-v3.3.4) (2024-01-22)
+
+
+### Bug Fixes
+
+* **postgres:** use bigint instead of int for big number ([f8b5a13](https://github.com/loopingz/webda.io/commit/f8b5a13f244f58cfb9832ca5d34385a7e62c66c5))
+
 ## [3.3.3](https://github.com/loopingz/webda.io/compare/postgres-v3.3.2...postgres-v3.3.3) (2024-01-22)
 
 

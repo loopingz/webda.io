@@ -108,6 +108,23 @@
     * @webda/async bumped from ^3.5.1 to ^3.5.2
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.4.3](https://github.com/loopingz/webda.io/compare/gcp-v3.4.2...gcp-v3.4.3) (2024-01-22)
+
+
+### Bug Fixes
+
+* numeric equals on postgres ([75f5e36](https://github.com/loopingz/webda.io/commit/75f5e36e1517a29f99c99e7e4af0e4d5da9ba8bd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.1 to ^3.13.2
+  * devDependencies
+    * @webda/async bumped from ^3.5.2 to ^3.5.3
+    * @webda/shell bumped from ^3.9.2 to ^3.9.3
+
 ## [3.4.2](https://github.com/loopingz/webda.io/compare/gcp-v3.4.1...gcp-v3.4.2) (2024-01-18)
 
 

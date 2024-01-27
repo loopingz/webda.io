@@ -1,4 +1,5 @@
-import { CoreModel, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
+import { CoreModel, RegExpStringValidator, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
+import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 
@@ -18,7 +19,7 @@ import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
  */
 class PostgresParameters extends SQLStoreParameters {
   /**
-   * @default false
+   * @default true
    */
   usePool?: boolean;
   /**
@@ -27,8 +28,27 @@ class PostgresParameters extends SQLStoreParameters {
   postgresqlServer?: ClientConfig | PoolConfig;
   /**
    * Auto create table if not exists
+   * @default true
    */
   autoCreateTable?: boolean;
+  /**
+   * View name prefix
+   */
+  viewPrefix?: string;
+  /**
+   * Regexp of models to include
+   *
+   * @default [".*"]
+   */
+  views?: string[];
+
+  constructor(params: any, store: PostgresStore) {
+    super(params, store);
+    this.autoCreateTable ??= true;
+    this.usePool ??= false;
+    this.viewPrefix ??= "";
+    this.views ??= ["regex:.*"];
+  }
 }
 
 /**
@@ -82,6 +102,10 @@ export default class PostgresStore<
     if (!this.parameters.autoCreateTable) {
       return;
     }
+    this.log(
+      "DEBUG",
+      `CREATE TABLE IF NOT EXISTS ${this.parameters.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.parameters.table}_pkey PRIMARY KEY (uuid))`
+    );
     await this.client.query(
       `CREATE TABLE IF NOT EXISTS ${this.parameters.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.parameters.table}_pkey PRIMARY KEY (uuid))`
     );
@@ -108,6 +132,73 @@ export default class PostgresStore<
       rows: res.rows.map(r => this.initModel(r.data)),
       rowCount: res.rowCount
     };
+  }
+
+  /**
+   * Create views for each models
+   *
+   * @param [prefix=""] prefix to add to the view name
+   * @param [skips=[]] list of models to skip
+   */
+  async createViews() {
+    // CREATE VIEW my_view AS SELECT uuid,data->>'status' as status from table;
+    const webda = this.getWebda();
+    const models = webda.getModels();
+    const app = webda.getApplication();
+    const validator = new RegExpStringValidator(this.parameters.views);
+
+    for (let model of Object.values(models)) {
+      const store = webda.getModelStore(model);
+      if (!(store instanceof PostgresStore)) {
+        continue;
+      }
+      const fields = ["uuid"];
+      const schema = model.getSchema();
+      console.log(
+        "SCHEMA",
+        schema,
+        model.getIdentifier(false),
+        validator.validate(model.getIdentifier(false)),
+        this.parameters.views
+      );
+      if (!schema || !validator.validate(model.getIdentifier(false))) {
+        continue;
+      }
+      const plural = webda.getApplication().getModelPlural(model.getIdentifier());
+      for (let field of Object.keys(schema.properties)) {
+        if (field === "uuid" || !field.match(/^[0-9a-zA-Z-_$]+$/)) {
+          continue;
+        }
+        let cast = "";
+        let type = (<JSONSchema7>schema.properties[field]).type;
+        if (type === "number") {
+          cast = "::bigint";
+        } else if (type === "boolean") {
+          cast = "::boolean";
+        } else if (type === "string") {
+          cast = "::text";
+        } else if (type === "array") {
+          cast = "::jsonb";
+        } else if (type === "object") {
+          cast = "::jsonb";
+        }
+        fields.push(`(data->>'${field}')${cast} as ${field}`);
+      }
+      let query = `CREATE OR REPLACE VIEW ${this.parameters.viewPrefix}${plural} AS SELECT ${fields.join(",")} FROM ${
+        store.getParameters().table
+      }`;
+      if (store.handleModel(model) > 0) {
+        query += ` WHERE (data#>>'{__types}')::jsonb ? '${app.getShortId(app.getModelName(model))}'`;
+      }
+      try {
+        this.log("INFO", "Dropping view");
+        await store.getClient().query(`DROP VIEW IF EXISTS ${this.parameters.viewPrefix}${plural}`);
+        this.log("INFO", query);
+        await store.getClient().query(query);
+      } catch (err) {
+        this.log("ERROR", err);
+      }
+    }
   }
 
   /**

@@ -758,7 +758,8 @@ export class Application {
    * @returns
    */
   getModelPlural(name: string): string {
-    return this.plurals[name] || name.split("/").pop() + "s";
+    let value = this.plurals[name] || name.split("/").pop();
+    return value.endsWith("s") ? value : value + "s";
   }
 
   /**

@@ -54,6 +54,9 @@ export class PostgresTest extends StoreTest {
     await store.query("test = TRUE");
     //assert.rejects(() => store._find({}, 12, 10), /Query should be a string/);
     assert.strictEqual(store.getClient(), store.client);
+    // Test checkTable
+    store.getParameters().autoCreateTable = false;
+    await store.checkTable();
   }
 
   @test
@@ -64,5 +67,29 @@ export class PostgresTest extends StoreTest {
     await obj.patch({ test: 1 });
     await new Promise(resolve => setTimeout(resolve, 20000));
     await obj.patch({ test: 2 });
+  }
+
+  @test
+  async createViews() {
+    let store: PostgresStore = this.getService<PostgresStore>("idents");
+    let info = await store.getClient().query(`SELECT 'DROP VIEW ' || table_name || ';'
+    FROM information_schema.views
+   WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+     AND table_name !~ '^pg_';`);
+    console.log(info.rows);
+    store.getParameters().viewPrefix = "view_";
+    // Execute all the drop views
+    await store.createViews();
+    info = await store
+      .getClient()
+      .query(
+        "SELECT table_name FROM information_schema.views WHERE table_schema NOT IN ('pg_catalog', 'information_schema')"
+      );
+    assert.deepStrictEqual(
+      info.rows.sort((a, b) => a.table_name.localeCompare(b.table_name)),
+      [{ table_name: "view_idents" }, { table_name: "view_users" }]
+    );
+    store.getParameters().viewPrefix = "";
+    await store.createViews();
   }
 }

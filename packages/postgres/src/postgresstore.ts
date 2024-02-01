@@ -17,7 +17,7 @@ import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 /**
  *
  */
-class PostgresParameters extends SQLStoreParameters {
+export class PostgresParameters extends SQLStoreParameters {
   /**
    * @default true
    */
@@ -67,7 +67,7 @@ class PostgresParameters extends SQLStoreParameters {
  *
  * @WebdaModda
  */
-export default class PostgresStore<
+export class PostgresStore<
   T extends CoreModel = CoreModel,
   K extends PostgresParameters = PostgresParameters
 > extends SQLStore<T, K> {
@@ -346,3 +346,5 @@ export default class PostgresStore<
     }
   }
 }
+
+export default PostgresStore;

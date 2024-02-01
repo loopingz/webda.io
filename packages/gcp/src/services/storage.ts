@@ -282,9 +282,10 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @param {SignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  async getSignedUrl({ bucket, key, expires = 3600, ...params }: SignedUrlParams): Promise<string> {
+  async getSignedUrl({ bucket, key, expires = 3600, action = "read", ...params }: SignedUrlParams): Promise<string> {
     const options: GetSignedUrlConfig = {
       version: "v4",
+      action,
       ...params,
       expires: Date.now() + expires * 1000
     };

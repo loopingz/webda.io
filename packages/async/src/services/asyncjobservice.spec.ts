@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Cron, HttpContext, OperationContext, Queue, Service, Store, WebdaError } from "@webda/core";
+import { CancelablePromise, Cron, HttpContext, OperationContext, Queue, Service, Store, WebdaError } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import axios from "axios";
@@ -33,6 +33,15 @@ class AsyncJobServiceTest extends WebdaTest {
       consume: async callback => {}
     };
     await service.worker();
+    service.getParameters().includeSchedulerInWorker = true;
+    // @ts-ignore
+    service.queue = {
+      // @ts-ignore
+      consume: async callback => {
+        return new CancelablePromise();
+      }
+    };
+    await service.worker().cancel();
     // @ts-ignore
     service.runners = [];
     assert.rejects(() => service.worker(), /AsyncJobService.worker requires runners/);
@@ -75,7 +84,7 @@ class AsyncJobServiceTest extends WebdaTest {
     assert.strictEqual(routeCount, previousRouteCount + 2);
 
     // Just for COV
-    const stubAction = stub(this.service, "launchAction").callsFake(async () => {});
+    const stubAction = stub(this.service, "launchAction").callsFake(async () => new AsyncAction());
     await this.service.launchAsAsyncAction("myService", "myMethod", 2);
     assert.deepStrictEqual(stubAction.getCall(0).args, [new AsyncWebdaAction("myService", "myMethod", 2)]);
 
@@ -527,7 +536,7 @@ class AsyncJobServiceTest extends WebdaTest {
     let p = service.scheduler();
     await this.sleep(100);
     await p.cancel();
-    let stubLaunch = stub(service, "launchAction").callsFake(async () => {});
+    let stubLaunch = stub(service, "launchAction").callsFake(async () => new AsyncAction());
     await service.getCronExecutor({
       cron: "* * * * *",
       args: [],

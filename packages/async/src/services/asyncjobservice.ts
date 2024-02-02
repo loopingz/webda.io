@@ -1,5 +1,6 @@
 import {
   CancelableLoopPromise,
+  CancelablePromise,
   CloudBinary,
   Constructor,
   Core,
@@ -94,6 +95,10 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    * @default true
    */
   includeCron?: boolean;
+  /**
+   * Include the scheduler system in the worker
+   */
+  includeSchedulerInWorker?: boolean;
 
   /**
    * Schedule action resolution
@@ -229,24 +234,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // Add route for operations launch
     if (this.parameters.asyncOperationDefinition) {
       this.log("INFO", "Loading operations", this.parameters.asyncOperationDefinition);
-      this.operations = FileUtils.load(this.parameters.asyncOperationDefinition);
       this.addRoute(`${this.parameters.url}{?full}`, ["GET"], this.listOperations);
       this.addRoute(`${this.parameters.url}/{operationId}{?schedule}`, ["PUT"], this.launchOperation);
       this.operationModel = <any>this.getWebda().getModel(this.parameters.asyncOperationModel);
-      // Register all schemas
-      Object.keys(this.operations?.schemas || {})
-        .filter(key => !this.getWebda().getApplication().hasSchema(key))
-        .forEach(key => {
-          this.getWebda().getApplication().registerSchema(key, this.operations.schemas[key]);
-        });
-      // Register all operations now
-      Object.keys(this.operations?.operations || {}).forEach(key => {
-        this.getWebda().registerOperation(key, {
-          ...this.operations.operations[key],
-          method: "callOperation",
-          service: this.getName()
-        });
-      });
+      this.registerOperations(FileUtils.load(this.parameters.asyncOperationDefinition));
     }
 
     // This is internal job reporting so no need to document the api
@@ -273,6 +264,34 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     this.getWebda().registerRequestFilter(this);
     return this;
+  }
+
+  /**
+   * Register new operations
+   * @param operations
+   */
+  registerOperations(operations: typeof this.operations) {
+    this.operations ??= {
+      application: operations.application || { name: "Unknown", version: "0.0.0" },
+      operations: {},
+      schemas: {}
+    };
+    // Register all schemas
+    Object.keys(operations?.schemas || {})
+      .filter(key => !this.getWebda().getApplication().hasSchema(key))
+      .forEach(key => {
+        this.getWebda().getApplication().registerSchema(key, operations.schemas[key]);
+        this.operations.schemas[key] = operations.schemas[key];
+      });
+    // Register all operations now
+    Object.keys(operations?.operations || {}).forEach(key => {
+      this.getWebda().registerOperation(key, {
+        ...operations.operations[key],
+        method: "callOperation",
+        service: this.getName()
+      });
+      this.operations.operations[key] = operations.operations[key];
+    });
   }
 
   /**
@@ -310,19 +329,31 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    *
    * This will launch actions based on defined runners
    */
-  async worker() {
+  worker(): CancelablePromise<void> {
     if (this.runners.length === 0) {
       throw new Error(`AsyncJobService.worker requires runners`);
     }
-
-    return this.queue.consume(this.handleEvent.bind(this));
+    let p: CancelablePromise[] = [this.queue.consume(this.handleEvent.bind(this))];
+    if (this.parameters.includeSchedulerInWorker) {
+      p.push(this.scheduler());
+    }
+    // Return a cancelable promise for both worker and scheduler
+    return new CancelablePromise(
+      (resolve, reject) => {
+        Promise.all(p).then(() => resolve(), reject);
+      },
+      async () => {
+        this.log("INFO", "Worker stopped");
+        await Promise.all(p.map(pi => (pi.cancel ? pi.cancel() : "")));
+      }
+    );
   }
 
   /**
    * Handle one event from the queue and launch the job
    * @param event
    */
-  protected async handleEvent(event: AsyncActionQueueItem) {
+  protected async handleEvent(event: AsyncActionQueueItem): Promise<void> {
     let selectedRunner;
     // Take first to acknowledge the job
     for (let runner of this.runners) {
@@ -395,7 +426,6 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       | string[]
     >
   ): Promise<void> {
-    this.log("INFO", "Listing operations called");
     let filtered: typeof this.operations = JSONUtils.duplicate(this.operations);
     // Filter operations based on permissions
     Object.keys(filtered.operations)
@@ -457,16 +487,18 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         throw err;
       }
     }
+    let action;
     if (schedule) {
-      await this.scheduleAction(
+      action = await this.scheduleAction(
         new this.operationModel(operationId, await SimpleOperationContext.fromContext(context)),
         schedule
       );
     } else {
-      await this.callOperation(
+      action = await this.callOperation(
         (await SimpleOperationContext.fromContext(context)).setExtension("operation", operationId)
       );
     }
+    context.write(action);
   }
 
   /**
@@ -480,9 +512,12 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     action.__secretKey = this.getWebda().getUuid();
     await action.save();
     if (this.parameters.localLaunch) {
-      return this.handleEvent({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
+      // Directly call the handler but not wait for its result
+      this.handleEvent({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
+    } else {
+      await this.queue.sendMessage({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
     }
-    return this.queue.sendMessage({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
+    return action;
   }
 
   /**
@@ -497,6 +532,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // Schedule based on the scheduler resolution
     action.scheduled = timestamp - (timestamp % this.parameters.schedulerResolution);
     await action.save();
+    return action;
   }
 
   /**

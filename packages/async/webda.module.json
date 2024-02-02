@@ -242,6 +242,10 @@
           "description": "Include Cron annotation to launch them as AsyncOperationAction",
           "default": true
         },
+        "includeSchedulerInWorker": {
+          "type": "boolean",
+          "description": "Include the scheduler system in the worker"
+        },
         "schedulerResolution": {
           "type": "number",
           "description": "Schedule action resolution\n\nIf set to 1000ms, you can schedule action per second by default it resolve per minute",

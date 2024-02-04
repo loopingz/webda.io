@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-typedoc docs-version-current docs-doc-page docs-doc-id-shell/classes/ConfigApplication" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.1.1">
+<title data-rh="true">ConfigApplication | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/typedoc/shell/classes/ConfigApplication"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" property="og:title" content="ConfigApplication | Webda.io"><meta data-rh="true" name="description" content="@webda/shell • Readme \| API"><meta data-rh="true" property="og:description" content="@webda/shell • Readme \| API"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/typedoc/shell/classes/ConfigApplication"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/shell/classes/ConfigApplication" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/shell/classes/ConfigApplication" hreflang="x-default"><link rel="stylesheet" href="/assets/css/styles.c2bf798a.css">
+<script src="/assets/js/runtime~main.a1b330d0.js" defer="defer"></script>
+<script src="/assets/js/main.a90b94a6.js" defer="defer"></script>
+</head>
+<body class="navigation-with-keyboard">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return localStorage.getItem("theme")}catch(t){}}();t(null!==e?e:"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="navbar navbar--fixed-top"><div class="navbar__inner"><div class="navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/typedoc/core/">Typedoc</a></div><div class="navbar__items navbar__items--right"><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a><div class="toggle_vylO colorModeToggle_DEke"><button class="clean-btn toggleButton_gllP toggleButtonDisabled_aARS" type="button" disabled="" title="Switch between dark and light mode (currently light mode)" aria-label="Switch between dark and light mode (currently light mode)" aria-live="polite"><svg viewBox="0 0 24 24" width="24" height="24" class="lightToggleIcon_pyhR"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" class="darkToggleIcon_wfgR"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg></button></div><div class="navbarSearchContainer_Bca1"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/amqp/">@webda/amqp</a><button aria-label="Expand sidebar category &#x27;@webda/amqp&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/async/">@webda/async</a><button aria-label="Expand sidebar category &#x27;@webda/async&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/aws/">@webda/aws</a><button aria-label="Expand sidebar category &#x27;@webda/aws&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/core/">@webda/core</a><button aria-label="Expand sidebar category &#x27;@webda/core&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/elasticsearch/">@webda/elasticsearch</a><button aria-label="Expand sidebar category &#x27;@webda/elasticsearch&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/gcp/">@webda/gcp</a><button aria-label="Expand sidebar category &#x27;@webda/gcp&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/google-auth/">@webda/google-auth</a><button aria-label="Expand sidebar category &#x27;@webda/google-auth&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/hawk/">@webda/hawk</a><button aria-label="Expand sidebar category &#x27;@webda/hawk&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/kubernetes/">@webda/kubernetes</a><button aria-label="Expand sidebar category &#x27;@webda/kubernetes&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/mongodb/">@webda/mongodb</a><button aria-label="Expand sidebar category &#x27;@webda/mongodb&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/otel/">@webda/otel</a><button aria-label="Expand sidebar category &#x27;@webda/otel&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/postgres/">@webda/postgres</a><button aria-label="Expand sidebar category &#x27;@webda/postgres&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/runtime/">@webda/runtime</a><button aria-label="Expand sidebar category &#x27;@webda/runtime&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--active" aria-expanded="true" href="/typedoc/shell/">@webda/shell</a><button aria-label="Collapse sidebar category &#x27;@webda/shell&#x27;" type="button" class="clean-btn menu__caret"></button></div><ul style="display:block;overflow:visible;height:auto" class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/CHANGELOG">Change Log</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" aria-expanded="true" tabindex="0" href="/typedoc/shell/classes/ConfigApplication">classes</a></div><ul style="display:block;overflow:visible;height:auto" class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/typedoc/shell/classes/ConfigApplication">ConfigApplication</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/ConfigurationService">ConfigurationService</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/Container">Container</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/Deployer">Deployer</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/Deployment">Deployment</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/DeploymentManager">DeploymentManager</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/Packager">Packager</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/ShellDeployer">ShellDeployer</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/WebdaConfiguration">WebdaConfiguration</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/WebdaConsole">WebdaConsole</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/WebdaServer">WebdaServer</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/classes/WebdaTerminal">WebdaTerminal</a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" aria-expanded="false" tabindex="0" href="/typedoc/shell/enumerations/DebuggerStatus">enumerations</a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/shell/globals">globals</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" aria-expanded="false" tabindex="0" href="/typedoc/shell/interfaces/ApplicationExportFormat">interfaces</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" aria-expanded="false" tabindex="0" href="/typedoc/shell/type-aliases/ClientProfiles">type-aliases</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" aria-expanded="false" tabindex="0" href="/typedoc/shell/variables/ClientDefinitions">variables</a></div></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/tsc-esm/">@webda/tsc-esm</a><button aria-label="Expand sidebar category &#x27;@webda/tsc-esm&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/workout/">@webda/workout</a><button aria-label="Expand sidebar category &#x27;@webda/workout&#x27;" type="button" class="clean-btn menu__caret"></button></div></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_VOVn"><div class="docItemContainer_Djhp"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="Breadcrumbs"><ul class="breadcrumbs" itemscope="" itemtype="https://schema.org/BreadcrumbList"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li itemscope="" itemprop="itemListElement" itemtype="https://schema.org/ListItem" class="breadcrumbs__item"><a class="breadcrumbs__link" itemprop="item" href="/typedoc/shell/"><span itemprop="name">@webda/shell</span></a><meta itemprop="position" content="1"></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">classes</span><meta itemprop="position" content="2"></li><li itemscope="" itemprop="itemListElement" itemtype="https://schema.org/ListItem" class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link" itemprop="name">ConfigApplication</span><meta itemprop="position" content="3"></li></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><p><strong>@webda/shell</strong> • <a href="/typedoc/shell/">Readme</a> | <a href="/typedoc/shell/globals">API</a></p>
+<hr>
+<h1>Class: ConfigApplication</h1>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="extends">Extends<a href="#extends" class="hash-link" aria-label="Direct link to Extends" title="Direct link to Extends">​</a></h2>
+<ul>
+<li><code>Application</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="constructors">Constructors<a href="#constructors" class="hash-link" aria-label="Direct link to Constructors" title="Direct link to Constructors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="new-configapplicationapplication">new ConfigApplication(application)<a href="#new-configapplicationapplication" class="hash-link" aria-label="Direct link to new ConfigApplication(application)" title="Direct link to new ConfigApplication(application)">​</a></h3>
+<blockquote>
+<p><strong>new ConfigApplication</strong>(<code>application</code>): <a href="/typedoc/shell/classes/ConfigApplication"><code>ConfigApplication</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>application</strong>: <code>Application</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns">Returns<a href="#returns" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href="/typedoc/shell/classes/ConfigApplication"><code>ConfigApplication</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="overrides">Overrides<a href="#overrides" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides">​</a></h4>
+<p><code>Application.constructor</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source">Source<a href="#source" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/shell/src/handlers/config.ts#L94" target="_blank" rel="noopener noreferrer">packages/shell/src/handlers/config.ts:94</a></p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="properties">Properties<a href="#properties" class="hash-link" aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_loaded">_loaded<a href="#_loaded" class="hash-link" aria-label="Direct link to _loaded" title="Direct link to _loaded">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>_loaded</strong>: <code>string</code>[]</p>
+</blockquote>
+<p>Contains already loaded modules</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from">Inherited from<a href="#inherited-from" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application._loaded</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-1">Source<a href="#source-1" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:472</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="appmodule">appModule<a href="#appmodule" class="hash-link" aria-label="Direct link to appModule" title="Direct link to appModule">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>appModule</strong>: <code>Module</code></p>
+</blockquote>
+<p>Contains definitions of current application</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-1">Inherited from<a href="#inherited-from-1" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.appModule</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-2">Source<a href="#source-2" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:468</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="apppath">appPath<a href="#apppath" class="hash-link" aria-label="Direct link to appPath" title="Direct link to appPath">​</a></h3>
+<blockquote>
+<p><strong><code>readonly</code></strong> <strong>appPath</strong>: <code>string</code></p>
+</blockquote>
+<p>Get Application root path</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-2">Inherited from<a href="#inherited-from-2" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.appPath</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-3">Source<a href="#source-3" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:456</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="baseconfiguration">baseConfiguration<a href="#baseconfiguration" class="hash-link" aria-label="Direct link to baseConfiguration" title="Direct link to baseConfiguration">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>baseConfiguration</strong>: <code>Configuration</code></p>
+</blockquote>
+<p>Base configuration loaded from webda.config.json</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-3">Inherited from<a href="#inherited-from-3" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.baseConfiguration</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-4">Source<a href="#source-4" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:460</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="configurationfile">configurationFile<a href="#configurationfile" class="hash-link" aria-label="Direct link to configurationFile" title="Direct link to configurationFile">​</a></h3>
+<blockquote>
+<p><strong><code>readonly</code></strong> <strong>configurationFile</strong>: <code>string</code></p>
+</blockquote>
+<p>Configuration file</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-4">Inherited from<a href="#inherited-from-4" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.configurationFile</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-5">Source<a href="#source-5" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:522</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="currentdeployment">currentDeployment<a href="#currentdeployment" class="hash-link" aria-label="Direct link to currentDeployment" title="Direct link to currentDeployment">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>currentDeployment</strong>: <code>string</code></p>
+</blockquote>
+<p>Current deployment</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-5">Inherited from<a href="#inherited-from-5" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.currentDeployment</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-6">Source<a href="#source-6" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:464</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="deployers">deployers<a href="#deployers" class="hash-link" aria-label="Direct link to deployers" title="Direct link to deployers">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>deployers</strong>: <code>Object</code></p>
+</blockquote>
+<p>Deployers type registry</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="index-signature">Index signature<a href="#index-signature" class="hash-link" aria-label="Direct link to Index signature" title="Direct link to Index signature">​</a></h4>
+<p>[<code>key</code>: <code>string</code>]: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-6">Inherited from<a href="#inherited-from-6" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.deployers</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-7">Source<a href="#source-7" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:476</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="deploymentfile">deploymentFile<a href="#deploymentfile" class="hash-link" aria-label="Direct link to deploymentFile" title="Direct link to deploymentFile">​</a></h3>
+<blockquote>
+<p><strong>deploymentFile</strong>: <code>string</code></p>
+</blockquote>
+<p>Current deployment file</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-7">Inherited from<a href="#inherited-from-7" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.deploymentFile</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-8">Source<a href="#source-8" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:526</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="flathierarchy">flatHierarchy<a href="#flathierarchy" class="hash-link" aria-label="Direct link to flatHierarchy" title="Direct link to flatHierarchy">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>flatHierarchy</strong>: <code>Object</code></p>
+</blockquote>
+<p>Direct parent of a model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="index-signature-1">Index signature<a href="#index-signature-1" class="hash-link" aria-label="Direct link to Index signature" title="Direct link to Index signature">​</a></h4>
+<p>[<code>key</code>: <code>string</code>]: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-8">Inherited from<a href="#inherited-from-8" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.flatHierarchy</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-9">Source<a href="#source-9" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:516</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="graph">graph<a href="#graph" class="hash-link" aria-label="Direct link to graph" title="Direct link to graph">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>graph</strong>: <code>ModelsGraph</code></p>
+</blockquote>
+<p>Models graph</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-9">Inherited from<a href="#inherited-from-9" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.graph</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-10">Source<a href="#source-10" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:494</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="inittime">initTime<a href="#inittime" class="hash-link" aria-label="Direct link to initTime" title="Direct link to initTime">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>initTime</strong>: <code>number</code></p>
+</blockquote>
+<p>When the application got initiated</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-10">Inherited from<a href="#inherited-from-10" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.initTime</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-11">Source<a href="#source-11" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:512</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="logger">logger<a href="#logger" class="hash-link" aria-label="Direct link to logger" title="Direct link to logger">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>logger</strong>: <code>WorkerOutput</code></p>
+</blockquote>
+<p>Class Logger</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-11">Inherited from<a href="#inherited-from-11" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.logger</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-12">Source<a href="#source-12" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:504</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="moddas">moddas<a href="#moddas" class="hash-link" aria-label="Direct link to moddas" title="Direct link to moddas">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>moddas</strong>: <code>Object</code></p>
+</blockquote>
+<p>Moddas registry</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="index-signature-2">Index signature<a href="#index-signature-2" class="hash-link" aria-label="Direct link to Index signature" title="Direct link to Index signature">​</a></h4>
+<p>[<code>key</code>: <code>string</code>]: <code>Modda</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-12">Inherited from<a href="#inherited-from-12" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.moddas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-13">Source<a href="#source-13" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:482</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="models">models<a href="#models" class="hash-link" aria-label="Direct link to models" title="Direct link to models">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>models</strong>: <code>Object</code></p>
+</blockquote>
+<p>Models type registry</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="index-signature-3">Index signature<a href="#index-signature-3" class="hash-link" aria-label="Direct link to Index signature" title="Direct link to Index signature">​</a></h4>
+<p>[<code>key</code>: <code>string</code>]: <code>CoreModelDefinition</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-13">Inherited from<a href="#inherited-from-13" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.models</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-14">Source<a href="#source-14" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:488</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="plurals">plurals<a href="#plurals" class="hash-link" aria-label="Direct link to plurals" title="Direct link to plurals">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>plurals</strong>: <code>Object</code></p>
+</blockquote>
+<p>Models specific plurals</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="index-signature-4">Index signature<a href="#index-signature-4" class="hash-link" aria-label="Direct link to Index signature" title="Direct link to Index signature">​</a></h4>
+<p>[<code>key</code>: <code>string</code>]: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-14">Inherited from<a href="#inherited-from-14" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.plurals</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-15">Source<a href="#source-15" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:498</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="workspacespath">workspacesPath<a href="#workspacespath" class="hash-link" aria-label="Direct link to workspacesPath" title="Direct link to workspacesPath">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>workspacesPath</strong>: <code>string</code></p>
+</blockquote>
+<p>Detect if running as workspace</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-15">Inherited from<a href="#inherited-from-15" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.workspacesPath</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-16">Source<a href="#source-16" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:508</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="active">active<a href="#active" class="hash-link" aria-label="Direct link to active" title="Direct link to active">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong><code>protected</code></strong> <strong>active</strong>: <code>Application</code></p>
+</blockquote>
+<p>Current application</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-16">Inherited from<a href="#inherited-from-16" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.active</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-17">Source<a href="#source-17" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:530</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="methods">Methods<a href="#methods" class="hash-link" aria-label="Direct link to Methods" title="Direct link to Methods">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="adddeployer">addDeployer()<a href="#adddeployer" class="hash-link" aria-label="Direct link to addDeployer()" title="Direct link to addDeployer()">​</a></h3>
+<blockquote>
+<p><strong>addDeployer</strong>(<code>name</code>, <code>model</code>): <code>this</code></p>
+</blockquote>
+<p>Add a new deployer</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-1">Parameters<a href="#parameters-1" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name</strong>: <code>string</code></p>
+<p>• <strong>model</strong>: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-1">Returns<a href="#returns-1" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-17">Inherited from<a href="#inherited-from-17" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.addDeployer</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-18">Source<a href="#source-18" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:742</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="addmodel">addModel()<a href="#addmodel" class="hash-link" aria-label="Direct link to addModel()" title="Direct link to addModel()">​</a></h3>
+<blockquote>
+<p><strong>addModel</strong>(<code>name</code>, <code>model</code>, <code>dynamic</code>?): <code>this</code></p>
+</blockquote>
+<p>Add a new model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name</strong>: <code>string</code></p>
+<p>• <strong>model</strong>: <code>any</code></p>
+<p>• <strong>dynamic?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-2">Returns<a href="#returns-2" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-18">Inherited from<a href="#inherited-from-18" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.addModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-19">Source<a href="#source-19" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:735</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="addservice">addService()<a href="#addservice" class="hash-link" aria-label="Direct link to addService()" title="Direct link to addService()">​</a></h3>
+<blockquote>
+<p><strong>addService</strong>(<code>name</code>, <code>service</code>): <code>this</code></p>
+</blockquote>
+<p>Add a new service</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-3">Parameters<a href="#parameters-3" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name</strong>: <code>string</code></p>
+<p>• <strong>service</strong>: <code>Modda</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-3">Returns<a href="#returns-3" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-19">Inherited from<a href="#inherited-from-19" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.addService</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-20">Source<a href="#source-20" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:624</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="completenamespace">completeNamespace()<a href="#completenamespace" class="hash-link" aria-label="Direct link to completeNamespace()" title="Direct link to completeNamespace()">​</a></h3>
+<blockquote>
+<p><strong>completeNamespace</strong>(<code>name</code>?): <code>string</code></p>
+</blockquote>
+<p>Return the full name including namespace</p>
+<p>In Webda the ServiceType include namespace <code>Webda/Store</code> or <code>Webda/Test</code>
+This method will make sure the namespace is present, adding it if no &#x27;/&#x27;
+is found in the name</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-4">Parameters<a href="#parameters-4" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name?</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-4">Returns<a href="#returns-4" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-20">Inherited from<a href="#inherited-from-20" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.completeNamespace</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-21">Source<a href="#source-21" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:855</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getapppath">getAppPath()<a href="#getapppath" class="hash-link" aria-label="Direct link to getAppPath()" title="Direct link to getAppPath()">​</a></h3>
+<blockquote>
+<p><strong>getAppPath</strong>(<code>subpath</code>?): <code>string</code></p>
+</blockquote>
+<p>Return the current app path</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-5">Parameters<a href="#parameters-5" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>subpath?</strong>: <code>string</code></p>
+<p>to append to</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-5">Returns<a href="#returns-5" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-21">Inherited from<a href="#inherited-from-21" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getAppPath</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-22">Source<a href="#source-22" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:617</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getbeans">getBeans()<a href="#getbeans" class="hash-link" aria-label="Direct link to getBeans()" title="Direct link to getBeans()">​</a></h3>
+<blockquote>
+<p><strong>getBeans</strong>(): <code>Object</code></p>
+</blockquote>
+<p>Return all beans of the application</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-6">Returns<a href="#returns-6" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-22">Inherited from<a href="#inherited-from-22" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getBeans</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-23">Source<a href="#source-23" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:666</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getconfiguration">getConfiguration()<a href="#getconfiguration" class="hash-link" aria-label="Direct link to getConfiguration()" title="Direct link to getConfiguration()">​</a></h3>
+<blockquote>
+<p><strong>getConfiguration</strong>(<code>_deploymentName</code>): <code>Configuration</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-6">Parameters<a href="#parameters-6" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>_deploymentName</strong>: <code>string</code>= <code>undefined</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-7">Returns<a href="#returns-7" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Configuration</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="overrides-1">Overrides<a href="#overrides-1" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides">​</a></h4>
+<p><code>Application.getConfiguration</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-24">Source<a href="#source-24" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/shell/src/handlers/config.ts#L101" target="_blank" rel="noopener noreferrer">packages/shell/src/handlers/config.ts:101</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getcurrentconfiguration">getCurrentConfiguration()<a href="#getcurrentconfiguration" class="hash-link" aria-label="Direct link to getCurrentConfiguration()" title="Direct link to getCurrentConfiguration()">​</a></h3>
+<blockquote>
+<p><strong>getCurrentConfiguration</strong>(): <code>Configuration</code></p>
+</blockquote>
+<p>Return current Configuration of the Application</p>
+<p>Same as calling</p>
+<div class="language-js codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-js codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">getConfiguration</span><span class="token punctuation" style="color:#393A34">(</span><span class="token keyword" style="color:#00009f">this</span><span class="token punctuation" style="color:#393A34">.</span><span class="token property-access">currentDeployment</span><span class="token punctuation" style="color:#393A34">)</span><span class="token punctuation" style="color:#393A34">;</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-8">Returns<a href="#returns-8" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Configuration</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-23">Inherited from<a href="#inherited-from-23" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getCurrentConfiguration</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-25">Source<a href="#source-25" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:826</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getcurrentdeployment">getCurrentDeployment()<a href="#getcurrentdeployment" class="hash-link" aria-label="Direct link to getCurrentDeployment()" title="Direct link to getCurrentDeployment()">​</a></h3>
+<blockquote>
+<p><strong>getCurrentDeployment</strong>(): <code>string</code></p>
+</blockquote>
+<p>Get current deployment name</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-9">Returns<a href="#returns-9" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-24">Inherited from<a href="#inherited-from-24" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getCurrentDeployment</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-26">Source<a href="#source-26" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:804</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getdeployers">getDeployers()<a href="#getdeployers" class="hash-link" aria-label="Direct link to getDeployers()" title="Direct link to getDeployers()">​</a></h3>
+<blockquote>
+<p><strong>getDeployers</strong>(): <code>Object</code></p>
+</blockquote>
+<p>Return all deployers</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-10">Returns<a href="#returns-10" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-25">Inherited from<a href="#inherited-from-25" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getDeployers</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-27">Source<a href="#source-27" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:726</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getfullnamefromprototype">getFullNameFromPrototype()<a href="#getfullnamefromprototype" class="hash-link" aria-label="Direct link to getFullNameFromPrototype()" title="Direct link to getFullNameFromPrototype()">​</a></h3>
+<blockquote>
+<p><strong>getFullNameFromPrototype</strong>(<code>proto</code>): <code>string</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-7">Parameters<a href="#parameters-7" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>proto</strong>: <code>any</code></p>
+<p>Prototype to send</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-11">Returns<a href="#returns-11" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-26">Inherited from<a href="#inherited-from-26" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getFullNameFromPrototype</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-28">Source<a href="#source-28" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:552</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getgitinformation">getGitInformation()<a href="#getgitinformation" class="hash-link" aria-label="Direct link to getGitInformation()" title="Direct link to getGitInformation()">​</a></h3>
+<blockquote>
+<p><strong>getGitInformation</strong>(<code>_packageName</code>?, <code>_version</code>?): <code>GitInformation</code></p>
+</blockquote>
+<p>Retrieve Git Repository information</p>
+<p>GitInformation for more details on how the information is gathered</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-8">Parameters<a href="#parameters-8" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>_packageName?</strong>: <code>string</code></p>
+<p>• <strong>_version?</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-12">Returns<a href="#returns-12" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>GitInformation</code></p>
+<p>the git information</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-27">Inherited from<a href="#inherited-from-27" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getGitInformation</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-29">Source<a href="#source-29" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:756</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getgraph">getGraph()<a href="#getgraph" class="hash-link" aria-label="Direct link to getGraph()" title="Direct link to getGraph()">​</a></h3>
+<blockquote>
+<p><strong>getGraph</strong>(): <code>ModelsGraph</code></p>
+</blockquote>
+<p>Get the all graph</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-13">Returns<a href="#returns-13" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>ModelsGraph</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-28">Inherited from<a href="#inherited-from-28" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getGraph</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-30">Source<a href="#source-30" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:582</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodda">getModda()<a href="#getmodda" class="hash-link" aria-label="Direct link to getModda()" title="Direct link to getModda()">​</a></h3>
+<blockquote>
+<p><strong>getModda</strong>(<code>name</code>): <code>ServiceConstructor</code>&lt;<code>Service</code>&lt;<code>ServiceParameters</code>, <code>Events</code>&gt;&gt;</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-9">Parameters<a href="#parameters-9" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-14">Returns<a href="#returns-14" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>ServiceConstructor</code>&lt;<code>Service</code>&lt;<code>ServiceParameters</code>, <code>Events</code>&gt;&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="overrides-2">Overrides<a href="#overrides-2" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides">​</a></h4>
+<p><code>Application.getModda</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-31">Source<a href="#source-31" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/shell/src/handlers/config.ts#L87" target="_blank" rel="noopener noreferrer">packages/shell/src/handlers/config.ts:87</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmoddas">getModdas()<a href="#getmoddas" class="hash-link" aria-label="Direct link to getModdas()" title="Direct link to getModdas()">​</a></h3>
+<blockquote>
+<p><strong>getModdas</strong>(): <code>Object</code></p>
+</blockquote>
+<p>Return all services of the application</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-15">Returns<a href="#returns-15" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-29">Inherited from<a href="#inherited-from-29" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModdas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-32">Source<a href="#source-32" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:660</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodel">getModel()<a href="#getmodel" class="hash-link" aria-label="Direct link to getModel()" title="Direct link to getModel()">​</a></h3>
+<blockquote>
+<p><strong>getModel</strong>(<code>model</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-10">Parameters<a href="#parameters-10" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>model</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-16">Returns<a href="#returns-16" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="overrides-3">Overrides<a href="#overrides-3" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides">​</a></h4>
+<p><code>Application.getModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-33">Source<a href="#source-33" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/shell/src/handlers/config.ts#L78" target="_blank" rel="noopener noreferrer">packages/shell/src/handlers/config.ts:78</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodelfromconstructor">getModelFromConstructor()<a href="#getmodelfromconstructor" class="hash-link" aria-label="Direct link to getModelFromConstructor()" title="Direct link to getModelFromConstructor()">​</a></h3>
+<blockquote>
+<p><strong>getModelFromConstructor</strong>(<code>model</code>): <code>string</code></p>
+</blockquote>
+<p>Return the model name for a object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-11">Parameters<a href="#parameters-11" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>model</strong>: <code>Constructor</code>&lt;<code>CoreModel</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-17">Returns<a href="#returns-17" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-30">Inherited from<a href="#inherited-from-30" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModelFromConstructor</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-34">Source<a href="#source-34" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:701</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodelfrominstance">getModelFromInstance()<a href="#getmodelfrominstance" class="hash-link" aria-label="Direct link to getModelFromInstance()" title="Direct link to getModelFromInstance()">​</a></h3>
+<blockquote>
+<p><strong>getModelFromInstance</strong>(<code>object</code>): <code>string</code></p>
+</blockquote>
+<p>Return the model name for a object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-12">Parameters<a href="#parameters-12" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>object</strong>: <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-18">Returns<a href="#returns-18" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-31">Inherited from<a href="#inherited-from-31" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModelFromInstance</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-35">Source<a href="#source-35" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:696</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodelhierarchy">getModelHierarchy()<a href="#getmodelhierarchy" class="hash-link" aria-label="Direct link to getModelHierarchy()" title="Direct link to getModelHierarchy()">​</a></h3>
+<blockquote>
+<p><strong>getModelHierarchy</strong>(<code>model</code>): <code>Object</code></p>
+</blockquote>
+<p>Get the model hierarchy</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-13">Parameters<a href="#parameters-13" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>model</strong>: <code>string</code> | <code>CoreModel</code> | <code>Constructor</code>&lt;<code>CoreModel</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-19">Returns<a href="#returns-19" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="ancestors">ancestors<a href="#ancestors" class="hash-link" aria-label="Direct link to ancestors" title="Direct link to ancestors">​</a></h5>
+<blockquote>
+<p><strong>ancestors</strong>: <code>string</code>[]</p>
+</blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="children">children<a href="#children" class="hash-link" aria-label="Direct link to children" title="Direct link to children">​</a></h5>
+<blockquote>
+<p><strong>children</strong>: <code>ModelsTree</code></p>
+</blockquote>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-32">Inherited from<a href="#inherited-from-32" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModelHierarchy</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-36">Source<a href="#source-36" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:713</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodelname">getModelName()<a href="#getmodelname" class="hash-link" aria-label="Direct link to getModelName()" title="Direct link to getModelName()">​</a></h3>
+<blockquote>
+<p><strong>getModelName</strong>(<code>model</code>): <code>string</code></p>
+</blockquote>
+<p>Get the model name from a model or a constructor</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-14">Parameters<a href="#parameters-14" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>model</strong>: <code>CoreModel</code> | <code>Constructor</code>&lt;<code>CoreModel</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-20">Returns<a href="#returns-20" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>longId for a model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-33">Inherited from<a href="#inherited-from-33" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModelName</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-37">Source<a href="#source-37" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:708</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodelplural">getModelPlural()<a href="#getmodelplural" class="hash-link" aria-label="Direct link to getModelPlural()" title="Direct link to getModelPlural()">​</a></h3>
+<blockquote>
+<p><strong>getModelPlural</strong>(<code>name</code>): <code>string</code></p>
+</blockquote>
+<p>Get plural of an Id</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-15">Parameters<a href="#parameters-15" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-21">Returns<a href="#returns-21" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-34">Inherited from<a href="#inherited-from-34" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModelPlural</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-38">Source<a href="#source-38" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:636</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodeltypes">getModelTypes()<a href="#getmodeltypes" class="hash-link" aria-label="Direct link to getModelTypes()" title="Direct link to getModelTypes()">​</a></h3>
+<blockquote>
+<p><strong>getModelTypes</strong>(<code>model</code>): <code>string</code>[]</p>
+</blockquote>
+<p>Get all model types with the hierarchy</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-16">Parameters<a href="#parameters-16" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>model</strong>: <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-22">Returns<a href="#returns-22" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-35">Inherited from<a href="#inherited-from-35" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModelTypes</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-39">Source<a href="#source-39" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:722</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodels">getModels()<a href="#getmodels" class="hash-link" aria-label="Direct link to getModels()" title="Direct link to getModels()">​</a></h3>
+<blockquote>
+<p><strong>getModels</strong>(): <code>Object</code></p>
+</blockquote>
+<p>Get all models definitions</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-23">Returns<a href="#returns-23" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-36">Inherited from<a href="#inherited-from-36" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModels</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-40">Source<a href="#source-40" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:678</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmodules">getModules()<a href="#getmodules" class="hash-link" aria-label="Direct link to getModules()" title="Direct link to getModules()">​</a></h3>
+<blockquote>
+<p><strong>getModules</strong>(): <code>CachedModule</code></p>
+</blockquote>
+<p>Return all application modules merged as one</p>
+<p>Used when deployed</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-24">Returns<a href="#returns-24" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>CachedModule</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-37">Inherited from<a href="#inherited-from-37" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getModules</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-41">Source<a href="#source-41" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:811</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getnamespace">getNamespace()<a href="#getnamespace" class="hash-link" aria-label="Direct link to getNamespace()" title="Direct link to getNamespace()">​</a></h3>
+<blockquote>
+<p><strong>getNamespace</strong>(): <code>string</code></p>
+</blockquote>
+<p>Return current namespace</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-25">Returns<a href="#returns-25" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-38">Inherited from<a href="#inherited-from-38" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getNamespace</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-42">Source<a href="#source-42" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:860</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getpackagedescription">getPackageDescription()<a href="#getpackagedescription" class="hash-link" aria-label="Direct link to getPackageDescription()" title="Direct link to getPackageDescription()">​</a></h3>
+<blockquote>
+<p><strong>getPackageDescription</strong>(): <code>PackageDescriptor</code></p>
+</blockquote>
+<p>Retrieve content of package.json</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-26">Returns<a href="#returns-26" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>PackageDescriptor</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-39">Inherited from<a href="#inherited-from-39" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getPackageDescription</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-43">Source<a href="#source-43" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:600</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getpackagewebda">getPackageWebda()<a href="#getpackagewebda" class="hash-link" aria-label="Direct link to getPackageWebda()" title="Direct link to getPackageWebda()">​</a></h3>
+<blockquote>
+<p><strong>getPackageWebda</strong>(): <code>WebdaPackageDescriptor</code></p>
+</blockquote>
+<p>Retrieve specific webda conf from package.json</p>
+<p>In case of workspaces the object is combined</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-27">Returns<a href="#returns-27" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>WebdaPackageDescriptor</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-40">Inherited from<a href="#inherited-from-40" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getPackageWebda</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-44">Source<a href="#source-44" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:596</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getrelations">getRelations()<a href="#getrelations" class="hash-link" aria-label="Direct link to getRelations()" title="Direct link to getRelations()">​</a></h3>
+<blockquote>
+<p><strong>getRelations</strong>(<code>model</code>): <code>ModelGraph</code></p>
+</blockquote>
+<p>Get model graph</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-17">Parameters<a href="#parameters-17" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>model</strong>: <code>string</code> | <code>CoreModel</code> | <code>Constructor</code>&lt;<code>CoreModel</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-28">Returns<a href="#returns-28" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>ModelGraph</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-41">Inherited from<a href="#inherited-from-41" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getRelations</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-45">Source<a href="#source-45" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:577</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getrootexposedmodels">getRootExposedModels()<a href="#getrootexposedmodels" class="hash-link" aria-label="Direct link to getRootExposedModels()" title="Direct link to getRootExposedModels()">​</a></h3>
+<blockquote>
+<p><strong>getRootExposedModels</strong>(): <code>string</code>[]</p>
+</blockquote>
+<p>Return models that do not have parents and are exposed
+Or specifically set as root via the Expose.root parameter</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-29">Returns<a href="#returns-29" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-42">Inherited from<a href="#inherited-from-42" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getRootExposedModels</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-46">Source<a href="#source-46" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:691</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getrootmodels">getRootModels()<a href="#getrootmodels" class="hash-link" aria-label="Direct link to getRootModels()" title="Direct link to getRootModels()">​</a></h3>
+<blockquote>
+<p><strong>getRootModels</strong>(): <code>string</code>[]</p>
+</blockquote>
+<p>Return models that do not have parents</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-30">Returns<a href="#returns-30" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-43">Inherited from<a href="#inherited-from-43" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getRootModels</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-47">Source<a href="#source-47" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:685</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getschema">getSchema()<a href="#getschema" class="hash-link" aria-label="Direct link to getSchema()" title="Direct link to getSchema()">​</a></h3>
+<blockquote>
+<p><strong>getSchema</strong>(<code>type</code>): <code>JSONSchema7</code></p>
+</blockquote>
+<p>Get a schema from a type</p>
+<p>Schema should be precomputed in the default app</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-18">Parameters<a href="#parameters-18" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>type</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-31">Returns<a href="#returns-31" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>JSONSchema7</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-44">Inherited from<a href="#inherited-from-44" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getSchema</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-48">Source<a href="#source-48" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:560</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getschemas">getSchemas()<a href="#getschemas" class="hash-link" aria-label="Direct link to getSchemas()" title="Direct link to getSchemas()">​</a></h3>
+<blockquote>
+<p><strong>getSchemas</strong>(): <code>Object</code></p>
+</blockquote>
+<p>Get schemas</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-32">Returns<a href="#returns-32" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-45">Inherited from<a href="#inherited-from-45" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getSchemas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-49">Source<a href="#source-49" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:565</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getshortid">getShortId()<a href="#getshortid" class="hash-link" aria-label="Direct link to getShortId()" title="Direct link to getShortId()">​</a></h3>
+<blockquote>
+<p><strong>getShortId</strong>(<code>name</code>): <code>string</code></p>
+</blockquote>
+<p>Get short id for a name</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-19">Parameters<a href="#parameters-19" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name</strong>: <code>string</code></p>
+<p>if name is shortId return longId else return shortId</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-33">Returns<a href="#returns-33" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-46">Inherited from<a href="#inherited-from-46" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getShortId</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-50">Source<a href="#source-50" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:866</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getwebdaobject">getWebdaObject()<a href="#getwebdaobject" class="hash-link" aria-label="Direct link to getWebdaObject()" title="Direct link to getWebdaObject()">​</a></h3>
+<blockquote>
+<p><strong>getWebdaObject</strong>(<code>section</code>, <code>name</code>, <code>caseSensitive</code>?): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-20">Parameters<a href="#parameters-20" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>section</strong>: <code>Section</code></p>
+<p>• <strong>name</strong>: <code>string</code></p>
+<p>• <strong>caseSensitive?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-34">Returns<a href="#returns-34" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-47">Inherited from<a href="#inherited-from-47" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getWebdaObject</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-51">Source<a href="#source-51" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:650</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getwebdaversion">getWebdaVersion()<a href="#getwebdaversion" class="hash-link" aria-label="Direct link to getWebdaVersion()" title="Direct link to getWebdaVersion()">​</a></h3>
+<blockquote>
+<p><strong>getWebdaVersion</strong>(): <code>string</code></p>
+</blockquote>
+<p>Return webda current version</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-35">Returns<a href="#returns-35" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>package version</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-48">Inherited from<a href="#inherited-from-48" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getWebdaVersion</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="since">Since<a href="#since" class="hash-link" aria-label="Direct link to Since" title="Direct link to Since">​</a></h4>
+<p>0.4.0</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-52">Source<a href="#source-52" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:749</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getworkeroutput">getWorkerOutput()<a href="#getworkeroutput" class="hash-link" aria-label="Direct link to getWorkerOutput()" title="Direct link to getWorkerOutput()">​</a></h3>
+<blockquote>
+<p><strong>getWorkerOutput</strong>(): <code>WorkerOutput</code></p>
+</blockquote>
+<p>Get current logger</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-36">Returns<a href="#returns-36" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>WorkerOutput</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-49">Inherited from<a href="#inherited-from-49" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.getWorkerOutput</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-53">Source<a href="#source-53" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:611</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="hasschema">hasSchema()<a href="#hasschema" class="hash-link" aria-label="Direct link to hasSchema()" title="Direct link to hasSchema()">​</a></h3>
+<blockquote>
+<p><strong>hasSchema</strong>(<code>type</code>): <code>boolean</code></p>
+</blockquote>
+<p>Check if a schema exists</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-21">Parameters<a href="#parameters-21" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>type</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-37">Returns<a href="#returns-37" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>schema name if it exists</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-50">Inherited from<a href="#inherited-from-50" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.hasSchema</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-54">Source<a href="#source-54" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:573</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="haswebdaobject">hasWebdaObject()<a href="#haswebdaobject" class="hash-link" aria-label="Direct link to hasWebdaObject()" title="Direct link to hasWebdaObject()">​</a></h3>
+<blockquote>
+<p><strong>hasWebdaObject</strong>(<code>section</code>, <code>name</code>, <code>caseSensitive</code>?): <code>boolean</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-22">Parameters<a href="#parameters-22" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>section</strong>: <code>Section</code></p>
+<p>• <strong>name</strong>: <code>string</code></p>
+<p>• <strong>caseSensitive?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-38">Returns<a href="#returns-38" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-51">Inherited from<a href="#inherited-from-51" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.hasWebdaObject</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-55">Source<a href="#source-55" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:643</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="importfile">importFile()<a href="#importfile" class="hash-link" aria-label="Direct link to importFile()" title="Direct link to importFile()">​</a></h3>
+<blockquote>
+<p><strong>importFile</strong>(<code>info</code>, <code>withExport</code>?): <code>Promise</code>&lt;<code>any</code>&gt;</p>
+</blockquote>
+<p>Import a file</p>
+<p>If the <code>default</code> is set take this or use old format</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-23">Parameters<a href="#parameters-23" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>info</strong>: <code>string</code></p>
+<p>• <strong>withExport?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-39">Returns<a href="#returns-39" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-52">Inherited from<a href="#inherited-from-52" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.importFile</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-56">Source<a href="#source-56" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:834</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="iscached">isCached()<a href="#iscached" class="hash-link" aria-label="Direct link to isCached()" title="Direct link to isCached()">​</a></h3>
+<blockquote>
+<p><strong>isCached</strong>(): <code>boolean</code></p>
+</blockquote>
+<p>Check if application has cached modules</p>
+<p>When deployed the application contains cachedModules in the <code>webda.config.json</code>
+It allows to avoid the search for <code>webda.module.json</code> inside node_modules and
+take the schema from the cached modules also</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-40">Returns<a href="#returns-40" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-53">Inherited from<a href="#inherited-from-53" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.isCached</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-57">Source<a href="#source-57" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:590</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="load">load()<a href="#load" class="hash-link" aria-label="Direct link to load()" title="Direct link to load()">​</a></h3>
+<blockquote>
+<p><strong>load</strong>(): <code>Promise</code>&lt;<a href="/typedoc/shell/classes/ConfigApplication"><code>ConfigApplication</code></a>&gt;</p>
+</blockquote>
+<p>Import all required modules</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-41">Returns<a href="#returns-41" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<a href="/typedoc/shell/classes/ConfigApplication"><code>ConfigApplication</code></a>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-54">Inherited from<a href="#inherited-from-54" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.load</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-58">Source<a href="#source-58" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:540</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="loadconfiguration">loadConfiguration()<a href="#loadconfiguration" class="hash-link" aria-label="Direct link to loadConfiguration()" title="Direct link to loadConfiguration()">​</a></h3>
+<blockquote>
+<p><strong>loadConfiguration</strong>(<code>file</code>): <code>void</code></p>
+</blockquote>
+<p>Allow subclass to implement migration</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-24">Parameters<a href="#parameters-24" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>file</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-42">Returns<a href="#returns-42" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-55">Inherited from<a href="#inherited-from-55" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.loadConfiguration</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-59">Source<a href="#source-59" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:547</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="loadlocalmodule">loadLocalModule()<a href="#loadlocalmodule" class="hash-link" aria-label="Direct link to loadLocalModule()" title="Direct link to loadLocalModule()">​</a></h3>
+<blockquote>
+<p><strong>loadLocalModule</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Load local module</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-43">Returns<a href="#returns-43" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-56">Inherited from<a href="#inherited-from-56" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.loadLocalModule</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-60">Source<a href="#source-60" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:838</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="log">log()<a href="#log" class="hash-link" aria-label="Direct link to log()" title="Direct link to log()">​</a></h3>
+<blockquote>
+<p><strong>log</strong>(<code>level</code>, ...<code>args</code>): <code>void</code></p>
+</blockquote>
+<p>Log information</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-25">Parameters<a href="#parameters-25" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>level</strong>: <code>WorkerLogLevel</code></p>
+<p>to log for</p>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<p>anything to display same as console.log</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-44">Returns<a href="#returns-44" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-57">Inherited from<a href="#inherited-from-57" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.log</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-61">Source<a href="#source-61" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:607</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="registerschema">registerSchema()<a href="#registerschema" class="hash-link" aria-label="Direct link to registerSchema()" title="Direct link to registerSchema()">​</a></h3>
+<blockquote>
+<p><strong>registerSchema</strong>(<code>name</code>, <code>schema</code>): <code>void</code></p>
+</blockquote>
+<p>Register a new schema in the application</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-26">Parameters<a href="#parameters-26" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>name</strong>: <code>string</code></p>
+<p>• <strong>schema</strong>: <code>JSONSchema7</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-45">Returns<a href="#returns-45" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-58">Inherited from<a href="#inherited-from-58" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.registerSchema</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-62">Source<a href="#source-62" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:630</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="replacevariables">replaceVariables()<a href="#replacevariables" class="hash-link" aria-label="Direct link to replaceVariables()" title="Direct link to replaceVariables()">​</a></h3>
+<blockquote>
+<p><strong>replaceVariables</strong>(<code>object</code>, <code>replacements</code>?): <code>any</code></p>
+</blockquote>
+<p>Allow variable inside object strings</p>
+<p>Example</p>
+<div class="language-js codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-js codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">replaceVariables</span><span class="token punctuation" style="color:#393A34">(</span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> </span><span class="token literal-property property" style="color:#36acaa">myobj</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&quot;${test.replace}&quot;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">,</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> </span><span class="token literal-property property" style="color:#36acaa">test</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">{</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">   </span><span class="token literal-property property" style="color:#36acaa">replace</span><span class="token operator" style="color:#393A34">:</span><span class="token plain"> </span><span class="token string" style="color:#e3116c">&#x27;plop&#x27;</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> </span><span class="token punctuation" style="color:#393A34">}</span><span class="token plain"></span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"></span><span class="token punctuation" style="color:#393A34">}</span><span class="token punctuation" style="color:#393A34">)</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<p>will return</p>
+<div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">{</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> myobj: &#x27;plop&#x27;</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<p>By default the replacements map contains</p>
+<div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">{</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> git: GitInformation,</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> package: &#x27;package.json content&#x27;,</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> deployment: string,</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> now: number,</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain"> ...replacements</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<p>See: GitInformation</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-27">Parameters<a href="#parameters-27" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>object</strong>: <code>any</code></p>
+<p>a duplicated object with replacement done</p>
+<p>• <strong>replacements?</strong>: <code>any</code></p>
+<p>additional replacements to run</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-46">Returns<a href="#returns-46" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-59">Inherited from<a href="#inherited-from-59" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.replaceVariables</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-63">Source<a href="#source-63" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:800</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="stringparameter">stringParameter()<a href="#stringparameter" class="hash-link" aria-label="Direct link to stringParameter()" title="Direct link to stringParameter()">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>stringParameter</strong>(<code>templateString</code>, <code>replacements</code>?): <code>any</code></p>
+</blockquote>
+<p>Allow variable inside of string</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-28">Parameters<a href="#parameters-28" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>templateString</strong>: <code>string</code></p>
+<p>to copy</p>
+<p>• <strong>replacements?</strong>: <code>any</code></p>
+<p>additional replacements to run</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-47">Returns<a href="#returns-47" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-60">Inherited from<a href="#inherited-from-60" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Application.stringParameter</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-64">Source<a href="#source-64" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>packages/core/lib/application.d.ts:763</p></div></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/typedoc/shell/CHANGELOG"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Change Log</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/typedoc/shell/classes/ConfigurationService"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">ConfigurationService</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#extends" class="table-of-contents__link toc-highlight">Extends</a></li><li><a href="#constructors" class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href="#new-configapplicationapplication" class="table-of-contents__link toc-highlight">new ConfigApplication(application)</a></li></ul></li><li><a href="#properties" class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href="#_loaded" class="table-of-contents__link toc-highlight">_loaded</a></li><li><a href="#appmodule" class="table-of-contents__link toc-highlight">appModule</a></li><li><a href="#apppath" class="table-of-contents__link toc-highlight">appPath</a></li><li><a href="#baseconfiguration" class="table-of-contents__link toc-highlight">baseConfiguration</a></li><li><a href="#configurationfile" class="table-of-contents__link toc-highlight">configurationFile</a></li><li><a href="#currentdeployment" class="table-of-contents__link toc-highlight">currentDeployment</a></li><li><a href="#deployers" class="table-of-contents__link toc-highlight">deployers</a></li><li><a href="#deploymentfile" class="table-of-contents__link toc-highlight">deploymentFile</a></li><li><a href="#flathierarchy" class="table-of-contents__link toc-highlight">flatHierarchy</a></li><li><a href="#graph" class="table-of-contents__link toc-highlight">graph</a></li><li><a href="#inittime" class="table-of-contents__link toc-highlight">initTime</a></li><li><a href="#logger" class="table-of-contents__link toc-highlight">logger</a></li><li><a href="#moddas" class="table-of-contents__link toc-highlight">moddas</a></li><li><a href="#models" class="table-of-contents__link toc-highlight">models</a></li><li><a href="#plurals" class="table-of-contents__link toc-highlight">plurals</a></li><li><a href="#workspacespath" class="table-of-contents__link toc-highlight">workspacesPath</a></li><li><a href="#active" class="table-of-contents__link toc-highlight">active</a></li></ul></li><li><a href="#methods" class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href="#adddeployer" class="table-of-contents__link toc-highlight">addDeployer()</a></li><li><a href="#addmodel" class="table-of-contents__link toc-highlight">addModel()</a></li><li><a href="#addservice" class="table-of-contents__link toc-highlight">addService()</a></li><li><a href="#completenamespace" class="table-of-contents__link toc-highlight">completeNamespace()</a></li><li><a href="#getapppath" class="table-of-contents__link toc-highlight">getAppPath()</a></li><li><a href="#getbeans" class="table-of-contents__link toc-highlight">getBeans()</a></li><li><a href="#getconfiguration" class="table-of-contents__link toc-highlight">getConfiguration()</a></li><li><a href="#getcurrentconfiguration" class="table-of-contents__link toc-highlight">getCurrentConfiguration()</a></li><li><a href="#getcurrentdeployment" class="table-of-contents__link toc-highlight">getCurrentDeployment()</a></li><li><a href="#getdeployers" class="table-of-contents__link toc-highlight">getDeployers()</a></li><li><a href="#getfullnamefromprototype" class="table-of-contents__link toc-highlight">getFullNameFromPrototype()</a></li><li><a href="#getgitinformation" class="table-of-contents__link toc-highlight">getGitInformation()</a></li><li><a href="#getgraph" class="table-of-contents__link toc-highlight">getGraph()</a></li><li><a href="#getmodda" class="table-of-contents__link toc-highlight">getModda()</a></li><li><a href="#getmoddas" class="table-of-contents__link toc-highlight">getModdas()</a></li><li><a href="#getmodel" class="table-of-contents__link toc-highlight">getModel()</a></li><li><a href="#getmodelfromconstructor" class="table-of-contents__link toc-highlight">getModelFromConstructor()</a></li><li><a href="#getmodelfrominstance" class="table-of-contents__link toc-highlight">getModelFromInstance()</a></li><li><a href="#getmodelhierarchy" class="table-of-contents__link toc-highlight">getModelHierarchy()</a></li><li><a href="#getmodelname" class="table-of-contents__link toc-highlight">getModelName()</a></li><li><a href="#getmodelplural" class="table-of-contents__link toc-highlight">getModelPlural()</a></li><li><a href="#getmodeltypes" class="table-of-contents__link toc-highlight">getModelTypes()</a></li><li><a href="#getmodels" class="table-of-contents__link toc-highlight">getModels()</a></li><li><a href="#getmodules" class="table-of-contents__link toc-highlight">getModules()</a></li><li><a href="#getnamespace" class="table-of-contents__link toc-highlight">getNamespace()</a></li><li><a href="#getpackagedescription" class="table-of-contents__link toc-highlight">getPackageDescription()</a></li><li><a href="#getpackagewebda" class="table-of-contents__link toc-highlight">getPackageWebda()</a></li><li><a href="#getrelations" class="table-of-contents__link toc-highlight">getRelations()</a></li><li><a href="#getrootexposedmodels" class="table-of-contents__link toc-highlight">getRootExposedModels()</a></li><li><a href="#getrootmodels" class="table-of-contents__link toc-highlight">getRootModels()</a></li><li><a href="#getschema" class="table-of-contents__link toc-highlight">getSchema()</a></li><li><a href="#getschemas" class="table-of-contents__link toc-highlight">getSchemas()</a></li><li><a href="#getshortid" class="table-of-contents__link toc-highlight">getShortId()</a></li><li><a href="#getwebdaobject" class="table-of-contents__link toc-highlight">getWebdaObject()</a></li><li><a href="#getwebdaversion" class="table-of-contents__link toc-highlight">getWebdaVersion()</a></li><li><a href="#getworkeroutput" class="table-of-contents__link toc-highlight">getWorkerOutput()</a></li><li><a href="#hasschema" class="table-of-contents__link toc-highlight">hasSchema()</a></li><li><a href="#haswebdaobject" class="table-of-contents__link toc-highlight">hasWebdaObject()</a></li><li><a href="#importfile" class="table-of-contents__link toc-highlight">importFile()</a></li><li><a href="#iscached" class="table-of-contents__link toc-highlight">isCached()</a></li><li><a href="#load" class="table-of-contents__link toc-highlight">load()</a></li><li><a href="#loadconfiguration" class="table-of-contents__link toc-highlight">loadConfiguration()</a></li><li><a href="#loadlocalmodule" class="table-of-contents__link toc-highlight">loadLocalModule()</a></li><li><a href="#log" class="table-of-contents__link toc-highlight">log()</a></li><li><a href="#registerschema" class="table-of-contents__link toc-highlight">registerSchema()</a></li><li><a href="#replacevariables" class="table-of-contents__link toc-highlight">replaceVariables()</a></li><li><a href="#stringparameter" class="table-of-contents__link toc-highlight">stringParameter()</a></li></ul></li></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"></ul></div><div class="col footer__col"><div class="footer__title">Sponsors</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://www.loopingz.com" target="_blank" rel="noopener noreferrer" class="footer__link-item">Loopingz<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a href="https://www.arize.com" target="_blank" rel="noopener noreferrer" class="footer__link-item">Arize AI<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a href="https://www.tellae.fr" target="_blank" rel="noopener noreferrer" class="footer__link-item">Tellae<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2024 Webda.io. Built with Docusaurus.</div></div></div></footer></div>
+</body>
+</html>

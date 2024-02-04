@@ -1,0 +1,1513 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-typedoc docs-version-current docs-doc-page docs-doc-id-async/classes/AsyncOperationAction" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.1.1">
+<title data-rh="true">AsyncOperationAction | Webda.io</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" property="og:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://webda.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://webda.io/typedoc/async/classes/AsyncOperationAction"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="keywords" content="webda, typescript, framework"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-typedoc-current"><meta data-rh="true" property="og:title" content="AsyncOperationAction | Webda.io"><meta data-rh="true" name="description" content="@webda/async • Readme \| API"><meta data-rh="true" property="og:description" content="@webda/async • Readme \| API"><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://webda.io/typedoc/async/classes/AsyncOperationAction"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/async/classes/AsyncOperationAction" hreflang="en"><link data-rh="true" rel="alternate" href="https://webda.io/typedoc/async/classes/AsyncOperationAction" hreflang="x-default"><link rel="stylesheet" href="/assets/css/styles.c2bf798a.css">
+<script src="/assets/js/runtime~main.a1b330d0.js" defer="defer"></script>
+<script src="/assets/js/main.a90b94a6.js" defer="defer"></script>
+</head>
+<body class="navigation-with-keyboard">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return localStorage.getItem("theme")}catch(t){}}();t(null!==e?e:"light")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="navbar navbar--fixed-top"><div class="navbar__inner"><div class="navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="/img/webda.svg" alt="Webda.io Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Webda.io</b></a><a class="navbar__item navbar__link" href="/docs/QuickStart">Quick Start</a><a class="navbar__item navbar__link" href="/docs/Concepts">Concepts</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/typedoc/core/">Typedoc</a></div><div class="navbar__items navbar__items--right"><a class="navbar__item navbar__link" href="/contribute/Contribute">Contribute</a><a href="https://github.com/loopingz/webda.io" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a><div class="toggle_vylO colorModeToggle_DEke"><button class="clean-btn toggleButton_gllP toggleButtonDisabled_aARS" type="button" disabled="" title="Switch between dark and light mode (currently light mode)" aria-label="Switch between dark and light mode (currently light mode)" aria-live="polite"><svg viewBox="0 0 24 24" width="24" height="24" class="lightToggleIcon_pyhR"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" class="darkToggleIcon_wfgR"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg></button></div><div class="navbarSearchContainer_Bca1"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/amqp/">@webda/amqp</a><button aria-label="Expand sidebar category &#x27;@webda/amqp&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--active" aria-expanded="true" href="/typedoc/async/">@webda/async</a><button aria-label="Collapse sidebar category &#x27;@webda/async&#x27;" type="button" class="clean-btn menu__caret"></button></div><ul style="display:block;overflow:visible;height:auto" class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/CHANGELOG">Changelog</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" aria-expanded="true" tabindex="0" href="/typedoc/async/classes/AsyncAction">classes</a></div><ul style="display:block;overflow:visible;height:auto" class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/classes/AsyncAction">AsyncAction</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/classes/AsyncJobService">AsyncJobService</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/classes/AsyncJobServiceParameters">AsyncJobServiceParameters</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/typedoc/async/classes/AsyncOperationAction">AsyncOperationAction</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/classes/AsyncWebdaAction">AsyncWebdaAction</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/classes/LocalRunnerParameters">LocalRunnerParameters</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/classes/Runner">Runner</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/classes/RunnerParameters">RunnerParameters</a></li></ul></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/typedoc/async/globals">globals</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" aria-expanded="false" tabindex="0" href="/typedoc/async/interfaces/AgentInfo">interfaces</a></div></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/aws/">@webda/aws</a><button aria-label="Expand sidebar category &#x27;@webda/aws&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/core/">@webda/core</a><button aria-label="Expand sidebar category &#x27;@webda/core&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/elasticsearch/">@webda/elasticsearch</a><button aria-label="Expand sidebar category &#x27;@webda/elasticsearch&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/gcp/">@webda/gcp</a><button aria-label="Expand sidebar category &#x27;@webda/gcp&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/google-auth/">@webda/google-auth</a><button aria-label="Expand sidebar category &#x27;@webda/google-auth&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/hawk/">@webda/hawk</a><button aria-label="Expand sidebar category &#x27;@webda/hawk&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/kubernetes/">@webda/kubernetes</a><button aria-label="Expand sidebar category &#x27;@webda/kubernetes&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/mongodb/">@webda/mongodb</a><button aria-label="Expand sidebar category &#x27;@webda/mongodb&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/otel/">@webda/otel</a><button aria-label="Expand sidebar category &#x27;@webda/otel&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/postgres/">@webda/postgres</a><button aria-label="Expand sidebar category &#x27;@webda/postgres&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/runtime/">@webda/runtime</a><button aria-label="Expand sidebar category &#x27;@webda/runtime&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/shell/">@webda/shell</a><button aria-label="Expand sidebar category &#x27;@webda/shell&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/tsc-esm/">@webda/tsc-esm</a><button aria-label="Expand sidebar category &#x27;@webda/tsc-esm&#x27;" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" aria-expanded="false" href="/typedoc/workout/">@webda/workout</a><button aria-label="Expand sidebar category &#x27;@webda/workout&#x27;" type="button" class="clean-btn menu__caret"></button></div></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_VOVn"><div class="docItemContainer_Djhp"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="Breadcrumbs"><ul class="breadcrumbs" itemscope="" itemtype="https://schema.org/BreadcrumbList"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li itemscope="" itemprop="itemListElement" itemtype="https://schema.org/ListItem" class="breadcrumbs__item"><a class="breadcrumbs__link" itemprop="item" href="/typedoc/async/"><span itemprop="name">@webda/async</span></a><meta itemprop="position" content="1"></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">classes</span><meta itemprop="position" content="2"></li><li itemscope="" itemprop="itemListElement" itemtype="https://schema.org/ListItem" class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link" itemprop="name">AsyncOperationAction</span><meta itemprop="position" content="3"></li></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><p><strong>@webda/async</strong> • <a href="/typedoc/async/">Readme</a> | <a href="/typedoc/async/globals">API</a></p>
+<hr>
+<h1>Class: AsyncOperationAction</h1>
+<p>Operation called asynchronously</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="webda-model">Webda Model<a href="#webda-model" class="hash-link" aria-label="Direct link to Webda Model" title="Direct link to Webda Model">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="extends">Extends<a href="#extends" class="hash-link" aria-label="Direct link to Extends" title="Direct link to Extends">​</a></h2>
+<ul>
+<li><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="constructors">Constructors<a href="#constructors" class="hash-link" aria-label="Direct link to Constructors" title="Direct link to Constructors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="new-asyncoperationactionoperationid-context-loglevel">new AsyncOperationAction(operationId, context, logLevel)<a href="#new-asyncoperationactionoperationid-context-loglevel" class="hash-link" aria-label="Direct link to new AsyncOperationAction(operationId, context, logLevel)" title="Direct link to new AsyncOperationAction(operationId, context, logLevel)">​</a></h3>
+<blockquote>
+<p><strong>new AsyncOperationAction</strong>(<code>operationId</code>, <code>context</code>, <code>logLevel</code>): <a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters">Parameters<a href="#parameters" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>operationId</strong>: <code>string</code></p>
+<p>• <strong>context</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<p>• <strong>logLevel</strong>: <code>WorkerLogLevel</code>= <code>&quot;INFO&quot;</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns">Returns<a href="#returns" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="overrides">Overrides<a href="#overrides" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#constructors"><code>constructor</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source">Source<a href="#source" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L264" target="_blank" rel="noopener noreferrer">async/src/models.ts:264</a></p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="properties">Properties<a href="#properties" class="hash-link" aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="__class">__class<a href="#__class" class="hash-link" aria-label="Direct link to __class" title="Direct link to __class">​</a></h3>
+<blockquote>
+<p><strong>__class</strong>: <code>CoreModelDefinition</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+</blockquote>
+<p>Class reference to the object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from">Inherited from<a href="#inherited-from" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#__class"><code>__class</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-1">Source<a href="#source-1" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:396</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="__ctx">__ctx<a href="#__ctx" class="hash-link" aria-label="Direct link to __ctx" title="Direct link to __ctx">​</a></h3>
+<blockquote>
+<p><strong>__ctx</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+</blockquote>
+<p>Object context</p>
+<p>@TJS-ignore</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-1">Inherited from<a href="#inherited-from-1" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#__ctx"><code>__ctx</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-2">Source<a href="#source-2" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:410</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="__dirty">__dirty<a href="#__dirty" class="hash-link" aria-label="Direct link to __dirty" title="Direct link to __dirty">​</a></h3>
+<blockquote>
+<p><strong>__dirty</strong>: <code>Set</code>&lt;<code>string</code> | <code>symbol</code>&gt;</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-2">Inherited from<a href="#inherited-from-2" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#__dirty"><code>__dirty</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-3">Source<a href="#source-3" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:417</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="__secretkey">__secretKey<a href="#__secretkey" class="hash-link" aria-label="Direct link to __secretKey" title="Direct link to __secretKey">​</a></h3>
+<blockquote>
+<p><strong>__secretKey</strong>: <code>string</code></p>
+</blockquote>
+<p>Secret key to post feedback</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-3">Inherited from<a href="#inherited-from-3" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#__secretkey"><code>__secretKey</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-4">Source<a href="#source-4" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L105" target="_blank" rel="noopener noreferrer">async/src/models.ts:105</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="__store">__store<a href="#__store" class="hash-link" aria-label="Direct link to __store" title="Direct link to __store">​</a></h3>
+<blockquote>
+<p><strong>__store</strong>: <code>Store</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>, <code>StoreParameters</code>, <code>StoreEvents</code>&gt;</p>
+</blockquote>
+<p>If object is attached to its store</p>
+<p>@TJS-ignore</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-4">Inherited from<a href="#inherited-from-4" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#__store"><code>__store</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-5">Source<a href="#source-5" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:416</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="__type">__type<a href="#__type" class="hash-link" aria-label="Direct link to __type" title="Direct link to __type">​</a></h3>
+<blockquote>
+<p><strong>__type</strong>: <code>string</code></p>
+</blockquote>
+<p>Type name</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-5">Inherited from<a href="#inherited-from-5" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#__type"><code>__type</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-6">Source<a href="#source-6" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:400</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="__types">__types<a href="#__types" class="hash-link" aria-label="Direct link to __types" title="Direct link to __types">​</a></h3>
+<blockquote>
+<p><strong>__types</strong>: <code>string</code>[]</p>
+</blockquote>
+<p>Types name</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-6">Inherited from<a href="#inherited-from-6" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#__types"><code>__types</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-7">Source<a href="#source-7" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:404</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_creationdate">_creationDate<a href="#_creationdate" class="hash-link" aria-label="Direct link to _creationDate" title="Direct link to _creationDate">​</a></h3>
+<blockquote>
+<p><strong>_creationDate</strong>: <code>Date</code></p>
+</blockquote>
+<p>Creation date</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-7">Inherited from<a href="#inherited-from-7" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_creationdate"><code>_creationDate</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-8">Source<a href="#source-8" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:421</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_lastjobupdate">_lastJobUpdate<a href="#_lastjobupdate" class="hash-link" aria-label="Direct link to _lastJobUpdate" title="Direct link to _lastJobUpdate">​</a></h3>
+<blockquote>
+<p><strong>_lastJobUpdate</strong>: <code>number</code></p>
+</blockquote>
+<p>Last time the job was updated</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-8">Inherited from<a href="#inherited-from-8" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_lastjobupdate"><code>_lastJobUpdate</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-9">Source<a href="#source-9" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L76" target="_blank" rel="noopener noreferrer">async/src/models.ts:76</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_lastupdate">_lastUpdate<a href="#_lastupdate" class="hash-link" aria-label="Direct link to _lastUpdate" title="Direct link to _lastUpdate">​</a></h3>
+<blockquote>
+<p><strong>_lastUpdate</strong>: <code>Date</code></p>
+</blockquote>
+<p>Last update date</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-9">Inherited from<a href="#inherited-from-9" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_lastupdate"><code>_lastUpdate</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-10">Source<a href="#source-10" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:425</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="action">action?<a href="#action" class="hash-link" aria-label="Direct link to action?" title="Direct link to action?">​</a></h3>
+<blockquote>
+<p><strong>action</strong>?: <code>string</code></p>
+</blockquote>
+<p>Expected action for the job</p>
+<p>It should be a verb</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-10">Inherited from<a href="#inherited-from-10" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#action"><code>action</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-11">Source<a href="#source-11" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L112" target="_blank" rel="noopener noreferrer">async/src/models.ts:112</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="arguments">arguments?<a href="#arguments" class="hash-link" aria-label="Direct link to arguments?" title="Direct link to arguments?">​</a></h3>
+<blockquote>
+<p><strong>arguments</strong>?: <code>any</code>[]</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-11">Inherited from<a href="#inherited-from-11" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#arguments"><code>arguments</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-12">Source<a href="#source-12" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L95" target="_blank" rel="noopener noreferrer">async/src/models.ts:95</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="context">context<a href="#context" class="hash-link" aria-label="Direct link to context" title="Direct link to context">​</a></h3>
+<blockquote>
+<p><strong>context</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-13">Source<a href="#source-13" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L266" target="_blank" rel="noopener noreferrer">async/src/models.ts:266</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="errormessage">errorMessage?<a href="#errormessage" class="hash-link" aria-label="Direct link to errorMessage?" title="Direct link to errorMessage?">​</a></h3>
+<blockquote>
+<p><strong>errorMessage</strong>?: <code>string</code></p>
+</blockquote>
+<p>If an error occured it should contain the message</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-12">Inherited from<a href="#inherited-from-12" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#errormessage"><code>errorMessage</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-14">Source<a href="#source-14" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L67" target="_blank" rel="noopener noreferrer">async/src/models.ts:67</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="job">job<a href="#job" class="hash-link" aria-label="Direct link to job" title="Direct link to job">​</a></h3>
+<blockquote>
+<p><strong>job</strong>: <a href="/typedoc/async/interfaces/Job"><code>Job</code></a></p>
+</blockquote>
+<p>Job information</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-13">Inherited from<a href="#inherited-from-13" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#job"><code>job</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-15">Source<a href="#source-15" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L71" target="_blank" rel="noopener noreferrer">async/src/models.ts:71</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="loglevel">logLevel<a href="#loglevel" class="hash-link" aria-label="Direct link to logLevel" title="Direct link to logLevel">​</a></h3>
+<blockquote>
+<p><strong>logLevel</strong>: <code>WorkerLogLevel</code> = <code>&quot;INFO&quot;</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-16">Source<a href="#source-16" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L267" target="_blank" rel="noopener noreferrer">async/src/models.ts:267</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="logs">logs<a href="#logs" class="hash-link" aria-label="Direct link to logs" title="Direct link to logs">​</a></h3>
+<blockquote>
+<p><strong>logs</strong>: <code>string</code>[]</p>
+</blockquote>
+<p>Current logs</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-14">Inherited from<a href="#inherited-from-14" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#logs"><code>logs</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-17">Source<a href="#source-17" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L100" target="_blank" rel="noopener noreferrer">async/src/models.ts:100</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="operationid">operationId<a href="#operationid" class="hash-link" aria-label="Direct link to operationId" title="Direct link to operationId">​</a></h3>
+<blockquote>
+<p><strong>operationId</strong>: <code>string</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-18">Source<a href="#source-18" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L265" target="_blank" rel="noopener noreferrer">async/src/models.ts:265</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="results">results<a href="#results" class="hash-link" aria-label="Direct link to results" title="Direct link to results">​</a></h3>
+<blockquote>
+<p><strong>results</strong>: <code>any</code></p>
+</blockquote>
+<p>Results from the job</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-15">Inherited from<a href="#inherited-from-15" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#results"><code>results</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-19">Source<a href="#source-19" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L80" target="_blank" rel="noopener noreferrer">async/src/models.ts:80</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="scheduled">scheduled?<a href="#scheduled" class="hash-link" aria-label="Direct link to scheduled?" title="Direct link to scheduled?">​</a></h3>
+<blockquote>
+<p><strong>scheduled</strong>?: <code>number</code></p>
+</blockquote>
+<p>Timestamp when the action was scheduled</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-16">Inherited from<a href="#inherited-from-16" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#scheduled"><code>scheduled</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-20">Source<a href="#source-20" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L62" target="_blank" rel="noopener noreferrer">async/src/models.ts:62</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="status">status<a href="#status" class="hash-link" aria-label="Direct link to status" title="Direct link to status">​</a></h3>
+<blockquote>
+<p><strong>status</strong>: <code>&quot;ERROR&quot;</code> | <code>&quot;RUNNING&quot;</code> | <code>&quot;SUCCESS&quot;</code> | <code>&quot;QUEUED&quot;</code> | <code>&quot;STARTING&quot;</code> | <code>&quot;TIMEOUT&quot;</code> | <code>&quot;SCHEDULED&quot;</code></p>
+</blockquote>
+<p>Current status</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-17">Inherited from<a href="#inherited-from-17" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#status"><code>status</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-21">Source<a href="#source-21" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L57" target="_blank" rel="noopener noreferrer">async/src/models.ts:57</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="statusdetails">statusDetails<a href="#statusdetails" class="hash-link" aria-label="Direct link to statusDetails" title="Direct link to statusDetails">​</a></h3>
+<blockquote>
+<p><strong>statusDetails</strong>: <code>any</code></p>
+</blockquote>
+<p>Job current status</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-18">Inherited from<a href="#inherited-from-18" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#statusdetails"><code>statusDetails</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-22">Source<a href="#source-22" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L85" target="_blank" rel="noopener noreferrer">async/src/models.ts:85</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="type">type<a href="#type" class="hash-link" aria-label="Direct link to type" title="Direct link to type">​</a></h3>
+<blockquote>
+<p><strong>type</strong>: <code>string</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-19">Inherited from<a href="#inherited-from-19" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#type"><code>type</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-23">Source<a href="#source-23" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L90" target="_blank" rel="noopener noreferrer">async/src/models.ts:90</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="uuid">uuid<a href="#uuid" class="hash-link" aria-label="Direct link to uuid" title="Direct link to uuid">​</a></h3>
+<blockquote>
+<p><strong>uuid</strong>: <code>string</code></p>
+</blockquote>
+<p>Action uuid</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-20">Inherited from<a href="#inherited-from-20" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#uuid"><code>uuid</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-24">Source<a href="#source-24" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L53" target="_blank" rel="noopener noreferrer">async/src/models.ts:53</a></p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="methods">Methods<a href="#methods" class="hash-link" aria-label="Direct link to Methods" title="Direct link to Methods">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_ondelete">_onDelete()<a href="#_ondelete" class="hash-link" aria-label="Direct link to _onDelete()" title="Direct link to _onDelete()">​</a></h3>
+<blockquote>
+<p><strong>_onDelete</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Called when object is about to be deleted</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-1">Returns<a href="#returns-1" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-21">Inherited from<a href="#inherited-from-21" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_ondelete"><code>_onDelete</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-25">Source<a href="#source-25" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:807</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_ondeleted">_onDeleted()<a href="#_ondeleted" class="hash-link" aria-label="Direct link to _onDeleted()" title="Direct link to _onDeleted()">​</a></h3>
+<blockquote>
+<p><strong>_onDeleted</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Called when object has been deleted</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-2">Returns<a href="#returns-2" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-22">Inherited from<a href="#inherited-from-22" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_ondeleted"><code>_onDeleted</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-26">Source<a href="#source-26" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:811</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_onget">_onGet()<a href="#_onget" class="hash-link" aria-label="Direct link to _onGet()" title="Direct link to _onGet()">​</a></h3>
+<blockquote>
+<p><strong>_onGet</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Called when object is retrieved</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-3">Returns<a href="#returns-3" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-23">Inherited from<a href="#inherited-from-23" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_onget"><code>_onGet</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-27">Source<a href="#source-27" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:815</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_onsave">_onSave()<a href="#_onsave" class="hash-link" aria-label="Direct link to _onSave()" title="Direct link to _onSave()">​</a></h3>
+<blockquote>
+<p><strong>_onSave</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Called when object is about to be saved</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-4">Returns<a href="#returns-4" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-24">Inherited from<a href="#inherited-from-24" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_onsave"><code>_onSave</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-28">Source<a href="#source-28" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:819</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_onsaved">_onSaved()<a href="#_onsaved" class="hash-link" aria-label="Direct link to _onSaved()" title="Direct link to _onSaved()">​</a></h3>
+<blockquote>
+<p><strong>_onSaved</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Called when object is saved</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-5">Returns<a href="#returns-5" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-25">Inherited from<a href="#inherited-from-25" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_onsaved"><code>_onSaved</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-29">Source<a href="#source-29" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:823</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_onupdate">_onUpdate()<a href="#_onupdate" class="hash-link" aria-label="Direct link to _onUpdate()" title="Direct link to _onUpdate()">​</a></h3>
+<blockquote>
+<p><strong>_onUpdate</strong>(<code>_updates</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Called when object is about to be updates</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-1">Parameters<a href="#parameters-1" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>_updates</strong>: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-6">Returns<a href="#returns-6" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-26">Inherited from<a href="#inherited-from-26" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_onupdate"><code>_onUpdate</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-30">Source<a href="#source-30" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:829</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_onupdated">_onUpdated()<a href="#_onupdated" class="hash-link" aria-label="Direct link to _onUpdated()" title="Direct link to _onUpdated()">​</a></h3>
+<blockquote>
+<p><strong>_onUpdated</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Called when object is updated</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-7">Returns<a href="#returns-7" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-27">Inherited from<a href="#inherited-from-27" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_onupdated"><code>_onUpdated</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-31">Source<a href="#source-31" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:833</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="_tojson">_toJSON()<a href="#_tojson" class="hash-link" aria-label="Direct link to _toJSON()" title="Direct link to _toJSON()">​</a></h3>
+<blockquote>
+<p><strong>_toJSON</strong>(<code>secure</code>): <code>any</code></p>
+</blockquote>
+<p>Remove the specific attributes if not secure</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-2">Parameters<a href="#parameters-2" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>secure</strong>: <code>any</code></p>
+<p>serialize server fields also</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-8">Returns<a href="#returns-8" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<p>filtered object to be serialized</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-28">Inherited from<a href="#inherited-from-28" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#_tojson"><code>_toJSON</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-32">Source<a href="#source-32" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:797</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="attributepermission">attributePermission()<a href="#attributepermission" class="hash-link" aria-label="Direct link to attributePermission()" title="Direct link to attributePermission()">​</a></h3>
+<blockquote>
+<p><strong>attributePermission</strong>(<code>key</code>, <code>value</code>, <code>mode</code>, <code>context</code>?): <code>any</code></p>
+</blockquote>
+<p>Allow to define custom permission per attribute</p>
+<p>This method allows you to do permission based attribute
+But also a mask destructive attribute</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-3">Parameters<a href="#parameters-3" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>key</strong>: <code>string</code></p>
+<p>• <strong>value</strong>: <code>any</code></p>
+<p>• <strong>mode</strong>: <code>&quot;READ&quot;</code> | <code>&quot;WRITE&quot;</code></p>
+<p>• <strong>context?</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-9">Returns<a href="#returns-9" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<p>updated value</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-29">Inherited from<a href="#inherited-from-29" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#attributepermission"><code>attributePermission</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-33">Source<a href="#source-33" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:704</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="canact">canAct()<a href="#canact" class="hash-link" aria-label="Direct link to canAct()" title="Direct link to canAct()">​</a></h3>
+<blockquote>
+<p><strong>canAct</strong>(<code>_context</code>, <code>_action</code>): <code>Promise</code>&lt;<code>string</code> | <code>boolean</code>&gt;</p>
+</blockquote>
+<p>By default nothing is permitted on a CoreModel</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-4">Parameters<a href="#parameters-4" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>_context</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<p>• <strong>_action</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-10">Returns<a href="#returns-10" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>string</code> | <code>boolean</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-30">Inherited from<a href="#inherited-from-30" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#canact"><code>canAct</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-34">Source<a href="#source-34" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:661</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="checkact">checkAct()<a href="#checkact" class="hash-link" aria-label="Direct link to checkAct()" title="Direct link to checkAct()">​</a></h3>
+<blockquote>
+<p><strong>checkAct</strong>(<code>context</code>, <code>action</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Ensure action hook is ok</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-5">Parameters<a href="#parameters-5" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>context</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<p>• <strong>action</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-11">Returns<a href="#returns-11" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-31">Inherited from<a href="#inherited-from-31" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#checkact"><code>checkAct</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-35">Source<a href="#source-35" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L197" target="_blank" rel="noopener noreferrer">async/src/models.ts:197</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="delete">delete()<a href="#delete" class="hash-link" aria-label="Direct link to delete()" title="Direct link to delete()">​</a></h3>
+<blockquote>
+<p><strong>delete</strong>(): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Delete this object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-12">Returns<a href="#returns-12" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-32">Inherited from<a href="#inherited-from-32" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#delete"><code>delete</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="throws">Throws<a href="#throws" class="hash-link" aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if the object is not coming from a store</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-36">Source<a href="#source-36" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:747</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="generateuid">generateUid()<a href="#generateuid" class="hash-link" aria-label="Direct link to generateUid()" title="Direct link to generateUid()">​</a></h3>
+<blockquote>
+<p><strong>generateUid</strong>(<code>_object</code>?): <code>string</code></p>
+</blockquote>
+<p>Generate uuid for the object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-6">Parameters<a href="#parameters-6" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>_object?</strong>: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-13">Returns<a href="#returns-13" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-33">Inherited from<a href="#inherited-from-33" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#generateuid"><code>generateUid</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-37">Source<a href="#source-37" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:774</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="get">get()<a href="#get" class="hash-link" aria-label="Direct link to get()" title="Direct link to get()">​</a></h3>
+<blockquote>
+<p><strong>get</strong>(): <code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+</blockquote>
+<p>Get the object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-14">Returns<a href="#returns-14" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-34">Inherited from<a href="#inherited-from-34" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#get"><code>get</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-38">Source<a href="#source-38" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:735</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getcontext">getContext()<a href="#getcontext" class="hash-link" aria-label="Direct link to getContext()" title="Direct link to getContext()">​</a></h3>
+<blockquote>
+<p><strong>getContext</strong>&lt;<code>T</code>&gt;(): <code>T</code></p>
+</blockquote>
+<p>Get object context</p>
+<p>Global object does not belong to a request</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters">Type parameters<a href="#type-parameters" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p> • <strong>T</strong> extends <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-15">Returns<a href="#returns-15" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>T</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-35">Inherited from<a href="#inherited-from-35" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getcontext"><code>getContext</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-39">Source<a href="#source-39" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:726</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getfulluuid">getFullUuid()<a href="#getfulluuid" class="hash-link" aria-label="Direct link to getFullUuid()" title="Direct link to getFullUuid()">​</a></h3>
+<blockquote>
+<p><strong>getFullUuid</strong>(): <code>string</code></p>
+</blockquote>
+<p>Return a unique reference within the application to the object</p>
+<p>It contains the Store containing it</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-16">Returns<a href="#returns-16" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-36">Inherited from<a href="#inherited-from-36" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getfulluuid"><code>getFullUuid</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-40">Source<a href="#source-40" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:683</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="gethmac">getHmac()<a href="#gethmac" class="hash-link" aria-label="Direct link to getHmac()" title="Direct link to getHmac()">​</a></h3>
+<blockquote>
+<p><strong>getHmac</strong>(<code>jobTime</code>): <code>string</code></p>
+</blockquote>
+<p>Get the hmac for the job</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-7">Parameters<a href="#parameters-7" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>jobTime</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-17">Returns<a href="#returns-17" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-37">Inherited from<a href="#inherited-from-37" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#gethmac"><code>getHmac</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-41">Source<a href="#source-41" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L187" target="_blank" rel="noopener noreferrer">async/src/models.ts:187</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="gethookurl">getHookUrl()<a href="#gethookurl" class="hash-link" aria-label="Direct link to getHookUrl()" title="Direct link to getHookUrl()">​</a></h3>
+<blockquote>
+<p><strong>getHookUrl</strong>(): <code>string</code></p>
+</blockquote>
+<p>Return the hook url if empty fallback to the service url</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-18">Returns<a href="#returns-18" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-38">Inherited from<a href="#inherited-from-38" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#gethookurl"><code>getHookUrl</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-42">Source<a href="#source-42" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L132" target="_blank" rel="noopener noreferrer">async/src/models.ts:132</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getlogslimit">getLogsLimit()<a href="#getlogslimit" class="hash-link" aria-label="Direct link to getLogsLimit()" title="Direct link to getLogsLimit()">​</a></h3>
+<blockquote>
+<p><strong>getLogsLimit</strong>(): <code>number</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-19">Returns<a href="#returns-19" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-39">Inherited from<a href="#inherited-from-39" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getlogslimit"><code>getLogsLimit</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-43">Source<a href="#source-43" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L114" target="_blank" rel="noopener noreferrer">async/src/models.ts:114</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getproxy">getProxy()<a href="#getproxy" class="hash-link" aria-label="Direct link to getProxy()" title="Direct link to getProxy()">​</a></h3>
+<blockquote>
+<p><strong>getProxy</strong>(): <code>this</code></p>
+</blockquote>
+<p>Return a proxy to the object to detect if dirty</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-20">Returns<a href="#returns-20" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-40">Inherited from<a href="#inherited-from-40" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getproxy"><code>getProxy</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-44">Source<a href="#source-44" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:623</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getref">getRef()<a href="#getref" class="hash-link" aria-label="Direct link to getRef()" title="Direct link to getRef()">​</a></h3>
+<blockquote>
+<p><strong>getRef</strong>&lt;<code>T</code>&gt;(): <code>ModelRef</code>&lt;<code>T</code>&gt;</p>
+</blockquote>
+<p>Return a model ref</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-1">Type parameters<a href="#type-parameters-1" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-21">Returns<a href="#returns-21" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>ModelRef</code>&lt;<code>T</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-41">Inherited from<a href="#inherited-from-41" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getref"><code>getRef</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-45">Source<a href="#source-45" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:855</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getservice">getService()<a href="#getservice" class="hash-link" aria-label="Direct link to getService()" title="Direct link to getService()">​</a></h3>
+<blockquote>
+<p><strong>getService</strong>&lt;<code>T</code>&gt;(<code>service</code>): <code>T</code></p>
+</blockquote>
+<p>Get a pre typed service</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-2">Type parameters<a href="#type-parameters-2" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>Service</code>&lt;<code>ServiceParameters</code>, <code>Events</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-8">Parameters<a href="#parameters-8" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>service</strong>: <code>any</code></p>
+<p>to retrieve
+WARNING: Only object attached to a store can retrieve service</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-22">Returns<a href="#returns-22" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>T</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-42">Inherited from<a href="#inherited-from-42" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getservice"><code>getService</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-46">Source<a href="#source-46" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:788</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getstore">getStore()<a href="#getstore" class="hash-link" aria-label="Direct link to getStore()" title="Direct link to getStore()">​</a></h3>
+<blockquote>
+<p><strong>getStore</strong>(): <code>Store</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>, <code>StoreParameters</code>, <code>StoreEvents</code>&gt;</p>
+</blockquote>
+<p>Return the object registered store</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-23">Returns<a href="#returns-23" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Store</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>, <code>StoreParameters</code>, <code>StoreEvents</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-43">Inherited from<a href="#inherited-from-43" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getstore"><code>getStore</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-47">Source<a href="#source-47" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:730</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getuuid">getUuid()<a href="#getuuid" class="hash-link" aria-label="Direct link to getUuid()" title="Direct link to getUuid()">​</a></h3>
+<blockquote>
+<p><strong>getUuid</strong>(): <code>string</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-24">Returns<a href="#returns-24" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>the uuid of the object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-44">Inherited from<a href="#inherited-from-44" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getuuid"><code>getUuid</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-48">Source<a href="#source-48" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:633</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="handlerelations">handleRelations()<a href="#handlerelations" class="hash-link" aria-label="Direct link to handleRelations()" title="Direct link to handleRelations()">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>handleRelations</strong>(): <code>void</code></p>
+</blockquote>
+<p>Patch every attribute that is based on a relation
+to add all the helpers</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-25">Returns<a href="#returns-25" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-45">Inherited from<a href="#inherited-from-45" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#handlerelations"><code>handleRelations</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-49">Source<a href="#source-49" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:716</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="incrementattribute">incrementAttribute()<a href="#incrementattribute" class="hash-link" aria-label="Direct link to incrementAttribute()" title="Direct link to incrementAttribute()">​</a></h3>
+<blockquote>
+<p><strong>incrementAttribute</strong>(<code>property</code>, <code>value</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Increment an attribute both in store and object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-9">Parameters<a href="#parameters-9" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>property</strong>: <code>FilterAttributes</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>, <code>number</code>&gt;</p>
+<p>• <strong>value</strong>: <code>number</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-26">Returns<a href="#returns-26" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-46">Inherited from<a href="#inherited-from-46" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#incrementattribute"><code>incrementAttribute</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-50">Source<a href="#source-50" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:850</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="incrementattributes">incrementAttributes()<a href="#incrementattributes" class="hash-link" aria-label="Direct link to incrementAttributes()" title="Direct link to incrementAttributes()">​</a></h3>
+<blockquote>
+<p><strong>incrementAttributes</strong>(<code>info</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Increment a attributes both in store and object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-10">Parameters<a href="#parameters-10" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>info</strong>: <code>Object</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-27">Returns<a href="#returns-27" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-47">Inherited from<a href="#inherited-from-47" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#incrementattributes"><code>incrementAttributes</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-51">Source<a href="#source-51" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:860</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="isdirty">isDirty()<a href="#isdirty" class="hash-link" aria-label="Direct link to isDirty()" title="Direct link to isDirty()">​</a></h3>
+<blockquote>
+<p><strong>isDirty</strong>(): <code>boolean</code></p>
+</blockquote>
+<p>Return true if needs a save</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-28">Returns<a href="#returns-28" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-48">Inherited from<a href="#inherited-from-48" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#isdirty"><code>isDirty</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-52">Source<a href="#source-52" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:628</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="isinternal">isInternal()<a href="#isinternal" class="hash-link" aria-label="Direct link to isInternal()" title="Direct link to isInternal()">​</a></h3>
+<blockquote>
+<p><strong>isInternal</strong>(): <code>boolean</code></p>
+</blockquote>
+<p>Execute a webda.callOperation(context ,id) so this is internal</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-29">Returns<a href="#returns-29" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="overrides-1">Overrides<a href="#overrides-1" class="hash-link" aria-label="Direct link to Overrides" title="Direct link to Overrides">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#isinternal"><code>isInternal</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-53">Source<a href="#source-53" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L276" target="_blank" rel="noopener noreferrer">async/src/models.ts:276</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="load">load()<a href="#load" class="hash-link" aria-label="Direct link to load()" title="Direct link to load()">​</a></h3>
+<blockquote>
+<p><strong>load</strong>(<code>raw</code>, <code>secure</code>?, <code>relations</code>?): <code>this</code></p>
+</blockquote>
+<p>Load an object from RAW</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-11">Parameters<a href="#parameters-11" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>raw</strong>: <code>RawModel</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+<p>data</p>
+<p>• <strong>secure?</strong>: <code>boolean</code></p>
+<p>if false will ignore any _ variable</p>
+<p>• <strong>relations?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-30">Returns<a href="#returns-30" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-49">Inherited from<a href="#inherited-from-49" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#load"><code>load</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-54">Source<a href="#source-54" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:711</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="patch">patch()<a href="#patch" class="hash-link" aria-label="Direct link to patch()" title="Direct link to patch()">​</a></h3>
+<blockquote>
+<p><strong>patch</strong>(<code>obj</code>, <code>conditionField</code>?, <code>conditionValue</code>?): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Patch current object with this update</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-12">Parameters<a href="#parameters-12" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>obj</strong>: <code>Partial</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+<p>• <strong>conditionField?</strong>: keyof <a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a></p>
+<p>if null no condition used otherwise fallback to lastUpdate</p>
+<p>• <strong>conditionValue?</strong>: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-31">Returns<a href="#returns-31" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-50">Inherited from<a href="#inherited-from-50" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#patch"><code>patch</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-55">Source<a href="#source-55" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:754</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="refresh">refresh()<a href="#refresh" class="hash-link" aria-label="Direct link to refresh()" title="Direct link to refresh()">​</a></h3>
+<blockquote>
+<p><strong>refresh</strong>(): <code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+</blockquote>
+<p>Get the object again</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-32">Returns<a href="#returns-32" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-51">Inherited from<a href="#inherited-from-51" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#refresh"><code>refresh</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="throws-1">Throws<a href="#throws-1" class="hash-link" aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if the object is not coming from a store</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-56">Source<a href="#source-56" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:741</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="removeattribute">removeAttribute()<a href="#removeattribute" class="hash-link" aria-label="Direct link to removeAttribute()" title="Direct link to removeAttribute()">​</a></h3>
+<blockquote>
+<p><strong>removeAttribute</strong>(<code>property</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Remove attribute from both the object and db</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-13">Parameters<a href="#parameters-13" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>property</strong>: keyof <a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-33">Returns<a href="#returns-33" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-52">Inherited from<a href="#inherited-from-52" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#removeattribute"><code>removeAttribute</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-57">Source<a href="#source-57" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:844</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="save">save()<a href="#save" class="hash-link" aria-label="Direct link to save()" title="Direct link to save()">​</a></h3>
+<blockquote>
+<p><strong>save</strong>(<code>full</code>?, ...<code>args</code>?): <code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+</blockquote>
+<p>Save this object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-14">Parameters<a href="#parameters-14" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>full?</strong>: <code>boolean</code> | keyof AsyncOperationAction</p>
+<p>• ...<strong>args?</strong>: keyof <a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-34">Returns<a href="#returns-34" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-53">Inherited from<a href="#inherited-from-53" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#save"><code>save</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="throws-2">Throws<a href="#throws-2" class="hash-link" aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if the object is not coming from a store</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-58">Source<a href="#source-58" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:760</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="setattribute">setAttribute()<a href="#setattribute" class="hash-link" aria-label="Direct link to setAttribute()" title="Direct link to setAttribute()">​</a></h3>
+<blockquote>
+<p><strong>setAttribute</strong>(<code>property</code>, <code>value</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Set attribute on the object and database</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-15">Parameters<a href="#parameters-15" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>property</strong>: keyof <a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a></p>
+<p>• <strong>value</strong>: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-35">Returns<a href="#returns-35" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-54">Inherited from<a href="#inherited-from-54" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#setattribute"><code>setAttribute</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-59">Source<a href="#source-59" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:839</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="setcontext">setContext()<a href="#setcontext" class="hash-link" aria-label="Direct link to setContext()" title="Direct link to setContext()">​</a></h3>
+<blockquote>
+<p><strong>setContext</strong>(<code>ctx</code>): <code>this</code></p>
+</blockquote>
+<p>Context of the request</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-16">Parameters<a href="#parameters-16" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>ctx</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-36">Returns<a href="#returns-36" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-55">Inherited from<a href="#inherited-from-55" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#setcontext"><code>setContext</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-60">Source<a href="#source-60" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:720</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="setuuid">setUuid()<a href="#setuuid" class="hash-link" aria-label="Direct link to setUuid()" title="Direct link to setUuid()">​</a></h3>
+<blockquote>
+<p><strong>setUuid</strong>(<code>uuid</code>, <code>target</code>?): <code>this</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-17">Parameters<a href="#parameters-17" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>uuid</strong>: <code>string</code></p>
+<p>• <strong>target?</strong>: <code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-37">Returns<a href="#returns-37" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>this</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-56">Inherited from<a href="#inherited-from-56" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#setuuid"><code>setUuid</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-61">Source<a href="#source-61" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:639</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="statusaction">statusAction()<a href="#statusaction" class="hash-link" aria-label="Direct link to statusAction()" title="Direct link to statusAction()">​</a></h3>
+<blockquote>
+<p><strong>statusAction</strong>(<code>context</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Allow to report status for a job</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-18">Parameters<a href="#parameters-18" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>context</strong>: <code>WebContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-38">Returns<a href="#returns-38" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-57">Inherited from<a href="#inherited-from-57" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#statusaction"><code>statusAction</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-62">Source<a href="#source-62" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L123" target="_blank" rel="noopener noreferrer">async/src/models.ts:123</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="tojson">toJSON()<a href="#tojson" class="hash-link" aria-label="Direct link to toJSON()" title="Direct link to toJSON()">​</a></h3>
+<blockquote>
+<p><strong>toJSON</strong>(): <code>any</code></p>
+</blockquote>
+<p>Return the object without sensitive attributes</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-39">Returns<a href="#returns-39" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<p>Object to serialize</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-58">Inherited from<a href="#inherited-from-58" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#tojson"><code>toJSON</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-63">Source<a href="#source-63" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:803</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="tostoredjson">toStoredJSON()<a href="#tostoredjson" class="hash-link" aria-label="Direct link to toStoredJSON()" title="Direct link to toStoredJSON()">​</a></h3>
+<blockquote>
+<p><strong>toStoredJSON</strong>(<code>stringify</code>?): <code>any</code></p>
+</blockquote>
+<p>Return the object to be serialized without the __store</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-19">Parameters<a href="#parameters-19" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>stringify?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-40">Returns<a href="#returns-40" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-59">Inherited from<a href="#inherited-from-59" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#tostoredjson"><code>toStoredJSON</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-64">Source<a href="#source-64" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:781</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="unflat">unflat()<a href="#unflat" class="hash-link" aria-label="Direct link to unflat()" title="Direct link to unflat()">​</a></h3>
+<blockquote>
+<p><strong>unflat</strong>&lt;<code>T</code>&gt;(<code>split</code>?): <code>T</code></p>
+</blockquote>
+<p>Create subobject for a model</p>
+<p>Useful for counters</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-3">Type parameters<a href="#type-parameters-3" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-20">Parameters<a href="#parameters-20" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>split?</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-41">Returns<a href="#returns-41" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>T</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-60">Inherited from<a href="#inherited-from-60" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#unflat"><code>unflat</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-65">Source<a href="#source-65" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:560</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="update">update()<a href="#update" class="hash-link" aria-label="Direct link to update()" title="Direct link to update()">​</a></h3>
+<blockquote>
+<p><strong>update</strong>(<code>body</code>, <code>time</code>): <code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-21">Parameters<a href="#parameters-21" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>body</strong>: <code>any</code></p>
+<p>• <strong>time</strong>: <code>string</code>= <code>undefined</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-42">Returns<a href="#returns-42" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<a href="/typedoc/async/classes/AsyncOperationAction"><code>AsyncOperationAction</code></a>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-61">Inherited from<a href="#inherited-from-61" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#update"><code>update</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-66">Source<a href="#source-66" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L140" target="_blank" rel="noopener noreferrer">async/src/models.ts:140</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="validate">validate()<a href="#validate" class="hash-link" aria-label="Direct link to validate()" title="Direct link to validate()">​</a></h3>
+<blockquote>
+<p><strong>validate</strong>(<code>ctx</code>, <code>updates</code>, <code>ignoreRequired</code>?): <code>Promise</code>&lt;<code>boolean</code>&gt;</p>
+</blockquote>
+<p>Validate objet modification</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-22">Parameters<a href="#parameters-22" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>ctx</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<p>• <strong>updates</strong>: <code>any</code></p>
+<p>• <strong>ignoreRequired?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-43">Returns<a href="#returns-43" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>boolean</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-62">Inherited from<a href="#inherited-from-62" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#validate"><code>validate</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-67">Source<a href="#source-67" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:767</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="verifyjobrequest">verifyJobRequest()<a href="#verifyjobrequest" class="hash-link" aria-label="Direct link to verifyJobRequest()" title="Direct link to verifyJobRequest()">​</a></h3>
+<blockquote>
+<p><strong><code>protected</code></strong> <strong>verifyJobRequest</strong>&lt;<code>K</code>&gt;(<code>context</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-4">Type parameters<a href="#type-parameters-4" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>K</strong> extends <a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a> = <a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-23">Parameters<a href="#parameters-23" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>context</strong>: <code>WebContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-44">Returns<a href="#returns-44" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-63">Inherited from<a href="#inherited-from-63" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#verifyjobrequest"><code>verifyJobRequest</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-68">Source<a href="#source-68" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p><a href="https://github.com/loopingz/webda.io/blob/1dcb7360/packages/async/src/models.ts#L169" target="_blank" rel="noopener noreferrer">async/src/models.ts:169</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="addlistener">addListener()<a href="#addlistener" class="hash-link" aria-label="Direct link to addListener()" title="Direct link to addListener()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>addListener</strong>&lt;<code>Key</code>&gt;(<code>event</code>, <code>listener</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-5">Type parameters<a href="#type-parameters-5" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>Key</strong> extends keyof <code>StoreEvents</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-24">Parameters<a href="#parameters-24" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>event</strong>: <code>Key</code></p>
+<p>• <strong>listener</strong>: (...<code>args</code>) =&gt; <code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-45">Returns<a href="#returns-45" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-64">Inherited from<a href="#inherited-from-64" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#addlistener"><code>addListener</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-69">Source<a href="#source-69" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:466</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="authorizeclientevent">authorizeClientEvent()<a href="#authorizeclientevent" class="hash-link" aria-label="Direct link to authorizeClientEvent()" title="Direct link to authorizeClientEvent()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>authorizeClientEvent</strong>(<code>_event</code>, <code>_context</code>, <code>_model</code>?): <code>boolean</code></p>
+</blockquote>
+<p>Does not allow any event by default</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-25">Parameters<a href="#parameters-25" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>_event</strong>: <code>string</code></p>
+<p>• <strong>_context</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<p>• <strong>_model?</strong>: <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-46">Returns<a href="#returns-46" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-65">Inherited from<a href="#inherited-from-65" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#authorizeclientevent"><code>authorizeClientEvent</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-70">Source<a href="#source-70" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:496</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="completequery">completeQuery()<a href="#completequery" class="hash-link" aria-label="Direct link to completeQuery()" title="Direct link to completeQuery()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong><code>protected</code></strong> <strong>completeQuery</strong>(<code>query</code>, <code>includeSubclass</code>?): <code>string</code></p>
+</blockquote>
+<p>Complete the query with __type/__types</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-26">Parameters<a href="#parameters-26" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>query</strong>: <code>string</code></p>
+<p>• <strong>includeSubclass?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-47">Returns<a href="#returns-47" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-66">Inherited from<a href="#inherited-from-66" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#completequery"><code>completeQuery</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-71">Source<a href="#source-71" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:590</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="completeuid">completeUid()<a href="#completeuid" class="hash-link" aria-label="Direct link to completeUid()" title="Direct link to completeUid()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>completeUid</strong>(<code>uid</code>): <code>string</code></p>
+</blockquote>
+<p>Complete the uid with prefix if any</p>
+<p>Useful when object are stored with a prefix for full uuid</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-27">Parameters<a href="#parameters-27" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>uid</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-48">Returns<a href="#returns-48" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-67">Inherited from<a href="#inherited-from-67" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#completeuid"><code>completeUid</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-72">Source<a href="#source-72" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:510</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="create">create()<a href="#create" class="hash-link" aria-label="Direct link to create()" title="Direct link to create()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>create</strong>&lt;<code>T</code>&gt;(<code>this</code>, <code>data</code>): <code>Promise</code>&lt;<code>T</code>&gt;</p>
+</blockquote>
+<p>Get a reference to a model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-6">Type parameters<a href="#type-parameters-6" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-28">Parameters<a href="#parameters-28" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>data</strong>: <code>RawModel</code>&lt;<code>T</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-49">Returns<a href="#returns-49" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>T</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-68">Inherited from<a href="#inherited-from-68" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#create"><code>create</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-73">Source<a href="#source-73" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:529</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="emit">emit()<a href="#emit" class="hash-link" aria-label="Direct link to emit()" title="Direct link to emit()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>emit</strong>&lt;<code>T</code>, <code>Key</code>&gt;(<code>this</code>, <code>event</code>, <code>evt</code>): <code>void</code></p>
+</blockquote>
+<p>Emit an event for this class</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-7">Type parameters<a href="#type-parameters-7" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<p>• <strong>Key</strong> extends keyof <code>StoreEvents</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-29">Parameters<a href="#parameters-29" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>event</strong>: <code>Key</code></p>
+<p>• <strong>evt</strong>: <code>StoreEvents</code>[<code>Key</code>]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-50">Returns<a href="#returns-50" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-69">Inherited from<a href="#inherited-from-69" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#emit"><code>emit</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-74">Source<a href="#source-74" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:446</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="emitsync">emitSync()<a href="#emitsync" class="hash-link" aria-label="Direct link to emitSync()" title="Direct link to emitSync()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>emitSync</strong>&lt;<code>T</code>, <code>Key</code>&gt;(<code>this</code>, <code>event</code>, <code>evt</code>): <code>Promise</code>&lt;<code>void</code>&gt;</p>
+</blockquote>
+<p>Emit an event for this class and wait for all listeners to finish</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-8">Type parameters<a href="#type-parameters-8" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<p>• <strong>Key</strong> extends keyof <code>StoreEvents</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-30">Parameters<a href="#parameters-30" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>event</strong>: <code>Key</code></p>
+<p>• <strong>evt</strong>: <code>StoreEvents</code>[<code>Key</code>]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-51">Returns<a href="#returns-51" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>void</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-70">Inherited from<a href="#inherited-from-70" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#emitsync"><code>emitSync</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-75">Source<a href="#source-75" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:453</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="emitter">emitter()<a href="#emitter" class="hash-link" aria-label="Direct link to emitter()" title="Direct link to emitter()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>emitter</strong>(<code>method</code>, ...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-31">Parameters<a href="#parameters-31" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>method</strong>: <code>any</code></p>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-52">Returns<a href="#returns-52" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-71">Inherited from<a href="#inherited-from-71" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#emitter"><code>emitter</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-76">Source<a href="#source-76" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:467</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="eventnames">eventNames()<a href="#eventnames" class="hash-link" aria-label="Direct link to eventNames()" title="Direct link to eventNames()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>eventNames</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-32">Parameters<a href="#parameters-32" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-53">Returns<a href="#returns-53" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-72">Inherited from<a href="#inherited-from-72" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#eventnames"><code>eventNames</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-77">Source<a href="#source-77" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:479</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="factory">factory()<a href="#factory" class="hash-link" aria-label="Direct link to factory()" title="Direct link to factory()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>factory</strong>&lt;<code>T</code>&gt;(<code>this</code>, <code>object</code>, <code>context</code>?): <code>T</code></p>
+</blockquote>
+<p>Create an object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-9">Type parameters<a href="#type-parameters-9" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-33">Parameters<a href="#parameters-33" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>object</strong>: <code>Partial</code>&lt;<code>T</code>&gt;</p>
+<p>• <strong>context?</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-54">Returns<a href="#returns-54" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>T</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-73">Inherited from<a href="#inherited-from-73" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#factory"><code>factory</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-78">Source<a href="#source-78" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:670</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="flat">flat()<a href="#flat" class="hash-link" aria-label="Direct link to flat()" title="Direct link to flat()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>flat</strong>(<code>target</code>, <code>data</code>, <code>split</code>?, <code>prefix</code>?): <code>any</code></p>
+</blockquote>
+<p>Flat an object into another</p>
+<p>{
+a: {
+b: 1
+},
+c: 1
+}</p>
+<p>become</p>
+<p>{
+&quot;a#b&quot;: 1
+&quot;c&quot;: 1
+}</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-34">Parameters<a href="#parameters-34" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>target</strong>: <code>any</code></p>
+<p>• <strong>data</strong>: <code>any</code></p>
+<p>• <strong>split?</strong>: <code>string</code></p>
+<p>• <strong>prefix?</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-55">Returns<a href="#returns-55" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-74">Inherited from<a href="#inherited-from-74" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#flat"><code>flat</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-79">Source<a href="#source-79" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:583</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="fromfulluuid">fromFullUuid()<a href="#fromfulluuid" class="hash-link" aria-label="Direct link to fromFullUuid()" title="Direct link to fromFullUuid()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>fromFullUuid</strong>&lt;<code>T</code>&gt;(<code>fullUuid</code>, <code>core</code>?, <code>partials</code>?): <code>Promise</code>&lt;<code>T</code>&gt;</p>
+</blockquote>
+<p>Get an object from the full uuid</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-10">Type parameters<a href="#type-parameters-10" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code> = <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-35">Parameters<a href="#parameters-35" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>fullUuid</strong>: <code>string</code></p>
+<p>• <strong>core?</strong>: <code>Core</code>&lt;<code>CoreEvents</code>&gt;</p>
+<p>• <strong>partials?</strong>: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-56">Returns<a href="#returns-56" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>T</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-75">Inherited from<a href="#inherited-from-75" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#fromfulluuid"><code>fromFullUuid</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-80">Source<a href="#source-80" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:691</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getactions">getActions()<a href="#getactions" class="hash-link" aria-label="Direct link to getActions()" title="Direct link to getActions()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getActions</strong>&lt;<code>T</code>&gt;(<code>this</code>): <code>ModelActions</code></p>
+</blockquote>
+<p>Get actions callable on an object</p>
+<p>This will expose them by the Store with /storeUrl/{uuid}/{action}</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-11">Type parameters<a href="#type-parameters-11" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-36">Parameters<a href="#parameters-36" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-57">Returns<a href="#returns-57" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>ModelActions</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-76">Inherited from<a href="#inherited-from-76" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getactions"><code>getActions</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-81">Source<a href="#source-81" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:645</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getclientevents">getClientEvents()<a href="#getclientevents" class="hash-link" aria-label="Direct link to getClientEvents()" title="Direct link to getClientEvents()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getClientEvents</strong>(): <code>any</code>[]</p>
+</blockquote>
+<p>Do not declare any public events by default</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-58">Returns<a href="#returns-58" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-77">Inherited from<a href="#inherited-from-77" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getclientevents"><code>getClientEvents</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-82">Source<a href="#source-82" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:489</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="gethierarchy">getHierarchy()<a href="#gethierarchy" class="hash-link" aria-label="Direct link to getHierarchy()" title="Direct link to getHierarchy()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getHierarchy</strong>(): <code>Object</code></p>
+</blockquote>
+<p>Get the model hierarchy</p>
+<p>Ancestors will contain every model it inherits from
+Children will contain every model that inherits from this model in a tree structure</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-59">Returns<a href="#returns-59" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="ancestors">ancestors<a href="#ancestors" class="hash-link" aria-label="Direct link to ancestors" title="Direct link to ancestors">​</a></h5>
+<blockquote>
+<p><strong>ancestors</strong>: <code>string</code>[]</p>
+</blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="children">children<a href="#children" class="hash-link" aria-label="Direct link to children" title="Direct link to children">​</a></h5>
+<blockquote>
+<p><strong>children</strong>: <code>ModelsTree</code></p>
+</blockquote>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-78">Inherited from<a href="#inherited-from-78" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#gethierarchy"><code>getHierarchy</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-83">Source<a href="#source-83" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:541</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getidentifier">getIdentifier()<a href="#getidentifier" class="hash-link" aria-label="Direct link to getIdentifier()" title="Direct link to getIdentifier()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getIdentifier</strong>(<code>short</code>?): <code>string</code></p>
+</blockquote>
+<p>Get identifier for this model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-37">Parameters<a href="#parameters-37" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>short?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-60">Returns<a href="#returns-60" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-79">Inherited from<a href="#inherited-from-79" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getidentifier"><code>getIdentifier</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-84">Source<a href="#source-84" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:534</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getmaxlisteners">getMaxListeners()<a href="#getmaxlisteners" class="hash-link" aria-label="Direct link to getMaxListeners()" title="Direct link to getMaxListeners()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getMaxListeners</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-38">Parameters<a href="#parameters-38" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-61">Returns<a href="#returns-61" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-80">Inherited from<a href="#inherited-from-80" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getmaxlisteners"><code>getMaxListeners</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-85">Source<a href="#source-85" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:473</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getpermissionquery">getPermissionQuery()<a href="#getpermissionquery" class="hash-link" aria-label="Direct link to getPermissionQuery()" title="Direct link to getPermissionQuery()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getPermissionQuery</strong>(<code>_ctx</code>): <code>Object</code></p>
+</blockquote>
+<p>Return the expressable query for permission</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-39">Parameters<a href="#parameters-39" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>_ctx</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-62">Returns<a href="#returns-62" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Object</code></p>
+<blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="partial">partial<a href="#partial" class="hash-link" aria-label="Direct link to partial" title="Direct link to partial">​</a></h5>
+<blockquote>
+<p><strong>partial</strong>: <code>boolean</code></p>
+</blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="query">query<a href="#query" class="hash-link" aria-label="Direct link to query" title="Direct link to query">​</a></h5>
+<blockquote>
+<p><strong>query</strong>: <code>string</code></p>
+</blockquote>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-81">Inherited from<a href="#inherited-from-81" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getpermissionquery"><code>getPermissionQuery</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-86">Source<a href="#source-86" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:652</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getrelations">getRelations()<a href="#getrelations" class="hash-link" aria-label="Direct link to getRelations()" title="Direct link to getRelations()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getRelations</strong>(): <code>ModelGraph</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-63">Returns<a href="#returns-63" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>ModelGraph</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-82">Inherited from<a href="#inherited-from-82" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getrelations"><code>getRelations</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-87">Source<a href="#source-87" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:484</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getschema">getSchema()<a href="#getschema" class="hash-link" aria-label="Direct link to getSchema()" title="Direct link to getSchema()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getSchema</strong>(): <code>JSONSchema7</code></p>
+</blockquote>
+<p>Return the known schema</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-64">Returns<a href="#returns-64" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>JSONSchema7</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-83">Inherited from<a href="#inherited-from-83" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getschema"><code>getSchema</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-88">Source<a href="#source-88" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:515</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="getuuidfield">getUuidField()<a href="#getuuidfield" class="hash-link" aria-label="Direct link to getUuidField()" title="Direct link to getUuidField()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>getUuidField</strong>(): <code>string</code></p>
+</blockquote>
+<p>Get the UUID property</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-65">Returns<a href="#returns-65" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-84">Inherited from<a href="#inherited-from-84" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#getuuidfield"><code>getUuidField</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-89">Source<a href="#source-89" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:665</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="instanceof">instanceOf()<a href="#instanceof" class="hash-link" aria-label="Direct link to instanceOf()" title="Direct link to instanceOf()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>instanceOf</strong>(<code>object</code>): <code>boolean</code></p>
+</blockquote>
+<p>Detect what looks like a CoreModel but can be from different version</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-40">Parameters<a href="#parameters-40" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>object</strong>: <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-66">Returns<a href="#returns-66" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-85">Inherited from<a href="#inherited-from-85" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#instanceof"><code>instanceOf</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-90">Source<a href="#source-90" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:676</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="iterate">iterate()<a href="#iterate" class="hash-link" aria-label="Direct link to iterate()" title="Direct link to iterate()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>iterate</strong>&lt;<code>T</code>&gt;(<code>this</code>, <code>query</code>?, <code>includeSubclass</code>?, <code>context</code>?): <code>AsyncGenerator</code>&lt;<code>T</code>, <code>any</code>, <code>unknown</code>&gt;</p>
+</blockquote>
+<p>Iterate through the model</p>
+<p>How to use a iterator is:</p>
+<div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">for await (const model of CoreModel.iterate()) {</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">   // Do something with my model</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">}</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-12">Type parameters<a href="#type-parameters-12" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-41">Parameters<a href="#parameters-41" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>query?</strong>: <code>string</code></p>
+<p>• <strong>includeSubclass?</strong>: <code>boolean</code></p>
+<p>• <strong>context?</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-67">Returns<a href="#returns-67" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>AsyncGenerator</code>&lt;<code>T</code>, <code>any</code>, <code>unknown</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-86">Inherited from<a href="#inherited-from-86" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#iterate"><code>iterate</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-91">Source<a href="#source-91" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:608</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="listenercount">listenerCount()<a href="#listenercount" class="hash-link" aria-label="Direct link to listenerCount()" title="Direct link to listenerCount()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>listenerCount</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-42">Parameters<a href="#parameters-42" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-68">Returns<a href="#returns-68" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-87">Inherited from<a href="#inherited-from-87" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#listenercount"><code>listenerCount</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-92">Source<a href="#source-92" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:476</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="listeners">listeners()<a href="#listeners" class="hash-link" aria-label="Direct link to listeners()" title="Direct link to listeners()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>listeners</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-43">Parameters<a href="#parameters-43" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-69">Returns<a href="#returns-69" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-88">Inherited from<a href="#inherited-from-88" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#listeners"><code>listeners</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-93">Source<a href="#source-93" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:474</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="off">off()<a href="#off" class="hash-link" aria-label="Direct link to off()" title="Direct link to off()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>off</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-44">Parameters<a href="#parameters-44" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-70">Returns<a href="#returns-70" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-89">Inherited from<a href="#inherited-from-89" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#off"><code>off</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-94">Source<a href="#source-94" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:469</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="on">on()<a href="#on" class="hash-link" aria-label="Direct link to on()" title="Direct link to on()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>on</strong>&lt;<code>T</code>, <code>Key</code>&gt;(<code>this</code>, <code>event</code>, <code>listener</code>, <code>async</code>?): <code>any</code></p>
+</blockquote>
+<p>Listen to events on the model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-13">Type parameters<a href="#type-parameters-13" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<p>• <strong>Key</strong> extends keyof <code>StoreEvents</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-45">Parameters<a href="#parameters-45" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>event</strong>: <code>Key</code></p>
+<p>• <strong>listener</strong>: (<code>evt</code>) =&gt; <code>any</code></p>
+<p>• <strong>async?</strong>: <code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-71">Returns<a href="#returns-71" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-90">Inherited from<a href="#inherited-from-90" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#on"><code>on</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-95">Source<a href="#source-95" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:439</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="onasync">onAsync()<a href="#onasync" class="hash-link" aria-label="Direct link to onAsync()" title="Direct link to onAsync()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>onAsync</strong>&lt;<code>Key</code>&gt;(<code>event</code>, <code>listener</code>, <code>queue</code>?): <code>any</code></p>
+</blockquote>
+<p>Listen to events on the model asynchronously</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-14">Type parameters<a href="#type-parameters-14" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>Key</strong> extends keyof <code>StoreEvents</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-46">Parameters<a href="#parameters-46" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>event</strong>: <code>Key</code></p>
+<p>• <strong>listener</strong>: (<code>evt</code>) =&gt; <code>any</code></p>
+<p>• <strong>queue?</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-72">Returns<a href="#returns-72" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-91">Inherited from<a href="#inherited-from-91" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#onasync"><code>onAsync</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-96">Source<a href="#source-96" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:459</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="once">once()<a href="#once" class="hash-link" aria-label="Direct link to once()" title="Direct link to once()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>once</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-47">Parameters<a href="#parameters-47" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-73">Returns<a href="#returns-73" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-92">Inherited from<a href="#inherited-from-92" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#once"><code>once</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-97">Source<a href="#source-97" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:470</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="prependlistener">prependListener()<a href="#prependlistener" class="hash-link" aria-label="Direct link to prependListener()" title="Direct link to prependListener()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>prependListener</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-48">Parameters<a href="#parameters-48" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-74">Returns<a href="#returns-74" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-93">Inherited from<a href="#inherited-from-93" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#prependlistener"><code>prependListener</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-98">Source<a href="#source-98" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:477</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="prependoncelistener">prependOnceListener()<a href="#prependoncelistener" class="hash-link" aria-label="Direct link to prependOnceListener()" title="Direct link to prependOnceListener()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>prependOnceListener</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-49">Parameters<a href="#parameters-49" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-75">Returns<a href="#returns-75" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-94">Inherited from<a href="#inherited-from-94" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#prependoncelistener"><code>prependOnceListener</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-99">Source<a href="#source-99" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:478</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="query-1">query()<a href="#query-1" class="hash-link" aria-label="Direct link to query()" title="Direct link to query()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>query</strong>&lt;<code>T</code>&gt;(<code>this</code>, <code>query</code>?, <code>includeSubclass</code>?, <code>context</code>?): <code>Promise</code>&lt;<code>Object</code>&gt;</p>
+</blockquote>
+<p>Query for models</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-15">Type parameters<a href="#type-parameters-15" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-50">Parameters<a href="#parameters-50" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>query?</strong>: <code>string</code></p>
+<p>• <strong>includeSubclass?</strong>: <code>boolean</code></p>
+<p>• <strong>context?</strong>: <code>OperationContext</code>&lt;<code>any</code>, <code>any</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-76">Returns<a href="#returns-76" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>Object</code>&gt;</p>
+<blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="continuationtoken">continuationToken?<a href="#continuationtoken" class="hash-link" aria-label="Direct link to continuationToken?" title="Direct link to continuationToken?">​</a></h5>
+<blockquote>
+<p><strong>continuationToken</strong>?: <code>string</code></p>
+</blockquote>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id="results-1">results<a href="#results-1" class="hash-link" aria-label="Direct link to results" title="Direct link to results">​</a></h5>
+<blockquote>
+<p><strong>results</strong>: <code>T</code>[]</p>
+</blockquote>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-95">Inherited from<a href="#inherited-from-95" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#query"><code>query</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-100">Source<a href="#source-100" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:615</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="rawlisteners">rawListeners()<a href="#rawlisteners" class="hash-link" aria-label="Direct link to rawListeners()" title="Direct link to rawListeners()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>rawListeners</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-51">Parameters<a href="#parameters-51" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-77">Returns<a href="#returns-77" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-96">Inherited from<a href="#inherited-from-96" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#rawlisteners"><code>rawListeners</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-101">Source<a href="#source-101" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:475</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="ref">ref()<a href="#ref" class="hash-link" aria-label="Direct link to ref()" title="Direct link to ref()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>ref</strong>&lt;<code>T</code>&gt;(<code>this</code>, <code>uid</code>): <code>ModelRefWithCreate</code>&lt;<code>T</code>&gt;</p>
+</blockquote>
+<p>Get a reference to a model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-16">Type parameters<a href="#type-parameters-16" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-52">Parameters<a href="#parameters-52" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<p>• <strong>uid</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-78">Returns<a href="#returns-78" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>ModelRefWithCreate</code>&lt;<code>T</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-97">Inherited from<a href="#inherited-from-97" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#ref"><code>ref</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-102">Source<a href="#source-102" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:522</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="removealllisteners">removeAllListeners()<a href="#removealllisteners" class="hash-link" aria-label="Direct link to removeAllListeners()" title="Direct link to removeAllListeners()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>removeAllListeners</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-53">Parameters<a href="#parameters-53" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-79">Returns<a href="#returns-79" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-98">Inherited from<a href="#inherited-from-98" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#removealllisteners"><code>removeAllListeners</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-103">Source<a href="#source-103" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:471</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="removelistener">removeListener()<a href="#removelistener" class="hash-link" aria-label="Direct link to removeListener()" title="Direct link to removeListener()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>removeListener</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-54">Parameters<a href="#parameters-54" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-80">Returns<a href="#returns-80" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-99">Inherited from<a href="#inherited-from-99" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#removelistener"><code>removeListener</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-104">Source<a href="#source-104" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:468</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="setmaxlisteners">setMaxListeners()<a href="#setmaxlisteners" class="hash-link" aria-label="Direct link to setMaxListeners()" title="Direct link to setMaxListeners()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>setMaxListeners</strong>(...<code>args</code>): <code>any</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-55">Parameters<a href="#parameters-55" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• ...<strong>args</strong>: <code>any</code>[]</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-81">Returns<a href="#returns-81" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-100">Inherited from<a href="#inherited-from-100" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#setmaxlisteners"><code>setMaxListeners</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-105">Source<a href="#source-105" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:472</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="store">store()<a href="#store" class="hash-link" aria-label="Direct link to store()" title="Direct link to store()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>store</strong>&lt;<code>T</code>&gt;(<code>this</code>): <code>Store</code>&lt;<code>T</code>, <code>StoreParameters</code>, <code>StoreEvents</code>&gt;</p>
+</blockquote>
+<p>Get Store for this model</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-17">Type parameters<a href="#type-parameters-17" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> extends <code>CoreModel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-56">Parameters<a href="#parameters-56" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>this</strong>: <code>Constructor</code>&lt;<code>T</code>, []&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-82">Returns<a href="#returns-82" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Store</code>&lt;<code>T</code>, <code>StoreParameters</code>, <code>StoreEvents</code>&gt;</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-101">Inherited from<a href="#inherited-from-101" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#store"><code>store</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-106">Source<a href="#source-106" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:502</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="unflat-1">unflat()<a href="#unflat-1" class="hash-link" aria-label="Direct link to unflat()" title="Direct link to unflat()">​</a></h3>
+<blockquote>
+<p><strong><code>static</code></strong> <strong>unflat</strong>&lt;<code>T</code>&gt;(<code>data</code>, <code>split</code>?): <code>T</code></p>
+</blockquote>
+<p>Unflat an object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="type-parameters-18">Type parameters<a href="#type-parameters-18" class="hash-link" aria-label="Direct link to Type parameters" title="Direct link to Type parameters">​</a></h4>
+<p>• <strong>T</strong> = <code>any</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="parameters-57">Parameters<a href="#parameters-57" class="hash-link" aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+<p>• <strong>data</strong>: <code>any</code></p>
+<p>• <strong>split?</strong>: <code>string</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="returns-83">Returns<a href="#returns-83" class="hash-link" aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>T</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="inherited-from-102">Inherited from<a href="#inherited-from-102" class="hash-link" aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><a href="/typedoc/async/classes/AsyncAction"><code>AsyncAction</code></a>.<a href="/typedoc/async/classes/AsyncAction#unflat-1"><code>unflat</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="source-107">Source<a href="#source-107" class="hash-link" aria-label="Direct link to Source" title="Direct link to Source">​</a></h4>
+<p>core/lib/models/coremodel.d.ts:551</p></div></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/typedoc/async/classes/AsyncJobServiceParameters"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">AsyncJobServiceParameters</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/typedoc/async/classes/AsyncWebdaAction"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">AsyncWebdaAction</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#webda-model" class="table-of-contents__link toc-highlight">Webda Model</a></li><li><a href="#extends" class="table-of-contents__link toc-highlight">Extends</a></li><li><a href="#constructors" class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href="#new-asyncoperationactionoperationid-context-loglevel" class="table-of-contents__link toc-highlight">new AsyncOperationAction(operationId, context, logLevel)</a></li></ul></li><li><a href="#properties" class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href="#__class" class="table-of-contents__link toc-highlight">__class</a></li><li><a href="#__ctx" class="table-of-contents__link toc-highlight">__ctx</a></li><li><a href="#__dirty" class="table-of-contents__link toc-highlight">__dirty</a></li><li><a href="#__secretkey" class="table-of-contents__link toc-highlight">__secretKey</a></li><li><a href="#__store" class="table-of-contents__link toc-highlight">__store</a></li><li><a href="#__type" class="table-of-contents__link toc-highlight">__type</a></li><li><a href="#__types" class="table-of-contents__link toc-highlight">__types</a></li><li><a href="#_creationdate" class="table-of-contents__link toc-highlight">_creationDate</a></li><li><a href="#_lastjobupdate" class="table-of-contents__link toc-highlight">_lastJobUpdate</a></li><li><a href="#_lastupdate" class="table-of-contents__link toc-highlight">_lastUpdate</a></li><li><a href="#action" class="table-of-contents__link toc-highlight">action?</a></li><li><a href="#arguments" class="table-of-contents__link toc-highlight">arguments?</a></li><li><a href="#context" class="table-of-contents__link toc-highlight">context</a></li><li><a href="#errormessage" class="table-of-contents__link toc-highlight">errorMessage?</a></li><li><a href="#job" class="table-of-contents__link toc-highlight">job</a></li><li><a href="#loglevel" class="table-of-contents__link toc-highlight">logLevel</a></li><li><a href="#logs" class="table-of-contents__link toc-highlight">logs</a></li><li><a href="#operationid" class="table-of-contents__link toc-highlight">operationId</a></li><li><a href="#results" class="table-of-contents__link toc-highlight">results</a></li><li><a href="#scheduled" class="table-of-contents__link toc-highlight">scheduled?</a></li><li><a href="#status" class="table-of-contents__link toc-highlight">status</a></li><li><a href="#statusdetails" class="table-of-contents__link toc-highlight">statusDetails</a></li><li><a href="#type" class="table-of-contents__link toc-highlight">type</a></li><li><a href="#uuid" class="table-of-contents__link toc-highlight">uuid</a></li></ul></li><li><a href="#methods" class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href="#_ondelete" class="table-of-contents__link toc-highlight">_onDelete()</a></li><li><a href="#_ondeleted" class="table-of-contents__link toc-highlight">_onDeleted()</a></li><li><a href="#_onget" class="table-of-contents__link toc-highlight">_onGet()</a></li><li><a href="#_onsave" class="table-of-contents__link toc-highlight">_onSave()</a></li><li><a href="#_onsaved" class="table-of-contents__link toc-highlight">_onSaved()</a></li><li><a href="#_onupdate" class="table-of-contents__link toc-highlight">_onUpdate()</a></li><li><a href="#_onupdated" class="table-of-contents__link toc-highlight">_onUpdated()</a></li><li><a href="#_tojson" class="table-of-contents__link toc-highlight">_toJSON()</a></li><li><a href="#attributepermission" class="table-of-contents__link toc-highlight">attributePermission()</a></li><li><a href="#canact" class="table-of-contents__link toc-highlight">canAct()</a></li><li><a href="#checkact" class="table-of-contents__link toc-highlight">checkAct()</a></li><li><a href="#delete" class="table-of-contents__link toc-highlight">delete()</a></li><li><a href="#generateuid" class="table-of-contents__link toc-highlight">generateUid()</a></li><li><a href="#get" class="table-of-contents__link toc-highlight">get()</a></li><li><a href="#getcontext" class="table-of-contents__link toc-highlight">getContext()</a></li><li><a href="#getfulluuid" class="table-of-contents__link toc-highlight">getFullUuid()</a></li><li><a href="#gethmac" class="table-of-contents__link toc-highlight">getHmac()</a></li><li><a href="#gethookurl" class="table-of-contents__link toc-highlight">getHookUrl()</a></li><li><a href="#getlogslimit" class="table-of-contents__link toc-highlight">getLogsLimit()</a></li><li><a href="#getproxy" class="table-of-contents__link toc-highlight">getProxy()</a></li><li><a href="#getref" class="table-of-contents__link toc-highlight">getRef()</a></li><li><a href="#getservice" class="table-of-contents__link toc-highlight">getService()</a></li><li><a href="#getstore" class="table-of-contents__link toc-highlight">getStore()</a></li><li><a href="#getuuid" class="table-of-contents__link toc-highlight">getUuid()</a></li><li><a href="#handlerelations" class="table-of-contents__link toc-highlight">handleRelations()</a></li><li><a href="#incrementattribute" class="table-of-contents__link toc-highlight">incrementAttribute()</a></li><li><a href="#incrementattributes" class="table-of-contents__link toc-highlight">incrementAttributes()</a></li><li><a href="#isdirty" class="table-of-contents__link toc-highlight">isDirty()</a></li><li><a href="#isinternal" class="table-of-contents__link toc-highlight">isInternal()</a></li><li><a href="#load" class="table-of-contents__link toc-highlight">load()</a></li><li><a href="#patch" class="table-of-contents__link toc-highlight">patch()</a></li><li><a href="#refresh" class="table-of-contents__link toc-highlight">refresh()</a></li><li><a href="#removeattribute" class="table-of-contents__link toc-highlight">removeAttribute()</a></li><li><a href="#save" class="table-of-contents__link toc-highlight">save()</a></li><li><a href="#setattribute" class="table-of-contents__link toc-highlight">setAttribute()</a></li><li><a href="#setcontext" class="table-of-contents__link toc-highlight">setContext()</a></li><li><a href="#setuuid" class="table-of-contents__link toc-highlight">setUuid()</a></li><li><a href="#statusaction" class="table-of-contents__link toc-highlight">statusAction()</a></li><li><a href="#tojson" class="table-of-contents__link toc-highlight">toJSON()</a></li><li><a href="#tostoredjson" class="table-of-contents__link toc-highlight">toStoredJSON()</a></li><li><a href="#unflat" class="table-of-contents__link toc-highlight">unflat()</a></li><li><a href="#update" class="table-of-contents__link toc-highlight">update()</a></li><li><a href="#validate" class="table-of-contents__link toc-highlight">validate()</a></li><li><a href="#verifyjobrequest" class="table-of-contents__link toc-highlight">verifyJobRequest()</a></li><li><a href="#addlistener" class="table-of-contents__link toc-highlight">addListener()</a></li><li><a href="#authorizeclientevent" class="table-of-contents__link toc-highlight">authorizeClientEvent()</a></li><li><a href="#completequery" class="table-of-contents__link toc-highlight">completeQuery()</a></li><li><a href="#completeuid" class="table-of-contents__link toc-highlight">completeUid()</a></li><li><a href="#create" class="table-of-contents__link toc-highlight">create()</a></li><li><a href="#emit" class="table-of-contents__link toc-highlight">emit()</a></li><li><a href="#emitsync" class="table-of-contents__link toc-highlight">emitSync()</a></li><li><a href="#emitter" class="table-of-contents__link toc-highlight">emitter()</a></li><li><a href="#eventnames" class="table-of-contents__link toc-highlight">eventNames()</a></li><li><a href="#factory" class="table-of-contents__link toc-highlight">factory()</a></li><li><a href="#flat" class="table-of-contents__link toc-highlight">flat()</a></li><li><a href="#fromfulluuid" class="table-of-contents__link toc-highlight">fromFullUuid()</a></li><li><a href="#getactions" class="table-of-contents__link toc-highlight">getActions()</a></li><li><a href="#getclientevents" class="table-of-contents__link toc-highlight">getClientEvents()</a></li><li><a href="#gethierarchy" class="table-of-contents__link toc-highlight">getHierarchy()</a></li><li><a href="#getidentifier" class="table-of-contents__link toc-highlight">getIdentifier()</a></li><li><a href="#getmaxlisteners" class="table-of-contents__link toc-highlight">getMaxListeners()</a></li><li><a href="#getpermissionquery" class="table-of-contents__link toc-highlight">getPermissionQuery()</a></li><li><a href="#getrelations" class="table-of-contents__link toc-highlight">getRelations()</a></li><li><a href="#getschema" class="table-of-contents__link toc-highlight">getSchema()</a></li><li><a href="#getuuidfield" class="table-of-contents__link toc-highlight">getUuidField()</a></li><li><a href="#instanceof" class="table-of-contents__link toc-highlight">instanceOf()</a></li><li><a href="#iterate" class="table-of-contents__link toc-highlight">iterate()</a></li><li><a href="#listenercount" class="table-of-contents__link toc-highlight">listenerCount()</a></li><li><a href="#listeners" class="table-of-contents__link toc-highlight">listeners()</a></li><li><a href="#off" class="table-of-contents__link toc-highlight">off()</a></li><li><a href="#on" class="table-of-contents__link toc-highlight">on()</a></li><li><a href="#onasync" class="table-of-contents__link toc-highlight">onAsync()</a></li><li><a href="#once" class="table-of-contents__link toc-highlight">once()</a></li><li><a href="#prependlistener" class="table-of-contents__link toc-highlight">prependListener()</a></li><li><a href="#prependoncelistener" class="table-of-contents__link toc-highlight">prependOnceListener()</a></li><li><a href="#query-1" class="table-of-contents__link toc-highlight">query()</a></li><li><a href="#rawlisteners" class="table-of-contents__link toc-highlight">rawListeners()</a></li><li><a href="#ref" class="table-of-contents__link toc-highlight">ref()</a></li><li><a href="#removealllisteners" class="table-of-contents__link toc-highlight">removeAllListeners()</a></li><li><a href="#removelistener" class="table-of-contents__link toc-highlight">removeListener()</a></li><li><a href="#setmaxlisteners" class="table-of-contents__link toc-highlight">setMaxListeners()</a></li><li><a href="#store" class="table-of-contents__link toc-highlight">store()</a></li><li><a href="#unflat-1" class="table-of-contents__link toc-highlight">unflat()</a></li></ul></li></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"></ul></div><div class="col footer__col"><div class="footer__title">Sponsors</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://www.loopingz.com" target="_blank" rel="noopener noreferrer" class="footer__link-item">Loopingz<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a href="https://www.arize.com" target="_blank" rel="noopener noreferrer" class="footer__link-item">Arize AI<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a href="https://www.tellae.fr" target="_blank" rel="noopener noreferrer" class="footer__link-item">Tellae<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2024 Webda.io. Built with Docusaurus.</div></div></div></footer></div>
+</body>
+</html>

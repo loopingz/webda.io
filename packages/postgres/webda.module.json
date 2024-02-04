@@ -2,7 +2,7 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/PostgresStore": "lib/postgresstore:default"
+    "Webda/PostgresStore": "lib/postgresstore:PostgresStore"
   },
   "models": {
     "graph": {},
@@ -132,7 +132,7 @@
         },
         "usePool": {
           "type": "boolean",
-          "default": false
+          "default": true
         },
         "postgresqlServer": {
           "anyOf": [
@@ -2346,7 +2346,22 @@
         },
         "autoCreateTable": {
           "type": "boolean",
-          "description": "Auto create table if not exists"
+          "description": "Auto create table if not exists",
+          "default": true
+        },
+        "viewPrefix": {
+          "type": "string",
+          "description": "View name prefix"
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Regexp of models to include",
+          "default": [
+            ".*"
+          ]
         },
         "openapi": {
           "type": "object",

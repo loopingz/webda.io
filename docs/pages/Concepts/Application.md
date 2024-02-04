@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+---
+
 # Application
 
 An Application represent the known types and load webda configuration.

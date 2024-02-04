@@ -4,7 +4,7 @@ This is the application definition file
 
 It has 2 main sections:
 
-```json
+```json title="webda.config.json"
 {
   "parameters": {
     // This will be passed to all your Services and can contain common parameters

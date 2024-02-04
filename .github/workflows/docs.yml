@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-  
+
 jobs:
   build:
     name: Build
@@ -14,25 +14,25 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - uses: actions/setup-node@v2
         with:
           node-version: 18
 
       - name: Install dependencies
-        run: yarn
+        run: cd docs && yarn
 
-      - name: Build
-        run: yarn build
+      - name: Build typedoc
+        run: cd docs && yarn typedoc
 
       - name: Build docs
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
-        run: yarn run docs
+        run: cd docs && yarn build
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           branch: gh-pages # The branch the action should deploy to.
-          folder: .built-docs # The folder the action should deploy.
+          folder: docs/dist # The folder the action should deploy.

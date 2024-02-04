@@ -21,15 +21,12 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: cd docs && yarn
-
-      - name: Build typedoc
-        run: cd docs && yarn typedoc
+        run: yarn install && cd docs && yarn install
 
       - name: Build docs
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
-        run: cd docs && yarn build
+        run: yarn docs
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.4

@@ -1,6 +1,3 @@
-const path = require("path");
-const fs = require("node:fs");
-
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 

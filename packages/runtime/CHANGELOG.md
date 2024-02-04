@@ -56,6 +56,27 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.2 to ^3.9.3
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/runtime-v3.3.2...runtime-v3.4.0) (2024-02-04)
+
+
+### Features
+
+* **postgres:** add option to create views for each models ([1830dc4](https://github.com/loopingz/webda.io/commit/1830dc43e76626ca8832b83548034acbff79e73b))
+
+
+### Bug Fixes
+
+* **ci:** pnpm explicit dependency to @webda/workout ([7e1f05e](https://github.com/loopingz/webda.io/commit/7e1f05ed030d6ad0c593da8683c1c347ad2fd08b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.2 to ^3.14.0
+  * devDependencies
+    * @webda/shell bumped from ^3.9.3 to ^3.9.4
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/runtime-v3.2.0...runtime-v3.3.0) (2024-01-16)
 
 

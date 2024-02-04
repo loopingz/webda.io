@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.14.0](https://github.com/loopingz/webda.io/compare/core-v3.13.2...core-v3.14.0) (2024-02-04)
+
+
+### Features
+
+* **postgres:** add option to create views for each models ([1830dc4](https://github.com/loopingz/webda.io/commit/1830dc43e76626ca8832b83548034acbff79e73b))
+
+
+### Bug Fixes
+
+* **core:** plurals with s ending name ([b643003](https://github.com/loopingz/webda.io/commit/b64300360bbe07adf65203997ce86d6bc38279cf))
+
 ## [3.13.2](https://github.com/loopingz/webda.io/compare/core-v3.13.1...core-v3.13.2) (2024-01-22)
 
 ### Bug Fixes

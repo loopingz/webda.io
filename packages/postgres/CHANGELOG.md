@@ -80,6 +80,27 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/postgres-v3.3.4...postgres-v3.4.0) (2024-02-04)
+
+
+### Features
+
+* **postgres:** add option to create views for each models ([1830dc4](https://github.com/loopingz/webda.io/commit/1830dc43e76626ca8832b83548034acbff79e73b))
+
+
+### Bug Fixes
+
+* postgres exports ([d7e0967](https://github.com/loopingz/webda.io/commit/d7e0967fe296dfd78862a202281ed2dbd6c24dc0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.2 to ^3.14.0
+  * devDependencies
+    * @webda/shell bumped from ^3.9.3 to ^3.9.4
+
 ## [3.3.4](https://github.com/loopingz/webda.io/compare/postgres-v3.3.3...postgres-v3.3.4) (2024-01-22)
 
 

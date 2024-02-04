@@ -108,6 +108,23 @@
     * @webda/async bumped from ^3.5.1 to ^3.5.2
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/gcp-v3.4.3...gcp-v3.5.0) (2024-02-04)
+
+
+### Features
+
+* add default action in getSignedUrl to read ([09c43e5](https://github.com/loopingz/webda.io/commit/09c43e5f5c7c0bf824a4b42e8d4d6300f58a0402))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.2 to ^3.14.0
+  * devDependencies
+    * @webda/async bumped from ^3.5.3 to ^3.6.0
+    * @webda/shell bumped from ^3.9.3 to ^3.9.4
+
 ## [3.4.3](https://github.com/loopingz/webda.io/compare/gcp-v3.4.2...gcp-v3.4.3) (2024-01-22)
 
 

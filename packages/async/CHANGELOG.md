@@ -93,6 +93,20 @@
   * dependencies
     * @webda/core bumped from ^3.13.1 to ^3.13.2
 
+## [3.6.0](https://github.com/loopingz/webda.io/compare/async-v3.5.3...async-v3.6.0) (2024-02-04)
+
+
+### Features
+
+* return action on launch ([e39cf50](https://github.com/loopingz/webda.io/commit/e39cf50483857500373e5b48d80d33a8fa8504b4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.2 to ^3.14.0
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/async-v3.4.1...async-v3.5.0) (2024-01-09)
 
 

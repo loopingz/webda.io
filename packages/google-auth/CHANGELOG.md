@@ -152,6 +152,14 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.2 to ^3.9.3
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.13.2 to ^3.14.0
+  * devDependencies
+    * @webda/shell bumped from ^3.9.3 to ^3.9.4
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/google-auth-v3.0.12...google-auth-v3.1.0) (2023-11-12)
 
 

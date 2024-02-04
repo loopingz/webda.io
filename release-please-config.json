@@ -18,7 +18,6 @@
     "packages/runtime": {},
     "packages/shell": {},
     "packages/tsc-esm": {},
-    "packages/websockets": {},
     "packages/workout": {}
   }
 }

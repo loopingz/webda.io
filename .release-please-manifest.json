@@ -16,6 +16,5 @@
   "packages/runtime": "3.3.2",
   "packages/shell": "3.9.3",
   "packages/tsc-esm": "1.3.0",
-  "packages/websockets": "3.2.3",
   "packages/workout": "3.1.3"
 }

@@ -37,3 +37,20 @@ jobs:
         run: yarn run lerna:publish from-package --yes
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install docs dependencies
+        if: ${{ steps.release.outputs.releases_created }}
+        run: cd docs && yarn install
+
+      - name: Build docs
+        if: ${{ steps.release.outputs.releases_created }}
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: yarn docs
+
+      - name: Deploy docs 🚀
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: gh-pages # The branch the action should deploy to.
+          folder: docs/dist # The folder the action should deploy.

@@ -4,9 +4,9 @@ import {
   Store,
   StoreNotFoundError,
   StoreParameters,
-  UpdateConditionFailError,
-  WebdaQL
+  UpdateConditionFailError
 } from "@webda/core";
+import * as WebdaQL from "@webda/ql";
 
 export interface SQLDatabase {
   name: string;

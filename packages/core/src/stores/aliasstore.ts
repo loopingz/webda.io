@@ -2,7 +2,7 @@ import { CoreModel } from "../models/coremodel";
 import { Inject } from "../services/service";
 import { WebContext } from "../utils/context";
 import { Store, StoreEvents, StoreFindResult, StoreParameters } from "./store";
-import { WebdaQL } from "./webdaql/query";
+import * as WebdaQL from "@webda/ql";
 
 export class AbstractAliasStoreParameters extends StoreParameters {
   /**

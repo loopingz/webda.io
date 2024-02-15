@@ -2,12 +2,12 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
+import { WebdaQL } from "../../../webdaql/query";
 import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User, WebdaError } from "../index";
 import { HttpContext } from "../utils/httpcontext";
 import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
-import { WebdaQL } from "./webdaql/query";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -88,7 +88,7 @@ class MemoryStoreTest extends StoreTest {
     let res, offset;
     let total = 0;
     do {
-      res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`, context);
+      res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
       offset = res.continuationToken;
       total += res.results.length;
     } while (offset);

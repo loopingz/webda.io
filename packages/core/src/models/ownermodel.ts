@@ -1,4 +1,4 @@
-import { OperationContext } from "../utils/context";
+import { Context, OperationContext } from "../utils/context";
 import { UuidModel } from "./coremodel";
 import { ModelLink } from "./relations";
 import { User } from "./user";
@@ -34,7 +34,7 @@ export class OwnerModel extends UuidModel {
   /**
    * @override
    */
-  validate(ctx: OperationContext<any, any>, updates: any, ignoreRequired?: boolean): Promise<boolean> {
+  validate(ctx: OperationContext, updates: any, ignoreRequired?: boolean): Promise<boolean> {
     updates._user ??= this._user?.toString();
     updates.uuid ??= this.generateUid();
     return super.validate(ctx, updates, ignoreRequired);
@@ -51,7 +51,7 @@ export class OwnerModel extends UuidModel {
   }
 
   async canAct(
-    ctx: OperationContext,
+    ctx: Context,
     action:
       | "create"
       | "update"
@@ -83,7 +83,7 @@ export class OwnerModel extends UuidModel {
    * @param context
    * @returns
    */
-  static getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string } {
+  static getPermissionQuery(context?: Context): null | { partial: boolean; query: string } {
     if (!context) {
       return null;
     }

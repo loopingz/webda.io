@@ -1,4 +1,4 @@
-lexer grammar WebdaQLLexer;
+lexer grammar CESQLLexer;
 
 // NOTE:
 // This grammar is case-sensitive, although CESQL keywords are case-insensitive.
@@ -24,8 +24,6 @@ RR_BRACKET:                          ')';
 COMMA:                               ',';
 SINGLE_QUOTE_SYMB:                   '\'';
 DOUBLE_QUOTE_SYMB:                   '"';
-LR_SQ_BRACKET:                          '[';
-RR_SQ_BRACKET:                          ']';
 
 fragment QUOTE_SYMB
     : SINGLE_QUOTE_SYMB | DOUBLE_QUOTE_SYMB
@@ -36,6 +34,16 @@ fragment QUOTE_SYMB
 
 AND: 'AND';
 OR: 'OR';
+XOR: 'XOR';
+NOT: 'NOT';
+
+// - Arithmetics
+
+STAR:                                '*';
+DIVIDE:                              '/';
+MODULE:                              '%';
+PLUS:                                '+';
+MINUS:                               '-';
 
 // - Comparison
 
@@ -44,27 +52,19 @@ NOT_EQUAL:                    '!=';
 GREATER:                      '>';
 GREATER_OR_EQUAL:             '>=';
 LESS:                         '<';
+LESS_GREATER:                 '<>';
 LESS_OR_EQUAL:                '<=';
 
 // Like, exists, in
 
 LIKE: 'LIKE';
+EXISTS: 'EXISTS';
 IN: 'IN';
-CONTAINS: 'CONTAINS';
 
 // Booleans
 
 TRUE: 'TRUE';
 FALSE: 'FALSE';
-
-// Limit
-LIMIT: 'LIMIT';
-OFFSET: 'OFFSET';
-
-// Order by
-ORDER_BY: 'ORDER BY';
-ASC: 'ASC';
-DESC: 'DESC';
 
 // Literals
 
@@ -75,5 +75,5 @@ INTEGER_LITERAL:                             INT_DIGIT+;
 // Identifiers
 
 IDENTIFIER:                                 [a-zA-Z]+;
-IDENTIFIER_WITH_NUMBER: [a-zA-Z0-9._]+;
+IDENTIFIER_WITH_NUMBER: [a-zA-Z0-9]+;
 FUNCTION_IDENTIFIER_WITH_UNDERSCORE:                        [A-Z] [A-Z_]*;

@@ -97,8 +97,8 @@ export class ModelDrivenTest extends WebdaTest {
     const User = this.webda.getModel<UserInterface>("User");
 
     // Create a User
-    let user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, undefined, true);
-    let user2 = await User.ref("user2").getOrCreate(<any>{ uuid: "user2" }, undefined, true);
+    let user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, true);
+    let user2 = await User.ref("user2").getOrCreate(<any>{ uuid: "user2" }, true);
 
     Contact.factory({ firstName: "test", lastName: "" });
     let contact = new Contact().load({ firstName: "test", lastName: "", age: 18 }, true);

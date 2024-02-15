@@ -6,6 +6,7 @@ import * as events from "events";
 import { JSONSchema7 } from "json-schema";
 import jsonpath from "jsonpath";
 import pkg from "node-machine-id";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { OpenAPIV3 } from "openapi-types";
 import {
   Counter,
@@ -22,6 +23,7 @@ import { Application, Configuration, Modda } from "./application";
 import {
   BinaryService,
   ConfigurationService,
+  Context,
   ContextProvider,
   ContextProviderInfo,
   GlobalContext,
@@ -160,7 +162,7 @@ export type RegistryEntry<T = any> = CoreModel & T;
 /**
  * Ensure all events store the context in the same place
  */
-export interface EventWithContext<T extends OperationContext = OperationContext> {
+export interface EventWithContext<T extends Context = Context> {
   context: T;
 }
 
@@ -268,7 +270,7 @@ export type CoreEvents = {
    * Emitted whenever a new Context is created
    */
   "Webda.NewContext": {
-    context: OperationContext;
+    context: Context;
     info: ContextProviderInfo;
   };
   /**
@@ -428,6 +430,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * System context
    */
   protected globalContext: GlobalContext;
+
+  /**
+   * Store execution context
+   */
+  static asyncLocalStorage = new AsyncLocalStorage<{ context: Context } & any>();
   /**
    *
    */
@@ -1142,6 +1149,35 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Return the current context or global context
+   * @returns
+   */
+  public getContext<T extends Context>(): T {
+    return Core.asyncLocalStorage.getStore()?.context || this.globalContext;
+  }
+
+  /**
+   * Run this function as system
+   *
+   * @param run
+   * @returns
+   */
+  runAsSystem<T>(run: () => T): T {
+    return this.runInContext(this.globalContext, run);
+  }
+
+  /**
+   * Run this function as user
+   * @param context
+   * @param run
+   * @returns
+   */
+  runInContext<T>(context: Context, run: () => T): T {
+    const previousContext = Core.asyncLocalStorage.getStore()?.context;
+    return Core.asyncLocalStorage.run({ context, previousContext }, run);
+  }
+
+  /**
    * Set the system context
    * @param context
    */
@@ -1213,6 +1249,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return params;
   }
 
+  /**
+   * Create services singleton
+   *
+   * @param services
+   * @param service
+   * @returns
+   */
   protected createService(services: any, service: string) {
     let type = services[service]?.type;
     if (type === undefined) {
@@ -1237,7 +1280,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
   }
 
-  getBeans() {
+  /**
+   * Get webda beans
+   * @returns
+   */
+  protected getBeans() {
     // @ts-ignore
     return process.webdaBeans || {};
   }
@@ -1379,11 +1426,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param info
    * @returns
    */
-  public async newContext<T extends OperationContext>(
-    info: ContextProviderInfo,
-    noInit: boolean = false
-  ): Promise<OperationContext> {
-    let context: OperationContext;
+  public async newContext<T extends Context>(info: ContextProviderInfo, noInit: boolean = false): Promise<Context> {
+    let context: Context;
     this._contextProviders.find(provider => (context = provider.getContext(info)) !== undefined);
     if (!noInit) {
       await context.init();

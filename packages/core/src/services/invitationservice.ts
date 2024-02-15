@@ -497,7 +497,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @returns
    */
   async invite(ctx: WebContext) {
-    let model = await this.model.ref(ctx.getParameters().uuid).get(ctx);
+    let model = await this.model.ref(ctx.getParameters().uuid).get();
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);
     }

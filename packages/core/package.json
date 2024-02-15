@@ -30,6 +30,7 @@
     "ajv-formats": "^2.1.1",
     "antlr4ts": "^0.5.0-alpha.4",
     "bcryptjs": "^2.4.3",
+    "cloudevents": "^8.0.0",
     "cookie": "^0.6.0",
     "dateformat": "^5.0.3",
     "deepmerge-ts": "^5.1.0",

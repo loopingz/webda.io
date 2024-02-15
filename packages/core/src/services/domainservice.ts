@@ -344,10 +344,11 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
 export class RESTDomainServiceParameters extends DomainServiceParameters {
   /**
    * Expose the OpenAPI
+   * If a string is provided it will be used as the url
    *
    * @default true if debug false otherwise
    */
-  exposeOpenAPI: boolean;
+  exposeOpenAPI: boolean | string;
 
   /**
    * Set default url to /
@@ -378,7 +379,11 @@ export class RESTDomainService<
     this.parameters.exposeOpenAPI ??= this.getWebda().isDebug();
     super.resolve();
     if (this.parameters.exposeOpenAPI) {
-      this.addRoute(".", ["GET"], this.openapi, { hidden: true });
+      if (typeof this.parameters.exposeOpenAPI === "string") {
+        this.addRoute(this.parameters.exposeOpenAPI, ["GET"], this.openapi, { hidden: true });
+      } else {
+        this.addRoute(".", ["GET"], this.openapi, { hidden: true });
+      }
     }
     return this;
   }
@@ -1001,3 +1006,356 @@ export class RESTDomainService<
     ctx.write(this.openapiContent);
   }
 }
+
+
+
+
+  /**
+   * Handle POST
+   * @param ctx
+   */
+  @Route(".", ["POST"], {
+    post: {
+      description: "The way to create a new ${modelName} model",
+      summary: "Create a new ${modelName}",
+      operationId: "create${modelName}",
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/${modelName}"
+            }
+          }
+        }
+      },
+      responses: {
+        "200": {
+          description: "Retrieve model",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/${modelName}"
+              }
+            }
+          }
+        },
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "409": {
+          description: "Object already exists"
+        }
+      }
+    }
+  })
+  async httpCreate(ctx: WebContext) {
+    return this.operationCreate(ctx, this.parameters.model);
+  }
+
+  /**
+   * Create a new object based on the context
+   * @param ctx
+   * @param model
+   */
+  async operationCreate(ctx: OperationContext, model: string) {
+    let body = await ctx.getInput();
+    const modelPrototype = this.getWebda().getApplication().getModel(model);
+    let object = modelPrototype.factory(body, ctx);
+    object._creationDate = new Date();
+    await object.checkAct(ctx, "create");
+    try {
+      await object.validate(ctx, body);
+    } catch (err) {
+      this.log("INFO", "Object is not valid", err);
+      throw new WebdaError.BadRequest("Object is not valid");
+    }
+    if (object[this._uuidField] && (await this.exists(object[this._uuidField]))) {
+      throw new WebdaError.Conflict("Object already exists");
+    }
+    await this.save(object);
+    ctx.write(object);
+    const evt = {
+      context: ctx,
+      values: body,
+      object: object,
+      object_id: object.getUuid(),
+      store: this
+    };
+    await Promise.all([object.__class.emitSync("Store.WebCreate", evt), this.emitSync("Store.WebCreate", evt)]);
+  }
+
+  /**
+   * Handle object action
+   * @param ctx
+   */
+  async httpAction(ctx: WebContext, actionMethod?: string) {
+    let action = ctx.getHttpContext().getUrl().split("/").pop();
+    actionMethod ??= action;
+    let object = await this.get(ctx.parameter("uuid"), ctx);
+    if (object === undefined || object.__deleted) {
+      throw new WebdaError.NotFound("Object not found or is deleted");
+    }
+    const inputSchema = `${object.__class.getIdentifier(false)}.${action}.input`;
+    if (this.getWebda().getApplication().hasSchema(inputSchema)) {
+      const input = await ctx.getInput();
+      try {
+        this.getWebda().validateSchema(inputSchema, input);
+      } catch (err) {
+        this.log("INFO", "Object invalid", err);
+        this.log("INFO", "Object invalid", inputSchema, input, this.getWebda().getApplication().getSchema(inputSchema));
+        throw new WebdaError.BadRequest("Body is invalid");
+      }
+    }
+    await object.checkAct(ctx, action);
+    const evt = {
+      action: action,
+      object: object,
+      store: this,
+      context: ctx
+    };
+    await Promise.all([this.emitSync("Store.Action", evt), object.__class.emitSync("Store.Action", evt)]);
+    const res = await object[actionMethod](ctx);
+    if (res) {
+      ctx.write(res);
+    }
+    const evtActioned = {
+      action: action,
+      object: object,
+      store: this,
+      context: ctx,
+      result: res
+    };
+    await Promise.all([
+      this.emitSync("Store.Actioned", evtActioned),
+      object?.__class.emitSync("Store.Actioned", evtActioned)
+    ]);
+  }
+
+  /**
+   * Handle collection action
+   * @param ctx
+   */
+  async httpGlobalAction(ctx: WebContext, model: CoreModelDefinition = this._model) {
+    let action = ctx.getHttpContext().getUrl().split("/").pop();
+    const evt = {
+      action: action,
+      store: this,
+      context: ctx,
+      model
+    };
+    await Promise.all([this.emitSync("Store.Action", evt), model.emitSync("Store.Action", evt)]);
+    const res = await model[action](ctx);
+    if (res) {
+      ctx.write(res);
+    }
+    const evtActioned = {
+      action: action,
+      store: this,
+      context: ctx,
+      result: res,
+      model
+    };
+    await Promise.all([this.emitSync("Store.Actioned", evtActioned), model?.emitSync("Store.Actioned", evtActioned)]);
+  }
+
+  /**
+   * Handle HTTP Update for an object
+   *
+   * @param ctx context of the request
+   */
+  @Route("./{uuid}", ["PUT", "PATCH"], {
+    put: {
+      description: "Update a ${modelName} if the permissions allow",
+      summary: "Update a ${modelName}",
+      operationId: "update${modelName}",
+      schemas: {
+        input: "${modelName}",
+        output: "${modelName}"
+      },
+      responses: {
+        "200": {},
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    },
+    patch: {
+      description: "Patch a ${modelName} if the permissions allow",
+      summary: "Patch a ${modelName}",
+      operationId: "partialUpdatet${modelName}",
+      schemas: {
+        input: "${modelName}"
+      },
+      responses: {
+        "204": {
+          description: ""
+        },
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    }
+  })
+  async httpUpdate(ctx: WebContext) {
+    const { uuid } = ctx.getParameters();
+    const body = await ctx.getInput();
+    body[this._uuidField] = uuid;
+    let object = await this.get(uuid, ctx);
+    if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
+    await object.checkAct(ctx, "update");
+    if (ctx.getHttpContext().getMethod() === "PATCH") {
+      try {
+        await object.validate(ctx, body, true);
+      } catch (err) {
+        this.log("INFO", "Object invalid", err, object);
+        throw new WebdaError.BadRequest("Object is not valid");
+      }
+      let updateObject: any = new this._model();
+      // Clean any default attributes from the model
+      Object.keys(updateObject)
+        .filter(i => i !== "__class")
+        .forEach(i => {
+          delete updateObject[i];
+        });
+      updateObject.setUuid(uuid);
+      updateObject.load(body, false, false);
+      await this.patch(updateObject);
+      object = undefined;
+    } else {
+      let updateObject: any = new this._model();
+      updateObject.load(body);
+      // Copy back the _ attributes
+      Object.keys(object)
+        .filter(i => i.startsWith("_"))
+        .forEach(i => {
+          updateObject[i] = object[i];
+        });
+      try {
+        await updateObject.validate(ctx, body);
+      } catch (err) {
+        this.log("INFO", "Object invalid", err);
+        throw new WebdaError.BadRequest("Object is not valid");
+      }
+
+      // Add mappers back to
+      object = await this.update(updateObject);
+    }
+    ctx.write(object);
+    const evt = {
+      context: ctx,
+      updates: body,
+      object: object,
+      store: this,
+      method: <"PATCH" | "PUT">ctx.getHttpContext().getMethod()
+    };
+    await Promise.all([object?.__class.emitSync("Store.WebUpdate", evt), this.emitSync("Store.WebUpdate", evt)]);
+  }
+
+  /**
+   * Handle GET on object
+   *
+   * @param ctx context of the request
+   */
+  @Route("./{uuid}", ["GET"], {
+    get: {
+      description: "Retrieve ${modelName} model if permissions allow",
+      summary: "Retrieve a ${modelName}",
+      operationId: "get${modelName}",
+      schemas: {
+        output: "${modelName}"
+      },
+      responses: {
+        "200": {},
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    }
+  })
+  async httpGet(ctx: WebContext) {
+    let uuid = ctx.parameter("uuid");
+    let object = await this.get(uuid, ctx);
+    await this.emitSync("Store.WebGetNotFound", {
+      context: ctx,
+      uuid,
+      store: this
+    });
+    if (object === undefined || object.__deleted) {
+      throw new WebdaError.NotFound("Object not found or is deleted");
+    }
+    await object.checkAct(ctx, "get");
+    ctx.write(object);
+    const evt = {
+      context: ctx,
+      object: object,
+      store: this
+    };
+    await Promise.all([this.emitSync("Store.WebGet", evt), object.__class.emitSync("Store.WebGet", evt)]);
+    ctx.write(object);
+  }
+
+  /**
+   * Handle HTTP request
+   *
+   * @param ctx context of the request
+   * @returns
+   */
+  @Route("./{uuid}", ["DELETE"], {
+    delete: {
+      operationId: "delete${modelName}",
+      description: "Delete ${modelName} if the permissions allow",
+      summary: "Delete a ${modelName}",
+      responses: {
+        "204": {
+          description: ""
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    }
+  })
+  async httpDelete(ctx: WebContext) {
+    let uuid = ctx.parameter("uuid");
+    let object = await this.getWebda().runAsSystem(async () => {
+      const object = await this.get(uuid, ctx);
+      if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
+      return object;
+    });
+    await object.checkAct(ctx, "delete");
+    // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
+    // IOS don't handle 204 with Content-Length != 0 it seems
+    // Might still run into: Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
+    ctx.writeHead(204, { "Content-Length": "0" });
+    await this.delete(uuid);
+    const evt = {
+      context: ctx,
+      object_id: uuid,
+      store: this
+    };
+    await Promise.all([this.emitSync("Store.WebDelete", evt), object.__class.emitSync("Store.WebDelete", evt)]);
+  }

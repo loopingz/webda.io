@@ -20,6 +20,9 @@ abstract class RoleModel extends CoreModel {
     return ctx.getSession().roles;
   }
 
+  /**
+   * @override
+   */
   async canAct(ctx: OperationContext, action: string): Promise<string | boolean> {
     // If this action doesn't require role
     if (!this.getRolesMap()[action]) {

@@ -3,6 +3,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import {
   Action,
+  Context,
   Core,
   CoreModel,
   Expose,
@@ -13,7 +14,6 @@ import {
   ModelParent,
   ModelRelated,
   ModelsMapped,
-  OperationContext,
   WebdaError,
   createModelLinksMap
 } from "..";
@@ -33,7 +33,7 @@ class TestMask extends CoreModel {
   side: string;
   counter: number;
 
-  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: Context): any {
     if (key === "card") {
       const mask = "---X-XXXX-XXXX-X---";
       value = value.padEnd(mask.length, "?");
@@ -185,8 +185,9 @@ class CoreModelTest extends WebdaTest {
   @test("Verify Context access within output to server") async withContext() {
     let ctx = await this.newContext();
     let task = new Task();
-    task.setContext(ctx);
-    ctx.write(task);
+    Core.get().runInContext(ctx, async () => {
+      ctx.write(task);
+    });
     let result = JSON.parse(<string>ctx.getResponseBody());
     assert.strictEqual(result._gotContext, true);
   }

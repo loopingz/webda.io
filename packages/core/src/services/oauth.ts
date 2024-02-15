@@ -1,5 +1,5 @@
 import { Core, Counter } from "../core";
-import { EventWithContext, OperationContext, RequestFilter, WebContext, WebdaError } from "../index";
+import { Context, EventWithContext, OperationContext, RequestFilter, WebContext, WebdaError } from "../index";
 import { Authentication } from "./authentication";
 import { RegExpStringValidator, Service, ServiceParameters } from "./service";
 
@@ -287,7 +287,7 @@ export abstract class OAuthService<
     }
 
     if (this.parameters.exposeScope) {
-      this.addRoute(this.parameters.url + "/scope", ["GET"], this._scope, {
+      this.addRoute(this.parameters.url + "/scope", ["GET"], this.getScope, {
         get: {
           description: `List ${name} auth scope for this apps`,
           summary: "Retrieve the scope intended to be used with this auth",
@@ -309,8 +309,8 @@ export abstract class OAuthService<
    * Expose the scope used by the authentication
    * @param ctx
    */
-  _scope(ctx: OperationContext) {
-    ctx.write(this.parameters.scope);
+  getScope(_ctx: OperationContext<void, string[]>): string[] {
+    return this.parameters.scope;
   }
 
   /**
@@ -460,7 +460,7 @@ export abstract class OAuthService<
    *
    * @param ctx
    */
-  abstract handleToken(ctx: OperationContext): Promise<OAuthReturn>;
+  abstract handleToken(ctx: Context): Promise<OAuthReturn>;
 
   /**
    * Manage the return of a provider

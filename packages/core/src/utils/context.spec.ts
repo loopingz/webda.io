@@ -1,9 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { Readable } from "stream";
+import { WebdaQL } from "../../../webdaql/query";
 import { Core } from "../core";
-import { Service } from "../services/service";
-import { WebdaQL } from "../stores/webdaql/query";
 import { WebdaTest } from "../test";
 import { OperationContext, SimpleOperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
@@ -81,8 +80,6 @@ class ContextTest extends WebdaTest {
     // Get the last lines
     this.ctx.logIn();
     this.ctx.getRoute();
-    assert.notStrictEqual(this.ctx.getService("Users"), undefined);
-    assert.notStrictEqual(this.ctx.getService<Service>("Users"), undefined);
     this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setPathParameters({ id: "plop" });
     this.ctx.setServiceParameters({ id: "service" });
@@ -97,15 +94,9 @@ class ContextTest extends WebdaTest {
     this.ctx.session = undefined;
     assert.strictEqual(this.ctx.getSession(), undefined);
     assert.strictEqual(this.ctx._promises.length, 0);
-    this.ctx.addAsyncRequest((async () => {})());
+    this.ctx.registerPromise((async () => {})());
     assert.strictEqual(this.ctx._promises.length, 1);
 
-    let caught = false;
-    this.ctx.on("error", () => {
-      caught = true;
-    });
-    this.ctx.emitError("plop");
-    assert.ok(caught);
     this.ctx.log("INFO", "Test");
 
     assert.rejects(() => this.ctx.execute(), /Not Implemented/);
@@ -266,7 +257,6 @@ class ContextTest extends WebdaTest {
   @test
   generic() {
     this.ctx.init();
-    assert.notStrictEqual(this.ctx.getWebda(), undefined);
     // @ts-ignore
     this.ctx.session = undefined;
     assert.strictEqual(this.ctx.getCurrentUserId(), undefined);

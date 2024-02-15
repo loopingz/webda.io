@@ -7,7 +7,7 @@ import { Readable } from "stream";
 import { Core, Counter, WebdaError } from "../index";
 import { CoreModel, NotEnumerable } from "../models/coremodel";
 import { EventStoreDeleted, MappingService, Store } from "../stores/store";
-import { OperationContext, WebContext } from "../utils/context";
+import { Context, WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
 /**
@@ -19,7 +19,7 @@ export interface EventBinary {
   /**
    * In case the Context is known
    */
-  context?: OperationContext;
+  context?: Context;
 }
 
 export interface EventBinaryUploadSuccess extends EventBinary {
@@ -244,7 +244,7 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
    * Current context
    */
   @NotEnumerable
-  __ctx: OperationContext;
+  __ctx: Context;
   /**
    * Link to the binary store
    */
@@ -288,7 +288,7 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
    * Set the http context
    * @param ctx
    */
-  setContext(ctx: OperationContext) {
+  setContext(ctx: Context) {
     this.__ctx = ctx;
   }
 }
@@ -666,7 +666,7 @@ export abstract class BinaryService<
    */
   async getRedirectUrlFromObject(
     binaryMap: BinaryMap,
-    _context: OperationContext,
+    _context: Context,
     _expires: number = 30
   ): Promise<null | string> {
     return null;

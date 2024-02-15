@@ -43,8 +43,13 @@ class AsyncJobServiceTest extends WebdaTest {
     };
     await service.worker().cancel();
     // @ts-ignore
-    service.runners = [];
-    assert.rejects(() => service.worker(), /AsyncJobService.worker requires runners/);
+    service.queue = {
+      // @ts-ignore
+      consume: callback => new CancelablePromise()
+    };
+    await service.worker().cancel();
+    service["runners"] = [];
+    await assert.rejects(() => service.worker(), /AsyncJobService.worker requires runners/);
   }
   /**
    * Return a good initialized service

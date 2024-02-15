@@ -1,16 +1,14 @@
-import { EventEmitter } from "events";
 import { JSONSchema7 } from "json-schema";
 import util from "util";
 import { v4 as uuidv4 } from "uuid";
+import { WebdaQL } from "../../../webdaql/query";
 import { ModelGraph, ModelsTree } from "../application";
-import { Core, EventEmitterUtils } from "../core";
+import { Core } from "../core";
 import { WebdaError } from "../errors";
-import { EventService } from "../services/asyncevents";
 import { BinariesImpl, Binary } from "../services/binary";
 import { Service } from "../services/service";
-import { Store, StoreEvents } from "../stores/store";
-import { WebdaQL } from "../stores/webdaql/query";
-import { OperationContext } from "../utils/context";
+import { Store } from "../stores/store";
+import { Context, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
 import {
@@ -71,7 +69,7 @@ export class CoreModelQuery {
    */
   query(
     query?: string,
-    context?: OperationContext
+    context?: Context
   ): Promise<{
     results: CoreModel[];
     continuationToken?: string;
@@ -93,12 +91,7 @@ export class CoreModelQuery {
    * @param callback
    * @param context
    */
-  async forEach(
-    callback: (model: any) => Promise<void>,
-    query?: string,
-    context?: OperationContext,
-    parallelism: number = 3
-  ) {
+  async forEach(callback: (model: any) => Promise<void>, query?: string, context?: Context, parallelism: number = 3) {
     const throttler = new Throttler();
     throttler.setConcurrency(parallelism);
     for await (const model of this.iterate(query, context)) {
@@ -112,7 +105,7 @@ export class CoreModelQuery {
    * @param context
    * @returns
    */
-  iterate(query?: string, context?: OperationContext) {
+  iterate(query?: string, context?: Context) {
     return Core.get().getModelStore(this.getTargetModel()).iterate(this.completeQuery(query), context);
   }
 
@@ -120,7 +113,7 @@ export class CoreModelQuery {
    * Get all the objects
    * @returns
    */
-  async getAll(context?: OperationContext): Promise<this[]> {
+  async getAll(context?: Context): Promise<this[]> {
     let res = [];
     for await (const item of this.iterate(this.completeQuery(), context)) {
       res.push(item);
@@ -222,7 +215,7 @@ export interface ExposeParameters {
 /**
  *
  */
-export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends EventEmitter {
+export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
   new (): T;
   /**
    * If the model have some Expose annotation
@@ -237,7 +230,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    * @param object to load data from
    * @param context if the data is unsafe from http
    */
-  factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T;
+  factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: Context): T;
   /**
    * Get the model actions
    */
@@ -277,7 +270,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    * Permission query for the model
    * @param context
    */
-  getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
+  getPermissionQuery(context: OperationContext): null | { partial: boolean; query: string };
   /**
    * Reference to an object without doing a DB request yet
    */
@@ -295,48 +288,9 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
   query(
     query?: string,
     includeSubclass?: boolean,
-    context?: OperationContext
+    context?: Context
   ): Promise<{ results: T[]; continuationToken?: string }>;
-  /**
-   * Listen to events on the model
-   * @param event
-   * @param listener
-   * @param async
-   */
-  on<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    listener: (evt: StoreEvents[Key]) => any,
-    async?: boolean
-  ): this;
-  /**
-   * Listen to events on the model asynchronously
-   * @param event
-   * @param listener
-   */
-  onAsync<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    listener: (evt: StoreEvents[Key]) => any
-  ): this;
-  /**
-   * Emit an event for this class
-   * @param this
-   * @param event
-   * @param evt
-   */
-  emit<T extends CoreModel, Key extends keyof StoreEvents>(this: Constructor<T>, event: Key, evt: StoreEvents[Key]);
-  /**
-   * Emit an event for this class and wait for all listeners to finish
-   * @param this
-   * @param event
-   * @param evt
-   */
-  emitSync<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    evt: StoreEvents[Key]
-  ): Promise<void>;
+
   /**
    * Return the event on the model that can be listened to by an
    * external authorized source
@@ -348,38 +302,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    * @param event
    * @param context
    */
-  authorizeClientEvent(_event: string, _context: OperationContext, _model?: T): boolean;
-
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  addListener(event: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  once(event: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  removeListener(event: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  off(eventName: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  removeAllListeners(eventName?): this;
+  authorizeClientEvent(_event: string, _context: Context, _model?: T): boolean;
 }
 
 export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
@@ -448,8 +371,8 @@ export class ModelRef<T extends CoreModel> {
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
     this.store = Core.get().getModelStore(model);
   }
-  async get(context?: OperationContext): Promise<T> {
-    return (await this.store.get(this.uuid))?.setContext(context || this.parent?.getContext());
+  async get(): Promise<T> {
+    return await this.store.get(this.uuid);
   }
   set(id: string | T) {
     this.uuid = id instanceof CoreModel ? id.getUuid() : id;
@@ -577,8 +500,8 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param withSave
    * @returns
    */
-  async create(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
-    let result = new this.model().setContext(context).load(defaultValue, true).setUuid(this.uuid);
+  async create(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
+    let result = new this.model().load(defaultValue, true).setUuid(this.uuid);
     if (withSave) {
       await result.save();
     }
@@ -594,8 +517,8 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param context to set on the object
    * @returns
    */
-  async getOrCreate(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
-    return (await this.get()) || this.create(defaultValue, context, withSave);
+  async getOrCreate(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
+    return (await this.get()) || this.create(defaultValue, withSave);
   }
 }
 
@@ -619,8 +542,6 @@ export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
 }
 
 export type ModelRefCustomProperties<T extends CoreModel, K> = ModelRefCustom<T> & K;
-
-export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakMap();
 
 /**
  * Basic Object in Webda
@@ -652,7 +573,7 @@ class CoreModel {
    * @TJS-ignore
    */
   @NotEnumerable
-  __ctx: OperationContext;
+  __ctx: Context;
   /**
    * If object is attached to its store
    *
@@ -693,160 +614,6 @@ class CoreModel {
   }
 
   /**
-   * Listen to events on the model
-   * @param event
-   * @param listener
-   * @param async
-   */
-  static on<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    listener: (evt: StoreEvents[Key]) => any,
-    async: boolean = false
-  ) {
-    if (!Emitters.has(this)) {
-      Emitters.set(this, new EventEmitter());
-    }
-    // TODO Manage async
-    if (async) {
-      Core.get()
-        .getService<EventService>("AsyncEvents")
-        .bindAsyncListener(<CoreModelDefinition>(<unknown>this), event, listener);
-    } else {
-      Emitters.get(this).on(event, listener);
-    }
-    return <any>this;
-  }
-
-  /**
-   * Emit an event for this class
-   * @param this
-   * @param event
-   * @param evt
-   */
-  static emit<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    evt: StoreEvents[Key]
-  ) {
-    let clazz = this;
-    // @ts-ignore
-    while (clazz) {
-      // Emit for all parent class
-      if (Emitters.has(clazz)) {
-        EventEmitterUtils.emit(Emitters.get(clazz), event, evt);
-      }
-      // @ts-ignore
-      if (clazz === CoreModel) {
-        break;
-      }
-      clazz = Object.getPrototypeOf(clazz);
-    }
-  }
-
-  /**
-   * Emit an event for this class and wait for all listeners to finish
-   * @param this
-   * @param event
-   * @param evt
-   */
-  static async emitSync<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    evt: StoreEvents[Key]
-  ) {
-    let clazz = this;
-    let p = [];
-    // @ts-ignore
-    while (clazz) {
-      // Emit for all parent class
-      if (Emitters.has(clazz)) {
-        p.push(EventEmitterUtils.emitSync(Emitters.get(clazz), event, evt));
-      }
-      // @ts-ignore
-      if (clazz === CoreModel) {
-        break;
-      }
-      clazz = Object.getPrototypeOf(clazz);
-    }
-    await Promise.all(p);
-  }
-
-  /**
-   * Listen to events on the model asynchronously
-   * @param event
-   * @param listener
-   */
-  static onAsync<Key extends keyof StoreEvents>(event: Key, listener: (evt: StoreEvents[Key]) => any, queue?: string) {
-    return this.on(event, listener, true);
-  }
-
-  /**
-   *
-   * @param event
-   * @param listener
-   * @returns
-   */
-  static addListener<Key extends keyof StoreEvents>(event: Key, listener: (...args: any[]) => void) {
-    return this.on(event, listener);
-  }
-
-  static emitter(method, ...args) {
-    if (!Emitters.has(this)) {
-      Emitters.set(this, new EventEmitter());
-    }
-    // @ts-ignore
-    return Emitters.get(this)[method](...args);
-  }
-
-  static removeListener(...args) {
-    return this.emitter("removeListener", ...args);
-  }
-
-  static off(...args) {
-    return this.emitter("off", ...args);
-  }
-
-  static once(...args) {
-    return this.emitter("once", ...args);
-  }
-
-  static removeAllListeners(...args) {
-    return this.emitter("removeAllListeners", ...args);
-  }
-
-  static setMaxListeners(...args) {
-    return this.emitter("setMaxListeners", ...args);
-  }
-
-  static getMaxListeners(...args) {
-    return this.emitter("getMaxListeners", ...args);
-  }
-
-  static listeners(...args) {
-    return this.emitter("listeners", ...args);
-  }
-
-  static rawListeners(...args) {
-    return this.emitter("rawListeners", ...args);
-  }
-
-  static listenerCount(...args) {
-    return this.emitter("listenerCount", ...args);
-  }
-
-  static prependListener(...args) {
-    return this.emitter("prependListener", ...args);
-  }
-
-  static prependOnceListener(...args) {
-    return this.emitter("prependOnceListener", ...args);
-  }
-
-  static eventNames(...args) {
-    return this.emitter("eventNames", ...args);
-  }
-  /**
    *
    * @returns
    */
@@ -868,7 +635,7 @@ class CoreModel {
    * @param _context
    * @returns
    */
-  static authorizeClientEvent(_event: string, _context: OperationContext, _model?: CoreModel) {
+  static authorizeClientEvent(_event: string, _context: Context, _model?: CoreModel) {
     return false;
   }
 
@@ -1061,7 +828,7 @@ class CoreModel {
     this: Constructor<T>,
     query: string = "",
     includeSubclass: boolean = true,
-    context?: OperationContext
+    context?: Context
   ): AsyncGenerator<T> {
     // @ts-ignore
     return this.store().iterate(this.completeQuery(query, includeSubclass), context);
@@ -1077,7 +844,7 @@ class CoreModel {
     this: Constructor<T>,
     query: string = "",
     includeSubclass: boolean = true,
-    context?: OperationContext
+    context?: Context
   ): Promise<{
     results: T[];
     continuationToken?: string;
@@ -1195,7 +962,7 @@ class CoreModel {
   }
 
   async checkAct(
-    context: OperationContext,
+    context: Context,
     action:
       | "create"
       | "update"
@@ -1219,7 +986,7 @@ class CoreModel {
    * @returns
    */
   async canAct(
-    _context: OperationContext,
+    _context: Context,
     _action:
       | "create"
       | "update"
@@ -1246,8 +1013,8 @@ class CoreModel {
    * Create an object
    * @returns
    */
-  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T {
-    return object instanceof this ? object : new this().setContext(context).load(object, context === undefined);
+  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: Context): T {
+    return object instanceof this ? object : new this().load(object, context === undefined);
   }
 
   /**
@@ -1303,7 +1070,7 @@ class CoreModel {
    * @param context
    * @returns updated value
    */
-  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
+  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: Context): any {
     if (mode === "WRITE") {
       return key.startsWith("_") ? undefined : value;
     } else {
@@ -1398,20 +1165,12 @@ class CoreModel {
   }
 
   /**
-   * Context of the request
-   */
-  setContext(ctx: OperationContext): this {
-    this.__ctx = ctx;
-    return this;
-  }
-
-  /**
    * Get object context
    *
    * Global object does not belong to a request
    */
-  getContext<T extends OperationContext>(): T {
-    return <any>this.__ctx || Core.get().getGlobalContext();
+  getContext<T extends Context>(): T {
+    return <T>Core.get().getContext();
   }
 
   /**
@@ -1512,8 +1271,8 @@ class CoreModel {
    * @param ctx
    * @param updates
    */
-  async validate(ctx: OperationContext, updates: any, ignoreRequired: boolean = false): Promise<boolean> {
-    ctx.getWebda().validateSchema(this, updates, ignoreRequired);
+  async validate(_ctx: OperationContext, updates: any, ignoreRequired: boolean = false): Promise<boolean> {
+    Core.get().validateSchema(this, updates, ignoreRequired);
     return true;
   }
 
@@ -1545,10 +1304,9 @@ class CoreModel {
    * Get a pre typed service
    *
    * @param service to retrieve
-   * WARNING: Only object attached to a store can retrieve service
    */
   getService<T extends Service>(service): T {
-    return this.__store.getService<T>(service);
+    return Core.get().getService<T>(service);
   }
 
   /**
@@ -1696,7 +1454,7 @@ class UuidModel extends CoreModel {
   /**
    * @override
    */
-  validate(ctx: OperationContext<any, any>, updates: any, ignoreRequired?: boolean): Promise<boolean> {
+  validate(ctx: OperationContext, updates: any, ignoreRequired?: boolean): Promise<boolean> {
     updates.uuid ??= this.generateUid();
     return super.validate(ctx, updates, ignoreRequired);
   }

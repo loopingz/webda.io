@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
+import { WebdaQL } from "../../../webdaql/query";
 import { CoreModel, FilterAttributes } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
-import { WebdaQL } from "./webdaql/query";
 
 class FileStoreParameters extends StoreParameters {
   /**

@@ -67,4 +67,4 @@ export * from "./utils/session";
 export * from "./utils/throttler";
 export * from "./utils/waiter";
 
-export * from "./stores/webdaql/query";
+export * from "../../webdaql/query";

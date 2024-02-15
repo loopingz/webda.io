@@ -1,6 +1,5 @@
 import { WorkerLogLevel } from "@webda/workout";
 import acceptLanguage from "accept-language";
-import { EventEmitter } from "events";
 import * as http from "http";
 import sanitize from "sanitize-html";
 import { Readable, Writable } from "stream";
@@ -56,26 +55,116 @@ export interface ContextProvider {
 }
 
 /**
- * OperationContext is used when call to an operation
- *
- * @param T type of input for this context
- * @param U type of output for this context
+ * Base Context
  */
-export class OperationContext<T = any, U = any> extends EventEmitter {
-  protected static __globalContext: OperationContext;
+export abstract class Context {
   /**
    * Contain emitting Core
    */
   @NotEnumerable
   protected _webda: Core;
   /**
-   * Session
-   */
-  protected session: Session;
-  /**
    * Allow extensions
    */
   protected extensions: { [key: string]: any };
+  /**
+   * Contain all registered promises to this context
+   */
+  @NotEnumerable
+  _promises: Promise<any>[];
+
+  /**
+   *
+   * @param webda
+   */
+  constructor(webda: Core) {
+    this._webda = webda;
+  }
+  /**
+   * Get current user id
+   */
+  abstract getCurrentUserId(): string | "system";
+
+  /**
+   * Return the current execution context
+   * @param this
+   * @returns
+   */
+  static get<T extends Context>(): T {
+    return <T>Core.get().getContext();
+  }
+  /**
+   * Register a promise with the context
+   * @param promise
+   */
+  registerPromise(promise) {
+    this._promises.push(promise);
+  }
+  /**
+   * Get an extension of the context
+   * @param name of the extension
+   * @returns extension object
+   */
+  public getExtension<K = any>(name: string): K {
+    return <K>this.extensions[name];
+  }
+
+  /**
+   *
+   * @param name to add
+   * @param extension object to store
+   */
+  public setExtension(name: string, extension: any): this {
+    this.extensions[name] = extension;
+    return this;
+  }
+
+  /**
+   * Ensure the whole execution is finished
+   */
+  async end() {
+    await Promise.all(this._promises);
+  }
+
+  /**
+   * Return the user
+   * @returns
+   */
+  abstract getCurrentUser(): Promise<User | undefined>;
+
+  /**
+   * Proxy for simplification
+   * @param level
+   * @param args
+   */
+  log(level: WorkerLogLevel, ...args: any[]) {
+    this._webda.log(level, ...args);
+  }
+
+  /**
+   * Can be used to init the context if needed
+   * Reading from the input or reaching to a db
+   * @returns
+   */
+  async init(): Promise<this> {
+    return this;
+  }
+}
+
+/**
+ * OperationContext is used when call to an operation
+ * It contains the input expected and output expected
+ * It also have a session and so user
+ *
+ * @param T type of input for this context
+ * @param U type of output for this context
+ */
+export class OperationContext<T = any, U = any> extends Context {
+  /**
+   * Session
+   */
+  protected session: Session;
+
   /**
    * Contain the sanitized request body if computed
    */
@@ -92,17 +181,11 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   private user: User;
 
   /**
-   * Contain all registered promises to this context
-   */
-  @NotEnumerable
-  _promises: Promise<any>[];
-
-  /**
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
   constructor(webda: Core, stream: Writable = undefined) {
-    super();
+    super(webda);
     this.extensions = {};
     this._webda = webda;
     this._promises = [];
@@ -118,14 +201,6 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   @NotEnumerable
   _stream: Writable;
-  /**
-   * Get an extension of the context
-   * @param name of the extension
-   * @returns extension object
-   */
-  public getExtension<K = any>(name: string): K {
-    return <K>this.extensions[name];
-  }
 
   /**
    * For easier compatibility with WebContext
@@ -141,31 +216,6 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   writeHead(_code: number, _headers: any) {
     // Do nothing
-  }
-
-  /**
-   *
-   * @param name to add
-   * @param extension object to store
-   */
-  public setExtension(name: string, extension: any): this {
-    this.extensions[name] = extension;
-    return this;
-  }
-
-  /**
-   * Return the webda
-   */
-  getWebda() {
-    return this._webda;
-  }
-
-  /**
-   * Register a promise with the context
-   * @param promise
-   */
-  addAsyncRequest(promise) {
-    this._promises.push(promise);
   }
 
   /**
@@ -187,14 +237,13 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 
   /**
-   * Ensure the whole execution is finished
+   * Get input for the operation
+   *
+   * The input is by default sanitized to avoid any XSS attack
+   *
+   * @param sanitizedOptions
+   * @returns
    */
-  async end() {
-    this.emit("end");
-    await Promise.all(this._promises);
-    this.emit("close");
-  }
-
   async getInput(
     sanitizedOptions: sanitize.IOptions & { defaultValue?: any; raw?: boolean | string[] } = {
       allowedTags: [],
@@ -220,8 +269,8 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     };
     try {
       let data = await this.getRawInputAsString(
-        this.getWebda().getGlobalParams().requestLimit,
-        this.getWebda().getGlobalParams().requestTimeout
+        this._webda.getGlobalParams().requestLimit,
+        this._webda.getGlobalParams().requestTimeout
       );
       if (sanitizedOptions.raw === true) {
         return JSON.parse(data || sanitizedOptions.defaultValue);
@@ -301,15 +350,6 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   }
 
   /**
-   * Proxy for simplification
-   * @param level
-   * @param args
-   */
-  log(level: WorkerLogLevel, ...args: any[]) {
-    this._webda.log(level, ...args);
-  }
-
-  /**
    * Create a new session
    * @returns
    */
@@ -351,10 +391,6 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     return true;
   }
 
-  async init(): Promise<this> {
-    return this;
-  }
-
   /**
    * Get the current user from session
    */
@@ -364,7 +400,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     }
     // Caching the answer
     if (!this.user || refresh) {
-      this.user = <User>await this._webda.getApplication().getModel("User").ref(this.getCurrentUserId()).get(this);
+      this.user = <User>await this._webda.getApplication().getModel("User").ref(this.getCurrentUserId()).get();
     }
     return <K>this.user;
   }
@@ -375,36 +411,31 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
   getCurrentUserId() {
     return undefined;
   }
-
-  /**
-   * Global context is the default Context
-   *
-   * Whenever a request is internal to the system
-   * or not linked to a user request
-   * @returns
-   */
-  isGlobal() {
-    return false;
-  }
 }
 
-export class GlobalContext extends OperationContext {
-  session: Session = new Session();
-
+/**
+ * Global Context is used as system context
+ */
+export class GlobalContext extends Context {
   constructor(webda: Core) {
     super(webda);
-    this.session.login("system", "system");
-    // Disable logout
-    this.session.logout = () => {};
   }
 
   /**
    * @override
    */
-  isGlobal() {
-    return true;
+  getCurrentUserId(): string {
+    return "system";
+  }
+
+  /**
+   * @override
+   */
+  getCurrentUser(): Promise<User> {
+    return undefined;
   }
 }
+
 /**
  * Simple Operation Context with custom input
  */
@@ -420,7 +451,7 @@ export class SimpleOperationContext extends OperationContext {
    * @returns
    */
   static async fromContext(context: OperationContext): Promise<SimpleOperationContext> {
-    const ctx = new SimpleOperationContext(context.getWebda());
+    const ctx = new SimpleOperationContext(Core.get());
     ctx.setSession(context.getSession());
     ctx.setInput(Buffer.from(JSONUtils.stringify(await context.getInput())));
     return ctx;
@@ -448,7 +479,7 @@ export class SimpleOperationContext extends OperationContext {
    * @override
    */
   async getRawInput(limit: number = 1024 * 1024 * 10, _timeout: number = 60000): Promise<Buffer> {
-    return this.input.slice(0, limit);
+    return this.input.subarray(0, limit);
   }
 }
 /**
@@ -495,7 +526,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    * @param httpContext current http context
    */
   public setHttpContext(httpContext: HttpContext) {
-    this.extensions["http"] = httpContext;
+    this.setExtension("http", httpContext);
     this.reinit();
   }
 
@@ -653,6 +684,10 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     this._cookie[param] = { name: param, value, options };
   }
 
+  /**
+   * Get the cookies to be sent to the client
+   * @returns
+   */
   getResponseCookies(): Map<string, Cookie> {
     return this._cookie;
   }
@@ -705,7 +740,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
       return this._ended;
     }
     this._ended = (async () => {
-      this.emit("end");
+      // TO_REVIEW this.emit("end");
       if (this.getExtension("http")) {
         await this._webda.getService<SessionManager>("SessionManager").save(this, this.session);
       }
@@ -718,7 +753,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
         this._webda.flushHeaders(this);
       }
       this._webda.flush(this);
-      this.emit("close");
+      // TO_REVIEW this.emit("close");
     })();
     return this._ended;
   }
@@ -777,16 +812,6 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   }
 
   /**
-   * Get a service from webda
-   *
-   * @see Webda
-   * @param {String} name of the service
-   */
-  getService<K extends Service>(name): K {
-    return this._webda.getService<K>(name);
-  }
-
-  /**
    * Get the HTTP stream to output raw data
    * @returns {*}
    */
@@ -815,7 +840,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    * Execute the target route
    */
   async execute() {
-    return this._route._method(this);
+    return this._webda.runInContext(this, () => this._route._method(this));
   }
 
   /**
@@ -889,6 +914,11 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     this.processParameters();
   }
 
+  /**
+   * Override to init session http info
+   * @param force
+   * @returns
+   */
   async init(force: boolean = false): Promise<this> {
     if (this._init && !force) {
       return this._init;
@@ -902,9 +932,5 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     }
     this._init = super.init();
     return this._init;
-  }
-
-  emitError(err) {
-    this.emit("error", err);
   }
 }

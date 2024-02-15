@@ -1,10 +1,9 @@
+import { WebdaQL } from "../../../webdaql/query";
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
 import { ConfigurationProvider, MemoryStore, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
-import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes, ModelAction } from "../models/coremodel";
-import { Route, Service, ServiceParameters } from "../services/service";
-import { OperationContext, WebContext } from "../utils/context";
-import { HttpMethodType } from "../utils/httpcontext";
-import { WebdaQL } from "./webdaql/query";
+import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes } from "../models/coremodel";
+import { Service, ServiceParameters } from "../services/service";
+import { Context, GlobalContext, OperationContext, WebContext } from "../utils/context";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
@@ -25,6 +24,11 @@ export class UpdateConditionFailError extends WebdaError.CodeError {
 
 interface EventStore {
   /**
+   * Emitter node
+   * This is the node that emitted the event
+   */
+  emitterId?: string;
+  /**
    * Target object
    */
   object: CoreModel;
@@ -39,7 +43,7 @@ interface EventStore {
   /**
    * Context of the operation
    */
-  context?: OperationContext;
+  context?: Context;
 }
 /**
  * Event called before save of an object
@@ -211,7 +215,7 @@ export interface EventStoreQuery {
   /**
    * Context in which the query was run
    */
-  context: OperationContext;
+  context: Context;
 }
 /**
  * Event sent when query is resolved
@@ -313,56 +317,6 @@ export interface EventStoreWebDelete extends EventWithContext {
   store: Store;
 }
 
-// REFACTOR . >= 4
-/**
- * @deprecated Store should not be exposed directly anymore
- * You should use the DomainService instead
- */
-export type StoreExposeParameters = {
-  /**
-   * URL endpoint to use to expose REST Resources API
-   *
-   * @default service.getName().toLowerCase()
-   */
-  url?: string;
-  /**
-   * You can restrict any part of the CRUD
-   *
-   * @default {}
-   */
-  restrict?: {
-    /**
-     * Do not expose the POST
-     */
-    create?: boolean;
-    /**
-     * Do not expose the PUT and PATCH
-     */
-    update?: boolean;
-    /**
-     * Do not expose the GET
-     */
-    get?: boolean;
-    /**
-     * Do not expose the DELETE
-     */
-    delete?: boolean;
-    /**
-     * Do not expose the query endpoint
-     */
-    query?: boolean;
-  };
-
-  /**
-   * For confidentiality sometimes you might prefer to expose query through PUT
-   * To avoid GET logging
-   *
-   * @default "GET"
-   */
-  queryMethod?: "PUT" | "GET";
-};
-// END_REFACTOR
-
 /**
  * Represent a query result on the Store
  */
@@ -407,14 +361,6 @@ export class StoreParameters extends ServiceParameters {
    * async delete
    */
   asyncDelete: boolean;
-  // REFACTOR . >= 4.0
-  /**
-   * Expose the service to an urls
-   *
-   * @deprecated will probably be removed in 4.0 in favor of Expose annotation
-   */
-  expose?: StoreExposeParameters;
-  // END_REFACTOR
 
   /**
    * Allow to load object that does not have the type data
@@ -433,6 +379,14 @@ export class StoreParameters extends ServiceParameters {
    */
   defaultModel?: boolean;
   /**
+   * Store security behavior
+   *
+   * In strict mode the store will only return object available to the current user
+   * In warning mode the store will return all objects but log a warning if objects is not available to current user
+   * In legacy mode the store will return all objects without any security check (apart from Web methods)
+   */
+  securityContext: "STRICT" | "WARNING" | "LEGACY";
+  /**
    * If set, Store will ignore the __type
    *
    * @default false
@@ -450,36 +404,16 @@ export class StoreParameters extends ServiceParameters {
   modelAliases?: { [key: string]: string };
   /**
    * Disable default memory cache
+   *
+   * If you are running several instances of the same app without the cluster service, you should disable the cache
    */
   noCache?: boolean;
 
   constructor(params: any, service: Service<any>) {
     super(params);
     this.model ??= "Webda/CoreModel";
-    let expose = params.expose;
-    if (typeof expose == "boolean") {
-      expose = {};
-      expose.url = "/" + service.getName().toLowerCase();
-    } else if (typeof expose == "string") {
-      expose = {
-        url: expose
-      };
-    } else if (typeof expose == "object" && expose.url == undefined) {
-      expose.url = "/" + service.getName().toLowerCase();
-    }
-    if (expose) {
-      expose.restrict = expose.restrict || {};
-      this.expose = expose;
-      this.expose.queryMethod ??= "GET";
-      this.url = expose.url;
-    }
-    if (params.map) {
-      throw new Error("Deprecated map usage, use a MapperService");
-    }
-    if (params.index) {
-      throw new Error("Deprecated index usage, use an AggregatorService");
-    }
     this.strict ??= false;
+    this.securityContext ??= "STRICT";
     this.defaultModel ??= true;
     this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
@@ -587,14 +521,13 @@ abstract class Store<
   protected _uuidField: string = "uuid";
   /**
    * Add metrics counter
-   * ' UNION SELECT name, tbl_name as email, "" as col1, "" as col2, "" as col3, "" as col4, "" as col5, "" as col6, "" as col7, "" as col8 FROM sqlite_master --
-   * {"email":"' UNION SELECT name as profileImage, tbl_name as email, '' AS column3 FROM sqlite_master --","password":"we"}
    */
   metrics: {
     cache_invalidations: Counter;
     operations_total: Counter;
     slow_queries_total: Counter;
     cache_hits: Counter;
+    security_context_warnings: Counter;
     queries: Histogram;
   };
 
@@ -652,9 +585,6 @@ abstract class Store<
         }
       }
     }
-    if (this.getParameters().expose) {
-      this.log("WARN", "Exposing a store is not recommended, use a DomainService instead to expose all your CoreModel");
-    }
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -685,6 +615,10 @@ abstract class Store<
     this.metrics.slow_queries_total = this.getMetric(Counter, {
       name: "slow_queries",
       help: "Number of slow queries encountered"
+    });
+    this.metrics.security_context_warnings = this.getMetric(Counter, {
+      name: "security_context_warnings",
+      help: "Number of security context violation if in WARNING mode"
     });
     this.metrics.cache_invalidations = this.getMetric(Counter, {
       name: "cache_invalidations",
@@ -725,7 +659,7 @@ abstract class Store<
    * @param raiseIfNotFound
    * @returns
    */
-  async _getFromCache(uuid: string, raiseIfNotFound: boolean = false): Promise<T> {
+  protected async _getFromCache(uuid: string, raiseIfNotFound: boolean = false): Promise<T> {
     let res = await this._cacheStore?._get(uuid);
     if (!res) {
       res = await this._get(uuid, raiseIfNotFound);
@@ -750,132 +684,6 @@ abstract class Store<
   }
 
   /**
-   * @override
-   */
-  getUrl(url: string, methods: HttpMethodType[]) {
-    // If url is absolute
-    if (url.startsWith("/")) {
-      return url;
-    }
-
-    // Parent url to find here
-    const expose = this.parameters.expose;
-    if (
-      !expose.url ||
-      (url === "." && methods.includes("POST") && expose.restrict.create) ||
-      (url === "./{uuid}" && methods.includes("DELETE") && expose.restrict.delete) ||
-      (url === "./{uuid}" && methods.includes("PATCH") && expose.restrict.update) ||
-      (url === "./{uuid}" && methods.includes("PUT") && expose.restrict.update) ||
-      (url === "./{uuid}" && methods.includes("GET") && expose.restrict.get) ||
-      (url === ".{?q}" && methods.includes("GET") && expose.restrict.query) ||
-      (url === "." && methods.includes("PUT") && expose.restrict.query)
-    ) {
-      return undefined;
-    }
-    return super.getUrl(url, methods);
-  }
-
-  static getOpenAPI() {}
-  /**
-   * @inheritdoc
-   */
-  initRoutes() {
-    if (!this.parameters.expose) {
-      return;
-    }
-    super.initRoutes();
-    // We enforce ExposeParameters within the constructor
-    const expose = this.parameters.expose;
-    this.getWebda().getRouter().registerModelUrl(this.parameters.model, expose.url);
-
-    // Query endpoint
-    if (!expose.restrict.query) {
-      let requestBody;
-      if (expose.queryMethod === "PUT") {
-        requestBody = {
-          content: {
-            "application/json": {
-              schema: {
-                properties: {
-                  q: {
-                    type: "string"
-                  }
-                }
-              }
-            }
-          }
-        };
-      }
-      this.addRoute(expose.queryMethod === "GET" ? `.{?q}` : ".", [expose.queryMethod], this.httpQuery, {
-        model: this.parameters.model,
-        [expose.queryMethod.toLowerCase()]: {
-          description: `Query on ${this.parameters.model} model with WebdaQL`,
-          summary: "Query " + this.parameters.model,
-          operationId: `query${this._model.name}`,
-          requestBody,
-          responses: {
-            "200": {
-              description: `Retrieve models ${this._model.name}`,
-              content: {
-                "application/json": {
-                  schema: {
-                    properties: {
-                      continuationToken: {
-                        type: "string"
-                      },
-                      results: {
-                        type: "array",
-                        items: {
-                          $ref: `#/components/schemas/${this._model.name}`
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "400": {
-              description: "Query is invalid"
-            },
-            "403": {
-              description: "You don't have permissions"
-            }
-          }
-        }
-      });
-    }
-
-    // Model actions
-    if (this._model && this._model.getActions) {
-      let actions = this._model.getActions();
-      Object.keys(actions).forEach(name => {
-        let action: ModelAction = actions[name];
-        action.method ??= name;
-        if (!action.methods) {
-          action.methods = ["PUT"];
-        }
-        let executer;
-        if (action.global) {
-          // By default will grab the object and then call the action
-          if (!this._model[action.method]) {
-            throw Error("Action static method " + action.method + " does not exist");
-          }
-          executer = this.httpGlobalAction;
-          this.addRoute(`./${name}`, action.methods, executer, action.openapi);
-        } else {
-          // By default will grab the object and then call the action
-          if (!this._model.prototype[action.method]) {
-            throw Error("Action method " + action.method + " does not exist");
-          }
-          executer = ctx => this.httpAction(ctx, action.method);
-
-          this.addRoute(`./{uuid}/${name}`, action.methods, executer, action.openapi);
-        }
-      });
-    }
-  }
-
-  /**
    * OVerwrite the model
    * Used mainly in test
    */
@@ -888,7 +696,7 @@ abstract class Store<
   /**
    * We should ignore exception from the store
    */
-  cacheStorePatchException() {
+  protected cacheStorePatchException() {
     const replacer = original => {
       return (...args) => {
         return original
@@ -956,21 +764,9 @@ abstract class Store<
         object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.newModel(
           object[this._reverseMap[i].property][j]
         );
-        object[this._reverseMap[i].property][j].setContext(object.getContext());
       }
     }
     return object;
-  }
-
-  /**
-   * Get a new model with this data preloaded
-   * @param object
-   * @returns
-   */
-  newModel(object: any = {}) {
-    let result = this.initModel(object);
-    Object.keys(object).forEach(k => result.__dirty.add(k));
-    return result;
   }
 
   /**
@@ -980,7 +776,7 @@ abstract class Store<
    * @param cascade
    * @param store
    */
-  addReverseMap(prop: string, store: MappingService) {
+  protected addReverseMap(prop: string, store: MappingService) {
     this._reverseMap.push({
       property: prop,
       mapper: store
@@ -1003,6 +799,7 @@ abstract class Store<
     if (params.length === 0) {
       return;
     }
+    await this.checkContext(uid, "update");
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "increment" });
     await this._incrementAttributes(uid, params, updateDate);
@@ -1016,6 +813,31 @@ abstract class Store<
     };
     await this.emitStoreEvent("Store.PartialUpdated", evt);
     return updateDate;
+  }
+
+  /**
+   * Check if a user can act on an object
+   * @param model
+   */
+  protected checkContext(model: string | CoreModel, action: string): Promise<void> | null {
+    // We do not want to check in legacy
+    if (this.parameters.securityContext === "LEGACY") return null;
+    const context = Context.get();
+    // We are running as system
+    if (context instanceof GlobalContext) return null;
+    return (async () => {
+      if (typeof model === "string") {
+        model = await this._getFromCache(model);
+      }
+      if (!model.canAct(Context.get(), action)) {
+        if (this.parameters.securityContext === "WARNING") {
+          this.metrics.security_context_warnings.inc();
+          this.log("WARN", `Security context violation on ${model.getUuid()} for action ${action}`);
+        } else {
+          throw new WebdaError.Unauthorized(`Security context violation on ${model.getUuid()} for action ${action}`);
+        }
+      }
+    })();
   }
 
   /**
@@ -1047,6 +869,7 @@ abstract class Store<
     itemWriteCondition: any = undefined,
     itemWriteConditionField: string = this._uuidField
   ) {
+    await this.checkContext(uid, "update");
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionUpsert" });
     await this._upsertItemToCollection(
@@ -1090,6 +913,7 @@ abstract class Store<
     itemWriteCondition: any,
     itemWriteConditionField: string = this._uuidField
   ) {
+    await this.checkContext(uid, "update");
     let updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionDelete" });
     await this._deleteItemFromCollection(
@@ -1122,39 +946,20 @@ abstract class Store<
    * @param query
    * @param context
    */
-  async *iterate(query: string = "", context?: OperationContext): AsyncGenerator<T> {
+  async *iterate(query: string = "", context?: Context): AsyncGenerator<T> {
     if (query.includes("OFFSET")) {
       throw new Error("Cannot contain an OFFSET for iterate method");
     }
     let continuationToken;
     do {
       let q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
-      let page = await this.query(q, context);
+      let page = await this.query(q);
       for (let item of page.results) {
         yield item;
       }
       continuationToken = page.continuationToken;
     } while (continuationToken);
   }
-
-  // REFACTOR . >= 4
-  /**
-   * Query all the results
-   *
-   *
-   * @param query
-   * @param context
-   * @returns
-   * @deprecated use iterate instead
-   */
-  async queryAll(query: string, context?: OperationContext): Promise<T[]> {
-    let res = [];
-    for await (let item of this.iterate(query, context)) {
-      res.push(item);
-    }
-    return res;
-  }
-  // END_REFACTOR
 
   /**
    * Check that __type Comparison is only used with = and CONTAINS
@@ -1169,8 +974,9 @@ abstract class Store<
    * @param query
    * @param context to apply permission
    */
-  async query(query: string, context?: OperationContext): Promise<{ results: T[]; continuationToken?: string }> {
-    let permissionQuery = this._model.getPermissionQuery(context);
+  async query(query: string): Promise<{ results: T[]; continuationToken?: string }> {
+    const context = this.parameters.securityContext === "LEGACY" ? undefined : Context.get();
+    let permissionQuery = context instanceof OperationContext ? this._model.getPermissionQuery(context) : undefined;
     let partialPermission = true;
     let fullQuery = query;
     if (permissionQuery) {
@@ -1221,7 +1027,6 @@ abstract class Store<
       }
       let subOffsetCount = 0;
       for (let item of tmpResults.results) {
-        item.setContext(context);
         // Because of dynamic filter and permission we need to suboffset the pagination
         subOffsetCount++;
         if (subOffsetCount <= secondOffset) {
@@ -1280,7 +1085,7 @@ abstract class Store<
       query = WebdaQL.unsanitize((await ctx.getRequestBody()).q);
     }
     try {
-      ctx.write(await this.query(query, ctx));
+      ctx.write(await this.query(query));
     } catch (err) {
       if (err instanceof SyntaxError) {
         this.log("INFO", "Query syntax error");
@@ -1359,14 +1164,12 @@ abstract class Store<
    *
    * Might want to rename to create
    */
-  async save(object, ctx: OperationContext = undefined): Promise<T> {
+  async save(object): Promise<T> {
     if (object instanceof this._model && object._creationDate !== undefined && object._lastUpdate !== undefined) {
-      if (ctx) {
-        object.setContext(ctx);
-      }
+      await this.checkContext(object, "update");
       return <T>await object.save();
     }
-    return this.create(object, ctx);
+    return this.create(object);
   }
 
   /**
@@ -1375,8 +1178,9 @@ abstract class Store<
    * @param ctx
    * @returns
    */
-  async create(object, ctx: OperationContext = undefined) {
+  async create(object, ctx: Context = undefined) {
     object = this.initModel(object);
+    await this.checkContext(object, "create");
 
     // Dates should be store by the Store
     if (!object._creationDate) {
@@ -1387,9 +1191,6 @@ abstract class Store<
     const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
     object.__types = [object.__type, ...ancestors].filter(i => i !== "Webda/CoreModel" && i !== "CoreModel");
 
-    if (ctx) {
-      object.setContext(ctx);
-    }
     // Handle object auto listener
     const evt = {
       object: object,
@@ -1445,7 +1246,7 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkUpdateCondition<CK extends keyof T>(model: T, conditionField?: CK, condition?: any, uid?: string) {
+  protected checkUpdateCondition<CK extends keyof T>(model: T, conditionField?: CK, condition?: any, uid?: string) {
     if (conditionField) {
       // Add toString to manage Date object
       if (model[conditionField].toString() !== condition.toString()) {
@@ -1461,7 +1262,7 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkCollectionUpdateCondition<FK extends FilterAttributes<T, Array<any>>, CK extends keyof T>(
+  protected checkCollectionUpdateCondition<FK extends FilterAttributes<T, Array<any>>, CK extends keyof T>(
     model: T,
     collection: FK,
     conditionField?: CK,
@@ -1497,6 +1298,7 @@ abstract class Store<
     condition: any
   ): Promise<boolean> {
     try {
+      await this.checkContext(uuid, "update");
       await this._patch(updates, uuid, condition, <string>conditionField);
       // CoreModel should also emit this one but cannot do within this context
       await this.emitStoreEvent("Store.PartialUpdated", {
@@ -1586,14 +1388,12 @@ abstract class Store<
     this.metrics.operations_total.inc({ operation: "get" });
     const uuid = object.getUuid ? object.getUuid() : object[this._uuidField];
     let load = await this._getFromCache(uuid, true);
+    await this.checkContext(load, "update");
     if (load.__type !== this._modelType && this.parameters.strict) {
       this.log("WARN", `Object '${uuid}' was not created by this store ${load.__type}:${this._modelType}`);
       throw new StoreNotFoundError(uuid, this.getName());
     }
     loaded = this.initModel(load);
-    if (object instanceof CoreModel) {
-      loaded.setContext(object.getContext());
-    }
     const update = object;
     const evt = {
       object: loaded,
@@ -1774,41 +1574,43 @@ abstract class Store<
     patcher: (object: T) => Promise<Partial<T> | (() => Promise<void>) | undefined>,
     batchSize: number = 500
   ) {
-    let status: RegistryEntry<{
-      continuationToken?: string;
-      count: number;
-      updated: number;
-      done: boolean;
-    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, undefined, {});
-    status.count ??= 0;
-    status.updated ??= 0;
-    const worker = new Throttler(20);
-    do {
-      const res = await this.query(
-        status.continuationToken ? `LIMIT ${batchSize} OFFSET "${status.continuationToken}"` : `LIMIT ${batchSize}`
-      );
-      status.count += res.results.length;
-      for (let item of res.results) {
-        let updated = await patcher(item);
-        if (updated !== undefined) {
-          status.updated++;
-          if (typeof updated === "function") {
-            worker.queue(updated);
-          } else {
-            worker.queue(async () => {
-              await item.patch(<Partial<T>>updated, null);
-            });
+    return this.getWebda().runAsSystem(async () => {
+      let status: RegistryEntry<{
+        continuationToken?: string;
+        count: number;
+        updated: number;
+        done: boolean;
+      }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, undefined);
+      status.count ??= 0;
+      status.updated ??= 0;
+      const worker = new Throttler(20);
+      do {
+        const res = await this.query(
+          status.continuationToken ? `LIMIT ${batchSize} OFFSET "${status.continuationToken}"` : `LIMIT ${batchSize}`
+        );
+        status.count += res.results.length;
+        for (let item of res.results) {
+          let updated = await patcher(item);
+          if (updated !== undefined) {
+            status.updated++;
+            if (typeof updated === "function") {
+              worker.queue(updated);
+            } else {
+              worker.queue(async () => {
+                await item.patch(<Partial<T>>updated, null);
+              });
+            }
           }
         }
-      }
-      this.log(
-        "INFO",
-        `storeMigration.${this.getName()}.${name}: Migrated ${status.count} items: ${status.updated} updated`
-      );
-      status.continuationToken = res.continuationToken;
-      await worker.wait();
-      await status.save();
-    } while (status.continuationToken);
+        this.log(
+          "INFO",
+          `storeMigration.${this.getName()}.${name}: Migrated ${status.count} items: ${status.updated} updated`
+        );
+        status.continuationToken = res.continuationToken;
+        await worker.wait();
+        await status.save();
+      } while (status.continuationToken);
+    });
   }
 
   /**
@@ -1824,6 +1626,7 @@ abstract class Store<
     itemWriteCondition?: any,
     itemWriteConditionField?: CK
   ) {
+    await this.checkContext(uuid, "update");
     this.metrics.operations_total.inc({ operation: "attributeDelete" });
     await this._removeAttribute(uuid, <string>attribute, itemWriteCondition, <string>itemWriteConditionField);
     await this.emitStoreEvent("Store.PartialUpdated", {
@@ -1893,6 +1696,7 @@ abstract class Store<
         throw new UpdateConditionFailError(to_delete.getUuid(), <string>writeConditionField, writeCondition);
       }
     }
+    await this.checkContext(to_delete, "delete");
     const evt = {
       object: to_delete,
       object_id: to_delete.getUuid(),
@@ -1956,19 +1760,21 @@ abstract class Store<
    * @returns {Promise<Map<string, any>>}
    */
   async getConfiguration(id: string): Promise<{ [key: string]: any }> {
-    this.metrics.operations_total.inc({ operation: "get" });
-    let object = await this._getFromCache(id);
-    if (!object) {
-      return undefined;
-    }
-    let result: { [key: string]: any } = {};
-    for (let i in object) {
-      if (i === this._uuidField || i === "_lastUpdate" || i.startsWith("_")) {
-        continue;
+    return this.getWebda().runAsSystem(async () => {
+      this.metrics.operations_total.inc({ operation: "get" });
+      let object = await this._getFromCache(id);
+      if (!object) {
+        return undefined;
       }
-      result[i] = object[i];
-    }
-    return result;
+      let result: { [key: string]: any } = {};
+      for (let i in object) {
+        if (i === this._uuidField || i === "_lastUpdate" || i.startsWith("_")) {
+          continue;
+        }
+        result[i] = object[i];
+      }
+      return result;
+    });
   }
 
   /**
@@ -1989,7 +1795,7 @@ abstract class Store<
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(uid: string, ctx: OperationContext = undefined, defaultValue: any = undefined): Promise<T> {
+  async get(uid: string, defaultValue: any = undefined): Promise<T> {
     /** @ignore */
     if (!uid) {
       return undefined;
@@ -1999,17 +1805,16 @@ abstract class Store<
     if (!object) {
       return defaultValue ? this.initModel(defaultValue).setUuid(uid) : undefined;
     }
+    await this.checkContext(object, "get");
     if (object.__type !== this._modelType && this.parameters.strict) {
       this.log("WARN", `Object '${uid}' was not created by this store ${object.__type}:${this._modelType}`);
       return undefined;
     }
     object = this.initModel(object);
-    object.setContext(ctx);
     const evt = {
       object: object,
       object_id: object.getUuid(),
-      store: this,
-      context: ctx
+      store: this
     };
     await Promise.all([this.emitSync("Store.Get", evt), object.__class.emitSync("Store.Get", evt), object._onGet()]);
     return object;
@@ -2101,356 +1906,6 @@ abstract class Store<
       modelName: this._model.name
     };
   }
-
-  /**
-   * Handle POST
-   * @param ctx
-   */
-  @Route(".", ["POST"], {
-    post: {
-      description: "The way to create a new ${modelName} model",
-      summary: "Create a new ${modelName}",
-      operationId: "create${modelName}",
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              $ref: "#/components/schemas/${modelName}"
-            }
-          }
-        }
-      },
-      responses: {
-        "200": {
-          description: "Retrieve model",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/${modelName}"
-              }
-            }
-          }
-        },
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "409": {
-          description: "Object already exists"
-        }
-      }
-    }
-  })
-  async httpCreate(ctx: WebContext) {
-    return this.operationCreate(ctx, this.parameters.model);
-  }
-
-  /**
-   * Create a new object based on the context
-   * @param ctx
-   * @param model
-   */
-  async operationCreate(ctx: OperationContext, model: string) {
-    let body = await ctx.getInput();
-    const modelPrototype = this.getWebda().getApplication().getModel(model);
-    let object = modelPrototype.factory(body, ctx);
-    object._creationDate = new Date();
-    await object.checkAct(ctx, "create");
-    try {
-      await object.validate(ctx, body);
-    } catch (err) {
-      this.log("INFO", "Object is not valid", err);
-      throw new WebdaError.BadRequest("Object is not valid");
-    }
-    if (object[this._uuidField] && (await this.exists(object[this._uuidField]))) {
-      throw new WebdaError.Conflict("Object already exists");
-    }
-    await this.save(object, ctx);
-    ctx.write(object);
-    const evt = {
-      context: ctx,
-      values: body,
-      object: object,
-      object_id: object.getUuid(),
-      store: this
-    };
-    await Promise.all([object.__class.emitSync("Store.WebCreate", evt), this.emitSync("Store.WebCreate", evt)]);
-  }
-
-  /**
-   * Handle obect action
-   * @param ctx
-   */
-  async httpAction(ctx: WebContext, actionMethod?: string) {
-    let action = ctx.getHttpContext().getUrl().split("/").pop();
-    actionMethod ??= action;
-    let object = await this.get(ctx.parameter("uuid"), ctx);
-    if (object === undefined || object.__deleted) {
-      throw new WebdaError.NotFound("Object not found or is deleted");
-    }
-    const inputSchema = `${object.__class.getIdentifier(false)}.${action}.input`;
-    if (this.getWebda().getApplication().hasSchema(inputSchema)) {
-      const input = await ctx.getInput();
-      try {
-        this.getWebda().validateSchema(inputSchema, input);
-      } catch (err) {
-        this.log("INFO", "Object invalid", err);
-        this.log("INFO", "Object invalid", inputSchema, input, this.getWebda().getApplication().getSchema(inputSchema));
-        throw new WebdaError.BadRequest("Body is invalid");
-      }
-    }
-    await object.checkAct(ctx, action);
-    const evt = {
-      action: action,
-      object: object,
-      store: this,
-      context: ctx
-    };
-    await Promise.all([this.emitSync("Store.Action", evt), object.__class.emitSync("Store.Action", evt)]);
-    const res = await object[actionMethod](ctx);
-    if (res) {
-      ctx.write(res);
-    }
-    const evtActioned = {
-      action: action,
-      object: object,
-      store: this,
-      context: ctx,
-      result: res
-    };
-    await Promise.all([
-      this.emitSync("Store.Actioned", evtActioned),
-      object?.__class.emitSync("Store.Actioned", evtActioned)
-    ]);
-  }
-
-  /**
-   * Handle collection action
-   * @param ctx
-   */
-  async httpGlobalAction(ctx: WebContext, model: CoreModelDefinition = this._model) {
-    let action = ctx.getHttpContext().getUrl().split("/").pop();
-    const evt = {
-      action: action,
-      store: this,
-      context: ctx,
-      model
-    };
-    await Promise.all([this.emitSync("Store.Action", evt), model.emitSync("Store.Action", evt)]);
-    const res = await model[action](ctx);
-    if (res) {
-      ctx.write(res);
-    }
-    const evtActioned = {
-      action: action,
-      store: this,
-      context: ctx,
-      result: res,
-      model
-    };
-    await Promise.all([this.emitSync("Store.Actioned", evtActioned), model?.emitSync("Store.Actioned", evtActioned)]);
-  }
-
-  /**
-   * Handle HTTP Update for an object
-   *
-   * @param ctx context of the request
-   */
-  @Route("./{uuid}", ["PUT", "PATCH"], {
-    put: {
-      description: "Update a ${modelName} if the permissions allow",
-      summary: "Update a ${modelName}",
-      operationId: "update${modelName}",
-      schemas: {
-        input: "${modelName}",
-        output: "${modelName}"
-      },
-      responses: {
-        "200": {},
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    },
-    patch: {
-      description: "Patch a ${modelName} if the permissions allow",
-      summary: "Patch a ${modelName}",
-      operationId: "partialUpdatet${modelName}",
-      schemas: {
-        input: "${modelName}"
-      },
-      responses: {
-        "204": {
-          description: ""
-        },
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    }
-  })
-  async httpUpdate(ctx: WebContext) {
-    const { uuid } = ctx.getParameters();
-    const body = await ctx.getInput();
-    body[this._uuidField] = uuid;
-    let object = await this.get(uuid, ctx);
-    if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
-    await object.checkAct(ctx, "update");
-    if (ctx.getHttpContext().getMethod() === "PATCH") {
-      try {
-        await object.validate(ctx, body, true);
-      } catch (err) {
-        this.log("INFO", "Object invalid", err, object);
-        throw new WebdaError.BadRequest("Object is not valid");
-      }
-      let updateObject: any = new this._model();
-      // Clean any default attributes from the model
-      Object.keys(updateObject)
-        .filter(i => i !== "__class")
-        .forEach(i => {
-          delete updateObject[i];
-        });
-      updateObject.setContext(ctx);
-      updateObject.setUuid(uuid);
-      updateObject.load(body, false, false);
-      await this.patch(updateObject);
-      object = undefined;
-    } else {
-      let updateObject: any = new this._model();
-      updateObject.setContext(ctx);
-      updateObject.load(body);
-      // Copy back the _ attributes
-      Object.keys(object)
-        .filter(i => i.startsWith("_"))
-        .forEach(i => {
-          updateObject[i] = object[i];
-        });
-      try {
-        await updateObject.validate(ctx, body);
-      } catch (err) {
-        this.log("INFO", "Object invalid", err);
-        throw new WebdaError.BadRequest("Object is not valid");
-      }
-
-      // Add mappers back to
-      object = await this.update(updateObject);
-    }
-    ctx.write(object);
-    const evt = {
-      context: ctx,
-      updates: body,
-      object: object,
-      store: this,
-      method: <"PATCH" | "PUT">ctx.getHttpContext().getMethod()
-    };
-    await Promise.all([object?.__class.emitSync("Store.WebUpdate", evt), this.emitSync("Store.WebUpdate", evt)]);
-  }
-
-  /**
-   * Handle GET on object
-   *
-   * @param ctx context of the request
-   */
-  @Route("./{uuid}", ["GET"], {
-    get: {
-      description: "Retrieve ${modelName} model if permissions allow",
-      summary: "Retrieve a ${modelName}",
-      operationId: "get${modelName}",
-      schemas: {
-        output: "${modelName}"
-      },
-      responses: {
-        "200": {},
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    }
-  })
-  async httpGet(ctx: WebContext) {
-    let uuid = ctx.parameter("uuid");
-    let object = await this.get(uuid, ctx);
-    await this.emitSync("Store.WebGetNotFound", {
-      context: ctx,
-      uuid,
-      store: this
-    });
-    if (object === undefined || object.__deleted) {
-      throw new WebdaError.NotFound("Object not found or is deleted");
-    }
-    await object.checkAct(ctx, "get");
-    ctx.write(object);
-    const evt = {
-      context: ctx,
-      object: object,
-      store: this
-    };
-    await Promise.all([this.emitSync("Store.WebGet", evt), object.__class.emitSync("Store.WebGet", evt)]);
-    ctx.write(object);
-  }
-
-  /**
-   * Handle HTTP request
-   *
-   * @param ctx context of the request
-   * @returns
-   */
-  @Route("./{uuid}", ["DELETE"], {
-    delete: {
-      operationId: "delete${modelName}",
-      description: "Delete ${modelName} if the permissions allow",
-      summary: "Delete a ${modelName}",
-      responses: {
-        "204": {
-          description: ""
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    }
-  })
-  async httpDelete(ctx: WebContext) {
-    let uuid = ctx.parameter("uuid");
-    let object = await this.get(uuid, ctx);
-    if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
-    await object.checkAct(ctx, "delete");
-    // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
-    // IOS don't handle 204 with Content-Length != 0 it seems
-    // Might still run into: Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
-    ctx.writeHead(204, { "Content-Length": "0" });
-    await this.delete(uuid);
-    const evt = {
-      context: ctx,
-      object_id: uuid,
-      store: this
-    };
-    await Promise.all([this.emitSync("Store.WebDelete", evt), object.__class.emitSync("Store.WebDelete", evt)]);
-  }
-
   /**
    * Return the model uuid field
    */

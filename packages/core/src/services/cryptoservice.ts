@@ -1,6 +1,13 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPairSync, randomBytes } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes
+} from "crypto";
 import jwt from "jsonwebtoken";
-import { pem2jwk } from "pem-jwk";
 import * as util from "util";
 import { Core, OperationContext, RegistryEntry, Store } from "../index";
 import { JSONUtils } from "../utils/serializers";
@@ -258,8 +265,8 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
    */
   jwks: {
     [key: string]: {
-      n: string;
-      e: string;
+      n?: string;
+      e?: string;
     };
   } = {};
 
@@ -295,7 +302,49 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
       operationId: "getJWKS"
     }
   })
-  async serveJWKS(context: OperationContext) {
+  async serveJWKS(
+    context: OperationContext<
+      void,
+      {
+        /**
+         * Keys in JWKS format
+         *
+         * https://datatracker.ietf.org/doc/html/rfc7517
+         */
+        keys: {
+          /**
+           * The "kty" (key type) parameter identifies the cryptographic algorithm
+           * family used with the key, such as "RSA" or "EC".  "kty" values should
+           * either be registered in the IANA "JSON Web Key Types" registry
+           * established by [JWA] or be a value that contains a Collision-
+           * Resistant Name.  The "kty" value is a case-sensitive string.  This
+           * member MUST be present in a JWK.
+           *
+           * https://datatracker.ietf.org/doc/html/rfc7517#section-4.1
+           */
+          kty: string;
+          /**
+           * The "kid" (key ID) parameter is used to match a specific key.  This
+           * is used, for instance, to choose among a set of keys within a JWK Set
+           * during key rollover.  The structure of the "kid" value is
+           * unspecified.  When "kid" values are used within a JWK Set, different
+           * keys within the JWK Set SHOULD use distinct "kid" values.  (One
+           * example in which different keys might use the same "kid" value is if
+           * they have different "kty" (key type) values but are considered to be
+           * equivalent alternatives by the application using them.)  The "kid"
+           * value is a case-sensitive string.  Use of this member is OPTIONAL.
+           * When used with JWS or JWE, the "kid" value is used to match a JWS or
+           * JWE "kid" Header Parameter value.
+           *
+           * https://datatracker.ietf.org/doc/html/rfc7517#section-4.5
+           */
+          kid: string;
+          n: string;
+          e: string;
+        }[];
+      }
+    >
+  ) {
     context.write({
       keys: Object.keys(this.keys).map(k => {
         if (!this.jwks[k]) {
@@ -304,7 +353,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
             this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" });
             and remove pem-jwk
             */
-          this.jwks[k] = pem2jwk(this.keys[k].publicKey);
+          this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" });
         }
         return {
           kty: "RSA",

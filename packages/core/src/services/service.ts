@@ -3,14 +3,14 @@ import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
 import {
   Constructor,
+  Context,
   Core,
   Counter,
   EventEmitterUtils,
   Gauge,
   Histogram,
   Logger,
-  MetricConfiguration,
-  OperationContext
+  MetricConfiguration
 } from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
 import { HttpMethodType } from "../utils/httpcontext";
@@ -435,7 +435,7 @@ abstract class Service<
    * @param event
    * @param context
    */
-  authorizeClientEvent(_event: string, _context: OperationContext): boolean {
+  authorizeClientEvent(_event: string, _context: Context): boolean {
     return false;
   }
 
@@ -584,6 +584,7 @@ abstract class Service<
 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
+   * @deprecated
    */
   emitSync<Key extends keyof E>(event: Key, data: E[Key]): Promise<any[]> {
     return EventEmitterUtils.emitSync(this, event, data);
@@ -601,11 +602,15 @@ abstract class Service<
    * Type the listener part
    * @param event
    * @param listener
-   * @param queue
+   * @param clusterWide if true will listen to all events even if they are not emitted by this cluster node
    * @returns
    */
-  on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void): this {
-    super.on(<string>event, listener);
+  on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void, clusterWide?: boolean): this {
+    if (clusterWide) {
+      super.on(<string>event, listener);
+    } else {
+      super.on(<string>event, evt => (evt.emitterId ? undefined : listener(evt)));
+    }
     return this;
   }
 
@@ -615,8 +620,19 @@ abstract class Service<
    * @param callback
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
-  onAsync<Key extends keyof E>(event: Key, listener: (evt: E[Key]) => void, queue: string = undefined) {
-    this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
+  onAsync<Key extends keyof E>(
+    event: Key,
+    listener: (evt: E[Key]) => void,
+    queue: string = undefined,
+    clusterWide?: boolean
+  ) {
+    if (clusterWide) {
+      this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
+    } else {
+      this._webda
+        .getService<EventService>("AsyncEvents")
+        .bindAsyncListener(this, <string>event, evt => (evt.emitterId ? undefined : listener(evt)), queue);
+    }
   }
 
   /**

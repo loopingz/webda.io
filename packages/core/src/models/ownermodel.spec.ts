@@ -122,15 +122,17 @@ class OwnerModelTest extends WebdaTest {
 
   @test("Query") async queryPermission() {
     await this.beforeEach();
-    this._session.login("fake_user2", "fake_ident");
-    let res = await this._taskStore.query("", this._ctx);
-    assert.deepStrictEqual(res.results.map(r => r.getUuid()).sort(), ["task_public", "task_user2"]);
-    res = await this._taskStore.query("");
-    assert.deepStrictEqual(res.results.length, 4);
-    res = await this._taskStore.query("uuid = 'task_user1'", this._ctx);
-    assert.deepStrictEqual(res.results.length, 0);
-    res = await this._taskStore.query("uuid = 'task_public'", this._ctx);
-    assert.deepStrictEqual(res.results.length, 1);
+    await this.webda.runInContext(this._ctx, async () => {
+      this._session.login("fake_user2", "fake_ident");
+      let res = await this._taskStore.query("");
+      assert.deepStrictEqual(res.results.map(r => r.getUuid()).sort(), ["task_public", "task_user2"]);
+      res = await this._taskStore.query("");
+      assert.deepStrictEqual(res.results.length, 4);
+      res = await this._taskStore.query("uuid = 'task_user1'");
+      assert.deepStrictEqual(res.results.length, 0);
+      res = await this._taskStore.query("uuid = 'task_public'");
+      assert.deepStrictEqual(res.results.length, 1);
+    });
   }
 
   @test("Actions") async actions() {

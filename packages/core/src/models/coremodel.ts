@@ -8,7 +8,7 @@ import { EventService } from "../services/asyncevents";
 import { BinariesImpl, Binary } from "../services/binary";
 import { Service } from "../services/service";
 import { Store, StoreEvents } from "../stores/store";
-import { WebdaQL } from "../stores/webdaql/query";
+import * as WebdaQL from "@webda/ql";
 import { OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";

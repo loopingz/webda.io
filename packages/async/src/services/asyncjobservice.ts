@@ -18,9 +18,9 @@ import {
   SimpleOperationContext,
   Store,
   WebContext,
-  WebdaError,
-  WebdaQL
+  WebdaError
 } from "@webda/core";
+import * as WebdaQL from "@webda/ql";
 import { WorkerLogLevel } from "@webda/workout";
 import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";

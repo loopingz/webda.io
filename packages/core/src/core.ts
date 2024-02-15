@@ -33,9 +33,9 @@ import {
   Store,
   UnpackedApplication,
   WebContext,
-  WebdaError,
-  WebdaQL
+  WebdaError
 } from "./index";
+import * as WebdaQL from "@webda/ql";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";

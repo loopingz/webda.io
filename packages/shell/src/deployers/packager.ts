@@ -7,6 +7,9 @@ import * as semver from "semver";
 import { intersect } from "semver-intersect";
 import { Deployer } from "./deployer";
 
+/**
+ * Resources for the Packager
+ */
 export interface PackagerResources extends DeployerResources {
   zipPath: string;
   entrypoint?: string;
@@ -20,6 +23,7 @@ export interface PackagerResources extends DeployerResources {
   };
   includeLinkModules?: boolean;
 }
+
 /**
  * Generate a ZIP Package of the application
  *

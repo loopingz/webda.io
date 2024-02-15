@@ -7,10 +7,9 @@ import {
   StoreFindResult,
   StoreNotFoundError,
   StoreParameters,
-  UpdateConditionFailError,
-  WebdaQL
+  UpdateConditionFailError
 } from "@webda/core";
-
+import * as WebdaQL from "@webda/ql";
 /**
  * Definition of a FireStore index
  */

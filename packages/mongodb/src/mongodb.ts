@@ -4,9 +4,9 @@ import {
   StoreFindResult,
   StoreNotFoundError,
   StoreParameters,
-  UpdateConditionFailError,
-  WebdaQL
+  UpdateConditionFailError
 } from "@webda/core";
+import * as WebdaQL from "@webda/ql";
 import { Collection, Db, DbOptions, Document, MongoClient, ObjectId } from "mongodb";
 
 export class MongoParameters extends StoreParameters {

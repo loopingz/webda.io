@@ -1,4 +1,5 @@
-import { CoreModel, Inject, Store, StoreFindResult, StoreParameters, WebdaQL } from "@webda/core";
+import { CoreModel, Inject, Store, StoreFindResult, StoreParameters } from "@webda/core";
+import * as WebdaQL from "@webda/ql";
 
 export class MigrationStoreParameters extends StoreParameters {
   /**

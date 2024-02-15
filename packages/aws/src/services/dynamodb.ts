@@ -13,9 +13,9 @@ import {
   StoreNotFoundError,
   StoreParameters,
   UpdateConditionFailError,
-  WebdaError,
-  WebdaQL
+  WebdaError
 } from "@webda/core";
+import * as WebdaQL from "@webda/ql";
 import { WorkerOutput } from "@webda/workout";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
 import { AWSServiceParameters, CloudFormationContributor } from "./index";

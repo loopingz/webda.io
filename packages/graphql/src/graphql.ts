@@ -9,9 +9,9 @@ import {
   ModelGraph,
   Route,
   WebContext,
-  WebdaError,
-  WebdaQL
+  WebdaError
 } from "@webda/core";
+import * as WebdaQL from "@webda/ql";
 import { EventIterator, MergedIterator } from "@webda/runtime";
 import {
   FieldNode,

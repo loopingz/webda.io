@@ -25,6 +25,7 @@
   "dependencies": {
     "@types/json-schema": "^7.0.8",
     "@webda/workout": "^3.2.0",
+    "@webda/ql": "^3.999.0",
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "ajv-formats": "^3.0.1",

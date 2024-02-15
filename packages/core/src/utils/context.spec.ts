@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { Readable } from "stream";
 import { Core } from "../core";
 import { Service } from "../services/service";
-import { WebdaQL } from "../stores/webdaql/query";
+import * as WebdaQL from "@webda/ql";
 import { WebdaTest } from "../test";
 import { OperationContext, SimpleOperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";

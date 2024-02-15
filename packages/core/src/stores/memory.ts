@@ -6,7 +6,7 @@ import { createGzip } from "node:zlib";
 import { CoreModel } from "../models/coremodel";
 import { GunzipConditional } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
-import { WebdaQL } from "./webdaql/query";
+import * as WebdaQL from "@webda/ql";
 interface StorageMap {
   [key: string]: string;
 }

@@ -4,7 +4,7 @@ import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes, ModelAct
 import { Route, Service, ServiceParameters } from "../services/service";
 import { OperationContext, WebContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
-import { WebdaQL } from "./webdaql/query";
+import * as WebdaQL from "@webda/ql";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {

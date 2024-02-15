@@ -7,7 +7,7 @@ import { HttpContext } from "../utils/httpcontext";
 import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
-import { WebdaQL } from "./webdaql/query";
+import * as WebdaQL from "@webda/ql";
 
 @suite
 class MemoryStoreTest extends StoreTest {

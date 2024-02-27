@@ -7,7 +7,7 @@
     "@types/json-schema": "^7.0.8",
     "@types/mocha": "^10.0.0",
     "@types/node": "^14.0.0",
-    "commitlint": "^18.1.0",
+    "commitlint": "^19.0.0",
     "gh-pages": "^6.0.0",
     "husky": "^9.0.6",
     "lerna": "^8.0.0",

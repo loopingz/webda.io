@@ -123,15 +123,6 @@ export class Throttler {
     return this._queue.length;
   }
 
-  // REFACTOR . >= 4.0.0
-  /**
-   * @deprecated
-   */
-  async waitForCompletion(): Promise<void> {
-    return this.wait();
-  }
-  // END_REFACTOR
-
   /**
    * Wait until every promise resolve
    * @returns

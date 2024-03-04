@@ -1,3 +1,5 @@
+import { DeepPartial } from "@webda/tsc-esm";
+import { LocalSubscription } from "../events";
 import {
   EventAuthenticationRegister,
   EventWithContext,
@@ -9,13 +11,22 @@ import {
 } from "../index";
 import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { User } from "../models/user";
-import { Authentication } from "./authentication";
+import { Authentication, AuthenticationRegisterEvent } from "./authentication";
 import { NotificationService } from "./notificationservice";
-import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
-
+import { Inject, Service, ServiceParameters } from "./service";
 interface InvitationAnswerBody {
   accept: boolean;
 }
+
+type Invitations = {
+  model: string;
+  inviter: {
+    uuid: string;
+    name: string;
+  };
+  pending: boolean;
+  metadata: any;
+}[];
 
 interface Invitation {
   /**
@@ -215,9 +226,9 @@ export default class InvitationService<T extends InvitationParameters = Invitati
   resolve(): this {
     super.resolve();
     // Register
-    this.authenticationService.on("Authentication.Register", (evt: EventAuthenticationRegister) =>
-      this.registrationListener(evt)
-    );
+    new LocalSubscription<AuthenticationRegisterEvent>().register(evt => {
+      this.registrationListener(evt.data);
+    });
     this.model = this.getWebda().getModel(this.parameters.model);
     const url =
       this.getParameters().url || `/${this.getWebda().getApplication().getModelPlural(this.parameters.model)}`;
@@ -370,7 +381,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @param model
    */
-  async answerInvitation(ctx: WebContext<InvitationAnswerBody>, model: CoreModel) {
+  async answerInvitation(ctx: WebContext<InvitationAnswerBody>, model: CoreModel & { [key: string]: any }) {
     let body = await ctx.getInput();
     // Invitation on the model is gone
     if (model === undefined) {
@@ -406,7 +417,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    *
    * @param model
    */
-  protected async updateModel(model: CoreModel) {
+  protected async updateModel(model: CoreModel & { [key: string]: any }) {
     await model.patch({
       [this.parameters.attribute]: model[this.parameters.attribute],
       [this.parameters.pendingAttribute]: model[this.parameters.pendingAttribute]
@@ -418,7 +429,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @param model
    */
-  async uninvite(ctx: OperationContext<Invitation>, model: CoreModel) {
+  async uninvite(ctx: OperationContext<Invitation>, model: CoreModel & { [key: string]: any }) {
     const body: Invitation = await ctx.getInput();
     body.users ??= [];
     body.idents ??= [];
@@ -497,7 +508,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @returns
    */
   async invite(ctx: WebContext) {
-    let model = await this.model.ref(ctx.getParameters().uuid).get(ctx);
+    let model = await this.model.ref(ctx.getParameters().uuid).get();
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);
     }
@@ -615,7 +626,15 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     });
   }
 
-  async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any, notification: any = {}) {
+  async addInvitationToUser(
+    model: CoreModel,
+    user: User & {
+      [K in T["mapAttribute"]]: Invitations;
+    },
+    inviter: User,
+    metadata: any,
+    notification: any = {}
+  ) {
     if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUuid()).length) {
       return;
     }
@@ -681,8 +700,9 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     const promises = [];
 
     // If autoAccept is false, just copy the pending invitation in the user
-    evt.user[this.parameters.mapAttribute] ??= [];
-    evt.user[this.parameters.mapAttribute].push(
+    const invitedUser: User & { [K in T["mapAttribute"]]: Invitations } = <any>evt.user;
+    invitedUser[this.parameters.mapAttribute] ??= <Invitations[]>[];
+    invitedUser[this.parameters.mapAttribute].push(
       ...infos
         .filter(m => m.model !== undefined)
         .map(m => {

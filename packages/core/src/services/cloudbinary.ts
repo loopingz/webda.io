@@ -1,5 +1,5 @@
 import { join } from "path";
-import { OperationContext } from "../utils/context";
+import { Context } from "../utils/context";
 import { BinaryMap, BinaryModel, BinaryParameters, BinaryService } from "./binary";
 
 /**
@@ -59,7 +59,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
     try {
       await this._cleanUsage(info.hash, uuid);
     } catch (err) {
-      this._webda.log("WARN", "Cascade delete failed", err);
+      this.webda.log("WARN", "Cascade delete failed", err);
     }
   }
 
@@ -73,5 +73,5 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param {GetSignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  abstract getSignedUrlFromMap(map: BinaryMap, expires: number, context: OperationContext): Promise<string>;
+  abstract getSignedUrlFromMap(map: BinaryMap, expires: number, context: Context): Promise<string>;
 }

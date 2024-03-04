@@ -1,4 +1,5 @@
-import { CoreModel, CoreModelDefinition, ModelRef } from "../models/coremodel";
+import { CoreModel, CoreModelDefinition } from "../models/coremodel";
+import { ModelRef } from "../models/coremodelref";
 import { Service } from "../services/service";
 import { EventStorePartialUpdated, EventStorePatchUpdated } from "./store";
 

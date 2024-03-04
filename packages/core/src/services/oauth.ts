@@ -1,9 +1,18 @@
-import { Core, Counter } from "../core";
-import { EventWithContext, OperationContext, RequestFilter, WebContext, WebdaError } from "../index";
+import { Counter } from "../core";
+import { Event } from "../events";
+import { Context, OperationContext, RequestFilter, WebContext, WebdaError } from "../index";
 import { Authentication } from "./authentication";
 import { RegExpStringValidator, Service, ServiceParameters } from "./service";
 
-export interface EventOAuthToken extends EventWithContext {
+export class OAuthCallbackEvent extends Event<{
+  provider: string;
+  type: "token" | "callback";
+  [key: string]: any;
+}> {
+  static type: "oauth.callback";
+}
+
+export class OAuthTokenEvent extends Event<{
   /**
    * Provider from
    */
@@ -17,6 +26,8 @@ export interface EventOAuthToken extends EventWithContext {
    * Profile comming from the provider
    */
   [key: string]: any;
+}> {
+  static type: "oauth.token";
 }
 
 /**
@@ -84,10 +95,6 @@ export class OAuthServiceParameters extends ServiceParameters {
   }
 }
 
-export type OAuthEvents = {
-  "OAuth.Callback": EventOAuthToken;
-};
-
 /**
  * OAuth Session variables
  */
@@ -115,11 +122,8 @@ export interface OAuthSession {
  * OAuth service implementing the default OAuth workflow
  * It is abstract as it does not manage any provider as is
  */
-export abstract class OAuthService<
-    T extends OAuthServiceParameters = OAuthServiceParameters,
-    E extends OAuthEvents = OAuthEvents
-  >
-  extends Service<T, E>
+export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServiceParameters>
+  extends Service<T>
   implements RequestFilter<WebContext>
 {
   _authenticationService: Authentication;
@@ -131,14 +135,6 @@ export abstract class OAuthService<
     login: Counter;
   };
   authorized_uris: RegExpStringValidator;
-
-  /**
-   * Ensure default parameter url
-   */
-  constructor(webda: Core, name: string, params?: any) {
-    super(webda, name, params);
-    this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}`;
-  }
 
   initMetrics(): void {
     super.initMetrics();
@@ -161,6 +157,7 @@ export abstract class OAuthService<
     } else {
       this.authorized_uris = new RegExpStringValidator(result.authorized_uris);
     }
+    result.url ??= this.getDefaultUrl();
     return result;
   }
 
@@ -194,7 +191,7 @@ export abstract class OAuthService<
    */
   resolve(): this {
     super.resolve();
-    this._authenticationService = this.getService(this.parameters.authenticationService);
+    this._authenticationService = this.getService<Authentication>(this.parameters.authenticationService);
     return this;
   }
 
@@ -287,7 +284,7 @@ export abstract class OAuthService<
     }
 
     if (this.parameters.exposeScope) {
-      this.addRoute(this.parameters.url + "/scope", ["GET"], this._scope, {
+      this.addRoute(this.parameters.url + "/scope", ["GET"], this.getScope, {
         get: {
           description: `List ${name} auth scope for this apps`,
           summary: "Retrieve the scope intended to be used with this auth",
@@ -309,8 +306,8 @@ export abstract class OAuthService<
    * Expose the scope used by the authentication
    * @param ctx
    */
-  _scope(ctx: OperationContext) {
-    ctx.write(this.parameters.scope);
+  getScope(_ctx: OperationContext<void, string[]>): string[] {
+    return this.parameters.scope;
   }
 
   /**
@@ -368,12 +365,15 @@ export abstract class OAuthService<
   private async _token(context: WebContext) {
     const res = await this.handleToken(context);
     await this.handleReturn(context, res.identId, res.profile);
-    await this.emitSync("OAuth.Callback", <EventOAuthToken>{
-      ...res,
-      type: "token",
-      provider: this.getName(),
-      context
-    });
+    new OAuthTokenEvent(
+      {
+        ...res,
+        type: "token",
+        provider: this.getName(),
+        context
+      },
+      this
+    ).emit();
     this.metrics.login.inc({ method: "token" });
   }
 
@@ -386,12 +386,15 @@ export abstract class OAuthService<
   private async _callback(ctx: WebContext) {
     const res = await this.handleCallback(ctx);
     await this.handleReturn(ctx, res.identId, res.profile);
-    await this.emitSync("OAuth.Callback", {
-      ...res,
-      type: "callback",
-      provider: this.getName(),
-      context: ctx
-    });
+    new OAuthCallbackEvent(
+      {
+        ...res,
+        type: "callback",
+        provider: this.getName(),
+        context: ctx
+      },
+      this
+    ).emit();
     this.metrics.login.inc({ method: "callback" });
   }
 
@@ -460,7 +463,7 @@ export abstract class OAuthService<
    *
    * @param ctx
    */
-  abstract handleToken(ctx: OperationContext): Promise<OAuthReturn>;
+  abstract handleToken(ctx: Context): Promise<OAuthReturn>;
 
   /**
    * Manage the return of a provider

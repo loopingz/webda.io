@@ -1,4 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
+import * as WebdaQL from "@webda/ql";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
@@ -7,7 +8,6 @@ import { HttpContext } from "../utils/httpcontext";
 import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
-import { WebdaQL } from "./webdaql/query";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -88,13 +88,11 @@ class MemoryStoreTest extends StoreTest {
     let res, offset;
     let total = 0;
     do {
-      res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`, context);
+      res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
       offset = res.continuationToken;
       total += res.results.length;
     } while (offset);
     assert.strictEqual(total, 100);
-    assert.rejects(() => userStore.queryAll("state = 'CA' OFFSET 123"), /Cannot contain an OFFSET for queryAll method/);
-    assert.strictEqual((await userStore.queryAll("state = 'CA' LIMIT 50")).length, 250);
     return userStore;
   }
 

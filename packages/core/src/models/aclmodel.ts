@@ -1,4 +1,4 @@
-import { OperationContext, User, WebContext, WebdaError } from "../index";
+import { Context, OperationContext, User, WebContext, WebdaError } from "../index";
 import { Action, CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -25,8 +25,8 @@ export default class AclModel extends CoreModel {
   /**
    * Ensure creator has all permissions by default
    */
-  async _onSave() {
-    await super._onSave();
+  async _onCreate() {
+    await super._onCreate();
     this._creator = this.getContext().getCurrentUserId();
     if (Object.keys(this.__acl).length === 0 && this._creator) {
       this.__acl[this._creator] = "all";
@@ -38,7 +38,7 @@ export default class AclModel extends CoreModel {
    */
   async _onGet() {
     const ctx = this.getContext();
-    if (!ctx.isGlobal()) {
+    if (ctx instanceof OperationContext) {
       this._permissions = await this.getPermissions(ctx);
     } else {
       this._permissions = [];
@@ -133,7 +133,24 @@ export default class AclModel extends CoreModel {
    * GET
    * @param ctx
    */
-  async _httpGetAcls(ctx: OperationContext) {
+  async _httpGetAcls(
+    _ctx: OperationContext<
+      void,
+      {
+        raw: Acl;
+        resolved: {
+          permission: string;
+          actor: {
+            uuid: string;
+            name: string;
+            email: string;
+            avatar: string;
+          };
+        }[];
+      }
+    >
+  ) {
+    // Permissions checked by canAct prior to this call
     return {
       raw: this.__acl,
       resolved: await Promise.all(
@@ -154,16 +171,16 @@ export default class AclModel extends CoreModel {
    * @param ace
    * @returns
    */
-  async getUserPublicEntry(ace: string) {
-    return (await User.ref(ace).get())?.toPublicEntry();
+  async getUserPublicEntry<T extends User>(ace: string): Promise<ReturnType<T["toPublicEntry"]>> {
+    return <ReturnType<T["toPublicEntry"]>>(await User.ref(ace).get())?.toPublicEntry();
   }
 
   /**
    *
    */
-  async _httpPutAcls(ctx: OperationContext) {
+  async _httpPutAcls(ctx: OperationContext<Acl>) {
     let acl = await ctx.getInput();
-    // This looks like a bad request
+    // This looks like a bad request TODO Remove by OperationContext validation
     if (acl.raw) {
       throw new WebdaError.BadRequest("ACL should have raw field");
     }
@@ -172,7 +189,7 @@ export default class AclModel extends CoreModel {
   }
 
   // Should cache the user role in the session
-  getGroups(_ctx: OperationContext, user: User) {
+  getGroups(_ctx: Context, user: User) {
     if (!user) {
       return [];
     }
@@ -191,7 +208,7 @@ export default class AclModel extends CoreModel {
    * @param user
    * @returns
    */
-  async getPermissions(ctx: OperationContext, user?: User): Promise<string[]> {
+  async getPermissions(ctx: Context, user?: User): Promise<string[]> {
     if (!user) {
       user = await ctx.getCurrentUser();
     }
@@ -205,7 +222,7 @@ export default class AclModel extends CoreModel {
     return [...permissions.values()];
   }
 
-  async hasPermission(ctx: OperationContext, user: User, action: string): Promise<boolean> {
+  async hasPermission(ctx: Context, user: User, action: string): Promise<boolean> {
     let groups = this.getGroups(ctx, user);
     for (let i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
@@ -217,7 +234,7 @@ export default class AclModel extends CoreModel {
     return false;
   }
 
-  async canAct(ctx: OperationContext, action: string): Promise<string | boolean> {
+  async canAct(ctx: Context, action: string): Promise<string | boolean> {
     if (action === "create" && ctx.getCurrentUserId()) {
       return true;
     }

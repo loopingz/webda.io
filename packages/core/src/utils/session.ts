@@ -1,8 +1,10 @@
-import { CoreModel, NotEnumerable } from "../models/coremodel";
+import { DeepPartial, NotEnumerable } from "@webda/tsc-esm";
+import { Core } from "../core";
+import { CoreModel } from "../models/coremodel";
 import CryptoService, { JWTOptions } from "../services/cryptoservice";
-import { DeepPartial, Inject, Service, ServiceParameters } from "../services/service";
+import { Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
-import { OperationContext, WebContext } from "./context";
+import { Context, OperationContext, WebContext } from "./context";
 import { CookieOptions, SecureCookie } from "./cookie";
 
 /**
@@ -13,17 +15,17 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
    * Load a session based on context
    * @param context
    */
-  abstract load(context: OperationContext): Promise<Session>;
+  abstract load(context: Context): Promise<Session>;
   /**
    * Save the session within the context
    * @param context
    * @param session
    */
-  abstract save(context: OperationContext, session: Session): Promise<void>;
+  abstract save(context: Context, session: Session): Promise<void>;
   /**
    * Create a new session
    */
-  abstract newSession(context: OperationContext): Promise<Session>;
+  abstract newSession(context: Context): Promise<Session>;
 }
 
 export class CookieSessionParameters extends ServiceParameters {
@@ -69,29 +71,17 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  resolve() {
-    super.resolve();
-    if (this.sessionStore && this.sessionStore.getParameters().expose) {
-      throw new Error("SessionStore should not be exposed");
-    }
-    return this;
-  }
-
-  /**
-   * @override
-   */
-  async load(context: OperationContext): Promise<Session> {
+  async load(context: Context): Promise<Session> {
     if (!(context instanceof WebContext)) {
       return new Session();
     }
-    const session = new Session();
+    let session = new Session();
     let cookie = await SecureCookie.load(this.parameters.cookie.name, context, this.parameters.jwt);
     if (this.sessionStore) {
       if (cookie.sub) {
-        Object.assign(session, (await this.sessionStore.get(cookie.sub))?.session);
-        session.uuid = cookie.sub;
+        session = await Session.ref(cookie.sub).get();
       }
-      session.uuid ??= context.getWebda().getUuid("base64");
+      session.uuid ??= Core.get().getUuid("base64");
     } else {
       Object.assign(session, cookie);
     }
@@ -108,17 +98,14 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  async save(context: OperationContext, session: Session) {
+  async save(context: Context, session: Session) {
     if (!(context instanceof WebContext)) {
       return;
     }
     // If store is found session info are stored in db
     if (this.sessionStore) {
-      await this.sessionStore.save({
-        uuid: session.uuid,
-        session,
-        ttl: Date.now() + this.parameters.cookie.maxAge * 1000
-      });
+      session.ttl = Date.now() + this.parameters.cookie.maxAge * 1000;
+      await session.save();
       SecureCookie.save(
         this.parameters.cookie.name,
         context,
@@ -135,13 +122,17 @@ export class CookieSessionManager<
 /**
  * Session
  */
-export class Session {
+export class Session extends CoreModel {
   @NotEnumerable
   protected changed: boolean = false;
   /**
    * Session uuid
    */
   uuid: string;
+  /**
+   * Session time to live
+   */
+  ttl: number;
   /**
    * User id
    */

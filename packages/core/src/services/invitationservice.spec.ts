@@ -8,14 +8,14 @@ import { Ident } from "../models/ident";
 import { ModelMapLoader, ModelMapLoaderImplementation } from "../models/relations";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
-import { OperationContext } from "../utils/context";
+import { Context } from "../utils/context";
 import { Authentication } from "./authentication";
 import InvitationService, { InvitationParameters } from "./invitationservice";
 import { Mailer } from "./mailer";
 
 class MyCompany extends AclModel {
   name: string;
-  async canAct(ctx: OperationContext, action: string) {
+  async canAct(ctx: Context, action: string) {
     if (action === "create") {
       return;
     }

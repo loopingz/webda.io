@@ -42,12 +42,6 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   }
 }
 
-export type ConfigurationEvents = {
-  "Configuration.Applied": any;
-  "Configuration.Applying": any;
-  "Configuration.Loaded": any;
-};
-
 /**
  * Handle sessionSecret ( rolling between two secrets ) expire every hour
  * Handle longTermSecret ( rolling between two longer secret ) expire every month
@@ -61,9 +55,8 @@ export type ConfigurationEvents = {
  * @WebdaModda
  */
 export default class ConfigurationService<
-  T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
-  E extends ConfigurationEvents = ConfigurationEvents
-> extends Service<T, E> {
+  T extends ConfigurationServiceParameters = ConfigurationServiceParameters
+> extends Service<T> {
   protected serializedConfiguration: any;
   /**
    *
@@ -134,7 +127,7 @@ export default class ConfigurationService<
     }
 
     // Add webda info
-    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
+    this.watch("$.services", (updates: any) => this.webda.reinit(updates));
     return this;
   }
 
@@ -205,10 +198,11 @@ export default class ConfigurationService<
 
     this.log("DEBUG", "Refreshing configuration");
     const newConfig = (await this.loadConfiguration()) || this.parameters.default;
-    this.emit("Configuration.Loaded", newConfig);
     const serializedConfig = JSON.stringify(newConfig);
     if (serializedConfig !== this.serializedConfiguration) {
-      this.emit("Configuration.Applying", newConfig);
+      this.getWebda().emit("Webda.Configuration.Updated", {
+        configuration: newConfig
+      });
       this.log("DEBUG", "Apply new configuration");
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
@@ -230,7 +224,9 @@ export default class ConfigurationService<
         }
       });
       await Promise.all(promises);
-      this.emit("Configuration.Applied", newConfig);
+      this.getWebda().emit("Webda.Configuration.Applied", {
+        configuration: newConfig
+      });
     }
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this.interval) {
@@ -251,7 +247,6 @@ export default class ConfigurationService<
    */
   async loadAndStoreConfiguration(): Promise<{ [key: string]: any }> {
     let res = await this.loadConfiguration();
-    this.emit("Configuration.Loaded", res);
     this.serializedConfiguration = JSON.stringify(res);
     return res;
   }

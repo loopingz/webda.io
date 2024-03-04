@@ -55,6 +55,15 @@ export class EventIterator {
     this.resolve();
   }
 
+  /**
+   * Allow specific override
+   * @param event
+   * @param listener
+   */
+  bindListener(event: string, listener: (evt: any) => void) {
+    this.eventEmitter.on(event, listener);
+  }
+
   async *iterate() {
     this.running = true;
     // using a queue and not the once method in case 2 events are sent successively
@@ -72,9 +81,10 @@ export class EventIterator {
         this.listeners[event] = data => {
           this.push(event, data);
         };
+
         // We might have multiple listeners on the same event
         // We could optimize by keeping a map but not sure it is better
-        this.eventEmitter.on(event, this.listeners[event]);
+        this.bindListener(event, this.listeners[event]);
       }
       while (true) {
         if (this.queue.length === 0) {
@@ -165,5 +175,23 @@ export class MergedIterator {
       let p = Object.keys(asyncs).map(i => asyncs[i].value);
       await Promise.race(p);
     }
+  }
+}
+
+/**
+ * Utility class to iterate over an async generator
+ */
+export class IteratorUtils {
+  /**
+   * Iterate over an async generator and return an array
+   * @param it
+   * @returns
+   */
+  static async all<T, TReturn, TNext>(it: AsyncGenerator<T, TReturn, TNext>): Promise<T[]> {
+    const res = [];
+    for await (let i of it) {
+      res.push(i);
+    }
+    return res;
   }
 }

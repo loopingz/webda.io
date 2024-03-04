@@ -1,14 +1,6 @@
-import {
-  Attributes,
-  CoreModel,
-  CoreModelDefinition,
-  FilterAttributes,
-  ModelAction,
-  ModelRef,
-  ModelRefCustom,
-  ModelRefCustomProperties,
-  NotEnumerable
-} from "./coremodel";
+import { Attributes, FilterAttributes, NotEnumerable } from "@webda/tsc-esm";
+import { CoreModel, CoreModelDefinition, ModelAction } from "./coremodel";
+import { ModelRef, ModelRefCustom, ModelRefCustomProperties } from "./coremodelref";
 
 /**
  * Raw model without methods
@@ -16,15 +8,6 @@ import {
 export type RawModel<T extends object> = {
   [K in Attributes<T>]?: T[K] extends object ? RawModel<T[K]> : T[K];
 };
-
-/**
- * Methods of an object
- *
- * Filter out attributes
- */
-export type Methods<T extends object> = {
-  [K in keyof T]: T[K] extends Function ? K : never;
-}[keyof T];
 
 /**
  * Model loader with a `get` method
@@ -78,7 +61,7 @@ export class ModelLink<T extends CoreModel> implements ModelLinker {
   }
 
   async get(): Promise<T> {
-    return (await this.model.ref(this.uuid).get())?.setContext(this.parent?.getContext());
+    return await this.model.ref(this.uuid).get();
   }
   set(id: string | T) {
     this.uuid = typeof id === "string" ? id : id.getUuid();
@@ -307,7 +290,7 @@ export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
    * @returns the model
    */
   async get(): Promise<T> {
-    return this._model.ref(this.uuid).get(this._parent.getContext());
+    return this._model.ref(this.uuid).get();
   }
 }
 

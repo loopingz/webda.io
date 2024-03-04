@@ -18,6 +18,8 @@ import {
   Test
  } from "./index";
 import * as ind from './index';
+import { Test2 } from '..';
+import { Test3 } from '../test3';
 import { Bean, Inject, Queue, Service, ServiceParameters, Throttler } from "@webda/core";
 import { open } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
@@ -36,6 +38,8 @@ let SinkService = class SinkService extends Service {
     assert.ok(content.includes('"./index.js"'));
     assert.ok(content.includes("'./index.js'"));
     assert.ok(content.includes('"./export.js"'));
+    assert.ok(content.includes("'..'"));
+    assert.ok(content.includes("'../test3.js'"));
     assert.ok(content.includes("'./export.js'"));
     assert.ok(!content.includes('"node:fs/promises.js"'));
     assert.ok(!content.includes('"node:stream/promises.js"'));

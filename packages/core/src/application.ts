@@ -1,9 +1,10 @@
+import { Constructor } from "@webda/tsc-esm";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import * as fs from "fs";
 import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
-import { Constructor, Core, CoreModel, CoreModelDefinition, Service, WebdaError } from "./index";
+import { Core, CoreModel, CoreModelDefinition, Service, WebdaError } from "./index";
 import { getCommonJS } from "./utils/esm";
 import { FileUtils } from "./utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);

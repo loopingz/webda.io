@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import { Counter, EventWithContext } from "../core";
 import { WebdaError } from "../errors";
+import { Event } from "../events";
+import { Context } from "../index";
 import { CoreModelDefinition } from "../models/coremodel";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
@@ -10,6 +12,25 @@ import { OperationContext, WebContext } from "../utils/context";
 import { HttpContext, HttpMethodType } from "../utils/httpcontext";
 import CryptoService from "./cryptoservice";
 import { Mailer } from "./mailer";
+
+export class AuthenticationGetMeEvent extends Event<{
+  user: User;
+  context: Context;
+}> {
+  //static type: "authentication.getme";
+  static getType(_source: Function): string {
+    return "authentication.getme";
+  }
+}
+
+export class AuthenticationRegisterEvent extends Event<{
+  user: User;
+  context: Context;
+  data: any;
+  identId: string;
+}> {
+  type: "authentication.register";
+}
 
 /**
  * Emitted when the /me route is called
@@ -231,10 +252,10 @@ export type AuthenticationEvents = {
  * @WebdaModda
  */
 
-class Authentication<
-  T extends AuthenticationParameters = AuthenticationParameters,
-  E extends AuthenticationEvents = AuthenticationEvents
-> extends Service<T, E> {
+class Authentication<T extends AuthenticationParameters = AuthenticationParameters> extends Service<
+  T,
+  AuthenticationGetMeEvent
+> {
   _identModel: CoreModelDefinition<Ident>;
   _userModel: CoreModelDefinition<User>;
   /**
@@ -604,7 +625,7 @@ class Authentication<
     if (await this._identModel.ref(`${identId}_${provider}`).exists()) {
       throw new Error("Ident is already known");
     }
-    let ctx = await this._webda.newWebContext(new HttpContext("fake", "GET", "/"));
+    let ctx = await this.webda.newWebContext(new HttpContext("fake", "GET", "/"));
     // Pretend we logged in with the ident
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
@@ -618,12 +639,15 @@ class Authentication<
       true
     );
     this.metrics.registration.inc();
-    await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
-      user: user,
-      data: data,
-      context: ctx,
-      identId
-    });
+    await new AuthenticationRegisterEvent(
+      {
+        user: user,
+        data: data,
+        context: ctx,
+        identId
+      },
+      this
+    ).emit();
     return user;
   }
 

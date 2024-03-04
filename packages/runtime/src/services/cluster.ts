@@ -1,7 +1,6 @@
 import {
   Core,
   CoreModelDefinition,
-  DeepPartial,
   Gauge,
   Inject,
   PubSubService,
@@ -11,6 +10,7 @@ import {
   Store,
   WebContext
 } from "@webda/core";
+import { DeepPartial } from "@webda/tsc-esm";
 
 /**
  * Message going through our pub/sub

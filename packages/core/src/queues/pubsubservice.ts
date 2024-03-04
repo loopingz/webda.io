@@ -2,6 +2,11 @@ import { Counter, Gauge, Histogram } from "../core";
 import { Service, ServiceParameters } from "../services/service";
 import { CancelablePromise } from "../utils/waiter";
 
+/**
+ * Allow to send events to a queue without creating a service
+ */
+const Protocols: { [key: string]: (event: any, url: string) => Promise<void> } = {};
+
 export default abstract class PubSubService<
   T = any,
   K extends ServiceParameters = ServiceParameters
@@ -77,6 +82,38 @@ export default abstract class PubSubService<
     eventPrototype?: { new (): T },
     onBind?: () => void
   ): CancelablePromise;
+
+  /**
+   * Register a protocol
+   * @param protocol
+   * @param send
+   */
+  static registerProtocol(protocol: string, send: (event: any, url: string) => Promise<void>) {
+    Protocols[protocol] = send;
+  }
+
+  /**
+   * Protocol is managed by the pubsub
+   * @param protocol
+   * @returns
+   */
+  static hasProtocol(protocol: string) {
+    return !!Protocols[protocol];
+  }
+
+  /**
+   * Send a message to a pubsub or queue
+   * @param event
+   * @param url
+   * @returns
+   */
+  static async send(event: any, url: string) {
+    const protocol = url.split("://")[0];
+    if (Protocols[protocol]) {
+      return Protocols[protocol](event, url);
+    }
+    throw new Error(`Protocol ${protocol} not known, you might forgot to add a webda module`);
+  }
 }
 
 export { PubSubService };

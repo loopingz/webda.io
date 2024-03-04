@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { WebdaQL } from "./query";
+import * as WebdaQL from "./query";
 
 const targets = [
   {
@@ -157,8 +157,15 @@ class QueryTest {
   }
 
   @test
+  unsanitize() {
+    assert.strictEqual(WebdaQL.unsanitize("test.attr1 &lt; 12 AND attr2 &gt; 13"), "test.attr1 < 12 AND attr2 > 13");
+  }
+
+  @test
   limitOffset() {
     let val = new WebdaQL.QueryValidator('LIMIT 10 OFFSET "pl"');
+    // getQuery
+    val.getQuery();
     assert.strictEqual(val.getLimit(), 10);
     assert.strictEqual(val.getOffset(), "pl");
     val = new WebdaQL.QueryValidator('OFFSET "pl2"');

@@ -10,7 +10,7 @@ import { Binaries, Binary, BinaryService, MemoryBinaryFile } from "../services/b
 import { ModelMapper } from "../stores/modelmapper";
 import { WebdaTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
-import { CoreModel, Emitters } from "./coremodel";
+import { CoreModel } from "./coremodel";
 import {
   ModelLink,
   ModelLinksArray,
@@ -82,11 +82,6 @@ interface ContactInterface extends CoreModel {
 }
 @suite
 export class ModelDrivenTest extends WebdaTest {
-  after() {
-    // Ensure we remove all listeners
-    Object.values(this.webda.getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
-  }
-
   @test
   async test() {
     // Init mapper
@@ -97,8 +92,8 @@ export class ModelDrivenTest extends WebdaTest {
     const User = this.webda.getModel<UserInterface>("User");
 
     // Create a User
-    let user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, undefined, true);
-    let user2 = await User.ref("user2").getOrCreate(<any>{ uuid: "user2" }, undefined, true);
+    let user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, true);
+    let user2 = await User.ref("user2").getOrCreate(<any>{ uuid: "user2" }, true);
 
     Contact.factory({ firstName: "test", lastName: "" });
     let contact = new Contact().load({ firstName: "test", lastName: "", age: 18 }, true);

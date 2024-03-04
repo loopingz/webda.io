@@ -1,3 +1,4 @@
+import * as WebdaQL from "@webda/ql";
 import * as crypto from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { open } from "node:fs/promises";
@@ -6,7 +7,6 @@ import { createGzip } from "node:zlib";
 import { CoreModel } from "../models/coremodel";
 import { GunzipConditional } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
-import { WebdaQL } from "./webdaql/query";
 interface StorageMap {
   [key: string]: string;
 }

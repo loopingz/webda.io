@@ -56,6 +56,7 @@ class WebdaSchemaResults {
       schemaNode?: ts.Node;
       link?: string;
       title?: string;
+      description?: string;
       addOpenApi: boolean;
     };
   } = {};
@@ -75,15 +76,19 @@ class WebdaSchemaResults {
     let schemas = {};
     Object.entries(this.store)
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .forEach(([name, { schemaNode, link, title, addOpenApi }]) => {
+      .forEach(([name, { schemaNode, link, title, description, addOpenApi }]) => {
         if (schemaNode) {
           schemas[name] = compiler.generateSchema(schemaNode, title || name);
-          if (addOpenApi && schemas[name]) {
-            schemas[name].properties ??= {};
-            schemas[name].properties["openapi"] = {
-              type: "object",
-              additionalProperties: true
-            };
+          if (schemas[name]) {
+            if (addOpenApi) {
+              schemas[name].properties ??= {};
+              schemas[name].properties["openapi"] = {
+                type: "object",
+                additionalProperties: true
+              };
+            }
+            schemas[name].title ??= title || name;
+            schemas[name].description ??= description;
           }
         } else {
           schemas[name] = link;
@@ -92,12 +97,13 @@ class WebdaSchemaResults {
     return schemas;
   }
 
-  add(name: string, info?: ts.Node | string, title?: string, addOpenApi: boolean = false) {
+  add(name: string, info?: ts.Node | string, title?: string, addOpenApi: boolean = false, description?: string) {
     if (typeof info === "object") {
       this.store[name] = {
         name: name,
         schemaNode: info,
         title,
+        description,
         addOpenApi
       };
       this.byNode.set(info, name);
@@ -106,6 +112,7 @@ class WebdaSchemaResults {
         name: name,
         link: info,
         title,
+        description,
         addOpenApi
       };
     }
@@ -874,7 +881,11 @@ export class Compiler {
       if (ts.isTypeReferenceNode(schemaNode)) {
         let decl = schemas.get(this.typeChecker.getTypeFromTypeNode(schemaNode).getSymbol().declarations[0]);
         if (decl) {
-          schemas.add(name, decl);
+          const description = ts
+            .getJSDocCommentsAndTags(obj)
+            .filter(i => ts.isJSDoc(obj))
+            .shift()?.comment;
+          schemas.add(name, decl, undefined, false, description);
           return;
         }
       }

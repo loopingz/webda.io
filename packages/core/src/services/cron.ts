@@ -109,7 +109,7 @@ class CronService extends Service {
       return;
     }
     this._scanned = true;
-    this.crons.push(...CronService.loadAnnotations(this._webda.getServices()));
+    this.crons.push(...CronService.loadAnnotations(this.webda.getServices()));
   }
 
   getCrontab() {

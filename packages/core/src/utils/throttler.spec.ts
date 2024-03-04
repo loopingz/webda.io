@@ -27,9 +27,7 @@ class ThrottlerTest {
     assert.strictEqual(curs.length, 1, `Currents ${curs}`);
     t.setConcurrency(3);
     assert.strictEqual(t.getInProgress().length, 3);
-    // REFACTOR . >= 4.0.0 | replace("waitForCompletion", "wait")
-    let p = t.waitForCompletion();
-    // END_REFACTOR
+    let p = t.wait();
     resolvers.forEach(r => r());
     await new Promise(resolve => setImmediate(resolve));
     resolvers.forEach(r => r());

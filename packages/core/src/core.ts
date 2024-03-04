@@ -1,12 +1,14 @@
+import * as WebdaQL from "@webda/ql";
+import { Constructor } from "@webda/tsc-esm";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import Ajv, { ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
+import { randomUUID } from "crypto";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
-import { JSONSchema7 } from "json-schema";
 import jsonpath from "jsonpath";
 import pkg from "node-machine-id";
-import { OpenAPIV3 } from "openapi-types";
+import { AsyncLocalStorage } from "node:async_hooks";
 import {
   Counter,
   CounterConfiguration,
@@ -19,9 +21,11 @@ import {
 import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration, Modda } from "./application";
+import { InstanceCache } from "./cache";
 import {
   BinaryService,
   ConfigurationService,
+  Context,
   ContextProvider,
   ContextProviderInfo,
   GlobalContext,
@@ -32,12 +36,12 @@ import {
   Service,
   Store,
   UnpackedApplication,
+  UnpackedConfiguration,
   WebContext,
-  WebdaError,
-  WebdaQL
+  WebdaError
 } from "./index";
-import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
-import { RouteInfo, Router } from "./router";
+import { CoreModel, CoreModelDefinition } from "./models/coremodel";
+import { RouteInfo, Router } from "./rest/router";
 import CryptoService from "./services/cryptoservice";
 import { JSONUtils } from "./utils/serializers";
 const { machineIdSync } = pkg;
@@ -160,7 +164,7 @@ export type RegistryEntry<T = any> = CoreModel & T;
 /**
  * Ensure all events store the context in the same place
  */
-export interface EventWithContext<T extends OperationContext = OperationContext> {
+export interface EventWithContext<T extends Context = Context> {
   context: T;
 }
 
@@ -268,7 +272,7 @@ export type CoreEvents = {
    * Emitted whenever a new Context is created
    */
   "Webda.NewContext": {
-    context: OperationContext;
+    context: Context;
     info: ContextProviderInfo;
   };
   /**
@@ -277,7 +281,15 @@ export type CoreEvents = {
   "Webda.UpdateContextRoute": {
     context: WebContext;
   };
-  [key: string]: unknown;
+  "Webda.Configuration.Loaded": {
+    configuration: UnpackedConfiguration["services"];
+  };
+  "Webda.Configuration.Updated": {
+    configuration: UnpackedConfiguration["services"];
+  };
+  "Webda.Configuration.Applied": {
+    configuration: UnpackedConfiguration["services"];
+  };
 };
 
 type NoSchemaResult = null;
@@ -295,7 +307,11 @@ type SchemaInvalidResult = {
  * @class Core
  * @category CoreFeatures
  */
-export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter {
+export class Core<E extends CoreEvents = CoreEvents> {
+  /**
+   * Emitter
+   */
+  protected emitter: events.EventEmitter = new events.EventEmitter();
   /**
    * Webda Services
    * @hidden
@@ -428,6 +444,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * System context
    */
   protected globalContext: GlobalContext;
+
+  /**
+   * Store execution context
+   */
+  static asyncLocalStorage = new AsyncLocalStorage<{ context: Context } & any>();
   /**
    *
    */
@@ -437,8 +458,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
   constructor(application?: Application) {
-    /** @ignore */
-    super();
     // Store WebdaCore in process to avoid conflict with import
     // @ts-ignore
     Core.singleton = process.webda = this;
@@ -571,6 +590,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param model
    * @returns
    */
+  @InstanceCache()
   getModelStore<T extends CoreModel>(modelOrConstructor: Constructor<T> | T): Store<T> {
     const model = <Constructor<T>>(
       (modelOrConstructor instanceof CoreModel ? modelOrConstructor.__class : modelOrConstructor)
@@ -692,10 +712,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   protected async initService(service: string) {
     try {
       this.log("TRACE", "Initializing service", service);
-      this.services[service]._initTime = Date.now();
       await this.services[service].init();
     } catch (err) {
-      this.services[service]._initException = err;
       this.failedServices[service] = { _initException: err };
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
@@ -716,11 +734,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * It will resolve Services init method and autolink
    */
+  @InstanceCache()
   async init() {
-    if (this._init) {
-      return this._init;
-    }
-
+    // Init Core Services
     if (this.configuration.parameters.configurationService) {
       try {
         this.log("INFO", "Create and init ConfigurationService", this.configuration.parameters.configurationService);
@@ -761,26 +777,20 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     this._modelBinariesCache.clear();
 
     this.log("TRACE", "Create Webda init promise");
-    this._init = (async () => {
-      await this.initService("Registry");
-      await this.initService("CryptoService");
+    await this.initService("Registry");
+    await this.initService("CryptoService");
 
-      // Init services
-      let service;
-      let inits = [];
-      for (service in this.services) {
-        if (
-          this.services[service].init !== undefined &&
-          !this.services[service]._createException &&
-          !this.services[service]._initTime
-        ) {
-          inits.push(this.initService(service));
-        }
+    // Init services
+    let service;
+    let inits = [];
+    for (service in this.services) {
+      // Filter out the services that are already initiated
+      if (!["Registry", "CryptoService", this.configuration.parameters.configurationService].includes(service)) {
+        inits.push(this.initService(service));
       }
-      await Promise.all(inits);
-      await this.emitSync("Webda.Init.Services", this.services);
-    })();
-    return this._init;
+    }
+    await Promise.all(inits);
+    await this.emit("Webda.Init.Services", this.services);
   }
 
   /**
@@ -1056,6 +1066,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return result;
   }
 
+  /**
+   * Get the configuration
+   * @returns
+   */
   public getConfiguration() {
     return this.configuration;
   }
@@ -1083,22 +1097,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   getModel<T extends CoreModel = CoreModel>(name): CoreModelDefinition<T> {
     return this.application.getModel<T>(name);
-  }
-
-  /**
-   * Add to context information and executor based on the http context
-   */
-  public updateContextWithRoute(ctx: WebContext): boolean {
-    let http = ctx.getHttpContext();
-    // Check mapping
-    let route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
-    if (route === undefined) {
-      return false;
-    }
-    ctx.setRoute({ ...this.configuration, ...route });
-    ctx.setExecutor(this.getService(route.executor));
-    this.emit("Webda.UpdateContextRoute", { context: ctx });
-    return true;
   }
 
   /**
@@ -1139,6 +1137,35 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   public getGlobalContext(): GlobalContext {
     return this.globalContext;
+  }
+
+  /**
+   * Return the current context or global context
+   * @returns
+   */
+  public getContext<T extends Context>(): T {
+    return Core.asyncLocalStorage.getStore()?.context || this.globalContext;
+  }
+
+  /**
+   * Run this function as system
+   *
+   * @param run
+   * @returns
+   */
+  runAsSystem<T>(run: () => T): T {
+    return this.runInContext(this.globalContext, run);
+  }
+
+  /**
+   * Run this function as user
+   * @param context
+   * @param run
+   * @returns
+   */
+  runInContext<T>(context: Context, run: () => T): T {
+    const previousContext = Core.asyncLocalStorage.getStore()?.context;
+    return Core.asyncLocalStorage.run({ context, previousContext }, run);
   }
 
   /**
@@ -1213,6 +1240,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return params;
   }
 
+  /**
+   * Create services singleton
+   *
+   * @param services
+   * @param service
+   * @returns
+   */
   protected createService(services: any, service: string) {
     let type = services[service]?.type;
     if (type === undefined) {
@@ -1237,7 +1271,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
   }
 
-  getBeans() {
+  /**
+   * Get webda beans
+   * @returns
+   */
+  protected getBeans() {
     // @ts-ignore
     return process.webdaBeans || {};
   }
@@ -1319,6 +1357,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return value;
   }
 
+  /**
+   * Get current machine id for node identification
+   * @returns
+   */
   static getMachineId() {
     try {
       return process.env["WEBDA_MACHINE_ID"] || machineIdSync();
@@ -1379,16 +1421,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param info
    * @returns
    */
-  public async newContext<T extends OperationContext>(
-    info: ContextProviderInfo,
-    noInit: boolean = false
-  ): Promise<OperationContext> {
-    let context: OperationContext;
+  public async newContext<T extends Context>(info: ContextProviderInfo, noInit: boolean = false): Promise<Context> {
+    let context: Context;
     this._contextProviders.find(provider => (context = provider.getContext(info)) !== undefined);
     if (!noInit) {
       await context.init();
     }
-    await this.emitSync("Webda.NewContext", { context, info });
+    await this.emit("Webda.NewContext", { context, info });
     return <T>context;
   }
 
@@ -1427,7 +1466,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   public getUuid(format: "ascii" | "base64" | "hex" | "binary" | "uuid" = "uuid"): string {
     if (format === "uuid") {
-      return uuidv4().toString();
+      return randomUUID();
     }
     let buffer = Buffer.alloc(16);
     uuidv4(undefined, buffer);
@@ -1440,19 +1479,12 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   * @override
-   */
-  public emit<K extends keyof E>(eventType: K | symbol | string, event?: E[K], ...data: any[]): boolean {
-    return super.emit(<string>eventType, event, ...data);
-  }
-
-  /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  public emitSync<K extends keyof E>(eventType: K | symbol, event?: E[K], ...data: any[]): Promise<any[]> {
+  public emit<K extends keyof E>(eventType: K | symbol, event?: E[K], ...data: any[]): Promise<any[]> {
     let result;
     let promises = [];
-    let listeners = this.listeners(<string>eventType);
+    let listeners = this.emitter.listeners(<string>eventType);
     for (let listener of listeners) {
       result = listener(event, ...data);
       if (result instanceof Promise) {
@@ -1470,7 +1502,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @returns
    */
   on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void): this {
-    super.on(<string>event, listener);
+    this.emitter.on(<string>event, listener);
     return this;
   }
 
@@ -1510,107 +1542,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected async checkCORSRequest(ctx: WebContext): Promise<boolean> {
     return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
-  }
-
-  /**
-   * Export OpenAPI
-   * @param skipHidden
-   * @returns
-   */
-  exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
-    let packageInfo = this.application.getPackageDescription();
-    let contact: OpenAPIV3.ContactObject;
-    if (typeof packageInfo.author === "string") {
-      contact = {
-        name: packageInfo.author
-      };
-    } else if (packageInfo.author) {
-      contact = packageInfo.author;
-    }
-    let license: OpenAPIV3.LicenseObject;
-    if (typeof packageInfo.license === "string") {
-      license = {
-        name: packageInfo.license
-      };
-    } else if (packageInfo.license) {
-      license = packageInfo.license;
-    }
-    let openapi: OpenAPIV3.Document = deepmerge(
-      {
-        openapi: "3.0.3",
-        info: {
-          description: packageInfo.description,
-          version: packageInfo.version || "0.0.0",
-          title: packageInfo.title || "Webda-based application",
-          termsOfService: packageInfo.termsOfService,
-          contact,
-          license
-        },
-        components: {
-          schemas: {
-            Object: {
-              type: "object"
-            }
-          }
-        },
-        paths: {},
-        tags: []
-      },
-      this.application.getConfiguration().openapi || {}
-    );
-    let models = this.application.getModels();
-    const schemas = this.application.getSchemas();
-    // Copy all input/output from actions
-    for (let i in schemas) {
-      if (!(i.endsWith(".input") || i.endsWith(".output"))) {
-        continue;
-      }
-      // @ts-ignore
-      openapi.components.schemas[i] ??= schemas[i];
-      // Not sure how to test following
-      /* c8 ignore next 5 */
-      for (let j in schemas[i].definitions) {
-        // @ts-ignore
-        openapi.components.schemas[j] ??= schemas[i].definitions[j];
-      }
-    }
-    for (let i in models) {
-      let model = models[i];
-      let desc: JSONSchema7 = {
-        type: "object"
-      };
-      let modelName = model.name || i.split("/").pop();
-      let schema = this.application.getSchema(i);
-      if (schema) {
-        for (let j in schema.definitions) {
-          // @ts-ignore
-          openapi.components.schemas[j] ??= schema.definitions[j];
-        }
-        delete schema.definitions;
-        desc = schema;
-      }
-      // Remove empty required as openapi does not like that
-      // Our compiler is not generating this anymore but it is additional protection
-      /* c8 ignore next 3 */
-      if (desc.required && desc.required.length === 0) {
-        delete desc.required;
-      }
-      // Remove $schema
-      delete desc.$schema;
-      // Rename all #/definitions/ by #/components/schemas/
-      openapi.components.schemas[modelName] = JSON.parse(
-        JSON.stringify(desc).replace(/#\/definitions\//g, "#/components/schemas/")
-      );
-    }
-    this.router.completeOpenAPI(openapi, skipHidden);
-    openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    let paths = {};
-    Object.keys(openapi.paths)
-      .sort()
-      .forEach(i => (paths[i] = openapi.paths[i]));
-    openapi.paths = paths;
-
-    return openapi;
   }
 
   /**

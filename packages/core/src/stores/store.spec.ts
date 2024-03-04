@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { v4 as uuidv4 } from "uuid";
 import { Ident } from "../../test/models/ident";
-import { OperationContext, Store, StoreParameters, User, WebdaError } from "../index";
+import { Context, Core, Store, StoreParameters, User, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
@@ -14,7 +14,7 @@ import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./sto
  */
 export class PermissionModel extends CoreModel {
   order: number;
-  async canAct(ctx: OperationContext, _action: string): Promise<string | boolean> {
+  async canAct(ctx: Context, _action: string): Promise<string | boolean> {
     if (this.order % 200 < 120) {
       return false;
     }
@@ -25,12 +25,7 @@ export class PermissionModel extends CoreModel {
 class StoreParametersTest {
   @test
   cov() {
-    let params = new StoreParameters({ expose: "/plop", lastUpdateField: "bz", creationDateField: "c" }, undefined);
-    assert.deepStrictEqual(params.expose, {
-      queryMethod: "GET",
-      url: "/plop",
-      restrict: {}
-    });
+    let params = new StoreParameters({ lastUpdateField: "bz", creationDateField: "c" }, undefined);
     assert.throws(() => new StoreParameters({ map: {} }, undefined), Error);
     assert.throws(() => new StoreParameters({ index: [] }, undefined), Error);
   }
@@ -842,10 +837,13 @@ abstract class StoreTest extends WebdaTest {
     let store = this.getIdentStore();
     let model = await store.save({ counter: 1 });
     model.saveUpdateCompat = true;
-    await store.save(model, await this.newContext());
+    await Core.get().runInContext(await this.newContext(), async () => {
+      await store.save(model);
+    });
     model.saveInnerMethod = true;
-    model.setContext(await this.newContext());
-    await model.save();
+    await Core.get().runInContext(await this.newContext(), async () => {
+      await model.save();
+    });
     let model2 = await store.get(model.getUuid());
     store.on("Store.Update", async () => {
       model2._lastUpdate = new Date(100);

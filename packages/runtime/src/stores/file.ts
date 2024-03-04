@@ -1,9 +1,10 @@
+import WebdaQL from "@webda/ql";
+import { FilterAttributes } from "@webda/tsc-esm";
 import * as fs from "fs";
 import * as path from "path";
-import { CoreModel, FilterAttributes } from "../models/coremodel";
+import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
-import { WebdaQL } from "./webdaql/query";
 
 class FileStoreParameters extends StoreParameters {
   /**

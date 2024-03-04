@@ -1,4 +1,4 @@
-import { CoreModel, OperationContext, WebdaError } from "../index";
+import { Context, CoreModel, OperationContext, WebdaError } from "../index";
 abstract class RoleModel extends CoreModel {
   abstract getRolesMap(): { [key: string]: string };
 
@@ -6,8 +6,13 @@ abstract class RoleModel extends CoreModel {
     return false;
   }
 
-  async getRoles(ctx: OperationContext) {
-    if (!ctx.getCurrentUserId()) {
+  /**
+   * Get the roles of the current user
+   * @param ctx
+   * @returns
+   */
+  async getRoles(ctx: Context) {
+    if (!(ctx instanceof OperationContext)) {
       throw new WebdaError.Forbidden("No user");
     }
     // If roles are cached in session
@@ -16,10 +21,13 @@ abstract class RoleModel extends CoreModel {
     }
     let user = await ctx.getCurrentUser();
     // Cache roles in session
-    ctx.getSession().roles = user.getRoles();
+    ctx.getSession().roles = user?.getRoles();
     return ctx.getSession().roles;
   }
 
+  /**
+   * @override
+   */
   async canAct(ctx: OperationContext, action: string): Promise<string | boolean> {
     // If this action doesn't require role
     if (!this.getRolesMap()[action]) {

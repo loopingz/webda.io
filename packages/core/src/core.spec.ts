@@ -9,10 +9,10 @@ import {
   Bean,
   CancelablePromise,
   ConsoleLoggerService,
+  Context,
   ContextProvider,
   CoreModel,
   MemoryStore,
-  OperationContext,
   Route,
   Service,
   User,
@@ -699,7 +699,7 @@ class CoreTest extends WebdaTest {
         return undefined;
       }
     };
-    assert.ok(this.webda["_contextProviders"][0].getContext({}) instanceof OperationContext);
+    assert.ok(this.webda["_contextProviders"][0].getContext({}) instanceof Context);
     this.webda.registerContextProvider(provider);
     this.webda.getService("Registry").stop = async () => {
       throw new Error("Test");

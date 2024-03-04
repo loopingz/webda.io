@@ -53,7 +53,7 @@ interface IndexParameter {
   };
 }
 
-interface IndexInfo extends IndexParameter {
+export interface IndexInfo extends IndexParameter {
   _store?: Store;
   _model?: CoreModelDefinition;
   name: string;
@@ -427,7 +427,11 @@ export default class ElasticSearchService<
    */
   checkIndex(index: string): IndexInfo {
     if (!this.indexes[index]) {
-      throw new ESUnknownIndexError(index);
+      let parentIndex = Object.keys(this.indexes).find(i => index.startsWith(i));
+      if (!parentIndex) {
+        throw new ESUnknownIndexError(index);
+      }
+      return this.indexes[parentIndex];
     }
     return this.indexes[index];
   }

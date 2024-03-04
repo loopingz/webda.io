@@ -4,6 +4,28 @@ import { Ident } from "./ident";
 import { ModelsMapped } from "./relations";
 
 /**
+ * Public entry for user
+ */
+export interface UserPublicEntry {
+  /**
+   * Display name
+   */
+  displayName?: string;
+  /**
+   * UUID of the user
+   */
+  uuid: string;
+  /**
+   * Avatar of the user
+   */
+  avatar?: string;
+  /**
+   * Email of the user
+   */
+  email?: string;
+}
+
+/**
  * First basic model for User
  * @class
  * @WebdaModel
@@ -50,14 +72,13 @@ export class User extends CoreModel {
    * Return displayable public entry
    * @returns
    */
-  toPublicEntry(): any {
-    const res = {
+  toPublicEntry(): UserPublicEntry {
+    return {
       displayName: this.displayName,
       uuid: this.getUuid(),
       avatar: this._avatar,
       email: this.getEmail()
     };
-    return res;
   }
 
   getGroups(): string[] {

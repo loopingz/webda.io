@@ -277,7 +277,7 @@
                 "retry": {
                   "anyOf": [
                     {
-                      "$ref": "#/definitions/Partial%3Cclass-657338214-822-3488-657338214-0-17392%3E"
+                      "$ref": "#/definitions/Partial%3Cclass-657338214-735-3044-657338214-0-15050%3E"
                     },
                     {
                       "type": "null"
@@ -391,16 +391,7 @@
                     "currentRetryAttempt": {
                       "type": "number"
                     },
-                    "shouldRetryFn": {},
-                    "maxRetryDelay": {
-                      "type": "number"
-                    },
-                    "retryDelayMultiplier": {
-                      "type": "number"
-                    },
-                    "totalTimeout": {
-                      "type": "number"
-                    }
+                    "shouldRetryFn": {}
                   }
                 }
               }
@@ -603,13 +594,6 @@
                         }
                       ],
                       "description": "BigQueryConfig state"
-                    },
-                    "useTableSchema": {
-                      "type": [
-                        "boolean",
-                        "null"
-                      ],
-                      "description": "BigQueryConfig useTableSchema"
                     }
                   },
                   "description": "Properties of a BigQueryConfig."
@@ -1239,7 +1223,7 @@
             }
           }
         },
-        "Partial<class-657338214-822-3488-657338214-0-17392>": {
+        "Partial<class-657338214-735-3044-657338214-0-15050>": {
           "type": "object",
           "properties": {
             "retryCodes": {
@@ -1293,9 +1277,7 @@
                 "retryDelayMultiplier",
                 "maxRetryDelayMillis"
               ]
-            },
-            "shouldRetryFn": {},
-            "getResumptionRequestFn": {}
+            }
           }
         },
         "google.pubsub.v1.BigQueryConfig.State": {

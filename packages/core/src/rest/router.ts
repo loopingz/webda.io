@@ -1,10 +1,8 @@
+import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import uriTemplates from "uri-templates";
-import { Core } from "./core";
-import { CoreModel, CoreModelDefinition } from "./models/coremodel";
-import { WebContext } from "./utils/context";
-import { HttpMethodType } from "./utils/httpcontext";
+import { Core, CoreModel, CoreModelDefinition, HttpMethodType, WebContext } from "..";
 
 type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
@@ -516,5 +514,107 @@ export class Router {
         });
       });
     }
+  }
+
+  /**
+   * Export OpenAPI
+   * @param skipHidden
+   * @returns
+   */
+  exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
+    const app = Core.get().getApplication();
+    let packageInfo = app.getPackageDescription();
+    let contact: OpenAPIV3.ContactObject;
+    if (typeof packageInfo.author === "string") {
+      contact = {
+        name: packageInfo.author
+      };
+    } else if (packageInfo.author) {
+      contact = packageInfo.author;
+    }
+    let license: OpenAPIV3.LicenseObject;
+    if (typeof packageInfo.license === "string") {
+      license = {
+        name: packageInfo.license
+      };
+    } else if (packageInfo.license) {
+      license = packageInfo.license;
+    }
+    let openapi: OpenAPIV3.Document = deepmerge(
+      {
+        openapi: "3.0.3",
+        info: {
+          description: packageInfo.description,
+          version: packageInfo.version || "0.0.0",
+          title: packageInfo.title || "Webda-based application",
+          termsOfService: packageInfo.termsOfService,
+          contact,
+          license
+        },
+        components: {
+          schemas: {
+            Object: {
+              type: "object"
+            }
+          }
+        },
+        paths: {},
+        tags: []
+      },
+      app.getConfiguration().openapi || {}
+    );
+    let models = app.getModels();
+    const schemas = app.getSchemas();
+    // Copy all input/output from actions
+    for (let i in schemas) {
+      if (!(i.endsWith(".input") || i.endsWith(".output"))) {
+        continue;
+      }
+      // @ts-ignore
+      openapi.components.schemas[i] ??= schemas[i];
+      // Not sure how to test following
+      /* c8 ignore next 5 */
+      for (let j in schemas[i].definitions) {
+        // @ts-ignore
+        openapi.components.schemas[j] ??= schemas[i].definitions[j];
+      }
+    }
+    for (let i in models) {
+      let model = models[i];
+      let desc: JSONSchema7 = {
+        type: "object"
+      };
+      let modelName = model.name || i.split("/").pop();
+      let schema = Core.get().getApplication().getSchema(i);
+      if (schema) {
+        for (let j in schema.definitions) {
+          // @ts-ignore
+          openapi.components.schemas[j] ??= schema.definitions[j];
+        }
+        delete schema.definitions;
+        desc = schema;
+      }
+      // Remove empty required as openapi does not like that
+      // Our compiler is not generating this anymore but it is additional protection
+      /* c8 ignore next 3 */
+      if (desc.required && desc.required.length === 0) {
+        delete desc.required;
+      }
+      // Remove $schema
+      delete desc.$schema;
+      // Rename all #/definitions/ by #/components/schemas/
+      openapi.components.schemas[modelName] = JSON.parse(
+        JSON.stringify(desc).replace(/#\/definitions\//g, "#/components/schemas/")
+      );
+    }
+    this.completeOpenAPI(openapi, skipHidden);
+    openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    let paths = {};
+    Object.keys(openapi.paths)
+      .sort()
+      .forEach(i => (paths[i] = openapi.paths[i]));
+    openapi.paths = paths;
+
+    return openapi;
   }
 }

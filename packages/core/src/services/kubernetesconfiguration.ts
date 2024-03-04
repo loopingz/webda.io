@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WebdaError } from "../index";
+import { ServiceParameters, WebdaError } from "../index";
 import { FileUtils } from "../utils/serializers";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 
@@ -12,24 +12,31 @@ import { ConfigurationService, ConfigurationServiceParameters } from "./configur
  */
 export class KubernetesConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
   /**
+   * @override
+   */
+  loadParameters(params: any): ServiceParameters {
+    let res = new ConfigurationServiceParameters(params);
+    // Do not call super as we diverged
+    if (!res.source) {
+      throw new WebdaError.CodeError(
+        "KUBE_CONFIGURATION_SOURCE_MISSING",
+        "Need a source for KubernetesConfigurationService"
+      );
+    }
+    res.source = this.webda.getAppPath(res.source);
+    if (!fs.existsSync(res.source)) {
+      throw new WebdaError.CodeError(
+        "KUBE_CONFIGURATION_SOURCE_MISSING",
+        "Need a source for KubernetesConfigurationService"
+      );
+    }
+    return res;
+  }
+
+  /**
    * @ignore
    */
   async init(): Promise<this> {
-    // Do not call super as we diverged
-    if (!this.parameters.source) {
-      throw new WebdaError.CodeError(
-        "KUBE_CONFIGURATION_SOURCE_MISSING",
-        "Need a source for KubernetesConfigurationService"
-      );
-    }
-    this.parameters.source = this._webda.getAppPath(this.parameters.source);
-    if (!fs.existsSync(this.parameters.source)) {
-      throw new WebdaError.CodeError(
-        "KUBE_CONFIGURATION_SOURCE_MISSING",
-        "Need a source for KubernetesConfigurationService"
-      );
-    }
-
     // Add webda info
     this.watch("$.services", (updates: any) => this._webda.reinit(updates));
 

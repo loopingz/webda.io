@@ -1,3 +1,4 @@
+import { NotEnumerable } from "@webda/tsc-esm";
 import { WorkerLogLevel } from "@webda/workout";
 import acceptLanguage from "accept-language";
 import * as http from "http";
@@ -5,7 +6,6 @@ import sanitize from "sanitize-html";
 import { Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
 import { Core } from "../core";
-import { NotEnumerable } from "../models/coremodel";
 import { User } from "../models/user";
 import { Service } from "../services/service";
 import { Session, SessionManager } from "../utils/session";

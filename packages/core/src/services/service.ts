@@ -1,20 +1,10 @@
+import { Constructor, DeepPartial } from "@webda/tsc-esm";
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
-import * as events from "events";
-import {
-  Constructor,
-  Context,
-  Core,
-  Counter,
-  EventEmitterUtils,
-  Gauge,
-  Histogram,
-  Logger,
-  MetricConfiguration
-} from "../index";
-import { OpenAPIWebdaDefinition } from "../router";
+import { EventType, Subscription } from "../events";
+import { Context, Core, Counter, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
+import { OpenAPIWebdaDefinition } from "../rest/router";
 import { HttpMethodType } from "../utils/httpcontext";
-import { EventService } from "./asyncevents";
 
 /**
  * Represent a Inject annotation
@@ -269,17 +259,6 @@ export class ServiceParameters {
   }
 }
 
-/**
- * Create a new type with only optional
- */
-export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
-};
-
-export type PartialModel<T> = {
-  [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel<T[P]> : T[P] | null;
-};
-
 export type Events = {
   [key: string]: unknown;
 };
@@ -294,27 +273,13 @@ export type Events = {
  * @abstract
  * @class Service
  */
-abstract class Service<
-  T extends ServiceParameters = ServiceParameters,
-  E extends Events = Events
-> extends events.EventEmitter {
-  /**
-   * Webda Core object
-   */
-  protected _webda: Core;
-  /**
-   * Service name
-   */
-  protected _name: string;
+abstract class Service<T extends ServiceParameters = ServiceParameters, E extends EventType = never> {
   /**
    * Hold the parameters for your service
    *
    * It will be bring from the `webda.config.json`
    */
-  protected parameters: T;
-  _createException: string;
-  _initTime: number;
-  _initException: any = undefined;
+  protected parameters: Readonly<T>;
   /**
    * Logger with class context
    */
@@ -331,12 +296,13 @@ abstract class Service<
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(webda: Core, name: string, params: DeepPartial<T> = {}) {
-    super();
+  constructor(
+    protected webda: Core,
+    protected name: string,
+    params: DeepPartial<T> = {}
+  ) {
     this.logger = webda ? webda.getLogger(this) : undefined;
-    this._webda = webda;
-    this._name = name;
-    this.parameters = <T>this.loadParameters(params);
+    this.parameters = Object.freeze(<T>this.loadParameters(params));
   }
 
   /**
@@ -364,7 +330,7 @@ abstract class Service<
    * Return WebdaCore
    */
   getWebda(): Core {
-    return this._webda;
+    return this.webda;
   }
 
   /**
@@ -378,7 +344,7 @@ abstract class Service<
    * Return service representation
    */
   toString() {
-    return this.parameters.type + "[" + this._name + "]";
+    return this.parameters.type + "[" + this.name + "]";
   }
 
   /**
@@ -490,10 +456,10 @@ abstract class Service<
     if (!finalUrl) {
       return;
     }
-    this._webda.addRoute(finalUrl, {
+    this.webda.addRoute(finalUrl, {
       // Create bounded function to keep the context
       _method: executer.bind(this),
-      executor: this._name,
+      executor: this.name,
       openapi: deepmerge(openapi, this.parameters.openapi || {}),
       methods,
       override
@@ -532,7 +498,7 @@ abstract class Service<
       const id = this.getOperationId(j);
       if (!id) continue;
       this.log("TRACE", "Adding operation", id, "for bean", this.getName());
-      this._webda.registerOperation(j.includes(".") ? j : `${this.getName()}.${j}`, {
+      this.webda.registerOperation(j.includes(".") ? j : `${this.getName()}.${j}`, {
         ...operations[j],
         service: this.getName(),
         input: `${this.getName()}.${operations[j].method}.input`,
@@ -550,7 +516,7 @@ abstract class Service<
    * @return {String} The export of the strip object ( removed all attribute with _ )
    */
   toPublicJSON(object: unknown) {
-    return this._webda.toPublicJSON(object);
+    return this.webda.toPublicJSON(object);
   }
 
   /**
@@ -558,7 +524,7 @@ abstract class Service<
    * @returns
    */
   toJSON() {
-    return this._name;
+    return this.name;
   }
 
   /**
@@ -583,71 +549,18 @@ abstract class Service<
   }
 
   /**
-   * Emit the event with data and wait for Promise to finish if listener returned a Promise
-   * @deprecated
-   */
-  emitSync<Key extends keyof E>(event: Key, data: E[Key]): Promise<any[]> {
-    return EventEmitterUtils.emitSync(this, event, data);
-  }
-
-  /**
-   * Override to allow capturing long listeners
-   * @override
-   */
-  emit<Key extends keyof E>(event: Key | symbol, data: E[Key]): boolean {
-    return EventEmitterUtils.emit(this, event, data);
-  }
-
-  /**
-   * Type the listener part
-   * @param event
-   * @param listener
-   * @param clusterWide if true will listen to all events even if they are not emitted by this cluster node
-   * @returns
-   */
-  on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void, clusterWide?: boolean): this {
-    if (clusterWide) {
-      super.on(<string>event, listener);
-    } else {
-      super.on(<string>event, evt => (evt.emitterId ? undefined : listener(evt)));
-    }
-    return this;
-  }
-
-  /**
-   * Listen to an event as on(...) would do except that it will be asynchronous
-   * @param event
-   * @param callback
-   * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
-   */
-  onAsync<Key extends keyof E>(
-    event: Key,
-    listener: (evt: E[Key]) => void,
-    queue: string = undefined,
-    clusterWide?: boolean
-  ) {
-    if (clusterWide) {
-      this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
-    } else {
-      this._webda
-        .getService<EventService>("AsyncEvents")
-        .bindAsyncListener(this, <string>event, evt => (evt.emitterId ? undefined : listener(evt)), queue);
-    }
-  }
-
-  /**
    * Return a webda service
    * @param service name to retrieve
    */
   getService<K extends Service<ServiceParameters>>(service: string): K {
-    return this._webda.getService<K>(service);
+    return this.webda.getService<K>(service);
   }
 
   /**
    * Get service name
    */
   getName(): string {
-    return this._name;
+    return this.name;
   }
 
   /**
@@ -677,7 +590,35 @@ abstract class Service<
    */
   log(level: WorkerLogLevel, ...args: any[]) {
     // Add the service name to avoid confusion
-    this.logger.log(level, `[${this._name}]`, ...args);
+    this.logger.log(level, `[${this.name}]`, ...args);
+  }
+
+  /**
+   * Register for a specific event
+   * @param event
+   * @param callback
+   */
+  on(event: EventType | string | (string | EventType)[], callback: Function, name?: string) {
+    // Capture types
+    const types = (Array.isArray(event) ? event : [event]).map((e: string | EventType) => {
+      if (typeof e !== "string") {
+        return e.getType(this.constructor);
+      } else {
+        return e;
+      }
+    });
+    // If name is not specified we try to capture the stack
+    if (!name) {
+      let stack;
+      Error.captureStackTrace(stack);
+      console.log(stack);
+    }
+    // Create the subscription
+    new Subscription()
+      .load({
+        types
+      })
+      .register(callback);
   }
 }
 

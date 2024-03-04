@@ -114,8 +114,8 @@ export interface NATSSettings {
  * basic structure:
  *
  */
-export default class Subscription {
-  id: string = "";
+export default interface Subscription {
+  id: string;
   /**
    * Indicates the source to which the subscription is related. When present on a subscribe request,
    * all events generated due to this subscription MUST have a CloudEvents source property that
@@ -155,13 +155,13 @@ export default class Subscription {
    *
    * Value comparisons are case sensitive.
    */
-  protocol: "HTTP" | "MQTT" | "WEBDA" = "HTTP";
+  protocol: "HTTP" | "MQTT" | "WEBDA";
   /**
    * A set of settings specific to the selected delivery protocol provider. Options for these
    * settings are listed in the following subsection. An subscription manager MAY offer more options.
    * See the Protocol Settings section for future details.
    */
-  protocolsettings?: HttpSettings | MQTTSettings | AMQPSettings | KafkaSettings | NATSSettings = {};
+  protocolsettings?: HttpSettings | MQTTSettings | AMQPSettings | KafkaSettings | NATSSettings;
   /**
    * The address to which events MUST be sent. The format of the address MUST be valid for the
    * protocol specified in the protocol property, or one of the protocol's own transport bindings
@@ -169,7 +169,7 @@ export default class Subscription {
    *
    * @required
    */
-  sink: string = "";
+  sink: string;
   /**
    * An array of filter expressions that evaluates to true or false. If any filter expression in the
    * array evaluates to false, the event MUST NOT be sent to the sink. If all the filter expressions
@@ -184,52 +184,71 @@ export default class Subscription {
    * subscription request, then it MUST generate an error and reject the subscription create or
    * update request.
    */
-  filters: Filter[] = [];
+  filters: Filter[];
+}
+
+/**
+ * Subscription Mixin to add default behavior to a subscription
+ * @param clazz
+ * @returns
+ */
+export function SubscriptionMixIn(clazz: any) {
   /**
    * Filter implementation
    */
-  protected resolvedFilters: FilterImplementation;
-  /**
-   *
-   */
-  private emitter: EmitterFunction;
+  let resolvedFilters: FilterImplementation;
 
   /**
-   * Verify that an event match its filters
-   * @param event
-   * @returns
+   * Emitter
    */
-  match(event: CloudEvent): boolean {
-    // Need to filter first on types
-    if (this.types && !this.types.includes(event.type)) {
-      return false;
-    }
-    this.resolvedFilters ??= FiltersHelper.get({ all: this.filters });
-    return this.resolvedFilters.match(event);
-  }
+  let emitter: EmitterFunction;
+  return class extends clazz implements Subscription {
+    id: string;
+    source?: string;
+    types?: string[];
+    config?: { [key: string]: string };
+    protocol: "HTTP" | "MQTT" | "WEBDA" = "HTTP";
+    protocolsettings?: HttpSettings | MQTTSettings | AMQPSettings | KafkaSettings | NATSSettings;
+    sink: string = "";
+    filters: Filter[] = [];
 
-  /**
-   * Create the emitter for the subscription
-   * @returns
-   */
-  createEmitter() {
-    if (this.protocol === "HTTP") {
-      return emitterFor(httpTransport(this.sink), this.protocolsettings as any);
+    /**
+     * Verify that an event match its filters
+     * @param event
+     * @returns
+     */
+    match(event: CloudEvent): boolean {
+      // Need to filter first on types
+      if (this.types && !this.types.includes(event.type)) {
+        return false;
+      }
+      resolvedFilters ??= FiltersHelper.get({ all: this.filters });
+      return resolvedFilters.match(event);
     }
-  }
 
-  /**
-   * Emit a cloudevent
-   * @param event
-   */
-  async emit(event: CloudEvent) {
-    // Ensure the subscription match the event
-    if (!this.match(event)) {
-      return;
+    /**
+     * Create the emitter for the subscription
+     * @returns
+     */
+    createEmitter() {
+      if (this.protocol === "HTTP") {
+        return emitterFor(httpTransport(this.sink), this.protocolsettings as any);
+      }
     }
-    this.emitter ??= this.createEmitter();
-    await this.emitter(event);
-  }
+
+    /**
+     * Emit a cloudevent
+     * @param event
+     */
+    async emit(event: CloudEvent) {
+      // Ensure the subscription match the event
+      if (!this.match(event)) {
+        return;
+      }
+      emitter ??= this.createEmitter();
+      await emitter(event);
+    }
+  };
 }
 
 export { Subscription };

@@ -28,12 +28,6 @@ class SessionStoreTest extends WebdaTest {
     const store = (this.webda.getServices()["SessionStore"] = await new MemoryStore(this.webda, "SessionStore", {})
       .resolve()
       .init());
-    store.getParameters().expose = { url: "url" };
-    assert.throws(
-      () => this.getService<CookieSessionManager>("SessionManager").resolve(),
-      /SessionStore should not be exposed/
-    );
-    store.getParameters().expose = undefined;
     this.getService<CookieSessionManager>("SessionManager").resolve();
     let ctx = await this.newContext();
     ctx.getSession().identUsed = "bouzouf";

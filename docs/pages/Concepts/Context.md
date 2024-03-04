@@ -1,6 +1,8 @@
 # Context
 
-The Context is used to expose Session and globally all information aroudn the current operation.
+The Context is used to expose Session and globally all information around the current operation. It is the execution Context, it leverages NodeJS [Asynchronous context tracking](https://nodejs.org/api/async_context.html)
+
+You can access the context from anywhere using the hook `useContext` from `@webda/core`.
 
 As we have the ability to execute outside of `http` context the Context is not directly linked to the `http` request.
 

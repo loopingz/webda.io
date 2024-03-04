@@ -25,8 +25,8 @@ export default class AclModel extends CoreModel {
   /**
    * Ensure creator has all permissions by default
    */
-  async _onSave() {
-    await super._onSave();
+  async _onCreate() {
+    await super._onCreate();
     this._creator = this.getContext().getCurrentUserId();
     if (Object.keys(this.__acl).length === 0 && this._creator) {
       this.__acl[this._creator] = "all";

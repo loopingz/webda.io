@@ -59,7 +59,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
     try {
       await this._cleanUsage(info.hash, uuid);
     } catch (err) {
-      this._webda.log("WARN", "Cascade delete failed", err);
+      this.webda.log("WARN", "Cascade delete failed", err);
     }
   }
 

@@ -10,7 +10,7 @@ import { Binaries, Binary, BinaryService, MemoryBinaryFile } from "../services/b
 import { ModelMapper } from "../stores/modelmapper";
 import { WebdaTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
-import { CoreModel, Emitters } from "./coremodel";
+import { CoreModel } from "./coremodel";
 import {
   ModelLink,
   ModelLinksArray,
@@ -82,11 +82,6 @@ interface ContactInterface extends CoreModel {
 }
 @suite
 export class ModelDrivenTest extends WebdaTest {
-  after() {
-    // Ensure we remove all listeners
-    Object.values(this.webda.getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
-  }
-
   @test
   async test() {
     // Init mapper

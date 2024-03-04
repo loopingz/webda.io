@@ -1,4 +1,5 @@
-import { CoreModel, ModelRef } from "../models/coremodel";
+import { CoreModel } from "../models/coremodel";
+import { ModelRef } from "../models/coremodelref";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { EventStoreDeleted, EventStorePartialUpdated, EventStoreSaved, EventStoreUpdate, Store } from "./store";
 

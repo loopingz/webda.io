@@ -1,12 +1,14 @@
 "use strict";
+import { NotEnumerable } from "@webda/tsc-esm";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
-import { Core, Counter, WebdaError } from "../index";
-import { CoreModel, NotEnumerable } from "../models/coremodel";
-import { EventStoreDeleted, MappingService, Store } from "../stores/store";
+import { Event } from "../events";
+import { Core, Counter, FileBinary, WebdaError } from "../index";
+import { CoreModel } from "../models/coremodel";
+import { MappingService, Store } from "../stores/store";
 import { Context, WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -33,6 +35,13 @@ export interface EventBinaryMetadataUpdate extends EventBinaryUploadSuccess {
   target: CoreModel;
   metadata: BinaryMetadata;
 }
+
+export class BinaryGetEvent extends Event<{ object: FileBinary }> {}
+export class BinaryDeleteEvent extends Event<{ object: FileBinary }> {}
+export class BinaryUploadSuccessEvent extends Event<{ object: FileBinary; target: CoreModel }> {}
+export class BinaryCreateEvent extends Event<{ object: FileBinary; target: CoreModel }> {}
+export class BinaryMetadataUpdateEvent extends Event<{ object: FileBinary }> {}
+export class BinaryMetadataUpdatedEvent extends Event<{ object: FileBinary }> {}
 
 /**
  * Emitted if binary does not exist
@@ -564,11 +573,8 @@ export type BinaryModel<T = { [key: string]: BinaryMap[] }> = CoreModel & T;
  * @abstract
  * @WebdaModda Binary
  */
-export abstract class BinaryService<
-    T extends BinaryParameters = BinaryParameters,
-    E extends BinaryEvents = BinaryEvents
-  >
-  extends Service<T, E>
+export abstract class BinaryService<T extends BinaryParameters = BinaryParameters>
+  extends Service<T>
   implements MappingService<BinaryMap>
 {
   _lowercaseMaps: any;
@@ -620,11 +626,12 @@ export abstract class BinaryService<
     }
     await object.checkAct(context, "get_binary");
     const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
-    await this.emitSync("Binary.Get", {
-      object: file,
-      service: this,
-      context: context
-    });
+    await new BinaryGetEvent(
+      {
+        object: file
+      },
+      this
+    ).emit();
     let url = await this.getRedirectUrlFromObject(file, context);
     // No url, we return the file
     if (url === null) {
@@ -752,10 +759,12 @@ export abstract class BinaryService<
    * @emits 'binaryGet'
    */
   async get(info: BinaryMap): Promise<Readable> {
-    await this.emitSync("Binary.Get", {
-      object: info,
-      service: this
-    });
+    await new BinaryGetEvent(
+      {
+        object: info
+      },
+      this
+    ).emit();
     this.metrics.download.inc();
     return this._get(info);
   }
@@ -767,10 +776,12 @@ export abstract class BinaryService<
    * @param {String} filepath to save the binary to
    */
   async downloadTo(info: BinaryMap, filename): Promise<void> {
-    await this.emitSync("Binary.Get", {
-      object: info,
-      service: this
-    });
+    await new BinaryGetEvent(
+      {
+        object: info
+      },
+      this
+    ).emit();
     this.metrics.download.inc();
     let readStream: any = await this._get(info);
     let writeStream = fs.createWriteStream(filename);
@@ -784,7 +795,7 @@ export abstract class BinaryService<
           // Stubing the fs module in ESM seems complicated for now
           /* c8 ignore next 3 */
         } catch (err) {
-          this._webda.log("ERROR", err);
+          this.webda.log("ERROR", err);
         }
         return reject(src);
       });
@@ -815,16 +826,17 @@ export abstract class BinaryService<
     this._lowercaseMaps = {};
     Object.keys(map).forEach(prop => {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
-      let reverseStore = this._webda.getService(prop);
+      let reverseStore = this.webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
-        this._webda.log("WARN", "Can't setup mapping as store ", prop, " doesn't exist");
+        this.webda.log("WARN", "Can't setup mapping as store ", prop, " doesn't exist");
         map[prop]["-onerror"] = "NoStore";
         return;
       }
       for (let i in map[prop]) {
-        reverseStore.addReverseMap(map[prop][i], this);
+        reverseStore["addReverseMap"](map[prop][i], this);
       }
       // Cascade delete
+      /*
       reverseStore.on("Store.Deleted", async (evt: EventStoreDeleted) => {
         let infos = [];
         if (evt.object[map[prop]]) {
@@ -832,6 +844,7 @@ export abstract class BinaryService<
         }
         await Promise.all(infos.map(info => this.cascadeDelete(info, evt.object.getUuid())));
       });
+      */
     });
   }
 
@@ -870,21 +883,7 @@ export abstract class BinaryService<
     if (this.handleBinary(object.__type, property) !== -1) {
       return;
     }
-    // DELETE_IN_4.0.0
-    const name = object.getStore().getName();
-    let map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
-    if (map === undefined) {
-      throw new Error("Unknown mapping");
-    }
-    if (Array.isArray(map) && map.indexOf(property) === -1) {
-      throw new Error("Unknown mapping");
-    }
-    /*
-    // END_DELETE_IN_4.0.0
     throw new Error("Unknown mapping");
-    // DELETE_IN_4.0.0
-    */
-    // END_DELETE_IN_4.0.0
   }
 
   /**
@@ -896,11 +895,13 @@ export abstract class BinaryService<
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
       return;
     }
-    await this.emitSync("Binary.UploadSuccess", {
-      object: file,
-      service: this,
-      target: object
-    });
+    await new BinaryUploadSuccessEvent(
+      {
+        object: file,
+        target: object
+      },
+      this
+    ).emit();
     const relations = this.getWebda().getApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     if (cardinality === "MANY") {
@@ -908,11 +909,13 @@ export abstract class BinaryService<
     } else {
       await object.getStore().setAttribute(object_uid, property, file);
     }
-    await this.emitSync("Binary.Create", {
-      object: file,
-      service: this,
-      target: object
-    });
+    await new BinaryCreateEvent(
+      {
+        object: file,
+        target: object
+      },
+      this
+    ).emit();
     this.metrics.upload.inc();
   }
 
@@ -942,10 +945,12 @@ export abstract class BinaryService<
     } else {
       object.getStore().removeAttribute(object.getUuid(), property);
     }
-    await this.emitSync("Binary.Delete", {
-      object: info,
-      service: this
-    });
+    await new BinaryDeleteEvent(
+      {
+        object: info
+      },
+      this
+    ).emit();
     this.metrics.delete.inc();
     return update;
   }
@@ -1140,7 +1145,7 @@ export abstract class BinaryService<
    * @returns
    */
   protected getOperationName(): string {
-    return this._name.toLowerCase() === "binary" ? "" : this._name;
+    return this.name.toLowerCase() === "binary" ? "" : this.name;
   }
 
   /**
@@ -1253,14 +1258,16 @@ export abstract class BinaryService<
           throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
         }
         let evt = {
-          service: this,
           object: file,
           target: object
         };
-        await this.emitSync("Binary.MetadataUpdate", {
-          ...evt,
-          metadata
-        });
+        await new BinaryMetadataUpdateEvent(
+          {
+            ...evt,
+            metadata
+          },
+          this
+        ).emit();
         file.metadata = metadata;
         // Update mapper on purpose
         await object.getStore().patch(
@@ -1271,7 +1278,13 @@ export abstract class BinaryService<
           false
         );
         this.metrics.metadataUpdate.inc();
-        await this.emitSync("Binary.MetadataUpdated", evt);
+        await new BinaryMetadataUpdatedEvent(
+          {
+            ...evt,
+            metadata
+          },
+          this
+        ).emit();
       }
     }
   }

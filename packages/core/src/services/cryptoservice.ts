@@ -1,3 +1,4 @@
+import { DeepPartial } from "@webda/tsc-esm";
 import {
   createCipheriv,
   createDecipheriv,
@@ -11,7 +12,7 @@ import jwt from "jsonwebtoken";
 import * as util from "util";
 import { Core, OperationContext, RegistryEntry, Store } from "../index";
 import { JSONUtils } from "../utils/serializers";
-import { DeepPartial, Inject, Route, Service, ServiceParameters } from "./service";
+import { Inject, Route, Service, ServiceParameters } from "./service";
 
 export class SecretString {
   constructor(

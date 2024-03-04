@@ -1,5 +1,5 @@
 import { existsSync, watchFile } from "fs";
-import { WebdaError } from "../index";
+import { ServiceParameters, WebdaError } from "../index";
 import { FileUtils } from "../utils/serializers";
 import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
 
@@ -10,23 +10,37 @@ import ConfigurationService, { ConfigurationServiceParameters } from "./configur
 export class FileConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters
 > extends ConfigurationService<T> {
-  /** @ignore */
-  async init(): Promise<this> {
-    // Do not call super as we diverged
-    if (!this.parameters.source) {
+  /**
+   * @override
+   */
+  loadParameters(params: any): ServiceParameters {
+    let res = new ConfigurationServiceParameters(params);
+    if (!res.source) {
       throw new WebdaError.CodeError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
     // Load it from where it should be
-    this.parameters.source = this._webda.getAppPath(this.parameters.source);
-    if (!existsSync(this.parameters.source)) {
-      throw new WebdaError.CodeError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
+    res.source = this.webda.getAppPath(res.source);
+    if (!existsSync(res.source)) {
+      if (res.default) {
+        FileUtils.save(res.default, res.source);
+      } else {
+        throw new WebdaError.CodeError(
+          "FILE_CONFIGURATION_SOURCE_MISSING",
+          "Need a source for FileConfigurationService"
+        );
+      }
     }
+    return res;
+  }
 
+  /** @ignore */
+  async init(): Promise<this> {
+    // Do not call super as we diverged
     watchFile(this.parameters.source, this.checkUpdate.bind(this));
 
     // Add webda info
-    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
+    this.watch("$.services", (updates: any) => this.webda.reinit(updates));
 
     await this.checkUpdate();
     return this;
@@ -38,21 +52,5 @@ export class FileConfigurationService<
    */
   protected async loadConfiguration(): Promise<{ [key: string]: any }> {
     return FileUtils.load(this.parameters.source);
-  }
-
-  /**
-   * Read the file and store it
-   */
-  async initConfiguration(): Promise<{ [key: string]: any }> {
-    this.parameters.source = this._webda.getAppPath(this.parameters.source);
-
-    /**
-     * Auto-generate file if missing
-     */
-    if (!existsSync(this.parameters.source) && this.parameters.default) {
-      FileUtils.save(this.parameters.default, this.parameters.source);
-    }
-
-    return this.loadAndStoreConfiguration();
   }
 }

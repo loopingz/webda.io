@@ -25,12 +25,7 @@ export class PermissionModel extends CoreModel {
 class StoreParametersTest {
   @test
   cov() {
-    let params = new StoreParameters({ expose: "/plop", lastUpdateField: "bz", creationDateField: "c" }, undefined);
-    assert.deepStrictEqual(params.expose, {
-      queryMethod: "GET",
-      url: "/plop",
-      restrict: {}
-    });
+    let params = new StoreParameters({ lastUpdateField: "bz", creationDateField: "c" }, undefined);
     assert.throws(() => new StoreParameters({ map: {} }, undefined), Error);
     assert.throws(() => new StoreParameters({ index: [] }, undefined), Error);
   }

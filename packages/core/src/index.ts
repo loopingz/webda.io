@@ -27,7 +27,6 @@ export * from "./queues/pubsubservice";
 export * from "./queues/queueservice";
 
 // Services
-export * from "./services/asyncevents";
 export * from "./services/authentication";
 export * from "./services/binary";
 export * from "./services/cloudbinary"; // move to runtime
@@ -43,13 +42,9 @@ export * from "./services/kubernetesconfiguration"; // move to runtime
 export * from "./services/mailer";
 export * from "./services/notificationservice";
 export * from "./services/oauth";
-export * from "./services/resource"; // move to runtime
 export * from "./services/service";
 
 // Stores
-export * from "./stores/aggregator"; // move to runtime
-export * from "./stores/aliasstore"; // move to runtime
-export * from "./stores/file"; // move to runtime
 export * from "./stores/mapper";
 export * from "./stores/memory";
 export * from "./stores/store";
@@ -66,5 +61,3 @@ export * from "./utils/serializers";
 export * from "./utils/session";
 export * from "./utils/throttler";
 export * from "./utils/waiter";
-
-export * from "../../webdaql/query";

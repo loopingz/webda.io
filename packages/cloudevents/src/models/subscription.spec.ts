@@ -1,7 +1,9 @@
 import { expect, test } from "@jest/globals";
 import { CloudEvent } from "cloudevents";
 import { Server } from "http";
-import Subscription from "./subscription";
+import { SubscriptionMixIn } from "./subscription";
+
+class Subscription extends SubscriptionMixIn(Object) {}
 
 test("Subscription", async () => {
   const subscription = new Subscription();

@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
+import * as WebdaQL from "@webda/ql";
 import * as assert from "assert";
 import { Readable } from "stream";
-import { WebdaQL } from "../../../webdaql/query";
 import { Core } from "../core";
 import { WebdaTest } from "../test";
 import { OperationContext, SimpleOperationContext, WebContext } from "./context";

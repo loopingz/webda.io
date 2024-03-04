@@ -2,7 +2,6 @@ import {
   CancelableLoopPromise,
   CancelablePromise,
   CloudBinary,
-  Constructor,
   Core,
   CoreModelDefinition,
   CronDefinition,
@@ -18,9 +17,10 @@ import {
   SimpleOperationContext,
   Store,
   WebContext,
-  WebdaError,
-  WebdaQL
+  WebdaError
 } from "@webda/core";
+import WebdaQL from "@webda/ql";
+import { Constructor } from "@webda/tsc-esm";
 import { WorkerLogLevel } from "@webda/workout";
 import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";
@@ -697,7 +697,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // Map cron to an AsyncOperationAction
     // It allows you to keep a trace of the cron execution in the AsyncAction
     if (this.parameters.includeCron) {
-      CronService.loadAnnotations(this._webda.getServices()).forEach(cron => {
+      CronService.loadAnnotations(this.webda.getServices()).forEach(cron => {
         this.log("INFO", `Schedule cron ${cron.cron}: ${cron.serviceName}.${cron.method}(...) # ${cron.description}`);
         crontabSchedule(cron.cron, this.getCronExecutor(cron));
       });

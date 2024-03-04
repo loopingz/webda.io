@@ -218,7 +218,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   _getTemplate(name: string) {
     if (!this._templates[name]) {
       if (!this.hasNotification(name)) {
-        this._webda.log("WARN", "No template found for", name);
+        this.webda.log("WARN", "No template found for", name);
         return;
       }
       this._templates[name] = new Email({
@@ -252,7 +252,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    */
   async send(options: MailerSendOptions, callback = undefined): Promise<any> {
     if (this._transporter === undefined) {
-      this._webda.log("ERROR", "Cannot send email as no transporter is defined");
+      this.webda.log("ERROR", "Cannot send email as no transporter is defined");
       return Promise.reject("Cannot send email as no transporter is defined");
     }
     if (!options.from) {
@@ -283,4 +283,4 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 }
 
-export { Mailer, TemplatesMap, IEmailTemplate };
+export { IEmailTemplate, Mailer, TemplatesMap };

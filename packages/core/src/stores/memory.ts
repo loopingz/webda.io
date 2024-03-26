@@ -362,7 +362,11 @@ class MemoryStore<
    */
   _getSync(uid: string, raiseIfNotFound: boolean = false): T {
     if (this.storage[uid]) {
-      return this.initModel(JSON.parse(this.storage[uid]));
+      try {
+        return this.initModel(JSON.parse(this.storage[uid]));
+      } catch (err) {
+        return null;
+      }
     } else if (raiseIfNotFound) {
       throw new StoreNotFoundError(uid, this.getName());
     }

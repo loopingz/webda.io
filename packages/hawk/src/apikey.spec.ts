@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import { WebContext, WebdaError } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { ApiKey } from "./apikey";
 const KEY = {
@@ -12,7 +12,7 @@ const KEY = {
 };
 
 @suite
-class ApiKeyTest extends WebdaTest {
+class ApiKeyTest extends WebdaSimpleTest {
   context: WebContext;
   apikey: ApiKey;
 
@@ -49,7 +49,7 @@ class ApiKeyTest extends WebdaTest {
     assert.ok(this.apikey.checkOrigin(this.context.getHttpContext()), "localhost should be granted");
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/origins", {}, { origin: "https://localhost:18080/" });
-    assert.ok(!this.apikey.canRequest(this.context.getHttpContext()), "localhost https should be refused");
+    assert.ok(!this.apikey.canRequest(this.context), "localhost https should be refused");
   }
 
   @test
@@ -64,22 +64,14 @@ class ApiKeyTest extends WebdaTest {
     );
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/path/to/the/valhalla");
-    assert.ok(
-      this.apikey.canRequest(this.context.getHttpContext().setClientIp("127.0.0.1")),
-      "remotehost should be granted"
-    );
-    assert.ok(
-      !this.apikey.canRequest(this.context.getHttpContext().setClientIp("127.0.0.2")),
-      "127.0.0.2 should not be granted"
-    );
-    assert.ok(
-      this.apikey.canRequest(this.context.getHttpContext().setClientIp("10.0.0.1")),
-      "10.0.0.1 should be granted"
-    );
-    assert.ok(
-      !this.apikey.canRequest(this.context.getHttpContext().setClientIp("10.1.0.1")),
-      "10.1.0.1 should not be granted"
-    );
+    this.context.getHttpContext().setClientIp("127.0.0.1");
+    assert.ok(this.apikey.canRequest(this.context), "remotehost should be granted");
+    this.context.getHttpContext().setClientIp("127.0.0.2");
+    assert.ok(!this.apikey.canRequest(this.context), "127.0.0.2 should not be granted");
+    this.context.getHttpContext().setClientIp("10.0.0.1");
+    assert.ok(this.apikey.canRequest(this.context), "10.0.0.1 should be granted");
+    this.context.getHttpContext().setClientIp("10.1.0.1");
+    assert.ok(!this.apikey.canRequest(this.context), "10.1.0.1 should not be granted");
   }
 
   @test
@@ -87,16 +79,16 @@ class ApiKeyTest extends WebdaTest {
     this.apikey.load(<any>{ ...KEY, origins: undefined }, true);
 
     this.getExecutor(this.context, "test.webda.io", "POST", "/path");
-    assert.ok(!this.apikey.canRequest(this.context.getHttpContext()), "POST should be false");
+    assert.ok(!this.apikey.canRequest(this.context), "POST should be false");
 
     this.getExecutor(this.context, "test.webda.io", "PATCH", "/path/to/inferno");
-    assert.ok(!this.apikey.canRequest(this.context.getHttpContext()), "inferno should be false");
+    assert.ok(!this.apikey.canRequest(this.context), "inferno should be false");
 
     this.getExecutor(this.context, "test.webda.io", "GET", "/path/to/the/valhalla");
-    assert.ok(!this.apikey.canRequest(this.context.getHttpContext()), "valhalla GET should be false");
+    assert.ok(!this.apikey.canRequest(this.context), "valhalla GET should be false");
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/path/to/the/valhalla");
-    assert.ok(this.apikey.canRequest(this.context.getHttpContext()), "valhalla PUT should be granted");
+    assert.ok(this.apikey.canRequest(this.context), "valhalla PUT should be granted");
   }
 
   @test
@@ -104,7 +96,7 @@ class ApiKeyTest extends WebdaTest {
     this.apikey.load({ ...KEY, origins: undefined, permissions: undefined }, true);
 
     this.getExecutor(this.context, "test.webda.io", "GET", "/path/to/the/valhalla");
-    assert.ok(this.apikey.canRequest(this.context.getHttpContext()), "no permissions should be true");
+    assert.ok(this.apikey.canRequest(this.context), "no permissions should be true");
   }
 
   @test

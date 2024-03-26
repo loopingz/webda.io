@@ -298,6 +298,13 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
     context?: OperationContext
   ): Promise<{ results: T[]; continuationToken?: string }>;
   /**
+   * Iterate through objects
+   * @param query
+   * @param includeSubclass
+   * @param context
+   */
+  iterate(query?: string, includeSubclass?: boolean, context?: OperationContext): AsyncGenerator<T>;
+  /**
    * Listen to events on the model
    * @param event
    * @param listener

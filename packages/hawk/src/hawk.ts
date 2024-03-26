@@ -1,11 +1,11 @@
 import {
   Cache,
+  CoreModelDefinition,
   CryptoService,
   Inject,
   RequestFilter,
   Service,
   ServiceParameters,
-  Store,
   WebContext,
   WebdaError
 } from "@webda/core";
@@ -32,11 +32,9 @@ export interface HawkContext {
  */
 export class HawkServiceParameters extends ServiceParameters {
   /**
-   * Key store name
-   *
-   * @default 'apikeys'
+   * Key model
    */
-  keysStore?: string;
+  keyModel?: string;
   /**
    * If specified will verify the signature match the key store in session
    */
@@ -56,7 +54,6 @@ export class HawkServiceParameters extends ServiceParameters {
    */
   constructor(params: any) {
     super(params);
-    this.keysStore ??= "apikeys";
     this.redirectUris ??= [];
   }
 }
@@ -70,16 +67,16 @@ export class HawkServiceParameters extends ServiceParameters {
  * @WebdaModda Hawk
  */
 export default class HawkService extends Service<HawkServiceParameters> implements RequestFilter {
-  /**
-   *
-   */
-  protected store: Store<ApiKey> = undefined;
-
+  static RegistryEntry = "HawkOrigins";
   /**
    * CryptoService
    */
   @Inject("CryptoService")
   protected cryptoService: CryptoService;
+  /**
+   * Model to use for apikey
+   */
+  model: CoreModelDefinition<ApiKey>;
   /**
    * @inheritdoc
    */
@@ -95,7 +92,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    */
   @Cache()
   async getApiKey(id, _timestamp = undefined) {
-    return (await this.store.get(id)).toHawkCredentials();
+    return (await this.model.ref(id).get()).toHawkCredentials();
   }
 
   /**
@@ -119,11 +116,11 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    */
   async init(): Promise<this> {
     await super.init();
-    this.store = this.getService<Store<ApiKey>>(this.parameters.keysStore);
-    if (!this.store && !this.parameters.dynamicSessionKey) {
-      throw new Error("Store must exist");
+    this.model = this.parameters.keyModel ? this.getWebda().getModel(this.parameters.keyModel) : undefined;
+    if (!this.model && !this.parameters.dynamicSessionKey) {
+      throw new Error("Model must exists or dynamic session key must be defined");
     }
-    if (this.store) {
+    if (this.model) {
       // Make sure origins exist
       await this.getOrigins();
     }
@@ -190,9 +187,10 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
 
   @Cache()
   async getOrigins(): Promise<any> {
-    let origin = await this.store.get("origins");
-    if (origin === undefined) {
-      origin = await this.store.save({ uuid: "origins" });
+    const registry = this.getWebda().getRegistry();
+    let origin = await registry.get(HawkService.RegistryEntry);
+    if (origin === undefined && this.model) {
+      origin = await registry.save({ uuid: HawkService.RegistryEntry });
     }
     return origin;
   }
@@ -260,12 +258,12 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
         }
         throw new WebdaError.Forbidden(`Hawk error (${err.message})`);
       }
-    } else if (this.store) {
+    } else if (this.model) {
       // We have an Api Key store
       try {
         context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
-        let fullKey = await this.store.get(context.getExtension("hawk").credentials.id);
-        if (!fullKey.canRequest(context.getHttpContext())) {
+        let fullKey = await this.model.ref(context.getExtension("hawk").credentials.id).get();
+        if (!fullKey.canRequest(context)) {
           throw new WebdaError.Forbidden("Key not allowed to request");
         }
       } catch (err) {

@@ -1,6 +1,6 @@
-import { HttpContext, NotEnumerable, OperationContext, OwnerModel } from "@webda/core";
+import { Core, HttpContext, NotEnumerable, OwnerModel, WebContext } from "@webda/core";
 import { createChecker } from "is-in-subnet";
-import { HawkCredentials } from "./hawk";
+import HawkService, { HawkCredentials } from "./hawk";
 
 /**
  * Api Key to use with hawk
@@ -91,7 +91,8 @@ export default class ApiKey extends OwnerModel {
    * @param {HttpContext} ctx
    * @returns {boolean} TRUE if all key's contraints are authorized
    */
-  canRequest(ctx: HttpContext): boolean {
+  canRequest(context: WebContext): boolean {
+    const ctx = context.getHttpContext();
     if (!this.checkOrigin(ctx)) {
       return false;
     }
@@ -120,33 +121,34 @@ export default class ApiKey extends OwnerModel {
     return false;
   }
 
-  async canAct(context: OperationContext, action: string): Promise<string | boolean> {
-    // Do not allow
-    if (this.uuid === "origins") {
-      return "origins cannot be modified";
-    }
-    return super.canAct(context, action);
-  }
-
-  async _onSaved() {
-    // Do nothing if uuid is origins
-    if (this.uuid === "origins") {
-      return;
-    }
+  /**
+   * Update the origins in the registry
+   */
+  async updateOrigins() {
     if (this.origins !== undefined && this.origins.length > 0) {
       const updates: any = {
-        uuid: "origins"
+        uuid: HawkService.RegistryEntry
       };
       updates[`key_${this.uuid}`] = {
         statics: this.origins.filter((l: string) => !l.startsWith("regexp://")),
         patterns: this.origins.filter((l: string) => l.startsWith("regexp://")).map((l: string) => l.substring(9))
       };
-      await this.getStore().update(updates, false, true);
+      await Core.get().getRegistry().patch(updates);
     } else {
-      await this.getStore().removeAttribute("origins", <any>`key_${this.uuid}`);
+      await Core.get().getRegistry().removeAttribute(HawkService.RegistryEntry, `key_${this.uuid}`);
     }
   }
 
+  /**
+   * @override
+   */
+  async _onSaved() {
+    await this.updateOrigins();
+  }
+
+  /**
+   * @override
+   */
   async _onUpdated() {
     return this._onSaved();
   }

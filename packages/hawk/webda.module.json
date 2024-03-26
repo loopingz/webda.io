@@ -199,10 +199,9 @@
           "type": "string",
           "description": "URL on which to serve the content"
         },
-        "keysStore": {
+        "keyModel": {
           "type": "string",
-          "description": "Key store name",
-          "default": "apikeys"
+          "description": "Key model"
         },
         "dynamicSessionKey": {
           "type": "string",

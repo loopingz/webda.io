@@ -8,6 +8,7 @@ import {
   CoreModel,
   DeepPartial,
   OperationContext,
+  Throttler,
   WebContext
 } from "@webda/core";
 import { createReadStream } from "fs";
@@ -322,6 +323,39 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     return {
       size: typeof metadata.size === "string" ? parseInt(metadata.size) : metadata.size,
       contentType: metadata.contentType
+    };
+  }
+
+  /**
+   * Get a bucket size with a prefix
+   * @param bucket
+   * @param prefix on the bucket
+   * @param regex to filter files
+   */
+  async getBucketSize(bucket?: string, prefix?: string, regex?: RegExp) {
+    let pageToken;
+    const throttler = new Throttler();
+    bucket ??= this.parameters.bucket;
+    let size = 0;
+    let count = 0;
+    const dwl = f => {
+      return async () => {
+        try {
+          const metadata = (await f.getMetadata()).shift();
+          size += Number.parseInt(metadata.size);
+          count++;
+        } catch (err) {}
+      };
+    };
+    do {
+      let [files, page, _] = await this.storage.bucket(bucket).getFiles({ maxResults: 1000, pageToken, prefix });
+      files.filter(f => (regex ? f.name.match(regex) : true)).forEach(f => throttler.queue(dwl(f)));
+      await throttler.wait();
+      pageToken = (<any>page)?.pageToken;
+    } while (pageToken);
+    return {
+      size,
+      count
     };
   }
 

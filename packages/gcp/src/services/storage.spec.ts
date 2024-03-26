@@ -156,4 +156,29 @@ class StorageTest extends BinaryTest<Storage> {
     );
     await binary.deleteObject({ key: to });
   }
+
+  @test
+  async bucketSize() {
+    const binary: Storage = this.getBinary();
+    sinon.stub(binary["storage"], "bucket").callsFake(() => {
+      return <any>{
+        getFiles: ({ pageToken }) => {
+          let res = [];
+          let offset = pageToken ? parseInt(pageToken) : 1;
+          for (let i = offset; i < 100 + offset; i++) {
+            res.push({ name: `a${i}`, getMetadata: async () => [{ size: pageToken ? "20" : "100" }] });
+          }
+          return [res, pageToken ? { pageToken: "" } : { pageToken: "666" }];
+        }
+      };
+    });
+    assert.deepStrictEqual(await binary.getBucketSize(), {
+      size: 12000,
+      count: 200
+    });
+    assert.deepStrictEqual(await binary.getBucketSize("plop", undefined, /a1/), {
+      size: 1200,
+      count: 12
+    });
+  }
 }

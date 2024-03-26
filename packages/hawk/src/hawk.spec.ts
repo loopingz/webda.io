@@ -1,14 +1,14 @@
 // organize-imports-ignore
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { CacheService, WebContext, HttpContext, HttpMethodType, Store, UnknownSession, WebdaError } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { CacheService, HttpContext, HttpMethodType, Store, UnknownSession, WebContext, WebdaError } from "@webda/core";
+import { WebdaSimpleTest } from "@webda/core/lib/test";
+import * as assert from "assert";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
 import { HawkService } from "./hawk";
 
 @suite
-class HawkServiceTest extends WebdaTest {
+class HawkServiceTest extends WebdaSimpleTest {
   store: Store<ApiKey>;
   service: HawkService;
   context: WebContext;
@@ -17,17 +17,22 @@ class HawkServiceTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this.service = this.getService<HawkService>("HawkService");
-    this.store = this.getService<Store<ApiKey>>("apikeys");
-    await this.store.save({ uuid: "origins" });
+    CacheService.clearAllCache();
+    this.service = await this.registerService(
+      new HawkService(this.webda, "HawkService", {
+        keyModel: "Webda/ApiKey"
+      })
+    )
+      .resolve()
+      .init();
     assert.notStrictEqual(this.service, undefined);
-    assert.notStrictEqual(this.store, undefined);
     this.context = <WebContext>await this.newContext();
     this.context.getSession<UnknownSession>().userProfile = {
       login: "gabitbol"
     };
-    this.key = this.store.newModel({ __secret: "randomSecret", uuid: "mykey" });
-    await this.key.save();
+    this.key = await ApiKey.ref("mykey").create({
+      __secret: "randomSecret"
+    });
     this.fakeCredentials = {
       id: "dh37fgj492je",
       key: "werxhqb98rpaxn39848xrunpaw3489ruxnpa98w4rxn",
@@ -46,7 +51,11 @@ class HawkServiceTest extends WebdaTest {
   @test
   async noSignature() {
     // Check no API
-    assert.equal(await this.checkRequest(this.context), false, "Should refuse without CSRF token nor Authorization");
+    assert.strictEqual(
+      await this.checkRequest(this.context),
+      false,
+      "Should refuse without CSRF token nor Authorization"
+    );
   }
 
   @test
@@ -58,9 +67,13 @@ class HawkServiceTest extends WebdaTest {
     // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = "This is mine";
     // Check no API
-    assert.equal(await this.checkRequest(this.context), false, "Should refuse without unknown Authorization header");
+    assert.strictEqual(
+      await this.checkRequest(this.context),
+      false,
+      "Should refuse without unknown Authorization header"
+    );
     // Should not contains any logs
-    assert.equal(logs.length, 0, "Should be silently ignored");
+    assert.strictEqual(logs.length, 0, "Should be silently ignored");
   }
 
   @test
@@ -100,7 +113,7 @@ class HawkServiceTest extends WebdaTest {
   async malformedAuthorizationHeader() {
     // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = "notatrueheader";
-    assert.equal(
+    assert.strictEqual(
       await this.checkRequest(this.context),
       false,
       "Should refuse without errors as Authorization is malformed"
@@ -116,11 +129,11 @@ class HawkServiceTest extends WebdaTest {
     this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
     // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = header;
-    assert.equal(await this.checkRequest(this.context), true, "Should accept as signature valid");
+    assert.strictEqual(await this.checkRequest(this.context), true, "Should accept as signature valid");
     let body = JSON.stringify({ fake: "answer" });
     this.context.write(body);
     await this.webda.emitSync("Webda.Result", { context: this.context });
-    assert.equal(
+    assert.strictEqual(
       this.context.getResponseHeaders()["Server-Authorization"] !== null,
       true,
       "Server-Authorization should be set"
@@ -141,7 +154,7 @@ class HawkServiceTest extends WebdaTest {
         required: true
       }
     );
-    assert.equal(isValid !== undefined, true, "Server-Authorization should be sent and correct");
+    assert.strictEqual(isValid !== undefined, true, "Server-Authorization should be sent and correct");
     // Verify that modified answers would generate an invalid signature
     assert.throws(
       Hawk.client.authenticate.bind(
@@ -191,7 +204,7 @@ class HawkServiceTest extends WebdaTest {
 
   @test
   async validSignatureWithPermissions() {
-    assert.equal(await this.doValidRequest(), true, "Should accept as signature valid");
+    assert.strictEqual(await this.doValidRequest(), true, "Should accept as signature valid");
     this.key.permissions = {
       GET: ["/restricted/.*"],
       POST: [".*"],
@@ -202,14 +215,14 @@ class HawkServiceTest extends WebdaTest {
     // Reset cache
     CacheService.clearAllCache();
     await assert.rejects(() => this.doValidRequest(), WebdaError.Forbidden, "Should refuse as permissions are set");
-    assert.equal(await this.doValidRequest("/restricted/plop", "GET"), true);
+    assert.strictEqual(await this.doValidRequest("/restricted/plop", "GET"), true);
     await assert.rejects(() => this.doValidRequest("/restricted/plop", "PUT"), WebdaError.Forbidden);
     await assert.rejects(() => this.doValidRequest("/restricted/plop", "PATCH"), WebdaError.Forbidden);
-    assert.equal(await this.doValidRequest("/restricted/plop", "POST"), true);
-    assert.equal(await this.doValidRequest("/any", "POST"), true);
-    assert.equal(await this.doValidRequest("/test", "PUT"), true);
-    assert.equal(await this.doValidRequest("/test", "PATCH"), true);
-    assert.equal(await this.doValidRequest("/bouzouf", "DELETE"), true);
+    assert.strictEqual(await this.doValidRequest("/restricted/plop", "POST"), true);
+    assert.strictEqual(await this.doValidRequest("/any", "POST"), true);
+    assert.strictEqual(await this.doValidRequest("/test", "PUT"), true);
+    assert.strictEqual(await this.doValidRequest("/test", "PATCH"), true);
+    assert.strictEqual(await this.doValidRequest("/bouzouf", "DELETE"), true);
   }
 
   @test
@@ -255,9 +268,11 @@ class HawkServiceTest extends WebdaTest {
   @test
   async cov() {
     // Pure cov
-    let test = new HawkService(this.webda, "cov", { keysStore: "bouzouf" });
-    assert.strictEqual(test.getParameters().keysStore, "bouzouf");
-    assert.rejects(() => test.init(), /Store must exist/);
+    let test = new HawkService(this.webda, "cov", { keyModel: "bouzouf" });
+    assert.strictEqual(test.getParameters().keyModel, "bouzouf");
+    await assert.rejects(() => test.init(), /Undefined model WebdaDemo\/bouzouf/);
+    test = new HawkService(this.webda, "cov", {});
+    await assert.rejects(() => test.init(), /Model must exists or dynamic session key must be defined/);
     test = new HawkService(this.webda, "cov", {
       dynamicSessionKey: "bouzouf",
       redirectUrl: "/redirect"

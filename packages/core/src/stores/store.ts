@@ -922,7 +922,6 @@ abstract class Store<
    */
   protected initModel(object: any = {}): T {
     object.__type ??= this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
-
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
       // Dynamic load type

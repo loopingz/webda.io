@@ -227,7 +227,7 @@ export class UnpackedApplication extends Application {
       if (!fs.existsSync(nodeModules)) {
         return;
       }
-      FileUtils.walk(
+      FileUtils.walkSync(
         nodeModules,
         filepath => {
           // We filter out the cache of nx

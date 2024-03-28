@@ -264,7 +264,7 @@ class FileBinaryTest extends CloudBinaryTest {
     await User.profilePicture.upload(new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})));
     await User.images.upload(new MemoryBinaryFile(Buffer.from("PLOP2"), <BinaryFileInfo>(<unknown>{})));
     await this.sleep(1000);
-    let files = FileUtils.find("./test/data/binaries");
+    let files = await FileUtils.find("./test/data/binaries");
     assert.deepStrictEqual(files, [
       `test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/MemoryUsers_profilePicture_${User.getUuid()}`,
       "test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/_9eed42d099ec7ef1eed00a49e8079cd2",
@@ -275,7 +275,7 @@ class FileBinaryTest extends CloudBinaryTest {
     ]);
     await User.profilePicture.delete();
     await this.sleep(1000);
-    files = FileUtils.find("./test/data/binaries");
+    files = await FileUtils.find("./test/data/binaries");
     assert.deepStrictEqual(files, [
       `test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/MemoryUsers_images_${User.getUuid()}`,
       "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/_0a4ef38590e0bd4a8999f1489186bbe9",
@@ -290,7 +290,7 @@ class FileBinaryTest extends CloudBinaryTest {
     );
     await User.images[0].delete();
     await this.sleep(1000);
-    files = FileUtils.find("./test/data/binaries");
+    files = await FileUtils.find("./test/data/binaries");
     assert.deepStrictEqual(files, []);
   }
 }

@@ -109,19 +109,19 @@ export interface StorageFinder {
   /**
    * Recursively browse the path and call processor on each
    */
-  walk(path: string, processor: (filepath: string) => void, options?: WalkerOptionsType, depth?: number): void;
+  walk(path: string, processor: (filepath: string) => void, options?: WalkerOptionsType, depth?: number): Promise<void>;
   /**
    * Find
    */
-  find(currentPath: string, options?: FinderOptionsType): string[];
+  find(currentPath: string, options?: FinderOptionsType): Promise<string[]>;
   /**
    * Get a write stream based on the id return by the finder
    */
-  getWriteStream(path: string): Writable;
+  getWriteStream(path: string): Promise<Writable>;
   /**
    * Get a read stream based on the id return by the finder
    */
-  getReadStream(path: string): Readable;
+  getReadStream(path: string): Promise<Readable>;
 }
 
 /**
@@ -144,36 +144,26 @@ export const FileUtils: StorageFinder & {
   save: (object: any, filename: string, publicAudience?: boolean, format?: Format) => void;
   load: (filename: string, format?: Format) => any;
   clean: (...files: string[]) => void;
+  walkSync: (path: string, processor: (filepath: string) => void, options?: WalkerOptionsType, depth?: number) => void;
 } = {
   /**
    * @override
    */
-  getWriteStream: (path: string) => {
+  getWriteStream: async (path: string) => {
     return createWriteStream(path);
   },
 
-  getReadStream: (path: string) => {
+  getReadStream: async (path: string) => {
     return createReadStream(path);
   },
-  /**
-   * Recursively run a process through all descendant files under a path
-   *
-   * @param {string} path
-   * @param {Function} processor Processing function, eg: (filepath: string) => void
-   * @param {string} currentPath Path to dig
-   * @param {boolean} options.followSymlinks Follow symlinks which targets a folder
-   * @param {boolean} options.includeDir Include folders to results transmitted to the processor function
-   * @param {number} options.maxDepth Maximum depth level to investigate, default is 100 to prevent infinite loops
-   * @param {number} state.depth Starting level counter
-   */
-  walk: (
+  walkSync: (
     path: string,
     processor: (filepath: string) => void,
     options: WalkerOptionsType = { maxDepth: 100 },
     depth: number = 0
-  ): void => {
+  ) => {
     let files = readdirSync(path);
-    const fileItemCallback = p => {
+    const fileItemCallback = async p => {
       try {
         const stat = lstatSync(p);
         if (stat.isDirectory()) {
@@ -183,7 +173,7 @@ export const FileUtils: StorageFinder & {
           // folder found, trying to dig further
           if (!options.maxDepth || depth < options.maxDepth) {
             // unless we reached the maximum depth
-            FileUtils.walk(p, processor, options, depth + 1);
+            FileUtils.walkSync(p, processor, options, depth + 1);
           }
         } else if (stat.isSymbolicLink() && options.followSymlinks) {
           let realPath;
@@ -200,7 +190,7 @@ export const FileUtils: StorageFinder & {
               // following below
               if (!options.maxDepth || depth < options.maxDepth) {
                 // unless we reached the maximum depth
-                FileUtils.walk(options.resolveSymlink ? realPath : p, processor, options, depth + 1);
+                FileUtils.walkSync(options.resolveSymlink ? realPath : p, processor, options, depth + 1);
               }
             }
           } else {
@@ -220,6 +210,25 @@ export const FileUtils: StorageFinder & {
     files.map(f => join(path, f)).forEach(fileItemCallback);
   },
   /**
+   * Recursively run a process through all descendant files under a path
+   *
+   * @param {string} path
+   * @param {Function} processor Processing function, eg: (filepath: string) => void
+   * @param {string} currentPath Path to dig
+   * @param {boolean} options.followSymlinks Follow symlinks which targets a folder
+   * @param {boolean} options.includeDir Include folders to results transmitted to the processor function
+   * @param {number} options.maxDepth Maximum depth level to investigate, default is 100 to prevent infinite loops
+   * @param {number} state.depth Starting level counter
+   */
+  walk: async (
+    path: string,
+    processor: (filepath: string) => void,
+    options: WalkerOptionsType = { maxDepth: 100 },
+    depth: number = 0
+  ): Promise<void> => {
+    FileUtils.walkSync(path, processor, options, depth);
+  },
+  /**
    * Find files below a provided path, optionally filtered by a RegExp pattern
    * Without pattern provided, ALL FOUND FILES will be returned by default
    *
@@ -230,7 +239,7 @@ export const FileUtils: StorageFinder & {
    * @param {RegExp} options.filterPattern RegExp pattern to filter, no filter will find all files
    * @returns
    */
-  find: (currentPath: string, options: FinderOptionsType = { maxDepth: 3 }): string[] => {
+  find: async (currentPath: string, options: FinderOptionsType = { maxDepth: 3 }) => {
     let found = [];
     const processor = (filepath: string) => {
       if (!options.filterPattern || options.filterPattern.test(filepath)) {
@@ -238,7 +247,7 @@ export const FileUtils: StorageFinder & {
         found.push(filepath);
       }
     };
-    FileUtils.walk(currentPath, processor, options);
+    await FileUtils.walk(currentPath, processor, options);
     return found;
   },
   /**

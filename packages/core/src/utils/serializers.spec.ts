@@ -244,7 +244,7 @@ plop: test
   }
 
   @test
-  walker() {
+  async walker() {
     try {
       let res = [];
       if (!existsSync("./test/link")) {
@@ -255,14 +255,14 @@ plop: test
           symlinkSync("../non-existing", "test/badlink");
         }
       } catch (err) {}
-      FileUtils.walk("test", f => res.push(f));
+      await FileUtils.walk("test", f => res.push(f));
       assert.ok(
         ["test/models/ident.js", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
           .map(c => res.includes(c))
           .reduce((v, c) => v && c, true)
       );
       res = [];
-      FileUtils.walk("test", f => res.push(f), {
+      FileUtils.walkSync("test", f => res.push(f), {
         includeDir: true,
         followSymlinks: true
       });
@@ -273,18 +273,18 @@ plop: test
   }
 
   @test
-  finder() {
-    let res = FileUtils.find("test", { filterPattern: /Dockerfile/ });
+  async finder() {
+    let res = await FileUtils.find("test", { filterPattern: /Dockerfile/ });
     assert.ok(res.includes("test/Dockerfile"));
   }
 
   @test
   async streams() {
-    const st = FileUtils.getWriteStream("/tmp/webda.stream");
+    const st = await FileUtils.getWriteStream("/tmp/webda.stream");
     let p = new Promise(resolve => st.on("finish", resolve));
     st.end();
     await p;
-    FileUtils.getReadStream("/tmp/webda.stream");
+    await FileUtils.getReadStream("/tmp/webda.stream");
   }
 
   @test

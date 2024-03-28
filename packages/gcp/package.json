@@ -35,7 +35,7 @@
     "@google-cloud/firestore": "^7.0.0",
     "@google-cloud/kms": "^4.0.1",
     "@google-cloud/pubsub": "^4.0.1",
-    "@google-cloud/storage": "~7.7.0",
+    "@google-cloud/storage": "~7.9.0",
     "@webda/core": "^3.14.0",
     "mime-types": "^2.1.35"
   },

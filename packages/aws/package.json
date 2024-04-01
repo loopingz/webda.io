@@ -87,7 +87,7 @@
     "@types/aws-lambda": "^8.10.97",
     "@types/node": "18.11.13",
     "@webda/shell": "^3.9.4",
-    "aws-sdk-client-mock": "^3.0.0",
+    "aws-sdk-client-mock": "^4.0.0",
     "node-fetch": "^3.3.1",
     "sinon": "^17.0.0"
   },

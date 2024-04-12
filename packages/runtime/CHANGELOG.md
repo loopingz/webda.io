@@ -56,6 +56,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.2 to ^3.9.3
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/runtime-v3.4.0...runtime-v3.5.0) (2024-04-12)
+
+
+### Features
+
+* update to latest otel ([db00927](https://github.com/loopingz/webda.io/commit/db00927fa3bc442b21aac2a970b0da33b6c845b6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.14.0 to ^3.15.0
+    * @webda/workout bumped from ^3.1.3 to ^3.2.0
+  * devDependencies
+    * @webda/shell bumped from ^3.9.4 to ^3.10.0
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/runtime-v3.3.2...runtime-v3.4.0) (2024-02-04)
 
 

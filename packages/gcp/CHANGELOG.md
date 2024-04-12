@@ -108,6 +108,24 @@
     * @webda/async bumped from ^3.5.1 to ^3.5.2
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.6.0](https://github.com/loopingz/webda.io/compare/gcp-v3.5.0...gcp-v3.6.0) (2024-04-12)
+
+
+### Features
+
+* add bucket size count ([3e9c322](https://github.com/loopingz/webda.io/commit/3e9c3220f816df32fda8a5c68ce56100b17ea517))
+* update store to model ([#577](https://github.com/loopingz/webda.io/issues/577)) ([018d096](https://github.com/loopingz/webda.io/commit/018d0969ce83b9a1e8346a9ef5df9857573adb3e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.14.0 to ^3.15.0
+  * devDependencies
+    * @webda/async bumped from ^3.6.0 to ^3.7.0
+    * @webda/shell bumped from ^3.9.4 to ^3.10.0
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/gcp-v3.4.3...gcp-v3.5.0) (2024-02-04)
 
 

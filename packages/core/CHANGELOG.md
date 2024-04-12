@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.0](https://github.com/loopingz/webda.io/compare/core-v3.14.0...core-v3.15.0) (2024-04-12)
+
+
+### Features
+
+* update store to model ([#577](https://github.com/loopingz/webda.io/issues/577)) ([018d096](https://github.com/loopingz/webda.io/commit/018d0969ce83b9a1e8346a9ef5df9857573adb3e))
+* update to latest otel ([db00927](https://github.com/loopingz/webda.io/commit/db00927fa3bc442b21aac2a970b0da33b6c845b6))
+
+
+### Bug Fixes
+
+* WebdaQL prepend with limit and offset ([55cb37a](https://github.com/loopingz/webda.io/commit/55cb37a233fa582c24a53171ce9a035480defe8e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.1.3 to ^3.2.0
+
 ## [3.14.0](https://github.com/loopingz/webda.io/compare/core-v3.13.2...core-v3.14.0) (2024-02-04)
 
 

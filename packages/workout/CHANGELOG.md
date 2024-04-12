@@ -24,6 +24,13 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
 
+## [3.2.0](https://github.com/loopingz/webda.io/compare/workout-v3.1.3...workout-v3.2.0) (2024-04-12)
+
+
+### Features
+
+* update to latest otel ([db00927](https://github.com/loopingz/webda.io/commit/db00927fa3bc442b21aac2a970b0da33b6c845b6))
+
 ## [3.1.0](https://github.com/loopingz/webda.io/compare/workout-v3.0.4...workout-v3.1.0) (2023-11-12)
 
 

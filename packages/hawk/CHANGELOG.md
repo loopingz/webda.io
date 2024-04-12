@@ -128,6 +128,23 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.3 to ^3.9.4
 
+## [3.4.0](https://github.com/loopingz/webda.io/compare/hawk-v3.3.13...hawk-v3.4.0) (2024-04-12)
+
+
+### Features
+
+* add bucket size count ([3e9c322](https://github.com/loopingz/webda.io/commit/3e9c3220f816df32fda8a5c68ce56100b17ea517))
+* update store to model ([#577](https://github.com/loopingz/webda.io/issues/577)) ([018d096](https://github.com/loopingz/webda.io/commit/018d0969ce83b9a1e8346a9ef5df9857573adb3e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.14.0 to ^3.15.0
+  * devDependencies
+    * @webda/shell bumped from ^3.9.4 to ^3.10.0
+
 ## [3.3.7](https://github.com/loopingz/webda.io/compare/hawk-v3.3.6...hawk-v3.3.7) (2023-12-04)
 
 

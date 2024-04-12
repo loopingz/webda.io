@@ -61,6 +61,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.13.2 to ^3.14.0
     * @webda/kubernetes bumped from ^3.3.3 to ^3.3.4
 
+## [3.10.0](https://github.com/loopingz/webda.io/compare/shell-v3.9.4...shell-v3.10.0) (2024-04-12)
+
+
+### Features
+
+* update to latest otel ([db00927](https://github.com/loopingz/webda.io/commit/db00927fa3bc442b21aac2a970b0da33b6c845b6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.14.0 to ^3.15.0
+    * @webda/kubernetes bumped from ^3.3.4 to ^3.4.0
+    * @webda/workout bumped from ^3.1.3 to ^3.2.0
+
 ## [3.9.0](https://github.com/loopingz/webda.io/compare/shell-v3.8.2...shell-v3.9.0) (2024-01-09)
 
 

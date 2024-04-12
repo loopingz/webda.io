@@ -75,38 +75,38 @@ class QueryTest {
 
   @test
   prependQuery() {
-    assert.strictEqual(WebdaQL.PrependCondition("", "test='plop'"), "test='plop'");
-    assert.strictEqual(WebdaQL.PrependCondition("test='plop'", ""), "test='plop'");
-    assert.strictEqual(WebdaQL.PrependCondition("test='plip'", "test='plop'"), "(test='plop') AND (test='plip')");
-    assert.strictEqual(WebdaQL.PrependCondition("ORDER BY test", "test='plop'"), "test='plop' ORDER BY test");
-    assert.strictEqual(
-      WebdaQL.PrependCondition("ORDER BY test LIMIT 100", "test='plop'"),
-      "test='plop' ORDER BY test LIMIT 100"
-    );
-    assert.strictEqual(
-      WebdaQL.PrependCondition("ORDER BY test DESC LIMIT 100", "test='plop'"),
-      "test='plop' ORDER BY test DESC LIMIT 100"
-    );
-    assert.strictEqual(
-      WebdaQL.PrependCondition("test='plip' ORDER BY test ASC LIMIT 100", "test='plop'"),
+    const check = (query, condition, expected) => {
+      assert.strictEqual(WebdaQL.PrependCondition(query, condition), expected);
+      // Ensure it is a valid query
+      new WebdaQL.QueryValidator(query);
+      new WebdaQL.QueryValidator(expected);
+      console.log("QUERY", query, "CONDITION", condition, "EXPECTED", expected);
+    };
+
+    check("", "test='plop'", "test='plop'");
+    check("test='plop'", "", "test='plop'");
+    check("test='plip'", "test='plop'", "(test='plop') AND (test='plip')");
+    check("ORDER BY test", "test='plop'", "test='plop' ORDER BY test");
+    check("ORDER BY test LIMIT 100", "test='plop'", "test='plop' ORDER BY test LIMIT 100");
+    check("ORDER BY test DESC LIMIT 100", "test='plop'", "test='plop' ORDER BY test DESC LIMIT 100");
+    check(
+      "test='plip' ORDER BY test ASC LIMIT 100",
+      "test='plop'",
       "(test='plop') AND (test='plip') ORDER BY test ASC LIMIT 100"
     );
-    assert.strictEqual(
-      WebdaQL.PrependCondition("test='plip' LIMIT 100", "test='plop'"),
-      "(test='plop') AND (test='plip') LIMIT 100"
+    check("test='plip' LIMIT 100", "test='plop'", "(test='plop') AND (test='plip') LIMIT 100");
+    check(
+      "test='plip' LIMIT 100 OFFSET 'test'",
+      "test='plop'",
+      "(test='plop') AND (test='plip') LIMIT 100 OFFSET 'test'"
     );
-    assert.strictEqual(
-      WebdaQL.PrependCondition("test='plip' OFFSET 'test'", "test='plop'"),
-      "(test='plop') AND (test='plip') OFFSET 'test'"
-    );
-    assert.strictEqual(
-      WebdaQL.PrependCondition("test='ORDER BY plop' OFFSET 'test'", "test='plop'"),
+    check("test='plip'   OFFSET 'test'", "test='plop'", "(test='plop') AND (test='plip') OFFSET 'test'");
+    check(
+      "test='ORDER BY plop' OFFSET 'test'",
+      "test='plop'",
       "(test='plop') AND (test='ORDER BY plop') OFFSET 'test'"
     );
-    assert.strictEqual(
-      WebdaQL.PrependCondition('test="ORDER BY plop" LIMIT 100', "test='plop'"),
-      "(test='plop') AND (test=\"ORDER BY plop\") LIMIT 100"
-    );
+    check('test="ORDER BY plop" LIMIT 100', "test='plop'", "(test='plop') AND (test=\"ORDER BY plop\") LIMIT 100");
   }
 
   @test

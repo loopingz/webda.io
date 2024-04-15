@@ -54,7 +54,7 @@
     "semver-intersect": "^1.4.0",
     "ts-json-schema-generator": "~1.5.0",
     "typescript": "~5.4.5",
-    "unzipper": "^0.10.11",
+    "unzipper": "^0.11.2",
     "yaml": "^2.0.0",
     "yargs": "^17.0.1",
     "yeoman-environment": "^3.5.1"

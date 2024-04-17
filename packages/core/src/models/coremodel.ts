@@ -202,6 +202,12 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
    * @param context
    */
   authorizeClientEvent(_event: string, _context: Context, _model?: T): boolean;
+  /**
+   * Iterate through the model
+   * @param query
+   * @param includeSubclass
+   */
+  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
 }
 
 const ActionsAnnotated: Map<any, ModelActions> = new Map();

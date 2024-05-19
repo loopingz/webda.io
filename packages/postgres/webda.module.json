@@ -1160,9 +1160,7 @@
                           ],
                           "description": "Duplex streams are streams that implement both the `Readable` and `Writable` interfaces.\n\nExamples of `Duplex` streams include:\n\n* `TCP sockets`\n* `zlib streams`\n* `crypto streams`"
                         },
-                        "checkServerIdentity": {
-                          "$comment": "(hostname: string, cert: PeerCertificate) ->  Error | undefined"
-                        },
+                        "checkServerIdentity": {},
                         "servername": {
                           "type": "string"
                         },
@@ -1224,7 +1222,9 @@
                 "types": {
                   "type": "object",
                   "properties": {
-                    "getTypeParser": {}
+                    "getTypeParser": {
+                      "$ref": "#/definitions/getTypeParser"
+                    }
                   },
                   "required": [
                     "getTypeParser"
@@ -2256,9 +2256,7 @@
                           ],
                           "description": "Duplex streams are streams that implement both the `Readable` and `Writable` interfaces.\n\nExamples of `Duplex` streams include:\n\n* `TCP sockets`\n* `zlib streams`\n* `crypto streams`"
                         },
-                        "checkServerIdentity": {
-                          "$comment": "(hostname: string, cert: PeerCertificate) ->  Error | undefined"
-                        },
+                        "checkServerIdentity": {},
                         "servername": {
                           "type": "string"
                         },
@@ -2320,7 +2318,9 @@
                 "types": {
                   "type": "object",
                   "properties": {
-                    "getTypeParser": {}
+                    "getTypeParser": {
+                      "$ref": "#/definitions/getTypeParser"
+                    }
                   },
                   "required": [
                     "getTypeParser"
@@ -2466,6 +2466,7 @@
           ]
         },
         "LookupFunction": {},
+        "getTypeParser": {},
         "PromiseConstructorLike": {}
       },
       "title": "PostgresStore"

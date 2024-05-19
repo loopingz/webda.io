@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.15.1](https://github.com/loopingz/webda.io/compare/core-v3.15.0...core-v3.15.1) (2024-05-19)
+
+
+### Bug Fixes
+
+* update in otel and json-schema-generator ([c1d9866](https://github.com/loopingz/webda.io/commit/c1d9866ffc6717b622c4e4d72682ef91dc187a12))
+
 ## [3.15.0](https://github.com/loopingz/webda.io/compare/core-v3.14.0...core-v3.15.0) (2024-04-12)
 
 

@@ -88,6 +88,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.4 to ^3.10.0
 
+## [3.4.2](https://github.com/loopingz/webda.io/compare/postgres-v3.4.1...postgres-v3.4.2) (2024-05-19)
+
+
+### Bug Fixes
+
+* update in otel and json-schema-generator ([c1d9866](https://github.com/loopingz/webda.io/commit/c1d9866ffc6717b622c4e4d72682ef91dc187a12))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.15.0 to ^3.15.1
+  * devDependencies
+    * @webda/shell bumped from ^3.10.0 to ^3.10.1
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/postgres-v3.3.4...postgres-v3.4.0) (2024-02-04)
 
 

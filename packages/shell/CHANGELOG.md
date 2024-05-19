@@ -61,6 +61,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.13.2 to ^3.14.0
     * @webda/kubernetes bumped from ^3.3.3 to ^3.3.4
 
+## [3.10.1](https://github.com/loopingz/webda.io/compare/shell-v3.10.0...shell-v3.10.1) (2024-05-19)
+
+
+### Bug Fixes
+
+* update in otel and json-schema-generator ([c1d9866](https://github.com/loopingz/webda.io/commit/c1d9866ffc6717b622c4e4d72682ef91dc187a12))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.15.0 to ^3.15.1
+    * @webda/kubernetes bumped from ^3.4.0 to ^3.4.1
+
 ## [3.10.0](https://github.com/loopingz/webda.io/compare/shell-v3.9.4...shell-v3.10.0) (2024-04-12)
 
 

@@ -56,6 +56,14 @@
   * devDependencies
     * @webda/shell bumped from ^3.9.2 to ^3.9.3
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.15.0 to ^3.15.1
+  * devDependencies
+    * @webda/shell bumped from ^3.10.0 to ^3.10.1
+
 ## [3.5.0](https://github.com/loopingz/webda.io/compare/runtime-v3.4.0...runtime-v3.5.0) (2024-04-12)
 
 

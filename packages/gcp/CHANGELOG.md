@@ -108,6 +108,23 @@
     * @webda/async bumped from ^3.5.1 to ^3.5.2
     * @webda/shell bumped from ^3.9.1 to ^3.9.2
 
+## [3.6.1](https://github.com/loopingz/webda.io/compare/gcp-v3.6.0...gcp-v3.6.1) (2024-05-19)
+
+
+### Bug Fixes
+
+* update in otel and json-schema-generator ([c1d9866](https://github.com/loopingz/webda.io/commit/c1d9866ffc6717b622c4e4d72682ef91dc187a12))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.15.0 to ^3.15.1
+  * devDependencies
+    * @webda/async bumped from ^3.7.0 to ^3.7.1
+    * @webda/shell bumped from ^3.10.0 to ^3.10.1
+
 ## [3.6.0](https://github.com/loopingz/webda.io/compare/gcp-v3.5.0...gcp-v3.6.0) (2024-04-12)
 
 

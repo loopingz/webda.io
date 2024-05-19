@@ -1,6 +1,6 @@
 {
   "name": "@webda/aws",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "Webda AWS Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -50,8 +50,8 @@
     "@types/json-schema": "^7.0.8",
     "@types/mocha": "^10.0.0",
     "@types/node": "^14.0.0",
-    "@webda/async": "^3.7.0",
-    "@webda/core": "^3.15.0",
+    "@webda/async": "^3.7.1",
+    "@webda/core": "^3.15.1",
     "@webda/workout": "^3.2.0",
     "bluebird": "^3.7.2",
     "commitlint": "^19.2.1",
@@ -86,7 +86,7 @@
     "@testdeck/mocha": "^0.3.2",
     "@types/aws-lambda": "^8.10.97",
     "@types/node": "18.11.13",
-    "@webda/shell": "^3.10.0",
+    "@webda/shell": "^3.10.1",
     "aws-sdk-client-mock": "^4.0.0",
     "node-fetch": "^3.3.1",
     "sinon": "^17.0.0"

@@ -1,6 +1,6 @@
 {
   "name": "@webda/graphql",
-  "version": "3.8.4",
+  "version": "3.8.5",
   "description": "GraphQL endpoint for your Webda Application",
   "main": "lib/index.js",
   "type": "module",
@@ -23,8 +23,8 @@
     "package.json"
   ],
   "dependencies": {
-    "@webda/core": "^3.15.0",
-    "@webda/runtime": "^3.5.0",
+    "@webda/core": "^3.15.1",
+    "@webda/runtime": "^3.5.1",
     "graphql": "^16.6.0",
     "graphql-http": "^1.16.0",
     "graphql-ws": "^5.14.2",
@@ -34,7 +34,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
     "@types/node": "18.11.13",
-    "@webda/shell": "^3.10.0",
+    "@webda/shell": "^3.10.1",
     "c8": "^9.0.0",
     "glob": "^10.0.0",
     "js-beautify": "^1.14.7",

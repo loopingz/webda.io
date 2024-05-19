@@ -12,6 +12,7 @@ import {
   BaseType,
   ChainNodeParser,
   CircularReferenceNodeParser,
+  CompletedConfig,
   Config,
   Context,
   Definition,
@@ -1140,12 +1141,20 @@ export class Compiler {
 
   createSchemaGenerator(program: ts.Program) {
     this.typeChecker = this.tsProgram.getTypeChecker();
-    const config: Config = {
+    const config: CompletedConfig = {
       expose: "all",
       encodeRefs: true,
       jsDoc: "extended",
       additionalProperties: true,
-      sortProps: true
+      sortProps: true,
+      minify: true,
+      topRef: true,
+      markdownDescription: false,
+      strictTuples: true,
+      skipTypeCheck: true,
+      extraTags: [],
+      discriminatorType: "json-schema",
+      functions: "comment"
     };
     const extraTags = new Set(["Modda", "Model"]);
     const parser = createParser(program, config, (chainNodeParser: ChainNodeParser) => {

@@ -76,7 +76,7 @@ export class OtelServiceParameters extends ServiceParameters {
  */
 export class OtelService<T extends OtelServiceParameters> extends Service<T> {
   sdk: NodeSDK;
-  wrapper: InstrumentationNodeModuleDefinition<any>;
+  wrapper: InstrumentationNodeModuleDefinition;
   stubs: Map<
     Object,
     {

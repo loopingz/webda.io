@@ -903,14 +903,9 @@
               "default": "lax"
             },
             "domain": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "boolean",
-                  "const": true
-                }
+              "type": "boolean",
+              "enum": [
+                true
               ],
               "description": "if true domain will be set to the request hostname if undefined no domain will be output (browser will use the current domain and only this one) if a string is provided it will be used as the domain\n\nWhen provided a domain is setting the cookie to be available to all subdomains"
             },

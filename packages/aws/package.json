@@ -61,7 +61,7 @@
     "lerna": "^8.0.0",
     "mime-types": "^2.1.35",
     "prettier-plugin-organize-imports": "^3.0.0",
-    "sinon": "^17.0.0",
+    "sinon": "^18.0.0",
     "typescript": "~5.4.5",
     "uuid": "^9.0.0",
     "yaml": "^2.0.0"
@@ -89,7 +89,7 @@
     "@webda/shell": "^3.10.1",
     "aws-sdk-client-mock": "^4.0.0",
     "node-fetch": "^3.3.1",
-    "sinon": "^17.0.0"
+    "sinon": "^18.0.0"
   },
   "type": "module",
   "engines": {

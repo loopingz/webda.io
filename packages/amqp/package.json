@@ -51,7 +51,7 @@
     "@types/amqplib": "^0.10.0",
     "@types/node": "18.11.13",
     "@webda/shell": "^3.10.1",
-    "sinon": "^17.0.0"
+    "sinon": "^18.0.0"
   },
   "nx": {
     "implicitDependencies": [

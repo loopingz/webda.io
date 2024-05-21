@@ -32,7 +32,7 @@
     "bcryptjs": "^2.4.3",
     "cookie": "^0.6.0",
     "dateformat": "^5.0.3",
-    "deepmerge-ts": "^5.1.0",
+    "deepmerge-ts": "^7.0.1",
     "email-templates": "^11.0.3",
     "glob": "^10.0.0",
     "global": "^4.4.0",

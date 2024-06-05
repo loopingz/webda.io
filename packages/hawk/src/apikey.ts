@@ -1,6 +1,7 @@
-import { Core, HttpContext, NotEnumerable, OwnerModel, WebContext } from "@webda/core";
+import { Core, HttpContext, NotEnumerable, OperationContext, OwnerModel, WebContext, WebdaError } from "@webda/core";
 import { createChecker } from "is-in-subnet";
 import HawkService, { HawkCredentials } from "./hawk";
+import { randomBytes } from "node:crypto";
 
 /**
  * Api Key to use with hawk
@@ -60,6 +61,30 @@ export default class ApiKey extends OwnerModel {
       key: this.__secret,
       algorithm: this.algorithm
     };
+  }
+
+  /**
+   * Generate secret for key
+   * @returns
+   */
+  generateSecret(): string {
+    let secret = this["secret"] || randomBytes(64).toString("base64").replace(/=/g, "");
+    this["secret"] = undefined;
+    return secret;
+  }
+
+  /**
+   * @override
+   */
+  async canAct(ctx: OperationContext<any, any>, action: string): Promise<string | boolean> {
+    // Add secret generation if not provided by input
+    if (action === "create" && this.uuid !== "origins") {
+      this.__secret ??= this.generateSecret();
+      if (this.__secret.length < 32) {
+        throw new WebdaError.BadRequest("Secret too short");
+      }
+    }
+    return super.canAct(ctx, action);
   }
 
   /**

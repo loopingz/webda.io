@@ -227,7 +227,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
 
     // Only check Hawk
     let authorization = context.getHttpContext().getUniqueHeader("authorization");
-    if (!authorization || !authorization.startsWith("Hawk id=")) {
+    if (!authorization || !authorization.startsWith("Hawk ")) {
       return false;
     }
 

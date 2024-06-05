@@ -136,6 +136,18 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.0 to ^3.10.1
 
+## [3.5.0](https://github.com/loopingz/webda.io/compare/hawk-v3.4.1...hawk-v3.5.0) (2024-06-05)
+
+
+### Features
+
+* add secret generation for a key ([7302c2b](https://github.com/loopingz/webda.io/commit/7302c2b476dd59203ed4b2b0e0a913933a16db1a))
+
+
+### Bug Fixes
+
+* hawk header is prefixed by "Hawk " id can be moved around ([4e5f687](https://github.com/loopingz/webda.io/commit/4e5f687b727d7f8f9eed1f14f4c60794c57711b3))
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/hawk-v3.3.13...hawk-v3.4.0) (2024-04-12)
 
 

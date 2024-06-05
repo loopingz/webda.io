@@ -8,7 +8,7 @@
   "packages/gcp": "3.6.1",
   "packages/google-auth": "3.1.15",
   "packages/graphql": "3.8.5",
-  "packages/hawk": "3.4.1",
+  "packages/hawk": "3.5.0",
   "packages/kubernetes": "3.4.1",
   "packages/mongodb": "3.2.15",
   "packages/otel": "3.3.1",

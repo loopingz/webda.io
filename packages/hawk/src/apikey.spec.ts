@@ -110,5 +110,10 @@ class ApiKeyTest extends WebdaSimpleTest {
     await assert.rejects(() => key.checkAct(this.context, "get"), WebdaError.Forbidden);
     key.setOwner("me");
     assert.strictEqual(await key.canAct(this.context, "get"), true);
+    await key.canAct(this.context, "create");
+    assert.notStrictEqual(key["__secret"], undefined);
+    key["__secret"] = "";
+    key["secret"] = "test";
+    await assert.rejects(() => key.canAct(this.context, "create"), WebdaError.BadRequest);
   }
 }

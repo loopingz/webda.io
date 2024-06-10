@@ -61,7 +61,7 @@
     "@webda/async": "^3.7.1",
     "@webda/shell": "^3.10.1",
     "sinon": "^18.0.0",
-    "uuid": "^9.0.0"
+    "uuid": "^10.0.0"
   },
   "type": "module",
   "engines": {

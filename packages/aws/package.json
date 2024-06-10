@@ -63,7 +63,7 @@
     "prettier-plugin-organize-imports": "^3.0.0",
     "sinon": "^18.0.0",
     "typescript": "~5.4.5",
-    "uuid": "^9.0.0",
+    "uuid": "^10.0.0",
     "yaml": "^2.0.0"
   },
   "c8": {

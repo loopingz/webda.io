@@ -1,0 +1,3 @@
+[test]
+coverageSkipTestFiles = true 
+coverage = true

@@ -22,7 +22,7 @@
     "test": "bun test --coverage"
   },
   "dependencies": {
-    "cloudevents": "^8.0.0"
+    "cloudevents": "^8.0.1"
   },
   "devDependencies": {
     "@types/node": "18.11.13",

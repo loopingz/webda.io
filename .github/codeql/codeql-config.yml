@@ -1,3 +1,4 @@
 paths-ignore:
   - "**/*.spec.ts"
   - packages/core/src/stores/webdaql/WebdaQL*
+  - packages/cloudevents/src/models/filters/sql/CESQL*

@@ -240,7 +240,6 @@ class WebdaServerTest {
     this.server.onSIGINT();
   }
 
-
   @test
   async flushHeaders() {
     await this.init("Dev", false);

@@ -682,7 +682,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    */
   visitExistsExpression(ctx: ExistsExpressionContext): Expression {
     let results = this.getChildrenResults(ctx);
-    return new ExistsExpression(ctx.children[1].text).resolve();
+    return new ExistsExpression(results[1]).resolve();
   }
 
   /**

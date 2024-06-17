@@ -99,6 +99,12 @@
   * dependencies
     * @webda/core bumped from ^3.15.0 to ^3.15.1
 
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.15.1 to ^3.16.0
+
 ## [3.7.0](https://github.com/loopingz/webda.io/compare/async-v3.6.0...async-v3.7.0) (2024-04-12)
 
 

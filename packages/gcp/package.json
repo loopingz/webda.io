@@ -1,6 +1,6 @@
 {
   "name": "@webda/gcp",
-  "version": "3.6.1",
+  "version": "3.6.2",
   "description": "Webda GCP Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -36,7 +36,7 @@
     "@google-cloud/kms": "^4.0.1",
     "@google-cloud/pubsub": "^4.0.1",
     "@google-cloud/storage": "~7.11.1",
-    "@webda/core": "^3.15.1",
+    "@webda/core": "^3.16.0",
     "mime-types": "^2.1.35"
   },
   "c8": {
@@ -58,8 +58,8 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "18.11.13",
-    "@webda/async": "^3.7.1",
-    "@webda/shell": "^3.10.1",
+    "@webda/async": "^3.7.2",
+    "@webda/shell": "^3.11.0",
     "sinon": "^18.0.0",
     "uuid": "^10.0.0"
   },

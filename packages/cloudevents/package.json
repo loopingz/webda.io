@@ -18,8 +18,8 @@
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test:coverage": "NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest",
-    "test": "bun test --coverage"
+    "test": "NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest",
+    "test:bun": "bun test --coverage"
   },
   "dependencies": {
     "cloudevents": "^8.0.1"

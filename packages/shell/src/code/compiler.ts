@@ -464,7 +464,7 @@ export class Compiler {
       ts.sys,
       path.dirname(configFileName),
       {},
-      path.basename(configFileName)
+      configFileName
     );
   }
 

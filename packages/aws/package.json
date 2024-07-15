@@ -60,7 +60,7 @@
     "iam-policy-optimizer": "^1.2.0",
     "lerna": "^8.0.0",
     "mime-types": "^2.1.35",
-    "prettier-plugin-organize-imports": "^3.0.0",
+    "prettier-plugin-organize-imports": "^4.0.0",
     "sinon": "^18.0.0",
     "typescript": "~5.5.3",
     "uuid": "^10.0.0",

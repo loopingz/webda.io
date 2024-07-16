@@ -23,7 +23,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.52.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.47.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.48.0",
     "@opentelemetry/exporter-logs-otlp-grpc": "^0.52.0",
     "@opentelemetry/exporter-metrics-otlp-proto": "^0.52.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.52.0",
@@ -40,7 +40,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
     "@webda/shell": "^3.11.0",
-    "c8": "^9.0.0",
+    "c8": "^10.1.2",
     "glob": "^10.3.10",
     "js-beautify": "^1.14.9",
     "mocha": "^10.2.0",

@@ -1,6 +1,6 @@
 {
   "name": "@webda/otel",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "OpenTelemetry module",
   "main": "lib/index.js",
   "type": "module",
@@ -34,12 +34,12 @@
     "@opentelemetry/sdk-node": "^0.52.0",
     "@opentelemetry/semantic-conventions": "^1.25.0",
     "@types/node": "^18.0.0",
-    "@webda/core": "^3.15.1",
+    "@webda/core": "^3.16.0",
     "@webda/workout": "^3.2.0"
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
-    "@webda/shell": "^3.10.1",
+    "@webda/shell": "^3.11.0",
     "c8": "^10.1.2",
     "glob": "^10.3.10",
     "js-beautify": "^1.14.9",

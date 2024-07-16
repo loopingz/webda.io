@@ -61,6 +61,26 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.13.2 to ^3.14.0
     * @webda/kubernetes bumped from ^3.3.3 to ^3.3.4
 
+## [3.11.0](https://github.com/loopingz/webda.io/compare/shell-v3.10.1...shell-v3.11.0) (2024-07-16)
+
+
+### Features
+
+* **cloudevents:** add module ([562f4a9](https://github.com/loopingz/webda.io/commit/562f4a929e6cb3931a07d9db23d3e1b596272d16))
+
+
+### Bug Fixes
+
+* **shell/compiler:** fix compilation error when tsconfig references to composite package ([e591a26](https://github.com/loopingz/webda.io/commit/e591a2686fd24b4c21643dce54c52979ff960b94))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.15.1 to ^3.16.0
+    * @webda/kubernetes bumped from ^3.4.1 to ^3.4.2
+
 ## [3.10.1](https://github.com/loopingz/webda.io/compare/shell-v3.10.0...shell-v3.10.1) (2024-05-19)
 
 

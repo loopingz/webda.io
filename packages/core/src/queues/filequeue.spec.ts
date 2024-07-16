@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test, only } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
 import { unlinkSync } from "fs";
@@ -19,21 +19,34 @@ class FileQueueTest extends QueueTest {
   async lock() {
     let queue: FileQueue = <FileQueue>this.getService("FileQueue");
     await queue.__clean();
+
+    // Try to receive one message only
     await queue.sendMessage({ test: "plop" });
     let msg = await queue.receiveMessage();
     let msg2 = await queue.receiveMessage();
     assert.strictEqual(msg.length, 1);
+
+    // Check if there is no more message left
     assert.strictEqual(msg2.length, 0);
+
+    // Wait for the lock to expire, as it is set at 1 second in config file
     await this.sleep(1000);
+
     await queue.sendMessage({ test: "plop2" });
     msg2 = await queue.receiveMessage();
     assert.strictEqual(msg2.length, 1);
     assert.deepStrictEqual(msg2[0], msg[0]);
+
+    // Check if the deletion is not crashing even if the lock file is removed
     unlinkSync(`${queue.getParameters().folder}/${msg[0].ReceiptHandle}.json.lock`);
     await queue.deleteMessage(msg[0].ReceiptHandle);
     msg2 = await queue.receiveMessage();
+
+    // Check if the deletion is not crashing even if the content file is removed
     unlinkSync(`${queue.getParameters().folder}/${msg2[0].ReceiptHandle}.json`);
     await queue.deleteMessage(msg2[0].ReceiptHandle);
+    
+    // Check if default parameter is correctly set
     queue = new FileQueue(this.webda, "q", {});
     assert.strictEqual(queue.getParameters().expire, 30000);
   }

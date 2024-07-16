@@ -1,3 +1,6 @@
 {
-  "node-option": ["experimental-specifier-resolution=node", "loader=ts-node/esm"]
+  "node-option": ["experimental-specifier-resolution=node", "loader=ts-node/esm"],
+  "timeout": "30000",
+  "recursive": true,
+  "exit": true
 }

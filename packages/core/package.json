@@ -19,8 +19,8 @@
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "NODE_OPTIONS='--experimental-loader ./hooks.mjs' c8 mocha --recursive --exit --timeout=30000 'src/**/*.spec.ts'",
-    "test:debug": "mocha --recursive --exit --no-timeouts 'src/**/*.spec.ts'"
+    "test": "NODE_OPTIONS='--experimental-loader ./hooks.mjs' c8 mocha 'src/**/*.spec.ts'",
+    "test:debug": "mocha --no-timeouts 'src/**/*.spec.ts'"
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",

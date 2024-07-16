@@ -94,7 +94,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
         };
         if (res.hasLock) {
           const lock = fs.lstatSync(lockFile);
-          if (lock.ctimeMs < Date.now() - this.parameters.expire) {
+          if (lock.birthtimeMs < Date.now() - this.parameters.expire) {
             res.hasLock = false;
             fs.unlinkSync(lockFile);
           }
@@ -105,7 +105,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
       .sort((a, b) => {
         // It is not relevant as it is fs based
         /* c8 ignore next 4 */
-        if (a.ctime > b.ctime) {
+        if (a.birthtimeMs > b.birthtimeMs) {
           return 1;
         }
         return -1;

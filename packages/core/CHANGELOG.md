@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.16.0](https://github.com/loopingz/webda.io/compare/core-v3.15.1...core-v3.16.0) (2024-07-16)
+
+
+### Features
+
+* **cloudevents:** add module ([562f4a9](https://github.com/loopingz/webda.io/commit/562f4a929e6cb3931a07d9db23d3e1b596272d16))
+
+
+### Bug Fixes
+
+* **core:** filequeue node 22 lock ([266eb8a](https://github.com/loopingz/webda.io/commit/266eb8a197f660f16026f69591e19e2a5b2a0856))
+
 ## [3.15.1](https://github.com/loopingz/webda.io/compare/core-v3.15.0...core-v3.15.1) (2024-05-19)
 
 

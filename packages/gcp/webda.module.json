@@ -610,6 +610,13 @@
                         "null"
                       ],
                       "description": "BigQueryConfig useTableSchema"
+                    },
+                    "serviceAccountEmail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "BigQueryConfig serviceAccountEmail"
                     }
                   },
                   "description": "Properties of a BigQueryConfig."
@@ -809,6 +816,13 @@
                         }
                       ],
                       "description": "CloudStorageConfig state"
+                    },
+                    "serviceAccountEmail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "CloudStorageConfig serviceAccountEmail"
                     }
                   },
                   "description": "Properties of a CloudStorageConfig."

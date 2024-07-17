@@ -7,8 +7,8 @@
   "scripts": {
     "build": "webda build",
     "pretest": "npm run build",
-    "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts",
-    "test:debug": "mocha --recursive --exit --timeout=100000 src/**/*.spec.ts",
+    "test": "c8 mocha",
+    "test:debug": "mocha src/**/*.spec.ts",
     "new-model": "webda init webda:model",
     "new-service": "webda init webda:service"
   },

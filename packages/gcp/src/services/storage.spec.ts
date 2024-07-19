@@ -8,42 +8,20 @@ import * as sinon from "sinon";
 import { GCSFinder, Storage } from "./storage";
 import { readFileSync } from "fs";
 const { __dirname } = getCommonJS(import.meta.url);
-class MockFile {
-  constructor(path) {}
-  async delete() {}
-  async getFiles() {}
-  async exists() {}
-  async save() {}
-  async setMetadata() {}
-  async createWriteStream() {}
-  async getSignedUrl() {}
-  async publicUrl() {}
-  async getMetadata() {}
-  async createReadStream() {}
-  async move() {}
-}
 
-class MockBucket {
-  file(path: string) {
-    return new MockFile(path);
-  }
-}
 const BUCKET = "webda-dev";
 @suite
 class StorageTest extends BinaryTest<Storage> {
   prefix: string;
+  apiEndpoint: string;
   async before() {
+    this.apiEndpoint = process.env["GCS_API_ENDPOINT"] || "";
     this.buildWebda();
     await this.install();
     await super.before();
     this.prefix = this.getBinary().getWebda().getUuid();
     this.getBinary().getParameters().prefix = this.prefix;
-    // Prepare for Mocked Version
-    if (!process.env.NO_MOCK && false) {
-      sinon.stub(this.getBinary(), "getStorageBucket").callsFake(() => {
-        return <any>new MockBucket();
-      });
-    }
+    this.getBinary().getParameters().endpoint = this.apiEndpoint;
   }
 
   async after() {
@@ -51,29 +29,32 @@ class StorageTest extends BinaryTest<Storage> {
   }
 
   async install() {
-    var storage = new GCS();
+    var storage = new GCS({ apiEndpoint: this.apiEndpoint });
     try {
-      let [metadata] = await storage.bucket(BUCKET).getMetadata();
-      if (!metadata) {
+      let [exists] = await storage.bucket(BUCKET).exists();
+      if (!exists) {
+        console.log("INFO", `Google cloud storage creating bucket '${BUCKET}'`);
         await storage.createBucket(BUCKET, {
           location: "US-WEST2",
           storageClass: "COLDLINE"
         });
-        await storage.bucket(BUCKET).getMetadata();
       }
-      //this.webda.log("INFO", `Google cloud storage bucket '${BUCKET}' exists`);
     } catch (e: any) {
-      this.webda.log("ERROR", `Google cloud storage error (${e.message})`);
+      console.log("ERROR", `Google Cloud Storage error (${e.message})`);
     }
   }
 
   async cleanData() {
-    var storage = new GCS();
-    const [files] = await storage.bucket(BUCKET).getFiles({
-      prefix: this.prefix
-    });
-    for (let file of files) {
-      await file.delete();
+    var storage = new GCS({ apiEndpoint: this.apiEndpoint });
+    try {
+      const [files] = await storage.bucket(BUCKET).getFiles({
+        prefix: this.prefix
+      });
+      for (let file of files) {
+        await file.delete();
+      }
+    } catch (err) {
+      console.error("Error cleaning up", err);
     }
   }
 
@@ -149,33 +130,61 @@ class StorageTest extends BinaryTest<Storage> {
     const to = `${this.prefix}/movedAccess`;
     await binary.putObject(from, path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
     // Test GCS
-    const finder = new GCSFinder();
+    const finder = new GCSFinder({ apiEndpoint: this.apiEndpoint });
     const stub = sinon.stub();
     let files = await finder.find("gs://webda-dev/", { processor: stub });
     assert.strictEqual(stub.callCount, files.length);
     assert.notStrictEqual(files.length, 0);
     files = await finder.find(`gs://webda-dev/${this.prefix}`, { filterPattern: /rawAccess$/, processor: stub });
     assert.strictEqual(files.length, 1);
-    const buffer = await BinaryService.streamToBuffer(await finder.getReadStream(files[0]));
-    assert.strictEqual(
-      buffer.toString(),
-      readFileSync(path.join(__dirname, "..", "..", "test", "Dockerfile.txt")).toString()
-    );
     const writer = await finder.getWriteStream(`gs://webda-dev/${this.prefix}/test.txt`);
     writer.write("test");
+    let p = new Promise(resolve => {
+      writer.on("finish", resolve);
+    });
     writer.end();
+    await p;
+    assert.strictEqual(
+      (
+        await BinaryService.streamToBuffer(await finder.getReadStream(`gs://webda-dev/${this.prefix}/test.txt`))
+      ).toString(),
+      "test"
+    );
 
     assert.throws(() => finder.getInfo("s3://test/plop.txt"), /Invalid protocol path should be gs:/);
-
     //
     await binary.moveObject({ key: from }, { key: to });
     assert.deepStrictEqual(binary.getSignedUrlHeaders(), {});
     const meta = await binary.getMeta({ bucket: "webda-dev", key: to });
     assert.deepStrictEqual(meta, { size: 311, contentType: "text/plain" });
-    assert.ok(
-      /https:\/\/storage\.googleapis\.com\/webda-dev\/webda-dev/.exec(await binary.getPublicUrl({ key: "webda-dev" }))
-    );
+    let url = await binary.getPublicUrl({ key: "webda-dev" });
+    assert.ok(/\/webda-dev\/webda-dev/.exec(url));
+    if (this.apiEndpoint) {
+      assert.ok(url.startsWith(this.apiEndpoint));
+    } else {
+      assert.ok(url.startsWith("https://storage.googleapis.com"));
+    }
     await binary.deleteObject({ key: to });
+  }
+
+  /**
+   * Overwrite the send challenge data to use GCS
+   * @param info
+   * @param data
+   */
+  async sendChallengeData(info: any, data: string): Promise<any> {
+    const url = new URL(info.url);
+    let metadata = {};
+    Object.keys(info.headers)
+      .filter(k => k.startsWith("x-goog-meta-"))
+      .forEach(k => {
+        metadata[k.substring(12)] = info.headers[k];
+      });
+    let file = new GCS({ apiEndpoint: this.apiEndpoint })
+      .bucket(BUCKET)
+      .file(url.pathname.substring(2 + BUCKET.length));
+    await file.save(data);
+    await file.setMetadata({ metadata: metadata });
   }
 
   @test

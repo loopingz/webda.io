@@ -69,17 +69,12 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * @param id
    */
   async deleteMessage(id: string) {
-    await this.pubsub.auth.request({
-      method: "POST",
-      url: `https://pubsub.googleapis.com/v1/projects/${await this.projectId}/subscriptions/${
-        this.parameters.subscription
-      }:acknowledge`,
-      body: JSON.stringify({
-        ackIds: [id]
-      })
-    });
-    this.messages[id].ack();
-    delete this.messages[id];
+    try {
+      await this.messages[id].ackWithResponse();
+      delete this.messages[id];
+    } catch (err) {
+      this.log("ERROR", `Error deleting message ${id}`, err);
+    }
   }
 
   /**
@@ -149,7 +144,7 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
         subscription.on("message", async (message: Message) => {
           try {
             await callback(this.unserialize(message.data.toString(), eventPrototype));
-            message.ack();
+            await message.ackWithResponse();
           } catch (err) {
             this.log("ERROR", `Message ${message.ackId}`, err);
           }

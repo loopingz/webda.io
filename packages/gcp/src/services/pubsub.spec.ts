@@ -8,6 +8,14 @@ import { GCPPubSubService } from "./pubsub";
 
 @suite
 class GCPPubSubTest extends WebdaTest {
+  async before() {
+    const pubsub = new PubSub();
+    const [exists] = await pubsub.topic("unit-tests").exists();
+    if (!exists) {
+      await pubsub.createTopic("unit-tests");
+    }
+    await super.before();
+  }
   subscriptions: string[] = [];
   async after() {
     await super.after();

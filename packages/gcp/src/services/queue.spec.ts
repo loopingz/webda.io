@@ -4,6 +4,7 @@ import * as assert from "assert";
 import { EventEmitter } from "events";
 import * as sinon from "sinon";
 import GCPQueue from "./queue";
+import { PubSub } from "@google-cloud/pubsub";
 
 class FakeSubscription extends EventEmitter {
   emitError() {
@@ -14,6 +15,15 @@ class FakeSubscription extends EventEmitter {
 
 @suite
 class GCPQueueTest extends QueueTest {
+  async before() {
+    const pubsub = new PubSub();
+    const [exists] = await pubsub.topic("unit-tests").exists();
+    if (!exists) {
+      await pubsub.createTopic("unit-tests");
+    }
+    await super.before();
+  }
+
   @test
   async basic() {
     let queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
@@ -23,7 +33,9 @@ class GCPQueueTest extends QueueTest {
       enableExactlyOnceDelivery: true
     });
     try {
+      console.log("INFO", "Test basic");
       await this.simple(queue, true, 12000);
+      console.log("INFO", "Test basic done");
       // Seems to be penalized by no promise on ACK
       await this.sleep(5000);
       this.log("DEBUG", "Verify receiveMessage is now empty");
@@ -33,8 +45,14 @@ class GCPQueueTest extends QueueTest {
         this.log("ERROR", "Queue should be empty - not an assert to avoid random");
       }
     } finally {
-      await queue.pubsub.subscription(queue.getParameters().subscription).delete();
+      console.log("INFO", "Deleting subscription");
+      try {
+        await queue.pubsub.subscription(queue.getParameters().subscription).delete();
+      } catch (err) {
+        console.error("Error deleting subscription", err);
+      }
     }
+    console.log("INFO", "POST Deleting subscription");
   }
 
   @test

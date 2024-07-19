@@ -68,7 +68,7 @@ export default class GCPPubSubService<
       const end = this.metrics.processing_duration.startTimer();
       try {
         await callback(this.unserialize(message.data.toString(), eventPrototype));
-        message.ack();
+        await message.ackWithResponse();
       } catch (err) {
         this.metrics.errors.inc();
         this.log("ERROR", `${this.getName()} consume message error`, err);

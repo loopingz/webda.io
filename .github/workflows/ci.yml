@@ -67,12 +67,30 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - uses: fsouza/fake-gcs-action@v0.4.1
+        with:
+          version: "1.49.2"
+          backend: memory
+          location: "US-WEST2"
+          public-host: "storage.gcs.127.0.0.1.nip.io:4443"
+          external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
+          scheme: http
+
+      - uses: "google-github-actions/setup-gcloud@v2"
+        with:
+          install_components: "cloud-firestore-emulator,pubsub-emulator"
+
       - name: Configure sysctl limits
         run: |
           sudo swapoff -a
           sudo sysctl -w vm.swappiness=1
           sudo sysctl -w fs.file-max=262144
           sudo sysctl -w vm.max_map_count=262144
+
+      - name: "Start GCP emulators"
+        run: |
+          gcloud --quiet beta emulators pubsub start --host-port=127.0.0.1:8085 &
+          gcloud --quiet alpha emulators firestore start --host-port=127.0.0.1:8289 &
 
       - name: Runs Elasticsearch
         uses: elastic/elastic-github-actions/elasticsearch@master
@@ -89,39 +107,30 @@ jobs:
           postgresql db: webda.io
           postgresql init scripts: packages/postgres/test/sql
 
-      - id: auth
-        uses: google-github-actions/auth@v0.4.0
-        with:
-          create_credentials_file: true
-          workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
-          service_account: ${{ secrets.GCP_OIDC_SA}}
-
-      #      - name: Restore Lerna/NX Cache
-      #        uses: actions/cache@v3
-      #        with:
-      #          path: node_modules/.cache
-      #          key: ${{ runner.os }}-${{ matrix.node }}
-
       - name: Install dependencies
         run: yarn install
 
       - name: Build
         run: yarn run build
 
+      - name: Run gcp tests
+        run: yarn run nx run @webda/gcp:test
+        env:
+          NODE_OPTIONS: "--max-old-space-size=6144"
+          GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
+          PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
+          LOG_LEVEL: DEBUG
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
+
       - name: Run tests
-        run: yarn run test --exclude @webda/aws --exclude @webda/shell --exclude @webda/gcp
+        run: yarn run test --exclude @webda/shell
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
-
-      - name: Run AWS tests
-        run: yarn run nx run @webda/aws:test
-        env:
-          NODE_OPTIONS: "--max-old-space-size=6144"
-
-      - name: Run GCP tests
-        run: yarn run nx run @webda/gcp:test || yarn nx run @webda/gcp:test
-        env:
-          NODE_OPTIONS: "--max-old-space-size=6144"
+          GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
+          PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
       - name: Run shell tests
         run: yarn run nx run @webda/shell:test

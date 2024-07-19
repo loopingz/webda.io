@@ -1,5 +1,4 @@
-"use strict";
-import { Bucket, File, Storage as GCS, GetSignedUrlConfig } from "@google-cloud/storage";
+import { Bucket, File, Storage as GCS, GetSignedUrlConfig, StorageOptions } from "@google-cloud/storage";
 import {
   BinaryFile,
   BinaryMap,
@@ -15,6 +14,7 @@ import {
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream, Writable } from "stream";
+import { pipeline } from "stream/promises";
 
 export type StorageObject = {
   key: string;
@@ -53,6 +53,10 @@ export type StorageObjectMeta = {
 export class StorageParameters extends BinaryParameters {
   prefix?: string;
   bucket: string;
+  /**
+   * Specify endpoint for GCS
+   */
+  endpoint?: string;
 
   constructor(params: any, service: Storage) {
     super(params, service);
@@ -65,8 +69,8 @@ export class StorageParameters extends BinaryParameters {
  */
 export class GCSFinder implements StorageFinder {
   private _storage: GCS;
-  constructor() {
-    this._storage = new GCS();
+  constructor(options?: StorageOptions) {
+    this._storage = new GCS(options);
   }
 
   /**
@@ -106,7 +110,7 @@ export class GCSFinder implements StorageFinder {
       for (let file of res[0]) {
         processor(`${path}${file.name}`);
       }
-      pageToken = res[1];
+      pageToken = res[1].pageToken;
     } while (pageToken);
   }
 
@@ -167,7 +171,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   private _storage?: GCS;
   private get storage(): GCS {
     if (!this._storage) {
-      this._storage = new GCS();
+      this._storage = new GCS({ apiEndpoint: this.parameters.endpoint });
     }
     return this._storage;
   }
@@ -236,21 +240,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       contentType = mime.lookup(body, "application/octet-stream");
       stream = createReadStream(body);
     }
-    // NODE16-REFACTOR: const { pipeline } = require('stream/promises');
-    await new Promise((resolve, reject) => {
-      stream
-        .pipe(
-          file.createWriteStream({
-            contentType
-          })
-        )
-        .on("error", reject)
-        .on("finish", resolve);
-    });
-    // Save metadata now
-    if (metadata) {
-      await file.setMetadata({ metadata: metadata });
-    }
+    await pipeline(stream, file.createWriteStream({ contentType, resumable: false }));
+    await file.setMetadata({ metadata: metadata });
   }
 
   /**

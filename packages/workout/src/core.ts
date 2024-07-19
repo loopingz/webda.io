@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { format } from "util";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 export interface Logger {
   log: (level: WorkerLogLevel, ...args: any[]) => void;
@@ -408,7 +408,7 @@ export class WorkerOutput extends EventEmitter {
     if (!this.interactive) {
       throw new Error("No interactive session registered");
     }
-    let uuid = uuidv4();
+    let uuid = randomUUID();
     this.inputs[uuid] = new WorkerInputEmitter(uuid, title, type, regexp);
     this.inputs[uuid].promise = new Promise<string>((resolve, reject) => {
       this.inputs[uuid].resolve = resolve;

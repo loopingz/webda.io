@@ -4,7 +4,7 @@ import { Ident, WebdaQL } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import { FireStore } from "./firestore";
 
 @suite
@@ -13,7 +13,7 @@ class FireStoreTest extends StoreTest {
   firestore: Firestore;
 
   async before() {
-    this.unitUuid = uuidv4();
+    this.unitUuid = randomUUID();
     this.firestore = new Firestore();
     await super.before();
   }

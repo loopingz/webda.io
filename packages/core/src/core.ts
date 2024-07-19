@@ -17,7 +17,7 @@ import {
   register
 } from "prom-client";
 import { Writable } from "stream";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import { Application, Configuration, Modda } from "./application";
 import {
   BinaryService,
@@ -1426,11 +1426,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Plan to implement base64 and maybe base85
    */
   public getUuid(format: "ascii" | "base64" | "hex" | "binary" | "uuid" = "uuid"): string {
+    let uid = randomUUID();
     if (format === "uuid") {
-      return uuidv4().toString();
+      return uid;
     }
-    let buffer = Buffer.alloc(16);
-    uuidv4(undefined, buffer);
+    let buffer = Buffer.from(uid.replace(/-/g, ""), "hex");
     if (format === "base64") {
       // Remove useless = we won't transfer back to original value or could just add ==
       // https://datatracker.ietf.org/doc/html/rfc4648#page-7

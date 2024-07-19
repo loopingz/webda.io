@@ -44,7 +44,7 @@
     "dateformat": "^5.0.3",
     "fs-extra": "^11.0.0",
     "generator-webda": "^1.2.0",
-    "glob": "^10.0.0",
+    "glob": "^11.0.0",
     "is-in-subnet": "^4.0.1",
     "json-schema": "^0.4.0",
     "jsonpath": "^1.1.1",

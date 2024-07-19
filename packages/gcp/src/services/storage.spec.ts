@@ -1,11 +1,12 @@
 import { Storage as GCS } from "@google-cloud/storage";
 import { suite, test } from "@testdeck/mocha";
-import { getCommonJS } from "@webda/core";
+import { BinaryService, FileUtils, getCommonJS } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
-import { Storage } from "./storage";
+import { GCSFinder, Storage } from "./storage";
+import { readFileSync } from "fs";
 const { __dirname } = getCommonJS(import.meta.url);
 class MockFile {
   constructor(path) {}
@@ -147,6 +148,26 @@ class StorageTest extends BinaryTest<Storage> {
     const from = `${this.prefix}/rawAccess`;
     const to = `${this.prefix}/movedAccess`;
     await binary.putObject(from, path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
+    // Test GCS
+    const finder = new GCSFinder();
+    const stub = sinon.stub();
+    let files = await finder.find("gs://webda-dev/", { processor: stub });
+    assert.strictEqual(stub.callCount, files.length);
+    assert.notStrictEqual(files.length, 0);
+    files = await finder.find(`gs://webda-dev/${this.prefix}`, { filterPattern: /rawAccess$/, processor: stub });
+    assert.strictEqual(files.length, 1);
+    const buffer = await BinaryService.streamToBuffer(await finder.getReadStream(files[0]));
+    assert.strictEqual(
+      buffer.toString(),
+      readFileSync(path.join(__dirname, "..", "..", "test", "Dockerfile.txt")).toString()
+    );
+    const writer = await finder.getWriteStream(`gs://webda-dev/${this.prefix}/test.txt`);
+    writer.write("test");
+    writer.end();
+
+    assert.throws(() => finder.getInfo("s3://test/plop.txt"), /Invalid protocol path should be gs:/);
+
+    //
     await binary.moveObject({ key: from }, { key: to });
     assert.deepStrictEqual(binary.getSignedUrlHeaders(), {});
     const meta = await binary.getMeta({ bucket: "webda-dev", key: to });

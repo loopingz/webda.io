@@ -8,12 +8,13 @@ import {
   CoreModel,
   DeepPartial,
   OperationContext,
+  StorageFinder,
   Throttler,
   WebContext
 } from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
-import { Readable, Stream } from "stream";
+import { Readable, Stream, Writable } from "stream";
 
 export type StorageObject = {
   key: string;
@@ -56,6 +57,103 @@ export class StorageParameters extends BinaryParameters {
   constructor(params: any, service: Storage) {
     super(params, service);
     this.prefix = "";
+  }
+}
+
+/**
+ * Google Storage Finder implementation
+ */
+export class GCSFinder implements StorageFinder {
+  private _storage: GCS;
+  constructor() {
+    this._storage = new GCS();
+  }
+
+  /**
+   * Get info from url
+   * @param path
+   * @returns
+   */
+  getInfo(path: string): { bucket: string; key: string } {
+    const url = new URL(path);
+    if (url.protocol !== "gs:") {
+      throw new Error("Invalid protocol path should be gs://bucket/key");
+    }
+    let key = url.pathname;
+    if (key.startsWith("/")) {
+      key = key.substring(1);
+    }
+    return {
+      bucket: url.host,
+      key
+    };
+  }
+
+  /**
+   * Depth or options is ignored
+   * @override
+   */
+  async walk(
+    path: string,
+    processor: (filepath: string) => void,
+    options?: { followSymlinks?: boolean; resolveSymlink?: boolean; includeDir?: boolean; maxDepth?: number },
+    depth?: number
+  ): Promise<void> {
+    const { bucket, key } = this.getInfo(path);
+    let pageToken;
+    do {
+      let res = await this._storage.bucket(bucket).getFiles(pageToken ? pageToken : { prefix: key });
+      for (let file of res[0]) {
+        processor(`${path}${file.name}`);
+      }
+      pageToken = res[1];
+    } while (pageToken);
+  }
+
+  /**
+   *
+   * @param currentPath
+   * @param options is ignored
+   * @returns
+   */
+  async find(
+    currentPath: string,
+    options?: { includeDir?: boolean; maxDepth?: number } & {
+      filterPattern?: RegExp;
+      processor?: (filepath: string) => void;
+    }
+  ): Promise<string[]> {
+    let res = [];
+    await this.walk(currentPath, f => {
+      if (options?.filterPattern && !options.filterPattern.test(f)) {
+        return;
+      }
+      if (options?.processor) {
+        options.processor(f);
+      }
+      res.push(f);
+    });
+    return res;
+  }
+
+  /**
+   * Get a write stream
+   * @param path
+   * @returns
+   */
+  async getWriteStream(path: string): Promise<Writable> {
+    const { bucket, key } = this.getInfo(path);
+    return this._storage.bucket(bucket).file(key).createWriteStream();
+  }
+
+  /**
+   * Get a read stream
+   * @param path
+   * @returns
+   */
+  async getReadStream(path: string): Promise<Readable> {
+    const { bucket, key } = this.getInfo(path);
+    return this._storage.bucket(bucket).file(key).createReadStream();
   }
 }
 

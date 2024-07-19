@@ -356,7 +356,12 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    * @param context
    */
   authorizeClientEvent(_event: string, _context: OperationContext, _model?: T): boolean;
-
+  /**
+   * Iterate through the model
+   * @param query
+   * @param includeSubclass
+   */
+  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
   /**
    * EventEmitter interface
    * @param event
@@ -694,7 +699,9 @@ class CoreModel {
     // Get the type automatically now
     this.__type = process.env.WEBDA_V2_COMPATIBLE
       ? Core.get()?.getApplication().getModelFromInstance(this)
-      : Core.get()?.getApplication().getShortId(Core.get()?.getApplication().getModelFromInstance(this));
+      : Core.get()
+          ?.getApplication()
+          .getShortId(Core.get()?.getApplication().getModelFromInstance(this));
   }
 
   /**

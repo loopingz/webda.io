@@ -1,0 +1,58 @@
+{
+  "name": "@webda/test",
+  "version": "3.0.0",
+  "description": "Test package for webda",
+  "keywords": [
+    "aws",
+    "lamda",
+    "api gateway"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc-esm",
+    "pretest": "npm run build",
+    "lint": "prettier --check src/**/*",
+    "lint:fix": "prettier --write src/**/*",
+    "test": "NODE_OPTIONS='--experimental-loader ./hooks.mjs' c8 mocha --recursive --exit --timeout=30000 'src/**/*.spec.ts'",
+    "test:debug": "mocha --recursive --exit --no-timeouts 'src/**/*.spec.ts'"
+  },
+  "dependencies": {
+    "@testdeck/core": "^0.3.2",
+    "@testdeck/mocha": "^0.3.2",
+    "@types/bun": "^1.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "18.11.13",
+    "prettier": "^3.2.5"
+  },
+  "files": [
+    "lib"
+  ],
+  "c8": {
+    "report-dir": "./reports",
+    "reporter": [
+      "html",
+      "lcov",
+      "json",
+      "text"
+    ],
+    "exclude": [
+      "src/test.ts",
+      "**/*.spec.ts",
+      "test/**/*",
+      "*/stores/webdaql/WebdaQL*"
+    ],
+    "excludeNodeModules": true
+  },
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

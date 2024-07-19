@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaError } from "./errors";
 
@@ -8,13 +8,13 @@ class ErrorsTest {
   cov() {
     assert.strictEqual(new WebdaError.BadRequest("test").getResponseCode(), 400);
     assert.strictEqual(new WebdaError.CodeError("PLOP", "test").getResponseCode(), 500);
-    assert.rejects(() => {
+    assert.throws(() => {
       throw new WebdaError.BadRequest("test");
     });
-    assert.rejects(() => {
+    assert.throws(() => {
       throw new WebdaError.NotImplemented("test");
     });
-    assert.rejects(() => {
+    assert.throws(() => {
       throw new WebdaError.ServiceUnavailable("test");
     });
     assert.strictEqual(new WebdaError.HttpError("test").code, "HTTP_ERROR");

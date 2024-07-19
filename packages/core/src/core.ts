@@ -957,7 +957,7 @@ export class Core<E extends CoreEvents = CoreEvents> {
         schema = JSONUtils.duplicate(schema);
         schema.required = [];
       }
-      this.log("TRACE", "Add schema for", name);
+      this.log("TRACE", "Add schema for", cacheName);
       this._ajv.addSchema(schema, cacheName);
       this._ajvSchemas[cacheName] = true;
     }

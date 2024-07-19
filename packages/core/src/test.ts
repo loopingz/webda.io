@@ -239,9 +239,7 @@ class WebdaTest {
     } else {
       ctx.setHttpContext(httpContext);
     }
-    if (this.webda.updateContextWithRoute(ctx)) {
-      return ctx;
-    }
+    return ctx;
   }
 
   /**

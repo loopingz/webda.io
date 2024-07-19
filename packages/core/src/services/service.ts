@@ -1,7 +1,7 @@
 import { Constructor, DeepPartial } from "@webda/tsc-esm";
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
-import { EventType, Subscription } from "../events";
+import { Emitters, Event, EventType, Subscription } from "../events";
 import { Context, Core, Counter, Gauge, Histogram, Logger, MetricConfiguration } from "../index";
 import { OpenAPIWebdaDefinition } from "../rest/router";
 import { HttpMethodType } from "../utils/httpcontext";
@@ -591,6 +591,13 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
   log(level: WorkerLogLevel, ...args: any[]) {
     // Add the service name to avoid confusion
     this.logger.log(level, `[${this.name}]`, ...args);
+  }
+
+  /**
+   * Declare the events that the service can emit
+   */
+  protected emits(events: Constructor<Event<any>>[]): void {
+    Emitters.set(this.constructor, [this.getName() || this.constructor.name, events, this.constructor]);
   }
 
   /**

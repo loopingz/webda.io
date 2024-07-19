@@ -505,10 +505,13 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (user === undefined) {
       throw new WebdaError.NotFound("No user found");
     }
-    await this.emitSync("Authentication.GetMe", <EventAuthenticationGetMe>{
-      context: ctx,
-      user
-    });
+    await new AuthenticationGetMeEvent(
+      {
+        context: ctx,
+        user
+      },
+      this
+    ).emit();
     ctx.write(user);
   }
 
@@ -734,7 +737,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       null
     );
     this.metrics.recovered.inc();
-    await this.emitSync("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
+    await this.emit("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
       user,
       password,
       context: ctx
@@ -879,7 +882,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    * Logout user
    */
   async logout(ctx: WebContext) {
-    await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
+    await this.emit("Authentication.Logout", <EventAuthenticationLogout>{
       context: ctx
     });
     await ctx.newSession();
@@ -910,7 +913,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     event.context = ctx;
     ctx.getSession().login(event.userId, event.identId);
     this.metrics.login.inc({ provider });
-    return this.emitSync("Authentication.Login", event);
+    return this.emit("Authentication.Login", event);
   }
 
   getMailMan(): Mailer {
@@ -939,7 +942,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       ctx.write(user);
     } else {
       this.metrics.loginFailed.inc();
-      await this.emitSync("Authentication.LoginFailed", <EventAuthenticationLoginFailed>{
+      await this.emit("Authentication.LoginFailed", <EventAuthenticationLoginFailed>{
         user,
         context: ctx
       });
@@ -1023,7 +1026,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
           true
         )
       );
-      await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
+      await this.emit("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,
         password: __password,
         context: ctx

@@ -53,6 +53,15 @@ class MyModel extends CoreModel {
 }
 ```
 
+An action is defined as global if it is on a static method. You can also rename the action by providing a name.
+
+```js title="src/mymodel.ts"
+class MyModel extends CoreModel {
+  @Action({ name: "myAction" })
+  static globalAction() {}
+}
+```
+
 ## Model schemas
 
 The schema is generated with [ts-json-schema-generator](https://github.com/vega/ts-json-schema-generator)

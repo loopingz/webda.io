@@ -1,79 +1,24 @@
 # Events
 
-The framework use the EventEmitter for events.
+The framework does not use the EventEmitter for events since v4.
 
-`emit()` this will not wait for any promise returned by listeners
+We aligned on CloudEvents and its subscription system to allow easier integration with other systems.
 
-`emitSync()` this will wait for resolution on all promises returned by listeners
+To emit an event, just define the event as a class and use its `emit` method.
+If you await the method then you will wait for its delivery and local listeners to be processed.
 
-We also have a mechanism to listen asynchronously to events. They will then be posted to a Queue for them
-to be consumed through a `AsyncEvent.worker()`
+To listen to an event you can use the `on`.
 
-```mermaid
-sequenceDiagram
-	participant S as Service
-	participant As as AsyncEventService
-	participant Q as Queue
-    participant Aw as AsyncEventService Worker
-    As->>S: Bind event to a sendQueue listener
-	activate As
-	S->>As: Emit event
-    As->>Q: Push the event to the queue
-	deactivate As
-	Aw->>Q: Consume queue
-	Aw->>Aw: Call the original listener
+Subscription must be named from your service, this allows it to be overriden by configuration to execute asynchronously.
+
+```
+emit -> @Emits()
+on(name: string, event: string | Subscription , callback: async () => {})
 ```
 
-### Webda.Init
+Local -> execute within current node process
+PubSub -> execute on all nodes within the cluster
+Queue -> execute once by some workers
 
-### Webda.Init.Services
-
-### Webda.Create.Services
-
-### Webda.NewContext
-
-### Webda.Request
-
-### Store.Save
-
-### Store.Saved
-
-### Store.Update
-
-### Store.Updated
-
-### Store.PartialUpdate
-
-### Store.PArtialUpdated
-
-### Store.Delete
-
-### Store.Deleted
-
-### Store.Get
-
-### Store.Find
-
-### Store.Found
-
-### Store.WebCreate
-
-### Store.WebUpdate
-
-### Store.WebGet
-
-### Store.WebDelete
-
-### Store.Action
-
-### Store.Actionned
-
-## Runtime Events
-
-To implement some clients listeners we can allow listeners by uuid
-
-addModelListener(model: string, uuid: string) // fullUuid?
-removeModelListener(model: string, uuid: string) // fullUuid?
-
-Get the current map
-The Pub/Sub will then send all events for this uuid.
+EventService->worker(...subscription: string) -> if Queue subscription
+EventService->init() -> will sub to all PubSub/Local on startup

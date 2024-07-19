@@ -18,7 +18,19 @@ You have different types of runner available.
 It allows you to launch other language/binary from within your application
 and capure the output.
 
+## Scheduler
+
+You can schedule an action to be executed at a specific time.
+
+```typescript
+this.getService<AsyncJobService>("AsyncJobService").scheduleJob(
+  AsyncAction.createAction("test", "echo", ["Hello World"]),
+  new Date(Date.now() + 1000)
+);
+```
+
 <!-- README_FOOTER -->
+
 ## Sponsors
 
 <!--

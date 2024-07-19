@@ -170,7 +170,7 @@ class MemoryStoreTest extends StoreTest {
     assert.ok((await identStore.get("user")).constructor.name === "Ident");
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = false;
-    await assert.rejects(() => identStore.get("user"));
+    assert.ok((await identStore.get("user")) === undefined);
     assert.ok((await identStore.get("ident")) instanceof Ident);
   }
 

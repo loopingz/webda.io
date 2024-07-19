@@ -42,7 +42,7 @@ export default class ApiKey extends OwnerModel {
    * Authorize those origins only (regexp)
    */
   origins?: string[];
-
+  // tai-lhoiz07bdte8zj5whcrsp
   /**
    * If defined the key is only usable from these ips
    *

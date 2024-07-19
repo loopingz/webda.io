@@ -454,7 +454,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
           (async () => {
             const id = await this.authenticationService.getIdentStore().get(ident);
             if (id && id.getUser()) {
-              delete model[this.parameters.attribute][id.getUser()];
+              delete model[this.parameters.attribute][id.getUser().getUuid()];
               await this.removeInvitationFromUser(id.getUser().toString(), model.getUuid());
               invitedUsers.push(id.getUser().toString());
             }
@@ -490,7 +490,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
   protected async removeInvitationFromUser(user: string, model: string): Promise<void> {
     let userModel = await this.authenticationService.getUserStore().get(user);
     let index = 0;
-    for (let invit of userModel[this.parameters.mapAttribute] || []) {
+    for (let invit of userModel[<any>this.parameters.mapAttribute] || []) {
       if (invit.model === model) {
         await this.authenticationService
           .getUserStore()
@@ -516,8 +516,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     if (!model) {
       throw new WebdaError.NotFound("Model not found");
     }
-    model[this.parameters.attribute] ??= {};
-    model[this.parameters.pendingAttribute] ??= {};
+    model[<any>this.parameters.attribute] ??= {};
+    model[<any>this.parameters.pendingAttribute] ??= {};
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await model.checkAct(ctx, "uninvite");
       return this.uninvite(ctx, model);
@@ -525,7 +525,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     await model.checkAct(ctx, "invite");
     // Retrieve invitation useful when invitation are hidden with a __
     if (ctx.getHttpContext().getMethod() === "GET") {
-      ctx.write(model[this.parameters.pendingAttribute] || {});
+      ctx.write(model[<any>this.parameters.pendingAttribute] || {});
       return;
     }
     const body: Invitation = await ctx.getRequestBody();
@@ -549,16 +549,16 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       // User is known
       if (invitation.ident) {
         if (this.parameters.autoAccept) {
-          model[this.parameters.attribute][invitation.ident.getUser()] = body.metadata;
-        } else if (!model[this.parameters.attribute][invitation.ident.getUser()]) {
+          model[<any>this.parameters.attribute][invitation.ident.getUser()] = body.metadata;
+        } else if (!model[<any>this.parameters.attribute][invitation.ident.getUser()]) {
           // Add to the user
-          model[this.parameters.pendingAttribute][`user_${invitation.ident.getUser()}`] = body.metadata;
+          model[<any>this.parameters.pendingAttribute][`user_${invitation.ident.getUser()}`] = body.metadata;
         }
         promises.push(
           (async () => {
             const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser().toString());
             invitedUsers.push(user);
-            await this.addInvitationToUser(model, user, inviter, metadata, body.notification);
+            await this.addInvitationToUser(model, <any>user, inviter, metadata, body.notification);
           })()
         );
         continue;
@@ -566,8 +566,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       // User is unknown to the platform
       invitedIdents.push(invitation.invitation);
       let invitUuid = `${invitation.invitation}_${this.getName()}`;
-      model[this.parameters.pendingAttribute] ??= {};
-      model[this.parameters.pendingAttribute][`ident_${invitation.invitation}`] = body.metadata;
+      model[<any>this.parameters.pendingAttribute] ??= {};
+      model[<any>this.parameters.pendingAttribute][`ident_${invitation.invitation}`] = body.metadata;
       const invitInfo = {
         inviter: inviter.toPublicEntry(),
         metadata: body.metadata
@@ -578,7 +578,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         );
       } else {
         promises.push(
-          this.invitationStore.save({
+          this.invitationStore.create({
             uuid: invitUuid,
             [this.getInvitationAttribute(model.getUuid())]: invitInfo
           })
@@ -604,12 +604,12 @@ export default class InvitationService<T extends InvitationParameters = Invitati
           return;
         }
         if (this.parameters.autoAccept) {
-          model[this.parameters.attribute][u] = body.metadata;
-        } else if (!model[this.parameters.attribute][u]) {
-          model[this.parameters.pendingAttribute][`user_${u}`] = body.metadata;
+          model[<any>this.parameters.attribute][u] = body.metadata;
+        } else if (!model[<any>this.parameters.attribute][u]) {
+          model[<any>this.parameters.pendingAttribute][`user_${u}`] = body.metadata;
         }
         invitedUsers.push(user);
-        await this.addInvitationToUser(model, user, inviter, metadata, body.notification);
+        await this.addInvitationToUser(model, <any>user, inviter, metadata, body.notification);
       })
     );
 
@@ -701,7 +701,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
 
     // If autoAccept is false, just copy the pending invitation in the user
     const invitedUser: User & { [K in T["mapAttribute"]]: Invitations } = <any>evt.user;
-    invitedUser[this.parameters.mapAttribute] ??= <Invitations[]>[];
+    invitedUser[<any>this.parameters.mapAttribute] ??= <Invitations[]>[];
     invitedUser[this.parameters.mapAttribute].push(
       ...infos
         .filter(m => m.model !== undefined)

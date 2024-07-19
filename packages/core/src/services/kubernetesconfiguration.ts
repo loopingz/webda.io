@@ -38,7 +38,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
    */
   async init(): Promise<this> {
     // Add webda info
-    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
+    this.watch("$.services", (updates: any) => this.webda.reinit(updates));
 
     fs.watchFile(path.join(this.parameters.source, "..data"), this.checkUpdate.bind(this));
     await this.checkUpdate();

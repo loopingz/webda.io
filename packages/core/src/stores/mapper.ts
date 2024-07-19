@@ -83,7 +83,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    */
   resolve(): this {
     super.resolve();
-    this.targetStore.addReverseMap(this.parameters.targetAttribute, this.sourceService);
+    this.targetStore["addReverseMap"](this.parameters.targetAttribute, this.sourceService);
     const method = this.parameters.async ? "onAsync" : "on";
     this.sourceService[method]("Store.PartialUpdated", async (evt: EventStorePartialUpdated) => {
       let prop;
@@ -111,7 +111,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     // Cascade delete when target is destroyed
     if (this.parameters.cascade) {
       this.targetStore[method]("Store.Deleted", async (evt: EventStoreDeleted) => {
-        let maps = evt.object[this.parameters.targetAttribute];
+        let maps = evt.object[<any>this.parameters.targetAttribute];
         if (!maps) {
           return;
         }
@@ -191,7 +191,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    */
   _handleUpdatedMapMapper(source: CoreModel, target: CoreModel, mapper: Mapper) {
     // Remove old reference
-    let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
+    let i = this.getMapper(target[<any>this.parameters.targetAttribute], source.getUuid());
     // If not found just add it to the collection
     if (i < 0) {
       return this.targetStore.upsertItemToCollection(target.getUuid(), this.parameters.targetAttribute, mapper);
@@ -216,10 +216,10 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    */
   async _handleDeletedMap(source: CoreModel, target: CoreModel) {
     // Remove from the collection
-    if (target[this.parameters.targetAttribute] === undefined) {
+    if (target[<any>this.parameters.targetAttribute] === undefined) {
       return;
     }
-    let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
+    let i = this.getMapper(target[<any>this.parameters.targetAttribute], source.getUuid());
     if (i >= 0) {
       return this.targetStore.deleteItemFromCollection(
         target.getUuid(),
@@ -291,7 +291,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    * @returns
    */
   async handleMap(object: CoreModel, updates: MapUpdates) {
-    let attribute = object[this.parameters.attribute] || updates[this.parameters.attribute];
+    let attribute = object[<any>this.parameters.attribute] || updates[<any>this.parameters.attribute];
     let mappeds = [];
     let toDelete = [];
     let toAdd = [];
@@ -299,8 +299,11 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     // Manage the update of linked object
     if (typeof attribute === "string" || attribute instanceof ModelRef) {
       attribute = attribute.toString();
-      if (updates[this.parameters.attribute] !== undefined && updates[this.parameters.attribute] !== attribute) {
-        toAdd.push(updates[this.parameters.attribute].toString());
+      if (
+        updates[<any>this.parameters.attribute] !== undefined &&
+        updates[<any>this.parameters.attribute] !== attribute
+      ) {
+        toAdd.push(updates[<any>this.parameters.attribute].toString());
         toDelete.push(attribute);
       } else {
         ids.push(attribute);

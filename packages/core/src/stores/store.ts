@@ -1872,6 +1872,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
   }
 
   /**
+   * Declare all dynamic events for this store
+   */
+  declareEvents() {
+    // Should define all events for each models handled by this store
+  }
+
+  /**
    * Handle POST
    * @param ctx
    */

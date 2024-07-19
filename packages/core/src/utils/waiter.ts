@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import { Core, Logger } from "../index";
 
 /**
@@ -109,7 +109,7 @@ export async function WaitFor<T = any>(
   }
   return new Promise<T>(async (mainResolve, mainReject) => {
     let tries: number = 0;
-    let uuid = uuidv4();
+    let uuid = randomUUID();
     if (logger) {
       logger.logProgressStart(uuid, retries, title);
     }

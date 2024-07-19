@@ -50,7 +50,6 @@
     "stream-buffers": "^3.0.2",
     "ts-method-cache": "^3.3.1",
     "uri-templates": "^0.2.0",
-    "uuid": "^10.0.0",
     "yaml": "^2.0.0"
   },
   "devDependencies": {

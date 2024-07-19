@@ -1,7 +1,6 @@
 import { EventEmitter } from "events";
 import { JSONSchema7 } from "json-schema";
 import util from "util";
-import { v4 as uuidv4 } from "uuid";
 import { ModelGraph, ModelsTree } from "../application";
 import { Core, EventEmitterUtils } from "../core";
 import { WebdaError } from "../errors";
@@ -1536,7 +1535,7 @@ class CoreModel {
    * @returns
    */
   generateUid(_object: any = undefined): string {
-    return uuidv4().toString();
+    return Core.get().getUuid();
   }
 
   /**

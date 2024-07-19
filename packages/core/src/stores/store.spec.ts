@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { stub } from "sinon";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import { Ident } from "../../test/models/ident";
 import { OperationContext, Store, StoreParameters, User, WebdaError } from "../index";
 import { CoreModel } from "../models/coremodel";
@@ -561,7 +561,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(users[0] instanceof userStore._model, true);
     assert.strictEqual(users[1] instanceof userStore._model, true);
     assert.strictEqual(users[2] instanceof userStore._model, true);
-    users = await userStore.getAll([user1.uuid, user3.uuid, uuidv4()]);
+    users = await userStore.getAll([user1.uuid, user3.uuid, randomUUID()]);
     assert.strictEqual(users.length, 2);
     assert.strictEqual(users[0] instanceof userStore._model, true);
     assert.strictEqual(users[1] instanceof userStore._model, true);
@@ -685,7 +685,7 @@ abstract class StoreTest extends WebdaTest {
     let model = await store.save({});
     assert.ok(await store.exists(model.getUuid()));
     assert.ok(await store.exists(model));
-    assert.ok(!(await store.exists(uuidv4())));
+    assert.ok(!(await store.exists(randomUUID())));
   }
 
   @test
@@ -697,7 +697,7 @@ abstract class StoreTest extends WebdaTest {
     await model.refresh();
     assert.strictEqual(model.counter, 3);
     assert.strictEqual(model.counter2, 2);
-    await assert.rejects(() => store.incrementAttribute(uuidv4(), "counter", 1), StoreNotFoundError);
+    await assert.rejects(() => store.incrementAttribute(randomUUID(), "counter", 1), StoreNotFoundError);
   }
 
   @test
@@ -707,7 +707,7 @@ abstract class StoreTest extends WebdaTest {
     await store.removeAttribute(model.getUuid(), "counter");
     await model.refresh();
     assert.strictEqual(model.counter, undefined);
-    await assert.rejects(() => store.removeAttribute(uuidv4(), "counter"), StoreNotFoundError);
+    await assert.rejects(() => store.removeAttribute(randomUUID(), "counter"), StoreNotFoundError);
     await assert.rejects(
       () => store.removeAttribute(model.getUuid(), "counter2", 10, "counter3"),
       UpdateConditionFailError
@@ -725,7 +725,7 @@ abstract class StoreTest extends WebdaTest {
     await model.refresh();
     assert.strictEqual(model.counter, 3);
     assert.strictEqual(model.status, "TESTED");
-    await assert.rejects(() => store.setAttribute(uuidv4(), "counter", 4), StoreNotFoundError);
+    await assert.rejects(() => store.setAttribute(randomUUID(), "counter", 4), StoreNotFoundError);
     store.on("Store.PatchUpdate", async () => {
       model._lastUpdate = new Date(100);
       // @ts-ignore
@@ -743,7 +743,7 @@ abstract class StoreTest extends WebdaTest {
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
     await assert.rejects(
-      () => store.setAttribute(uuidv4(), "counter", 4),
+      () => store.setAttribute(randomUUID(), "counter", 4),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
   }
@@ -760,7 +760,7 @@ abstract class StoreTest extends WebdaTest {
     await store.delete(model);
 
     // Deleting a non-existing object should be ignored
-    await store.forceDelete(uuidv4());
+    await store.forceDelete(randomUUID());
   }
 
   @test
@@ -777,7 +777,7 @@ abstract class StoreTest extends WebdaTest {
     await store.delete(model);
 
     // Deleting a non-existing object should be ignored
-    await store.forceDelete(uuidv4());
+    await store.forceDelete(randomUUID());
   }
 
   async deleteConcurrent() {
@@ -866,7 +866,7 @@ abstract class StoreTest extends WebdaTest {
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
     await assert.rejects(
-      () => store.update({ uuid: uuidv4(), test: true }),
+      () => store.update({ uuid: randomUUID(), test: true }),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
   }
@@ -887,13 +887,13 @@ abstract class StoreTest extends WebdaTest {
     // Depending on the implementation it can be swallowed by the backend
     this.log("DEBUG", "Upsert on unknown doc");
     await assert.rejects(
-      () => store.upsertItemToCollection(uuidv4(), "logs", `line`),
+      () => store.upsertItemToCollection(randomUUID(), "logs", `line`),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
 
     this.log("DEBUG", "Delete on unknown doc");
     await assert.rejects(
-      () => store.deleteItemFromCollection(uuidv4(), "logs", 0, undefined, undefined),
+      () => store.deleteItemFromCollection(randomUUID(), "logs", 0, undefined, undefined),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
   }

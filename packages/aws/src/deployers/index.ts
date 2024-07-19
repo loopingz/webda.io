@@ -12,7 +12,7 @@ import { globSync } from "glob";
 import IamPolicyOptimizer from "iam-policy-optimizer";
 import * as mime from "mime-types";
 import * as path from "path";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import { IAMPolicyContributor } from "../services";
 import { Route53Service } from "../services/route53";
 
@@ -613,7 +613,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       Params.ContinuationToken = res.NextContinuationToken;
     } while (Params.ContinuationToken);
     // Should implement multithread here - cleaning too
-    let uuid = uuidv4();
+    let uuid = randomUUID();
     let fullSize = 0;
     files = files.filter(info => {
       if (typeof info.src === "string") {

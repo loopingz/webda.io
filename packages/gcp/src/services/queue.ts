@@ -34,9 +34,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    */
   pubsub: PubSub;
   /**
-   * Current project id, used for manual acknowledge of message based on just their ackId
+   *
    */
-  projectId: Promise<string>;
   messages: { [key: string]: Message } = {};
   /**
    * @override
@@ -51,7 +50,6 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
   async init(): Promise<this> {
     await super.init();
     this.pubsub = new PubSub();
-    this.projectId = this.pubsub.auth.getProjectId();
     return this;
   }
 

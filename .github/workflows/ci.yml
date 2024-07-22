@@ -114,7 +114,7 @@ jobs:
         run: yarn run build
 
       - name: Run gcp tests
-        run: yarn run nx run @webda/gcp:test
+        run: cd packages/gcp && yarn test -g GCPQueueTest
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443

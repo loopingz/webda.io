@@ -28,22 +28,17 @@ class GCPQueueTest extends QueueTest {
   async basic() {
     let queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
     queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
+    queue.getParameters().mode = "receiver";
     await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
       ackDeadlineSeconds: 10,
       enableExactlyOnceDelivery: true
     });
     try {
-      console.log("INFO", "Test basic");
       await this.simple(queue, true, 12000);
-      console.log("INFO", "Test basic done");
-      // Seems to be penalized by no promise on ACK
-      await this.sleep(5000);
       this.log("DEBUG", "Verify receiveMessage is now empty");
-      queue.getParameters().timeout = 3000;
-      // TODO Investigate this one
-      if ((await queue.receiveMessage()).length > 0) {
-        this.log("ERROR", "Queue should be empty - not an assert to avoid random");
-      }
+      queue.getParameters().timeout = 1000;
+      const msgs = await queue.receiveMessage();
+      assert.strictEqual(msgs.length, 0);
     } finally {
       console.log("INFO", "Deleting subscription");
       try {
@@ -52,7 +47,6 @@ class GCPQueueTest extends QueueTest {
         console.error("Error deleting subscription", err);
       }
     }
-    console.log("INFO", "POST Deleting subscription");
   }
 
   @test
@@ -86,9 +80,6 @@ class GCPQueueTest extends QueueTest {
       await consumer.cancel();
       this.log("DEBUG", "Consume assert");
       assert.notStrictEqual(msg, undefined);
-      // The second message throw an exception so it can come back
-      await queue.receiveMessage();
-      await queue.receiveMessage();
     } finally {
       await queue.pubsub.subscription(queue.getParameters().subscription).delete();
     }
@@ -96,14 +87,7 @@ class GCPQueueTest extends QueueTest {
 
   @test
   async receiveError() {
-    this.log("DEBUG", "Receive Error test");
     let queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
-    let service = new FakeSubscription();
-    sinon.stub(queue.pubsub, "subscription").callsFake(() => {
-      return <any>service;
-    });
-    let consumer = queue.receiveMessage();
-    service.emitError();
-    await assert.rejects(() => consumer, /Fake error/);
+    await assert.rejects(() => queue.receiveMessage(), /You can only use receiveMessage in 'receiver' mode/);
   }
 }

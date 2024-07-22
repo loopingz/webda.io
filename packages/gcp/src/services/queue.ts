@@ -1,4 +1,4 @@
-import { Message, PubSub } from "@google-cloud/pubsub";
+import { Message, PubSub, Subscription } from "@google-cloud/pubsub";
 import { CancelablePromise, DeepPartial, MessageReceipt, Queue, QueueParameters } from "@webda/core";
 
 /**
@@ -21,6 +21,11 @@ export class GCPQueueParameters extends QueueParameters {
    * If not define then no timeout is applied and receiveMessage can hang forever
    */
   timeout?: number;
+  /**
+   * If receiver, the usage is to call receiveMessage and deleteMessage manually
+   * If consumer, the usage is to call consume, the normal flow is used in parallel
+   */
+  mode: "consumer" | "receiver" = "consumer";
 }
 
 /**
@@ -33,6 +38,17 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * Main api object
    */
   pubsub: PubSub;
+  /**
+   * Current subscription
+   */
+  subscription: Subscription;
+  /**
+   * Pending message
+   *
+   * Used in receiver mode to store the next message received
+   */
+  private receiverPromise?: Promise<MessageReceipt<any>[]>;
+  private receiverResolve?: (value: MessageReceipt<any>[]) => void;
   /**
    *
    */
@@ -67,12 +83,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * @param id
    */
   async deleteMessage(id: string) {
-    try {
-      await this.messages[id].ackWithResponse();
-      delete this.messages[id];
-    } catch (err) {
-      this.log("ERROR", `Error deleting message ${id}`, err);
-    }
+    await this.messages[id].ackWithResponse();
+    delete this.messages[id];
   }
 
   /**
@@ -91,38 +103,64 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
   async receiveMessage<L>(proto?: new () => L): Promise<MessageReceipt<L>[]> {
     let timeoutId;
     let errorHandler;
-    let msgHandler;
-    const subscription = this.pubsub.subscription(this.parameters.subscription, {
+    if (this.parameters.mode !== "receiver") {
+      throw new Error("You can only use receiveMessage in 'receiver' mode");
+    }
+    this.subscription ??= this.pubsub.subscription(this.parameters.subscription, {
       flowControl: {
-        maxMessages: 1
+        maxMessages: 1,
+        allowExcessMessages: false
       }
     });
-    try {
-      return await new Promise<MessageReceipt<L>[]>((resolve, reject) => {
-        if (this.parameters.timeout) {
-          timeoutId = setTimeout(() => resolve([]), this.parameters.timeout);
-        }
-        errorHandler = err => {
-          reject(err);
-        };
-        msgHandler = (message: Message) => {
-          this.messages[message.ackId] = message;
-          resolve([
-            {
-              Message: this.unserialize(message.data.toString(), proto),
-              ReceiptHandle: message.ackId
-            }
-          ]);
-        };
-        subscription.on("error", errorHandler);
-        subscription.on("message", msgHandler);
+    this.receiverPromise ??= new Promise<MessageReceipt<L>[]>((resolve, _) => {
+      this.receiverResolve = resolve;
+    });
+    let result = this.receiverPromise;
+    this.receiverPromise = undefined;
+    if (this.subscription.listenerCount("message") === 0) {
+      const msgHandler = (message: Message) => {
+        this.messages[message.ackId] = message;
+        const resolve = this.receiverResolve;
+
+        this.receiverPromise ??= new Promise<MessageReceipt<L>[]>((res, _) => {
+          this.receiverResolve = res;
+        });
+        resolve([
+          {
+            Message: message.data.toString(),
+            ReceiptHandle: message.ackId
+          }
+        ]);
+      };
+      this.subscription.on("error", err => {
+        this.log("ERROR", "Error in receiver", err);
       });
-    } finally {
-      subscription.close();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      this.subscription.on("message", msgHandler);
     }
+    if (this.parameters.timeout) {
+      timeoutId = setTimeout(() => {
+        const resolve = this.receiverResolve;
+        this.receiverPromise ??= new Promise<MessageReceipt<L>[]>((res, _) => {
+          this.receiverResolve = res;
+        });
+        resolve([]);
+      }, this.parameters.timeout);
+    }
+    return result
+      .finally(() => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      })
+      .then(res => {
+        // Unserialize the message
+        return res.map(r => {
+          return {
+            ...r,
+            Message: this.unserialize(r.Message, proto)
+          };
+        });
+      });
   }
 
   /**
@@ -132,24 +170,25 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * @param eventPrototype
    */
   consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
-    const subscription = this.pubsub.subscription(this.parameters.subscription, {
+    this.subscription ??= this.pubsub.subscription(this.parameters.subscription, {
       flowControl: {
         maxMessages: this.getMaxConsumers()
       }
     });
+    const msgHandler = async (message: Message) => {
+      try {
+        await callback(this.unserialize(message.data.toString(), eventPrototype));
+        await message.ackWithResponse();
+      } catch (err) {
+        this.log("ERROR", `Message ${message.ackId}`, err);
+      }
+    };
     return new CancelablePromise(
       async () => {
-        subscription.on("message", async (message: Message) => {
-          try {
-            await callback(this.unserialize(message.data.toString(), eventPrototype));
-            await message.ackWithResponse();
-          } catch (err) {
-            this.log("ERROR", `Message ${message.ackId}`, err);
-          }
-        });
+        this.subscription.on("message", msgHandler);
       },
       async () => {
-        subscription.close();
+        this.subscription.removeListener("message", msgHandler);
       }
     );
   }

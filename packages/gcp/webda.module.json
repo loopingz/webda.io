@@ -1411,6 +1411,14 @@
           "type": "number",
           "description": "Timeout when receiveMessage is used before returning empty result (in ms)\n\nIf not define then no timeout is applied and receiveMessage can hang forever"
         },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "consumer",
+            "receiver"
+          ],
+          "description": "If receiver, the usage is to call receiveMessage and deleteMessage manually If consumer, the usage is to call consume, the normal flow is used in parallel"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
@@ -1418,6 +1426,7 @@
       },
       "required": [
         "maxConsumers",
+        "mode",
         "subscription",
         "topic",
         "type"

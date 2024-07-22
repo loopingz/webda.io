@@ -113,16 +113,6 @@ jobs:
       - name: Build
         run: yarn run build
 
-      - name: Run gcp tests
-        run: cd packages/gcp && yarn test -g GCPQueueTest
-        env:
-          NODE_OPTIONS: "--max-old-space-size=6144"
-          GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
-          PUBSUB_EMULATOR_HOST: 127.0.0.1:8085
-          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8289
-          LOG_LEVEL: DEBUG
-          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
-
       - name: Run tests
         run: yarn run test --exclude @webda/shell
         env:

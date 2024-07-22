@@ -44,6 +44,8 @@ class QueueTest extends WebdaTest {
     await this.sleep(ackDelayMs);
     this.log("DEBUG", "Receive a message with prototype");
     msg = await queue.receiveMessage(QueueItemTest);
+    this.log("DEBUG", "Received message", msg);
+    assert.notStrictEqual(msg.length, 0);
     assert.notStrictEqual(msg[0].Message.getDouble, undefined);
     if (!inconsistentSize) {
       assert.strictEqual(msg.length, 1);

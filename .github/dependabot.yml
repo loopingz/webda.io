@@ -8,3 +8,7 @@ updates:
       # Ignore updates to @types/node as we want support for NodeJS LTS
       - dependency-name: "@types/node"
       - dependency-name: "typedoc"
+      # Remove the following ignore block once NodeJS 18 support is dropped
+      - dependency-name: "glob"
+        update-types:
+          - "version-update:semver-major" # Ignore major updates to glob as they dropped support for NodeJS 18

@@ -1,8 +1,7 @@
-"use strict";
-import * as uuid from "uuid";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
+import { randomUUID } from "crypto";
 
 interface QueueMap {
   [key: string]: any;
@@ -49,10 +48,10 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
   }
 
   async sendMessage(params) {
-    let uid = uuid.v4();
+    let uid = randomUUID();
     // Avoid duplication
     while (this._queue[uid]) {
-      uid = uuid.v4();
+      uid = randomUUID();
     }
     this._queue[uid] = {
       Body: JSONUtils.stringify(params, undefined, 0),

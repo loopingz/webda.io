@@ -13,7 +13,6 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc-esm",
-    "build:module": "webda build",
     "build:watch": "webda build --watch",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && pnpm run lint:fix",
     "pretest": "pnpm run build",

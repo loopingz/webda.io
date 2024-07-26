@@ -1,6 +1,6 @@
 {
   "name": "@webda/mongo",
-  "version": "3.2.16",
+  "version": "3.999.0",
   "description": "Implements Mongo DB on webda",
   "keywords": [
     "mongo",

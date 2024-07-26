@@ -105,6 +105,23 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0](https://github.com/loopingz/webda.io/compare/async-v3.7.2...async-v4.0.0) (2024-07-26)
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([352956a](https://github.com/loopingz/webda.io/commit/352956a2dbc75a3b5d73d5f437d50a616967fefb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.16.0 to ^4.0.0
+    * @webda/workout bumped from ^3.2.0 to ^4.0.0
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.3.0 to ^4.0.0
+
 ## [3.7.0](https://github.com/loopingz/webda.io/compare/async-v3.6.0...async-v3.7.0) (2024-04-12)
 
 

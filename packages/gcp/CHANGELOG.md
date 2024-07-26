@@ -117,6 +117,34 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0](https://github.com/loopingz/webda.io/compare/gcp-v3.6.2...gcp-v4.0.0) (2024-07-26)
+
+
+### Features
+
+* **gcp:** add GCSFinder ([9dc56d5](https://github.com/loopingz/webda.io/commit/9dc56d54c64d3db1b581c3cc9608dfbe4fb5ace9))
+
+
+### Bug Fixes
+
+* pubsub queue abusive close ([33ccadc](https://github.com/loopingz/webda.io/commit/33ccadcd630e6de84b00745cb48012231f3d69bd))
+* remove projectId ([fa36f8f](https://github.com/loopingz/webda.io/commit/fa36f8f3034bb54a0f489fbbbae9d4cf58b3b8f2))
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([352956a](https://github.com/loopingz/webda.io/commit/352956a2dbc75a3b5d73d5f437d50a616967fefb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.16.0 to ^4.0.0
+  * devDependencies
+    * @webda/async bumped from ^3.7.2 to ^4.0.0
+    * @webda/shell bumped from ^3.11.0 to ^4.0.0
+
 ## [3.6.1](https://github.com/loopingz/webda.io/compare/gcp-v3.6.0...gcp-v3.6.1) (2024-05-19)
 
 

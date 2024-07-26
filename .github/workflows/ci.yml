@@ -107,14 +107,19 @@ jobs:
           postgresql db: webda.io
           postgresql init scripts: packages/postgres/test/sql
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
 
       - name: Build
-        run: yarn run build
+        run: pnpm run build
 
       - name: Run tests
-        run: yarn run test --exclude @webda/shell
+        run: pnpm run test --exclude @webda/shell
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
@@ -123,7 +128,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
       - name: Run shell tests
-        run: yarn run nx run @webda/shell:test
+        run: pnpm run nx run @webda/shell:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

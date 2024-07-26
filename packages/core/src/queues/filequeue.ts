@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import { join } from "path";
-import * as uuid from "uuid";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
+import { randomUUID } from "crypto";
 
 export class FileQueueParameters extends QueueParameters {
   /**
@@ -67,11 +67,11 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    * @inheritdoc
    */
   async sendMessage(params) {
-    let uid = uuid.v4();
+    let uid = randomUUID();
     let file = this.getFile(uid);
     // Avoid duplication
     while (fs.existsSync(file)) {
-      uid = uuid.v4();
+      uid = randomUUID();
       file = this.getFile(uid);
     }
     JSONUtils.saveFile(params, file);

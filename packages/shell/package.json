@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "tsc-esm && chmod +x lib/bin/webda.js",
-    "build:module": "webda build",
+    "build:module": "webda build && cd ../core && webda build && cd ../shell",
     "build:watch": "webda build --watch",
     "pretest": "npm run build",
     "test": "c8 mocha --timeout=120000",

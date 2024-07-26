@@ -45,7 +45,6 @@
     "typescript": "^5.0.2"
   },
   "c8": {
-    "extends": "@istanbuljs/nyc-config-typescript",
     "report-dir": "./reports",
     "reporter": [
       "html",

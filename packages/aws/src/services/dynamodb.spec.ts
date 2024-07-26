@@ -41,7 +41,7 @@ export class DynamoDBTest extends StoreTest {
   }
 
   async tweakApp(app: TestApplication) {
-    super.tweakApp(app);
+    await super.tweakApp(app);
     app.addService(
       "test/awsevents",
       (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).AWSEventsHandler
@@ -97,7 +97,7 @@ export class DynamoDBTest extends StoreTest {
             ...attrs
           ]
         };
-        let table = dynamodb.createTable(createTable);
+        let table = await dynamodb.createTable(createTable);
         return table;
       }
     }

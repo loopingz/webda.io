@@ -61,6 +61,23 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.13.2 to ^3.14.0
     * @webda/kubernetes bumped from ^3.3.3 to ^3.3.4
 
+## [4.0.0](https://github.com/loopingz/webda.io/compare/shell-v3.11.0...shell-v4.0.0) (2024-07-26)
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([352956a](https://github.com/loopingz/webda.io/commit/352956a2dbc75a3b5d73d5f437d50a616967fefb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.16.0 to ^4.0.0
+    * @webda/kubernetes bumped from ^3.4.2 to ^4.0.0
+    * @webda/tsc-esm bumped from ^1.3.0 to ^4.0.0
+    * @webda/workout bumped from ^3.2.0 to ^4.0.0
+
 ## [3.11.0](https://github.com/loopingz/webda.io/compare/shell-v3.10.1...shell-v3.11.0) (2024-07-16)
 
 

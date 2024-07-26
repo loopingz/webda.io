@@ -40,6 +40,7 @@ export * from "./services/filebinary"; // move to runtime
 export * from "./services/fileconfiguration";
 export * from "./services/invitationservice"; // move to runtime
 export * from "./services/kubernetesconfiguration"; // move to runtime
+export * from "./services/prometheus";
 export * from "./services/mailer";
 export * from "./services/notificationservice";
 export * from "./services/oauth";

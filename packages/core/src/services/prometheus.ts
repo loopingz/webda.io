@@ -177,9 +177,9 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
           if (req.method === "GET" && req.url === this.parameters.url) {
             res.writeHead(200, { "Content-Type": register.contentType });
             res.write(await register.metrics());
-            res.end();
+          } else {
+            res.writeHead(404);
           }
-          res.writeHead(404);
           res.end();
         })
         .listen(this.parameters.portNumber, this.parameters.bind);

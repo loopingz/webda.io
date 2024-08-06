@@ -107,6 +107,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @param {StorageObject} params
    */
   async getContent({ bucket, key }: StorageObject): Promise<Readable> {
+    this._webda.log("TRACE", `webda::gcp::storage::getContent(gs://${bucket}/${key}) starting...`);
     return this.getStorageBucket(bucket).file(key).createReadStream();
   }
 

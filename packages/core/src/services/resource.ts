@@ -40,10 +40,16 @@ export class ResourceServiceParameters extends ServiceParameters {
    * @default true
    */
   indexFallback?: boolean;
+  /**
+   * Cache control header to set
+   * @default "public, max-age=31536000"
+   */
+  cacheControl?: string;
 
   constructor(params: any) {
     super(params);
     this.url ??= "resources";
+    this.cacheControl ??= "public, max-age=31536000";
     this.rootRedirect ??= false;
     if (!this.url.startsWith("/")) {
       this.url = "/" + this.url;
@@ -164,6 +170,7 @@ export default class ResourceService<
    * @param ctx
    */
   _redirect(ctx: WebContext) {
+    ctx.setHeader("cache-control", this.parameters.cacheControl);
     ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this.parameters.url));
   }
 
@@ -197,7 +204,8 @@ export default class ResourceService<
     }
     ctx.writeHead(200, {
       "content-type": mimetype,
-      "content-length": fs.lstatSync(file).size
+      "content-length": fs.lstatSync(file).size,
+      "cache-control": this.parameters.cacheControl
     });
     const stream = fs.createReadStream(file);
     return new Promise((resolve, reject) => {

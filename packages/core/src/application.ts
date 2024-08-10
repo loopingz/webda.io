@@ -256,6 +256,13 @@ export type UnpackedConfiguration = {
      */
     defaultStore?: string;
     /**
+     * Default headers to send to the client
+     *
+     * Having a Cache-Control: private will prevent caching for API
+     * If you overwrite this parameter, you will need to add it back
+     */
+    defaultHeaders?: { [key: string]: string };
+    /**
      * Define metrics
      */
     metrics?:

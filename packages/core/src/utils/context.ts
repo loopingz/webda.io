@@ -881,7 +881,11 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   constructor(webda: Core, httpContext: HttpContext, stream: Writable = undefined) {
     super(webda, stream);
     this.setHttpContext(httpContext);
-    this._outputHeaders = {};
+    this._outputHeaders = webda.getGlobalParams().defaultHeaders || {
+      // Gotta Cache ‘em all: bending the rules of web cache exploitation
+      // https://defcon.org/html/defcon-32/dc-32-speakers.html
+      "Cache-Control": "private"
+    };
     this.headersFlushed = false;
     this.statusCode = 204;
     this.parameters = {};

@@ -17,7 +17,8 @@ jobs:
         id: release
         with:
           command: manifest
-          monorepo-tags: true
+          monorepo-tags: true          
+          prerelease: ${{ contains(github.ref, 'main') }} # when `manifest-release` creates GitHub Releases per package, create those as "Prerelease" releases that have pre-major or prerelease versions. absence defaults to false and all versions are fully Published.
 
       - uses: actions/setup-node@v2
         if: ${{ steps.release.outputs.releases_created }}

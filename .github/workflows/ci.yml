@@ -1,15 +1,5 @@
-# For most projects, this workflow file will not need changing; you simply need
-# to commit it to your repository.
-#
-# You may wish to alter this file to override the set of languages analyzed,
-# or to provide custom queries or build logic.
-#
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
-# ******** NOTE ********
-
+# main should be used for development and future v4 and v4-beta
+# maintenance/v3 should be only used for maintenance tasks
 name: "CI"
 
 on:

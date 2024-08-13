@@ -66,6 +66,10 @@ export default class AsyncAction extends CoreModel {
    */
   public errorMessage?: string;
   /**
+   * If an error occured it should contain the name
+   */
+  public errorName?: string;
+  /**
    * Job information
    */
   public job: Job;

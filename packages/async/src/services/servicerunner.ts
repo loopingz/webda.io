@@ -132,7 +132,8 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
         await action.patch(
           {
             status: "ERROR",
-            errorMessage: JSON.stringify(err, Object.getOwnPropertyNames(err))
+            errorMessage: err.message,
+            errorName: err.name
           },
           null
         );

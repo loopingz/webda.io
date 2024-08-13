@@ -102,7 +102,6 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    */
   async receiveMessage<L>(proto?: new () => L): Promise<MessageReceipt<L>[]> {
     let timeoutId;
-    let errorHandler;
     if (this.parameters.mode !== "receiver") {
       throw new Error("You can only use receiveMessage in 'receiver' mode");
     }

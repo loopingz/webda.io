@@ -13,7 +13,6 @@ import {
   ChainNodeParser,
   CircularReferenceNodeParser,
   CompletedConfig,
-  Config,
   Context,
   Definition,
   ExtendedAnnotationsReader,

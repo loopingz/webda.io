@@ -13,8 +13,8 @@ import {
 } from "@webda/core";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
-import { Readable, Stream, Writable } from "stream";
-import { pipeline } from "stream/promises";
+import { Readable, Stream, Writable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 export type StorageObject = {
   key: string;

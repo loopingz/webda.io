@@ -12,7 +12,12 @@ if (process.argv.length < 5) {
 let pretend = process.argv[5] !== "apply";
 
 function loadFile(file) {
-  return JSON.parse(fs.readFileSync(file).toString());
+  try {
+    return JSON.parse(fs.readFileSync(file).toString());
+  } catch (err) {
+    console.log("Cannot parse", file);
+    throw err;
+  }
 }
 
 function saveFile(file, data) {

@@ -186,6 +186,29 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/aws-v3.4.2...aws-v4.0.0-beta.1) (2024-08-14)
+
+
+### Features
+
+* separate WebdaQL module ([69beabb](https://github.com/loopingz/webda.io/commit/69beabb0d1715ab81636338509539ade89c07c6a))
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([24e8e78](https://github.com/loopingz/webda.io/commit/24e8e789b8e4ac2364ac0d1669b115237ff4be6d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.7.2 to ^4.0.0-beta.1
+    * @webda/core bumped from ^3.16.0 to ^4.0.0-beta.1
+    * @webda/workout bumped from ^3.2.0 to ^4.0.0-beta.1
+  * devDependencies
+    * @webda/shell bumped from ^3.11.0 to ^4.0.0-beta.1
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/aws-v3.3.4...aws-v3.4.0) (2024-04-12)
 
 

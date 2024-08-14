@@ -1,6 +1,6 @@
 {
   "name": "@webda/ql",
-  "version": "3.999.1",
+  "version": "4.0.0-beta.1",
   "description": "WebdaQL module",
   "keywords": [
     "webda"
@@ -22,7 +22,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "18.11.13",
-    "@webda/tsc-esm": "^1.3.0",
+    "@webda/tsc-esm": "^4.0.0-beta.1",
     "antlr4ts-cli": "^0.5.0-alpha.4",
     "c8": "^9.0.0",
     "mocha": "^10.0.0",

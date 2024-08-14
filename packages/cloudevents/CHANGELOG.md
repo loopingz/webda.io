@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.1...cloudevents-v4.0.0-beta.2) (2024-08-14)
+
+
+### Features
+
+* **cloudevents:** add index exporter ([2794fb1](https://github.com/loopingz/webda.io/commit/2794fb10a86bd911a8db532a596c1d0394c68202))
+
 ## 4.0.0-beta.1 (2024-08-14)
 
 

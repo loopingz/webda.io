@@ -30,6 +30,7 @@
         "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
         "scheduled": "number",
         "errorMessage": "string",
+        "errorName": "string",
         "job": "Job",
         "_lastJobUpdate": "number",
         "results": "any",
@@ -54,6 +55,7 @@
         "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
         "scheduled": "number",
         "errorMessage": "string",
+        "errorName": "string",
         "job": "Job",
         "_lastJobUpdate": "number",
         "results": "any",
@@ -79,6 +81,7 @@
         "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
         "scheduled": "number",
         "errorMessage": "string",
+        "errorName": "string",
         "job": "Job",
         "_lastJobUpdate": "number",
         "results": "any",
@@ -140,6 +143,10 @@
         "errorMessage": {
           "type": "string",
           "description": "If an error occured it should contain the message"
+        },
+        "errorName": {
+          "type": "string",
+          "description": "If an error occured it should contain the name"
         },
         "job": {
           "type": "object",
@@ -325,6 +332,10 @@
         "errorMessage": {
           "type": "string",
           "description": "If an error occured it should contain the message"
+        },
+        "errorName": {
+          "type": "string",
+          "description": "If an error occured it should contain the name"
         },
         "job": {
           "type": "object",
@@ -532,6 +543,10 @@
         "errorMessage": {
           "type": "string",
           "description": "If an error occured it should contain the message"
+        },
+        "errorName": {
+          "type": "string",
+          "description": "If an error occured it should contain the name"
         },
         "job": {
           "type": "object",

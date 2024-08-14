@@ -2377,6 +2377,11 @@
           "description": "Return the index file for any unfound resource Useful for single page application",
           "default": true
         },
+        "cacheControl": {
+          "type": "string",
+          "description": "Cache control header to set",
+          "default": "public, max-age=31536000"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true

@@ -105,6 +105,29 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/async-v3.7.2...async-v4.0.0-beta.1) (2024-08-14)
+
+
+### Features
+
+* **async:** add errorName to status ([c71a559](https://github.com/loopingz/webda.io/commit/c71a559c9d80560968f8ff92daa359474f7777c5))
+* separate WebdaQL module ([69beabb](https://github.com/loopingz/webda.io/commit/69beabb0d1715ab81636338509539ade89c07c6a))
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([24e8e78](https://github.com/loopingz/webda.io/commit/24e8e789b8e4ac2364ac0d1669b115237ff4be6d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.16.0 to ^4.0.0-beta.1
+    * @webda/workout bumped from ^3.2.0 to ^4.0.0-beta.1
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.3.0 to ^4.0.0-beta.1
+
 ## [3.7.0](https://github.com/loopingz/webda.io/compare/async-v3.6.0...async-v3.7.0) (2024-04-12)
 
 

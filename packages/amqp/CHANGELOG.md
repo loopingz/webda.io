@@ -168,6 +168,22 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/amqp-v3.3.6...amqp-v4.0.0-beta.1) (2024-08-14)
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([24e8e78](https://github.com/loopingz/webda.io/commit/24e8e789b8e4ac2364ac0d1669b115237ff4be6d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^3.16.0 to ^4.0.0-beta.1
+  * devDependencies
+    * @webda/shell bumped from ^3.11.0 to ^4.0.0-beta.1
+
 ## [3.3.0](https://github.com/loopingz/webda.io/compare/amqp-v3.2.0...amqp-v3.3.0) (2024-01-16)
 
 

@@ -137,6 +137,23 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/kubernetes-v3.4.2...kubernetes-v4.0.0-beta.1) (2024-08-14)
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([24e8e78](https://github.com/loopingz/webda.io/commit/24e8e789b8e4ac2364ac0d1669b115237ff4be6d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^3.7.2 to ^4.0.0-beta.1
+    * @webda/core bumped from ^3.16.0 to ^4.0.0-beta.1
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.3.0 to ^4.0.0-beta.1
+
 ## [3.4.0](https://github.com/loopingz/webda.io/compare/kubernetes-v3.3.4...kubernetes-v3.4.0) (2024-04-12)
 
 

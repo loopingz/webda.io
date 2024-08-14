@@ -3,6 +3,41 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/core-v3.16.0...core-v4.0.0-beta.1) (2024-08-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* update StorageFinder to use promises to allow GCS/S3
+
+### Features
+
+* add iterate method definition ([88e0b98](https://github.com/loopingz/webda.io/commit/88e0b982c77eca2ab567da2bc1779da94755f87c))
+* separate WebdaQL module ([69beabb](https://github.com/loopingz/webda.io/commit/69beabb0d1715ab81636338509539ade89c07c6a))
+* update StorageFinder to use promises to allow GCS/S3 ([6f36aec](https://github.com/loopingz/webda.io/commit/6f36aecffbdd080a92840be5e3a949c91e3281c8))
+
+
+### Bug Fixes
+
+* add cache-control headers by default ([70c040e](https://github.com/loopingz/webda.io/commit/70c040ed663f3ddd4a7f360d0b26991d4415f2f1))
+* prometheus missing export and additional close ([1e17465](https://github.com/loopingz/webda.io/commit/1e17465928bc9edffc7ad824de5a63d779f6a2a0))
+* pubsub queue abusive close ([33ccadc](https://github.com/loopingz/webda.io/commit/33ccadcd630e6de84b00745cb48012231f3d69bd))
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([24e8e78](https://github.com/loopingz/webda.io/commit/24e8e789b8e4ac2364ac0d1669b115237ff4be6d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped from ^3.2.0 to ^4.0.0-beta.1
+    * @webda/ql bumped from ^3.999.0 to ^4.0.0-beta.1
+  * devDependencies
+    * @webda/tsc-esm bumped from ^1.3.0 to ^4.0.0-beta.1
+
 ## [3.16.0](https://github.com/loopingz/webda.io/compare/core-v3.15.1...core-v3.16.0) (2024-07-16)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.3.0...tsc-esm-v4.0.0-beta.1) (2024-08-14)
+
+
+### Miscellaneous Chores
+
+* prepare version for 4.0 ([24e8e78](https://github.com/loopingz/webda.io/commit/24e8e789b8e4ac2364ac0d1669b115237ff4be6d))
+
 ## [1.3.0](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.2.0...tsc-esm-v1.3.0) (2024-01-16)
 
 

@@ -22,7 +22,8 @@
     "test:bun": "bun test --coverage"
   },
   "dependencies": {
-    "cloudevents": "^8.0.1"
+    "cloudevents": "^8.0.1",
+    "antlr4ts": "^0.5.0-alpha.4"
   },
   "devDependencies": {
     "@types/node": "18.11.13",

@@ -18,7 +18,9 @@
     "test": "c8 mocha --recursive --exit --timeout=30000 'src/*.spec.ts'",
     "test:debug": "mocha --recursive --exit --no-timeouts 'src/*.spec.ts'"
   },
-  "dependencies": {},
+  "dependencies": {
+    "antlr4ts": "^0.5.0-alpha.4"
+  },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "18.11.13",

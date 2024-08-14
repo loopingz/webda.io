@@ -29,7 +29,6 @@
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "ajv-formats": "^3.0.1",
-    "antlr4ts": "^0.5.0-alpha.4",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.6.0",
     "dateformat": "^5.0.3",

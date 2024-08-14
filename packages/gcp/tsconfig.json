@@ -13,8 +13,7 @@
     "sourceMap": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
-    "declarationMap": true
+    "moduleResolution": "node"
   },
   "include": [
     "src/**/*"

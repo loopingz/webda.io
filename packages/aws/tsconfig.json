@@ -10,8 +10,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "declarationMap": true
+    "moduleResolution": "node"
   },
   "include": [
     "src/**/*"

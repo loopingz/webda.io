@@ -1,7 +1,8 @@
 {
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "bootstrap-sha": "bcea7b61edda56452f03ab7f25e3cc97a23ba909",
   "plugins": ["node-workspace"],
-  "prerelease-type": "beta",
+  "versioning": "prerelease",
   "packages": {
     "packages/amqp": {},
     "packages/async": {},

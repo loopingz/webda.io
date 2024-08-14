@@ -13,11 +13,10 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: google-github-actions/release-please-action@v3
+      - uses: googleapis/release-please-action@v4
         id: release
         with:
-          command: manifest
-          monorepo-tags: true          
+          target-branch: ${{ github.ref_name }}
           prerelease: ${{ contains(github.ref, 'main') }} # when `manifest-release` creates GitHub Releases per package, create those as "Prerelease" releases that have pre-major or prerelease versions. absence defaults to false and all versions are fully Published.
 
       - uses: actions/setup-node@v2

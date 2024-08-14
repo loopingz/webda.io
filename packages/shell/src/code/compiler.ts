@@ -360,7 +360,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
                 keep.push(t.getValue());
               });
           }
-          subtype.properties = subtype.properties.filter(o => keep.includes(o.name));
+          subtype.properties = (subtype.properties || []).filter(o => keep.includes(o.name));
           subtype.properties.push(new ObjectProperty("uuid", new StringType(), true));
           type = new ArrayType(
             new ObjectType(

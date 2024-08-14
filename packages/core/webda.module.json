@@ -2488,6 +2488,83 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RoleModel"
     },
+    "Webda/SimpleUser": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        },
+        "_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Groups for a user",
+          "readOnly": true
+        },
+        "_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Roles of the user",
+          "readOnly": true
+        },
+        "_idents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        }
+      },
+      "required": [
+        "displayName"
+      ],
+      "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no models",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SimpleUser"
+    },
     "Webda/User": {
       "type": "object",
       "properties": {

@@ -21,13 +21,15 @@ import * as ind from './index';
 import { Bean, Inject, Queue, Service, ServiceParameters, Throttler } from "@webda/core";
 import { open } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
+import * as ind2 from '.';
+import * as ind3 from ".";
 export { SinkService } from "./export";
 export * from './export';
 
 let SinkService = class SinkService extends Service {
     constructor() {
         super(...arguments);
-        this.dir = "/media/loopingz/5400-E104/Trails/pubsub/";
+        this.dir = "/";
     }
 }`
     );
@@ -39,6 +41,8 @@ let SinkService = class SinkService extends Service {
     assert.ok(content.includes("'./export.js'"));
     assert.ok(!content.includes('"node:fs/promises.js"'));
     assert.ok(!content.includes('"node:stream/promises.js"'));
+    assert.ok(!content.includes('"..js"'));
+    assert.ok(!content.includes("'..js'"));
   }
 
   after() {

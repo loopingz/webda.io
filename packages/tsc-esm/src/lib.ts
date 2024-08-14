@@ -7,6 +7,7 @@ export function writer(fileName: string, text: string) {
   writeFileSync(
     fileName,
     text
+      .replace(/^(import [^;]* from )['"].['"];/gm, '$1 "./index.js";')
       .replace(/^(import [^;]* from "\..*?)(\.js)?";/gm, '$1.js";')
       .replace(/^(import [^;]* from '\..*?)(\.js)?';/gm, "$1.js';")
       // BUG: Abusive replace for node module -> shoud use node:fs/promises

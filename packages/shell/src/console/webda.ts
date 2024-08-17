@@ -343,6 +343,7 @@ ${Object.keys(operationsExport.operations)
     const launcher = this.app.getPackageWebda().launcher;
     let serviceName = <string>argv.serviceName;
     WebdaConsole.webda = new WebdaServer(this.app);
+    WebdaConsole.webda.emit("Webda.Worker.Init", { argv });
     await this.webda.init();
     let service = this.webda.getService(serviceName);
     let method = <string>argv.methodName || "work";
@@ -365,12 +366,13 @@ ${Object.keys(operationsExport.operations)
     }
     // Launch the worker with arguments
     let timestamp = new Date().getTime();
-
+    WebdaConsole.webda.emit("Webda.Worker.Start", { args, service, method });
     return Promise.resolve(service[method](...args))
       .catch(err => {
         this.log("ERROR", "An error occured", err);
       })
       .then(res => {
+        WebdaConsole.webda.emit("Webda.Worker.Finished", { args, service, method, result: res });
         if (res) {
           this.log("INFO", typeof res === "string" ? res : JSON.stringify(res, undefined, 2));
         } else {

@@ -9,7 +9,7 @@ import { Resource } from "@opentelemetry/resources";
 import { BatchLogRecordProcessor, LogRecordExporter, LoggerProvider } from "@opentelemetry/sdk-logs";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { SEMRESATTRS_SERVICE_NAME, SEMRESATTRS_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
 import { Core, DeepPartial, HttpContext, Service, ServiceParameters } from "@webda/core";
 import { WorkerLogger, WorkerMessage, WorkerOutput } from "@webda/workout";
 
@@ -33,10 +33,16 @@ export class OtelServiceParameters extends ServiceParameters {
   traceExporter?: {
     type: "console" | "otlp";
     /**
-     * Allow to disable the logger
+     * Allow to disable the trace exporter
      * @default true
      */
     enable?: boolean;
+    /**
+     * Between 0.0 and 1.0
+     *
+     * @default 0.01
+     */
+    sampling?: number;
   };
   metricExporter?: {
     type: "console" | "otlp";
@@ -67,6 +73,25 @@ export class OtelServiceParameters extends ServiceParameters {
    */
   diagnostic?: "NONE" | "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE" | "ALL";
   name?: string;
+
+  constructor(params: any) {
+    super(params);
+    this.traceExporter ??= {
+      type: "otlp",
+      enable: true,
+      sampling: 0.01
+    };
+    this.metricExporter ??= {
+      type: "otlp",
+      enable: true
+    };
+    this.loggerExporter ??= {
+      enable: true,
+      type: "otlp",
+      url: "http://localhost:4317"
+    };
+    this.diagnostic ??= "NONE";
+  }
 }
 
 /**
@@ -87,8 +112,11 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
   loggerExporter: LogRecordExporter;
   loggerProvider: LoggerProvider;
 
+  /**
+   * Stop otlp
+   */
   async stop() {
-    await Promise.all([super.stop(), this.loggerProvider.shutdown()]);
+    await Promise.all([super.stop(), this.loggerProvider?.shutdown(), this.sdk?.shutdown()]);
   }
 
   /**
@@ -145,8 +173,8 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
     }
     this.sdk ??= new NodeSDK({
       resource: new Resource({
-        [SemanticResourceAttributes.SERVICE_NAME]: this.parameters.name || pkgInfo.name,
-        [SemanticResourceAttributes.SERVICE_VERSION]: pkgInfo.version
+        [SEMRESATTRS_SERVICE_NAME]: this.parameters.name || pkgInfo.name,
+        [SEMRESATTRS_SERVICE_VERSION]: pkgInfo.version
       }),
       traceExporter: this.parameters.traceExporter?.enable !== false ? new OTLPTraceExporter() : undefined,
       metricReader:
@@ -159,10 +187,7 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
     });
 
     this.sdk.start();
-    //this.wrapper = new WebdaInstrumentation().init()[0];
-    //this.wrapper.patch({}, "3.0.0");
-    //this.sdk.shutdown();
-    if (this.parameters.traceExporter?.enable !== false) {
+    if (this.parameters.traceExporter?.enable === true) {
       this.patch();
     }
 
@@ -219,6 +244,8 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
    */
   patch() {
     const tracer = trace.getTracer("webda");
+    let mod = Math.floor(1 / this.parameters.traceExporter.sampling);
+    let count = 0;
     //Core.get().newWebContext("test");
     // Apply patch for new context -> to inject the span
     this._wrap(Core.get(), "newWebContext", (original: Function) => {
@@ -228,6 +255,14 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
           ctx.setExtension("otel", tracer);
           ctx.execute = async () => {
             const httpContext: HttpContext = args[0];
+            // Sampling logic
+            if (mod > 1) {
+              if (count++ % mod !== 0) {
+                return originalExecute.apply(ctx);
+              } else {
+                count = 0;
+              }
+            }
             return tracer.startActiveSpan(
               `${httpContext.getMethod()} ${httpContext.getPathName() || "/"}`,
               async span => {

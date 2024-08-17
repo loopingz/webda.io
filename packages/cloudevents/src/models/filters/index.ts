@@ -39,4 +39,13 @@ export class FiltersHelper {
     }
     return new FilterImplementations[type](filter).optimize();
   }
+
+  /**
+   * Register a custom filter implementation
+   * @param name
+   * @param clazz
+   */
+  register(name: string, clazz: FilterImplementationConstructor) {
+    FilterImplementations[name] = clazz;
+  }
 }

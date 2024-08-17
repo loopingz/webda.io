@@ -3,6 +3,7 @@ import * as uuid from "uuid";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
+import { resolve } from "node:path";
 
 interface QueueMap {
   [key: string]: any;
@@ -30,6 +31,10 @@ export class MemoryQueueParameters extends QueueParameters {
  */
 export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<T, K> {
   private _queue: QueueMap = {};
+  /**
+   * Allow to cancel timeout
+   */
+  private pendingReads: (() => void)[] = [];
 
   /**
    * Load parameters
@@ -48,6 +53,9 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
     return Object.keys(this._queue).length;
   }
 
+  /**
+   * @override
+   */
   async sendMessage(params) {
     let uid = uuid.v4();
     // Avoid duplication
@@ -59,12 +67,16 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
       Claimed: 0,
       ReceiptHandle: uid
     };
+    let pendingRead = this.pendingReads.shift();
+    if (pendingRead) {
+      pendingRead();
+    }
   }
 
   /**
-   * @inheritdoc
+   * @override
    */
-  async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
+  getItem<L>(proto?: { new (): L }): MessageReceipt<L>[] {
     for (let i in this._queue) {
       if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
         this._queue[i].Claimed = new Date().getTime();
@@ -77,6 +89,29 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
       }
     }
     return [];
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
+    let items = this.getItem<L>(proto);
+    if (items.length > 0) {
+      return items;
+    }
+    // We wait for 30s before returning an empty array or a message if interrupted
+    await new Promise<void>(resolve => {
+      let timeout;
+      this.pendingReads.push(() => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      timeout = setTimeout(() => {
+        this.pendingReads = this.pendingReads.filter(r => r !== resolve);
+        resolve();
+      }, 30000);
+    });
+    return this.getItem();
   }
 
   /**

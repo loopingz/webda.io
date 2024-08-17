@@ -60,6 +60,10 @@ class MemoryQueueTest extends QueueTest {
 
   async receiveMessageParallelism<K>(proto?: { new (): K }) {
     MemoryQueueTest.seq++;
+    if (MemoryQueueTest.seq > 2) {
+      await new Promise(r => setTimeout(r, 30000));
+      return [];
+    }
     switch (MemoryQueueTest.seq) {
       case 1:
         return [

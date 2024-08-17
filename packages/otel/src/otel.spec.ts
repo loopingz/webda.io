@@ -22,17 +22,10 @@ class FakeService extends Service {
 class OtelTest extends WebdaSimpleTest {
   @test
   async test() {
-    const resource = await this.registerService(
-      new ResourceService(this.webda, "ResourceService", { folder: "./src", url: "/" })
-    )
-      .resolve()
-      .init();
-    const fake = await this.registerService(new FakeService(this.webda, "fake", {}))
-      .resolve()
-      .init();
-    const service = await this.registerService(new OtelService(this.webda, "otel", {}))
-      .resolve()
-      .init();
+    const resource = await this.addService(ResourceService, { folder: "./src", url: "/" });
+
+    const fake = await this.addService(FakeService);
+    const service = await this.addService(OtelService);
 
     const ctx = await this.newContext();
     await this.execute(ctx, "test.webda.io", "GET", "/otel.ts");

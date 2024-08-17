@@ -37,7 +37,6 @@
     "@opentelemetry/sdk-metrics": "^1.26.0",
     "@opentelemetry/sdk-node": "^0.53.0",
     "@opentelemetry/semantic-conventions": "^1.27.0",
-    "@types/node": "^18.0.0",
     "@webda/core": "^4.0.0-beta.1",
     "@webda/workout": "^4.0.0-beta.1"
   },

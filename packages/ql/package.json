@@ -28,8 +28,8 @@
     "mocha": "^10.0.0",
     "prettier": "^3.0.0",
     "sinon": "^17.0.0",
-    "ts-node": "^10.1.0",
-    "typescript": "~5.5.4"
+    "typescript": "~5.5.4",
+    "tsx": "^4.17.0"
   },
   "files": [
     "lib"
@@ -62,6 +62,6 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.19.0"
   }
 }

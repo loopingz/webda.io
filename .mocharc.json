@@ -1,7 +1,8 @@
 {
-  "node-option": ["experimental-specifier-resolution=node", "loader=ts-node/esm"],
+  "node-option": ["experimental-specifier-resolution=node", "import=tsx"],
   "timeout": "100000",
   "recursive": true,
   "exit": true,
+  "extension": ["ts"],
   "spec": ["src/**/*.spec.ts", "src/*.spec.ts"]
 }

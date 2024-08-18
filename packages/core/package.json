@@ -19,7 +19,7 @@
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "NODE_OPTIONS='--experimental-loader ./hooks.mjs' c8 mocha",
+    "test": "NODE_OPTIONS='--import ./hooks-register.mjs' c8 mocha",
     "test:debug": "mocha --no-timeouts"
   },
   "dependencies": {

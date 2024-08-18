@@ -1,10 +1,10 @@
 import { suite, test } from "@testdeck/mocha";
 import { WorkerOutput } from "@webda/workout";
-import { WebdaTest } from "../test";
+import { WebdaSimpleTest } from "../test";
 import { FileLoggerService, Logger } from "./logger";
 
 @suite
-class LoggerTest extends WebdaTest {
+class LoggerTest extends WebdaSimpleTest {
   @test
   testLogger() {
     let output: any = {

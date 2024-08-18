@@ -4,7 +4,8 @@ import { Readable } from "stream";
 import { Core } from "../core";
 import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
-import { WebdaTest } from "../test";
+import { WebdaSimpleTest, WebdaTest } from "../test";
+import { UnpackedConfiguration } from "../application";
 import { OperationContext, SimpleOperationContext, WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
 import { Session } from "./session";
@@ -27,6 +28,16 @@ class ContextTest extends WebdaTest {
   async before() {
     await super.before();
     this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/"));
+  }
+
+  getTestConfiguration(): UnpackedConfiguration {
+    return {
+      version: 3,
+      parameters: {
+        locales: ["es-ES", "en", "fr-FR"],
+        ignoreBeans: true
+      }
+    };
   }
 
   @test
@@ -81,8 +92,8 @@ class ContextTest extends WebdaTest {
     // Get the last lines
     this.ctx.logIn();
     this.ctx.getRoute();
-    assert.notStrictEqual(this.ctx.getService("Users"), undefined);
-    assert.notStrictEqual(this.ctx.getService<Service>("Users"), undefined);
+    assert.notStrictEqual(this.ctx.getService("Registry"), undefined);
+    assert.notStrictEqual(this.ctx.getService<Service>("Registry"), undefined);
     this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setPathParameters({ id: "plop" });
     this.ctx.setServiceParameters({ id: "service" });

@@ -14,7 +14,6 @@ export async function load(url, context, nextLoad) {
 
   if (url.startsWith(localModule + "/lib/")) {
     const newFile = localModule + "/src/" + url.substring(localModule.length + 5).replace(/\.js$/, ".ts");
-    console.log("Replace compiled with source", url, "by", newFile);
     return {
       format: "module",
       source: `export * from "${newFile}";`,

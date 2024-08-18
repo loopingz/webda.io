@@ -2,22 +2,34 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";
 import { CookieOptions, SecureCookie, WebContext } from "../index";
-import { WebdaTest } from "../test";
+import { WebdaSimpleTest } from "../test";
 import { SimpleOperationContext } from "./context";
 import { WebContextMock } from "./context.spec";
 import { HttpContext } from "./httpcontext";
 import { Session } from "./session";
+import { UnpackedConfiguration } from "../application";
 
 const SECRET =
   "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
 
 @suite
-class CookieTest extends WebdaTest {
+class CookieTest extends WebdaSimpleTest {
   _ctx: WebContext;
   async before() {
     await super.before();
     this._ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     this.webda.updateContextWithRoute(this._ctx);
+  }
+
+  getTestConfiguration() {
+    return {
+      parameters: {
+        cookie: {
+          sameSite: "None",
+          name: "test"
+        }
+      }
+    };
   }
 
   @test("Bad cookie") async testBadSecret() {

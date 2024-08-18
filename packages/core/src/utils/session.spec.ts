@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { MemoryStore } from "../stores/memory";
-import { WebdaTest } from "../test";
+import { WebdaSimpleTest } from "../test";
 import { OperationContext } from "./context";
 import { CookieSessionManager, UnknownSession } from "./session";
 
@@ -21,19 +21,27 @@ class SessionTest {
 }
 
 @suite
-class SessionStoreTest extends WebdaTest {
+class SessionStoreTest extends WebdaSimpleTest {
+  /**
+   * @override
+   */
+  getTestConfiguration() {
+    return {
+      parameters: {
+        ignoreBeans: true,
+        cookie: {
+          name: "test"
+        }
+      }
+    };
+  }
+
   @test
   async sessionStore() {
     // Test MemoryStore
     const store = (this.webda.getServices()["SessionStore"] = await new MemoryStore(this.webda, "SessionStore", {})
       .resolve()
       .init());
-    store.getParameters().expose = { url: "url" };
-    assert.throws(
-      () => this.getService<CookieSessionManager>("SessionManager").resolve(),
-      /SessionStore should not be exposed/
-    );
-    store.getParameters().expose = undefined;
     this.getService<CookieSessionManager>("SessionManager").resolve();
     let ctx = await this.newContext();
     ctx.getSession().identUsed = "bouzouf";

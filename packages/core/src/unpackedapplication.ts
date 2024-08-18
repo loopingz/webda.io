@@ -8,7 +8,8 @@ import {
   Configuration,
   GitInformation,
   ProjectInformation,
-  SectionEnum
+  SectionEnum,
+  UnpackedConfiguration
 } from "./application";
 import { FileUtils } from "./utils/serializers";
 
@@ -32,8 +33,21 @@ export const EmptyGitInformation: GitInformation = {
  * the cachedModule to avoid any unecessary action within a production environment
  */
 export class UnpackedApplication extends Application {
-  constructor(file: string, logger?: WorkerOutput) {
-    super(file, logger);
+  constructor(file: string | Partial<UnpackedConfiguration>, logger?: WorkerOutput) {
+    super(
+      typeof file === "string"
+        ? file
+        : {
+            version: 3,
+            services: {},
+            parameters: {},
+            ...file
+          },
+      logger
+    );
+    if (typeof file !== "string") {
+      this.baseConfiguration = this.completeConfiguration(this.baseConfiguration);
+    }
   }
 
   /**
@@ -45,7 +59,9 @@ export class UnpackedApplication extends Application {
    * @returns
    */
   loadConfiguration(file: string): void {
-    if (!fs.existsSync(file)) {
+    if (!file && this.baseConfiguration) {
+      this.baseConfiguration = this.completeConfiguration({ version: 3, ...this.baseConfiguration });
+    } else if (!fs.existsSync(file)) {
       this.baseConfiguration = this.completeConfiguration({ version: 3 });
     } else {
       this.baseConfiguration = this.completeConfiguration(FileUtils.load(file));

@@ -18,7 +18,7 @@ import { ConsoleLoggerService } from "./utils/logger";
 import { FileUtils } from "./utils/serializers";
 
 // Separation on purpose to keep application import separated
-import { CachedModule, ModelGraph, SectionEnum } from "./application";
+import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./application";
 import { UnpackedApplication } from "./unpackedapplication";
 
 /**
@@ -27,7 +27,7 @@ import { UnpackedApplication } from "./unpackedapplication";
  * Test use ts-node so to share same prototypes we need to load from the sources
  */
 export class TestApplication extends UnpackedApplication {
-  constructor(file?: string, logger?: WorkerOutput) {
+  constructor(file?: string | Partial<UnpackedConfiguration>, logger?: WorkerOutput) {
     super(file || "./", logger);
   }
   /**
@@ -122,7 +122,7 @@ class WebdaTest {
    *
    * @returns absolute path to configuration file
    */
-  getTestConfiguration(): string | undefined {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
     return process.cwd() + "/test/config.json";
   }
 
@@ -478,8 +478,12 @@ class WebdaTest {
 }
 
 class WebdaSimpleTest extends WebdaTest {
-  getTestConfiguration(): string {
-    return undefined;
+  getTestConfiguration(): Partial<UnpackedConfiguration> {
+    return {
+      parameters: {
+        ignoreBeans: true
+      }
+    };
   }
 }
 export { WebdaSimpleTest, WebdaTest };

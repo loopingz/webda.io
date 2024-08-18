@@ -273,6 +273,15 @@ export type UnpackedConfiguration = {
           prefix?: string;
         };
     /**
+     * Ignore beans
+     *
+     * If set to true, all beans are ignored
+     * If set to an array, only the beans in the array are ignored
+     *
+     * @default false
+     */
+    ignoreBeans?: boolean | string[];
+    /**
      * Allow any other type of parameters
      */
     [key: string]: any;
@@ -543,9 +552,14 @@ export class Application {
    * @param {string} fileOrFolder to load Webda Application from
    * @param {Logger} logger
    */
-  constructor(file: string, logger: WorkerOutput = undefined) {
+  constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
     this.logger = logger || new WorkerOutput();
     this.initTime = Date.now();
+    if (typeof file !== "string") {
+      this.baseConfiguration = file;
+      this.appPath = process.cwd();
+      return;
+    }
     if (!fs.existsSync(file)) {
       throw new WebdaError.CodeError(
         "NO_WEBDA_FOLDER",
@@ -566,7 +580,9 @@ export class Application {
    * Import all required modules
    */
   async load(): Promise<this> {
-    this.loadConfiguration(this.configurationFile);
+    if (this.configurationFile) {
+      this.loadConfiguration(this.configurationFile);
+    }
     await this.loadModule(this.baseConfiguration.cachedModules);
     // Flat the model tree
     const addParent = (parent: string, tree: ModelGraph) => {
@@ -587,14 +603,14 @@ export class Application {
    */
   loadConfiguration(file: string): void {
     // Check if file is a file or folder
-    if (!fs.existsSync(file)) {
+    if (file && !fs.existsSync(file)) {
       throw new WebdaError.CodeError(
         "NO_WEBDA_FOLDER",
         `Not a webda application folder or webda.config.jsonc or webda.config.json file: ${file}`
       );
     }
     try {
-      this.baseConfiguration = FileUtils.load(file);
+      this.baseConfiguration ??= FileUtils.load(file);
       this.baseConfiguration.parameters ??= {};
       this.baseConfiguration.parameters.defaultStore ??= "Registry";
       if (this.baseConfiguration.version !== 3) {
@@ -1222,10 +1238,20 @@ export class Application {
           this.addModel(key, await this.importFile(path.join(parent, info.models.list[key])), false);
         }
       })(),
-      ...Object.keys(info.beans).map(f => {
-        this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
-        return this.importFile(path.join(parent, info.beans[f]), false).catch(this.log.bind(this, "WARN"));
-      })
+      ...Object.keys(info.beans)
+        .filter(f => {
+          if (this.baseConfiguration.parameters.ignoreBeans === true) {
+            return false;
+          }
+          if (Array.isArray(this.baseConfiguration.parameters.ignoreBeans)) {
+            return !this.baseConfiguration.parameters.ignoreBeans.includes(f);
+          }
+          return true;
+        })
+        .map(f => {
+          this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
+          return this.importFile(path.join(parent, info.beans[f]), false).catch(this.log.bind(this, "WARN"));
+        })
     ]);
   }
 

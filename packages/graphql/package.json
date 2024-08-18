@@ -41,8 +41,8 @@
     "mocha": "^10.2.0",
     "prettier": "^3.0.0",
     "source-map-support": "^0.5.21",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.2",
+    "tsx": "^4.17.0"
   },
   "c8": {
     "extends": "@istanbuljs/nyc-config-typescript",
@@ -74,6 +74,6 @@
     ]
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.19.0"
   }
 }

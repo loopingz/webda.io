@@ -54,11 +54,12 @@
     "@types/node": "18.11.13",
     "@webda/shell": "^4.0.0-beta.1",
     "node-fetch": "^3.3.1",
-    "sinon": "^18.0.0"
+    "sinon": "^18.0.0",
+    "tsx": "^4.17.0"
   },
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.19.0"
   },
   "nx": {
     "implicitDependencies": [

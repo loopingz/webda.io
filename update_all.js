@@ -44,6 +44,8 @@ if (value === "true") {
   value = parseInt(value);
 } else if (value.startsWith("{") || value.startsWith("[")) {
   value = JSON.parse(value);
+} else if (value === "DELETE") {
+  value = undefined;
 }
 
 // For each workspaces

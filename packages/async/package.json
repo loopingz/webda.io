@@ -34,8 +34,8 @@
     "mocha": "^10.0.0",
     "sinon": "^18.0.0",
     "source-map-support": "^0.5.19",
-    "ts-node": "^10.2.0",
-    "typescript": "~5.5.3"
+    "typescript": "~5.5.3",
+    "tsx": "^4.17.0"
   },
   "c8": {
     "report-dir": "./reports",
@@ -65,7 +65,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.19.0"
   },
   "nx": {
     "implicitDependencies": [

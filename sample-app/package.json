@@ -20,7 +20,7 @@
     "test": "echo 'No test sample available yet'"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.19.0"
   },
   "dependencies": {
     "@webda/aws": "^3.2.5",
@@ -40,7 +40,8 @@
     "namespace": "WebdaDemo"
   },
   "devDependencies": {
-    "@types/node": "18.11.13"
+    "@types/node": "18.11.13",
+    "tsx": "^4.17.0"
   },
   "type": "module",
   "nx": {

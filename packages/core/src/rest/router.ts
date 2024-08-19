@@ -1,14 +1,31 @@
 import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import uriTemplates from "uri-templates";
-import { Core } from "./core";
-import { CoreModel, CoreModelDefinition } from "./models/coremodel";
-import { WebContext } from "./utils/context";
-import { HttpMethodType } from "./utils/httpcontext";
+import { Core } from "../core";
+import { CoreModel, CoreModelDefinition } from "../models/coremodel";
+import { WebContext } from "../utils/context";
+import { HttpMethodType } from "../utils/httpcontext";
 
 type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
+
+// @Route to declare route on Bean
+export function Route(
+  route: string,
+  methods: HttpMethodType | HttpMethodType[] = ["GET"],
+  openapi: OpenAPIWebdaDefinition = {}
+) {
+  return function (target: any, executor: string) {
+    target.constructor.routes ??= {};
+    target.constructor.routes[route] ??= [];
+    target.constructor.routes[route].push({
+      methods: Array.isArray(methods) ? methods : [methods],
+      executor,
+      openapi
+    });
+  };
+}
 
 export interface OpenApiWebdaOperation extends RecursivePartial<OpenAPIV3.OperationObject> {
   schemas?: {
@@ -343,7 +360,6 @@ export class Router {
       }
 
       if (routeUrl === finalUrl) {
-        ctx.setServiceParameters(parameters);
         return map;
       }
 
@@ -377,8 +393,7 @@ export class Router {
         if (parse_result.URITemplateQuery) {
           delete parse_result.URITemplateQuery;
         }
-        ctx.setServiceParameters(parameters);
-        ctx.setPathParameters(parse_result);
+        ctx.setParameters(parse_result);
 
         return map;
       }

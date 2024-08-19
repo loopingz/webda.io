@@ -12,7 +12,7 @@ import {
   MetricConfiguration,
   OperationContext
 } from "../index";
-import { OpenAPIWebdaDefinition } from "../router";
+import { OpenAPIWebdaDefinition, Route } from "../rest/router";
 import { HttpMethodType } from "../utils/httpcontext";
 import { EventService } from "./asyncevents";
 
@@ -136,7 +136,7 @@ export function Operation(
   return function (target: any, executor: string) {
     target.constructor.operations ??= {};
     properties ??= {};
-    properties.id ??= executor;
+    properties.id ??= executor.substring(0, 1).toUpperCase() + executor.substring(1);
     const id = properties.id;
     if (target.constructor.operations[id]) {
       console.error("Operation already exists", id);
@@ -158,23 +158,6 @@ export function Operation(
       def.schemas.output ??= properties.id.toLowerCase() + ".output";
       Route(route.url, route.method, route.openapi)(target, executor);
     }
-  };
-}
-
-// @Route to declare route on Bean
-export function Route(
-  route: string,
-  methods: HttpMethodType | HttpMethodType[] = ["GET"],
-  openapi: OpenAPIWebdaDefinition = {}
-) {
-  return function (target: any, executor: string) {
-    target.constructor.routes ??= {};
-    target.constructor.routes[route] ??= [];
-    target.constructor.routes[route].push({
-      methods: Array.isArray(methods) ? methods : [methods],
-      executor,
-      openapi
-    });
   };
 }
 
@@ -532,7 +515,9 @@ abstract class Service<
       const id = this.getOperationId(j);
       if (!id) continue;
       this.log("TRACE", "Adding operation", id, "for bean", this.getName());
-      this._webda.registerOperation(j.includes(".") ? j : `${this.getName()}.${j}`, {
+      let name = this.getName();
+      name = name.substring(0, 1).toUpperCase() + name.substring(1);
+      this._webda.registerOperation(j.includes(".") ? j : `${name}.${j}`, {
         ...operations[j],
         service: this.getName(),
         input: `${this.getName()}.${operations[j].method}.input`,

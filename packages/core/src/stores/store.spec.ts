@@ -2,11 +2,19 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
-import { Ident } from "../../test/models/ident";
-import { OperationContext, Store, StoreParameters, User, WebdaError } from "../index";
+import { Ident } from "../test";
+import {
+  AggregatorService,
+  HttpContext,
+  MapperService,
+  OperationContext,
+  Store,
+  StoreParameters,
+  User,
+  WebdaError
+} from "../index";
 import { CoreModel } from "../models/coremodel";
-import { WebdaTest } from "../test";
-import { HttpContext } from "../utils/httpcontext";
+import { WebdaSimpleTest, WebdaTest } from "../test";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 
 /**
@@ -21,42 +29,19 @@ export class PermissionModel extends CoreModel {
     return true;
   }
 }
-@suite
-class StoreParametersTest {
-  @test
-  cov() {
-    let params = new StoreParameters({ expose: "/plop", lastUpdateField: "bz", creationDateField: "c" }, undefined);
-    assert.deepStrictEqual(params.expose, {
-      queryMethod: "GET",
-      url: "/plop",
-      restrict: {}
-    });
-    assert.throws(() => new StoreParameters({ map: {} }, undefined), Error);
-    assert.throws(() => new StoreParameters({ index: [] }, undefined), Error);
-  }
-}
-abstract class StoreTest extends WebdaTest {
+abstract class StoreTest extends WebdaSimpleTest {
   abstract getIdentStore(): Store<any>;
   abstract getUserStore(): Store<any>;
 
-  /**
-   * By default no testing index
-   * @returns
-   */
-  async getIndex(): Promise<CoreModel> {
-    return undefined;
-  }
-
-  /**
-   * Recreate index if needed
-   */
-  async recreateIndex(): Promise<void> {}
-
   async before() {
     await super.before();
+    const userStore = this.getUserStore();
+    const identStore = this.getIdentStore();
+    this.registerService(await userStore.resolve().init());
+    this.registerService(await identStore.resolve().init());
+
     await this.getUserStore()?.__clean();
     await this.getIdentStore()?.__clean();
-    await this.recreateIndex();
   }
 
   getModelClass() {
@@ -147,6 +132,8 @@ abstract class StoreTest extends WebdaTest {
       }
     } while (offset !== undefined);
 
+    /*
+    // Add a REST Service here
     // Verify permission issue and half pagination
     userStore.setModel(PermissionModel);
     userStore.getParameters().forceModel = true;
@@ -160,16 +147,11 @@ abstract class StoreTest extends WebdaTest {
     let q;
     // To ensure we trigger slowQuery
     userStore.getParameters().slowQueryThreshold = 0;
+
     do {
       q = `team.id > 10 LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`;
       context.setHttpContext(
-        new HttpContext(
-          "test.webda.io",
-          i++ % 2 ? "GET" : "PUT",
-          userStore.getParameters().expose.url + "?q=" + encodeURI(q),
-          "https",
-          443
-        )
+        new HttpContext("test.webda.io", i++ % 2 ? "GET" : "PUT", "/users?q=" + encodeURI(q), "https", 443)
       );
       context.getHttpContext().setBody({ q });
       context.getParameters().q = q;
@@ -181,7 +163,7 @@ abstract class StoreTest extends WebdaTest {
     } while (offset !== undefined);
     assert.strictEqual(total, 180);
     q = "BAD QUERY !";
-    context.setHttpContext(new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443));
+    context.setHttpContext(new HttpContext("test.webda.io", "PUT", "/users", "https", 443));
     context.getHttpContext().setBody({ q });
     await assert.rejects(
       () => userStore["httpQuery"](context),
@@ -195,6 +177,7 @@ abstract class StoreTest extends WebdaTest {
     } finally {
       mock.restore();
     }
+    */
     return userStore;
   }
 
@@ -267,8 +250,26 @@ abstract class StoreTest extends WebdaTest {
 
   @test
   async mapper() {
+    // Create a mapper - keep the test here as it is a good test for stores
     let identStore = this.getIdentStore();
     let userStore = this.getUserStore();
+    const mapper = await this.addService(
+      MapperService,
+      {
+        source: identStore.getName(),
+        targetAttribute: "idents",
+        target: userStore.getName(),
+        attribute: "_user",
+        fields: ["type", "_lastUpdate"],
+        cascade: true
+      },
+      "Mapper"
+    );
+    const indexer = await this.addService(AggregatorService, {
+      source: identStore.getName(),
+      key: "idents-index",
+      fields: ["type"]
+    });
     let user1, ident1, ident2, user2;
     var eventFired = 0;
     var events: (keyof StoreEvents)[] = [
@@ -307,7 +308,7 @@ abstract class StoreTest extends WebdaTest {
     assert.notStrictEqual(user.idents, undefined);
     assert.strictEqual(user.idents.length, 1);
     // Retrieve index to verify it is in it too
-    let index = await this.getIndex();
+    let index = await this.webda.getRegistry().get("idents-index");
     // Do not force index test for store
     if (index) {
       assert.notStrictEqual(index[ident1.uuid], undefined);
@@ -436,7 +437,7 @@ abstract class StoreTest extends WebdaTest {
     // Verify delete cascade
     await userStore.delete(user2);
     let ident = await identStore.get(ident2.uuid);
-    assert.strictEqual(ident.__deleted, true);
+    assert.strictEqual(ident, undefined);
 
     // Check index
     if (index) {
@@ -445,12 +446,7 @@ abstract class StoreTest extends WebdaTest {
       assert.strictEqual(index[ident1.uuid], undefined);
     }
 
-    assert.strictEqual(eventFired, 9);
-    // Force sync delete - overriding the asyncDelete parameter
-    await identStore.forceDelete(ident2.uuid);
-    ident = await identStore.get(ident2.uuid);
-    assert.strictEqual(ident, undefined);
-    assert.strictEqual(eventFired, 11);
+    assert.strictEqual(eventFired, 8);
   }
 
   @test
@@ -667,7 +663,7 @@ abstract class StoreTest extends WebdaTest {
 
     // Check DELETE
     eventFired = 0;
-    await identStore.forceDelete(ident1.uuid);
+    await identStore.delete(ident1.uuid);
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
     ident = await identStore.get(ident1.uuid);
@@ -760,7 +756,7 @@ abstract class StoreTest extends WebdaTest {
     await store.delete(model);
 
     // Deleting a non-existing object should be ignored
-    await store.forceDelete(randomUUID());
+    await store.delete(randomUUID());
   }
 
   @test
@@ -777,7 +773,7 @@ abstract class StoreTest extends WebdaTest {
     await store.delete(model);
 
     // Deleting a non-existing object should be ignored
-    await store.forceDelete(randomUUID());
+    await store.delete(randomUUID());
   }
 
   async deleteConcurrent() {
@@ -908,131 +904,6 @@ abstract class StoreTest extends WebdaTest {
     await store.put(uuid, { test: true });
     // Verify put acts like a upsert
     await store.put(uuid, { test: false });
-  }
-
-  async httpCRUD(url: string = "/users") {
-    let eventFired;
-    let userStore: Store<User> = this.getUserStore();
-    let ctx, executor;
-    await userStore.__clean();
-    ctx = await this.newContext({});
-    ctx.session.login("PLOP", "fake_ident");
-    executor = this.getExecutor(ctx, "test.webda.io", "POST", url, {
-      type: "CRUD",
-      uuid: "PLOP",
-      displayName: "Coucou"
-    });
-    assert.notStrictEqual(executor, undefined);
-    await executor.execute(ctx);
-    ctx.body = undefined;
-    assert.strictEqual((await userStore.getAll()).length, 1);
-    await this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`).execute(ctx);
-    assert.notStrictEqual(ctx.getResponseBody(), undefined);
-    assert.strictEqual(ctx.getResponseBody().indexOf("_lastUpdate") >= 0, true);
-    executor = this.getExecutor(ctx, "test.webda.io", "POST", url, {
-      type: "CRUD2",
-      uuid: "PLOP",
-      displayName: "Coucou 2"
-    });
-    await assert.rejects(executor.execute(ctx), (err: WebdaError.HttpError) => err.getResponseCode() === 409);
-    // Verify the none overide of UUID
-    await this.execute(ctx, "test.webda.io", "PUT", `${url}/PLOP`, {
-      type: "CRUD2",
-      additional: "field",
-      uuid: "PLOP2",
-      user: "fake_user",
-      displayName: "Coucou 3",
-      roles: []
-    });
-    let user: any = await userStore.get("PLOP");
-    assert.strictEqual(user.getUuid(), "PLOP");
-    assert.strictEqual(user.type, "CRUD2");
-    assert.strictEqual(user.additional, "field");
-    assert.strictEqual(user.user, "fake_user");
-
-    // Add a role to the user
-    user.roles.push("plop");
-    await user.save();
-
-    user = await userStore.get("PLOP");
-    assert.deepStrictEqual(user.roles, ["plop"]);
-
-    ctx.resetResponse();
-    // Check PATH
-    await this.execute(ctx, "test.webda.io", "PATCH", `${url}/PLOP`, {
-      type: "CRUD3",
-      uuid: "PLOP2",
-      _testor: "_ should not be update by client"
-    });
-    user = await userStore.get("PLOP");
-    assert.strictEqual(user.uuid, "PLOP");
-    assert.strictEqual(user.type, "CRUD3");
-    assert.strictEqual(user.additional, "field");
-    assert.strictEqual(user._testor, undefined);
-    assert.deepStrictEqual(user.roles, ["plop"]);
-
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/PLOP`, {
-      type: "CRUD3",
-      uuid: "PLOP2",
-      _testor: "_ should not be update by client",
-      displayName: "yep"
-    });
-    await executor.execute(ctx);
-    user = await userStore.get("PLOP");
-    assert.strictEqual(user.uuid, "PLOP");
-    assert.strictEqual(user.type, "CRUD3");
-    assert.strictEqual(user.additional, undefined);
-    assert.strictEqual(user._testor, undefined);
-    assert.deepStrictEqual(user.roles, undefined);
-
-    await this.getExecutor(ctx, "test.webda.io", "DELETE", `${url}/PLOP`).execute(ctx);
-    eventFired = 0;
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`);
-    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
-    eventFired++;
-    executor = this.getExecutor(ctx, "test.webda.io", "DELETE", `${url}/PLOP`);
-    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
-    eventFired++;
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/PLOP`);
-    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
-    eventFired++;
-    assert.strictEqual(eventFired, 3);
-  }
-
-  async modelActions(url = "/idents") {
-    let identStore: Store<CoreModel> = this.getIdentStore();
-    assert.notStrictEqual(identStore.getModel(), undefined);
-    let eventFired = 0;
-    let executor, ctx;
-    identStore.on("Store.Action", evt => {
-      eventFired++;
-    });
-    identStore.on("Store.Actioned", evt => {
-      eventFired++;
-    });
-    ctx = await this.newContext({
-      type: "CRUD",
-      uuid: "PLOP"
-    });
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/coucou/plop`);
-    assert.notStrictEqual(executor, undefined);
-    await assert.rejects(executor.execute(ctx), WebdaError.NotFound);
-    await identStore.save({
-      uuid: "coucou"
-    });
-    await executor.execute(ctx);
-    // Our fake action is pushing true to _plop
-    assert.strictEqual(JSON.parse(ctx.getResponseBody())._plop, true);
-    assert.strictEqual(eventFired, 2);
-
-    assert.notStrictEqual(this.getExecutor(ctx, "test.webda.io", "POST", `${url}/coucou/yop`), null);
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", `${url}/coucou/yop`);
-    assert.notStrictEqual(executor, null);
-
-    // Test with action returning the result instead of writing it
-    ctx.resetResponse();
-    await executor.execute(ctx);
-    assert.strictEqual(ctx.getResponseBody(), "youpi");
   }
 }
 

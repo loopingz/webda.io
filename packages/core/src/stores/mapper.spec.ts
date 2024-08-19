@@ -4,17 +4,24 @@ import * as sinon from "sinon";
 import { Ident, Store } from "../index";
 import { User } from "../models/user";
 import { WebdaTest } from "../test";
-import MapperService from "./mapper";
+import { MapperService } from "./mapper";
 
 @suite
 class MapperTest extends WebdaTest {
   @test
   async cov() {
-    let service = this.getService<MapperService>("MemoryIdentsMapper");
+    let service = await new MapperService(this.webda, "test", {
+      source: "Idents",
+      target: "Users",
+      attribute: "test",
+      targetAttribute: "otherIdents",
+      fields: ["email"]
+    })
+      .resolve()
+      .init();
     await service.recompute();
-    let identStore = this.getService<Store>("MemoryIdents");
-    let ident = new identStore._model();
-    identStore.newModel(ident);
+    let identStore = this.getService<Store>("Idents");
+    let ident = await identStore.getModel().create({});
     assert.notStrictEqual(ident.getUuid(), undefined);
 
     // Test guard-rails (seems hardly reachable so might be useless)
@@ -34,12 +41,12 @@ class MapperTest extends WebdaTest {
     await service._handleUpdatedMapMapper(
       ident,
       // @ts-ignore
-      { idents: [], getUuid: () => "t" },
+      { otherIdents: [], getUuid: () => "t" },
       { uuid: "t" }
     );
     assert.strictEqual(stb.getCall(0).args.length, 3);
 
-    await this.getService<Store>("MemoryUsers").emitSync("Store.Deleted", {
+    await this.getService<Store>("Users").emitSync("Store.Deleted", {
       // @ts-ignore
       object: {}
     });
@@ -61,14 +68,14 @@ class MapperTest extends WebdaTest {
 
   async n_n_mapping(generatorAttribute: (args: string[]) => any) {
     const mapper = new MapperService(this.webda, "nn", {
-      source: "MemoryIdents",
-      target: "MemoryUsers",
+      source: "Idents",
+      target: "Users",
       attribute: "test",
       targetAttribute: "otherIdents",
       fields: ["email"]
     });
-    let identStore = this.getService<Store<Ident>>("MemoryIdents");
-    let userStore = this.getService<Store<User & { otherIdents: any[] }>>("MemoryUsers");
+    let identStore = this.getService<Store<Ident>>("Idents");
+    let userStore = this.getService<Store<User & { otherIdents: any[] }>>("Users");
     this.registerService(mapper);
     mapper.resolve();
     await mapper.init();

@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { HttpContext, Ident, Store, WebdaError } from "../";
-import { WebdaTest } from "../test";
+import { HttpContext, Ident, Store, UnpackedConfiguration, WebdaError } from "../";
+import { TestApplication, WebdaInternalTest } from "../test";
 import { OAuthService, OAuthSession } from "./oauth";
 
 class FakeOAuthService extends OAuthService {
@@ -34,19 +34,42 @@ class FakeOAuthService extends OAuthService {
 }
 
 @suite
-class OAuthServiceTest extends WebdaTest {
+class OAuthServiceTest extends WebdaInternalTest {
   service: OAuthService;
 
-  async before() {
-    await super.before();
-    this.service = new FakeOAuthService(this.webda, "fake", {
-      authorized_uris: ["https://redirect.me/plop"]
-    });
-    this.registerService(this.service);
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: {
+        ignoreBeans: true
+      },
+      services: {
+        fake: {
+          type: "Webda/FakeOAuthService",
+          authorized_uris: ["https://redirect.me/plop"]
+        },
+        Authentication: {
+          type: "Authentication"
+        },
+        Idents: {
+          type: "MemoryStore",
+          model: "Webda/Ident"
+        },
+        Users: {
+          type: "MemoryStore",
+          model: "Webda/User"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    await super.tweakApp(app);
+    app.addService("Webda/FakeOAuthService", FakeOAuthService);
   }
 
   @test
   async testCheckRequest() {
+    this.service = this.getService("fake");
     let ctx = await this.newContext();
     ctx.setHttpContext(
       new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, {
@@ -86,7 +109,7 @@ class OAuthServiceTest extends WebdaTest {
 
   @test
   async testRoute() {
-    this.service.resolve();
+    this.service = this.getService("fake");
     let ctx = await this.newContext();
     await this.getExecutor(
       ctx,
@@ -99,7 +122,7 @@ class OAuthServiceTest extends WebdaTest {
 
   @test
   async misc() {
-    this.service.resolve();
+    this.service = this.getService("fake");
     assert.notStrictEqual(this.service._authenticationService, undefined, "Should get default Authentication service");
     // Test the 403 on handleReturn
     assert.rejects(
@@ -184,6 +207,7 @@ class OAuthServiceTest extends WebdaTest {
 
   @test
   async redirect() {
+    this.service = this.getService("fake");
     let ctx = await this.newContext();
     ctx.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/fake", "https", 443, {

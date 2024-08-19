@@ -1,15 +1,21 @@
 import { CoreModel } from "../models/coremodel";
-import MapperService, { MapperParameters, MapUpdates } from "./mapper";
+import { MapperService, MapperParameters, MapUpdates } from "./mapper";
 
 export class AggregatorParameters extends MapperParameters {
   /**
-   * @default index
+   *
    */
   key: string;
+  /**
+   * Store an aggregate of the fields
+   *
+   * @default Registry
+   */
+  target: string;
 
   constructor(params: any) {
     super(params);
-    this.key ??= "index";
+    this.target ??= "Registry";
   }
 }
 
@@ -20,7 +26,7 @@ export class AggregatorParameters extends MapperParameters {
  *
  * @WebdaModda Aggregator
  */
-export default class AggregatorService<T extends AggregatorParameters = AggregatorParameters> extends MapperService<T> {
+class AggregatorService<T extends AggregatorParameters = AggregatorParameters> extends MapperService<T> {
   /**
    * Create index if not existing
    *

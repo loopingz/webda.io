@@ -23,11 +23,9 @@
     "node": ">=18.19.0"
   },
   "dependencies": {
-    "@webda/aws": "^3.2.5",
-    "@webda/core": "^3.10.0",
-    "@webda/shell": "^3.7.0",
-    "@webda/tsc-esm": "^1.1.0",
-    "@webda/workout": "^3.1.0",
+    "@webda/aws": "^4.0.0-beta.1",
+    "@webda/core": "^4.0.0-beta.1",
+    "@webda/shell": "^4.0.0-beta.1",
     "deepmerge": "^4.2.2",
     "merge": "^2.1.1",
     "yaml": "^2.0.0"

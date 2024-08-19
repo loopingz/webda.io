@@ -6,7 +6,7 @@ import * as sinon from "sinon";
 import { CoreModel, FileStore, FileUtils, ModelMapLoaderImplementation, Store, WebdaError } from "../index";
 import { User } from "../models/user";
 import { HttpContext } from "../utils/httpcontext";
-import AggregatorService from "./aggregator";
+import { AggregatorService } from "./aggregator";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { StoreTest } from "./store.spec";
 const { removeSync } = pkg;
@@ -22,31 +22,30 @@ interface TestUser extends User {
 }
 @suite
 class FileStoreTest extends StoreTest {
+  userStore: FileStore;
+  identStore: FileStore;
+
   getUserStore(): Store<any> {
-    return this.getService<Store<any>>("Users");
+    this.userStore ??= new FileStore(this.webda, "Users", { folder: "./test/data/idents", model: "Webda/User" });
+    return this.userStore;
   }
 
   getIdentStore(): Store<any> {
     // Need to slow down the _get
-    let store = <Store<any>>this.getService("Idents");
-    // @ts-ignore
-    let original = store._get.bind(store);
-    // @ts-ignore
-    store._get = async (...args) => {
-      await this.sleep(1);
-      return original(...args);
-    };
-    return store;
-  }
-
-  async getIndex(): Promise<CoreModel> {
-    return this.getService<Store>("MemoryAggregators").get("idents-index");
-  }
-
-  async recreateIndex() {
-    let store = this.getService<Store>("MemoryAggregators");
-    await store.__clean();
-    await this.getService<AggregatorService>("IdentsIndexer").createAggregate();
+    if (!this.identStore) {
+      this.identStore = new FileStore(this.webda, "Idents", {
+        model: "WebdaTest/Ident",
+        folder: "./test/data/idents"
+      });
+      // @ts-ignore
+      let original = this.identStore._get.bind(this.identStore);
+      // @ts-ignore
+      this.identStore._get = async (...args) => {
+        await this.sleep(1);
+        return original(...args);
+      };
+    }
+    return this.identStore;
   }
 
   @test
@@ -80,7 +79,8 @@ class FileStoreTest extends StoreTest {
       );
       await user.refresh();
       assert.strictEqual(user.plop, undefined);
-      user.idents[0] = new ModelMapLoaderImplementation(identStore._model, user.idents[0], user);
+      user.idents ??= [];
+      user.idents.push(new ModelMapLoaderImplementation(identStore._model, { uuid: ident.getUuid() }, user));
       userStore["initModel"](user);
       await identStore.delete(user.getUuid());
     } finally {
@@ -127,15 +127,6 @@ class FileStoreTest extends StoreTest {
       () => identStore.simulateUpsertItemToCollection(undefined, <any>"__proto__", undefined, new Date()),
       /Cannot update __proto__: js\/prototype-polluting-assignment/
     );
-
-    // Add a queryMethod test
-    userStore.getParameters().url = "/users";
-    userStore.getParameters().expose = {
-      queryMethod: "PUT",
-      restrict: {}
-    };
-    userStore.initRoutes();
-    userStore.getUrl("/url", ["GET"]);
   }
 
   @test
@@ -154,95 +145,12 @@ class FileStoreTest extends StoreTest {
   }
 
   @test
-  async modelActions() {
-    return super.modelActions();
-  }
-
-  @test
   async cacheMishit() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
     let ident: CoreModel = await identStore.save({ uuid: "test" });
     await identStore._cacheStore.__clean();
     // @ts-ignore
     await ident.patch({ retest: true });
-  }
-
-  @test
-  async modelStaticActions() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
-    let ctx, executor;
-    let eventFired = 0;
-    identStore.on("Store.Action", evt => {
-      eventFired++;
-    });
-    ctx = await this.newContext({
-      type: "CRUD",
-      uuid: "PLOP"
-    });
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/idents/index");
-    assert.notStrictEqual(executor, undefined);
-    await executor.execute(ctx);
-    // Our fake index action is just outputing 'indexer'
-    assert.strictEqual(ctx.getResponseBody(), "indexer");
-    assert.strictEqual(eventFired, 1);
-
-    ctx.resetResponse();
-    // Return some infos instead of using ctx
-    // @ts-ignore
-    identStore._model.index = async () => {
-      return "vouzouf";
-    };
-    await executor.execute(ctx);
-    // Our fake index action is just outputing 'indexer'
-    assert.strictEqual(ctx.getResponseBody(), "vouzouf");
-  }
-
-  @test
-  async httpCRUD() {
-    return await super.httpCRUD();
-  }
-
-  @test
-  async getURL() {
-    //assert.strictEqual((<Store<CoreModel>>this.webda.getService("users")).getUrl(), "/users");
-  }
-
-  @test("JSON Schema - Create") async schemaCreate() {
-    let taskStore = this.webda.getService<Store<CoreModel>>("Tasks");
-    let ctx = await this.webda.newWebContext(new HttpContext("webda.io", "GET", "/"));
-    let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
-      noname: "Task #1"
-    });
-    this.webda.getModules().schemas["WebdaTest/Task"] = FileUtils.load("./test/schemas/task.json");
-
-    assert.notStrictEqual(executor, undefined);
-    ctx.getSession().login("fake_user", "fake_ident");
-    await assert.rejects(executor.execute(ctx), WebdaError.BadRequest, "Should reject for bad schema");
-    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
-      name: "Task #1"
-    });
-    await executor.execute(ctx);
-    let task = JSON.parse(<string>ctx.getResponseBody());
-    // It is two because the Saved has been called two
-    assert.notStrictEqual(task.uuid, undefined);
-    assert.strictEqual(task._autoListener, 2);
-    task = await taskStore.get(task.uuid);
-    assert.strictEqual(task._autoListener, 1);
-
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/tasks/${task.uuid}`, {
-      test: "plop"
-    });
-    await assert.rejects(
-      () => executor.execute(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 400
-    );
-    executor = this.getExecutor(ctx, "test.webda.io", "PATCH", `/tasks/${task.uuid}`, {
-      name: 123
-    });
-    await assert.rejects(
-      () => executor.execute(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 400
-    );
   }
 
   @test

@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import { join } from "path";
 import { Readable } from "stream";
-import { CloudBinary, CloudBinaryParameters, CoreModel, WebdaError } from "../index";
-import { WebContext } from "../utils/context";
+import { CloudBinary, CloudBinaryParameters, CoreModel, CoreModelDefinition, WebdaError } from "../index";
+import { OperationContext, WebContext } from "../utils/context";
 import { BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, BinaryService, MemoryBinaryFile } from "./binary";
-import CryptoService from "./cryptoservice";
+import { CryptoService } from "./cryptoservice";
 import { Inject } from "./service";
 
 export class FileBinaryParameters extends CloudBinaryParameters {
@@ -122,8 +122,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * Download a binary with a challenge
    */
-  async downloadBinaryLink(ctx: WebContext) {
-    const { hash } = ctx.getPathParameters();
+  async downloadBinaryLink(ctx: WebContext<any, any, { hash: string }>) {
+    const { hash } = ctx.getParameters();
     // Verify token
     try {
       let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
@@ -212,12 +212,15 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param ctx
    * @returns
    */
-  async getPutUrl(ctx: WebContext<BinaryFile>) {
-    let body = await ctx.getRequestBody();
+  async getPutUrl(ctx: OperationContext<BinaryFile>) {
+    let body = await ctx.getInput();
     // Get a full URL, this method should be in a Route Object
     // Add a JWT token for 60s
     let token = await this.getToken(body.hash, "PUT");
-    return ctx.getHttpContext().getAbsoluteUrl(this.parameters.url + "/upload/data/" + body.hash + `?token=${token}`);
+    if (ctx instanceof WebContext) {
+      return ctx.getHttpContext().getAbsoluteUrl(this.parameters.url + "/upload/data/" + body.hash + `?token=${token}`);
+    }
+    return this.parameters.url + "/upload/data/" + body.hash + `?token=${token}`;
   }
 
   /**
@@ -225,12 +228,17 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    *
    * @ignore
    */
-  async putRedirectUrl(ctx: WebContext<BinaryFile>): Promise<{ url: string; method: string }> {
-    const body = await ctx.getInput();
-    const { uuid, store, property } = ctx.getParameters();
-    let result = { url: await this.getPutUrl(ctx), method: "PUT" };
-    if (fs.existsSync(this._getPath(body.hash, store + "_" + property + "_" + uuid))) {
-      if (!fs.existsSync(this._getPath(body.hash, "data"))) {
+  async putRedirectUrl(
+    object: CoreModel,
+    attribute: string,
+    info?: BinaryFile,
+    context?: OperationContext<BinaryFile>
+  ): Promise<{ url: string; method: string }> {
+    info ??= await context.getInput();
+    let result = { url: await this.getPutUrl(context), method: "PUT" };
+    const marker = `${object.getStore().getName()}_${object.getUuid}_${attribute}`;
+    if (fs.existsSync(this._getPath(info.hash, marker))) {
+      if (!fs.existsSync(this._getPath(info.hash, "data"))) {
         // 232-237
         return result;
       }
@@ -238,15 +246,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       return;
     }
     // Get the target object to add the mapping
-    let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(uuid, ctx);
-    await this.uploadSuccess(<BinaryModel>object, property, body);
+    await this.uploadSuccess(<BinaryModel>object, attribute, info);
     // Need to store the usage of the file
-    if (!fs.existsSync(this._getPath(body.hash))) {
-      fs.mkdirSync(this._getPath(body.hash));
+    if (!fs.existsSync(this._getPath(info.hash))) {
+      fs.mkdirSync(this._getPath(info.hash));
     }
-    this._touch(this._getPath(body.hash, store + "_" + uuid + "_" + property));
-    if (this.challenge(body.hash, body.challenge)) {
+    this._touch(this._getPath(info.hash, marker));
+    if (this.challenge(info.hash, info.challenge)) {
       // Return empty as we dont need to upload the data
       return;
     }

@@ -1,9 +1,8 @@
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
 import { ConfigurationProvider, MemoryStore, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
-import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes, ModelAction } from "../models/coremodel";
-import { Route, Service, ServiceParameters } from "../services/service";
-import { OperationContext, WebContext } from "../utils/context";
-import { HttpMethodType } from "../utils/httpcontext";
+import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes } from "../models/coremodel";
+import { Service, ServiceParameters } from "../services/service";
+import { OperationContext } from "../utils/context";
 import * as WebdaQL from "@webda/ql";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
@@ -313,56 +312,6 @@ export interface EventStoreWebDelete extends EventWithContext {
   store: Store;
 }
 
-// REFACTOR . >= 4
-/**
- * @deprecated Store should not be exposed directly anymore
- * You should use the DomainService instead
- */
-export type StoreExposeParameters = {
-  /**
-   * URL endpoint to use to expose REST Resources API
-   *
-   * @default service.getName().toLowerCase()
-   */
-  url?: string;
-  /**
-   * You can restrict any part of the CRUD
-   *
-   * @default {}
-   */
-  restrict?: {
-    /**
-     * Do not expose the POST
-     */
-    create?: boolean;
-    /**
-     * Do not expose the PUT and PATCH
-     */
-    update?: boolean;
-    /**
-     * Do not expose the GET
-     */
-    get?: boolean;
-    /**
-     * Do not expose the DELETE
-     */
-    delete?: boolean;
-    /**
-     * Do not expose the query endpoint
-     */
-    query?: boolean;
-  };
-
-  /**
-   * For confidentiality sometimes you might prefer to expose query through PUT
-   * To avoid GET logging
-   *
-   * @default "GET"
-   */
-  queryMethod?: "PUT" | "GET";
-};
-// END_REFACTOR
-
 /**
  * Represent a query result on the Store
  */
@@ -403,18 +352,6 @@ export class StoreParameters extends ServiceParameters {
    * @default []
    */
   additionalModels?: string[];
-  /**
-   * async delete
-   */
-  asyncDelete: boolean;
-  // REFACTOR . >= 4.0
-  /**
-   * Expose the service to an urls
-   *
-   * @deprecated will probably be removed in 4.0 in favor of Expose annotation
-   */
-  expose?: StoreExposeParameters;
-  // END_REFACTOR
 
   /**
    * Allow to load object that does not have the type data
@@ -456,35 +393,17 @@ export class StoreParameters extends ServiceParameters {
   constructor(params: any, service: Service<any>) {
     super(params);
     this.model ??= "Webda/CoreModel";
-    let expose = params.expose;
-    if (typeof expose == "boolean") {
-      expose = {};
-      expose.url = "/" + service.getName().toLowerCase();
-    } else if (typeof expose == "string") {
-      expose = {
-        url: expose
-      };
-    } else if (typeof expose == "object" && expose.url == undefined) {
-      expose.url = "/" + service.getName().toLowerCase();
-    }
-    if (expose) {
-      expose.restrict = expose.restrict || {};
-      this.expose = expose;
-      this.expose.queryMethod ??= "GET";
-      this.url = expose.url;
-    }
-    if (params.map) {
-      throw new Error("Deprecated map usage, use a MapperService");
-    }
-    if (params.index) {
-      throw new Error("Deprecated index usage, use an AggregatorService");
-    }
     this.strict ??= false;
     this.defaultModel ??= true;
     this.forceModel ??= false;
     this.slowQueryThreshold ??= 30000;
     this.modelAliases ??= {};
     this.additionalModels ??= [];
+    // REFACTOR >= 5
+    if (params.expose) {
+      throw new Error("Expose is not supported anymore, use DomainService instead");
+    }
+    // END_REFACTOR
   }
 }
 
@@ -521,9 +440,6 @@ export interface MappingService<T = any> {
 
 /**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object
- * TODO Create the mapping documentation
- *
- * It use basic CRUD, and can expose those 4 to through HTTP
  *
  * It emits events :
  *   Store.Save: Before saving the object
@@ -536,21 +452,6 @@ export interface MappingService<T = any> {
  *   Store.Action: When an action will be done on an object
  *   Store.Actioned: When an action has been done on an object
  *
- * Mapping:
- *
- *
- * Parameters
- *
- *  map: { ... }
- *  expose: { // Enable the HTTP exposure
- *      url: '', // The url to expose to by default it is service name in lowercase ( users for example )
- *      restrict: {
- *	       create: true, // Don't expose the POST /users
- *         update: true, // Don't expose the PUT /users/{uuid}
- *         delete: true, // Don't expose the DELETE /users/{uuid}
- *         get: true // Don't expose the GET /users/{uuid}
- *      }
- *   }
  * @category CoreServices
  */
 abstract class Store<
@@ -652,9 +553,6 @@ abstract class Store<
         }
       }
     }
-    if (this.getParameters().expose) {
-      this.log("WARN", "Exposing a store is not recommended, use a DomainService instead to expose all your CoreModel");
-    }
   }
 
   logSlowQuery(_query: string, _reason: string, _time: number) {
@@ -668,7 +566,7 @@ abstract class Store<
   async invalidateCache(uid: string): Promise<void> {
     if (this._cacheStore) {
       this.metrics.cache_invalidations.inc();
-      await this._cacheStore.delete(uid, undefined, undefined, true);
+      await this._cacheStore.delete(uid);
     }
   }
 
@@ -749,131 +647,7 @@ abstract class Store<
     return this._getFromCache(uid);
   }
 
-  /**
-   * @override
-   */
-  getUrl(url: string, methods: HttpMethodType[]) {
-    // If url is absolute
-    if (url.startsWith("/")) {
-      return url;
-    }
-
-    // Parent url to find here
-    const expose = this.parameters.expose;
-    if (
-      !expose.url ||
-      (url === "." && methods.includes("POST") && expose.restrict.create) ||
-      (url === "./{uuid}" && methods.includes("DELETE") && expose.restrict.delete) ||
-      (url === "./{uuid}" && methods.includes("PATCH") && expose.restrict.update) ||
-      (url === "./{uuid}" && methods.includes("PUT") && expose.restrict.update) ||
-      (url === "./{uuid}" && methods.includes("GET") && expose.restrict.get) ||
-      (url === ".{?q}" && methods.includes("GET") && expose.restrict.query) ||
-      (url === "." && methods.includes("PUT") && expose.restrict.query)
-    ) {
-      return undefined;
-    }
-    return super.getUrl(url, methods);
-  }
-
   static getOpenAPI() {}
-  /**
-   * @inheritdoc
-   */
-  initRoutes() {
-    if (!this.parameters.expose) {
-      return;
-    }
-    super.initRoutes();
-    // We enforce ExposeParameters within the constructor
-    const expose = this.parameters.expose;
-    this.getWebda().getRouter().registerModelUrl(this.parameters.model, expose.url);
-
-    // Query endpoint
-    if (!expose.restrict.query) {
-      let requestBody;
-      if (expose.queryMethod === "PUT") {
-        requestBody = {
-          content: {
-            "application/json": {
-              schema: {
-                properties: {
-                  q: {
-                    type: "string"
-                  }
-                }
-              }
-            }
-          }
-        };
-      }
-      this.addRoute(expose.queryMethod === "GET" ? `.{?q}` : ".", [expose.queryMethod], this.httpQuery, {
-        model: this.parameters.model,
-        [expose.queryMethod.toLowerCase()]: {
-          description: `Query on ${this.parameters.model} model with WebdaQL`,
-          summary: "Query " + this.parameters.model,
-          operationId: `query${this._model.name}`,
-          requestBody,
-          responses: {
-            "200": {
-              description: `Retrieve models ${this._model.name}`,
-              content: {
-                "application/json": {
-                  schema: {
-                    properties: {
-                      continuationToken: {
-                        type: "string"
-                      },
-                      results: {
-                        type: "array",
-                        items: {
-                          $ref: `#/components/schemas/${this._model.name}`
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "400": {
-              description: "Query is invalid"
-            },
-            "403": {
-              description: "You don't have permissions"
-            }
-          }
-        }
-      });
-    }
-
-    // Model actions
-    if (this._model && this._model.getActions) {
-      let actions = this._model.getActions();
-      Object.keys(actions).forEach(name => {
-        let action: ModelAction = actions[name];
-        action.method ??= name;
-        if (!action.methods) {
-          action.methods = ["PUT"];
-        }
-        let executer;
-        if (action.global) {
-          // By default will grab the object and then call the action
-          if (!this._model[action.method]) {
-            throw Error("Action static method " + action.method + " does not exist");
-          }
-          executer = this.httpGlobalAction;
-          this.addRoute(`./${name}`, action.methods, executer, action.openapi);
-        } else {
-          // By default will grab the object and then call the action
-          if (!this._model.prototype[action.method]) {
-            throw Error("Action method " + action.method + " does not exist");
-          }
-          executer = ctx => this.httpAction(ctx, action.method);
-
-          this.addRoute(`./{uuid}/${name}`, action.methods, executer, action.openapi);
-        }
-      });
-    }
-  }
 
   /**
    * OVerwrite the model
@@ -1269,27 +1043,6 @@ abstract class Store<
   }
 
   /**
-   * Expose query to http
-   */
-  async httpQuery(ctx: WebContext): Promise<void> {
-    let query: string;
-    if (ctx.getHttpContext().getMethod() === "GET") {
-      query = ctx.getParameters().q;
-    } else {
-      query = WebdaQL.unsanitize((await ctx.getRequestBody()).q);
-    }
-    try {
-      ctx.write(await this.query(query, ctx));
-    } catch (err) {
-      if (err instanceof SyntaxError) {
-        this.log("INFO", "Query syntax error");
-        throw new WebdaError.BadRequest("Query syntax error");
-      }
-      throw err;
-    }
-  }
-
-  /**
    * Handle StoreEvent and update cache based on it
    * Then emit the event, it allows the cache to be updated
    * before listeners are called
@@ -1645,17 +1398,6 @@ abstract class Store<
   }
 
   /**
-   * Manage the store migration for __type case sensitivity
-   */
-  async v3Migration() {
-    // Compute case for all object
-    await this.recomputeTypeCase();
-    // Compute all __types
-    await this.recomputeTypes();
-    // We do not move to short id as it is not compatible with v2
-  }
-
-  /**
    *
    */
   async recomputeTypeShortId() {
@@ -1692,30 +1434,6 @@ abstract class Store<
         return <Partial<T>>{
           __type: this.parameters.modelAliases[item.__type]
         };
-      }
-    });
-  }
-
-  /**
-   * Recompute type case
-   */
-  async recomputeTypeCase() {
-    this.log("INFO", "Ensuring __type is case sensitive from migration from v2.x");
-    const app = this.getWebda().getApplication();
-    // We need to be laxist for migration
-    this.parameters.strict = false;
-    await this.migration("typesCase", async item => {
-      if (item.__type !== undefined) {
-        if (!app.hasWebdaObject("models", item.__type, true) && app.hasWebdaObject("models", item.__type, false)) {
-          const model = app.getWebdaObject("models", item.__type, false);
-          const name = app.getModelName(model);
-          if (model) {
-            this.log("INFO", "Migrating type " + item.__type + " to " + name);
-            return <Partial<T>>{
-              __type: name
-            };
-          }
-        }
       }
     });
   }
@@ -1847,27 +1565,12 @@ abstract class Store<
   }
 
   /**
-   * Delete an object from the store without condition nor async
-   * @param uid to delete
-   * @returns
-   */
-  async forceDelete(uid: string): Promise<void> {
-    return this.delete(uid, undefined, undefined, true);
-  }
-
-  /**
    * Delete an object
    *
    * @param {String} uuid to delete
-   * @param {Boolean} delete sync even if asyncDelete is active
    * @return {Promise} the deletion promise
    */
-  async delete<CK extends keyof T>(
-    uid: string | T,
-    writeCondition?: any,
-    writeConditionField?: CK,
-    sync: boolean = false
-  ): Promise<void> {
+  async delete<CK extends keyof T>(uid: string | T, writeCondition?: any, writeConditionField?: CK): Promise<void> {
     /** @ignore */
     let to_delete: T;
     // Allow full object or just its uuid
@@ -1904,27 +1607,10 @@ abstract class Store<
       to_delete._onDelete()
     ]);
 
-    // If async we just tag the object as deleted
-    if (this.parameters.asyncDelete && !sync) {
-      this.metrics.operations_total.inc({ operation: "partialUpdate" });
-      await this._patch(
-        {
-          __deleted: true
-        },
-        to_delete.getUuid()
-      );
-      await this._cacheStore?._patch(
-        {
-          __deleted: true
-        },
-        to_delete.getUuid()
-      );
-    } else {
-      this.metrics.operations_total.inc({ operation: "delete" });
-      // Delete from the DB for real
-      await this._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
-      await this._cacheStore?._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
-    }
+    this.metrics.operations_total.inc({ operation: "delete" });
+    // Delete from the DB for real
+    await this._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
+    await this._cacheStore?._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
 
     // Send post event
     const evtDeleted = {
@@ -2099,355 +1785,6 @@ abstract class Store<
     return {
       modelName: this._model.name
     };
-  }
-
-  /**
-   * Handle POST
-   * @param ctx
-   */
-  @Route(".", ["POST"], {
-    post: {
-      description: "The way to create a new ${modelName} model",
-      summary: "Create a new ${modelName}",
-      operationId: "create${modelName}",
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              $ref: "#/components/schemas/${modelName}"
-            }
-          }
-        }
-      },
-      responses: {
-        "200": {
-          description: "Retrieve model",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/${modelName}"
-              }
-            }
-          }
-        },
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "409": {
-          description: "Object already exists"
-        }
-      }
-    }
-  })
-  async httpCreate(ctx: WebContext) {
-    return this.operationCreate(ctx, this.parameters.model);
-  }
-
-  /**
-   * Create a new object based on the context
-   * @param ctx
-   * @param model
-   */
-  async operationCreate(ctx: OperationContext, model: string) {
-    let body = await ctx.getInput();
-    const modelPrototype = this.getWebda().getApplication().getModel(model);
-    let object = modelPrototype.factory(body, ctx);
-    object._creationDate = new Date();
-    await object.checkAct(ctx, "create");
-    try {
-      await object.validate(ctx, body);
-    } catch (err) {
-      this.log("INFO", "Object is not valid", err);
-      throw new WebdaError.BadRequest("Object is not valid");
-    }
-    if (object[this._uuidField] && (await this.exists(object[this._uuidField]))) {
-      throw new WebdaError.Conflict("Object already exists");
-    }
-    await this.save(object, ctx);
-    ctx.write(object);
-    const evt = {
-      context: ctx,
-      values: body,
-      object: object,
-      object_id: object.getUuid(),
-      store: this
-    };
-    await Promise.all([object.__class.emitSync("Store.WebCreate", evt), this.emitSync("Store.WebCreate", evt)]);
-  }
-
-  /**
-   * Handle obect action
-   * @param ctx
-   */
-  async httpAction(ctx: WebContext, actionMethod?: string) {
-    let action = ctx.getHttpContext().getUrl().split("/").pop();
-    actionMethod ??= action;
-    let object = await this.get(ctx.parameter("uuid"), ctx);
-    if (object === undefined || object.__deleted) {
-      throw new WebdaError.NotFound("Object not found or is deleted");
-    }
-    const inputSchema = `${object.__class.getIdentifier(false)}.${action}.input`;
-    if (this.getWebda().getApplication().hasSchema(inputSchema)) {
-      const input = await ctx.getInput();
-      try {
-        this.getWebda().validateSchema(inputSchema, input);
-      } catch (err) {
-        this.log("INFO", "Object invalid", err);
-        this.log("INFO", "Object invalid", inputSchema, input, this.getWebda().getApplication().getSchema(inputSchema));
-        throw new WebdaError.BadRequest("Body is invalid");
-      }
-    }
-    await object.checkAct(ctx, action);
-    const evt = {
-      action: action,
-      object: object,
-      store: this,
-      context: ctx
-    };
-    await Promise.all([this.emitSync("Store.Action", evt), object.__class.emitSync("Store.Action", evt)]);
-    const res = await object[actionMethod](ctx);
-    if (res) {
-      ctx.write(res);
-    }
-    const evtActioned = {
-      action: action,
-      object: object,
-      store: this,
-      context: ctx,
-      result: res
-    };
-    await Promise.all([
-      this.emitSync("Store.Actioned", evtActioned),
-      object?.__class.emitSync("Store.Actioned", evtActioned)
-    ]);
-  }
-
-  /**
-   * Handle collection action
-   * @param ctx
-   */
-  async httpGlobalAction(ctx: WebContext, model: CoreModelDefinition = this._model) {
-    let action = ctx.getHttpContext().getUrl().split("/").pop();
-    const evt = {
-      action: action,
-      store: this,
-      context: ctx,
-      model
-    };
-    await Promise.all([this.emitSync("Store.Action", evt), model.emitSync("Store.Action", evt)]);
-    const res = await model[action](ctx);
-    if (res) {
-      ctx.write(res);
-    }
-    const evtActioned = {
-      action: action,
-      store: this,
-      context: ctx,
-      result: res,
-      model
-    };
-    await Promise.all([this.emitSync("Store.Actioned", evtActioned), model?.emitSync("Store.Actioned", evtActioned)]);
-  }
-
-  /**
-   * Handle HTTP Update for an object
-   *
-   * @param ctx context of the request
-   */
-  @Route("./{uuid}", ["PUT", "PATCH"], {
-    put: {
-      description: "Update a ${modelName} if the permissions allow",
-      summary: "Update a ${modelName}",
-      operationId: "update${modelName}",
-      schemas: {
-        input: "${modelName}",
-        output: "${modelName}"
-      },
-      responses: {
-        "200": {},
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    },
-    patch: {
-      description: "Patch a ${modelName} if the permissions allow",
-      summary: "Patch a ${modelName}",
-      operationId: "partialUpdatet${modelName}",
-      schemas: {
-        input: "${modelName}"
-      },
-      responses: {
-        "204": {
-          description: ""
-        },
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    }
-  })
-  async httpUpdate(ctx: WebContext) {
-    const { uuid } = ctx.getParameters();
-    const body = await ctx.getInput();
-    body[this._uuidField] = uuid;
-    let object = await this.get(uuid, ctx);
-    if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
-    await object.checkAct(ctx, "update");
-    if (ctx.getHttpContext().getMethod() === "PATCH") {
-      try {
-        await object.validate(ctx, body, true);
-      } catch (err) {
-        this.log("INFO", "Object invalid", err, object);
-        throw new WebdaError.BadRequest("Object is not valid");
-      }
-      let updateObject: any = new this._model();
-      // Clean any default attributes from the model
-      Object.keys(updateObject)
-        .filter(i => i !== "__class")
-        .forEach(i => {
-          delete updateObject[i];
-        });
-      updateObject.setContext(ctx);
-      updateObject.setUuid(uuid);
-      updateObject.load(body, false, false);
-      await this.patch(updateObject);
-      object = undefined;
-    } else {
-      let updateObject: any = new this._model();
-      updateObject.setContext(ctx);
-      updateObject.load(body);
-      // Copy back the _ attributes
-      Object.keys(object)
-        .filter(i => i.startsWith("_"))
-        .forEach(i => {
-          updateObject[i] = object[i];
-        });
-      try {
-        await updateObject.validate(ctx, body);
-      } catch (err) {
-        this.log("INFO", "Object invalid", err);
-        throw new WebdaError.BadRequest("Object is not valid");
-      }
-
-      // Add mappers back to
-      object = await this.update(updateObject);
-    }
-    ctx.write(object);
-    const evt = {
-      context: ctx,
-      updates: body,
-      object: object,
-      store: this,
-      method: <"PATCH" | "PUT">ctx.getHttpContext().getMethod()
-    };
-    await Promise.all([object?.__class.emitSync("Store.WebUpdate", evt), this.emitSync("Store.WebUpdate", evt)]);
-  }
-
-  /**
-   * Handle GET on object
-   *
-   * @param ctx context of the request
-   */
-  @Route("./{uuid}", ["GET"], {
-    get: {
-      description: "Retrieve ${modelName} model if permissions allow",
-      summary: "Retrieve a ${modelName}",
-      operationId: "get${modelName}",
-      schemas: {
-        output: "${modelName}"
-      },
-      responses: {
-        "200": {},
-        "400": {
-          description: "Object is invalid"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    }
-  })
-  async httpGet(ctx: WebContext) {
-    let uuid = ctx.parameter("uuid");
-    let object = await this.get(uuid, ctx);
-    await this.emitSync("Store.WebGetNotFound", {
-      context: ctx,
-      uuid,
-      store: this
-    });
-    if (object === undefined || object.__deleted) {
-      throw new WebdaError.NotFound("Object not found or is deleted");
-    }
-    await object.checkAct(ctx, "get");
-    ctx.write(object);
-    const evt = {
-      context: ctx,
-      object: object,
-      store: this
-    };
-    await Promise.all([this.emitSync("Store.WebGet", evt), object.__class.emitSync("Store.WebGet", evt)]);
-    ctx.write(object);
-  }
-
-  /**
-   * Handle HTTP request
-   *
-   * @param ctx context of the request
-   * @returns
-   */
-  @Route("./{uuid}", ["DELETE"], {
-    delete: {
-      operationId: "delete${modelName}",
-      description: "Delete ${modelName} if the permissions allow",
-      summary: "Delete a ${modelName}",
-      responses: {
-        "204": {
-          description: ""
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    }
-  })
-  async httpDelete(ctx: WebContext) {
-    let uuid = ctx.parameter("uuid");
-    let object = await this.get(uuid, ctx);
-    if (!object || object.__deleted) throw new WebdaError.NotFound("Object not found or is deleted");
-    await object.checkAct(ctx, "delete");
-    // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
-    // IOS don't handle 204 with Content-Length != 0 it seems
-    // Might still run into: Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
-    ctx.writeHead(204, { "Content-Length": "0" });
-    await this.delete(uuid);
-    const evt = {
-      context: ctx,
-      object_id: uuid,
-      store: this
-    };
-    await Promise.all([this.emitSync("Store.WebDelete", evt), object.__class.emitSync("Store.WebDelete", evt)]);
   }
 
   /**

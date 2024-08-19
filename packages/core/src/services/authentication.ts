@@ -4,11 +4,12 @@ import { WebdaError } from "../errors";
 import { CoreModelDefinition } from "../models/coremodel";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
-import { Inject, Route, Service, ServiceParameters } from "../services/service";
+import { Inject, Service, ServiceParameters } from "../services/service";
+import { Route } from "../rest/router";
 import { Store } from "../stores/store";
 import { OperationContext, WebContext } from "../utils/context";
 import { HttpContext, HttpMethodType } from "../utils/httpcontext";
-import CryptoService from "./cryptoservice";
+import { CryptoService } from "./cryptoservice";
 import { Mailer } from "./mailer";
 
 /**
@@ -452,7 +453,7 @@ class Authentication<
       });
     } else {
       // If the ident is linked to someone else - might want to remove it
-      if (ident.getUser() !== ctx.getCurrentUserId()) {
+      if (ident.getUser().getUuid() !== ctx.getCurrentUserId()) {
         throw new WebdaError.Conflict("Ident is linked to someone else");
       }
       // If the email is already validated

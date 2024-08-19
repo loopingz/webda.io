@@ -37,7 +37,10 @@ class FileStoreParameters extends StoreParameters {
  * @category CoreServices
  * @WebdaModda
  */
-class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStoreParameters> extends Store<T, K> {
+class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters = FileStoreParameters> extends Store<
+  T,
+  K
+> {
   static EXTENSION = ".json";
 
   /**

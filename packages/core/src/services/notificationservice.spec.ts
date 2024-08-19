@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { Service } from "..";
 import { User } from "../models/user";
-import { WebdaTest } from "../test";
+import { WebdaSimpleTest } from "../test";
 import { MultiNotificationService, NotificationService } from "./notificationservice";
 
 class FakeNotification extends Service implements NotificationService {
@@ -23,13 +23,18 @@ class FakeNotification extends Service implements NotificationService {
 }
 
 @suite
-class NotificationServiceTest extends WebdaTest {
+class NotificationServiceTest extends WebdaSimpleTest {
   service: MultiNotificationService;
   fakeA: FakeNotification;
   fakeB: FakeNotification;
 
-  getTestConfiguration(): string {
-    return process.cwd() + "/test/config-invitation.json";
+  getTestConfiguration() {
+    return {
+      parameters: {
+        ignoreBeans: true
+      },
+      services: {}
+    };
   }
 
   async before() {

@@ -47,7 +47,6 @@ export class ModelMapper extends Service {
         });
       }
     }
-    this.log("INFO", "Add listeners for", this.mappers);
     for (let modelName in this.mappers) {
       const model = app.getModel(modelName);
       model.on("Store.Deleted", async evt => {

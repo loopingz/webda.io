@@ -1,7 +1,6 @@
 import {
   CancelableLoopPromise,
   CancelablePromise,
-  CloudBinary,
   Constructor,
   Core,
   CoreModelDefinition,
@@ -45,14 +44,6 @@ export interface JobInfo {
  */
 export class AsyncJobServiceParameters extends ServiceParameters {
   /**
-   * If we want to expose a way to upload/download binary for the job
-   *
-   * It will expose a /download and /upload additional url
-   *
-   * @deprecated will be removed in 4.0 to only use object AsyncAction
-   */
-  binaryStore?: string;
-  /**
    * If set runner will be called without queue
    *
    * @default false
@@ -66,8 +57,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
   /**
    * URL to expose job status report hook
    *
-   * @default /async/jobs
-   * @deprecated will be removed in 4.0 to only use object AsyncAction
+   * @default /async
    */
   url: string;
   /**
@@ -141,7 +131,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
 
   constructor(params: any) {
     super(params);
-    this.url ??= "/async/jobs";
+    this.url ??= "/async";
     this.queue ??= "AsyncActionsQueue";
     this.runners ??= [];
     this.schedulerResolution ??= 60000;
@@ -179,10 +169,6 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * HMAC Algorithm used for simple auth
    */
   static HMAC_ALGO: string = "sha256";
-  /**
-   * If we want job to be able to upload/download
-   */
-  protected binaryStore: CloudBinary;
   /**
    * Model to use when launching action
    */
@@ -244,24 +230,6 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, {
       hidden: true
     });
-
-    // Add upload/download route if needed
-    if (this.parameters.binaryStore) {
-      this.binaryStore = this.getService<CloudBinary>(this.parameters.binaryStore);
-      // Call directly Webda addRoute as we are setting a route for another service in fact
-      this.getWebda().addRoute(`${this.parameters.url}/download/{store}/{uuid}/{property}/{index}`, {
-        _method: ctx => this.binaryStore.httpGet(ctx),
-        executor: this.parameters.binaryStore,
-        openapi: { hidden: true },
-        methods: ["GET"]
-      });
-      this.getWebda().addRoute(`${this.parameters.url}/upload/{store}/{uuid}/{property}`, {
-        _method: ctx => this.binaryStore.httpChallenge(ctx),
-        executor: this.parameters.binaryStore,
-        openapi: { hidden: true },
-        methods: ["PUT"]
-      });
-    }
     this.getWebda().registerRequestFilter(this);
     return this;
   }

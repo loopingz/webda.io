@@ -1,7 +1,7 @@
 import { OperationContext } from "../utils/context";
 import { CoreModel } from "./coremodel";
 import { Ident } from "./ident";
-import { ModelsMapped } from "./relations";
+import { ModelLink, ModelMapLoader, ModelsMapped } from "./relations";
 
 /**
  * First basic model for User

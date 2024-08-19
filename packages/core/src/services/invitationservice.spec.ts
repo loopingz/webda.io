@@ -7,11 +7,12 @@ import { CoreModel } from "../models/coremodel";
 import { Ident } from "../models/ident";
 import { ModelMapLoader, ModelMapLoaderImplementation } from "../models/relations";
 import { Store } from "../stores/store";
-import { WebdaTest } from "../test";
+import { WebdaInternalTest, WebdaTest } from "../test";
 import { OperationContext } from "../utils/context";
 import { Authentication } from "./authentication";
-import InvitationService, { InvitationParameters } from "./invitationservice";
+import { InvitationService, InvitationParameters } from "./invitationservice";
 import { Mailer } from "./mailer";
+import { FileUtils } from "../utils/serializers";
 
 class MyCompany extends AclModel {
   name: string;
@@ -24,7 +25,7 @@ class MyCompany extends AclModel {
 }
 
 @suite
-class InvitationTest extends WebdaTest {
+class InvitationTest extends WebdaInternalTest {
   service: InvitationService;
 
   store: Store<AclModel>;
@@ -35,19 +36,73 @@ class InvitationTest extends WebdaTest {
 
   mailer: Mailer;
 
-  getTestConfiguration(): string {
-    return process.cwd() + "/test/config-invitation.json";
+  getTestConfiguration() {
+    return {
+      parameters: {
+        ignoreBeans: true
+      },
+      services: {
+        Authentication: {
+          successRedirect: "https://webda.io/user.html",
+          registerRedirect: "https://webda.io/register.html",
+          failureRedirect: "/login-error",
+          email: {
+            from: "",
+            subject: "",
+            html: "",
+            text: "",
+            mailer: "DebugMailer",
+            postValidation: false
+          }
+        },
+        DebugMailer: {
+          type: "Webda/DebugMailer"
+        },
+        IdentsMapper: {
+          type: "Webda/Mapper",
+          source: "Idents",
+          targetAttribute: "_idents",
+          target: "Users",
+          attribute: "_user",
+          fields: "type,_lastUpdate,counter",
+          cascade: true
+        },
+        Idents: {
+          asyncDelete: true,
+          model: "Webda/Ident",
+          type: "MemoryStore",
+          validator: "IdentValidator"
+        },
+        Users: {
+          type: "MemoryStore",
+          model: "Webda/User"
+        },
+        Companies: {
+          type: "MemoryStore",
+          model: "Webda/AclModel"
+        },
+        Invitations: {
+          type: "MemoryStore",
+          model: "Webda/CoreModel"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app) {
+    app.addModel("WebdaDemo/Company", MyCompany);
+    return super.tweakApp(app);
   }
 
   async before() {
     await super.before();
-    this.webda.getApplication().addModel("WebdaDemo/Company", MyCompany);
 
     this.store = this.webda.getService<Store<AclModel>>("Companies");
     this.store._model = <any>MyCompany;
 
-    this.service = this.registerService(
-      new InvitationService(this.webda, "invit", {
+    this.service = await this.addService(
+      InvitationService,
+      {
         model: "Company",
         invitationStore: "Invitations",
         attribute: "__acl",
@@ -56,12 +111,12 @@ class InvitationTest extends WebdaTest {
         notificationService: "DebugMailer",
         mapFields: ["name"],
         url: "/companies"
-      })
+      },
+      "invit"
     );
     this.invitations = this.webda.getService<Store<CoreModel>>("Invitations");
     this.authentication = this.webda.getService<Authentication>("Authentication");
     this.mailer = this.webda.getService<Mailer>("DebugMailer");
-    await this.service.resolve().init();
   }
 
   @test

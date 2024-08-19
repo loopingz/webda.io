@@ -26,14 +26,13 @@
     "contacts": {
       "model": "WebdaDemo/Contact",
       "type": "MemoryStore",
-      "table": "local-table",
-      "expose": {
-        "url": "/contacts"
-      }
+      "table": "local-table"
+    },
+    "rest": {
+      "type": "RESTDomainService"
     }
   },
   "parameters": {
-    "trustedProxies": "127.0.0.1, ::1",
-    "configurationService": "test"
+    "trustedProxies": "127.0.0.1, ::1"
   }
 }

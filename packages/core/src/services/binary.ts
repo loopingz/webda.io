@@ -1,4 +1,3 @@
-"use strict";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as mime from "mime-types";
@@ -7,7 +6,7 @@ import { Readable } from "stream";
 import { Core, Counter, WebdaError } from "../index";
 import { CoreModel, NotEnumerable } from "../models/coremodel";
 import { EventStoreDeleted, MappingService, Store } from "../stores/store";
-import { OperationContext, WebContext } from "../utils/context";
+import { OperationContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
 /**
@@ -344,6 +343,7 @@ export class Binary<T = any> extends BinaryMap<T> {
   async delete() {
     await this.__store.delete(this.model, this.attribute);
     this.set(<any>{});
+    this.empty = true;
   }
 
   /**
@@ -464,14 +464,6 @@ export type Binaries<T = any> = Readonly<Array<BinariesItem<T>>> & { upload: (fi
 
 export class BinaryParameters extends ServiceParameters {
   /**
-   * Define the map to Object collection
-   *
-   * key is a Store name
-   * the string[] represent all valids attributes to store files in
-   * @deprecated
-   */
-  map: { [key: string]: string[] };
-  /**
    * Define the map of models
    * * indicates all models
    *
@@ -479,48 +471,21 @@ export class BinaryParameters extends ServiceParameters {
    * the string[] represent all valids attributes to store files in * indicates all attributes
    */
   models: { [key: string]: string[] };
+
   /**
-   * Expose the service to http
-   * @deprecated will be removed in 4.0
+   * Define the maximum filesize to accept as direct upload
+   *
+   * @default 10*1024*1024
    */
-  expose?: {
-    /**
-     * URL to expose the service to
-     */
-    url: string;
-    /**
-     * Restrict some APIs
-     */
-    restrict?: {
-      /**
-       * Restrict GET
-       */
-      get?: boolean;
-      /**
-       * Restrict POST
-       */
-      create?: boolean;
-      /**
-       * Restrict DELETE
-       */
-      delete?: boolean;
-      /**
-       * Restrict update of metadata
-       */
-      metadata?: boolean;
-    };
-  };
+  maxFileSize?: number;
 
   constructor(params: any, _service: Service) {
     super(params);
-    if (this.expose) {
-      this.expose.restrict = this.expose.restrict || {};
-    }
-    this.map ??= {};
     // Store all models in it by default
     this.models ??= {
       "*": ["*"]
     };
+    this.maxFileSize ??= 10 * 1024 * 1024;
   }
 }
 
@@ -601,63 +566,6 @@ export abstract class BinaryService<
       name: "binary_metadata_update",
       help: "Number of binary metadata updated"
     });
-  }
-
-  /**
-   * Redirect to the temporary link to S3 object
-   * or return it if returnInfo=true
-   *
-   * @param ctx of the request
-   * @param returnInfo
-   */
-  async httpGet(context: WebContext) {
-    const returnInfo = context.getHttpContext().getRelativeUri().endsWith("/url");
-    const { uuid, index, property } = context.getParameters();
-    let targetStore = this._verifyMapAndStore(context);
-    let object = await targetStore.get(uuid);
-    if (!object || (Array.isArray(object[property]) && object[property].length <= index)) {
-      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
-    }
-    await object.checkAct(context, "get_binary");
-    const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
-    await this.emitSync("Binary.Get", {
-      object: file,
-      service: this,
-      context: context
-    });
-    let url = await this.getRedirectUrlFromObject(file, context);
-    // No url, we return the file
-    if (url === null) {
-      if (returnInfo) {
-        // Redirect to same url without /url
-        context.write({
-          Location: context
-            .getHttpContext()
-            .getAbsoluteUrl()
-            .replace(/\/url$/, ""),
-          Map: file
-        });
-      } else {
-        // Output
-        context.writeHead(200, {
-          "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
-          "Content-Length": file.size
-        });
-        let readStream: any = await this.get(file);
-        await new Promise<void>((resolve, reject) => {
-          // We replaced all the event handlers with a simple call to readStream.pipe()
-          context._stream.on("finish", resolve);
-          context._stream.on("error", reject);
-          readStream.pipe(context._stream);
-        });
-      }
-    } else if (returnInfo) {
-      context.write({ Location: url, Map: file });
-    } else {
-      context.writeHead(302, {
-        Location: url
-      });
-    }
   }
 
   /**
@@ -792,48 +700,7 @@ export abstract class BinaryService<
     });
   }
 
-  /**
-   * @override
-   */
-  resolve(): this {
-    super.resolve();
-    this.initMap(this.parameters.map);
-    return this;
-  }
-
   abstract _get(info: BinaryMap): Promise<Readable>;
-
-  /**
-   * Init the declared maps, adding reverse maps
-   *
-   * @param map
-   */
-  initMap(map): void {
-    if (map == undefined || map._init) {
-      return;
-    }
-    this._lowercaseMaps = {};
-    Object.keys(map).forEach(prop => {
-      this._lowercaseMaps[prop.toLowerCase()] = prop;
-      let reverseStore = this._webda.getService(prop);
-      if (reverseStore === undefined || !(reverseStore instanceof Store)) {
-        this._webda.log("WARN", "Can't setup mapping as store ", prop, " doesn't exist");
-        map[prop]["-onerror"] = "NoStore";
-        return;
-      }
-      for (let i in map[prop]) {
-        reverseStore.addReverseMap(map[prop][i], this);
-      }
-      // Cascade delete
-      reverseStore.on("Store.Deleted", async (evt: EventStoreDeleted) => {
-        let infos = [];
-        if (evt.object[map[prop]]) {
-          infos.push(...evt.object[map[prop]]);
-        }
-        await Promise.all(infos.map(info => this.cascadeDelete(info, evt.object.getUuid())));
-      });
-    });
-  }
 
   /**
    * Based on the raw Map init a BinaryMap
@@ -870,21 +737,7 @@ export abstract class BinaryService<
     if (this.handleBinary(object.__type, property) !== -1) {
       return;
     }
-    // DELETE_IN_4.0.0
-    const name = object.getStore().getName();
-    let map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
-    if (map === undefined) {
-      throw new Error("Unknown mapping");
-    }
-    if (Array.isArray(map) && map.indexOf(property) === -1) {
-      throw new Error("Unknown mapping");
-    }
-    /*
-    // END_DELETE_IN_4.0.0
     throw new Error("Unknown mapping");
-    // DELETE_IN_4.0.0
-    */
-    // END_DELETE_IN_4.0.0
   }
 
   /**
@@ -955,184 +808,24 @@ export abstract class BinaryService<
    * @param req
    * @returns
    */
-  async _getFile(req: WebContext): Promise<BinaryFile> {
-    let file = await req.getHttpContext().getRawBody(10 * 1024 * 1024);
-    // TODO Check if we have other type
+  async getFile(req: OperationContext): Promise<BinaryFile> {
+    let { mimetype, size, name } = req.getParameters();
+    if (size > this.parameters.maxFileSize) {
+      throw new WebdaError.BadRequest("File too big");
+    }
+    let file = await req.getRawInput(size ?? this.parameters.maxFileSize);
+    mimetype ??= "application/octet-stream";
+    name ??= "data.bin";
     return new MemoryBinaryFile(Buffer.from(file), {
-      mimetype: req.getHttpContext().getUniqueHeader("Content-Type", "application/octet-stream"),
-      size: parseInt(req.getHttpContext().getUniqueHeader("Content-Length")) || file.length,
-      name: req.getHttpContext().getUniqueHeader("X-Filename", "")
+      mimetype,
+      size,
+      name: name,
+      hash: crypto.createHash("md5").update(file).digest("hex"),
+      challenge: crypto
+        .createHash("md5")
+        .update("WEBDA" + file)
+        .digest("hex")
     });
-  }
-
-  /**
-   * @override
-   */
-  initRoutes() {
-    if (!this.parameters.expose) {
-      return;
-    }
-    this._initRoutes();
-  }
-
-  /**
-   * Init the Binary system routes
-   *
-   * Making sure parameters.expose exists prior
-   */
-  _initRoutes() {
-    let url;
-    let name = this.getOperationName();
-
-    if (!this.parameters.expose.restrict.get) {
-      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}";
-      this.addRoute(url, ["GET"], this.httpGet, {
-        get: {
-          operationId: `get${name}Binary`,
-          description: "Download a binary linked to an object",
-          summary: "Download a binary",
-          responses: {
-            "200": {
-              description: "Binary stream"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-      this.addRoute(url + "/url", ["GET"], this.httpGet, {
-        get: {
-          operationId: `get${name}BinaryInfo`,
-          description: "Return the url and information of a binary linked to an object",
-          summary: "GetInfo of a binary",
-          responses: {
-            "200": {
-              description: "Url and BinaryMap"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-    }
-
-    if (!this.parameters.expose.restrict.create) {
-      // No need the index to add file
-      url = this.parameters.expose.url + "/{store}/{uuid}/{property}";
-      this.addRoute(url, ["POST"], this.httpRoute, {
-        post: {
-          operationId: `add${name}Binary`,
-          description: "Add a binary linked to an object",
-          summary: "Add a binary",
-          responses: {
-            "200": {
-              description: ""
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-    }
-
-    if (!this.parameters.expose.restrict.create) {
-      // Add file with challenge
-      url = this.parameters.expose.url + "/upload/{store}/{uuid}/{property}";
-      this.addRoute(url, ["PUT"], this.httpChallenge, {
-        put: {
-          operationId: `put${name}Binary`,
-          description: "Add a binary to an object after challenge",
-          summary: "Add a binary",
-          responses: {
-            "204": {
-              description: ""
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-    }
-
-    if (!this.parameters.expose.restrict.delete) {
-      // Need hash to avoid concurrent delete
-      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}/{hash}";
-      this.addRoute(url, ["DELETE"], this.httpRoute, {
-        delete: {
-          operationId: `delete${name}Binary`,
-          description: "Delete a binary linked to an object",
-          summary: "Delete a binary",
-          responses: {
-            "204": {
-              description: ""
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-    }
-
-    if (!this.parameters.expose.restrict.metadata) {
-      // Need hash to avoid concurrent delete
-      url = this.parameters.expose.url + "/{store}/{uuid}/{property}/{index}/{hash}";
-      this.addRoute(url, ["PUT"], this.httpRoute, {
-        put: {
-          operationId: `update${name}BinaryMetadata`,
-          description: "Update a binary metadata linked to an object",
-          summary: "Update a binary metadata",
-          responses: {
-            "204": {
-              description: ""
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-    }
   }
 
   /**
@@ -1148,131 +841,20 @@ export abstract class BinaryService<
    * @param ctx
    * @returns
    */
-  _verifyMapAndStore(ctx: WebContext): Store<CoreModel> {
+  protected verifyMapAndStore(ctx: OperationContext): Store<CoreModel> {
     // Check for model
-    if (ctx.parameter("model")) {
-      if (this.handleBinary(ctx.parameter("model"), ctx.parameter("property")) === -1) {
-        throw new WebdaError.NotFound("Model not managed by this store");
-      }
-      return this.getWebda().getModelStore(this.getWebda().getModel(ctx.parameter("model")));
+    if (this.handleBinary(ctx.parameter("model"), ctx.parameter("property")) === -1) {
+      throw new WebdaError.NotFound("Model not managed by this store");
     }
-    let store = ctx.parameter("store").toLowerCase();
-    // To avoid any problem lowercase everything
-    let map = this.parameters.map[this._lowercaseMaps[store]];
-    if (map === undefined) {
-      throw new WebdaError.NotFound("Unknown map");
-    }
-    if (!map.includes(ctx.parameter("property"))) {
-      throw new WebdaError.NotFound("Unknown property");
-    }
-    let targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(this._lowercaseMaps[store]);
-    if (targetStore === undefined) {
-      throw new WebdaError.NotFound("Unknown store");
-    }
-    return targetStore;
+    return this.getWebda().getModelStore(this.getWebda().getModel(ctx.parameter("model")));
   }
 
   /**
    * By default no challenge is managed so throws 404
    *
-   * @param ctx
    */
-  async putRedirectUrl(
-    _ctx: WebContext
-  ): Promise<{ url: string; method?: string; headers?: { [key: string]: string } }> {
+  async putRedirectUrl(...args: any): Promise<{ url: string; method?: string; headers?: { [key: string]: string } }> {
     // Dont handle the redirect url
     throw new WebdaError.NotFound("No redirect url");
-  }
-
-  /**
-   * Mechanism to add a data based on challenge
-   */
-  async httpChallenge(ctx: WebContext<BinaryFile>) {
-    let body = await ctx.getRequestBody();
-    if (!body.hash || !body.challenge) {
-      throw new WebdaError.BadRequest("Missing hash or challenge");
-    }
-    // First verify if map exist
-    let targetStore = this._verifyMapAndStore(ctx);
-    // Get the object
-    let object = await targetStore.get(ctx.parameter("uuid"), ctx);
-    if (object === undefined) {
-      throw new WebdaError.NotFound("Object does not exist");
-    }
-    await object.checkAct(ctx, "attach_binary");
-    let url = await this.putRedirectUrl(ctx);
-    let base64String = Buffer.from(body.hash, "hex").toString("base64");
-    ctx.write({
-      ...url,
-      done: url === undefined,
-      md5: base64String
-    });
-  }
-
-  /**
-   * Manage the different routes
-   * @param ctx
-   */
-  async httpRoute(ctx: WebContext) {
-    // First verify if map exist
-    let targetStore = this._verifyMapAndStore(ctx);
-    // Get the object
-    let object = await targetStore.get(ctx.parameter("uuid"), ctx);
-    if (object === undefined) {
-      throw new WebdaError.NotFound("Object does not exist");
-    }
-    const { property, index } = ctx.getParameters();
-
-    // Current file - would be empty on creation
-    const file = Array.isArray(object[property]) ? object[property][index] : object[property];
-
-    // Check permissions
-    let action = "unknown";
-    if (ctx.getHttpContext().getMethod() === "DELETE") {
-      action = "detach_binary";
-    } else if (ctx.getHttpContext().getMethod() === "POST") {
-      action = "attach_binary";
-    } else if (ctx.getHttpContext().getMethod() === "PUT") {
-      action = "update_binary_metadata";
-    }
-    await object.checkAct(ctx, action);
-
-    // Now do the action
-    if (ctx.getHttpContext().getMethod() === "POST") {
-      await this.store(object, property, await this._getFile(ctx));
-    } else {
-      if (file.hash !== ctx.parameter("hash")) {
-        throw new WebdaError.BadRequest("Hash does not match");
-      }
-      if (ctx.getHttpContext().getMethod() === "DELETE") {
-        await this.delete(object, property, index);
-      } else if (ctx.getHttpContext().getMethod() === "PUT") {
-        let metadata: BinaryMetadata = await ctx.getRequestBody();
-        // Limit metadata to 4kb
-        if (JSON.stringify(metadata).length >= 4096) {
-          throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
-        }
-        let evt = {
-          service: this,
-          object: file,
-          target: object
-        };
-        await this.emitSync("Binary.MetadataUpdate", {
-          ...evt,
-          metadata
-        });
-        file.metadata = metadata;
-        // Update mapper on purpose
-        await object.getStore().patch(
-          {
-            [object.__class.getUuidField()]: object.getUuid(),
-            [property]: object[property]
-          },
-          false
-        );
-        this.metrics.metadataUpdate.inc();
-        await this.emitSync("Binary.MetadataUpdated", evt);
-      }
-    }
   }
 }

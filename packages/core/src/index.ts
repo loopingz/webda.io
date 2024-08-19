@@ -47,9 +47,12 @@ export * from "./services/oauth";
 export * from "./services/resource"; // move to runtime
 export * from "./services/service";
 
+// Rest
+export * from "./rest/router";
+export * from "./rest/restdomainservice";
+
 // Stores
 export * from "./stores/aggregator"; // move to runtime
-export * from "./stores/aliasstore"; // move to runtime
 export * from "./stores/file"; // move to runtime
 export * from "./stores/mapper";
 export * from "./stores/memory";

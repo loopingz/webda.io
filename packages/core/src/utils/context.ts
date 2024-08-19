@@ -12,6 +12,7 @@ import { Service } from "../services/service";
 import { Session, SessionManager } from "../utils/session";
 import { HttpContext } from "./httpcontext";
 import { JSONUtils } from "./serializers";
+import { pipeline } from "node:stream/promises";
 
 /**
  * @category CoreFeatures
@@ -56,12 +57,21 @@ export interface ContextProvider {
 }
 
 /**
+ * OperationInput
+ */
+export type OperationInput<T = any, U = any> = {
+  input: T;
+  parameters: U;
+};
+
+/**
  * OperationContext is used when call to an operation
  *
  * @param T type of input for this context
  * @param U type of output for this context
+ * @param P type of parameters for this context
  */
-export class OperationContext<T = any, U = any> extends EventEmitter {
+export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
   protected static __globalContext: OperationContext;
   /**
    * Contain emitting Core
@@ -96,6 +106,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   @NotEnumerable
   _promises: Promise<any>[];
+  parameters: P;
 
   /**
    * @ignore
@@ -111,6 +122,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     if (stream === undefined) {
       this.createStream();
     }
+    this.parameters = <any>{};
   }
 
   /**
@@ -125,6 +137,30 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    */
   public getExtension<K = any>(name: string): K {
     return <K>this.extensions[name];
+  }
+
+  /**
+   * Get one parameter
+   * @param name
+   * @returns
+   */
+  public parameter(name: string, defaultValue: any = undefined): any {
+    return this.getParameters()[name] ?? defaultValue;
+  }
+
+  /**
+   * Get the parameters
+   * @returns
+   */
+  public getParameters(): P {
+    return this.parameters;
+  }
+
+  /**
+   * Set the parameters
+   */
+  public setParameters(params: P) {
+    this.parameters = params;
   }
 
   /**
@@ -193,6 +229,13 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
     this.emit("end");
     await Promise.all(this._promises);
     this.emit("close");
+  }
+
+  /**
+   * Remove the input
+   */
+  clearInput() {
+    this._sanitized = {};
   }
 
   async getInput(
@@ -373,6 +416,9 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * Get the current user id from session
    */
   getCurrentUserId() {
+    if (this.session) {
+      return this.session.userId;
+    }
     return undefined;
   }
 
@@ -457,7 +503,7 @@ export class SimpleOperationContext extends OperationContext {
  * @category CoreFeatures
  *
  */
-export class WebContext<T = any, U = any> extends OperationContext<T, U> {
+export class WebContext<T = any, U = any, P = any> extends OperationContext<T, U, P> {
   /**
    * Contains the response headers
    */
@@ -485,9 +531,6 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    */
   protected headersFlushed: boolean;
 
-  protected parameters: any = undefined;
-  protected _pathParams: any = {};
-  protected _serviceParams: any = {};
   private _init: Promise<this>;
 
   /**
@@ -529,41 +572,6 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
    */
   public getResponseHeaders(): any {
     return this._outputHeaders;
-  }
-
-  public getRequestParameters() {
-    return this.parameters;
-  }
-
-  public parameter(name: string) {
-    return this.getParameters()[name];
-  }
-
-  public getParameters() {
-    return this.parameters;
-  }
-
-  private processParameters() {
-    this.parameters = Object.assign({}, this._serviceParams);
-    this.parameters = Object.assign(this.parameters, this._pathParams);
-  }
-
-  public getServiceParameters() {
-    return this._serviceParams;
-  }
-
-  public getPathParameters() {
-    return this._pathParams;
-  }
-
-  public setServiceParameters(params: any) {
-    this._serviceParams = params;
-    this.processParameters();
-  }
-
-  public setPathParameters(params: any) {
-    this._pathParams = params;
-    this.processParameters();
   }
 
   /**
@@ -795,13 +803,23 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
   }
 
   /**
-   * Get the current user id from session
+   * Pipeline streams into the output stream
+   *
+   * @see https://nodejs.org/api/stream.html#streampipelinestreams-options
    */
-  getCurrentUserId() {
-    if (this.session) {
-      return this.session.userId;
+  pipeline(...args): Promise<void> {
+    let last = true;
+    if (args.length) {
+      let lastItem = args[args.length - 1];
+      last = !(lastItem.signal || lastItem.end !== undefined);
     }
-    return undefined;
+    if (last) {
+      args.push(this.getOutputStream());
+    } else {
+      let item = args.pop();
+      args.push(this.getOutputStream(), item);
+    }
+    return pipeline.apply(null, args);
   }
 
   /**
@@ -888,9 +906,7 @@ export class WebContext<T = any, U = any> extends OperationContext<T, U> {
     };
     this.headersFlushed = false;
     this.statusCode = 204;
-    this.parameters = {};
     this.headers = new Map();
-    this.processParameters();
   }
 
   async init(force: boolean = false): Promise<this> {

@@ -1,12 +1,37 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { User } from "./models/user";
 import { RouteInfo } from "./router";
-import { WebdaTest } from "./test";
-import { HttpContext } from "./utils/httpcontext";
+import { TestApplication, WebdaTest } from "../test";
+import { HttpContext } from "../utils/httpcontext";
+import { RESTDomainService } from "./restdomainservice";
+import { ImageUser } from "../services/binary.spec";
 
+/**
+ * Test the Router
+ */
 @suite
 class RouterTest extends WebdaTest {
+  /**
+   * Add the ImageUser model to the app
+   * @param app
+   * @returns
+   */
+  tweakApp(app: TestApplication): Promise<void> {
+    app.addModel("ImageUser", ImageUser);
+    // Add the binaries relationship
+    app.getRelations("WebdaDemo/ImageUser").binaries = [
+      {
+        attribute: "images",
+        cardinality: "MANY"
+      },
+      {
+        attribute: "profile",
+        cardinality: "ONE"
+      }
+    ];
+    return super.tweakApp(app);
+  }
+
   @test
   testGetRouteMethodsFromUrl() {
     const info: RouteInfo = { methods: ["GET"], executor: "DefinedMailer" };
@@ -45,7 +70,7 @@ class RouterTest extends WebdaTest {
     httpContext.setPrefix("/prefix");
     let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.strictEqual(ctx.getPathParameters().uuid, "plop");
+    assert.strictEqual(ctx.getParameters().uuid, "plop");
   }
 
   @test
@@ -64,7 +89,7 @@ class RouterTest extends WebdaTest {
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plopatgoogle", "https");
     let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), {
+    assert.deepStrictEqual(ctx.getParameters(), {
       uuid: "plop",
       domain: "google"
     });
@@ -78,19 +103,19 @@ class RouterTest extends WebdaTest {
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "https");
     let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), {
+    assert.deepStrictEqual(ctx.getParameters(), {
       uuid: "plop"
     });
     httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/users", "https");
     ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), {
+    assert.deepStrictEqual(ctx.getParameters(), {
       uuid: "plop"
     });
     httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/users/plip", "https");
     ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), {
+    assert.deepStrictEqual(ctx.getParameters(), {
       uuid: "plip",
       puid: "plop"
     });
@@ -103,11 +128,11 @@ class RouterTest extends WebdaTest {
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop/toto/plus", "https");
     let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), { path: "plop/toto/plus" });
+    assert.deepStrictEqual(ctx.getParameters(), { path: "plop/toto/plus" });
     httpContext = new HttpContext("test.webda.io", "GET", "/test2/plop/toto/plus?query3=12&query2=test,test2", "https");
     ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), {
+    assert.deepStrictEqual(ctx.getParameters(), {
       path: "plop/toto/plus",
       query: {
         query3: "12",
@@ -123,11 +148,11 @@ class RouterTest extends WebdaTest {
     let httpContext = new HttpContext("test.webda.io", "GET", "/email/test%40webda.io/test", "https");
     let ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), { email: "test@webda.io" });
+    assert.deepStrictEqual(ctx.getParameters(), { email: "test@webda.io" });
     httpContext = new HttpContext("test.webda.io", "GET", "/email/callback?email=test%40webda.io", "https");
     ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
-    assert.deepStrictEqual(ctx.getPathParameters(), { email: "test@webda.io" });
+    assert.deepStrictEqual(ctx.getParameters(), { email: "test@webda.io" });
   }
 
   @test
@@ -136,11 +161,11 @@ class RouterTest extends WebdaTest {
     let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "http");
     let ctx = await this.webda.newWebContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
-    assert.strictEqual(ctx.getPathParameters().uuid, undefined);
+    assert.strictEqual(ctx.getParameters().uuid, undefined);
     httpContext = new HttpContext("test.webda.io", "GET", "/test/plop?uuid=bouzouf", "http");
     ctx = await this.webda.newWebContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
-    assert.strictEqual(ctx.getPathParameters().uuid, "bouzouf");
+    assert.strictEqual(ctx.getParameters().uuid, "bouzouf");
     this.webda.addRoute("/test/plop2{?params+}", { methods: ["GET"], executor: "DefinedMailer" });
     httpContext = new HttpContext("test.webda.io", "GET", "/test/plop2", "http");
     ctx = await this.webda.newWebContext(httpContext);
@@ -148,7 +173,7 @@ class RouterTest extends WebdaTest {
     httpContext = new HttpContext("test.webda.io", "GET", "/test/plop2?uuid=plop", "http");
     ctx = await this.webda.newWebContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
-    assert.strictEqual(ctx.getPathParameters().params.uuid, "plop");
+    assert.strictEqual(ctx.getParameters().params.uuid, "plop");
   }
 
   @test
@@ -199,11 +224,13 @@ class RouterTest extends WebdaTest {
     this.webda.getRouter().getRoutes();
   }
 
+  /**
+   * Ensure models url are available
+   */
   @test
-  getModelUrl() {
-    let routes = this.webda.getRouter().getRoutes();
-    console.log(routes["/memory/users{?q}"][0].openapi);
-    let url = this.webda.getRouter().getModelUrl(new User());
-    console.log(url);
+  async getModelUrl() {
+    await this.addService(RESTDomainService, {});
+    let url = this.webda.getRouter().getModelUrl(new ImageUser());
+    assert.strictEqual(url, "/imageUsers");
   }
 }

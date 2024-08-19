@@ -2,36 +2,200 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as crypto from "crypto";
 import { WebdaError } from "../errors";
-import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
-import { DomainServiceParameters, ModelsOperationsService, RESTDomainService } from "./domainservice";
+import { DomainServiceParameters, ModelsOperationsService } from "./domainservice";
+import { RESTDomainService } from "../rest/restdomainservice";
+import { SimpleOperationContext } from "../utils/context";
+import { CoreModel } from "../models/coremodel";
+import { User } from "../models/user";
 
 @suite
 class DomainServiceTest extends WebdaTest {
-  getTestConfiguration2(): string | undefined {
+  getTestConfiguration(): string | undefined {
     return process.cwd() + "/../../sample-app";
   }
 
   protected async buildWebda(): Promise<void> {
     await super.buildWebda();
+    // Remove beans
     this.webda.getBeans = () => {};
   }
 
+  /**
+   * TODO Remove
+   */
   async after() {
-    await this.getService("Users").__clean();
+    //await this.getService("Users").__clean();
+  }
+
+  async callOperation<T = any>(operationId: string, body: any = "", parameters: any = {}, userId?: string): Promise<T> {
+    let context = new SimpleOperationContext(this.webda);
+    context.setParameters(parameters);
+    if (typeof body === "string") {
+      context.setInput(Buffer.from(body));
+    } else {
+      context.setInput(Buffer.from(JSON.stringify(body)));
+    }
+    if (userId) {
+      await context.newSession();
+      context.getSession().login(userId, "test");
+    }
+    await this.webda.callOperation(context, operationId);
+    const output = context.getOutput();
+    if (output && output.startsWith("{")) {
+      return <T>JSON.parse(output);
+    }
+    return <T>output;
   }
 
   @test
   async operations() {
-    assert.strictEqual(Object.keys(this.webda.listOperations()).length, 0);
-    await this.registerService(new ModelsOperationsService(this.webda, "ModelsOperationsService")).resolve().init();
-    assert.strictEqual(Object.keys(this.webda.listOperations()).length, 57);
+    //assert.strictEqual(Object.keys(this.webda.listOperations()).length, 0);
+    //await this.addService(ModelsOperationsService);
+    let operations = this.webda.listOperations();
+    assert.deepStrictEqual(Object.keys(operations).sort(), [
+      "Classroom.Create",
+      "Classroom.Delete",
+      "Classroom.Get",
+      "Classroom.Patch",
+      "Classroom.Test",
+      "Classroom.Update",
+      "Classrooms.Query",
+      "Companies.Query",
+      "Company.Create",
+      "Company.Delete",
+      "Company.Get",
+      "Company.Patch",
+      "Company.Update",
+      "Computer.Create",
+      "Computer.Delete",
+      "Computer.Get",
+      "Computer.Patch",
+      "Computer.Update",
+      "ComputerScreen.Create",
+      "ComputerScreen.Delete",
+      "ComputerScreen.Get",
+      "ComputerScreen.GlobalAction",
+      "ComputerScreen.Patch",
+      "ComputerScreen.Update",
+      "ComputerScreens.Query",
+      "Computers.Query",
+      "Contact.Avatar.Attach",
+      "Contact.Avatar.AttachChallenge",
+      "Contact.Avatar.Delete",
+      "Contact.Avatar.Get",
+      "Contact.Avatar.GetUrl",
+      "Contact.Avatar.SetMetadata",
+      "Contact.Create",
+      "Contact.Delete",
+      "Contact.Get",
+      "Contact.Patch",
+      "Contact.Photos.Attach",
+      "Contact.Photos.AttachChallenge",
+      "Contact.Photos.Delete",
+      "Contact.Photos.Get",
+      "Contact.Photos.GetUrl",
+      "Contact.Photos.SetMetadata",
+      "Contact.Update",
+      "Contacts.Query",
+      "Course.Create",
+      "Course.Delete",
+      "Course.Get",
+      "Course.Patch",
+      "Course.Update",
+      "Courses.Query",
+      "Hardware.Create",
+      "Hardware.Delete",
+      "Hardware.Get",
+      "Hardware.GlobalAction",
+      "Hardware.Patch",
+      "Hardware.Update",
+      "Hardwares.Query",
+      "Student.Create",
+      "Student.Delete",
+      "Student.Get",
+      "Student.Patch",
+      "Student.Update",
+      "Students.Query",
+      "Teacher.Create",
+      "Teacher.Delete",
+      "Teacher.Get",
+      "Teacher.Patch",
+      "Teacher.Update",
+      "Teachers.Query",
+      "User.Create",
+      "User.Delete",
+      "User.Get",
+      "User.Images.Attach",
+      "User.Images.AttachChallenge",
+      "User.Images.Delete",
+      "User.Images.Get",
+      "User.Images.GetUrl",
+      "User.Images.SetMetadata",
+      "User.Patch",
+      "User.ProfilePicture.Attach",
+      "User.ProfilePicture.AttachChallenge",
+      "User.ProfilePicture.Delete",
+      "User.ProfilePicture.Get",
+      "User.ProfilePicture.GetUrl",
+      "User.ProfilePicture.SetMetadata",
+      "User.Update",
+      "Users.Query"
+    ]);
+    await assert.rejects(
+      () =>
+        this.callOperation("ComputerScreen.Create", {
+          name: "Test",
+          classroom: "fake"
+        }),
+      /InvalidInput/
+    );
+    // Test the operations
+    let computerScreen = await this.callOperation(
+      "ComputerScreen.Create",
+      {
+        name: "Test",
+        classroom: "fake",
+        modelId: "fake",
+        serialNumber: "123"
+      },
+      undefined,
+      "test"
+    );
+    assert.strictEqual(computerScreen.name, "Test");
+    await assert.rejects(
+      () => this.callOperation("ComputerScreen.Get", undefined, { uuid: computerScreen.uuid }),
+      /Only test user can access/
+    );
+
+    let retrieved = await this.callOperation("ComputerScreen.Get", undefined, { uuid: computerScreen.uuid }, "test");
+    assert.strictEqual(retrieved.name, "Test");
+    // Test binary
+    let user = await this.callOperation("User.Create", {
+      name: "Test",
+      displayName: "Test"
+    });
+    await this.callOperation("User.ProfilePicture.Attach", "test", {
+      uuid: user.uuid,
+      name: "photo.jpg",
+      mimetype: "image/jpeg"
+    });
+    user = await User.ref(user.uuid).get();
+    assert.strictEqual(user.profilePicture.name, "photo.jpg");
+    assert.strictEqual(user.profilePicture.hash, "098f6bcd4621d373cade4e832627b4f6");
+    assert.strictEqual(user.profilePicture.mimetype, "image/jpeg");
   }
 
   @test
   async graph() {
     await this.createGraphObjects();
-    const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService")).resolve().init();
+    const rest = await this.registerService(
+      new RESTDomainService(this.webda, "DomainService", {
+        operations: true
+      })
+    )
+      .resolve()
+      .init();
     const context = await this.newContext();
     context.getSession().login("test", "test");
     let result = await this.http({
@@ -274,7 +438,26 @@ class DomainServiceTest extends WebdaTest {
 
     // Cov part
     rest.handleModel = () => false;
-    rest.walkModel(<any>{ Expose: {} }, "coremodel");
+    rest.walkModel(<any>{ Expose: {}, getIdentifier: () => "FakeTest" }, "coremodel");
+  }
+
+  @test async deleteAsyncHttp() {
+    await this.addService(ModelsOperationsService);
+    let company = await this.webda.getModel<CoreModel & { uuid: string }>("Company").create({
+      __deleted: true
+    });
+    await assert.rejects(
+      () => this.callOperation("Company.Get", undefined, { uuid: company.uuid }),
+      WebdaError.NotFound
+    );
+    await assert.rejects(
+      () => this.callOperation("Company.Put", undefined, { uuid: company.uuid }),
+      WebdaError.NotFound
+    );
+    await assert.rejects(
+      () => this.callOperation("Company.Delete", undefined, { uuid: company.uuid }),
+      WebdaError.NotFound
+    );
   }
 
   @test
@@ -351,7 +534,7 @@ class DomainServiceTest extends WebdaTest {
       url: `/companies/${company.uuid}/users/${user.uuid}/profilePicture`,
       body: Buffer.from("test")
     });
-    const userModel: any = await this.webda.getService<Store>("MemoryUsers").get(user.uuid);
+    const userModel: any = await User.ref(user.uuid).get();
     await this.http({
       method: "GET",
       url: `/companies/${company.uuid}/users/${user.uuid}/profilePicture`
@@ -362,7 +545,7 @@ class DomainServiceTest extends WebdaTest {
     challenge.update("WEBDA");
     hash.update(value);
     challenge.update(value);
-    await this.http({
+    let res = await this.http({
       method: "PUT",
       url: `/companies/${company.uuid}/users/${user.uuid}/images`,
       body: {

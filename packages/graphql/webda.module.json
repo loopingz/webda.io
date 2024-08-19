@@ -1,5 +1,7 @@
 {
-  "beans": {},
+  "beans": {
+    "Webda/BeanTest": "lib/test:BeanTest"
+  },
   "deployers": {},
   "moddas": {
     "Webda/GraphQLService": "lib/graphql:GraphQLService"
@@ -12,6 +14,29 @@
     "reflections": {}
   },
   "schemas": {
+    "Webda/BeanTest": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BeanTest"
+    },
     "Webda/BinaryFile": {
       "type": "object",
       "properties": {
@@ -65,11 +90,13 @@
         },
         "operations": {
           "type": "boolean",
-          "description": "Expose objects as operations too"
+          "description": "Expose objects as operations too",
+          "default": true
         },
         "nameTransfomer": {
           "$ref": "#/definitions/TransformCaseType",
-          "description": "Transform the name of the model to be used in the URL"
+          "description": "Transform the name of the model to be used in the URL",
+          "default": "camelCase"
         },
         "queryMethod": {
           "type": "string",
@@ -123,10 +150,6 @@
         "exposeMe",
         "globalSubscription",
         "maxOperationsPerRequest",
-        "models",
-        "nameTransfomer",
-        "operations",
-        "queryMethod",
         "type",
         "userModel"
       ],

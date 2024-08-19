@@ -2,34 +2,33 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/Aggregator": "lib/stores/aggregator:default",
-    "Webda/AliasStore": "lib/stores/aliasstore:AliasStore",
+    "Webda/Aggregator": "lib/stores/aggregator:AggregatorService",
     "Webda/AsyncEvents": "lib/services/asyncevents:EventService",
     "Webda/Authentication": "lib/services/authentication:Authentication",
     "Webda/Binary": "lib/services/binary:BinaryService",
-    "Webda/ConfigurationService": "lib/services/configuration:default",
+    "Webda/ConfigurationService": "lib/services/configuration:ConfigurationService",
     "Webda/ConsoleLogger": "lib/utils/logger:ConsoleLoggerService",
     "Webda/CookieSessionManager": "lib/utils/session:CookieSessionManager",
     "Webda/CronService": "lib/services/cron:CronService",
-    "Webda/CryptoService": "lib/services/cryptoservice:default",
-    "Webda/DebugMailer": "lib/services/debugmailer:default",
+    "Webda/CryptoService": "lib/services/cryptoservice:CryptoService",
+    "Webda/DebugMailer": "lib/services/debugmailer:DebugMailer",
     "Webda/FileBinary": "lib/services/filebinary:FileBinary",
     "Webda/FileConfiguration": "lib/services/fileconfiguration:FileConfigurationService",
     "Webda/FileLogger": "lib/utils/logger:FileLoggerService",
     "Webda/FileQueue": "lib/queues/filequeue:FileQueue",
     "Webda/FileStore": "lib/stores/file:FileStore",
-    "Webda/InvitationService": "lib/services/invitationservice:default",
+    "Webda/InvitationService": "lib/services/invitationservice:InvitationService",
     "Webda/KubernetesConfigurationService": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
     "Webda/Mailer": "lib/services/mailer:Mailer",
-    "Webda/Mapper": "lib/stores/mapper:default",
+    "Webda/Mapper": "lib/stores/mapper:MapperService",
     "Webda/MemoryLogger": "lib/utils/logger:MemoryLoggerService",
     "Webda/MemoryQueue": "lib/queues/memoryqueue:MemoryQueue",
     "Webda/MemoryStore": "lib/stores/memory:MemoryStore",
     "Webda/ModelsOperationsService": "lib/services/domainservice:ModelsOperationsService",
     "Webda/MultiNotificationService": "lib/services/notificationservice:default",
     "Webda/PrometheusService": "lib/services/prometheus:PrometheusService",
-    "Webda/RESTDomainService": "lib/services/domainservice:RESTDomainService",
-    "Webda/ResourceService": "lib/services/resource:default"
+    "Webda/RESTDomainService": "lib/rest/restdomainservice:RESTDomainService",
+    "Webda/ResourceService": "lib/services/resource:ResourceService"
   },
   "models": {
     "graph": {
@@ -44,6 +43,16 @@
           }
         ]
       },
+      "Webda/MyIdent": {
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "Webda/MySimpleUser",
+            "type": "LINK"
+          }
+        ]
+      },
+      "Webda/MySimpleUser": {},
       "Webda/OwnerModel": {
         "links": [
           {
@@ -76,19 +85,25 @@
       "Webda/AclModel": {},
       "Webda/RoleModel": {},
       "Webda/User": {
-        "Webda/SimpleUser": {}
+        "Webda/SimpleUser": {
+          "Webda/MySimpleUser": {}
+        }
       },
       "Webda/UuidModel": {
         "Webda/OwnerModel": {
-          "Webda/Ident": {}
+          "Webda/Ident": {
+            "Webda/MyIdent": {}
+          }
         }
       }
     },
     "plurals": {},
     "list": {
-      "Webda/AclModel": "lib/models/aclmodel:default",
+      "Webda/AclModel": "lib/models/aclmodel:AclModel",
       "Webda/CoreModel": "lib/models/coremodel:CoreModel",
       "Webda/Ident": "lib/models/ident:Ident",
+      "Webda/MyIdent": "lib/models/test:MyIdent",
+      "Webda/MySimpleUser": "lib/models/test:MySimpleUser",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
       "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
       "Webda/SimpleUser": "lib/models/user:SimpleUser",
@@ -136,6 +151,52 @@
         "provider": "string",
         "public": "boolean",
         "uuid": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "Webda/MyIdent": {
+        "toto": "string",
+        "_user": "ModelLink<MySimpleUser>",
+        "_type": "string",
+        "uid": "string",
+        "__profile": "unknown",
+        "__tokens": "IdentTokens",
+        "_lastUsed": "Date",
+        "__new": "boolean",
+        "_failedLogin": "number",
+        "_lastValidationEmail": "number",
+        "_validation": "Date",
+        "email": "string",
+        "provider": "string",
+        "public": "boolean",
+        "uuid": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "Webda/MySimpleUser": {
+        "_idents": "ModelMapLoader<MyIdent, \"_type\" | \"uuid\" | \"email\">[]",
+        "_groups": "string[]",
+        "_roles": "string[]",
+        "__password": "string",
+        "displayName": "string",
+        "_lastPasswordRecovery": "number",
+        "_avatar": "string",
+        "locale": "string",
+        "email": "string",
         "__class": "CoreModelDefinition<this>",
         "__type": "string",
         "__types": "string[]",
@@ -272,7 +333,8 @@
         },
         "target": {
           "type": "string",
-          "description": "Target store"
+          "description": "Store an aggregate of the fields",
+          "default": "Registry"
         },
         "async": {
           "type": "boolean",
@@ -292,8 +354,7 @@
           "description": "Delete source if target object is deleted"
         },
         "key": {
-          "type": "string",
-          "default": "index"
+          "type": "string"
         },
         "openapi": {
           "type": "object",
@@ -313,142 +374,6 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AggregatorService"
-    },
-    "Webda/AliasStore": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL on which to serve the content"
-        },
-        "model": {
-          "type": "string",
-          "description": "Webda model to use within the Store",
-          "default": "Webda/CoreModel"
-        },
-        "additionalModels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Additional models\n\nAllow this store to manage other models",
-          "default": []
-        },
-        "asyncDelete": {
-          "type": "boolean",
-          "description": "async delete"
-        },
-        "expose": {
-          "$ref": "#/definitions/StoreExposeParameters",
-          "description": "Expose the service to an urls",
-          "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
-        },
-        "strict": {
-          "type": "boolean",
-          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
-          "default": false
-        },
-        "defaultModel": {
-          "type": "boolean",
-          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
-          "default": true
-        },
-        "forceModel": {
-          "type": "boolean",
-          "description": "If set, Store will ignore the __type",
-          "default": false
-        },
-        "slowQueryThreshold": {
-          "type": "number",
-          "description": "Slow query threshold",
-          "default": 30000
-        },
-        "modelAliases": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Model Aliases to allow easier rename of Model"
-        },
-        "noCache": {
-          "type": "boolean",
-          "description": "Disable default memory cache"
-        },
-        "targetStore": {
-          "type": "string",
-          "description": "Store to alias"
-        },
-        "idTemplate": {
-          "type": "string",
-          "description": "Store to alias"
-        },
-        "openapi": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "asyncDelete",
-        "idTemplate",
-        "slowQueryThreshold",
-        "targetStore",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "StoreExposeParameters": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL endpoint to use to expose REST Resources API",
-              "default": "service.getName().toLowerCase()"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "create": {
-                  "type": "boolean",
-                  "description": "Do not expose the POST"
-                },
-                "update": {
-                  "type": "boolean",
-                  "description": "Do not expose the PUT and PATCH"
-                },
-                "get": {
-                  "type": "boolean",
-                  "description": "Do not expose the GET"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Do not expose the DELETE"
-                },
-                "query": {
-                  "type": "boolean",
-                  "description": "Do not expose the query endpoint"
-                }
-              },
-              "description": "You can restrict any part of the CRUD",
-              "default": {}
-            },
-            "queryMethod": {
-              "type": "string",
-              "enum": [
-                "PUT",
-                "GET"
-              ],
-              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
-              "default": "GET"
-            }
-          },
-          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
-        }
-      },
-      "title": "AliasStore"
     },
     "Webda/AsyncEvents": {
       "type": "object",
@@ -596,17 +521,6 @@
           "type": "string",
           "description": "URL on which to serve the content"
         },
-        "map": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in",
-          "deprecated": true
-        },
         "models": {
           "type": "object",
           "additionalProperties": {
@@ -617,41 +531,10 @@
           },
           "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
         },
-        "expose": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL to expose the service to"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "get": {
-                  "type": "boolean",
-                  "description": "Restrict GET"
-                },
-                "create": {
-                  "type": "boolean",
-                  "description": "Restrict POST"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Restrict DELETE"
-                },
-                "metadata": {
-                  "type": "boolean",
-                  "description": "Restrict update of metadata"
-                }
-              },
-              "description": "Restrict some APIs"
-            }
-          },
-          "required": [
-            "url"
-          ],
-          "description": "Expose the service to http",
-          "deprecated": "will be removed in 4.0"
+        "maxFileSize": {
+          "type": "number",
+          "description": "Define the maximum filesize to accept as direct upload",
+          "default": "10*1024*1024"
         },
         "openapi": {
           "type": "object",
@@ -659,7 +542,6 @@
         }
       },
       "required": [
-        "map",
         "models",
         "type"
       ],
@@ -1003,7 +885,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ModelsOperationsService"
+      "title": "CronService"
     },
     "Webda/CryptoService": {
       "type": "object",
@@ -1271,17 +1153,6 @@
           "type": "string",
           "description": "URL on which to serve the content"
         },
-        "map": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in",
-          "deprecated": true
-        },
         "models": {
           "type": "object",
           "additionalProperties": {
@@ -1292,41 +1163,10 @@
           },
           "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
         },
-        "expose": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL to expose the service to"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "get": {
-                  "type": "boolean",
-                  "description": "Restrict GET"
-                },
-                "create": {
-                  "type": "boolean",
-                  "description": "Restrict POST"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Restrict DELETE"
-                },
-                "metadata": {
-                  "type": "boolean",
-                  "description": "Restrict update of metadata"
-                }
-              },
-              "description": "Restrict some APIs"
-            }
-          },
-          "required": [
-            "url"
-          ],
-          "description": "Expose the service to http",
-          "deprecated": "will be removed in 4.0"
+        "maxFileSize": {
+          "type": "number",
+          "description": "Define the maximum filesize to accept as direct upload",
+          "default": "10*1024*1024"
         },
         "prefix": {
           "type": "string"
@@ -1347,7 +1187,6 @@
       },
       "required": [
         "folder",
-        "map",
         "models",
         "type"
       ],
@@ -1524,15 +1363,6 @@
           "description": "Additional models\n\nAllow this store to manage other models",
           "default": []
         },
-        "asyncDelete": {
-          "type": "boolean",
-          "description": "async delete"
-        },
-        "expose": {
-          "$ref": "#/definitions/StoreExposeParameters",
-          "description": "Expose the service to an urls",
-          "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
-        },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
@@ -1582,61 +1412,11 @@
         }
       },
       "required": [
-        "asyncDelete",
         "folder",
         "slowQueryThreshold",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "StoreExposeParameters": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL endpoint to use to expose REST Resources API",
-              "default": "service.getName().toLowerCase()"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "create": {
-                  "type": "boolean",
-                  "description": "Do not expose the POST"
-                },
-                "update": {
-                  "type": "boolean",
-                  "description": "Do not expose the PUT and PATCH"
-                },
-                "get": {
-                  "type": "boolean",
-                  "description": "Do not expose the GET"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Do not expose the DELETE"
-                },
-                "query": {
-                  "type": "boolean",
-                  "description": "Do not expose the query endpoint"
-                }
-              },
-              "description": "You can restrict any part of the CRUD",
-              "default": {}
-            },
-            "queryMethod": {
-              "type": "string",
-              "enum": [
-                "PUT",
-                "GET"
-              ],
-              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
-              "default": "GET"
-            }
-          },
-          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
-        }
-      },
       "title": "FileStore"
     },
     "Webda/Ident": {
@@ -2059,15 +1839,6 @@
           "description": "Additional models\n\nAllow this store to manage other models",
           "default": []
         },
-        "asyncDelete": {
-          "type": "boolean",
-          "description": "async delete"
-        },
-        "expose": {
-          "$ref": "#/definitions/StoreExposeParameters",
-          "description": "Expose the service to an urls",
-          "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
-        },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
@@ -2136,61 +1907,11 @@
         }
       },
       "required": [
-        "asyncDelete",
         "slowQueryThreshold",
         "type"
       ],
       "description": "Memory store",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "StoreExposeParameters": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL endpoint to use to expose REST Resources API",
-              "default": "service.getName().toLowerCase()"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "create": {
-                  "type": "boolean",
-                  "description": "Do not expose the POST"
-                },
-                "update": {
-                  "type": "boolean",
-                  "description": "Do not expose the PUT and PATCH"
-                },
-                "get": {
-                  "type": "boolean",
-                  "description": "Do not expose the GET"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Do not expose the DELETE"
-                },
-                "query": {
-                  "type": "boolean",
-                  "description": "Do not expose the query endpoint"
-                }
-              },
-              "description": "You can restrict any part of the CRUD",
-              "default": {}
-            },
-            "queryMethod": {
-              "type": "string",
-              "enum": [
-                "PUT",
-                "GET"
-              ],
-              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
-              "default": "GET"
-            }
-          },
-          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
-        }
-      },
       "title": "MemoryStore"
     },
     "Webda/ModelsOperationsService": {
@@ -2204,6 +1925,35 @@
           "type": "string",
           "description": "URL on which to serve the content"
         },
+        "operations": {
+          "type": "boolean",
+          "description": "Expose objects as operations too",
+          "default": true
+        },
+        "nameTransfomer": {
+          "$ref": "#/definitions/TransformCaseType",
+          "description": "Transform the name of the model to be used in the URL",
+          "default": "camelCase"
+        },
+        "queryMethod": {
+          "type": "string",
+          "enum": [
+            "PUT",
+            "GET"
+          ],
+          "description": "Method used for query objects",
+          "default": "PUT"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
+          "default": [
+            "*"
+          ]
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
@@ -2212,8 +1962,23 @@
       "required": [
         "type"
       ],
-      "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "TransformCaseType": {
+          "type": "string",
+          "enum": [
+            "none",
+            "camelCase",
+            "ENV_VAR",
+            "snake_case",
+            "PascalCase",
+            "kebab-case",
+            "UPPERCASE",
+            "lowercase"
+          ],
+          "description": "Transform the name of the model to be used in the URL"
+        }
+      },
       "title": "ModelsOperationsService"
     },
     "Webda/MultiNotificationService": {
@@ -2251,6 +2016,83 @@
       "description": "Parameters for multi notification service",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MultiNotificationService"
+    },
+    "Webda/MyIdent": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        },
+        "_type": {
+          "type": "string",
+          "description": "Type of the ident",
+          "readOnly": true
+        },
+        "uid": {
+          "type": "string",
+          "description": "Uid on the provider"
+        },
+        "_lastUsed": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "_failedLogin": {
+          "type": "number",
+          "readOnly": true
+        },
+        "_lastValidationEmail": {
+          "type": "number",
+          "description": "If EmailIdent",
+          "readOnly": true
+        },
+        "_validation": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the ident was validated",
+          "readOnly": true
+        },
+        "email": {
+          "type": "string",
+          "description": "Email for this ident if it exist"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider id"
+        },
+        "toto": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "toto",
+        "uid",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MyIdent"
     },
     "Webda/OwnerModel": {
       "type": "object",
@@ -2407,11 +2249,13 @@
         },
         "operations": {
           "type": "boolean",
-          "description": "Expose objects as operations too"
+          "description": "Expose objects as operations too",
+          "default": true
         },
         "nameTransfomer": {
           "$ref": "#/definitions/TransformCaseType",
-          "description": "Transform the name of the model to be used in the URL"
+          "description": "Transform the name of the model to be used in the URL",
+          "default": "camelCase"
         },
         "queryMethod": {
           "type": "string",
@@ -2437,6 +2281,11 @@
           "description": "Expose the OpenAPI",
           "default": "true if debug false otherwise"
         },
+        "swaggerVersion": {
+          "type": "string",
+          "description": "Swagger version to use\n\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js",
+          "default": "3.19.5"
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true
@@ -2444,10 +2293,7 @@
       },
       "required": [
         "exposeOpenAPI",
-        "models",
-        "nameTransfomer",
-        "operations",
-        "queryMethod",
+        "swaggerVersion",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2549,12 +2395,11 @@
           "readOnly": true
         },
         "uuid": {
-          "type": "string"
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
         }
       },
-      "required": [
-        "uuid"
-      ],
       "description": "CoreModel with a uuid",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UuidModel"

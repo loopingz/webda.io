@@ -74,9 +74,7 @@ export class ResourceServiceParameters extends ServiceParameters {
  * @category CoreServices
  * @WebdaModda
  */
-export default class ResourceService<
-  T extends ResourceServiceParameters = ResourceServiceParameters
-> extends Service<T> {
+class ResourceService<T extends ResourceServiceParameters = ResourceServiceParameters> extends Service<T> {
   /**
    * Resolved path to the folder to serve
    */

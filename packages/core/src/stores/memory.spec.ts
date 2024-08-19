@@ -2,66 +2,45 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
-import { AggregatorService, CoreModel, Ident, MemoryStore, Store, User, WebdaError } from "../index";
-import { HttpContext } from "../utils/httpcontext";
+import { CoreModel, Ident, MemoryStore, Store, User } from "../index";
 import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import * as WebdaQL from "@webda/ql";
+import { WebdaTest } from "../test";
+
+/**
+ * Fake User for migration test
+ */
+class DemoUser extends User {}
 
 @suite
 class MemoryStoreTest extends StoreTest {
+  userStore: MemoryStore;
+  identStore: MemoryStore;
+
   async before() {
     this.cleanFiles.push(".test.json");
     return super.before();
   }
 
   getIdentStore(): Store<any> {
-    // Need to slow down the _get
-    let store = <Store<any>>this.getService("MemoryIdents");
-    // @ts-ignore
-    let original = store._get.bind(store);
-    // @ts-ignore
-    store._get = async (...args) => {
-      await this.sleep(1);
-      return original(...args);
-    };
-    return store;
+    if (!this.identStore) {
+      this.identStore = new MemoryStore(this.webda, "Idents", { model: "WebdaTest/Ident" });
+      // @ts-ignore
+      let original = this.identStore._get.bind(this.identStore);
+      // @ts-ignore
+      this.identStore._get = async (...args) => {
+        await this.sleep(1);
+        return original(...args);
+      };
+    }
+    return this.identStore;
   }
 
   getUserStore(): Store<any> {
-    return <Store<any>>this.getService("MemoryUsers");
-  }
-
-  async getIndex(): Promise<CoreModel> {
-    return this.getService<Store>("MemoryAggregators").get("index");
-  }
-
-  async recreateIndex() {
-    let store = this.getService<Store>("MemoryAggregators");
-    await store.__clean();
-    await this.getService<AggregatorService>("MemoryIdentsIndexer").createAggregate();
-  }
-
-  @test async deleteAsyncHttp() {
-    let executor, ctx;
-    ctx = await this.webda.newWebContext(new HttpContext("test.webda.io", "GET", "/memory/idents/ToDelete"));
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
-    await identStore.save({
-      uuid: "toDelete",
-      test: "ok"
-    });
-    await identStore.delete("toDelete");
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/memory/idents/toDelete");
-    assert.notStrictEqual(executor, undefined);
-    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/memory/idents/toDelete");
-    assert.notStrictEqual(executor, undefined);
-    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
-    executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/memory/idents/toDelete");
-    assert.notStrictEqual(executor, undefined);
-    await assert.rejects(() => executor.execute(ctx), WebdaError.NotFound);
-    assert.strictEqual(identStore._getSync("notFound"), null);
+    this.userStore ??= new MemoryStore(this.webda, "Users", { model: "Webda/User" });
+    return this.userStore;
   }
 
   @test
@@ -99,163 +78,9 @@ class MemoryStoreTest extends StoreTest {
   }
 
   @test
-  initRoutes() {
-    // cov
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
-    identStore.getParameters().expose = undefined;
-    identStore.initRoutes();
-  }
-
-  @test
   getSync() {
     let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     assert.throws(() => identStore._getSync("plop", true), StoreNotFoundError);
-  }
-
-  @test
-  async additionalModels() {
-    const subProject = this.webda.getModel("WebdaDemo/SubProject");
-    const project = this.webda.getModel("WebdaDemo/Project");
-    let store = new MemoryStore(this.webda, "additionalModel", { model: "WebdaDemo/SubProject" }).resolve();
-    assert.strictEqual(store.handleModel(project), -1);
-    assert.strictEqual(store.handleModel(subProject), 0);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
-    store = new MemoryStore(this.webda, "additionalModel", {
-      model: "WebdaDemo/SubProject",
-      additionalModels: ["WebdaDemo/Project"]
-    }).resolve();
-    assert.strictEqual(store.handleModel(project), 0);
-    assert.strictEqual(store.handleModel(subProject), 0);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), 1);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/SubSubProject")), 2);
-    store = new MemoryStore(this.webda, "additionalModel", {
-      model: "WebdaDemo/SubProject",
-      additionalModels: ["WebdaDemo/Project"],
-      strict: true
-    }).resolve();
-    assert.strictEqual(store.handleModel(project), -1);
-    assert.strictEqual(store.handleModel(subProject), 0);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
-  }
-
-  @test
-  async badActions() {
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
-    // @ts-ignore
-    identStore._model = {
-      getActions: () => {
-        return { test: { global: true } };
-      }
-    };
-    await assert.throws(() => identStore.initRoutes(), /Action static method test does not exist/);
-    // @ts-ignore
-    identStore._model = {
-      // @ts-ignore
-      prototype: {},
-      getActions: () => {
-        return { test: { global: false } };
-      }
-    };
-    await assert.throws(() => identStore.initRoutes(), /Action method test does not exist/);
-  }
-
-  @test
-  async multiModel() {
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
-    identStore.getParameters().strict = false;
-    await identStore.save(new User().setUuid("user"));
-    await identStore.save(new Ident().load({ uuid: "ident" }, true));
-    assert.ok((await identStore.get("user")) instanceof User);
-    assert.ok((await identStore.get("ident")) instanceof Ident);
-    identStore.getParameters().defaultModel = true;
-    identStore.storage["user"] = identStore.storage["user"].replace(/User/, "User2");
-    assert.ok((await identStore.get("user")).constructor.name === "Ident");
-    assert.ok((await identStore.get("ident")) instanceof Ident);
-    identStore.getParameters().defaultModel = false;
-    assert.ok((await identStore.get("user")) === undefined);
-    assert.ok((await identStore.get("ident")) instanceof Ident);
-  }
-
-  @test
-  async multiModelQuery() {
-    const Teacher = this.webda.getModel<CoreModel & { name: string }>("Teacher");
-    const Project = this.webda.getModel<CoreModel & { name: string }>("Project");
-    const SubProject = this.webda.getModel<CoreModel & { name: string }>("SubProject");
-    const AnotherSubProject = this.webda.getModel<CoreModel & { name: string }>("AnotherSubProject");
-    const SubSubProject = this.webda.getModel<CoreModel & { name: string }>("SubSubProject");
-
-    await Promise.all(
-      [Teacher, Project, SubProject, AnotherSubProject, SubSubProject].map(model => {
-        let p = [];
-        for (let i = 1; i < 4; i++) {
-          p.push(model.create({ name: `${model.name} ${i}` }));
-        }
-        return Promise.all(p);
-      })
-    );
-    assert.strictEqual((await Teacher.query("")).results.length, 3);
-    assert.strictEqual((await Teacher.query("", false)).results.length, 3);
-    assert.strictEqual((await Project.query("")).results.length, 12);
-    assert.strictEqual((await Project.query("", false)).results.length, 3);
-    assert.strictEqual((await AnotherSubProject.query("")).results.length, 6);
-    assert.strictEqual((await AnotherSubProject.query("", false)).results.length, 3);
-    assert.strictEqual((await SubProject.query("")).results.length, 3);
-    assert.strictEqual((await SubProject.query("", false)).results.length, 3);
-  }
-
-  @test
-  async migration() {
-    let usersStore: MemoryStore<any> = <MemoryStore<any>>this.getUserStore();
-    for (let i = 0; i < 1200; i++) {
-      await usersStore.save({ uuid: `id_${i}`, id: i });
-      if (i % 10 === 0) {
-        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/User/, "webda/user2");
-      } else if (i % 2 === 0) {
-        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/User/, "webdademo/user");
-      }
-    }
-    await usersStore.v3Migration();
-    (await usersStore.getAll()).forEach(user => {
-      if (user.id % 10 === 0) {
-        assert.strictEqual(user.__type, "webda/user2");
-        assert.deepStrictEqual(user.__types, ["webda/user2"]);
-      } else if (user.id % 2 === 0) {
-        assert.strictEqual(user.__type, "WebdaDemo/User");
-        assert.deepStrictEqual(user.__types, ["User", "Webda/User"]);
-      } else {
-        assert.strictEqual(user.__type, "Webda/User");
-        assert.deepStrictEqual(user.__types, ["Webda/User"]);
-      }
-    });
-    usersStore.getParameters().modelAliases = {
-      "webda/user2": "WebdaDemo/User"
-    };
-    await usersStore.cleanModelAliases();
-    (await usersStore.getAll()).forEach(user => {
-      if (user.id % 10 === 0) {
-        assert.strictEqual(user.__type, "WebdaDemo/User");
-      } else if (user.id % 2 === 0) {
-        assert.strictEqual(user.__type, "WebdaDemo/User");
-      } else {
-        assert.strictEqual(user.__type, "Webda/User");
-      }
-    });
-    await usersStore.recomputeTypeShortId();
-    (await usersStore.getAll()).forEach(user => {
-      if (user.id % 10 === 0) {
-        assert.strictEqual(user.__type, "User");
-      } else if (user.id % 2 === 0) {
-        assert.strictEqual(user.__type, "User");
-      } else {
-        assert.strictEqual(user.__type, "Webda/User");
-      }
-    });
-    await usersStore.getMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
-    await usersStore.cancelMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
-
-    await usersStore.migration("test", async () => {
-      return async () => {};
-    });
   }
 
   @test
@@ -307,6 +132,130 @@ class MemoryStoreTest extends StoreTest {
     const mock = sinon.stub(identStore, "persist").returns(Promise.resolve());
     await identStore.stop();
     assert.strictEqual(mock.callCount, 1);
+  }
+}
+
+@suite
+class AdditionalMemoryTest extends WebdaTest {
+  @test
+  async multiModelQuery() {
+    const Teacher = this.webda.getModel<CoreModel & { name: string }>("Teacher");
+    const Project = this.webda.getModel<CoreModel & { name: string }>("Project");
+    const SubProject = this.webda.getModel<CoreModel & { name: string }>("SubProject");
+    const AnotherSubProject = this.webda.getModel<CoreModel & { name: string }>("AnotherSubProject");
+    const SubSubProject = this.webda.getModel<CoreModel & { name: string }>("SubSubProject");
+
+    await Promise.all(
+      [Teacher, Project, SubProject, AnotherSubProject, SubSubProject].map(model => {
+        let p = [];
+        for (let i = 1; i < 4; i++) {
+          p.push(model.create({ name: `${model.name} ${i}` }));
+        }
+        return Promise.all(p);
+      })
+    );
+    assert.strictEqual((await Teacher.query("")).results.length, 3);
+    assert.strictEqual((await Teacher.query("", false)).results.length, 3);
+    assert.strictEqual((await Project.query("")).results.length, 12);
+    assert.strictEqual((await Project.query("", false)).results.length, 3);
+    assert.strictEqual((await AnotherSubProject.query("")).results.length, 6);
+    assert.strictEqual((await AnotherSubProject.query("", false)).results.length, 3);
+    assert.strictEqual((await SubProject.query("")).results.length, 3);
+    assert.strictEqual((await SubProject.query("", false)).results.length, 3);
+  }
+
+  @test
+  async additionalModels() {
+    const subProject = this.webda.getModel("WebdaDemo/SubProject");
+    const project = this.webda.getModel("WebdaDemo/Project");
+    let store = new MemoryStore(this.webda, "additionalModel", { model: "WebdaDemo/SubProject" }).resolve();
+    assert.strictEqual(store.handleModel(project), -1);
+    assert.strictEqual(store.handleModel(subProject), 0);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
+    store = new MemoryStore(this.webda, "additionalModel", {
+      model: "WebdaDemo/SubProject",
+      additionalModels: ["WebdaDemo/Project"]
+    }).resolve();
+    assert.strictEqual(store.handleModel(project), 0);
+    assert.strictEqual(store.handleModel(subProject), 0);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), 1);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/SubSubProject")), 2);
+    store = new MemoryStore(this.webda, "additionalModel", {
+      model: "WebdaDemo/SubProject",
+      additionalModels: ["WebdaDemo/Project"],
+      strict: true
+    }).resolve();
+    assert.strictEqual(store.handleModel(project), -1);
+    assert.strictEqual(store.handleModel(subProject), 0);
+    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
+  }
+
+  @test
+  async multiModel() {
+    let identStore: MemoryStore<CoreModel> = await this.addService(
+      MemoryStore,
+      { model: "Webda/Ident", strict: false },
+      "Idents"
+    );
+    await identStore.save(new User().setUuid("user"));
+    await identStore.save(new Ident().load({ uuid: "ident" }, true));
+    assert.ok((await identStore.get("user")) instanceof User);
+    assert.ok((await identStore.get("ident")) instanceof Ident);
+    identStore.getParameters().defaultModel = true;
+    identStore.storage["user"] = identStore.storage["user"].replace(/User/, "User2");
+    assert.strictEqual((await identStore.get("user")).constructor.name, "Ident");
+    assert.ok((await identStore.get("ident")) instanceof Ident);
+    identStore.getParameters().defaultModel = false;
+    assert.ok((await identStore.get("user")) === undefined);
+    assert.ok((await identStore.get("ident")) instanceof Ident);
+  }
+
+  @test
+  async migration() {
+    this.webda.getApplication().addModel("Webda/User", User);
+    this.webda.getApplication().addModel("WebdaDemo/User", DemoUser);
+    let usersStore: MemoryStore<any> = await this.addService(MemoryStore, { model: "Webda/User" });
+    for (let i = 0; i < 1200; i++) {
+      await usersStore.save({ uuid: `id_${i}`, id: i });
+      if (i % 10 === 0) {
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/User/, "webda/user2");
+      } else if (i % 2 === 0) {
+        usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/User/, "User");
+      }
+    }
+    usersStore.getParameters().modelAliases = {
+      "webda/user2": "WebdaDemo/User"
+    };
+    await usersStore.cleanModelAliases();
+    (await usersStore.getAll()).forEach(user => {
+      if (user.id % 10 === 0) {
+        assert.strictEqual(user.__type, "WebdaDemo/User");
+      } else if (user.id % 2 === 0) {
+        assert.strictEqual(user.__type, "User");
+      } else {
+        assert.strictEqual(user.__type, "Webda/User");
+      }
+    });
+    await usersStore.recomputeTypeShortId();
+    (await usersStore.getAll()).forEach(user => {
+      if (user.id % 10 === 0) {
+        assert.strictEqual(user.__type, "User");
+      } else if (user.id % 2 === 0) {
+        assert.strictEqual(user.__type, "User");
+      } else {
+        assert.strictEqual(user.__type, "Webda/User");
+      }
+    });
+    await usersStore.getMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
+    await usersStore.cancelMigration(`storeMigration.${usersStore.getName()}.typesShortId`);
+
+    await usersStore.migration("test", async () => {
+      return async () => {};
+    });
+  }
+
+  getTestConfiguration() {
+    return "../../sample-app/webda.config.jsonc";
   }
 }
 

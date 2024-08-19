@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
 import { stub } from "sinon";
-import { Core, OriginFilter, WebsiteOriginFilter } from "./core";
+import { Core, OriginFilter, RequestFilter, WebsiteOriginFilter } from "./core";
 import {
   Authentication,
   Bean,
@@ -15,15 +15,16 @@ import {
   OperationContext,
   Route,
   Service,
+  UnpackedConfiguration,
   User,
   WebContext,
   WebdaError
 } from "./index";
 import { Store } from "./stores/store";
-import { TestApplication, WebdaTest } from "./test";
+import { TestApplication, WebdaInternalSimpleTest, WebdaInternalTest } from "./test";
 import { getCommonJS } from "./utils/esm";
 import { HttpContext } from "./utils/httpcontext";
-import { JSONUtils } from "./utils/serializers";
+import { FileUtils, JSONUtils } from "./utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);
 
 class BadService {
@@ -77,31 +78,31 @@ class ImplicitBean extends Service {
 }
 
 @suite
-class ModelDomainTest extends WebdaTest {
+class ModelDomainTest extends WebdaInternalTest {
   public async tweakApp(app: TestApplication): Promise<void> {
     app.addModel("WebdaTest/ClassA", ClassA);
     app.addModel("WebdaTest/ClassB", ClassB);
     app.addModel("WebdaTest/ChildClassA", ChildClassA);
     app.addModel("WebdaTest/SubChildClassA", SubChildClassA);
-    super.tweakApp(app);
+    await super.tweakApp(app);
   }
 
   protected async buildWebda(): Promise<void> {
     await super.buildWebda();
-    await this.registerService(
-      new MemoryStore(this.webda, "ClassA", {
+    await this.addService(
+      MemoryStore,
+      {
         model: "WebdaTest/ClassA"
-      })
-    )
-      .resolve()
-      .init();
-    await this.registerService(
-      new MemoryStore(this.webda, "ChildClassA", {
+      },
+      "ClassA"
+    );
+    await this.addService(
+      MemoryStore,
+      {
         model: "WebdaTest/ChildClassA"
-      })
-    )
-      .resolve()
-      .init();
+      },
+      "ChildClassA"
+    );
   }
 
   @test
@@ -124,10 +125,48 @@ class ModelDomainTest extends WebdaTest {
   }
 }
 
+/**
+ * Used to test condition csrf
+ */
+class ConditionCsrfService extends Service implements RequestFilter {
+  async checkRequest(context: WebContext<any, any>, type: "CORS" | "AUTH"): Promise<boolean> {
+    if (context.getHttpContext().uri === "/bouzouf/route" && context.getHttpContext().host === "csrf.com") {
+      return true;
+    }
+    return false;
+  }
+
+  resolve() {
+    this.getWebda().registerCORSFilter(this);
+    return super.resolve();
+  }
+}
+
 @suite
-class CSRFTest extends WebdaTest {
+class CSRFTest extends WebdaInternalSimpleTest {
   ctx: WebContext;
   filter: WebsiteOriginFilter;
+
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: {
+        ignoreBeans: true,
+        website: ["test.webda.io", "test2.webda.io"],
+        csrfOrigins: ["^accounts\\.google\\.\\w{2,}$", "www\\.facebook\\.com"]
+      },
+      services: {
+        conditionCsrf: {
+          type: "WebdaTest/ConditionCsrf"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    await super.tweakApp(app);
+    app.addService("WebdaTest/ConditionCsrf", ConditionCsrfService);
+  }
+
   async checkRequest(ctx) {
     // @ts-ignore
     return this.webda.checkCORSRequest(ctx);
@@ -264,11 +303,12 @@ class CSRFTest extends WebdaTest {
 }
 
 @suite
-class CoreTest extends WebdaTest {
+class CoreTest extends WebdaInternalTest {
   ctx: WebContext;
   async before() {
     await super.before();
     this.ctx = await this.newContext({});
+    this.addService(ExceptionExecutor, "ExceptionExecutor");
   }
 
   @test
@@ -281,7 +321,6 @@ class CoreTest extends WebdaTest {
     webda.services["ConsoleLogger"] = new ConsoleLoggerService(webda, "ConsoleLogger", {});
     await webda.init();
     let openapi = webda.exportOpenAPI();
-
     assert.notStrictEqual(openapi.paths["/contacts"], undefined);
     assert.notStrictEqual(openapi.paths["/contacts/{uuid}"], undefined);
     app.addModel("webda/anotherContext", WebContext);
@@ -312,10 +351,20 @@ class CoreTest extends WebdaTest {
       openapi.tags.filter(p => !p.name.startsWith("Auto/")),
       [
         { name: "Aaaaa" },
-        { name: "contacts" },
+        { name: "Classrooms" },
+        { name: "Companies" },
+        { name: "computers" },
+        { name: "ComputerScreens" },
+        { name: "Contacts" },
+        { name: "Courses" },
         { name: "CustomService" },
         { name: "ExceptionExecutor" },
+        { name: "hardwares" }, // TODO Investigate the duplication here
+        { name: "Hardwares" },
         { name: "ImplicitBean" },
+        { name: "Students" },
+        { name: "Teachers" },
+        { name: "users" },
         { name: "Zzzz" }
       ]
     );
@@ -360,18 +409,18 @@ class CoreTest extends WebdaTest {
   @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesOfType();
-    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 34);
+    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 17);
   }
 
   @test
   getStores() {
     let moddas = this.webda.getStores();
-    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 8);
+    assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 4);
   }
   @test
   getServicesImplementationsWithType() {
     let stores = this.webda.getServicesOfType(<any>Store);
-    assert.strictEqual(Object.keys(stores).filter(k => !k.startsWith("Auto/")).length, 8);
+    assert.strictEqual(Object.keys(stores).filter(k => !k.startsWith("Auto/")).length, 4);
   }
 
   @test
@@ -452,10 +501,10 @@ class CoreTest extends WebdaTest {
   @test
   stores() {
     // First store in the config should be the default one
-    assert.strictEqual(this.webda.getModelStore(User).getName(), "MemoryUsers");
+    assert.strictEqual(this.webda.getModelStore(User).getName(), "Users");
     assert.strictEqual(
       this.webda.getModelStore(this.webda.getApplication().getModel("WebdaTest/Ident")).getName(),
-      "MemoryIdents"
+      "Idents"
     );
     assert.strictEqual(this.webda.getModelStore(CoreModel).getName(), "Registry");
   }
@@ -545,31 +594,6 @@ class CoreTest extends WebdaTest {
   }
 
   @test
-  validateSchemaWithEnum() {
-    assert.strictEqual(
-      this.webda.validateSchema(
-        "WebdaDemo/Company",
-        {
-          permissions: ["PRODUCT_1", "PRODUCT_2"]
-        },
-        true
-      ),
-      true
-    );
-    assert.throws(
-      () =>
-        this.webda.validateSchema(
-          "WebdaDemo/Company",
-          {
-            permissions: ["RANDOM", "PRODUCT_2"]
-          },
-          true
-        ),
-      /validation failed/
-    );
-  }
-
-  @test
   covGetModules() {
     this.webda.getModules();
   }
@@ -649,7 +673,7 @@ class CoreTest extends WebdaTest {
 
   @test
   async autoConnectFailure() {
-    let app = new TestApplication(__dirname + "/../test/config.broken.json");
+    let app = new TestApplication(FileUtils.load(__dirname + "/../test/config.broken.json"));
     await app.load();
     let core = new Core(app);
     await core.init();
@@ -712,7 +736,7 @@ class CoreTest extends WebdaTest {
 
     assert.ok(Core["getSingletonInfo"](this.webda).match(/- file:\/\/.*packages\/core\/src\/core.ts \/ \d+.\d+.\d+/));
 
-    assert.strictEqual(User.store().getName(), "MemoryUsers");
+    assert.strictEqual(User.store().getName(), "Users");
     const memoryStore = new MemoryStore(this.webda, "test", {});
     this.webda.setModelStore(User, memoryStore);
     assert.strictEqual(User.store().getName(), "test");

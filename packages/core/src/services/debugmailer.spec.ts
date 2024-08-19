@@ -1,10 +1,15 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { WebdaTest } from "../test";
+import { WebdaInternalTest } from "../test";
 import { DebugMailer } from "./debugmailer";
+import { UnpackedConfiguration } from "../application";
 
 @suite
-class DebugMailerTest extends WebdaTest {
+class DebugMailerTest extends WebdaInternalTest {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {};
+  }
+
   @test
   async testSend() {
     let mailer = new DebugMailer(this.webda, "test", {});

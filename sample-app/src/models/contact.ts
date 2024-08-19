@@ -1,4 +1,4 @@
-import { Binaries, Binary, CoreModel, ModelLink, OperationContext } from "@webda/core";
+import { Binaries, Binary, CoreModel, Expose, ModelLink, OperationContext } from "@webda/core";
 import { User } from "./user";
 
 /**
@@ -8,6 +8,7 @@ import { User } from "./user";
  *
  * @SchemaAdditionalProperties Allow mine
  */
+@Expose()
 export default class Contact extends CoreModel {
   /**
    * Contact firstname

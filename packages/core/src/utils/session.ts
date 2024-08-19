@@ -1,5 +1,5 @@
 import { CoreModel, NotEnumerable } from "../models/coremodel";
-import CryptoService, { JWTOptions } from "../services/cryptoservice";
+import { CryptoService, JWTOptions } from "../services/cryptoservice";
 import { DeepPartial, Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { OperationContext, WebContext } from "./context";
@@ -64,17 +64,6 @@ export class CookieSessionManager<
    */
   loadParameters(params: DeepPartial<T>): ServiceParameters {
     return new CookieSessionParameters(params);
-  }
-
-  /**
-   * @override
-   */
-  resolve() {
-    super.resolve();
-    if (this.sessionStore && this.sessionStore.getParameters().expose) {
-      throw new Error("SessionStore should not be exposed");
-    }
-    return this;
   }
 
   /**

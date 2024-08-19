@@ -39,6 +39,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   constructor(params: any) {
     super(params);
     this.checkInterval ??= 3600;
+    this.default ??= {};
   }
 }
 
@@ -60,7 +61,7 @@ export type ConfigurationEvents = {
  * @category CoreServices
  * @WebdaModda
  */
-export default class ConfigurationService<
+class ConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
   E extends ConfigurationEvents = ConfigurationEvents
 > extends Service<T, E> {
@@ -204,7 +205,7 @@ export default class ConfigurationService<
     }
 
     this.log("DEBUG", "Refreshing configuration");
-    const newConfig = (await this.loadConfiguration()) || this.parameters.default;
+    const newConfig = await this.loadGoodConfiguration();
     this.emit("Configuration.Loaded", newConfig);
     const serializedConfig = JSON.stringify(newConfig);
     if (serializedConfig !== this.serializedConfiguration) {
@@ -247,10 +248,26 @@ export default class ConfigurationService<
   }
 
   /**
+   * Complete the configuration
+   */
+  private completeConfiguration(cfg: any) {
+    cfg.parameters ??= {};
+    cfg.services ??= {};
+    return cfg;
+  }
+
+  /**
+   * Load the configuration and complete it
+   */
+  private async loadGoodConfiguration() {
+    return this.completeConfiguration((await this.loadConfiguration()) || this.parameters.default);
+  }
+
+  /**
    * Read the file and store it
    */
   async loadAndStoreConfiguration(): Promise<{ [key: string]: any }> {
-    let res = await this.loadConfiguration();
+    let res = await this.loadGoodConfiguration();
     this.emit("Configuration.Loaded", res);
     this.serializedConfiguration = JSON.stringify(res);
     return res;

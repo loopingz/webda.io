@@ -18,6 +18,12 @@ export type PackageDescriptorAuthor =
 
 export type Modda = ServiceConstructor<Service>;
 
+export type ModelGraphBinaryDefinition = {
+  attribute: string;
+  cardinality: "ONE" | "MANY";
+  metadata?: string;
+};
+
 /**
  * Defined relationship for one model
  */
@@ -37,11 +43,7 @@ export type ModelGraph = {
     cascadeDelete: boolean;
   }[];
   children?: string[];
-  binaries?: {
-    attribute: string;
-    cardinality: "ONE" | "MANY";
-    metadata?: string;
-  }[];
+  binaries?: ModelGraphBinaryDefinition[];
 };
 
 /**
@@ -781,7 +783,10 @@ export class Application {
    * @returns
    */
   getModelPlural(name: string): string {
-    let value = this.plurals[name] || name.split("/").pop();
+    if (this.plurals[name]) {
+      return this.plurals[name];
+    }
+    let value = name.split("/").pop();
     return value.endsWith("s") ? value : value + "s";
   }
 
@@ -791,21 +796,13 @@ export class Application {
    * @param name
    * @param caseSensitive
    */
-  hasWebdaObject(section: Section, name: string, caseSensitive: boolean = false): boolean {
+  hasWebdaObject(section: Section, name: string): boolean {
     let objectName = this.completeNamespace(name);
     this.log("TRACE", `Search for ${section} ${objectName}`);
     if (!this[section][objectName] && name.indexOf("/") === -1) {
       objectName = `Webda/${name}`;
     }
-    if (!this[section][objectName]) {
-      const caseInsensitive = Object.keys(this[section]).find(k => k.toLowerCase() === name.toLowerCase());
-      if (this[section][caseInsensitive] && !caseSensitive) {
-        // We found a case insensitive match
-        return true;
-      }
-      return false;
-    }
-    return true;
+    return this[section][objectName] !== undefined;
   }
 
   /**
@@ -814,24 +811,15 @@ export class Application {
    * @param name
    * @returns
    */
-  getWebdaObject(section: Section, name: string, caseSensitive: boolean = false) {
+  getWebdaObject(section: Section, name: string) {
     let objectName = this.completeNamespace(name);
     this.log("TRACE", `Search for ${section} ${objectName}`);
     if (!this[section][objectName] && name.indexOf("/") === -1) {
       objectName = `Webda/${name}`;
     }
     if (!this[section][objectName]) {
-      const caseInsensitive = Object.keys(this[section]).find(k => k.toLowerCase() === name.toLowerCase());
-      if (this[section][caseInsensitive] && !caseSensitive) {
-        // We found a case insensitive match
-        this.log("DEBUG", `Found ${caseInsensitive} instead of ${name}, will be removed in 4.0`);
-        return this[section][caseInsensitive];
-      }
-      objectName = name !== objectName ? ` or ${objectName}` : "";
       throw Error(
-        `Undefined ${section.substring(0, section.length - 1)} ${name}${objectName} (${Object.keys(this[section]).join(
-          ", "
-        )})`
+        `Undefined ${section.substring(0, section.length - 1)} ${objectName} (${Object.keys(this[section]).join(", ")})`
       );
     }
     return this[section][objectName];
@@ -988,8 +976,10 @@ export class Application {
    *
    * @param name
    * @param model
+   * @param dynamic class is dynamic so recompute the hierarchy
    */
   addModel(name: string, model: any, dynamic: boolean = true): this {
+    name = this.completeNamespace(name);
     this.log("TRACE", "Registering model", name);
     this.models[name] = model;
     if (dynamic && model) {
@@ -1000,6 +990,16 @@ export class Application {
           this.flatHierarchy[name] = this.getModelName(m);
           this.getModelHierarchy(this.flatHierarchy[name]).children[name] = {};
         });
+      this.graph[name] ??= {};
+      if (!this.baseConfiguration?.cachedModules?.models?.shortIds[name]) {
+        const short = name.split("/").pop();
+        if (!this.baseConfiguration?.cachedModules?.models?.shortIds[short]) {
+          this.baseConfiguration.cachedModules.models.shortIds[short] = name;
+          this.baseConfiguration.cachedModules.models.shortIds[name] = short;
+        } else {
+          this.baseConfiguration.cachedModules.models.shortIds[name] = name;
+        }
+      }
     }
     return this;
   }
@@ -1192,7 +1192,7 @@ export class Application {
       }
       return importObject;
     } catch (err) {
-      this.log("WARN", "Cannot resolve require", info, err.message);
+      this.log("ERROR", "Cannot resolve require", info, err.message);
     }
   }
 
@@ -1223,7 +1223,6 @@ export class Application {
     Object.keys(module.models.graph || {}).forEach(k => {
       this.graph[k] = module.models.graph[k];
     });
-
     // TODO Merging tree from different modules
     await Promise.all([
       sectionLoader("moddas"),

@@ -5,21 +5,249 @@ import * as path from "path";
 import { register } from "prom-client";
 import {
   Core,
+  CoreModel,
   CoreModelDefinition,
   HttpContext,
   HttpMethodType,
   MemoryStore,
+  OwnerModel,
   Service,
+  Store,
+  StoreFindResult,
+  StoreParameters,
   UuidModel,
   WebContext
 } from "./index";
 import { PrometheusService } from "./services/prometheus";
 import { ConsoleLoggerService } from "./utils/logger";
 import { FileUtils } from "./utils/serializers";
+import { Ident as WebdaIdent } from "./models/ident";
 
 // Separation on purpose to keep application import separated
 import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./application";
 import { UnpackedApplication } from "./unpackedapplication";
+import { Query } from "@webda/ql";
+
+/**
+ * @class
+ */
+export class Task extends OwnerModel {
+  _autoListener: number;
+  plop: any;
+  plop2: any;
+  card: any;
+  test: any;
+  bouzouf: any;
+  side: string;
+
+  _gotContext: boolean;
+  static getActions() {
+    return {
+      actionable: {
+        methods: <any>["GET"]
+      },
+      impossible: {}
+    };
+  }
+
+  actionable() {}
+
+  impossible() {}
+
+  async canAct(ctx, action) {
+    if ("actionable" === action) {
+      return true;
+    }
+    return super.canAct(ctx, action);
+  }
+
+  async _onSave() {
+    this._autoListener = 1;
+  }
+
+  async _onSaved() {
+    this._autoListener = 2;
+  }
+
+  toJSON() {
+    // Context should be available to the toJSON
+    if (this.getContext() !== undefined) {
+      this._gotContext = true;
+    }
+    return super.toJSON();
+  }
+}
+
+/**
+ * VoidStore is a store that does not implement any method
+ */
+export class VoidStore<T extends CoreModel> extends Store<
+  T,
+  StoreParameters & { brokenConstructor?: boolean; brokenInit?: boolean }
+> {
+  find(_query: Query): Promise<StoreFindResult<T>> {
+    throw new Error("Method not implemented.");
+  }
+  _exists(_uid: string): Promise<boolean> {
+    throw new Error("Method not implemented.");
+  }
+  getAll(_list?: string[]): Promise<T[]> {
+    throw new Error("Method not implemented.");
+  }
+  protected _patch(
+    _object: any,
+    _uid: string,
+    _itemWriteCondition?: any,
+    _itemWriteConditionField?: string
+  ): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  protected _removeAttribute(
+    _uuid: string,
+    _attribute: string,
+    _itemWriteCondition?: any,
+    _itemWriteConditionField?: string
+  ): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  protected _incrementAttributes(
+    _uid: string,
+    _params: { property: string; value: number }[],
+    _updateDate: Date
+  ): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  protected _upsertItemToCollection(
+    _uid: string,
+    _prop: string,
+    _item: any,
+    _index: number,
+    _itemWriteCondition: any,
+    _itemWriteConditionField: string,
+    _updateDate: Date
+  ): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  protected _deleteItemFromCollection(
+    _uid: string,
+    _prop: string,
+    _index: number,
+    _itemWriteCondition: any,
+    _itemWriteConditionField: string,
+    _updateDate: Date
+  ): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  constructor(webda, name, params) {
+    super(webda, name, params);
+    if (this.parameters.brokenConstructor) throw Error();
+  }
+
+  initRoutes() {
+    if (this.parameters.brokenInit) throw Error();
+    this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
+    this.addRoute("/", ["GET", "POST"], this._default);
+    this.addRoute("/urltemplate/{+id}", ["GET"], this._template);
+    this.addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
+  }
+
+  loadParameters(params) {
+    return new StoreParameters(params, this);
+  }
+
+  _template() {}
+
+  _default(_ctx) {}
+
+  _query(_ctx) {}
+
+  _brokenRoute(ctx) {
+    if (ctx.getParameters().type === "401") {
+      throw 401;
+    } else if (ctx.getParameters().type === "Error") {
+      throw new Error();
+    }
+  }
+
+  exists(_uid) {
+    return Promise.resolve(true);
+  }
+
+  _find(_request, _offset, _limit) {
+    return Promise.resolve([]);
+  }
+
+  async _save(object: T) {
+    return object;
+  }
+
+  _delete(_uid) {
+    return Promise.resolve();
+  }
+
+  _update(object, _uid) {
+    return Promise.resolve(object);
+  }
+
+  async _get(_uid) {
+    return <T>{};
+  }
+}
+
+/**
+ * FakeService is a service that does not implement any method
+ */
+export class FakeService extends Service {}
+
+/**
+ * DebugMailer is a mailer that store all sent mails
+ */
+export class DebugMailer extends Service {
+  sent: any[];
+  constructor(webda, name, params) {
+    super(webda, name, params);
+    this.sent = [];
+  }
+
+  send(options, _callback) {
+    this.sent.push(options);
+  }
+}
+
+/**
+ * @class
+ */
+export class Ident extends WebdaIdent {
+  static getActions() {
+    return <any>{
+      plop: {},
+      index: {
+        global: true,
+        methods: ["GET"]
+      },
+      yop: {
+        methods: ["GET", "POST"]
+      }
+    };
+  }
+
+  yop() {
+    return "youpi";
+  }
+
+  async canAct(ctx, action) {
+    return true;
+  }
+
+  static index(ctx) {
+    ctx.write("indexer");
+  }
+
+  plop(ctx) {
+    ctx.write({ _plop: true });
+    return Promise.resolve();
+  }
+}
 
 /**
  * TestApplication ensure we load the typescript sources instead of compiled version
@@ -123,7 +351,7 @@ class WebdaTest {
    * @returns absolute path to configuration file
    */
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
-    return process.cwd() + "/test/config.json";
+    return FileUtils.load(process.cwd() + "/test/config.json");
   }
 
   /**
@@ -131,11 +359,37 @@ class WebdaTest {
    * @param app
    */
   async tweakApp(app: TestApplication) {
-    app.addService("WebdaTest/VoidStore", (await import("../test/moddas/voidstore")).VoidStore);
-    app.addService("WebdaTest/FakeService", (await import("../test/moddas/fakeservice")).FakeService);
-    app.addService("WebdaTest/Mailer", (await import("../test/moddas/debugmailer")).DebugMailer);
-    app.addModel("WebdaTest/Task", (await import("../test/models/task")).Task);
-    app.addModel("WebdaTest/Ident", (await import("../test/models/ident")).Ident);
+    app.addService("WebdaTest/VoidStore", VoidStore);
+    app.addService("WebdaTest/FakeService", FakeService);
+    app.addService("WebdaTest/Mailer", DebugMailer);
+    app.addModel("WebdaTest/Task", Task);
+    app.addModel("WebdaTest/Ident", Ident);
+    app.getGraph()["WebdaTest/Ident"] = {
+      links: [
+        {
+          attribute: "_user",
+          model: "Webda/User",
+          type: "LINK"
+        }
+      ]
+    };
+    app.getGraph()["WebdaTest/Task"] = {
+      links: [
+        {
+          attribute: "_user",
+          model: "Webda/User",
+          type: "LINK"
+        }
+      ]
+    };
+  }
+
+  /**
+   * Return an application
+   * @returns
+   */
+  getApplication() {
+    return new TestApplication(this.getTestConfiguration());
   }
 
   /**
@@ -144,7 +398,7 @@ class WebdaTest {
    * Add a ConsoleLogger if addConsoleLogger is true
    */
   protected async buildWebda() {
-    let app = new TestApplication(this.getTestConfiguration());
+    let app = this.getApplication();
     await app.load();
     await this.tweakApp(app);
 
@@ -463,6 +717,19 @@ class WebdaTest {
   }
 
   /**
+   * Register service with resolve and init
+   */
+  async addService<P extends Service>(
+    service: { new (core, name, params: any): P },
+    params?: any,
+    name?: string
+  ): Promise<P> {
+    return this.registerService(new service(this.webda, name || service.name, <any>params ?? {}))
+      .resolve()
+      .init();
+  }
+
+  /**
    * Dynamic add a model to webda
    * @param model
    * @param klass
@@ -486,4 +753,33 @@ class WebdaSimpleTest extends WebdaTest {
     };
   }
 }
+
+export class TestInternalApplication extends TestApplication {
+  loadProjectInformation() {
+    let info = super.loadProjectInformation();
+    delete info.webda.workspaces;
+    return info;
+  }
+}
+
+export class WebdaInternalTest extends WebdaTest {
+  getApplication(): TestApplication {
+    let cfg = this.getTestConfiguration();
+    if (typeof cfg === "string") {
+      cfg = FileUtils.load(cfg);
+    }
+    return new TestInternalApplication(cfg);
+  }
+}
+
+export class WebdaInternalSimpleTest extends WebdaInternalTest {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: {
+        ignoreBeans: true
+      }
+    };
+  }
+}
+
 export { WebdaSimpleTest, WebdaTest };

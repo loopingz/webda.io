@@ -1,9 +1,9 @@
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Service, ServiceParameters } from "@webda/core";
 import { LogFilter, WorkerLogLevel, WorkerMessage } from "@webda/workout";
-import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
 import { AWSServiceParameters } from "./aws-mixin";
+import { randomUUID } from "crypto";
 
 /**
  * Send webda log to CloudWatch
@@ -56,7 +56,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     if (!this._logGroupName) {
       throw Error("Require a log group `logGroupName` parameter");
     }
-    this._logStreamName = (this.parameters.logStreamNamePrefix || "") + uuid.v4();
+    this._logStreamName = (this.parameters.logStreamNamePrefix || "") + randomUUID();
     this._cloudwatch = new CloudWatchLogs(this.parameters);
     let res = await this._cloudwatch.describeLogGroups({
       logGroupNamePrefix: this._logGroupName

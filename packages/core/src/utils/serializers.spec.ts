@@ -257,9 +257,7 @@ plop: test
       } catch (err) {}
       await FileUtils.walk("test", f => res.push(f));
       assert.ok(
-        ["test/models/ident.js", "test/jsonutils/mdocs.yaml", "test/data/test.png"]
-          .map(c => res.includes(c))
-          .reduce((v, c) => v && c, true)
+        ["test/jsonutils/mdocs.yaml", "test/data/test.png"].map(c => res.includes(c)).reduce((v, c) => v && c, true)
       );
       res = [];
       FileUtils.walkSync("test", f => res.push(f), {

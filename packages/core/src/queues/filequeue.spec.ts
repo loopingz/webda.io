@@ -8,11 +8,20 @@ import { QueueTest } from "./queue.spec";
 
 @suite
 class FileQueueTest extends QueueTest {
+  queue: FileQueue;
+
+  async before() {
+    await super.before();
+    this.queue = await this.addService(FileQueue, {
+      expire: 1,
+      folder: "./test/data/queue"
+    });
+  }
+
   @test
   async basic() {
-    let queue: FileQueue = <FileQueue>this.getService("FileQueue");
-    await queue.__clean();
-    await this.simple(queue);
+    await this.queue.__clean();
+    await this.simple(this.queue);
   }
 
   @test
@@ -45,7 +54,7 @@ class FileQueueTest extends QueueTest {
     // Check if the deletion is not crashing even if the content file is removed
     unlinkSync(`${queue.getParameters().folder}/${msg2[0].ReceiptHandle}.json`);
     await queue.deleteMessage(msg2[0].ReceiptHandle);
-    
+
     // Check if default parameter is correctly set
     queue = new FileQueue(this.webda, "q", {});
     assert.strictEqual(queue.getParameters().expire, 30000);

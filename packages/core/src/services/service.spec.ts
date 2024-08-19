@@ -1,8 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Core, Inject, Operation, Service } from "..";
-import { WebdaTest } from "../test";
+import { Core, Inject, Operation, Service, WebdaError } from "..";
+import { TestApplication, WebdaInternalTest } from "../test";
 import { OperationContext } from "../utils/context";
 import { RegExpStringValidator, ServiceParameters } from "./service";
 
@@ -19,6 +19,18 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
   serv3: Service;
   @Inject("params:bean", undefined, false)
   serv4: Service;
+  static catchInjector = true;
+
+  resolve(): this {
+    try {
+      super.resolve();
+    } catch (err) {
+      if (!FakeService.catchInjector) {
+        throw err;
+      }
+    }
+    return this;
+  }
 
   // Set to undefined to ensure fallback on method name
   @Operation({}, { url: "/operation/plop" })
@@ -26,7 +38,7 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
     ctx.write((await ctx.getInput()).output);
   }
 
-  @Operation({ id: "myOperation" })
+  @Operation({ id: "MyOperation" })
   myOperation2(ctx: OperationContext) {
     ctx.write("plop2");
   }
@@ -87,18 +99,33 @@ class RegExpStringValidatorTest {
 }
 
 @suite
-class ServiceTest extends WebdaTest {
+class ServiceTest extends WebdaInternalTest {
   protected async buildWebda(): Promise<void> {
     await super.buildWebda();
     this.webda.getBeans = () => {};
   }
 
+  getTestConfiguration() {
+    return {
+      services: {
+        Authentication: {
+          type: "FakeService"
+        }
+      }
+    };
+  }
+
+  async tweakApp(app: TestApplication): Promise<void> {
+    app.addService("Webda/FakeService", FakeService);
+    FakeService.catchInjector = true;
+  }
+
   @test
   async injector() {
+    FakeService.catchInjector = false;
     let service = new FakeService(this.webda, "plop");
     assert.throws(() => service.resolve(), /Injector did not found bean 'undefined'\(parameter:bean\) for 'plop'/);
-    service = new FakeService(this.webda, "plop", { bean: "Authentication" });
-    service.resolve();
+    service = await this.registerService(new FakeService(this.webda, "plop", { bean: "Authentication" }));
     assert.strictEqual(service.serv, undefined);
     assert.throws(
       () => new FakeService2(this.webda, "kf").resolve(),
@@ -111,7 +138,9 @@ class ServiceTest extends WebdaTest {
     let ctx = new FakeOperationContext(this.webda);
     await ctx.init();
     ctx.setInput(JSON.stringify({ output: "plop" }));
-    assert.rejects(() => this.webda.callOperation(ctx, "myOperation2"));
+    assert.rejects(() => this.webda.callOperation(ctx, "MyOperation2"));
+    let service = await this.registerService(new FakeService(this.webda, "plop", { bean: "Authentication" }));
+    service.initOperations();
     // @ts-ignore
     const schemaRegistry = this.webda.getApplication().baseConfiguration.cachedModules.schemas;
     schemaRegistry["plop.myoperation.input"] = {
@@ -123,75 +152,57 @@ class ServiceTest extends WebdaTest {
       },
       required: ["output"]
     };
-    // @ts-ignore
     schemaRegistry["plop.myOperation.input"] = schemaRegistry["plop.myoperation.input"];
-    let service = new FakeService(this.webda, "plop", {
-      bean: "Authentication"
-    });
-    service.resolve();
-    this.registerService(service);
-    // @ts-ignore
-    this.webda.operations["plop.myOperation"].input = "plop.myoperation.input";
+    this.webda["operations"]["Plop.MyOperation"].input = "plop.myoperation.input";
 
-    await assert.rejects(
-      () => this.webda.callOperation(ctx, "plop.myOperation"),
-      /Operation plop.myOperation InvalidInput/
-    );
+    await assert.rejects(() => this.webda.callOperation(ctx, "Plop.MyOperation"), WebdaError.BadRequest);
     ctx.getInput = () => undefined;
-    await assert.rejects(
-      () => this.webda.callOperation(ctx, "plop.myOperation"),
-      /Operation plop.myOperation InvalidInput/
-    );
+    await assert.rejects(() => this.webda.callOperation(ctx, "Plop.MyOperation"), WebdaError.BadRequest);
     ctx = new FakeOperationContext(this.webda);
     await ctx.init();
     ctx.setInput(JSON.stringify({ output: "longerOutput" }));
-    await this.webda.callOperation(ctx, "plop.myOperation");
+    await this.webda.callOperation(ctx, "Plop.MyOperation");
     await ctx.end();
     assert.strictEqual(ctx.getOutput(), "longerOutput");
 
     // Check the list
     assert.deepStrictEqual(this.webda.listOperations(), {
-      "plop.myOperation": {
-        id: "plop.myOperation",
+      "Plop.MyOperation": {
+        id: "Plop.MyOperation",
         input: "plop.myoperation.input"
       }
     });
 
     // Check with permission
     // @ts-ignore
-    this.webda.operations["plop.myOperation"].permission = "role = 'test'";
-    await assert.rejects(
-      () => this.webda.callOperation(ctx, "plop.myOperation"),
-      /Operation plop.myOperation PermissionDenied/
-    );
+    this.webda.operations["Plop.MyOperation"].permission = "role = 'test'";
+    await assert.rejects(() => this.webda.callOperation(ctx, "Plop.MyOperation"), WebdaError.Forbidden);
     await ctx.newSession();
     ctx.getSession<any>().role = "test";
-    await this.webda.callOperation(ctx, "plop.myOperation");
+    await this.webda.callOperation(ctx, "Plop.MyOperation");
 
     // Test input detection
-    this.webda.registerOperation("plop.myOperation", {
-      id: "plop.myOperation",
+    this.webda.registerOperation("Plop.MyOperation", {
       input: "plop.myOperation.input",
       service: "plop",
       method: "myOperation"
     });
     assert.deepStrictEqual(this.webda.listOperations(), {
-      "plop.myOperation": {
-        id: "plop.myOperation",
+      "Plop.MyOperation": {
+        id: "Plop.MyOperation",
         input: "plop.myOperation.input"
       }
     });
 
     // Test input detection
-    this.webda.registerOperation("plop.myOperation", {
-      id: "plop.myOperation",
+    this.webda.registerOperation("Plop.MyOperation", {
       input: "plop.myOperation.input2",
       service: "plop",
       method: "myOperation"
     });
     assert.deepStrictEqual(this.webda.listOperations(), {
-      "plop.myOperation": {
-        id: "plop.myOperation"
+      "Plop.MyOperation": {
+        id: "Plop.MyOperation"
       }
     });
   }

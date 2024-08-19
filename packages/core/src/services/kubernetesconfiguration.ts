@@ -58,7 +58,6 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
     if (!found) {
       return this.parameters.default;
     }
-    this.log("TRACE", "loadConfiguration", result);
     return FileUtils.load(path.join(this.parameters.source, found));
   }
 }

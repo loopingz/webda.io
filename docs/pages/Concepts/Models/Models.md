@@ -5,13 +5,14 @@ sidebar_position: 3
 # Models
 
 The models define your business objects.
-They are stored and exposed through API by Stores.
+
+They are stored within a `Store`.
+
+They are exposed through an `Expose` annotation. Implemented by `DomainService` like `RESTDomainService` or `GraphQLDomainService`.
 
 They are close to a `POJO` but when attached to a Store, they are not truely POJO, similar to Hibernate.
 
-Their schema is build with the `webda build` command.
-
-The `toJSON` method filters the attached store and context.
+They also define the relations between different models.
 
 ## Attributes
 
@@ -23,7 +24,7 @@ Another type of readonly attributes is the defined maps.
 
 ## Actions
 
-By default if exposed via a `Store` the endpoint to manipulate models are following REST API
+By default if exposed via a `REST` the endpoint to manipulate models are following REST API
 
 ```
 GET /models/{uuid}       - Retrieve a model

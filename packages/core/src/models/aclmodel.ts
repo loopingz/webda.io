@@ -8,7 +8,7 @@ export type Acl = { [key: string]: string };
  *
  * @WebdaModel
  */
-export default class AclModel extends CoreModel {
+export class AclModel extends CoreModel {
   /**
    * Object creator
    */
@@ -231,5 +231,3 @@ export default class AclModel extends CoreModel {
     return "No permission";
   }
 }
-
-export { AclModel };

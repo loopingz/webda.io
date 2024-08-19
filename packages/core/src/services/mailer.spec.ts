@@ -3,17 +3,33 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { MailerParameters, User, WebContext } from "..";
-import { WebdaTest } from "../test";
+import { MailerParameters, UnpackedConfiguration, User, WebContext } from "..";
+import { WebdaInternalTest } from "../test";
 
 @suite
-class MailerTest extends WebdaTest {
+class MailerTest extends WebdaInternalTest {
   mailer;
   lastLevel;
   lastInfo;
   lastOptions;
   lastCallback;
   ctx: WebContext;
+
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: {
+        ignoreBeans: true
+      },
+      services: {
+        TrueMailer: {
+          type: "Webda/Mailer",
+          config: {
+            transport: "ses"
+          }
+        }
+      }
+    };
+  }
   async before() {
     await super.before();
     this.lastLevel = this.lastInfo = this.lastOptions = this.lastCallback = undefined;

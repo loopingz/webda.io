@@ -1,16 +1,52 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync, unlinkSync, writeFileSync } from "fs";
-import { WebdaTest } from "../test";
+import { WebdaInternalTest } from "../test";
 import { getCommonJS } from "../utils/esm";
 import { FileConfigurationService } from "./fileconfiguration";
 const { __dirname } = getCommonJS(import.meta.url);
-@suite
-class FileConfigurationServiceTest extends WebdaTest {
-  getTestConfiguration() {
-    return __dirname + "/../../test/config-file-reload.json";
-  }
 
+class FileConfigurationAbstractTest extends WebdaInternalTest {
+  getTestConfiguration() {
+    return {
+      parameters: {
+        ignoreBeans: true,
+        configurationService: "FileConfigurationService"
+      },
+      services: {
+        TestStore: {
+          type: "MemoryStore"
+        },
+        Authentication: {
+          providers: {
+            email: {
+              text: "Test",
+              mailer: "DefinedMailer"
+            }
+          }
+        },
+        FileConfigurationService: {
+          type: "Webda/FileConfiguration",
+          source: "./test/my-cnf.json",
+          default: {
+            services: {
+              Authentication: {
+                providers: {
+                  email: {
+                    text: "DefaultTest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+  }
+}
+
+@suite
+class FileConfigurationServiceTest extends FileConfigurationAbstractTest {
   async before() {
     this.cleanFiles.push(__dirname + "/../../test/my-cnf.json");
     writeFileSync(
@@ -21,7 +57,7 @@ class FileConfigurationServiceTest extends WebdaTest {
             Authentication: {
               providers: {
                 email: {
-                  text: "Test"
+                  text: "ConfigTest"
                 }
               }
             },
@@ -39,18 +75,20 @@ class FileConfigurationServiceTest extends WebdaTest {
 
   @test
   async initialLoad() {
-    assert.rejects(
+    // Check exceptions
+    await assert.rejects(
       () => new FileConfigurationService(this.webda, "except", {}).init(),
       /Need a source for FileConfigurationService/
     );
-    assert.rejects(
+    await assert.rejects(
       () =>
         new FileConfigurationService(this.webda, "except", {
           source: "/plops"
         }).init(),
       /Need a source for FileConfigurationService/
     );
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
+
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "ConfigTest");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise<void>(resolve => {
       let ok = false;
@@ -89,18 +127,13 @@ class FileConfigurationServiceTest extends WebdaTest {
       );
     });
 
-    assert.strictEqual(this.webda.getServices()["ImplicitBean"].getParameters()["implicit"], "ok");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }
 
 @suite
-class FileConfigurationNoReloadServiceTest extends WebdaTest {
-  getTestConfiguration() {
-    return __dirname + "/../../test/config-file-no-reload.json";
-  }
-
+class FileConfigurationNoReloadServiceTest extends FileConfigurationAbstractTest {
   async before() {
     writeFileSync(
       __dirname + "/../../test/my-cnf.json",
@@ -131,9 +164,11 @@ class FileConfigurationNoReloadServiceTest extends WebdaTest {
 }
 
 @suite
-class FileConfigurationNoReloadMissingServiceTest extends WebdaTest {
+class FileConfigurationNoReloadMissingServiceTest extends FileConfigurationAbstractTest {
   getTestConfiguration() {
-    return __dirname + "/../../test/config-file-no-reload.json";
+    let cfg: any = super.getTestConfiguration();
+    cfg.services.FileConfigurationService.default.services.Authentication.providers.email.text = "Test";
+    return cfg;
   }
 
   async before() {
@@ -152,33 +187,12 @@ class FileConfigurationNoReloadMissingServiceTest extends WebdaTest {
 }
 
 @suite
-class FileConfigurationMissingFileTest extends WebdaTest {
+class FileConfigurationMissingFileNoDefaultTest extends FileConfigurationAbstractTest {
   getTestConfiguration() {
-    return __dirname + "/../../test/config-file-missing-file.json";
-  }
-
-  async before() {
-    const filename = __dirname + "/../../test/my-missing-file.json";
-    if (existsSync(filename)) {
-      unlinkSync(filename);
-    }
-    await super.before();
-  }
-
-  @test
-  async initialLoad() {
-    console.log(this.webda.getConfiguration().services.Authentication);
-    assert.strictEqual(
-      this.webda.getConfiguration().services.Authentication.providers.email.text,
-      "MissingTextAutoGenerated"
-    );
-  }
-}
-
-@suite
-class FileConfigurationMissingFileNoDefaultTest extends WebdaTest {
-  getTestConfiguration() {
-    return __dirname + "/../../test/config-file-missing-file-no-default.json";
+    let cfg: any = super.getTestConfiguration();
+    cfg.services.FileConfigurationService.default = undefined;
+    cfg.services.FileConfigurationService.source = "./test/my-missing-file.json";
+    return cfg;
   }
 
   async before() {
@@ -192,5 +206,27 @@ class FileConfigurationMissingFileNoDefaultTest extends WebdaTest {
   @test
   async initialLoad() {
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
+  }
+}
+
+@suite
+class FileConfigurationMissingFileTest extends FileConfigurationAbstractTest {
+  getTestConfiguration() {
+    let cfg: any = super.getTestConfiguration();
+    cfg.services.FileConfigurationService.source = "./test/my-missing-file.json";
+    return cfg;
+  }
+
+  async before() {
+    const filename = __dirname + "/../../test/my-missing-file.json";
+    if (existsSync(filename)) {
+      unlinkSync(filename);
+    }
+    await super.before();
+  }
+
+  @test
+  async initialLoad() {
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "DefaultTest");
   }
 }

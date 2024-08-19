@@ -80,7 +80,7 @@ class AuthenticationTest extends WebdaTest {
     let ctx = await this.newContext();
     this.authentication._listAuthentications(ctx);
     assert.strictEqual(ctx.getResponseBody(), JSON.stringify(["email", "plop", "plop2"]));
-    ctx.setPathParameters({ provider: "plop" });
+    ctx.setParameters({ provider: "plop" });
     this.authentication.getParameters().password.verifier = "VersionService";
     this.authentication.computeParameters();
     assert.strictEqual(await this.authentication.getPasswordRecoveryInfos("bouzouf"), undefined);
@@ -185,7 +185,7 @@ class AuthenticationTest extends WebdaTest {
     // Should create it with the data provided
     assert.notStrictEqual(ctx.getSession().userId, undefined);
     ident = await this.identStore.get(ctx.getSession().identUsed);
-    assert.strictEqual(ctx.getCurrentUserId(), ident.getUser());
+    assert.strictEqual(ctx.getCurrentUserId(), ident.getUser().getUuid());
     // Email should be already validate
     assert.notStrictEqual(ident._validation, undefined);
     assert.strictEqual(this.mailer.sent.length, 2);
@@ -535,7 +535,7 @@ class AuthenticationTest extends WebdaTest {
     await executor.execute(ctx);
     assert.strictEqual(ctx.statusCode, 302);
     assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
-    await this.identStore.delete("newtest2@webda.io_email", undefined, undefined, true);
+    await this.identStore.delete("newtest2@webda.io_email");
     await executor.execute(ctx);
     assert.ok(await this.identStore.exists("newtest2@webda.io_email"));
   }

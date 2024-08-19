@@ -38,7 +38,11 @@ class RolePolicyTest {
   _user: SimpleUser;
 
   async before() {
-    let app = new TestApplication(__dirname + "/../../test/config.json");
+    let app = new TestApplication({
+      parameters: {
+        ignoreBeans: true
+      }
+    });
     await app.load();
     this._webda = new Core(app);
     await this._webda.init();

@@ -145,9 +145,6 @@ export class DynamoDBTest extends StoreTest {
           sort: "order"
         }
       },
-      expose: {
-        url: "/none"
-      },
       credentials: defaultCreds,
       endpoint: "http://localhost:4566",
       region: "us-east-1"

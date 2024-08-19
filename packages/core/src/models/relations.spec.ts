@@ -20,6 +20,8 @@ import {
   ModelRelated,
   ModelsMapped
 } from "./relations";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 interface StudentInterface extends CoreModel {
   email: string;
@@ -85,6 +87,10 @@ export class ModelDrivenTest extends WebdaTest {
   after() {
     // Ensure we remove all listeners
     Object.values(this.webda.getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
+  }
+
+  getTestConfiguration() {
+    return dirname(fileURLToPath(import.meta.url)) + "/../../../../sample-app/";
   }
 
   @test
@@ -161,13 +167,8 @@ export class ModelDrivenTest extends WebdaTest {
     await user.refresh();
     assert.strictEqual(user.contacts.length, 1);
 
-    let context = await this.newContext({ age: 21 });
-    context.setHttpContext(
-      new HttpContext("test.webda.io", "PATCH", `/contacts/${contact.getUuid()}`).setBody({ age: 21 })
-    );
-    context.getParameters().uuid = contact.getUuid();
+    await contact.patch({ age: 21 });
 
-    await contact.getStore().httpUpdate(context);
     await user.refresh();
     assert.strictEqual(user.contacts.length, 1);
     assert.strictEqual(user.contacts[0].age, 21);
@@ -231,9 +232,6 @@ export class ModelDrivenTest extends WebdaTest {
         }
       }
     });
-    for (let i in course1.students) {
-      console.log(course1.students[i]);
-    }
 
     await t1.refresh();
     await t2.refresh();
@@ -280,7 +278,6 @@ export class ModelDrivenTest extends WebdaTest {
     assert.strictEqual(s1.courses.length, 1);
 
     await s1.teachers.remove(t1);
-    console.log(s1);
     await s1.save();
 
     await t1.refresh();
@@ -307,9 +304,5 @@ export class ModelDrivenTest extends WebdaTest {
     Project.emit("Store.Action", <any>{});
     await this.nextTick(2);
     assert.strictEqual(evt, 2);
-    // cov for now
-    Project.onAsync("Store.Action", () => {
-      evt++;
-    });
   }
 }

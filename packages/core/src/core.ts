@@ -37,8 +37,8 @@ import {
 } from "./index";
 import * as WebdaQL from "@webda/ql";
 import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel";
-import { RouteInfo, Router } from "./router";
-import CryptoService from "./services/cryptoservice";
+import { RouteInfo, Router } from "./rest/router";
+import { CryptoService } from "./services/cryptoservice";
 import { JSONUtils } from "./utils/serializers";
 const { machineIdSync } = pkg;
 
@@ -102,18 +102,6 @@ export class ValidationError extends Error {
 }
 
 /**
- * Operation
- */
-export class OperationError extends Error {
-  constructor(
-    public operation: string,
-    public type: "Unknown" | "PermissionDenied" | "InvalidInput"
-  ) {
-    super(`Operation ${operation} ${type}`);
-  }
-}
-
-/**
  * Define an operation within webda app
  */
 export interface OperationDefinition {
@@ -130,6 +118,10 @@ export interface OperationDefinition {
    */
   output?: string;
   /**
+   * Name of the schema that defines parameters
+   */
+  parameters?: string;
+  /**
    * WebdaQL to execute on session to know if
    * operation is available to user
    */
@@ -142,6 +134,12 @@ export interface OperationDefinition {
    * Method implementing the operation
    */
   method: string;
+  /**
+   * Context to use for the operation
+   *
+   * Useful to define a specific context for the operation
+   */
+  context?: any;
 }
 
 /**
@@ -458,6 +456,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     this._initTime = new Date().getTime();
     // Schema validations
     this._ajv = new Ajv();
+    this._ajv.addKeyword("$generated");
     addFormats(this._ajv);
     this._ajvSchemas = {};
 
@@ -549,6 +548,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
           singleton
         )}\n\t- ${this.getSingletonInfo(Core.singleton)}`
       );
+      //process.exit(1);
     }
     // Store WebdaCore in process to avoid conflict with import
     return singleton;
@@ -723,22 +723,27 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     if (this.configuration.parameters.configurationService) {
       try {
-        this.log("INFO", "Create and init ConfigurationService", this.configuration.parameters.configurationService);
+        this.log("INFO", `Using ConfigurationService '${this.configuration.parameters.configurationService}'`);
         // Create the configuration service
         this.createService(this.configuration.services, this.configuration.parameters.configurationService);
         let cfg = await this.getService<ConfigurationService>(
           this.configuration.parameters.configurationService
         ).initConfiguration();
         if (cfg) {
-          cfg.parameters ??= {};
-          cfg.services ??= {};
           this.configuration.parameters = deepmerge(this.configuration.parameters, cfg.parameters);
           // Ensure beans are known too
-          Object.keys(this.getBeans()).forEach(bean => {
-            this.configuration.services[bean] ??= {
-              type: `Beans/${bean}`
-            };
-          });
+          Object.keys(this.getBeans())
+            .filter(
+              i =>
+                !(Array.isArray(this.configuration.parameters.ignoreBeans)
+                  ? this.configuration.parameters.ignoreBeans.includes(i)
+                  : this.configuration.parameters.ignoreBeans)
+            )
+            .forEach(bean => {
+              this.configuration.services[bean] ??= {
+                type: `Beans/${bean}`
+              };
+            });
           // Merge services - for security reason we cannot add new services from configuration
           for (let i in this.configuration.services) {
             this.configuration.services[i] = {
@@ -804,7 +809,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   checkOperationPermission(context: OperationContext, operationId: string): boolean {
     if (!this.operations[operationId]) {
-      throw new OperationError(operationId, "Unknown");
+      throw new WebdaError.NotFound(`${operationId} Unknown`);
     }
     if (this.operations[operationId].permission) {
       this.operations[operationId].permissionQuery ??= new WebdaQL.QueryValidator(
@@ -822,25 +827,30 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   async checkOperation(context: OperationContext, operationId: string) {
     if (!this.checkOperationPermission(context, operationId)) {
-      throw new OperationError(operationId, "PermissionDenied");
+      throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
     }
-    let input = await context.getInput();
-    this.log(
-      "TRACE",
-      `Operation ${operationId} input is '${JSONUtils.safeStringify(input, undefined, 2)}' (schema: ${
-        this.operations[operationId].input
-      })`
-    );
     try {
-      if (
-        this.operations[operationId].input &&
-        (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true)
-      ) {
-        throw new OperationError(operationId, "InvalidInput");
+      if (this.operations[operationId].input) {
+        let input = await context.getInput();
+        if (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true) {
+          throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
+        }
       }
     } catch (err) {
       if (err instanceof ValidationError) {
-        throw new OperationError(operationId, "InvalidInput");
+        throw new WebdaError.BadRequest(`${operationId} InvalidInput ${err.errors.map(e => e.message).join("; ")}`);
+      }
+      throw err;
+    }
+    try {
+      if (this.operations[operationId].parameters) {
+        this.validateSchema(this.operations[operationId].parameters, context.getParameters());
+      }
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        throw new WebdaError.BadRequest(
+          `${operationId} InvalidParameters ${err.errors.map(e => e.message).join("; ")}`
+        );
       }
       throw err;
     }
@@ -852,6 +862,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   async callOperation(context: OperationContext, operationId: string) {
     context.setExtension("operation", operationId);
     await this.checkOperation(context, operationId);
+    context.setExtension("operationContext", this.operations[operationId].context || {});
     return this.getService(this.operations[operationId].service)[this.operations[operationId].method](context);
   }
 
@@ -876,10 +887,21 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param operationId
    * @param definition
    */
-  registerOperation(operationId: string, definition: OperationDefinition) {
-    if (operationId.match(/[^a-zA-Z0-9.]/)) {
-      throw new Error("OperationId can only contain [a-zA-Z0-9.]");
+  registerOperation(operationId: string, definition: Omit<OperationDefinition, "id">) {
+    // Check operation naming convention
+    if (!operationId.match(/^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/)) {
+      throw new Error(`OperationId ${operationId} must match ^([A-Z][A-Za-z0-9]*.)*([A-Z][a-zA-Z0-9]*)$`);
     }
+
+    // Check if service and method exist
+    if (
+      !this.getService(definition.service) ||
+      typeof this.getService(definition.service)[definition.method] !== "function"
+    ) {
+      throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
+    }
+    // Add the operation
+    // We will want to cache operations for faster startup
     this.operations[operationId] = { ...definition, id: operationId };
     ["input", "output"]
       .filter(key => this.operations[operationId][key])
@@ -1248,8 +1270,17 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected createServices(excludes: string[] = []): void {
     const services = this.configuration.services;
-    const beans: { [key: string]: Modda } = this.getBeans();
-    this.log("DEBUG", "BEANS", beans);
+    let beans: { [key: string]: Modda } = this.getBeans();
+    if (this.configuration.parameters.ignoreBeans) {
+      if (Array.isArray(this.configuration.parameters.ignoreBeans)) {
+        this.configuration.parameters.ignoreBeans.forEach(bean => {
+          delete beans[bean];
+        });
+      } else {
+        beans = {};
+      }
+    }
+    this.log("DEBUG", "BEANS", beans, "IGNORING", this.configuration.parameters.ignoreBeans);
     for (let i in beans) {
       let name = beans[i].name;
       if (!services[name]) {

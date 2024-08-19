@@ -5,12 +5,12 @@ import pkg from "fs-extra";
 import * as path from "path";
 import { stub } from "sinon";
 import { KubernetesConfigurationService } from "..";
-import { WebdaTest } from "../test";
+import { WebdaInternalTest } from "../test";
 import { getCommonJS } from "../utils/esm";
 const { emptyDirSync, ensureSymlinkSync, outputFileSync } = pkg;
 const { __dirname } = getCommonJS(import.meta.url);
 
-class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
+class AbstractKubernetesConfigurationServiceTest extends WebdaInternalTest {
   folder: string = __dirname + "/../../test/kube";
   dataFolder: string;
   content = {
@@ -20,11 +20,11 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
           Authentication: {
             providers: {
               email: {
-                text: "Plop1"
+                text: "Plop1",
+                text2: "Plop6"
               }
             }
-          },
-          "Authentication.providers.email.text2": "Plop6"
+          }
         }
       },
       undefined,
@@ -33,10 +33,59 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
   };
 
   getTestConfiguration() {
-    return __dirname + "/../../test/config-kube-reload.json";
+    return {
+      parameters: {
+        ignoreBeans: true,
+        configurationService: "KubernetesConfigurationService"
+      },
+      services: {
+        Authentication: {
+          providers: {
+            facebook: {},
+            email: {
+              from: "",
+              subject: "",
+              html: "",
+              text: "Test",
+              mailer: "DefinedMailer",
+              postValidation: false
+            },
+            phone: {},
+            twitter: {},
+            google: {},
+            github: {}
+          }
+        },
+        DefinedMailer: {
+          type: "WebdaTest/Mailer"
+        },
+        Users: {
+          type: "MemoryStore"
+        },
+        Idents: {
+          type: "MemoryStore"
+        },
+        KubernetesConfigurationService: {
+          type: "Webda/KubernetesConfigurationService",
+          source: "./test/kube",
+          default: {
+            services: {
+              Authentication: {
+                providers: {
+                  email: {
+                    text: "Plop0"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
   }
 
   async before(create: boolean = false) {
+    mkdirSync(this.folder, { recursive: true });
     emptyDirSync(this.folder);
     // Empty the kube directory
     if (create) {
@@ -45,6 +94,9 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
     await super.before();
   }
 
+  /**
+   * Create the configMap in the right folder
+   */
   createConfigMap() {
     this.dataFolder = `..${Date.now()}`;
     mkdirSync(path.join(this.folder, this.dataFolder));
@@ -55,6 +107,9 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
     });
   }
 
+  /**
+   * Update the config map
+   */
   updateConfigMap(content: any) {
     this.dataFolder = `..${Date.now()}`;
     this.content = content;
@@ -69,7 +124,11 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
 
 @suite
 class KubernetesConfigurationServiceTest extends AbstractKubernetesConfigurationServiceTest {
+  /**
+   * @override
+   */
   async before() {
+    // Create a default configmap like it should be on a starting pod
     await super.before(true);
   }
 

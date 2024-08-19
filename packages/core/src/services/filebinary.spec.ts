@@ -8,12 +8,10 @@ import sinon from "sinon";
 import { Readable } from "stream";
 import { Core } from "../core";
 import { WebdaError } from "../errors";
-import { CoreModel, CoreModelDefinition } from "../models/coremodel";
-import { Store } from "../stores/store";
+import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { FileUtils } from "../utils/serializers";
 import {
-  Binaries,
   BinariesImpl,
   BinariesItem,
   Binary,
@@ -22,8 +20,7 @@ import {
   BinaryService,
   MemoryBinaryFile
 } from "./binary";
-import { TestBinaryService } from "./binary.spec";
-import { CloudBinaryTest } from "./cloudbinary.spec";
+import { BinaryTest, TestBinaryService } from "./binary.spec";
 import { FileBinary } from "./filebinary";
 const { removeSync } = pkg;
 
@@ -37,17 +34,18 @@ class FaultyBinaryFile extends BinaryFile {
   }
 }
 @suite
-class FileBinaryTest extends CloudBinaryTest {
-  @test
-  initMap() {
-    let binary = this.getBinary();
-    binary.initMap(undefined);
-    binary.initMap({ _init: true });
-    // Bad store
-    binary.initMap({
-      VersionService: {},
-      None: {},
-      MemoryIdents: "idents"
+class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
+  /**
+   * @override
+   */
+  async getBinary(): Promise<T> {
+    return <Promise<T>>this.addService(FileBinary, {
+      folder: "./test/data/binaries",
+      models: {
+        "*": ["*"],
+        "WebdaDemo/User": ["images"]
+      },
+      url: "/binary/"
     });
   }
 
@@ -59,15 +57,15 @@ class FileBinaryTest extends CloudBinaryTest {
 
   @test
   async _getFile() {
-    let binary = this.getBinary();
+    let binary = await this.getBinary();
     let ctx = await this.newContext();
     ctx.getHttpContext().setBody("plop");
-    ctx.getHttpContext().headers = { "content-type": "text/plain" };
+    ctx.getParameters()["mimetype"] = "text/plain";
     assert.deepStrictEqual(
-      await binary._getFile(ctx),
+      await binary.getFile(ctx),
       new MemoryBinaryFile(Buffer.from("plop"), {
-        challenge: undefined,
-        hash: undefined,
+        challenge: "0c5a5d8b2b6b84c6ea966d0751f80366",
+        hash: "64a4e8faed1a1aa0bf8bf0fc84938d25",
         metadata: {},
         mimetype: "text/plain",
         name: "",
@@ -77,18 +75,8 @@ class FileBinaryTest extends CloudBinaryTest {
   }
 
   @test
-  initRoutes() {
-    let binary = this.getBinary();
-    binary.getParameters().expose = undefined;
-    binary.initRoutes();
-    // @ts-ignore
-    binary._name = "Binary";
-    binary.initRoutes();
-  }
-
-  @test
   async downloadSignedUrl() {
-    let binary: FileBinary = this.getBinary() as FileBinary;
+    let binary: FileBinary = (await this.getBinary()) as FileBinary;
     let { user1, ctx } = await this.setupDefault(false);
 
     let url = await binary.getRedirectUrlFromObject(user1.images[0], ctx, 60);
@@ -119,47 +107,38 @@ class FileBinaryTest extends CloudBinaryTest {
 
   @test
   async verifyMapAndStore() {
-    let binary = this.getBinary();
+    let binary = await this.getBinary();
     let ctx = await this.newContext();
-    ctx.setPathParameters({ store: "Store", property: "images" });
-    assert.throws(
-      () => binary._verifyMapAndStore(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
-    );
-    ctx.setPathParameters({ store: "users", property: "images" });
-    assert.strictEqual(binary._verifyMapAndStore(ctx), this.getService("Users"));
-    ctx.setPathParameters({ store: "users", property: "images2" });
-    assert.throws(
-      () => binary._verifyMapAndStore(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
-    );
-    ctx.setPathParameters({ store: "notexisting", property: "images" });
-    assert.throws(
-      () => binary._verifyMapAndStore(ctx),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
-    );
+    ctx.setParameters({ model: "User", property: "images" });
+    const model = this.webda.getModel("User").store();
+    assert.strictEqual(binary["verifyMapAndStore"](ctx), model);
+
+    const stub = sinon.stub(binary, "handleBinary").callsFake(() => -1);
+    try {
+      assert.throws(
+        () => binary["verifyMapAndStore"](ctx),
+        (err: WebdaError.HttpError) => err.getResponseCode() === 404
+      );
+    } finally {
+      stub.restore();
+    }
   }
 
   @test
-  computeParameters() {
-    let binary = <FileBinary>this.getBinary();
+  async computeParameters() {
+    let binary = <FileBinary>await this.getBinary();
     removeSync(binary.getParameters().folder);
     binary.computeParameters();
     assert.ok(fs.existsSync(binary.getParameters().folder));
   }
 
   @test
-  async challenge() {
-    await this.testChallenge();
-  }
-
-  @test
   async badTokens() {
-    let binary = <FileBinary>this.getBinary();
+    let binary = <FileBinary>await this.getBinary();
     let ctx = await this.newContext();
     let { hash } = await new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})).getHashes();
     let token = "badt";
-    ctx.setPathParameters({
+    ctx.setParameters({
       hash,
       token
     });
@@ -169,7 +148,7 @@ class FileBinaryTest extends CloudBinaryTest {
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
     token = await this.webda.getCrypto().jwtSign({ hash: "PLOP2" });
-    ctx.setPathParameters({
+    ctx.setParameters({
       hash,
       token
     });
@@ -179,7 +158,7 @@ class FileBinaryTest extends CloudBinaryTest {
     );
     // expired token
     token = await this.webda.getCrypto().jwtSign({ hash, exp: Math.floor(Date.now() / 1000) - 60 * 60 });
-    ctx.setPathParameters({
+    ctx.setParameters({
       hash,
       token
     });
@@ -188,7 +167,7 @@ class FileBinaryTest extends CloudBinaryTest {
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
     token = await this.webda.getCrypto().jwtSign({ hash });
-    ctx.setPathParameters({
+    ctx.setParameters({
       hash,
       token
     });
@@ -199,8 +178,8 @@ class FileBinaryTest extends CloudBinaryTest {
   }
 
   @test
-  cleanNonExisting() {
-    let binary = <FileBinary>this.getBinary();
+  async cleanNonExisting() {
+    let binary = <FileBinary>await this.getBinary();
     binary._cleanHash("plop");
     binary._cleanUsage("plop", "l");
   }
@@ -216,8 +195,8 @@ class FileBinaryTest extends CloudBinaryTest {
   }
 
   @test
-  cov() {
-    let binary = <FileBinary>this.getBinary();
+  async cov() {
+    let binary = <FileBinary>await this.getBinary();
     try {
       binary._touch("./touch.txt");
       binary._touch("./touch.txt");
@@ -227,27 +206,39 @@ class FileBinaryTest extends CloudBinaryTest {
   }
 
   @test
+  async getOperationName() {
+    let binary = await this.getBinary();
+    binary["_name"] = "Binary";
+    // @ts-ignore
+    assert.strictEqual(binary.getOperationName(), "");
+    // @ts-ignore
+    binary._name = "Other";
+    // @ts-ignore
+    assert.strictEqual(binary.getOperationName(), binary.getName());
+  }
+
+  @test
   async handleBinary() {
-    this.registerService(
+    await this.registerService(
       new FileBinary(Core.get(), "second", {
         folder: "./test/data/binaries",
         models: {}
       })
     );
     const binaries: { [key: string]: BinaryService } = <any>Core.get().getServicesOfType(<any>BinaryService);
-    const user = Core.get().getModel("WebdaDemo/User");
+    const user = Core.get().getModel("Webda/User");
 
-    assert.strictEqual(Core.get().getBinaryStore(user, "images"), binaries["binary"]);
-    binaries["binary"].getParameters().models = {};
+    assert.strictEqual(Core.get().getBinaryStore(user, "images"), binaries["FileBinary"]);
+    binaries["FileBinary"].getParameters().models = {};
     assert.throws(
       () => Core.get().getBinaryStore(user, "profilePicture"),
-      /No binary store found for WebdaDemo\/User profilePicture/
+      /No binary store found for Webda\/User profilePicture/
     );
-    binaries["binary"].getParameters().models = {
-      "WebdaDemo/User": ["*"]
+    binaries["FileBinary"].getParameters().models = {
+      "Webda/User": ["*"]
     };
     binaries["second"].getParameters().models = {
-      "WebdaDemo/User": ["profilePicture"]
+      "Webda/User": ["profilePicture"]
     };
     assert.strictEqual(Core.get().getBinaryStore(user, "profilePicture"), binaries["second"]);
   }
@@ -257,39 +248,36 @@ class FileBinaryTest extends CloudBinaryTest {
    */
   @test
   async binaryAttributes() {
-    const user: CoreModelDefinition<CoreModel & { images: Binaries; profilePicture: Binary }> =
-      Core.get().getModel("WebdaDemo/User");
-    const User = await new user().load({}, true).save();
-    //User.profilePicture.upload(new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})));
-    await User.profilePicture.upload(new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})));
-    await User.images.upload(new MemoryBinaryFile(Buffer.from("PLOP2"), <BinaryFileInfo>(<unknown>{})));
-    await this.sleep(1000);
+    const user: any = await this.webda.getModel("WebdaDemo/ImageUser").create({});
+    await user.profile.upload(new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})));
+    await user.images.upload(new MemoryBinaryFile(Buffer.from("PLOP2"), <BinaryFileInfo>(<unknown>{})));
+
     let files = await FileUtils.find("./test/data/binaries");
     assert.deepStrictEqual(files, [
-      `test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/MemoryUsers_profilePicture_${User.getUuid()}`,
+      `test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/Registry_profile_${user.getUuid()}`,
       "test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/_9eed42d099ec7ef1eed00a49e8079cd2",
       "test/data/binaries/f15c25d20d6b9a631ab6de08cd00035e/data",
-      `test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/MemoryUsers_images_${User.getUuid()}`,
+      `test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/Registry_images_${user.getUuid()}`,
       "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/_0a4ef38590e0bd4a8999f1489186bbe9",
       "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/data"
     ]);
-    await User.profilePicture.delete();
-    await this.sleep(1000);
+    await user.profile.delete();
+
     files = await FileUtils.find("./test/data/binaries");
     assert.deepStrictEqual(files, [
-      `test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/MemoryUsers_images_${User.getUuid()}`,
+      `test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/Registry_images_${user.getUuid()}`,
       "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/_0a4ef38590e0bd4a8999f1489186bbe9",
       "test/data/binaries/ff1cee367d40cacc3fe5f23e985c29ae/data"
     ]);
-    await User.images[0].upload(
+    await user.images[0].upload(
       new MemoryBinaryFile(Buffer.from("0123456789"), {
         mimetype: "text/plain",
         name: "test.txt",
         size: 10
       })
     );
-    await User.images[0].delete();
-    await this.sleep(1000);
+    await user.images[0].delete();
+
     files = await FileUtils.find("./test/data/binaries");
     assert.deepStrictEqual(files, []);
   }
@@ -309,11 +297,14 @@ class BinaryAbstractTest extends WebdaTest {
     ctx.getHttpContext().setBody({
       hash: "plop"
     });
+    /* TODO Move to RESTDomain
     await assert.rejects(
       () => service.httpChallenge(ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 400
     );
+    */
     ctx = await this.newContext();
+    /* TODO Move to RESTDomain
     ctx.getHttpContext().setBody({
       challenge: "plop"
     });
@@ -321,9 +312,10 @@ class BinaryAbstractTest extends WebdaTest {
       () => service.httpChallenge(ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 400
     );
+    */
     ctx = await this.newContext();
     let binary = this.getService<BinaryService>("binary");
-    ctx.setPathParameters({
+    ctx.setParameters({
       property: "images",
       store: "users",
       uid: "notfound",
@@ -333,10 +325,12 @@ class BinaryAbstractTest extends WebdaTest {
       hash: "p",
       challenge: "z"
     });
+    /* TODO Move to RESTDomain
     await assert.rejects(
       () => binary.httpChallenge(ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 404
     );
+    */
 
     let stubs = [];
     try {
@@ -354,8 +348,9 @@ class BinaryAbstractTest extends WebdaTest {
           return null;
         })
       );
+      /*
       stubs.push(
-        sinon.stub(binary, "_verifyMapAndStore").callsFake(() => {
+        sinon.stub(binary, "verifyMapAndStore").callsFake(() => {
           return (<any>{
             get: async () => {
               return model as CoreModel;
@@ -385,6 +380,7 @@ class BinaryAbstractTest extends WebdaTest {
       ctx.getHttpContext().getAbsoluteUrl = () => url + "/url";
       await binary.httpGet(ctx);
       assert.strictEqual(ctx.getResponseBody(), `{"Location":"http://test.webda.io/","Map":{"size":10}}`);
+      */
     } finally {
       stubs.forEach(stub => stub.restore());
     }
@@ -440,7 +436,7 @@ class BinaryAbstractTest extends WebdaTest {
     const ctx = await this.newContext();
     binaryService.handleBinary = () => -1;
     ctx.getParameters().model = "webda/test";
-    assert.throws(() => binaryService._verifyMapAndStore(ctx), WebdaError.NotFound);
+    assert.throws(() => binaryService["verifyMapAndStore"](ctx), WebdaError.NotFound);
   }
 
   @test
@@ -456,11 +452,13 @@ class BinaryAbstractTest extends WebdaTest {
     if (fs.existsSync(dataPath)) {
       fs.unlinkSync(dataPath);
     }
+    /*
     let res = await binaryService.putRedirectUrl(ctx);
     assert.notStrictEqual(res, undefined);
     writeFileSync(dataPath, "data");
     res = await binaryService.putRedirectUrl(ctx);
     assert.strictEqual(res, undefined);
+    */
   }
 }
 

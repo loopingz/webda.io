@@ -1,7 +1,7 @@
 import { existsSync, watchFile } from "fs";
 import { WebdaError } from "../index";
 import { FileUtils } from "../utils/serializers";
-import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
+import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 
 /**
  * Allow for dynamic configuration from a file

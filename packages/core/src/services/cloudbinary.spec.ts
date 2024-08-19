@@ -1,20 +1,9 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { WebdaError } from "../errors";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
-import { WebContext } from "../utils/context";
-import {
-  BinaryEvents,
-  BinaryFile,
-  BinaryMap,
-  BinaryMetadata,
-  BinaryModel,
-  BinaryParameters,
-  BinaryService
-} from "./binary";
-import { BinaryTest } from "./binary.spec";
+import { BinaryFile, BinaryMap, BinaryMetadata, BinaryModel } from "./binary";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 
 class CloudBinaryFakeService extends CloudBinary {
@@ -40,29 +29,6 @@ class CloudBinaryFakeService extends CloudBinary {
    */
   async getSignedUrlFromMap(map: BinaryMap, expires: number): Promise<string> {
     return `${map.hash}:${expires}`;
-  }
-}
-
-export class CloudBinaryTest<
-  T extends BinaryService<BinaryParameters, BinaryEvents> = BinaryService<BinaryParameters, BinaryEvents>
-> extends BinaryTest<T> {
-  @test
-  async redirectUrl() {
-    let { user1, ctx } = await this.setupDefault();
-    // Making sure we are redirected on GET
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
-    await executor.execute(ctx);
-    assert.ok(ctx.getResponseHeaders().Location !== undefined);
-  }
-
-  @test
-  async redirectUrlInfo() {
-    let { user1, ctx } = await this.setupDefault();
-    // Making sure we are redirected on GET
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
-    await executor.execute(ctx);
-    assert.ok(ctx.getResponseHeaders().Location === undefined);
-    assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);
   }
 }
 
@@ -95,107 +61,5 @@ export class FakeCloudBinaryTest extends WebdaTest {
     model.load({ plop: [{}, { hash: "fake" }] }, true);
     await service.delete(<BinaryModel>model, "plop", 1);
     // Check called with "fake", 1
-  }
-
-  @test
-  async initRoutes() {
-    let service = new CloudBinaryFakeService(this.webda, "fake", {});
-    // @ts-ignore addRoute is a protected method of service
-    let stub = sinon.stub(service, "addRoute");
-    service.initRoutes();
-    assert.strictEqual(stub.callCount, 0);
-    service.getParameters().expose = {
-      url: "plop",
-      restrict: {}
-    };
-    service.initRoutes();
-    assert.strictEqual(stub.callCount, 6);
-    stub.callCount = 0;
-    service.getParameters().expose = {
-      url: "plop",
-      restrict: {
-        get: true
-      }
-    };
-    service.initRoutes();
-    assert.strictEqual(stub.callCount, 4);
-  }
-
-  @test
-  async routes() {
-    let service = new CloudBinaryFakeService(this.webda, "fake", {});
-    let wrote;
-    let wroteHead;
-    let context: WebContext = <any>{
-      parameter: name => {
-        return name === "index" ? 1 : name;
-      },
-      write: (...arg) => {
-        wrote = arg;
-      },
-      writeHead: (...arg) => {
-        wroteHead = arg;
-      },
-      getParameters: () => ({ index: 1, hash: "hash", property: "property" }),
-      getHttpContext: () => ({
-        getAbsoluteUrl: () => "http://myhost/test",
-        getRelativeUri: () => "/test"
-      })
-    };
-    let storeGetResult;
-    // @ts-ignore
-    sinon.stub(service, "_verifyMapAndStore").callsFake(() => {
-      return {
-        get: async () => {
-          return storeGetResult;
-        }
-      };
-    });
-    await assert.rejects(() => service.httpGet(context), WebdaError.NotFound);
-    storeGetResult = {
-      property: [1],
-      checkAct: () => {}
-    };
-    await assert.rejects(
-      () => service.httpGet(context),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 404
-    );
-    let myEvt;
-    storeGetResult = {
-      property: [
-        1,
-        {
-          hash: "myhash"
-        }
-      ],
-      checkAct: (ctx, evt) => {
-        myEvt = evt;
-      },
-      canAct: (ctx, evt) => {
-        myEvt = evt;
-      }
-    };
-    let counter = 0;
-    service.on("Binary.Get", () => {
-      counter++;
-    });
-    await service.httpGet(context);
-    assert.deepStrictEqual(wroteHead, [302, { Location: "myhash:30" }]);
-    // @ts-ignore
-    context.getHttpContext = () => ({
-      getAbsoluteUrl: () => "http://myhost/test/url",
-      getRelativeUri: () => "/test/url"
-    });
-    await service.httpGet(context);
-    assert.strictEqual(counter, 2);
-    assert.deepStrictEqual(wrote, [
-      {
-        Location: "myhash:30",
-        Map: {
-          hash: "myhash"
-        }
-      }
-    ]);
-    assert.strictEqual(myEvt, "get_binary");
   }
 }

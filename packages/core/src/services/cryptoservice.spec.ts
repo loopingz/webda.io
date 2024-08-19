@@ -2,15 +2,15 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import jwt from "jsonwebtoken";
 import * as sinon from "sinon";
-import { WebdaTest } from "../test";
+import { WebdaInternalTest } from "../test";
 import { JSONUtils } from "../utils/serializers";
-import CryptoService, { SecretString } from "./cryptoservice";
+import { CryptoService, SecretString } from "./cryptoservice";
 
 /**
  *
  */
 @suite
-class CryptoServiceTest extends WebdaTest {
+class CryptoServiceTest extends WebdaInternalTest {
   @test
   async hmac() {
     let hmac = await this.webda.getCrypto().hmac({ test: "plop" });

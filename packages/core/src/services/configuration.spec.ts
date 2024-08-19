@@ -3,24 +3,67 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
-import { WebdaTest } from "../test";
+import { WebdaInternalSimpleTest } from "../test";
 import { getCommonJS } from "../utils/esm";
 import { ConfigurationService } from "./configuration";
 const { __filename, __dirname } = getCommonJS(import.meta.url);
 
 @suite
-class ConfigurationServiceTest extends WebdaTest {
+class ConfigurationServiceTest extends WebdaInternalSimpleTest {
   getTestConfiguration() {
-    return __dirname + "/../../test/config-reload.json";
-  }
-  async before() {
-    await super.before();
-    await this.webda.getService("ConfigurationStore").__clean();
-    await this.webda.init();
-  }
-  async after() {
-    await this.webda.getService("ConfigurationStore").__clean();
-    (<ConfigurationService>this.webda.getService("ConfigurationService")).stop();
+    return {
+      parameters: {
+        ignoreBeans: true
+      },
+      services: {
+        Authentication: {
+          successRedirect: "https://webda.io/user.html",
+          failureRedirect: "/login-error",
+          providers: {
+            facebook: {},
+            email: {
+              from: "",
+              subject: "",
+              html: "",
+              text: "Test",
+              mailer: "DefinedMailer",
+              postValidation: false
+            },
+            phone: {},
+            twitter: {},
+            google: {},
+            github: {}
+          }
+        },
+        DefinedMailer: {
+          type: "WebdaTest/Mailer"
+        },
+        Users: {
+          type: "MemoryStore"
+        },
+        Idents: {
+          type: "MemoryStore"
+        },
+        ConfigurationStore: {
+          type: "MemoryStore"
+        },
+        ConfigurationService: {
+          source: "ConfigurationStore:test",
+          checkInterval: 2,
+          default: {
+            services: {
+              Authentication: {
+                providers: {
+                  email: {
+                    text: "Test"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
   }
 
   @test

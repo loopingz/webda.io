@@ -26,7 +26,8 @@
     "transpileOnly": true,
     "preferTsExts": true,
     "compilerOptions": {
-      "experimentalDecorators": true
+      "experimentalDecorators": true,
+      "declarationMap": true
     },
     "include": [
       "src/**/*.spec.ts"

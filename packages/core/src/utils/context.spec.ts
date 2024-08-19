@@ -95,15 +95,13 @@ class ContextTest extends WebdaTest {
     assert.notStrictEqual(this.ctx.getService("Registry"), undefined);
     assert.notStrictEqual(this.ctx.getService<Service>("Registry"), undefined);
     this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
-    this.ctx.setPathParameters({ id: "plop" });
-    this.ctx.setServiceParameters({ id: "service" });
-    assert.strictEqual(this.ctx.getServiceParameters().id, "service");
-    assert.strictEqual(this.ctx.getPathParameters().id, "plop");
+    this.ctx.setParameters({ id: "plop" });
+    assert.strictEqual(this.ctx.getParameters().id, "plop");
     assert.strictEqual(this.ctx.getHttpContext().getPortNumber(), 80);
     this.ctx.setExtension("mine", "plop");
     assert.strictEqual(this.ctx.getExtension("mine"), "plop");
     // @ts-ignore
-    assert.strictEqual(this.ctx.getRequestParameters(), this.ctx.parameters);
+    assert.strictEqual(this.ctx.getParameters(), this.ctx.parameters);
     // @ts-ignore
     this.ctx.session = undefined;
     assert.strictEqual(this.ctx.getSession(), undefined);

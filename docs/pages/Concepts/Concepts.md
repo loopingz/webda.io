@@ -7,12 +7,13 @@ sidebar_position: 2
 Webda is a domain driven framework.
 
 It means you should mainly focus on creating your business models.
+Most business logic should be implemented in your models.
 
 Then Services exists to implement generic features:
 
 - Store your models: Store, DynamoDB, MongoDB, Postgresql, Firebase, Memory, File
 - Store your binaries: BinaryService, FileBinary, S3Binary, GCPStorage
-- Expose your models: DomainService, GraphQLService
+- Expose your models: RESTDomainService, GraphQLService
 - Authenticatate: AuthenticationService, OAuthService
 - Secure: Hawk, built-in sanitizer
 
@@ -22,7 +23,7 @@ A Service is designed to be reusable, where a Bean is a singeleton in your appli
 
 Althought there are other mechanisms we recommend using the annotations within the app to declare: @Bean, @Route, @Operation, @Action
 
-Webda relies on Services (or Beans), they can expose some Routes and the Application can deployed using different types of Deployment
+Webda relies on Services (or Beans), they can expose some Routes.
 
 The configuration system relies on JSON files: `webda.config.json`, it can be seen as the `applicationContext.xml` of Spring framework.
 
@@ -49,14 +50,14 @@ A deployment can then decide to override this parameters allowing you to overrid
 
 ## Routes
 
-After all webda is there to create API, a Service can manage a route by using the `@Route` annotation or use the `._addRoute` method.
+After all webda is there to create API, a Service can manage a route by using the `@Route` annotation.
 
 If the Service is not designed to be extend of reused the `@Route` annotation is the simplest way
 
 ```js title="src/myservice.ts"
 
     @Route("/myroute", ["GET"])
-    myHandler(ctx: Context) {
+    myHandler(context: WebContext) {
         // Do something
     }
 ```

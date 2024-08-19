@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { WebdaTest } from "../test";
+import { WebdaSimpleTest } from "../test";
 
 class QueueItemTest {
   type: number;
@@ -13,7 +13,7 @@ class QueueItemTest {
   }
 }
 
-class QueueTest extends WebdaTest {
+class QueueTest extends WebdaSimpleTest {
   async simple(queue, inconsistentSize: boolean = false, ackDelayMs: number = 1000) {
     var msg;
     this.log("DEBUG", "Send test message 1");

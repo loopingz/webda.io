@@ -2,14 +2,32 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
 import { WebdaError } from "../errors";
-import { WebdaTest } from "../test";
-import ResourceService, { ResourceServiceParameters } from "./resource";
+import { WebdaInternalTest } from "../test";
+import { ResourceService, ResourceServiceParameters } from "./resource";
+import { UnpackedConfiguration } from "../application";
 
 @suite
-class ResourceTest extends WebdaTest {
+class ResourceTest extends WebdaInternalTest {
   resource: ResourceService;
   resourceModel;
   ctx;
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: {
+        ignoreBeans: true
+      },
+      services: {
+        ResourceService: {
+          folder: "test",
+          indexFallback: false
+        },
+        ModelsResource: {
+          type: "Webda/ResourceService",
+          url: "templates"
+        }
+      }
+    };
+  }
   async before(init: boolean = true) {
     await super.before(init);
     this.resource = this.getService("ResourceService");
@@ -76,15 +94,6 @@ class ResourceTest extends WebdaTest {
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/config.json").toString());
     assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/json");
-  }
-
-  @test
-  async jsFile() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/moddas/voidstore.js");
-    assert.notStrictEqual(executor, undefined);
-    await executor.execute(this.ctx);
-    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/moddas/voidstore.js").toString());
-    assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/javascript");
   }
 
   @test

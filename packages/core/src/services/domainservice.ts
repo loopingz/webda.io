@@ -1,167 +1,46 @@
 import { JSONSchema7 } from "json-schema";
 import {
   Application,
+  Binary,
+  BinaryMap,
+  BinaryMetadata,
+  BinaryService,
   Core,
+  CoreModel,
   CoreModelDefinition,
   DeepPartial,
   JSONUtils,
-  Methods,
   ModelAction,
+  ModelGraphBinaryDefinition,
+  OperationContext,
   OperationDefinition,
   Service,
   ServiceParameters,
-  Store,
-  WebContext
+  WebContext,
+  WebdaError
 } from "../index";
-import { OpenAPIWebdaDefinition } from "../router";
 import { TransformCase, TransformCaseType } from "../utils/case";
-
-/**
- * @WebdaModda
- */
-export class ModelsOperationsService extends Service {
-  /**
-   * Add operations for all exposed models
-   * @returns
-   */
-  initOperations(): void {
-    super.initOperations();
-
-    const app = this.getWebda().getApplication();
-
-    // Add default schemas
-    if (!app.hasSchema("uuidRequest")) {
-      app.registerSchema("uuidRequest", {
-        type: "object",
-        properties: {
-          uuid: {
-            type: "string"
-          }
-        },
-        required: ["uuid"]
-      });
-    }
-    if (!app.hasSchema("searchRequest")) {
-      app.registerSchema("searchRequest", {
-        type: "object",
-        properties: {
-          query: {
-            type: "string"
-          }
-        }
-      });
-    }
-
-    const getSchema = (id: string, input: string, params?: "uuidRequest" | "searchRequest") => {
-      const schema: JSONSchema7 = {
-        type: "object",
-        properties: {},
-        required: []
-      };
-      if (input && app.hasSchema(input)) {
-        schema.properties["input"] = app.getSchema(input);
-        schema.required.push("input");
-      }
-      if (params) {
-        schema.properties["params"] = app.getSchema(params);
-        schema.required.push("params");
-      }
-      app.registerSchema(id, schema);
-      return id;
-    };
-
-    const models = app.getModels();
-    for (let modelKey in models) {
-      const model = models[modelKey];
-      const expose = model.Expose;
-      if (!expose) {
-        continue;
-      }
-      const prefix = modelKey.split("/").pop();
-      const modelSchema = modelKey;
-
-      ["create", "update"]
-        .filter(k => !expose.restrict[k])
-        .forEach(k => {
-          k = k.substring(0, 1).toUpperCase() + k.substring(1);
-          const id = `${prefix}.${k}`;
-          this.getWebda().registerOperation(id, {
-            service: this.getName(),
-            method: k === "Create" ? "httpCreate" : "operationUpdate",
-            id,
-            input: getSchema(id, modelSchema, k === "Update" ? "uuidRequest" : undefined),
-            output: modelSchema
-          });
-        });
-      ["delete", "get"]
-        .filter(k => !expose.restrict[k])
-        .forEach(k => {
-          k = k.substring(0, 1).toUpperCase() + k.substring(1);
-          const id = `${prefix}.${k}`;
-          const info: OperationDefinition = {
-            service: this.getName(),
-            method: `http${k}`,
-            id,
-            input: getSchema(id, undefined, "uuidRequest")
-          };
-          if (k === "Get") {
-            info.output = modelSchema;
-          }
-          this.getWebda().registerOperation(id, info);
-        });
-      if (!expose.restrict.query) {
-        const id = `${prefix}.Query`;
-        this.getWebda().registerOperation(id, {
-          service: this.getName(),
-          method: "httpQuery",
-          id,
-          input: getSchema(id, undefined, "searchRequest")
-        });
-      }
-      // Add patch
-      if (!expose.restrict.update) {
-        const id = `${prefix}.Patch`;
-        this.getWebda().registerOperation(id, {
-          service: this.getName(),
-          method: "operationPatch",
-          id,
-          input: getSchema(id, modelSchema + "?", "uuidRequest")
-        });
-      }
-      // Add all operations for Actions
-      let actions = model.getActions();
-      Object.keys(actions).forEach(name => {
-        const id = `${prefix}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
-        const info: any = {
-          service: this.getName(),
-          method: `action${name}`,
-          id
-        };
-        info.input = getSchema(id, `${modelKey}.${name}.input`, "uuidRequest");
-        info.output = `${modelKey}.${name}.output`;
-        this.getWebda().registerOperation(id, info);
-      });
-    }
-  }
-}
 
 export class DomainServiceParameters extends ServiceParameters {
   /**
    * Expose objects as operations too
+   *
+   * @default true
    */
-  operations: boolean;
+  operations?: boolean;
   /**
    * Transform the name of the model to be used in the URL
    *
    * @see https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go
+   * @default camelCase
    */
-  nameTransfomer: TransformCaseType;
+  nameTransfomer?: TransformCaseType;
   /**
    * Method used for query objects
    *
    * @default "PUT"
    */
-  queryMethod: "PUT" | "GET";
+  queryMethod?: "PUT" | "GET";
   /**
    * List of models to include
    *
@@ -169,9 +48,9 @@ export class DomainServiceParameters extends ServiceParameters {
    *
    * @default ["*"]
    */
-  models: string[];
+  models?: string[];
   /**
-   *
+   * Used to store the excluded models
    * @SchemaIgnore
    */
   private excludedModels: string[];
@@ -210,49 +89,6 @@ export class DomainServiceParameters extends ServiceParameters {
 }
 
 /**
- * Swagger static html
- */
-const swagger = `
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css" >
-    <style>
-      .topbar {
-        display: none;
-      }
-    </style>
-  </head>
-
-  <body>
-    <div id="swagger-ui"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js"> </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js"> </script>
-    <script>
-      const spec = {{OPENAPI}};
-      window.onload = function() {
-        const ui = SwaggerUIBundle({
-          spec: spec,
-          dom_id: '#swagger-ui',
-          deepLinking: true,
-          presets: [
-            SwaggerUIBundle.presets.apis,
-            SwaggerUIStandalonePreset
-          ],
-          plugins: [
-            SwaggerUIBundle.plugins.DownloadUrl
-          ],
-          layout: "StandaloneLayout"
-        })
-     
-        window.ui = ui
-      }
-  </script>
-  </body>
-</html>
-`;
-
-/**
  * Domain Service expose all the models as Route and Operations
  *
  * Model are exposed if they have a Expose decorator
@@ -264,6 +100,95 @@ const swagger = `
  */
 export abstract class DomainService<T extends DomainServiceParameters = DomainServiceParameters> extends Service<T> {
   app: Application;
+  static schemas = {
+    uuidRequest: {
+      type: "object",
+      properties: {
+        uuid: {
+          type: "string"
+        }
+      },
+      required: ["uuid"]
+    },
+    binaryGetRequest: {
+      type: "object",
+      properties: {
+        uuid: {
+          type: "string"
+        },
+        index: {
+          type: "number"
+        }
+      },
+      required: ["uuid", "index"]
+    },
+    binaryHashRequest: {
+      type: "object",
+      properties: {
+        uuid: {
+          type: "string"
+        },
+        hash: {
+          type: "string"
+        }
+      },
+      required: ["uuid", "hash"]
+    },
+    binaryIndexHashRequest: {
+      type: "object",
+      properties: {
+        uuid: {
+          type: "string"
+        },
+        index: {
+          type: "number"
+        },
+        hash: {
+          type: "string"
+        }
+      },
+      required: ["uuid", "index", "hash"]
+    },
+    binaryAttachParameters: {
+      type: "object",
+      properties: {
+        filename: {
+          type: "string"
+        },
+        size: {
+          type: "number"
+        },
+        mimetype: {
+          type: "string"
+        },
+        uuid: {
+          type: "string"
+        }
+      },
+      required: ["uuid"]
+    },
+    binaryChallengeRequest: {
+      type: "object",
+      properties: {
+        hash: {
+          type: "string"
+        },
+        challenge: {
+          type: "string"
+        }
+      },
+      required: ["hash", "challenge"]
+    },
+    searchRequest: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string"
+        }
+      }
+    }
+  };
+
   /**
    * Load the paremeters for your service
    * @param params
@@ -304,6 +229,11 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     if (!model.Expose || (model.getIdentifier && !this.parameters.isIncluded(model.getIdentifier()))) {
       return;
     }
+    const shortId = model.getIdentifier(true);
+    // Overlap object are hidden by design
+    if (shortId.includes("/")) {
+      return;
+    }
     const context = JSONUtils.duplicate(modelContext);
     context.depth = depth;
     if (!this.handleModel(model, name, context)) {
@@ -336,668 +266,478 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
 
     return this;
   }
-}
 
-/**
- *
- */
-export class RESTDomainServiceParameters extends DomainServiceParameters {
   /**
-   * Expose the OpenAPI
    *
-   * @default true if debug false otherwise
-   */
-  exposeOpenAPI: boolean;
-
-  /**
-   * Set default url to /
-   * @param params
-   */
-  constructor(params: any) {
-    super(params);
-    this.url ??= "/";
-  }
-}
-
-/**
- * Expose all models via a REST API
- * @WebdaModda
- */
-export class RESTDomainService<
-  T extends RESTDomainServiceParameters = RESTDomainServiceParameters
-> extends DomainService<T> {
-  /**
-   * OpenAPI cache
-   */
-  openapiContent: string;
-  /**
-   * Override to fallback on isDebug for exposeOpenAPI
-   * @returns
-   */
-  resolve() {
-    this.parameters.exposeOpenAPI ??= this.getWebda().isDebug();
-    super.resolve();
-    if (this.parameters.exposeOpenAPI) {
-      this.addRoute(".", ["GET"], this.openapi, { hidden: true });
-    }
-    return this;
-  }
-
-  /**
-   * @override
-   */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
-    return new RESTDomainServiceParameters(params);
-  }
-
-  /**
-   * Handle one model and expose it based on the service
    * @param model
-   * @param name
+   * @param uuid
+   */
+  private async getModel(context: OperationContext): Promise<CoreModel> {
+    const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
+    const { uuid } = context.getParameters();
+    const object = await model.ref(uuid).get();
+    if (object === undefined || object.isDeleted()) {
+      await this.emitSync("Store.WebNotFound", {
+        context,
+        uuid
+      });
+      throw new WebdaError.NotFound("Object not found");
+    }
+    return object;
+  }
+
+  /**
+   * Create a model operation implementation
    * @param context
+   */
+  async modelCreate(context: OperationContext) {
+    const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
+    let object = model.factory(await context.getInput(), context);
+    await object.checkAct(context, "create");
+    // Enforce the UUID
+    object.setUuid(object.generateUid());
+    // Check for conflict
+    // await object.validate(context, {});
+    if (await model.ref(object.getUuid()).exists()) {
+      throw new WebdaError.Conflict("Object already exists");
+    }
+    await object.save();
+    context.write(object);
+  }
+
+  /**
+   * Update a model operation implementation
+   * @param context
+   */
+  async modelUpdate(context: OperationContext) {
+    let object = await this.getModel(context);
+    let input = await context.getInput();
+    await object.checkAct(context, "update");
+    object.load(input);
+    await object.save(true);
+    context.write(object);
+  }
+
+  /**
+   * Get a model operation implementation
+   * @param context
+   */
+  async modelGet(context: OperationContext) {
+    let object = await this.getModel(context);
+    await object.checkAct(context, "get");
+    const evt = {
+      context,
+      object: object
+    };
+    //
+    await Promise.all([this.emitSync("Store.WebGet", evt), object.__class.emitSync("Store.WebGet", <any>evt)]);
+    context.write(object);
+  }
+
+  /**
+   * Delete a model operation implementation
+   * @param context
+   */
+  async modelDelete(context: OperationContext) {
+    let object = await this.getModel(context);
+    if (!object) {
+      throw new WebdaError.NotFound("Object not found");
+    }
+    await object.checkAct(context, "delete");
+    // Object can decide to not delete but mark as deleted
+    await object.delete();
+  }
+
+  /**
+   * Query models
+   * @param context
+   */
+  async modelQuery(context: OperationContext) {
+    const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
+    const { query } = context.getParameters();
+    try {
+      context.write(await model.query(query, true, context));
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        this.log("INFO", "Query syntax error");
+        throw new WebdaError.BadRequest("Query syntax error");
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Patch a model
+   * @param context
+   */
+  async modelPatch(context: OperationContext) {
+    let object = await this.getModel(context);
+    const input = await context.getInput();
+    await object.checkAct(context, "update");
+    await object.patch(input);
+    context.write(object);
+  }
+
+  /**
+   * Action on a model
+   * @param context
+   */
+  async modelAction(context: OperationContext) {
+    const { model, action } = context.getExtension<{
+      model: CoreModelDefinition;
+      action: ModelAction & { name: string };
+    }>("operationContext");
+    if (!action.global) {
+      const object = await model.ref(context.getParameters().uuid).get();
+      if (!object || object.isDeleted()) {
+        throw new WebdaError.NotFound("Object not found");
+      }
+      await object.checkAct(context, action.name);
+      const output = await object[action.name](context);
+      context.write(output);
+    } else {
+      model[action.name](context);
+    }
+  }
+
+  /**
+   * Add operations for all exposed models
    * @returns
    */
-  handleModel(model: CoreModelDefinition, name: string, context: any): boolean {
-    const depth = context.depth || 0;
-    const relations = model.getRelations();
-    const injectAttribute = relations?.parent?.attribute;
+  initOperations(): void {
+    super.initOperations();
+
+    if (!this.parameters.operations) {
+      return;
+    }
+
     const app = this.getWebda().getApplication();
 
-    const injector = (
-      service: Store,
-      method: Methods<Store>,
-      type: "SET" | "QUERY" | "GET" | "DELETE",
-      ...args: any[]
-    ) => {
-      return async (context: WebContext) => {
-        let parentId = `pid.${depth - 1}`;
-        if (type === "SET" && injectAttribute && depth > 0) {
-          (await context.getInput())[injectAttribute] = context.getPathParameters()[parentId];
-        } else if (type === "QUERY") {
-          let input = await context.getInput({ defaultValue: { q: "" } });
-          let q;
-          if (context.getHttpContext().getMethod() === "GET") {
-            q = context.getParameters().q;
-          } else {
-            q = input.q;
-          }
-          let query = q ? ` AND (${q})` : "";
-          if (injectAttribute) {
-            query = ` AND ${injectAttribute} = "${context.getPathParameters()[parentId]}"` + query;
-          }
-          if (args[0] !== 0) {
-            query = `__types CONTAINS "${model.getIdentifier()}"` + query;
-          } else if (query.startsWith(" AND ")) {
-            query = query.substring(5);
-          }
-          if (context.getHttpContext().getMethod() === "GET") {
-            context.getParameters().q = query;
-          } else {
-            input.q = query;
-          }
-          this.log("TRACE", `Query modified to '${query}' from '${q}' ${args[0]}`);
-        }
-        // Complete the uuid if needed
-        if (context.getParameters().uuid) {
-          context.getParameters().uuid = model.completeUid(context.getParameters().uuid);
-        }
-        await service[method](context, ...args);
-      };
-    };
+    // Add default schemas - used for operation parameters
+    for (let i in ModelsOperationsService.schemas) {
+      if (app.hasSchema(i)) {
+        continue;
+      }
+      app.registerSchema(i, ModelsOperationsService.schemas[i]);
+    }
 
-    // Update prefix
-    const prefix =
-      (context.prefix || (this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + "/")) +
-      this.transformName(name);
-    context.prefix = prefix + `/{pid.${depth}}/`;
+    const models = app.getModels();
+    for (let modelKey in models) {
+      const model = models[modelKey];
+      const expose = model.Expose;
+      // Skip if not exposed or not included
+      if (!expose || !this.parameters.isIncluded(model.getIdentifier())) {
+        continue;
+      }
+      const shortId = model.getIdentifier(true);
+      // Overlap object are hidden by design
+      if (shortId.includes("/")) {
+        continue;
+      }
+      const plurial = app.getModelPlural(model.getIdentifier(false));
+      const modelSchema = modelKey;
 
-    // Register the model url
-    this.getWebda().getRouter().registerModelUrl(app.getModelName(model), prefix);
-
-    let openapi: OpenAPIWebdaDefinition = {
-      [this.parameters.queryMethod.toLowerCase()]: {
-        tags: [name],
-        summary: `Query ${name}`,
-        operationId: `query${name}`,
-        requestBody:
-          this.parameters.queryMethod === "GET"
-            ? undefined
-            : {
-                content: {
-                  "application/json": {
-                    schema: {
-                      properties: {
-                        q: {
-                          type: "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-        parameters:
-          this.parameters.queryMethod === "GET"
-            ? [
-                {
-                  name: "q",
-                  in: "query",
-                  description: "Query to execute",
-                  schema: {
-                    type: "string"
-                  }
-                }
-              ]
-            : [],
-        responses: {
-          "200": {
-            description: "Operation success",
-            content: {
-              "application/json": {
-                schema: {
-                  properties: {
-                    continuationToken: {
-                      type: "string"
-                    },
-                    results: {
-                      type: "array",
-                      items: {
-                        $ref: `#/components/schemas/${model.getIdentifier()}`
-                      }
-                    }
-                  }
-                }
-              }
+      ["create", "update"]
+        .filter(k => !expose.restrict[k])
+        .forEach(k => {
+          k = k.substring(0, 1).toUpperCase() + k.substring(1);
+          const id = `${shortId}.${k}`;
+          this.getWebda().registerOperation(id, {
+            service: this.getName(),
+            method: k === "Create" ? "modelCreate" : "modelUpdate",
+            input: modelSchema,
+            output: modelSchema,
+            parameters: k === "Create" ? undefined : "uuidRequest",
+            context: {
+              model
             }
-          },
-          "400": {
-            description: "Query is invalid"
-          },
-          "403": {
-            description: "You don't have permissions"
-          }
-        }
-      }
-    };
-    model.Expose.restrict.query ||
-      this.addRoute(
-        `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
-        [this.parameters.queryMethod],
-        injector(model.store(), "httpQuery", "QUERY", model.store().handleModel(model)),
-        openapi
-      );
-    openapi = {
-      post: {
-        tags: [name],
-        summary: `Create ${name}`,
-        operationId: `create${name}`,
-        requestBody: {
-          content: {
-            "application/json": {
-              schema: {
-                $ref: `#/components/schemas/${model.getIdentifier()}`
-              }
+          });
+        });
+      ["delete", "get"]
+        .filter(k => !expose.restrict[k])
+        .forEach(k => {
+          k = k.substring(0, 1).toUpperCase() + k.substring(1);
+          const id = `${shortId}.${k}`;
+          const info: OperationDefinition = {
+            service: this.getName(),
+            method: `model${k}`,
+            id,
+            parameters: "uuidRequest",
+            context: {
+              model
             }
+          };
+          if (k === "Get") {
+            info.output = modelSchema;
           }
-        },
-        responses: {
-          "200": {
-            description: "Operation success",
-            content: {
-              "application/json": {
-                schema: {
-                  $ref: `#/components/schemas/${model.getIdentifier()}`
-                }
-              }
-            }
-          },
-          "400": {
-            description: "Invalid input"
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "409": {
-            description: "Object already exists"
+          this.getWebda().registerOperation(id, info);
+        });
+      if (!expose.restrict.query) {
+        const id = `${plurial}.Query`;
+        this.getWebda().registerOperation(id, {
+          service: this.getName(),
+          method: "modelQuery",
+          parameters: "searchRequest",
+          context: {
+            model
           }
-        }
+        });
       }
-    };
-    model.Expose.restrict.create ||
-      this.addRoute(
-        `${prefix}`,
-        ["POST"],
-        injector(model.store(), "operationCreate", "SET", model.getIdentifier()),
-        openapi
-      );
-    openapi = {
-      delete: {
-        tags: [name],
-        operationId: `delete${name}`,
-        description: `Delete ${name} if the permissions allow`,
-        summary: `Delete a ${name}`,
-        responses: {
-          "204": {
-            description: "Operation success"
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Unknown object"
+      // Add patch
+      if (!expose.restrict.update) {
+        const id = `${shortId}.Patch`;
+        this.getWebda().registerOperation(id, {
+          service: this.getName(),
+          method: "modelPatch",
+          input: modelSchema + "?",
+          parameters: "uuidRequest",
+          context: {
+            model
           }
-        }
+        });
       }
-    };
-    model.Expose.restrict.delete ||
-      this.addRoute(`${prefix}/{uuid}`, ["DELETE"], injector(model.store(), "httpDelete", "DELETE"), openapi);
-    let openapiInfo = {
-      tags: [name],
-      operationId: `update${name}`,
-      description: `Update ${name} if the permissions allow`,
-      summary: `Update a ${name}`,
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              $ref: `#/components/schemas/${model.getIdentifier()}`
-            }
-          }
-        }
-      },
-      responses: {
-        "204": {
-          description: "Operation success"
-        },
-        "400": {
-          description: "Invalid input"
-        },
-        "403": {
-          description: "You don't have permissions"
-        },
-        "404": {
-          description: "Unknown object"
-        }
-      }
-    };
-    openapi = {
-      put: openapiInfo,
-      patch: openapiInfo
-    };
-    model.Expose.restrict.update ||
-      this.addRoute(`${prefix}/{uuid}`, ["PUT", "PATCH"], injector(model.store(), "httpUpdate", "SET"), openapi);
-    openapi = {
-      get: {
-        tags: [name],
-        description: `Retrieve ${name} model if permissions allow`,
-        summary: `Retrieve a ${name}`,
-        operationId: `get${name}`,
-        responses: {
-          "200": {
-            content: {
-              "application/json": {
-                schema: {
-                  $ref: `#/components/schemas/${model.getIdentifier()}`
-                }
-              }
-            }
-          },
-          "400": {
-            description: "Object is invalid"
-          },
-          "403": {
-            description: "You don't have permissions"
-          },
-          "404": {
-            description: "Unknown object"
-          }
-        }
-      }
-    };
-    model.Expose.restrict.get ||
-      this.addRoute(`${prefix}/{uuid}`, ["GET"], injector(model.store(), "httpGet", "GET"), openapi);
-
-    // Add all actions
-    // Actions cannot be restricted as its purpose is to be exposed
-    let actions = model.getActions();
-    Object.keys(actions).forEach(actionName => {
-      let action: ModelAction = actions[actionName];
-      openapi = {
-        ...action.openapi
-      };
-      (action.methods || ["PUT"]).forEach(method => {
-        openapi[method.toLowerCase()] = {
-          tags: [name],
-          ...(action.openapi?.[method.toLowerCase()] ?? {})
+      // Add all operations for Actions
+      let actions = model.getActions();
+      Object.keys(actions).forEach(name => {
+        const id = `${shortId}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
+        const info: any = {
+          service: this.getName(),
+          method: `modelAction`,
+          id
         };
+        info.input = `${modelKey}.${name}.input`;
+        info.output = `${modelKey}.${name}.output`;
+        info.parameters = actions[name].global ? undefined : "uuidRequest";
+        info.context = {
+          model,
+          action: { ...actions[name], name }
+        };
+        this.getWebda().registerOperation(id, info);
       });
-      if (app.hasSchema(`${model.getIdentifier(false)}.${actionName}.input`)) {
-        Object.keys(openapi)
-          .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
-          .forEach(k => {
-            openapi[k].requestBody = {
-              content: {
-                "application/json": {
-                  schema: {
-                    $ref: `#/components/schemas/${model.getIdentifier(false)}.${actionName}.input`
-                  }
-                }
-              }
-            };
-          });
-      }
-      if (app.hasSchema(`${model.getIdentifier(false)}.${actionName}.output`)) {
-        Object.keys(openapi)
-          .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
-          .forEach(k => {
-            openapi[k].responses ??= {};
-            openapi[k].responses["200"] ??= {};
-            openapi[k].responses["200"].content = {
-              "application/json": {
-                schema: {
-                  $ref: `#/components/schemas/${model.getIdentifier(false)}.${actionName}.output`
-                }
-              }
-            };
-          });
-      }
-      this.addRoute(
-        action.global ? `${prefix}/${actionName}` : `${prefix}/{uuid}/${actionName}`,
-        action.methods || ["PUT"],
-        async ctx => {
-          if (action.global) {
-            return model.store().httpGlobalAction(ctx, model);
-          } else {
-            ctx.getParameters().uuid = model.completeUid(ctx.getParameters().uuid);
-            return model.store().httpAction(ctx, action.method);
-          }
+
+      this.addBinaryOperations(model, shortId);
+    }
+  }
+
+  addBinaryOperations(model: CoreModelDefinition, name: string) {
+    (model.getRelations().binaries || []).forEach(binary => {
+      const webda = Core.get();
+      const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
+      const info = {
+        service: this.getName(),
+        context: {
+          model,
+          binary,
+          binaryStore: this.getWebda().getBinaryStore(model, binary.attribute)
         },
-        openapi
-      );
+        parameters: "uuidRequest"
+      };
+      webda.registerOperation(`${name}.${attribute}.AttachChallenge`, {
+        ...info,
+        method: "binaryChallenge",
+        input: "binaryChallengeRequest"
+      });
+      webda.registerOperation(`${name}.${attribute}.Attach`, {
+        ...info,
+        context: {
+          ...info.context,
+          action: "create"
+        },
+        method: "binaryPut",
+        parameters: "binaryAttachParameters"
+      });
+      webda.registerOperation(`${name}.${attribute}.Get`, {
+        ...info,
+        method: "binaryGet",
+        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest"
+      });
+      webda.registerOperation(`${name}.${attribute}.Delete`, {
+        ...info,
+        context: {
+          ...info.context,
+          action: "delete"
+        },
+        method: "binaryAction",
+        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
+      });
+      webda.registerOperation(`${name}.${attribute}.SetMetadata`, {
+        ...info,
+        context: {
+          ...info.context,
+          action: "metadata"
+        },
+        method: "binaryAction",
+        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
+      });
+      webda.registerOperation(`${name}.${attribute}.GetUrl`, {
+        ...info,
+        context: {
+          ...info.context,
+          returnUrl: true
+        },
+        method: "binaryGet",
+        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
+      });
     });
-
-    /*
-    Binaries should expose several methods
-    If cardinality is ONE
-    GET to download the binary
-    POST to upload a binary directly
-    PUT to upload a binary with challenge
-    DELETE /{hash} to delete a binary
-    PUT /{hash} to update metadata
-    GET /url to get a signed url
-
-    If cardinality is MANY
-    GET /{index} to download the binary
-    GET /{index}/url to get a signed url
-    POST to upload a binary directly
-    PUT to upload a binary with challenge
-    DELETE /{index}/{hash} to delete a binary
-    PUT /{index}/{hash} to update metadata
-    */
-
-    (relations.binaries || []).forEach(binary => {
-      const store = Core.get().getBinaryStore(model, binary.attribute);
-      const modelInjector = async (ctx: WebContext) => {
-        ctx.getParameters().model = model.getIdentifier();
-        ctx.getParameters().property = binary.attribute;
-        await store.httpRoute(ctx);
-      };
-      const modelInjectorChallenge = async (ctx: WebContext) => {
-        ctx.getParameters().model = model.getIdentifier();
-        ctx.getParameters().property = binary.attribute;
-        await store.httpChallenge(ctx);
-      };
-      const modelInjectorGet = async (ctx: WebContext) => {
-        ctx.getParameters().model = model.getIdentifier();
-        ctx.getParameters().property = binary.attribute;
-        await store.httpGet(ctx);
-      };
-      openapi = {
-        put: {
-          tags: [name],
-          summary: `Upload ${binary.attribute} of ${name} after challenge`,
-          description: `You will need to call the challenge method first to get a signed url to upload the content\nIf the data is already known then done is returned`,
-          operationId: `upload${name}${binary.attribute}`,
-          requestBody: {
-            content: {
-              "application/octet-stream": {
-                schema: {
-                  type: "object",
-                  required: ["hash", "challenge"],
-                  properties: {
-                    hash: {
-                      type: "string",
-                      description: "md5(data)"
-                    },
-                    challenge: {
-                      type: "string",
-                      description: "md5('Webda' + data)"
-                    },
-                    size: {
-                      type: "number",
-                      description: "Size of the data"
-                    },
-                    name: {
-                      type: "string",
-                      description: "Name of the file"
-                    },
-                    mimetype: {
-                      type: "string",
-                      description: "Mimetype of the file"
-                    },
-                    metadata: {
-                      type: "object",
-                      description: "Metadata to add to the binary"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          responses: {
-            "200": {
-              description: "Operation success",
-              content: {
-                "application/octet-stream": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      done: {
-                        type: "boolean"
-                      },
-                      url: {
-                        type: "string"
-                      },
-                      method: {
-                        type: "string"
-                      },
-                      md5: {
-                        type: "string",
-                        description:
-                          "base64 md5 of the data\nThe next request requires Content-MD5 to be added with this one along with Content-Type: 'application/octet-stream'"
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Unknown object"
-            }
-          }
-        }
-      };
-      this.addRoute(`${prefix}/{uuid}/${binary.attribute}`, ["PUT"], modelInjectorChallenge, openapi);
-      openapi = {
-        post: {
-          tags: [name],
-          summary: `Upload ${binary.attribute} of ${name} directly`,
-          description: `You can upload the content directly to the server\nThis is not the recommended way as it wont be able to optimize network traffic`,
-          operationId: `upload${name}${binary.attribute}`,
-          requestBody: {
-            content: {
-              "application/octet-stream": {
-                schema: {
-                  type: "string",
-                  format: "binary"
-                }
-              }
-            }
-          },
-          responses: {
-            "204": {
-              description: ""
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            }
-          }
-        }
-      };
-      this.addRoute(`${prefix}/{uuid}/${binary.attribute}`, ["POST"], modelInjector, openapi);
-
-      let rootUrl = `${prefix}/{uuid}/${binary.attribute}`;
-      if (binary.cardinality === "MANY") {
-        rootUrl += "/{index}";
-      }
-
-      openapi = {
-        get: {
-          tags: [name],
-          summary: `Download ${binary.attribute} of ${name}`,
-          operationId: `download${name}${binary.attribute}`,
-          responses: {
-            "200": {
-              description: "Operation success",
-              content: {
-                "application/octet-stream": {
-                  schema: {
-                    type: "string",
-                    format: "binary"
-                  }
-                }
-              }
-            },
-            "302": {
-              description: "Redirect to the binary"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Unknown object"
-            }
-          }
-        }
-      };
-      this.addRoute(`${rootUrl}`, ["GET"], modelInjectorGet, openapi);
-      openapi = {
-        delete: {
-          tags: [name],
-          summary: `Delete ${binary.attribute} of ${name}`,
-          responses: {
-            "204": {
-              description: ""
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      };
-      this.addRoute(`${rootUrl}/{hash}`, ["DELETE"], modelInjector, openapi);
-      openapi = {
-        put: {
-          tags: [name],
-          summary: `Update metadata of ${binary.attribute} of ${name}`,
-          operationId: `update${name}${binary.attribute}`,
-          requestBody: {
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  description: "Metadata to add to the binary",
-                  additionalProperties: true
-                }
-              }
-            }
-          },
-          responses: {
-            "204": {
-              description: ""
-            },
-            "400": {
-              description: "Invalid input: metadata are limited to 4kb"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      };
-      this.addRoute(`${rootUrl}/{hash}`, ["PUT"], modelInjector, openapi);
-      openapi = {
-        get: {
-          tags: [name],
-          summary: `Get a signed url to download ${binary.attribute} of ${name} with a limited lifetime`,
-          responses: {
-            "200": {
-              description: "Operation success",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      Location: {
-                        type: "string",
-                        description: "Signed url to download the binary"
-                      },
-                      Map: {
-                        $ref: "#/components/schemas/BinaryMap"
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            }
-          }
-        }
-      };
-      this.addRoute(`${rootUrl}/url`, ["GET"], modelInjectorGet, openapi);
-    });
-
-    return true;
   }
 
   /**
-   * Serve the openapi with the swagger-ui
-   * @param ctx
+   * Implement the binary challenge operation
+   * @param context
    */
-  async openapi(ctx: WebContext) {
-    this.openapiContent ??= swagger.replace("{{OPENAPI}}", JSON.stringify(this.getWebda().exportOpenAPI(true)));
-    ctx.write(this.openapiContent);
+  async binaryChallenge(context: OperationContext) {
+    let body = await context.getInput();
+    const { model, binaryStore, binary } = context.getExtension<{
+      binaryStore: BinaryService;
+      model: CoreModelDefinition;
+      binary: any;
+    }>("operationContext");
+    // First verify if map exist
+    let object = await model.ref(context.parameter("uuid")).get();
+    if (object === undefined || object.isDeleted()) {
+      throw new WebdaError.NotFound("Object does not exist");
+    }
+    await object.checkAct(context, "attach_binary");
+    let url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
+    let base64String = Buffer.from(body.hash, "hex").toString("base64");
+    context.write({
+      ...url,
+      done: url === undefined,
+      md5: base64String
+    });
+    await binaryStore.uploadSuccess(<any>object, binary.attribute, body);
+  }
+
+  /**
+   * Set the binary content
+   * @param context
+   */
+  async binaryPut(context: OperationContext) {
+    const { model, binaryStore, binary } = context.getExtension<{
+      binaryStore: BinaryService;
+      model: CoreModelDefinition;
+      binary: any;
+    }>("operationContext");
+    // First verify if map exist
+    let object = await model.ref(context.parameter("uuid")).get();
+    if (object === undefined || object.isDeleted()) {
+      throw new WebdaError.NotFound("Object does not exist");
+    }
+    await object.checkAct(context, "attach_binary");
+    await binaryStore.store(object, binary.attribute, await binaryStore.getFile(context));
+  }
+
+  /**
+   * Get the binary content
+   * @param context
+   */
+  async binaryGet(context: OperationContext) {
+    const { model, returnUrl, binaryStore, binary } = context.getExtension<{
+      binaryStore: BinaryService;
+      model: CoreModelDefinition;
+      binary: ModelGraphBinaryDefinition;
+      returnUrl: boolean;
+    }>("operationContext");
+    const { index, uuid } = context.getParameters();
+    // First verify if map exist
+    let object = await model.ref(uuid).get();
+    if (object === undefined || object.isDeleted()) {
+      throw new WebdaError.NotFound("Object does not exist");
+    }
+    const property = binary.attribute;
+    if (!object || (Array.isArray(object[property]) && object[property].length <= index)) {
+      throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
+    }
+    await object.checkAct(context, "get_binary");
+    const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
+    let url = await binaryStore.getRedirectUrlFromObject(file, context);
+    // No url, we return the file
+    if (url === null) {
+      if (returnUrl) {
+        // Redirect to same url without /url
+        context.write({
+          Location: context
+            .getHttpContext()
+            .getAbsoluteUrl()
+            .replace(/\/url$/, ""),
+          Map: file
+        });
+      } else {
+        // Output
+        context.writeHead(200, {
+          "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
+          "Content-Length": file.size
+        });
+        let readStream: any = await binaryStore.get(file);
+        await new Promise<void>((resolve, reject) => {
+          // We replaced all the event handlers with a simple call to readStream.pipe()
+          context._stream.on("finish", resolve);
+          context._stream.on("error", reject);
+          readStream.pipe(context._stream);
+        });
+      }
+    } else if (returnUrl) {
+      context.write({ Location: url, Map: file });
+    }
+  }
+
+  async binaryAction(context: OperationContext) {
+    const { model, binaryStore, binary, action } = context.getExtension<{
+      binaryStore: BinaryService;
+      model: CoreModelDefinition;
+      binary: ModelGraphBinaryDefinition;
+      action: "delete" | "metadata" | "create";
+    }>("operationContext");
+    const { index, uuid, hash } = context.getParameters();
+    // First verify if map exist
+    let object = await model.ref(uuid).get();
+    if (object === undefined || object.isDeleted()) {
+      throw new WebdaError.NotFound("Object does not exist");
+    }
+    if (action === "create") {
+      await object.checkAct(context, "attach_binary");
+      await binaryStore.store(object, binary.attribute, await binaryStore.getFile(context));
+      return;
+    }
+
+    // Current file - would be empty on creation
+    const file = Array.isArray(object[binary.attribute]) ? object[binary.attribute][index] : object[binary.attribute];
+    if (!file || file?.hash !== hash) {
+      throw new WebdaError.BadRequest("Hash does not match");
+    }
+    if (action === "delete") {
+      await object.checkAct(context, "attach_binary");
+      await binaryStore.delete(object, binary.attribute, index);
+    } else if (action === "metadata") {
+      await object.checkAct(context, "update_binary_metadata");
+      let metadata: BinaryMetadata = await context.getInput();
+      // Limit metadata to 4kb
+      if (JSON.stringify(metadata).length >= 4096) {
+        throw new WebdaError.BadRequest("Metadata is too big: 4kb max");
+      }
+      file.metadata = metadata;
+      await object.patch({
+        [binary.attribute]: object[binary.attribute]
+      });
+    }
+  }
+}
+
+/**
+ * @WebdaModda
+ */
+export class ModelsOperationsService<T extends DomainServiceParameters> extends DomainService<T> {
+  /**
+   * Default domain
+   */
+  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
+    return new DomainServiceParameters(params);
+  }
+
+  /**
+   * Do nothing here
+   */
+  handleModel(model: CoreModelDefinition, name: string, context: any): boolean {
+    return true;
   }
 }

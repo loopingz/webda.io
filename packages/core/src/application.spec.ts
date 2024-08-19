@@ -1,21 +1,45 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as path from "path";
-import { Application, UnpackedApplication } from "./index";
+import { Application, FileUtils, UnpackedApplication } from "./index";
 import { CoreModel } from "./models/coremodel";
 import { User } from "./models/user";
-import { TestApplication, WebdaTest } from "./test";
+import { TestApplication, WebdaTest, WebdaInternalTest, TestInternalApplication } from "./test";
 import { getCommonJS } from "./utils/esm";
 const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
-class ApplicationTest extends WebdaTest {
-  sampleApp: Application;
+class SampleApplicationTest extends WebdaInternalTest {
+  sampleApp: TestApplication;
 
-  async before() {
-    await super.before();
+  getApplication(): TestApplication {
     this.sampleApp = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
-    await this.sampleApp.load();
+    return this.sampleApp;
+  }
+
+  @test
+  validateSchemaWithEnum() {
+    assert.strictEqual(
+      this.webda.validateSchema(
+        "WebdaDemo/Company",
+        {
+          permissions: ["PRODUCT_1", "PRODUCT_2"]
+        },
+        true
+      ),
+      true
+    );
+    assert.throws(
+      () =>
+        this.webda.validateSchema(
+          "WebdaDemo/Company",
+          {
+            permissions: ["RANDOM", "PRODUCT_2"]
+          },
+          true
+        ),
+      /validation failed/
+    );
   }
 
   @test
@@ -55,7 +79,7 @@ class ApplicationTest extends WebdaTest {
     assert.strictEqual(hierarchy.ancestors.length, 2);
     assert.strictEqual(Object.keys(hierarchy.children).length, 0);
     hierarchy = this.sampleApp.getModelHierarchy("WebdaDemo/AbstractProject");
-    assert.strictEqual(hierarchy.ancestors.length, 2);
+    assert.deepStrictEqual(hierarchy.ancestors, ["AclModel", "Webda/CoreModel"]);
     assert.strictEqual(Object.keys(hierarchy.children).length, 1);
   }
 
@@ -88,7 +112,10 @@ class ApplicationTest extends WebdaTest {
   getConfiguration() {
     let config = this.sampleApp.getConfiguration();
   }
+}
 
+@suite
+class ApplicationTest extends WebdaInternalTest {
   @test
   async cacheSchema() {
     let app = new Application(__dirname + "/../test/config-cached.json");
@@ -114,12 +141,12 @@ class ApplicationTest extends WebdaTest {
       /Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting.*/
     );
     await assert.rejects(
-      () => new Application(__dirname + "/../test/moddas").load(),
+      () => new Application(__dirname + "/../test/schemas").load(),
       /Not a webda application folder or webda.config.jsonc or webda.config.json file: .*/
     );
     await assert.rejects(() => new Application(__dirname + "/../test/badapp").load(), /Cannot parse JSON of: .*/);
     // If allow module is enable the Application should let run anywhere
-    new Application(__dirname + "/../test/moddas", undefined);
+    new Application(__dirname + "/../test/schemas", undefined);
     let unpackedApp = new UnpackedApplication(__dirname + "/../test/badapp", undefined);
     unpackedApp.loadProjectInformation();
     // Read cached modules
@@ -127,11 +154,11 @@ class ApplicationTest extends WebdaTest {
     await app.load();
     app.getGitInformation();
     // No package.json should not fail although more than abnormal
-    app = new TestApplication(__dirname + "/../test/config.json");
+    app = new TestApplication(FileUtils.load(__dirname + "/../test/config.json"));
     await app.load();
 
     app.getPackageWebda();
-    assert.throws(() => app.getModda("Unknown"), /Undefined modda Unknown/);
+    assert.throws(() => app.getModda("Unknown"), /Undefined modda Webda\/Unknown/);
     app.getDeployers();
 
     app.getModules();
@@ -145,10 +172,12 @@ class ApplicationTest extends WebdaTest {
     app.addDeployer("WebdaTest/NotExisting", null);
     assert.ok(app.hasWebdaObject("models", "WebdaTest/NotExisting"));
     assert.ok(!app.hasWebdaObject("models", "notexisting"));
-    // To remove with 4.0
-    assert.ok(app.hasWebdaObject("models", "webdatest/notexisting"));
-    assert.ok(!app.hasWebdaObject("models", "webdatest/notexisting", true));
-    assert.strictEqual(app.getWebdaObject("models", "webdatest/notexisting"), CoreModel);
+    assert.ok(!app.hasWebdaObject("models", "webdatest/notexisting"));
+    assert.throws(
+      () => app.getWebdaObject("models", "webdatest/notexisting"),
+      /Undefined model webdatest\/notexisting/
+    );
+    assert.strictEqual(app.getWebdaObject("models", "WebdaTest/NotExisting"), CoreModel);
 
     delete app.getModels()["WebdaTest/NotExisting"];
     assert.deepStrictEqual(app.getGitInformation(), {
@@ -173,11 +202,6 @@ class ApplicationTest extends WebdaTest {
     );
     assert.throws(() => app.replaceVariables("hello " + "${test}".repeat(12), {}), /Too many variables/);
 
-    unpackedApp = new UnpackedApplication(__dirname + "/../test/moddas", undefined);
-    await unpackedApp.load();
-    // @ts-ignore
-    unpackedApp.baseConfiguration.cachedModules.project.webda = undefined;
-    assert.deepStrictEqual(unpackedApp.getPackageWebda(), { namespace: "Webda" });
     assert.strictEqual(app.getModelFromInstance(new CoreModel()), "Webda/CoreModel");
     assert.strictEqual(app.getModelFromInstance(new User()), "Webda/User");
     assert.strictEqual(app.getModelName(CoreModel), "Webda/CoreModel");
@@ -186,11 +210,17 @@ class ApplicationTest extends WebdaTest {
     app.registerSchema("testor", {});
     assert.deepStrictEqual(app.getSchema("testor"), {});
     assert.throws(() => app.registerSchema("testor", {}), /Schema testor already registered/);
+
+    unpackedApp = new UnpackedApplication(__dirname + "/../test/schemas", undefined);
+    await unpackedApp.load();
+    // @ts-ignore
+    unpackedApp.baseConfiguration.cachedModules.project.webda = undefined;
+    assert.deepStrictEqual(unpackedApp.getPackageWebda(), { namespace: "Webda" });
   }
 
   @test
   async getFullNameFromPrototype() {
-    let app = new TestApplication(__dirname + "/../test/config.json");
+    let app = new TestInternalApplication({});
     await app.load();
     let services: any = app.getModdas();
     let name = Object.keys(services).pop();
@@ -208,7 +238,7 @@ class ApplicationTest extends WebdaTest {
 
   @test
   async loadModule() {
-    let app = new Application(__dirname + "/../test/config.json");
+    let app = new TestInternalApplication(__dirname + "/../test/config.json");
     await app.loadModule(
       {
         moddas: {

@@ -7,7 +7,6 @@ import { SimpleOperationContext } from "./context";
 import { WebContextMock } from "./context.spec";
 import { HttpContext } from "./httpcontext";
 import { Session } from "./session";
-import { UnpackedConfiguration } from "../application";
 
 const SECRET =
   "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
@@ -24,6 +23,7 @@ class CookieTest extends WebdaSimpleTest {
   getTestConfiguration() {
     return {
       parameters: {
+        ignoreBeans: true,
         cookie: {
           sameSite: "None",
           name: "test"
@@ -37,7 +37,6 @@ class CookieTest extends WebdaSimpleTest {
     ctx.getHttpContext().cookies = {};
     ctx.getHttpContext().cookies["test"] = "plop";
     let session = await SecureCookie.load("test", ctx, undefined);
-    console.log(session);
     assert.strictEqual(Object.keys(session).length, 0);
   }
 

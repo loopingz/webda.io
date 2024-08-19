@@ -303,12 +303,16 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
       .map(member => {
         // Check for other tags
         let ignore = false;
+        let generated = false;
         let jsDocs = ts.getAllJSDocTags(member, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
           return true;
         });
         jsDocs.forEach(n => {
           if (n.tagName.text === "SchemaIgnore") {
             ignore = true;
+          }
+          if (n.tagName.text.toLowerCase() === "generated") {
+            generated = true;
           }
         });
 
@@ -391,8 +395,17 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
           //return new ObjectProperty(this.getPropertyName(member.name), type, false);
         }
         type ??= this.childNodeParser.createType(member.type, context);
-        if (readOnly) {
-          type = new AnnotatedType(type, { readOnly: true }, false);
+        if (readOnly || generated) {
+          let annotations = {};
+          if (readOnly || generated) {
+            annotations["readOnly"] = true;
+          }
+          if (generated) {
+            annotations["$generated"] = true;
+            // Generated cannot be required
+            optional = true;
+          }
+          type = new AnnotatedType(type, annotations, false);
         }
         // If property is in readOnly then we do not want to require it
         return new ObjectProperty(this.getPropertyName(member.name), type, !optional);
@@ -867,8 +880,8 @@ export class Compiler {
       this.app.log("INFO", `${rootName}.${method.name.getText()} have no input defined, no validation will happen`);
       return;
     }
-    const infos = [".input", ".output"];
-    obj.typeArguments.slice(0, 2).forEach((schemaNode, index) => {
+    const infos = [".input", ".output", ".parameters"];
+    obj.typeArguments.slice(0, 3).forEach((schemaNode, index) => {
       // TODO Check if id is overriden and use it or fallback to method.name
       let name = rootName + "." + method.name.getText() + infos[index];
       if (ts.isTypeReferenceNode(schemaNode)) {
@@ -943,12 +956,14 @@ export class Compiler {
       if (lib) {
         return;
       }
+      // Get the specificied plural
       if (tags["WebdaPlural"]) {
         plurals[name] = tags["WebdaPlural"].split(" ")[0];
       }
       graph[name] ??= {};
 
       reflections[name] ??= {};
+      // Retrieve declare link in the model
       type
         .getProperties()
         .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))

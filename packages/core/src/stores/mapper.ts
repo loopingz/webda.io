@@ -63,7 +63,7 @@ export class MapperParameters extends ServiceParameters {
  * Map object to another object
  * @WebdaModda Mapper
  */
-export default class MapperService<T extends MapperParameters = MapperParameters> extends Service<T> {
+class MapperService<T extends MapperParameters = MapperParameters> extends Service<T> {
   @Inject("params:target")
   targetStore: Store<CoreModel & { [key: string]: any[] }>;
 

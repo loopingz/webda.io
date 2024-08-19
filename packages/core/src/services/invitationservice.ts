@@ -187,7 +187,7 @@ export class InvitationParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export default class InvitationService<T extends InvitationParameters = InvitationParameters> extends Service<T> {
+export class InvitationService<T extends InvitationParameters = InvitationParameters> extends Service<T> {
   @Inject("params:authenticationService")
   authenticationService: Authentication;
 

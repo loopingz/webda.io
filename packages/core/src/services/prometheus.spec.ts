@@ -2,30 +2,50 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import axios from "axios";
 import { Histogram } from "prom-client";
-import { WebdaTest } from "../test";
+import { WebdaInternalTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
 import { PrometheusService } from "./prometheus";
+import { UnpackedConfiguration } from "../application";
 
 @suite
-class PrometheusTest extends WebdaTest {
-  @test
-  async sideServe() {
-    let service = new PrometheusService(this.webda, "", {
-      portNumber: 9090,
-      includeNodeMetrics: false,
-      includeRequestMetrics: false
-    });
-    try {
-      await service.resolve().init();
-      // Should be listen on 9090 now
-      let res = await axios.get("http://localhost:9090/metrics");
-      assert.ok(res.data.includes("webda_filequeue_messages_pending"));
-      await assert.rejects(() => axios.get("http://localhost:9090/metrics2"), /Request failed with status code 404/);
-    } finally {
-      service.http?.close();
-    }
+class PrometheusTest extends WebdaInternalTest {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: {
+        ignoreBeans: true
+      },
+      services: {
+        PrometheusService: {
+          portNumber: 9090,
+          includeNodeMetrics: false,
+          includeRequestMetrics: false
+        }
+      }
+    };
   }
 
+  @test
+  async sideServe() {
+    try {
+      // Should be listen on 9090 now
+      let res = await axios.get("http://localhost:9090/metrics");
+      assert.ok(res.data.includes("webda_registry_operations_total"));
+      await assert.rejects(() => axios.get("http://localhost:9090/metrics2"), /Request failed with status code 404/);
+    } finally {
+      //service.http?.close();
+    }
+  }
+}
+
+@suite
+class EmbeddedPrometheusTest extends WebdaInternalTest {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      services: {
+        PrometheusService: {}
+      }
+    };
+  }
   @test
   async normal() {
     let ctx = await this.newContext("toto");

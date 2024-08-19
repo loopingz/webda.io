@@ -14,6 +14,16 @@ class Title {
 }
 @suite
 class MemoryQueueTest extends QueueTest {
+  queue: MemoryQueue;
+
+  async before() {
+    await super.before();
+    this.queue = await this.addService(MemoryQueue, {
+      expire: 1,
+      maxConsumers: 1
+    });
+  }
+
   static seq: number;
   static resolve: (value: unknown) => void;
   static queue: Queue;
@@ -155,7 +165,7 @@ class MemoryQueueTest extends QueueTest {
 
   @test
   async basic() {
-    let queue: MemoryQueue = <MemoryQueue>this.getService("MemoryQueue");
+    let queue: MemoryQueue = <MemoryQueue>this.queue;
     // For coverage
     assert.strictEqual(queue.getParameters().expire, 1000, "1s should be convert to ms");
     queue.getParameters().expire = undefined;
@@ -171,7 +181,7 @@ class MemoryQueueTest extends QueueTest {
 
   @test
   async uuid() {
-    let queue: MemoryQueue = <MemoryQueue>this.getService("MemoryQueue");
+    let queue: MemoryQueue = <MemoryQueue>this.queue;
     let first = true;
     let callCount = 0;
     // @ts-ignore

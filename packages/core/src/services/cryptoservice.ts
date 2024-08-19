@@ -2,9 +2,9 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPa
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import * as util from "util";
-import { Core, OperationContext, RegistryEntry, Store } from "../index";
+import { Core, OperationContext, RegistryEntry, Route, Store } from "../index";
 import { JSONUtils } from "../utils/serializers";
-import { DeepPartial, Inject, Route, Service, ServiceParameters } from "./service";
+import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
 
 export class SecretString {
   constructor(
@@ -226,7 +226,7 @@ interface KeysDefinition {
 /**
  * @WebdaModda
  */
-export default class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters>
+export class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters>
   extends Service<T>
   implements StringEncrypter
 {
@@ -635,4 +635,4 @@ CryptoService.registerEncrypter("local", {
   }
 });
 
-export { CryptoService };
+export default CryptoService;

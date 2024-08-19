@@ -4,7 +4,7 @@ import { AbstractMailer } from "./mailer";
  * Fake Service to help debug mail expedition
  * @WebdaModda
  */
-export default class DebugMailer extends AbstractMailer {
+export class DebugMailer extends AbstractMailer {
   sent: any[] = [];
 
   constructor(webda, name, params) {
@@ -55,5 +55,3 @@ export default class DebugMailer extends AbstractMailer {
     // Empty on purpose
   }
 }
-
-export { DebugMailer };

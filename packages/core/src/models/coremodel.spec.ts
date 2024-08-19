@@ -6,6 +6,7 @@ import {
   Core,
   CoreModel,
   Expose,
+  MemoryStore,
   ModelLink,
   ModelLinksArray,
   ModelLinksMap,
@@ -17,8 +18,7 @@ import {
   WebdaError,
   createModelLinksMap
 } from "..";
-import { Task } from "../../test/models/task";
-import { WebdaTest } from "../test";
+import { WebdaSimpleTest, Task } from "../test";
 
 @Expose()
 class TestMask extends CoreModel {
@@ -27,7 +27,7 @@ class TestMask extends CoreModel {
   links: ModelLinksArray<Task, { card: string }>;
   links_simple: ModelLinksSimpleArray<Task>;
   links_map: ModelLinksMap<Task, { card: string }>;
-  maps: ModelsMapped<Task, "owner", "uuid">;
+  maps: ModelsMapped<Task, "_user", "uuid">;
   queries: ModelRelated<Task, "side">;
   parent: ModelParent<Task>;
   side: string;
@@ -62,7 +62,7 @@ class SubTestMask extends TestMask {
   localActionMethod(): void {}
 }
 @suite
-class CoreModelTest extends WebdaTest {
+class CoreModelTest extends WebdaSimpleTest {
   @test("Verify unsecure loaded") unsecureLoad() {
     let object: any = new CoreModel();
     object.load({
@@ -212,7 +212,7 @@ class CoreModelTest extends WebdaTest {
         test: "123"
       })
     };
-    task.__store = store;
+    task.__store = <any>store;
     assert.strictEqual((await task.get()).test, "123");
     assert.strictEqual(task.getStore(), store);
     assert.notStrictEqual(task.generateUid(), undefined);
@@ -249,6 +249,7 @@ class CoreModelTest extends WebdaTest {
   }
 
   @test async ref() {
+    await this.addService(MemoryStore, {}, "MemoryUsers");
     this.webda.getApplication().addModel("webdatest", TestMask);
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
@@ -289,12 +290,13 @@ class CoreModelTest extends WebdaTest {
   }
 
   @test async fullUuid() {
+    await this.addService(MemoryStore, {}, "MemoryUsers");
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
-    assert.strictEqual(new Task().__type, "WebdaTest/Task");
+    assert.strictEqual(new Task().__type, "Task");
     assert.notStrictEqual(new Task().__store, undefined);
     let task = await Task.ref("task#1").getOrCreate({ test: false });
-    assert.strictEqual(task.getFullUuid(), "WebdaTest-Task$task#1");
-    let taskB = await this.webda.getModelObject("WebdaTest-Task$task#1");
+    assert.strictEqual(task.getFullUuid(), "Task$task#1");
+    let taskB = await this.webda.getModelObject("Task$task#1");
     // @ts-ignore
     assert.strictEqual(taskB.test, false);
     taskB = await this.webda.getModelObject(task.getFullUuid(), { test: true });
@@ -304,12 +306,12 @@ class CoreModelTest extends WebdaTest {
 
   @test async refresh() {
     let task = new Task();
-    task.__store = {
+    task.__store = <any>{
       get: () => undefined
     };
     await task.refresh();
-    task.__store = {
-      get: () => ({ plop: "bouzouf" })
+    task.__store = <any>{
+      get: () => <any>{ plop: "bouzouf" }
     };
     await task.refresh();
     assert.strictEqual(task.plop, "bouzouf");
@@ -351,7 +353,7 @@ class CoreModelTest extends WebdaTest {
     task.__dirty.clear();
     delete task.plop2.array[1];
     assert.ok(task.isDirty());
-    task.__store = {
+    task.__store = <any>{
       patch: () => undefined
     };
     await task.save();
@@ -426,10 +428,11 @@ class CoreModelTest extends WebdaTest {
     assert.strictEqual((await test.links_simple[0].get()).card, "plop");
     assert.strictEqual((await test.parent.get()).card, "plop");
     assert.strictEqual((await test.maps[0].get()).card, "plop");
-    let info = await test.queries.getAll();
+    let info: any[] = await test.queries.getAll();
     assert.strictEqual(info.length, 2);
     assert.strictEqual((await test.queries.query("card = 'pliX?XXXX?XXXX?X???'")).results.length, 1);
     let count = 0;
+    // @ts-ignore
     await test.queries.forEach(async () => {
       count++;
     });

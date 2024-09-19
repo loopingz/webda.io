@@ -27,7 +27,7 @@
     "antlr4ts": "^0.5.0-alpha.4"
   },
   "devDependencies": {
-    "@types/node": "18.19.0",
+    "@types/node": "20.0.0",
     "@webda/tsc-esm": "4.0.0-beta.1",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
@@ -58,6 +58,6 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=18.19.0"
+    "node": ">=20.0.0"
   }
 }

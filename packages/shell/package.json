@@ -31,7 +31,7 @@
     "format:fix": "prettier --write src/**/*"
   },
   "engines": {
-    "node": ">=18.19.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.21.0",
@@ -81,7 +81,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
-    "@types/node": "18.19.0",
+    "@types/node": "20.0.0",
     "@types/yargs": "^17.0.2",
     "csstype": "^3.0.8",
     "node-fetch": "^3.3.1",

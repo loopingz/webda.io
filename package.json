@@ -36,6 +36,7 @@
   ],
   "scripts": {
     "build": "nx run-many --target=build && nx run-many --target=build:module",
+    "build:ci": "nx build @webda/sample-app",
     "test": "nx run-many --target=test --exclude @webda/sample-app",
     "new-version": "yarn build && lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
     "new-module": "yarn webda init webda:module",
@@ -50,6 +51,12 @@
     "publish": {
       "conventionalCommits": true
     }
+  },
+  "overrides": {
+    "whatwg-url": "^14.0.0"
+  },
+  "resolutions": {
+    "whatwg-url": "^14.0.0"
   },
   "webda": {
     "randomLink": "./test.json",

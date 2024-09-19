@@ -1,5 +1,9 @@
 import { Binary, CoreModel, MemoryBinaryFile, NotEnumerable } from "@webda/core";
 import { gunzipSync, gzipSync } from "zlib";
+
+/**
+ * Binary Model is a model that store its data in a binary file
+ */
 export class BinaryModel<T = any> extends CoreModel {
   @NotEnumerable
   __data: T;

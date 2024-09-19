@@ -32,7 +32,6 @@ export class ModelMapper extends Service {
     const graph = app.getGraph();
     for (const i in graph) {
       if (!graph[i].maps) continue;
-      this.log("INFO", i, graph[i].maps);
       const targetModel = app.getModel(i);
       for (const j in graph[i].maps) {
         const mapper = graph[i].maps[j];

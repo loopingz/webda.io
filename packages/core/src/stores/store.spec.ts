@@ -2,19 +2,10 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
-import { Ident } from "../test";
-import {
-  AggregatorService,
-  HttpContext,
-  MapperService,
-  OperationContext,
-  Store,
-  StoreParameters,
-  User,
-  WebdaError
-} from "../index";
+import { TestIdent } from "../test";
+import { AggregatorService, MapperService, OperationContext, Store } from "../index";
 import { CoreModel, CoreModelDefinition } from "../models/coremodel";
-import { WebdaSimpleTest, WebdaTest } from "../test";
+import { WebdaSimpleTest } from "../test";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 
 /**
@@ -29,23 +20,33 @@ export class PermissionModel extends CoreModel {
     return true;
   }
 }
-abstract class StoreTest extends WebdaSimpleTest {
-  abstract getIdentStore(): Store<any>;
-  abstract getUserStore(): Store<any>;
+abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
+  abstract getIdentStore(): Promise<T>;
+  abstract getUserStore(): Promise<T>;
+
+  protected userStore: T;
+  protected identStore: T;
 
   async before() {
     await super.before();
-    const userStore = this.getUserStore();
-    const identStore = this.getIdentStore();
-    this.registerService(await userStore.resolve().init());
-    this.registerService(await identStore.resolve().init());
+    this.userStore = await this.getUserStore();
+    this.identStore = await this.getIdentStore();
+    // ensure service are registered
+    this.registerService(this.userStore);
+    this.registerService(this.identStore);
+    await this.userStore?.__clean();
+    await this.identStore?.__clean();
 
-    await this.getUserStore()?.__clean();
-    await this.getIdentStore()?.__clean();
+    this.getIdentStore = () => {
+      throw new Error("Use this.identStore instead");
+    };
+    this.getUserStore = () => {
+      throw new Error("Use this.userStore instead");
+    };
   }
 
   getModelClass(): CoreModelDefinition {
-    return Ident;
+    return TestIdent;
   }
 
   /**
@@ -71,7 +72,7 @@ abstract class StoreTest extends WebdaSimpleTest {
    * Fill the Store with data to be queried
    */
   async fillForQuery(): Promise<Store> {
-    const userStore = this.getUserStore();
+    const userStore = this.userStore;
     this.webda.getApplication().getModel("Webda/User").prototype.canAct = async () => true;
     userStore._model.prototype.canAct = async () => true;
     await Promise.all(this.getQueryDocuments().map(d => userStore.save(d)));
@@ -132,52 +133,6 @@ abstract class StoreTest extends WebdaSimpleTest {
       }
     } while (offset !== undefined);
 
-    /*
-    // Add a REST Service here
-    // Verify permission issue and half pagination
-    userStore.setModel(PermissionModel);
-    userStore.getParameters().forceModel = true;
-    if (userStore._cacheStore) {
-      userStore._cacheStore.getParameters().forceModel = true;
-    }
-    let context = await this.newContext();
-    // Verify pagination system
-    i = 0;
-    let total = 0;
-    let q;
-    // To ensure we trigger slowQuery
-    userStore.getParameters().slowQueryThreshold = 0;
-
-    do {
-      q = `team.id > 10 LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`;
-      context.setHttpContext(
-        new HttpContext("test.webda.io", i++ % 2 ? "GET" : "PUT", "/users?q=" + encodeURI(q), "https", 443)
-      );
-      context.getHttpContext().setBody({ q });
-      context.getParameters().q = q;
-      // @ts-ignore
-      await userStore.httpQuery(context);
-      res = JSON.parse(<string>context.getResponseBody());
-      offset = res.continuationToken;
-      total += res.results.length;
-    } while (offset !== undefined);
-    assert.strictEqual(total, 180);
-    q = "BAD QUERY !";
-    context.setHttpContext(new HttpContext("test.webda.io", "PUT", "/users", "https", 443));
-    context.getHttpContext().setBody({ q });
-    await assert.rejects(
-      () => userStore["httpQuery"](context),
-      (err: WebdaError.HttpError) => err.getResponseCode() === 400
-    );
-    let mock = stub(userStore, "query").callsFake(() => {
-      throw new Error("Plop");
-    });
-    try {
-      await assert.rejects(() => userStore["httpQuery"](context), /Plop/);
-    } finally {
-      mock.restore();
-    }
-    */
     return userStore;
   }
 
@@ -251,9 +206,9 @@ abstract class StoreTest extends WebdaSimpleTest {
   @test
   async mapper() {
     // Create a mapper - keep the test here as it is a good test for stores
-    const identStore = this.getIdentStore();
-    const userStore = this.getUserStore();
-    const mapper = await this.addService(
+    const identStore = this.identStore;
+    const userStore = this.userStore;
+    await this.addService(
       MapperService,
       {
         source: identStore.getName(),
@@ -265,7 +220,7 @@ abstract class StoreTest extends WebdaSimpleTest {
       },
       "Mapper"
     );
-    const indexer = await this.addService(AggregatorService, {
+    await this.addService(AggregatorService, {
       source: identStore.getName(),
       key: "idents-index",
       fields: ["type"]
@@ -450,7 +405,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async collection() {
-    const identStore = this.getIdentStore();
+    const identStore = this.identStore;
     let ident;
     ident = await identStore.save({
       test: "plop"
@@ -539,7 +494,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async getAll() {
-    const userStore = this.getUserStore();
+    const userStore = this.userStore;
     const user1 = await userStore.save({
       name: "test1"
     });
@@ -562,7 +517,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async crud() {
-    const identStore = this.getIdentStore();
+    const identStore = this.identStore;
     let eventFired = 0;
     const events: (keyof StoreEvents)[] = [
       "Store.Save",
@@ -673,7 +628,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async exists() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     const model = await store.save({});
     assert.ok(await store.exists(model.getUuid()));
     assert.ok(await store.exists(model));
@@ -682,7 +637,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async incrementAttribute() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     const model = await store.save({ counter: 0 });
     await store.incrementAttribute(model.getUuid(), "counter", 3);
     await store.incrementAttribute(model.getUuid(), "counter2", 2);
@@ -694,7 +649,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async removeAttribute() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     const model = await store.save({ counter: 0, counter2: 12, counter3: 13 });
     await store.removeAttribute(model.getUuid(), "counter");
     await model.refresh();
@@ -710,7 +665,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async setAttribute() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     const model = await store.save({ counter: 0 });
     await store.setAttribute(model.getUuid(), "counter", 3);
     await store.setAttribute(model.getUuid(), "status", "TESTED");
@@ -742,7 +697,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async deleteAsync() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     let model = await store.save({ counter: 1 });
     // Delete with condition
     await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
@@ -758,7 +713,7 @@ abstract class StoreTest extends WebdaSimpleTest {
   @test
   async delete() {
     // UserStore is not supposed to be async
-    const store = this.getUserStore();
+    const store = this.userStore;
     let model = await store.save({ counter: 1 });
     // Delete with condition
     await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
@@ -773,7 +728,7 @@ abstract class StoreTest extends WebdaSimpleTest {
   }
 
   async deleteConcurrent() {
-    const store = this.getUserStore();
+    const store = this.userStore;
     const model = await store.save({ counter: 1 });
     store.addListener("Store.Delete", async () => {
       await store.incrementAttribute(model.getUuid(), "counter", 1);
@@ -785,7 +740,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async conditionUpdate() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     const model = await store.save({ counter: 1 });
     assert.ok(
       await store.conditionalPatch(
@@ -831,7 +786,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async update(delay: number = 1) {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     const model = await store.save({ counter: 1 });
     model.saveUpdateCompat = true;
     await store.save(model, await this.newContext());
@@ -865,7 +820,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async upsertItem() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     this.log("DEBUG", "Save empty logs array");
     const model = await store.save({ logs: [] });
     const ps = [];
@@ -892,7 +847,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async put() {
-    const store = this.getIdentStore();
+    const store = this.identStore;
     const uuid = store.getWebda().getUuid();
     if (await store.exists(uuid)) {
       await store.delete(uuid);

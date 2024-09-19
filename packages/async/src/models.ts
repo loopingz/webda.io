@@ -67,7 +67,7 @@ export default class AsyncAction extends CoreModel {
   /**
    * Job information
    */
-  public job: unknown;
+  public job: any;
 
   /**
    * Last time the job was updated
@@ -119,7 +119,10 @@ export default class AsyncAction extends CoreModel {
    * @param context
    */
   @Action({ name: "status", openapi: { hidden: true } })
-  public async statusAction(context: WebContext) {
+  public async statusAction(context: OperationContext) {
+    if (!(context instanceof WebContext)) {
+      throw new Error("Only WebContext can call this action");
+    }
     await this.update(await context.getRequestBody(), context.getHttpContext().getUniqueHeader("X-Job-Time"));
     context.write({ ...this, logs: undefined, statusDetails: undefined });
   }
@@ -212,11 +215,6 @@ export default class AsyncAction extends CoreModel {
       context.getHttpContext()?.getUniqueHeader("X-Job-Hash") &&
       context.getHttpContext()?.getUniqueHeader("X-Job-Time")
     ) {
-      console.log(
-        action,
-        context.getHttpContext()?.getUniqueHeader("X-Job-Hash"),
-        context.getHttpContext()?.getUniqueHeader("X-Job-Time")
-      );
       return await this.verifyJobRequest(<WebContext>context);
     }
     return super.checkAct(context, action);

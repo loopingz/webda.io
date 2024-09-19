@@ -2,33 +2,33 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/Aggregator": "lib/stores/aggregator:[object Object]",
-    "Webda/AsyncEvents": "lib/services/asyncevents:[object Object]",
-    "Webda/Authentication": "lib/services/authentication:[object Object]",
+    "Webda/Aggregator": "lib/stores/aggregator:AggregatorService",
+    "Webda/AsyncEvents": "lib/services/asyncevents:EventService",
+    "Webda/Authentication": "lib/services/authentication:Authentication",
     "Webda/Binary": "lib/services/binary:BinaryService",
-    "Webda/ConfigurationService": "lib/services/configuration:[object Object]",
+    "Webda/ConfigurationService": "lib/services/configuration:ConfigurationService",
     "Webda/ConsoleLogger": "lib/utils/logger:ConsoleLoggerService",
     "Webda/CookieSessionManager": "lib/utils/session:CookieSessionManager",
-    "Webda/CronService": "lib/services/cron:[object Object]",
+    "Webda/CronService": "lib/services/cron:CronService",
     "Webda/CryptoService": "lib/services/cryptoservice:CryptoService",
     "Webda/DebugMailer": "lib/services/debugmailer:DebugMailer",
     "Webda/FileBinary": "lib/services/filebinary:FileBinary",
     "Webda/FileConfiguration": "lib/services/fileconfiguration:FileConfigurationService",
     "Webda/FileLogger": "lib/utils/logger:FileLoggerService",
     "Webda/FileQueue": "lib/queues/filequeue:FileQueue",
-    "Webda/FileStore": "lib/stores/file:[object Object]",
+    "Webda/FileStore": "lib/stores/file:FileStore",
     "Webda/InvitationService": "lib/services/invitationservice:InvitationService",
     "Webda/KubernetesConfigurationService": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
-    "Webda/Mailer": "lib/services/mailer:[object Object]",
-    "Webda/Mapper": "lib/stores/mapper:[object Object]",
+    "Webda/Mailer": "lib/services/mailer:Mailer",
+    "Webda/Mapper": "lib/stores/mapper:MapperService",
     "Webda/MemoryLogger": "lib/utils/logger:MemoryLoggerService",
     "Webda/MemoryQueue": "lib/queues/memoryqueue:MemoryQueue",
-    "Webda/MemoryStore": "lib/stores/memory:[object Object]",
+    "Webda/MemoryStore": "lib/stores/memory:MemoryStore",
     "Webda/ModelsOperationsService": "lib/services/domainservice:ModelsOperationsService",
     "Webda/MultiNotificationService": "lib/services/notificationservice:default",
     "Webda/PrometheusService": "lib/services/prometheus:PrometheusService",
     "Webda/RESTDomainService": "lib/rest/restdomainservice:RESTDomainService",
-    "Webda/ResourceService": "lib/services/resource:[object Object]"
+    "Webda/ResourceService": "lib/services/resource:ResourceService"
   },
   "models": {
     "graph": {
@@ -68,7 +68,7 @@
           {
             "attribute": "_idents",
             "cascadeDelete": false,
-            "model": "unknown",
+            "model": "Webda/Ident",
             "targetLink": "_user",
             "targetAttributes": [
               "_type",
@@ -79,6 +79,15 @@
         ]
       },
       "Webda/Task": {
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "Webda/User",
+            "type": "LINK"
+          }
+        ]
+      },
+      "Webda/TestIdent": {
         "links": [
           {
             "attribute": "_user",
@@ -100,25 +109,28 @@
       },
       "Webda/UuidModel": {
         "Webda/OwnerModel": {
-          "Webda/Ident": {},
-          "Webda/Task": {},
-          "Webda/MyIdent": {}
+          "Webda/Ident": {
+            "Webda/TestIdent": {},
+            "Webda/MyIdent": {}
+          },
+          "Webda/Task": {}
         }
       }
     },
     "plurals": {},
     "list": {
       "Webda/AclModel": "lib/models/aclmodel:AclModel",
-      "Webda/CoreModel": "lib/models/coremodel:[object Object]",
-      "Webda/Ident": "lib/test:Ident",
+      "Webda/CoreModel": "lib/models/coremodel:CoreModel",
+      "Webda/Ident": "lib/models/ident:Ident",
       "Webda/MyIdent": "lib/models/test:MyIdent",
       "Webda/MySimpleUser": "lib/models/test:MySimpleUser",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
-      "Webda/RoleModel": "lib/models/rolemodel:[object Object]",
-      "Webda/SimpleUser": "lib/models/user:SimpleUser",
+      "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
+      "Webda/SimpleUser": "lib/models/simpleuser:SimpleUser",
       "Webda/Task": "lib/test:Task",
+      "Webda/TestIdent": "lib/test:TestIdent",
       "Webda/User": "lib/models/user:User",
-      "Webda/UuidModel": "lib/models/coremodel:[object Object]"
+      "Webda/UuidModel": "lib/models/coremodel:UuidModel"
     },
     "reflections": {
       "Webda/AclModel": {
@@ -149,7 +161,7 @@
       "Webda/Ident": {
         "_type": "string",
         "uid": "string",
-        "__profile": "unknown",
+        "__profile": "any",
         "__tokens": "IdentTokens",
         "_lastUsed": "Date",
         "_user": "ModelLink<User>",
@@ -176,7 +188,7 @@
         "_user": "ModelLink<MySimpleUser>",
         "_type": "string",
         "uid": "string",
-        "__profile": "unknown",
+        "__profile": "any",
         "__tokens": "IdentTokens",
         "_lastUsed": "Date",
         "__new": "boolean",
@@ -272,6 +284,31 @@
         "side": "string",
         "_gotContext": "boolean",
         "_user": "ModelLink<User>",
+        "public": "boolean",
+        "uuid": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "Webda/TestIdent": {
+        "_type": "string",
+        "uid": "string",
+        "__profile": "any",
+        "__tokens": "IdentTokens",
+        "_lastUsed": "Date",
+        "_user": "ModelLink<User>",
+        "__new": "boolean",
+        "_failedLogin": "number",
+        "_lastValidationEmail": "number",
+        "_validation": "Date",
+        "email": "string",
+        "provider": "string",
         "public": "boolean",
         "uuid": "string",
         "__class": "CoreModelDefinition<this>",
@@ -1491,10 +1528,12 @@
         "_lastUsed": {
           "type": "string",
           "format": "date-time",
+          "description": "Last time the ident was used",
           "readOnly": true
         },
         "_failedLogin": {
           "type": "number",
+          "description": "If the ident is validated",
           "readOnly": true
         },
         "_lastValidationEmail": {
@@ -1521,6 +1560,7 @@
         "uid",
         "uuid"
       ],
+      "description": "First basic model for Ident",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ident"
     },
@@ -2088,10 +2128,12 @@
         "_lastUsed": {
           "type": "string",
           "format": "date-time",
+          "description": "Last time the ident was used",
           "readOnly": true
         },
         "_failedLogin": {
           "type": "number",
+          "description": "If the ident is validated",
           "readOnly": true
         },
         "_lastValidationEmail": {
@@ -2124,6 +2166,93 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MyIdent"
+    },
+    "Webda/MySimpleUser": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        },
+        "_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Groups for a user",
+          "readOnly": true
+        },
+        "_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Roles of the user",
+          "readOnly": true
+        },
+        "_idents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ModelMapLoader%3Cclass-src_models_test.ts-132-222-src_models_test.ts-0-339%2C(%22_type%22%7C%22uuid%22%7C%22email%22)%3E"
+          },
+          "description": "Normal ident",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "displayName"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ModelMapLoader<class-src_models_test.ts-132-222-src_models_test.ts-0-339,(\"_type\"|\"uuid\"|\"email\")>": {
+          "type": "object",
+          "properties": {
+            "_type": {},
+            "uuid": {
+              "type": "string",
+              "description": "The uuid of the object"
+            },
+            "email": {}
+          },
+          "required": [
+            "_type",
+            "email",
+            "uuid"
+          ],
+          "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array TODO Handle 1:1 map"
+        }
+      },
+      "title": "MySimpleUser"
     },
     "Webda/OwnerModel": {
       "type": "object",
@@ -2365,6 +2494,84 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RoleModel"
     },
+    "Webda/SimpleUser": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        },
+        "_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Groups for a user",
+          "readOnly": true
+        },
+        "_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Roles of the user",
+          "readOnly": true
+        },
+        "_idents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "uuid",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        }
+      },
+      "required": [
+        "displayName"
+      ],
+      "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no models",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SimpleUser"
+    },
     "Webda/Task": {
       "type": "object",
       "properties": {
@@ -2421,6 +2628,81 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Task"
+    },
+    "Webda/TestIdent": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        },
+        "_type": {
+          "type": "string",
+          "description": "Type of the ident",
+          "readOnly": true
+        },
+        "uid": {
+          "type": "string",
+          "description": "Uid on the provider"
+        },
+        "_lastUsed": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last time the ident was used",
+          "readOnly": true
+        },
+        "_failedLogin": {
+          "type": "number",
+          "description": "If the ident is validated",
+          "readOnly": true
+        },
+        "_lastValidationEmail": {
+          "type": "number",
+          "description": "If EmailIdent",
+          "readOnly": true
+        },
+        "_validation": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the ident was validated",
+          "readOnly": true
+        },
+        "email": {
+          "type": "string",
+          "description": "Email for this ident if it exist"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider id"
+        }
+      },
+      "required": [
+        "uid",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TestIdent"
     },
     "Webda/User": {
       "type": "object",

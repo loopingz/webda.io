@@ -3,10 +3,8 @@ import * as assert from "assert";
 import { existsSync } from "fs";
 import pkg from "fs-extra";
 import * as sinon from "sinon";
-import { CoreModel, FileStore, FileUtils, ModelMapLoaderImplementation, Store, WebdaError } from "../index";
+import { CoreModel, FileStore, ModelMapLoaderImplementation, Store } from "../index";
 import { User } from "../models/user";
-import { HttpContext } from "../utils/httpcontext";
-import { AggregatorService } from "./aggregator";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { StoreTest } from "./store.spec";
 const { removeSync } = pkg;
@@ -21,31 +19,24 @@ interface TestUser extends User {
   user: string;
 }
 @suite
-class FileStoreTest extends StoreTest {
-  userStore: FileStore;
-  identStore: FileStore;
-
-  getUserStore(): Store<any> {
-    this.userStore ??= new FileStore(this.webda, "Users", { folder: "./test/data/idents", model: "Webda/User" });
-    return this.userStore;
+class FileStoreTest extends StoreTest<FileStore<any>> {
+  async getUserStore(): Promise<FileStore<any>> {
+    return this.addService(FileStore, { folder: "./test/data/idents", model: "Webda/User" }, "Users");
   }
 
-  getIdentStore(): Store<any> {
-    // Need to slow down the _get
-    if (!this.identStore) {
-      this.identStore = new FileStore(this.webda, "Idents", {
-        model: "WebdaTest/Ident",
-        folder: "./test/data/idents"
-      });
-      // @ts-ignore
-      const original = this.identStore._get.bind(this.identStore);
-      // @ts-ignore
-      this.identStore._get = async (...args) => {
-        await this.sleep(1);
-        return original(...args);
-      };
-    }
-    return this.identStore;
+  async getIdentStore(): Promise<FileStore<any>> {
+    const identStore = new FileStore(this.webda, "Idents", {
+      model: "WebdaTest/Ident",
+      folder: "./test/data/idents"
+    });
+    // @ts-ignore
+    const original = identStore._get.bind(identStore);
+    // @ts-ignore
+    identStore._get = async (...args) => {
+      await this.sleep(1);
+      return original(...args);
+    };
+    return await identStore.resolve().init();
   }
 
   @test
@@ -56,8 +47,8 @@ class FileStoreTest extends StoreTest {
 
   @test
   async cov() {
-    const identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.getService<any>("Idents");
-    const userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Users");
+    const identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.identStore;
+    const userStore: FileStore<CoreModel> = this.userStore;
     const user: any = await userStore.save({});
     let ident = await identStore.save({
       _user: user.getUuid()
@@ -131,7 +122,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async configuration() {
-    const identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
+    const identStore: FileStore<CoreModel> = this.identStore;
     assert.strictEqual(
       identStore.canTriggerConfiguration("plop", () => {}),
       false
@@ -146,7 +137,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async cacheMishit() {
-    const identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
+    const identStore: FileStore<CoreModel> = this.identStore;
     const ident: CoreModel = await identStore.save({ uuid: "test" });
     await identStore._cacheStore.__clean();
     // @ts-ignore
@@ -155,7 +146,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   computeParams() {
-    const usersStore: FileStore<any> = <FileStore<any>>this.getUserStore();
+    const usersStore: FileStore<any> = this.userStore;
     removeSync(usersStore.getParameters().folder);
     usersStore.computeParameters();
     assert.ok(existsSync(usersStore.getParameters().folder));

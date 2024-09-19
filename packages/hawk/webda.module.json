@@ -17,8 +17,10 @@
       }
     },
     "tree": {
-      "Webda/OwnerModel": {
-        "Webda/ApiKey": {}
+      "Webda/UuidModel": {
+        "Webda/OwnerModel": {
+          "Webda/ApiKey": {}
+        }
       }
     },
     "plurals": {},

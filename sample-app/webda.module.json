@@ -278,17 +278,19 @@
       "Webda/User": {
         "WebdaDemo/User": {}
       },
-      "WebdaDemo/Brand": {},
-      "WebdaDemo/Classroom": {},
+      "Webda/UuidModel": {
+        "WebdaDemo/Student": {},
+        "WebdaDemo/Teacher": {},
+        "WebdaDemo/Course": {},
+        "WebdaDemo/Classroom": {},
+        "WebdaDemo/Hardware": {
+          "WebdaDemo/ComputerScreen": {}
+        },
+        "WebdaDemo/Brand": {}
+      },
       "WebdaDemo/Company": {},
       "WebdaDemo/Computer": {},
-      "WebdaDemo/Contact": {},
-      "WebdaDemo/Course": {},
-      "WebdaDemo/Hardware": {
-        "WebdaDemo/ComputerScreen": {}
-      },
-      "WebdaDemo/Student": {},
-      "WebdaDemo/Teacher": {}
+      "WebdaDemo/Contact": {}
     },
     "plurals": {
       "WebdaDemo/Company": "Companies"
@@ -297,18 +299,18 @@
       "WebdaDemo/AbstractProject": "lib/models/project:AbstractProject",
       "WebdaDemo/AnotherSubProject": "lib/models/project:AnotherSubProject",
       "WebdaDemo/Brand": "lib/models/relations:Brand",
-      "WebdaDemo/Classroom": "lib/models/relations:[object Object]",
+      "WebdaDemo/Classroom": "lib/models/relations:Classroom",
       "WebdaDemo/Company": "lib/models/company:Company",
       "WebdaDemo/Computer": "lib/models/user:Computer",
       "WebdaDemo/ComputerScreen": "lib/models/relations:ComputerScreen",
       "WebdaDemo/Contact": "lib/models/contact:default",
-      "WebdaDemo/Course": "lib/models/relations:[object Object]",
-      "WebdaDemo/Hardware": "lib/models/relations:[object Object]",
+      "WebdaDemo/Course": "lib/models/relations:Course",
+      "WebdaDemo/Hardware": "lib/models/relations:Hardware",
       "WebdaDemo/Project": "lib/models/project:Project",
-      "WebdaDemo/Student": "lib/models/relations:[object Object]",
+      "WebdaDemo/Student": "lib/models/relations:Student",
       "WebdaDemo/SubProject": "lib/models/project:SubProject",
       "WebdaDemo/SubSubProject": "lib/models/project:SubSubProject",
-      "WebdaDemo/Teacher": "lib/models/relations:[object Object]",
+      "WebdaDemo/Teacher": "lib/models/relations:Teacher",
       "WebdaDemo/User": "lib/models/user:User"
     },
     "reflections": {

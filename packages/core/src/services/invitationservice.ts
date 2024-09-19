@@ -575,14 +575,23 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
       }
       // Notify ident
       const ident = invitation.invitation.split("_");
-      await this.sendNotification(Ident.init(ident.pop(), ident.join("_")), {
-        model,
-        metadata,
-        notification: body.notification,
-        inviter: inviter.toPublicEntry(),
-        pending: !this.parameters.autoAccept,
-        registered: true
-      });
+      await this.sendNotification(
+        new Ident().load(
+          {
+            _type: ident.pop(),
+            uuid: ident.join("_")
+          },
+          true
+        ),
+        {
+          model,
+          metadata,
+          notification: body.notification,
+          inviter: inviter.toPublicEntry(),
+          pending: !this.parameters.autoAccept,
+          registered: true
+        }
+      );
     }
     // Check user direct invite
     body.users ??= [];

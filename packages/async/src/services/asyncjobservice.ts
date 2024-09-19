@@ -229,6 +229,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, {
       hidden: true
     });
+
     this.getWebda().registerRequestFilter(this);
     return this;
   }
@@ -269,7 +270,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     // Only for status endpoint - operations endpoint should still be authorized by something else
     if (url === `${this.parameters.url}/status`) {
       // Allow status url to be called without other mechanism
-      return true;
+      const httpContext = context.getHttpContext();
+      return ["X-Job-Id", "X-Job-Time", "X-Job-Hash"].every(v => httpContext.getUniqueHeader(v) !== undefined);
     }
     return false;
   }
@@ -361,10 +363,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     return {
       JOB_SECRET_KEY: action.__secretKey,
       JOB_ID: action.getUuid(),
-      JOB_HOOK:
-        this.parameters.onlyHttpHook || !action.isInternal()
-          ? action.getHookUrl() || this.getWebda().getApiUrl(this.parameters.url)
-          : "store", // How to find the absolute url
+      JOB_HOOK: this.parameters.onlyHttpHook || !action.isInternal() ? action.getHookUrl() : "store",
       JOB_ORCHESTRATOR: this.getName()
     };
   }

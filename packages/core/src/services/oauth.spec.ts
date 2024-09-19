@@ -201,6 +201,7 @@ class OAuthServiceTest extends WebdaInternalTest {
     });
     // @ts-ignore readonly
     ctx.getHttpContext().getHeaders().referer = "http://myownwebsite.com";
+    this.service.getParameters().authorized_uris = undefined;
     this.service._redirect(ctx);
     assert.strictEqual(ctx.getSession<OAuthSession>().oauth.redirect, "http://myownwebsite.com");
   }

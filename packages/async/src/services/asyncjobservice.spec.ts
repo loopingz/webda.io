@@ -73,15 +73,6 @@ class AsyncJobServiceTest extends WebdaTest {
       url: "/cov"
     });
     this.service.resolve();
-    // @ts-ignore
-    assert.strictEqual(this.service.runners.length, 0);
-    this.service.getParameters().binaryStore = "Binary";
-    // @ts-ignore
-    const previousRouteCount = Object.keys(this.webda.getRouter().routes).length;
-    this.service.resolve();
-    // @ts-ignore
-    const routeCount = Object.keys(this.webda.getRouter().routes).length;
-    assert.strictEqual(routeCount, previousRouteCount + 2);
 
     // Just for COV
     const stubAction = stub(this.service, "launchAction").callsFake(async () => new AsyncAction());
@@ -135,7 +126,7 @@ class AsyncJobServiceTest extends WebdaTest {
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
+      new HttpContext("test.webda.io", "GET", "/async/status", "https", 443, {
         "X-Job-Id": "plop",
         "X-Job-Time": jobTime,
         "X-Job-Hash": jobHash
@@ -569,11 +560,15 @@ class AsyncJobServiceTest extends WebdaTest {
 
   @test
   async operations() {
-    const service = new AsyncJobService(this.webda, "async", {
-      queue: "AsyncQueue",
-      runners: ["LocalRunner"],
-      asyncOperationDefinition: "./test/asyncOperations.json"
-    });
+    const service = await this.addService(
+      AsyncJobService,
+      {
+        queue: "AsyncQueue",
+        runners: ["LocalRunner"],
+        asyncOperationDefinition: "./test/asyncOperations.json"
+      },
+      "async"
+    );
     service.resolve();
     assert.ok(this.webda.getApplication().hasSchema("userservice.revoke.input"));
     let context = await this.newContext();

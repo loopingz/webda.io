@@ -22,7 +22,6 @@ class ClusterServiceTest extends WebdaSimpleTest {
   @test
   async test() {
     process.env["CLUSTER_SERVICE"] = "Cluster";
-    console.log(Object.keys(this.webda.getModels()));
     const CoreModel = this.webda.getModels()["Webda/CoreModel"];
     CoreModel.getClientEvents = () => ["test"];
     this.pubsub = this.registerService(await new FakePubSub(this.webda, "PubSub", {}).resolve().init());
@@ -153,7 +152,7 @@ class ClusterServiceTest extends WebdaSimpleTest {
       time: Date.now(),
       data: { plop: true }
     });
-    console.log(this.service.stores["fake"].emitStoreEvent);
+
     // @ts-ignore
     assert.deepStrictEqual(this.service.stores["fake"].emitStoreEvent.args[0], [
       "Test",

@@ -63,25 +63,11 @@
     },
     "fireidents": {
       "asyncDelete": true,
-      "expose": {
-        "restrict": {
-          "create": true,
-          "update": true,
-          "get": true
-        }
-      },
       "model": "Webda/Ident",
       "type": "GoogleCloudFireStore",
       "collection": "idents"
     },
     "fireusers": {
-      "expose": {
-        "url": "/fireusers",
-        "restrict": {
-          "authentication": true,
-          "create": true
-        }
-      },
       "type": "GoogleCloudFireStore",
       "model": "Webda/User",
       "collection": "users"

@@ -9,7 +9,7 @@ import { FireStore } from "./firestore";
 import * as WebdaQL from "@webda/ql";
 
 @suite
-class FireStoreTest extends StoreTest {
+class FireStoreTest extends StoreTest<FireStore> {
   unitUuid: string;
   firestore: Firestore;
 
@@ -19,16 +19,26 @@ class FireStoreTest extends StoreTest {
     await super.before();
   }
 
-  getIdentStore(): FireStore<any> {
-    const ident = <FireStore<any>>this.getService("fireidents");
-    ident.getParameters().collection += "_" + this.unitUuid;
-    return ident;
+  async getIdentStore(): Promise<FireStore<any>> {
+    return this.addService(
+      FireStore,
+      {
+        collection: `idents-${this.webda.getUuid()}`,
+        model: "Webda/Ident"
+      },
+      "Idents"
+    );
   }
 
-  getUserStore(): FireStore<any> {
-    const user = <FireStore<any>>this.getService("fireusers");
-    user.getParameters().collection += "_" + this.unitUuid;
-    return user;
+  async getUserStore(): Promise<FireStore<any>> {
+    return this.addService(
+      FireStore,
+      {
+        collection: `users-${this.webda.getUuid()}`,
+        model: "Webda/User"
+      },
+      "Users"
+    );
   }
 
   /**
@@ -54,12 +64,15 @@ class FireStoreTest extends StoreTest {
 
   async fillForQuery(): Promise<FireStore> {
     // Create a new store
-    const store = new FireStore(this.webda, "queryStore", {
-      collection: "webda-query",
-      compoundIndexes: [{ state: "asc", "team.id": "asc" }]
-    });
-    store.resolve();
-    await store.init();
+    const store = await this.addService(
+      FireStore,
+      {
+        collection: "webda-query",
+        compoundIndexes: [{ state: "asc", "team.id": "asc" }]
+      },
+      "queryStore"
+    );
+
     const res = await this.firestore.collection("webda-query").where("order", "==", 1).get();
     if (!res.docs.length) {
       console.log("Init the query collection");
@@ -171,7 +184,7 @@ class FireStoreTest extends StoreTest {
 
   @test
   async deleteCondition() {
-    const idents = this.getIdentStore();
+    const idents = this.identStore;
     const obj = await idents.save({
       plop: 3
     });
@@ -181,7 +194,7 @@ class FireStoreTest extends StoreTest {
 
   @test
   async cov() {
-    const store: FireStore = <FireStore>this.getIdentStore();
+    const store: FireStore = this.identStore;
     await assert.rejects(
       () => store.upsertItemToCollection("inexisting", <any>"plop", {}, 0),
       /Item not found inexisting/

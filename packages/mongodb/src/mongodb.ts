@@ -55,7 +55,10 @@ export class MongoParameters extends StoreParameters {
  *
  * @WebdaModda
  */
-export default class MongoStore<T extends CoreModel, K extends MongoParameters> extends Store<T, K> {
+export default class MongoStore<
+  T extends CoreModel = CoreModel,
+  K extends MongoParameters = MongoParameters
+> extends Store<T, K> {
   /**
    * Connect promise
    */

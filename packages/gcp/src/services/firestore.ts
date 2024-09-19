@@ -64,8 +64,7 @@ export default class FireStore<
    */
   async init(): Promise<this> {
     await super.init();
-    this.firestore = new Firestore();
-    this.firestore.settings({ ignoreUndefinedProperties: true });
+    this.firestore = new Firestore({ ignoreUndefinedProperties: true });
     this.compoundIndexes = {};
     this.parameters.compoundIndexes.forEach(a => {
       const key = Object.keys(a).join("/");

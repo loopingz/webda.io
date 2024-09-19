@@ -504,7 +504,7 @@ export type BinaryEvents = {
 /**
  * Define a BinaryModel with infinite field for binary map
  */
-export type BinaryModel<T = { [key: string]: BinaryMap[] }> = CoreModel & T;
+export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> = CoreModel & T;
 
 /**
  * This is an abstract service to represent a storage of files
@@ -743,7 +743,7 @@ export abstract class BinaryService<
   /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    */
-  async uploadSuccess(object: BinaryModel, property: string, file: BinaryFileInfo): Promise<void> {
+  async uploadSuccess(object: CoreModelWithBinary, property: string, file: BinaryFileInfo): Promise<void> {
     const object_uid = object.getUuid();
     // Check if the file is already in the array then skip
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
@@ -757,7 +757,9 @@ export abstract class BinaryService<
     const relations = this.getWebda().getApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     if (cardinality === "MANY") {
-      await object.getStore().upsertItemToCollection(object_uid, property, file);
+      await (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object)
+        .getStore()
+        .upsertItemToCollection(object_uid, property, file);
     } else {
       await object.getStore().setAttribute(object_uid, property, file);
     }
@@ -785,13 +787,15 @@ export abstract class BinaryService<
    * @param index
    * @returns
    */
-  async deleteSuccess(object: BinaryModel, property: string, index?: number) {
+  async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
     const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
     const relations = this.getWebda().getApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
     if (cardinality === "MANY") {
-      update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
+      update = (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object)
+        .getStore()
+        .deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
     } else {
       object.getStore().removeAttribute(object.getUuid(), property);
     }

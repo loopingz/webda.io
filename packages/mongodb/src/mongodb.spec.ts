@@ -2,16 +2,33 @@ import { suite, test } from "@testdeck/mocha";
 import { Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
-import { MongoParameters } from "./mongodb";
+import { MongoStore, MongoParameters } from "./mongodb";
 
 @suite
-class MongoDBTest extends StoreTest {
-  getIdentStore(): Store<any> {
-    return <Store<any>>this.getService("mongoidents");
+class MongoDBTest extends StoreTest<MongoStore> {
+  async getIdentStore(): Promise<MongoStore<any>> {
+    return this.addService(
+      MongoStore,
+      {
+        mongoUrl: "mongodb://root:webda.io@localhost:37017",
+        asyncDelete: true,
+        model: "Webda/Ident",
+        collection: "idents"
+      },
+      "Idents"
+    );
   }
 
-  getUserStore(): Store<any> {
-    return <Store<any>>this.getService("mongousers");
+  async getUserStore(): Promise<MongoStore<any>> {
+    return this.addService(
+      MongoStore,
+      {
+        mongoUrl: "mongodb://root:webda.io@localhost:37017",
+        model: "Webda/User",
+        collection: "users"
+      },
+      "Idents"
+    );
   }
 
   getModelClass() {
@@ -20,7 +37,7 @@ class MongoDBTest extends StoreTest {
 
   @test
   params() {
-    assert.throws(() => new MongoParameters({}, this.getUserStore()), /An URL is required for MongoDB service/);
-    new MongoParameters({ mongoUrl: "", options: {} }, this.getUserStore());
+    assert.throws(() => new MongoParameters({}, this.userStore), /An URL is required for MongoDB service/);
+    new MongoParameters({ mongoUrl: "", options: {} }, this.userStore);
   }
 }

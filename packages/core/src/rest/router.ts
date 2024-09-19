@@ -349,7 +349,6 @@ export class Router {
    */
   public getRouteFromUrl(ctx: WebContext, method: HttpMethodType, url: string): any {
     const finalUrl = this.getFinalUrl(url);
-    const parameters = this.webda.getConfiguration().parameters;
     for (const i in this.pathMap) {
       const routeUrl = this.pathMap[i].url;
       const map = this.pathMap[i].config;

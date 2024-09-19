@@ -13,6 +13,7 @@ const { __dirname } = getCommonJS(import.meta.url);
 @suite
 class SQSQueueTest extends QueueTest {
   info: GetQueueUrlCommandOutput;
+  queue: SQSQueue;
   async before() {
     process.env.AWS_ACCESS_KEY_ID = "plop";
     process.env.AWS_SECRET_ACCESS_KEY = "plop";
@@ -20,6 +21,11 @@ class SQSQueueTest extends QueueTest {
     await checkLocalStack();
     await super.before();
     await this.install();
+    this.queue = await this.addService(SQSQueue, {
+      endpoint: "http://localhost:4566",
+      queue: "http://localhost:4566/000000000000/webda-test",
+      maxConsumers: 1
+    });
   }
 
   async tweakApp(app: TestApplication) {

@@ -28,7 +28,7 @@ import { DynamoStore, DynamoStoreParameters } from "./dynamodb";
 const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
-export class DynamoDBTest extends StoreTest {
+export class DynamoDBTest extends StoreTest<DynamoStore> {
   async before() {
     process.env.AWS_ACCESS_KEY_ID = defaultCreds.accessKeyId;
     process.env.AWS_SECRET_ACCESS_KEY = defaultCreds.secretAccessKey;
@@ -48,11 +48,31 @@ export class DynamoDBTest extends StoreTest {
     );
   }
 
-  getIdentStore(): Store<any> {
-    return <Store<any>>this.getService("Idents");
+  getIdentStore(): Promise<DynamoStore<any>> {
+    return this.addService(
+      DynamoStore,
+      {
+        endpoint: "http://localhost:4566",
+        type: "DynamoStore",
+        table: "webda-test-idents",
+        model: "Webda/Ident"
+      },
+      "Idents"
+    );
   }
-  getUserStore(): Store<any> {
-    return <Store<any>>this.getService("Users");
+
+  getUserStore(): Promise<DynamoStore<any>> {
+    return this.addService(
+      DynamoStore,
+      {
+        scanPage: 2,
+        endpoint: "http://localhost:4566",
+        type: "DynamoStore",
+        table: "webda-test-users",
+        model: "Webda/User"
+      },
+      "Users"
+    );
   }
 
   @test
@@ -170,7 +190,7 @@ export class DynamoDBTest extends StoreTest {
 
   @test
   async dateHandling() {
-    const userStore = this.getUserStore();
+    const userStore = this.userStore;
     await userStore.save({
       uuid: "testUpdate",
       subobject: {
@@ -182,13 +202,13 @@ export class DynamoDBTest extends StoreTest {
       }
     });
     const user = await userStore.get("testUpdate");
-    assert.notStrictEqual(user.date, {});
+    assert.notStrictEqual(user["date"], {});
   }
 
   @test
   bodyCleaning() {
     //var parse = require("./data/to_clean.json");
-    const identStore: DynamoStore<Ident> = <DynamoStore<Ident>>this.getIdentStore();
+    const identStore: DynamoStore<Ident> = <DynamoStore<Ident>>this.identStore;
     const ident = new Ident();
     ident.load(
       <any>{

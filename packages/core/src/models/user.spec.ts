@@ -1,6 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { SimpleUser, User } from "./user";
+import { User } from "./user";
+import { SimpleUser } from "./simpleuser";
 
 @suite
 class UserTest {

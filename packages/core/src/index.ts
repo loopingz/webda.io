@@ -20,6 +20,7 @@ export * from "./models/ownermodel"; // move to runtime
 export * from "./models/relations";
 export * from "./models/rolemodel"; // move to runtime
 export * from "./models/user";
+export * from "./models/simpleuser";
 
 // Queues
 export * from "./queues/filequeue"; // move to runtime

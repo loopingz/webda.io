@@ -14,7 +14,7 @@ class KubeRunnerTest extends WebdaTest {
 
   @test
   loadResource() {
-    let runner = new KubeRunner(this.webda, "runner", { jobResources: "./test/resource-fake.yml" });
+    const runner = new KubeRunner(this.webda, "runner", { jobResources: "./test/resource-fake.yml" });
     runner.resolve();
 
     assert.deepStrictEqual(runner.getParameters().jobResources, { fake: true });
@@ -31,7 +31,7 @@ class KubeRunnerTest extends WebdaTest {
 
   @test
   async launchAction() {
-    let runner = new KubeRunner(this.webda, "runner", { jobImage: "webda.io/runner" });
+    const runner = new KubeRunner(this.webda, "runner", { jobImage: "webda.io/runner" });
     runner.resolve();
     const kube = stub(runner.client, "create").returns({
       // @ts-ignore

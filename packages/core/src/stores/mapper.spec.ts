@@ -10,7 +10,7 @@ import { MapperService } from "./mapper";
 class MapperTest extends WebdaTest {
   @test
   async cov() {
-    let service = await new MapperService(this.webda, "test", {
+    const service = await new MapperService(this.webda, "test", {
       source: "Idents",
       target: "Users",
       attribute: "test",
@@ -20,8 +20,8 @@ class MapperTest extends WebdaTest {
       .resolve()
       .init();
     await service.recompute();
-    let identStore = this.getService<Store>("Idents");
-    let ident = await identStore.getModel().create({});
+    const identStore = this.getService<Store>("Idents");
+    const ident = await identStore.getModel().create({});
     assert.notStrictEqual(ident.getUuid(), undefined);
 
     // Test guard-rails (seems hardly reachable so might be useless)
@@ -37,7 +37,7 @@ class MapperTest extends WebdaTest {
       undefined
     );
 
-    let stb = sinon.stub(service.targetStore, "upsertItemToCollection").callsFake(async () => new Date());
+    const stb = sinon.stub(service.targetStore, "upsertItemToCollection").callsFake(async () => new Date());
     await service._handleUpdatedMapMapper(
       ident,
       // @ts-ignore
@@ -60,7 +60,7 @@ class MapperTest extends WebdaTest {
   @test
   async n_n_mapping_object() {
     return this.n_n_mapping(args => {
-      let res = {};
+      const res = {};
       args.forEach(i => (res[i] = true));
       return res;
     });
@@ -74,15 +74,15 @@ class MapperTest extends WebdaTest {
       targetAttribute: "otherIdents",
       fields: ["email"]
     });
-    let identStore = this.getService<Store<Ident>>("Idents");
-    let userStore = this.getService<Store<User & { otherIdents: any[] }>>("Users");
+    const identStore = this.getService<Store<Ident>>("Idents");
+    const userStore = this.getService<Store<User & { otherIdents: any[] }>>("Users");
     this.registerService(mapper);
     mapper.resolve();
     await mapper.init();
-    let user1 = await userStore.save({ uuid: "user1" });
-    let user2 = await userStore.save({ uuid: "user2" });
-    let user3 = await userStore.save({ uuid: "user3" });
-    let ident1 = await identStore.save({
+    const user1 = await userStore.save({ uuid: "user1" });
+    const user2 = await userStore.save({ uuid: "user2" });
+    const user3 = await userStore.save({ uuid: "user3" });
+    const ident1 = await identStore.save({
       uuid: "ident1",
       test: generatorAttribute(["user1", "user2"]),
       email: "test@webda.io"

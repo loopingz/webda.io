@@ -1,14 +1,9 @@
 import { CloudEvent } from "cloudevents";
 
 /**
- * Representation of subscription filtering
- */
-export interface Filter {}
-
-/**
  * Implementation of a defined filter
  */
-export abstract class FilterImplementation<T extends Filter = Filter> {
+export abstract class FilterImplementation<T = unknown> {
   /**
    * Definition from the spec
    */

@@ -13,10 +13,12 @@
     "build": "tsc-esm",
     "grammar": "antlr4ts -visitor src/WebdaQLLexer.g4 src/WebdaQLParser.g4 && yarn run lint:fix",
     "pretest": "npm run build",
-    "lint": "prettier --check src/**/*",
-    "lint:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "test": "c8 mocha --recursive --exit --timeout=30000 'src/*.spec.ts'",
-    "test:debug": "mocha --recursive --exit --no-timeouts 'src/*.spec.ts'"
+    "test:debug": "mocha --recursive --exit --no-timeouts 'src/*.spec.ts'",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
   },
   "dependencies": {
     "antlr4ts": "^0.5.0-alpha.4"

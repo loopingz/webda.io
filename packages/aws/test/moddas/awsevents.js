@@ -12,7 +12,7 @@ export class AWSEventsHandler extends Service {
     return AWSEventsHandler.lastEvents;
   }
 
-  isAWSEventHandled(event) {
+  isAWSEventHandled() {
     return true;
   }
 

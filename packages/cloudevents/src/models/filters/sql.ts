@@ -1,7 +1,7 @@
 import { ANTLRInputStream, CommonTokenStream } from "antlr4ts";
 import { AbstractParseTreeVisitor } from "antlr4ts/tree";
 import { CloudEvent } from "cloudevents";
-import { Filter, FilterImplementation } from "./abstract";
+import { FilterImplementation } from "./abstract";
 import { CESQLParserLexer } from "./sql/CESQLParserLexer";
 import {
   BinaryAdditiveExpressionContext,
@@ -80,7 +80,7 @@ const functions: { [key in FunctionName]: (...args: any[]) => any } = {
     return args.join("");
   },
   CONCAT_WS: (...args: string[]) => {
-    let merger = args.shift();
+    const merger = args.shift();
     return args.join(merger);
   },
   LOWER: (...args: string[]) => {
@@ -128,7 +128,7 @@ const functions: { [key in FunctionName]: (...args: any[]) => any } = {
       case "number":
         return args[0];
       case "string":
-        let res = Number.parseInt(args[0]);
+        const res = Number.parseInt(args[0]);
         if (!Number.isNaN(res)) {
           return res;
         }
@@ -346,7 +346,7 @@ export class LikeExpression extends Expression {
    * @override
    */
   eval(target) {
-    let res = this.regexp.exec(this.left.eval(target)) !== null;
+    const res = this.regexp.exec(this.left.eval(target)) !== null;
     if (this.invert) {
       return !res;
     }
@@ -413,7 +413,7 @@ export class InExpression extends Expression {
    * @override
    */
   eval(target: any) {
-    let right = this.staticContent || this.right.map(r => r.eval(target));
+    const right = this.staticContent || this.right.map(r => r.eval(target));
     if (this.invert) {
       return !right.includes(this.left.eval(target));
     }
@@ -648,7 +648,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitFunctionInvocationExpression(ctx: FunctionInvocationExpressionContext): Expression {
-    let args = [];
+    const args = [];
     for (let i = 1; i < ctx.childCount; i += 2) {
       args.push(...(<Expression[]>(<any>this.visit(ctx.children[i]))));
     }
@@ -681,7 +681,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitExistsExpression(ctx: ExistsExpressionContext): Expression {
-    let results = this.getChildrenResults(ctx);
+    const results = this.getChildrenResults(ctx);
     return new ExistsExpression(results[1]).resolve();
   }
 
@@ -689,7 +689,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitInExpression(ctx: InExpressionContext): Expression {
-    let results = this.getChildrenResults(ctx);
+    const results = this.getChildrenResults(ctx);
     if (ctx.childCount === 4) {
       return new InExpression(results[0], results[3], true).resolve();
     }
@@ -700,7 +700,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitBinaryMultiplicativeExpression(ctx: BinaryMultiplicativeExpressionContext): Expression {
-    let [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
     /* istanbul ignore next */
     if (!["*", "/", "%"].includes(op)) {
       throw new Error("Not implemented");
@@ -712,7 +712,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitBinaryAdditiveExpression(ctx: BinaryAdditiveExpressionContext): Expression {
-    let [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
     /* istanbul ignore next */
     if (!["+", "-"].includes(op)) {
       throw new Error("Not implemented");
@@ -735,7 +735,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @returns
    */
   visitBinaryComparisonExpression(ctx: BinaryComparisonExpressionContext): Expression {
-    let [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
     /* istanbul ignore next */
     if (!["<", ">", "<=", ">=", "!=", "="].includes(op)) {
       throw new Error("Not implemented");
@@ -747,7 +747,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitBinaryLogicExpression(ctx: BinaryLogicExpressionContext): Expression {
-    let [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
     /* istanbul ignore next */
     if (!["AND", "OR", "XOR"].includes(op)) {
       throw new Error("Not implemented");
@@ -824,8 +824,8 @@ export class SqlFilterImplementation extends FilterImplementation<SqlFilter> {
   constructor(definition: SqlFilter) {
     super(definition);
     this.lexer = new CESQLParserLexer(new ANTLRInputStream(definition.sql));
-    let tokenStream = new CommonTokenStream(this.lexer);
-    let parser = new CESQLParserParser(tokenStream);
+    const tokenStream = new CommonTokenStream(this.lexer);
+    const parser = new CESQLParserParser(tokenStream);
 
     // Parse the input, where `compilationUnit` is whatever entry point you defined
     this.tree = parser.cesql();
@@ -853,7 +853,7 @@ export class SqlFilterImplementation extends FilterImplementation<SqlFilter> {
    *
    * @returns
    */
-  optimize(): FilterImplementation<Filter> {
+  optimize(): FilterImplementation {
     if (
       this.query instanceof BinaryComparisonExpression &&
       this.query.operator === "=" &&

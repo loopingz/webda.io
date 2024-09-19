@@ -19,7 +19,7 @@ async function requestPassword(): Promise<string> {
   /* c8 ignore next 5 */
   if (!Core.get().getWorkerOutput().interactive) {
     // Fallback to password-prompt as we have a tty
-    let passwordLib = await import("password-prompt");
+    const passwordLib = await import("password-prompt");
     return passwordLib.default("Configuration Encryption Password: ", { method: "hide" });
   }
   return await Core.get()
@@ -34,8 +34,8 @@ const encrypter: StringEncrypter = {
       password = encryptPassword;
     }
     // Derive key TODO replace by a true derivation function
-    let iv = randomBytes(16);
-    let cipher = createCipheriv("aes-256-ctr", getKey(password), iv);
+    const iv = randomBytes(16);
+    const cipher = createCipheriv("aes-256-ctr", getKey(password), iv);
     return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
   },
   decrypt: async (data: string, password?: string): Promise<string> => {
@@ -43,9 +43,9 @@ const encrypter: StringEncrypter = {
       encryptPassword ??= await requestPassword();
       password = encryptPassword;
     }
-    let input = Buffer.from(data, "base64");
-    let iv = input.subarray(0, 16);
-    let decipher = createDecipheriv("aes-256-ctr", getKey(password), iv);
+    const input = Buffer.from(data, "base64");
+    const iv = input.subarray(0, 16);
+    const decipher = createDecipheriv("aes-256-ctr", getKey(password), iv);
     return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
   }
 };

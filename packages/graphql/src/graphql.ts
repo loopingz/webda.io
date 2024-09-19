@@ -175,7 +175,7 @@ export class GraphQLParameters extends DomainServiceParameters {
 export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> extends DomainService<T> {
   schema: GraphQLSchema;
   handler: Handler;
-  modelsMap: {};
+  modelsMap: { [key: string]: GraphQLObjectType };
   app: Application;
   wss: WebSocketServer;
   wsHandler: GraphQLWSServer;
@@ -241,8 +241,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!schema.properties) {
         return { type: AnyScalarType, description: "Map" };
       }
-      for (let i in schema.properties) {
-        let res = this.getGraphQLSchemaFromSchema(
+      for (const i in schema.properties) {
+        const res = this.getGraphQLSchemaFromSchema(
           this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
           `${schema.title || defaultName}_${i}`,
           input
@@ -343,7 +343,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               }
             },
             resolve: async (source, args, context, info) => {
-              let src = link.type === "LINKS_MAP" ? Object.values(source[link.attribute]) : source[link.attribute];
+              const src = link.type === "LINKS_MAP" ? Object.values(source[link.attribute]) : source[link.attribute];
               return (
                 await Promise.all(
                   src.map(i =>
@@ -370,7 +370,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (source, args, context, info) => {
-            let modelDefinition = this.app.getModel(map.model);
+            const modelDefinition = this.app.getModel(map.model);
             return (
               await Promise.all(
                 source[map.attribute].map(i =>
@@ -396,19 +396,19 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (source, args, context, info) => {
-            let res = await source[query.attribute].query(WebdaQL.unsanitize(args.query || ""), context);
+            const res = await source[query.attribute].query(WebdaQL.unsanitize(args.query || ""), context);
             this.countOperation(context, res.results.length);
             return res;
           }
         };
       });
     }
-    for (let i in schema.properties) {
+    for (const i in schema.properties) {
       // Was initiated by the known graph
       if (fields[i] || skipFields.includes(i) || ((<JSONSchema7>schema.properties[i]).readOnly && input)) {
         continue;
       }
-      let prop: any = this.getGraphQLSchemaFromSchema(
+      const prop: any = this.getGraphQLSchemaFromSchema(
         this.getJsonSchemaDefinition(<JSONSchema7>schema.properties[i], schema.definitions),
         `${defaultName}_${i}`,
         input
@@ -437,7 +437,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     info?: FieldNode,
     filter?: WebdaQL.PartialValidator
   ) {
-    let res = typeof knownFieldsOrId === "string" ? { uuid: knownFieldsOrId } : knownFieldsOrId;
+    const res = typeof knownFieldsOrId === "string" ? { uuid: knownFieldsOrId } : knownFieldsOrId;
     if (filter && !filter.eval(res)) {
       return null;
     }
@@ -449,7 +449,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       info.selectionSet.selections.filter(node => node.kind === "Field").length === 0;
 
     // Check if know all fields already
-    for (let field of (info?.selectionSet?.selections || []).filter(node => node.kind === "Field")) {
+    for (const field of (info?.selectionSet?.selections || []).filter(node => node.kind === "Field")) {
       if (res[(<FieldNode>field).name.value] === undefined) {
         operation = true;
         break;
@@ -461,7 +461,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
     // Count the operation then and retrieve the model
     this.countOperation(context);
-    let modelInstance = await model.ref(res.uuid || "").get();
+    const modelInstance = await model.ref(res.uuid || "").get();
     if (!modelInstance) {
       throw new GraphQLError("Object not found", {
         extensions: {
@@ -487,7 +487,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @param context
    */
   countOperation(context: WebContext, increment: number = 1) {
-    let ext = context.getExtension<GraphQLContextExtension>("graphql");
+    const ext = context.getExtension<GraphQLContextExtension>("graphql");
     if (ext?.count === this.parameters.maxOperationsPerRequest) {
       throw new GraphQLError("Too many operations", {
         extensions: {
@@ -531,7 +531,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     const models = this.app.getModels();
     const graph = this.app.getGraph();
     this.modelsMap = {};
-    for (let i in models) {
+    for (const i in models) {
       const model = models[i];
       // Not exposed
       if (!model.Expose || !this.parameters.isIncluded(model.getIdentifier())) {
@@ -541,13 +541,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!schema) {
         continue;
       }
-      let name = this.app.getShortId(i).replace("/", "_");
+      const name = this.app.getShortId(i).replace("/", "_");
       this.log("INFO", "Add GraphQL type", name);
       this.modelsMap[i] = new GraphQLObjectType({
         fields: () => this.getGraphQLFieldsFromSchema(schema, name, graph[i]),
         name
       });
-      let input = new GraphQLInputObjectType({
+      const input = new GraphQLInputObjectType({
         fields: this.getGraphQLFieldsFromSchema(schema, name + "Input", graph[i], true),
         name: name + "Input"
       });
@@ -558,7 +558,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             [name]: { type: input }
           },
           resolve: async (_, args, context) => {
-            let object = new model().load(args[name]);
+            const object = new model().load(args[name]);
             this.log("INFO", "Create", object, context.getCurrentUserId());
             if ((await object.canAct(context, "create")) !== true) {
               throw new GraphQLError("Permission denied", {
@@ -582,7 +582,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (_, args, context) => {
-            let object = await model.ref(args.uuid).get();
+            const object = await model.ref(args.uuid).get();
             if ((await object?.canAct(context, "update")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
@@ -604,7 +604,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (_, args, context) => {
-            let object = await model.ref(args.uuid).get();
+            const object = await model.ref(args.uuid).get();
             if ((await object?.canAct(context, "delete")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
@@ -620,7 +620,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         };
       }
       // Retrieval
-      let plural = this.transformName(this.app.getModelPlural(i).split("/").pop());
+      const plural = this.transformName(this.app.getModelPlural(i).split("/").pop());
       rootFields[plural] = {
         type: this.getGraphQLQueryResult(this.modelsMap[i]),
         args: {
@@ -673,7 +673,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         subscriptions[plural + "Events"] = {
           type: new GraphQLObjectType({ fields: eventTypes, name: plural + "Events" }),
           subscribe: async (_source, args, context, info) => {
-            let subscribedEvents = this.getSubscribedEvents(info);
+            const subscribedEvents = this.getSubscribedEvents(info);
             this.log("DEBUG", "Subscription called on", model, args[model.getUuidField()], subscribedEvents);
             return this.registerAsyncEventIterator(model, null, subscribedEvents, context, plural + "Events");
           }
@@ -696,7 +696,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           subscribe: async (_source, args, context, info) => {
-            let subscribedEvents = this.getSubscribedEvents(info);
+            const subscribedEvents = this.getSubscribedEvents(info);
             this.log("DEBUG", "Subscription called on", model, args[model.getUuidField()], subscribedEvents);
             return this.registerAsyncEventIterator(
               model,
@@ -727,7 +727,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     // Expose the current user under me
     if (this.parameters.exposeMe) {
       const userGraph = this.app.completeNamespace(this.parameters.userModel);
-      let model = this.app.getModel(this.parameters.userModel);
+      const model = this.app.getModel(this.parameters.userModel);
       if (this.modelsMap[userGraph] && model.Expose && model.Expose.restrict.get !== true) {
         rootFields[this.transformName("Me")] = {
           type: this.modelsMap[userGraph],
@@ -789,7 +789,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
 
     const services = this.getWebda().getServices();
-    for (let i in services) {
+    for (const i in services) {
       if (services[i]?.getClientEvents === undefined) {
         continue;
       }
@@ -820,7 +820,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     }
 
     // Copy the rootFields without resolver
-    for (let i in rootFields) {
+    for (const i in rootFields) {
       subscriptions[i] ??= { ...rootFields[i], resolve: undefined };
     }
     if (this.parameters.globalSubscription) {
@@ -831,10 +831,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           name: "AggregateSubscriptions"
         }),
         subscribe: async (_source, args2, context, info) => {
-          let iterators = {};
-          let p = [];
+          const iterators = {};
+          const p = [];
           // Check if know all fields already
-          for (let field of (info.fieldNodes[0].selectionSet?.selections || []).filter(node => node.kind === "Field")) {
+          for (const field of (info.fieldNodes[0].selectionSet?.selections || []).filter(
+            node => node.kind === "Field"
+          )) {
             const name = (<FieldNode>field).name.value;
             const args = {};
             (<FieldNode>field).arguments?.forEach(arg => {
@@ -886,7 +888,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     context: any
   ): Promise<AsyncIterator<any>> {
     let result = await model.query(query, true, context);
-    let queryInfo = new WebdaQL.QueryValidator(query);
+    const queryInfo = new WebdaQL.QueryValidator(query);
     const updatedCallback = async evt => {
       this.log("INFO", "Event from", evt.emitterId, evt.object_id);
       if (!result.results.find(e => evt.object_id === e.getUuid())) return;
@@ -954,7 +956,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       "Store.PatchUpdated": updatedCallback,
       "Store.PartialUpdated": updatedCallback
     };
-    let modelInstance = await model.ref(uuid).get();
+    const modelInstance = await model.ref(uuid).get();
     // Ensure we have the permission to get the object
     if ((await modelInstance?.canAct(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
@@ -992,7 +994,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       return { latestEventTime: Date.now(), [eventName]: evt };
     };
     const eventsMap = {};
-    let modelInstance = uuid !== null ? await model.ref(uuid).get() : undefined;
+    const modelInstance = uuid !== null ? await model.ref(uuid).get() : undefined;
     events
       .filter(e => model.authorizeClientEvent(e, context, modelInstance))
       .forEach(e => (eventsMap[e] = updatedCallback(e)));

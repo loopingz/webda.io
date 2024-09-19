@@ -1,5 +1,5 @@
 import { CloudEvent } from "cloudevents";
-import { Filter, FilterImplementation } from "./abstract";
+import { FilterImplementation } from "./abstract";
 
 /**
  * Use of this MUST include exactly one nested property, where the key is the name of the
@@ -46,7 +46,7 @@ export interface PrefixFilter {
 /**
  * Abstract class to read CloudEvent specified property
  */
-export abstract class StringPropertyFilterImplementation<T extends Filter> extends FilterImplementation<T> {
+export abstract class StringPropertyFilterImplementation<T = unknown> extends FilterImplementation<T> {
   /**
    * Property to read event from
    */
@@ -70,7 +70,7 @@ export abstract class StringPropertyFilterImplementation<T extends Filter> exten
    * @override
    */
   match(event: CloudEvent): boolean {
-    let value: string = <string>event[this.property];
+    const value: string = <string>event[this.property];
     if (!event[this.property] || typeof value !== "string") {
       return false;
     }

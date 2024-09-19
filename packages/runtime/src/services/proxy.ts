@@ -16,15 +16,15 @@ export function createHttpHeader(line, headers) {
   return (
     Object.keys(headers)
       .reduce(
-        function (head, key) {
-          var value = headers[key];
+        (head, key) => {
+          const value = headers[key];
 
           if (!Array.isArray(value)) {
             head.push(key + ": " + value);
             return head;
           }
 
-          for (var i = 0; i < value.length; i++) {
+          for (let i = 0; i < value.length; i++) {
             head.push(key + ": " + value[i]);
           }
           return head;
@@ -296,14 +296,14 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
       proxySocket.on("error", onError);
 
       // Allow us to listen when the websocket has completed
-      proxySocket.on("end", function () {
+      proxySocket.on("end", () => {
         socket.end();
       });
 
       // The pipe below will end proxySocket if socket closes cleanly, but not
       // if it errors (eg, vanishes from the net and starts returning
       // EHOSTUNREACH). We need to do that explicitly.
-      socket.on("error", function () {
+      socket.on("error", () => {
         /* c8 ignore next 2 */
         proxySocket.end();
       });

@@ -90,7 +90,7 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
 
   @test
   testGetDockerfileWebdaShell() {
-    let tag = JSONUtils.loadFile("package.json").version;
+    const tag = JSONUtils.loadFile("package.json").version;
     assert.strictEqual(
       this.deployer.getDockerfileWebdaShell(),
       `# Install current @webda/shell version\nRUN yarn -W add @webda/shell@${tag}\n\n`
@@ -162,7 +162,7 @@ CMD /webda/node_modules/.bin/webda --noCompile $WEBDA_COMMAND`.trim()
   @test
   async includeLinkModules() {
     let stub;
-    let cwd = process.cwd();
+    const cwd = process.cwd();
     const workspaceApp = await WorkspaceTestApplication.init();
     try {
       this.deployer.app = workspaceApp;
@@ -175,7 +175,7 @@ CMD /webda/node_modules/.bin/webda --noCompile $WEBDA_COMMAND`.trim()
       await this.deployer.loadDefaults();
       this.deployer.resources.debugDockerfilePath = "./testDebugDocker";
       this.deployer.getDockerfile();
-      let src = this.deployer.getWorkspacesDockerfile();
+      const src = this.deployer.getWorkspacesDockerfile();
       assert.ok(src.includes("ADD link_modules /webda/node_modules"));
       assert.strictEqual(src, fs.readFileSync(this.deployer.resources.debugDockerfilePath).toString());
       this.deployer.resources.logFile = "mylog";
@@ -183,7 +183,7 @@ CMD /webda/node_modules/.bin/webda --noCompile $WEBDA_COMMAND`.trim()
       this.deployer.resources.excludePackages = ["package1"];
       await this.deployer.deploy();
 
-      let res = this.deployer.copyPackageFilesTo(path.join(workspaceApp.getAppPath(), ".."), "");
+      const res = this.deployer.copyPackageFilesTo(path.join(workspaceApp.getAppPath(), ".."), "");
       assert.deepStrictEqual(res.split("\n").slice(2, 6), [
         "RUN rm -rf /node_modules/@webda/aws && rm -rf /webda/node_modules/@webda/aws",
         "RUN rm -rf /node_modules/@webda/core && rm -rf /webda/node_modules/@webda/core",

@@ -3,7 +3,7 @@ import { CloudEvent } from "cloudevents";
 import { FiltersHelper } from ".";
 
 test("PrefixFilter", () => {
-  let event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
+  const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 
   expect(
     FiltersHelper.get({
@@ -31,7 +31,7 @@ test("PrefixFilter", () => {
 });
 
 test("SuffixFilter", () => {
-  let event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
+  const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 
   expect(
     FiltersHelper.get({
@@ -59,7 +59,7 @@ test("SuffixFilter", () => {
 });
 
 test("ExactFilter", () => {
-  let event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
+  const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 
   expect(
     FiltersHelper.get({
@@ -87,7 +87,7 @@ test("ExactFilter", () => {
 });
 
 test("AllFilter", () => {
-  let event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
+  const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 
   expect(
     FiltersHelper.get({
@@ -125,7 +125,7 @@ test("AllFilter", () => {
 });
 
 test("AnyFilter", () => {
-  let event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
+  const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 
   expect(
     FiltersHelper.get({
@@ -180,7 +180,7 @@ test("AnyFilter", () => {
 });
 
 test("Common errors", () => {
-  let event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
+  const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 
   expect(() =>
     FiltersHelper.get({

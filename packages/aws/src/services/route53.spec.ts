@@ -18,7 +18,7 @@ class Route53Test {
       }
     };
     // Mock
-    var callSpy2 = sinon.stub().callsFake(async () => {
+    const callSpy2 = sinon.stub().callsFake(async () => {
       if (callSpy2.callCount == 1) {
         return {
           ResourceRecordSets: JSONUtils.loadFile("./test/zone-export.json").entries,
@@ -37,14 +37,14 @@ class Route53Test {
         };
       }
     });
-    var spyChanges = sinon.stub().resolves({});
+    const spyChanges = sinon.stub().resolves({});
     const mock = mockClient(Route53)
       .on(ListResourceRecordSetsCommand)
       .callsFake(callSpy2)
       .on(ChangeResourceRecordSetsCommand)
       .callsFake(spyChanges);
     try {
-      let stub = sinon.stub(Route53Service, "getZoneForDomainName").callsFake(() => {
+      const stub = sinon.stub(Route53Service, "getZoneForDomainName").callsFake(() => {
         return undefined;
       });
       await assert.rejects(

@@ -29,7 +29,7 @@ export default class ChainDeployer extends Deployer<ChainDeployerResources> {
    * deployers to the next one
    */
   async deploy() {
-    let deployers = this.getChain();
+    const deployers = this.getChain();
     deployers.forEach(d => {
       if (!this.manager.deployersDefinition[d.toLowerCase()]) {
         throw new WebdaError.CodeError("DEPLOYER_UNKNOWN", "Deployer " + d + " is unknown");
@@ -38,8 +38,8 @@ export default class ChainDeployer extends Deployer<ChainDeployerResources> {
     // Duplicate object
     let resources = JSON.parse(JSON.stringify(this.resources));
     // Run all deployers one after the other
-    for (let i in deployers) {
-      let result = (await this.manager.run(deployers[i], resources)) || {};
+    for (const i in deployers) {
+      const result = (await this.manager.run(deployers[i], resources)) || {};
       resources = merge.recursive(resources, this.replaceVariables(result));
     }
   }

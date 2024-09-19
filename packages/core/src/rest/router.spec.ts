@@ -40,7 +40,7 @@ class RouterTest extends WebdaTest {
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/plop"), ["GET"]);
     this.webda.addRoute("/plop", { methods: ["POST"], executor: "DefinedMailer" });
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/plop"), ["POST", "GET"]);
-    let call = [];
+    const call = [];
     this.webda.log = (level, ...args) => {
       call.push({ level, args });
     };
@@ -66,9 +66,9 @@ class RouterTest extends WebdaTest {
   @test
   async testRouteWithPrefix() {
     this.webda.addRoute("/test/{uuid}", { methods: ["GET"], executor: "DefinedMailer" });
-    let httpContext = new HttpContext("test.webda.io", "GET", "/prefix/test/plop", "https");
+    const httpContext = new HttpContext("test.webda.io", "GET", "/prefix/test/plop", "https");
     httpContext.setPrefix("/prefix");
-    let ctx = await this.webda.newWebContext(httpContext);
+    const ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.strictEqual(ctx.getParameters().uuid, "plop");
   }
@@ -77,8 +77,8 @@ class RouterTest extends WebdaTest {
   async testRouteWithOverlap() {
     this.webda.addRoute("/test/{uuid}", { methods: ["GET"], executor: "DefinedMailer" });
     this.webda.addRoute("/test/{id}", { methods: ["GET"], executor: "DefinedMailer" });
-    let httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "https");
-    let ctx = await this.webda.newWebContext(httpContext);
+    const httpContext = new HttpContext("test.webda.io", "GET", "/test/plop", "https");
+    const ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/test/plop"), ["GET"]);
   }
@@ -86,8 +86,8 @@ class RouterTest extends WebdaTest {
   @test
   async testRouteWithWeirdSplit() {
     this.webda.addRoute("/test/{uuid}at{domain}", { methods: ["GET"], executor: "DefinedMailer" });
-    let httpContext = new HttpContext("test.webda.io", "GET", "/test/plopatgoogle", "https");
-    let ctx = await this.webda.newWebContext(httpContext);
+    const httpContext = new HttpContext("test.webda.io", "GET", "/test/plopatgoogle", "https");
+    const ctx = await this.webda.newWebContext(httpContext);
     this.webda.updateContextWithRoute(ctx);
     assert.deepStrictEqual(ctx.getParameters(), {
       uuid: "plop",
@@ -178,7 +178,7 @@ class RouterTest extends WebdaTest {
 
   @test
   completeOpenApi() {
-    let api = { paths: {}, info: { title: "Plop", version: "1.0" }, openapi: "", tags: [{ name: "test" }] };
+    const api = { paths: {}, info: { title: "Plop", version: "1.0" }, openapi: "", tags: [{ name: "test" }] };
     const info: RouteInfo = {
       methods: ["GET"],
       executor: "DefinedMailer",
@@ -230,7 +230,7 @@ class RouterTest extends WebdaTest {
   @test
   async getModelUrl() {
     await this.addService(RESTDomainService, {});
-    let url = this.webda.getRouter().getModelUrl(new ImageUser());
+    const url = this.webda.getRouter().getModelUrl(new ImageUser());
     assert.strictEqual(url, "/imageUsers");
   }
 }

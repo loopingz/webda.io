@@ -133,7 +133,7 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
 
   @test
   async checkMap() {
-    let binary = await this.getBinary();
+    const binary = await this.getBinary();
     binary.handleBinary = () => -1;
     // @ts-ignore
     assert.throws(() => binary.checkMap(new CoreModel(), "pouf"), /Unknown mapping/);
@@ -144,13 +144,13 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
     user1: ImageUser;
     ctx: WebContext;
   }> {
-    let binary = await this.getBinary();
-    let user1: ImageUser = await ImageUser.create({
+    const binary = await this.getBinary();
+    const user1: ImageUser = await ImageUser.create({
       displayName: "plop"
     });
     await binary.store(user1, "images", new LocalBinaryFile(this.getTestFile()));
     await user1.refresh();
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     if (withLogin) {
       ctx.getSession().login(user1.getUuid(), "fake");
     }

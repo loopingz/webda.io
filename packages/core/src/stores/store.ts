@@ -525,7 +525,7 @@ abstract class Store<
       this.cacheStorePatchException();
     }
     const recursive = (tree, depth) => {
-      for (let i in tree) {
+      for (const i in tree) {
         this._modelsHierarchy[i] ??= depth;
         this._modelsHierarchy[i] = Math.min(depth, this._modelsHierarchy[i]);
         this._modelsHierarchy[app.completeNamespace(i)] = this._modelsHierarchy[i];
@@ -545,7 +545,7 @@ abstract class Store<
       if (this.parameters.strict) {
         this.log("ERROR", "Cannot add additional models in strict mode");
       } else {
-        for (let modelType of this.parameters.additionalModels) {
+        for (const modelType of this.parameters.additionalModels) {
           const model = app.getModel(modelType);
           this._modelsHierarchy[model.getIdentifier(false)] = 0;
           this._modelsHierarchy[model.getIdentifier()] = 0;
@@ -672,7 +672,7 @@ abstract class Store<
           });
       };
     };
-    for (let i of [
+    for (const i of [
       "_get",
       "_patch",
       "_update",
@@ -719,9 +719,9 @@ abstract class Store<
       object.setUuid(object.generateUid(object));
     }
     object.__store = this;
-    for (let i in this._reverseMap) {
+    for (const i in this._reverseMap) {
       object[this._reverseMap[i].property] ??= [];
-      for (let j in object[this._reverseMap[i].property]) {
+      for (const j in object[this._reverseMap[i].property]) {
         if (object[this._reverseMap[i].property][j] instanceof ModelMapLoaderImplementation) {
           continue;
         }
@@ -741,7 +741,7 @@ abstract class Store<
    * @returns
    */
   newModel(object: any = {}) {
-    let result = this.initModel(object);
+    const result = this.initModel(object);
     Object.keys(object).forEach(k => result.__dirty.add(k));
     return result;
   }
@@ -771,12 +771,12 @@ abstract class Store<
     uid: string,
     info: { property: FK; value: number }[]
   ) {
-    let params = <{ property: string; value: number }[]>info.filter(i => i.value !== 0);
+    const params = <{ property: string; value: number }[]>info.filter(i => i.value !== 0);
     // If value === 0 no need to update anything
     if (params.length === 0) {
       return;
     }
-    let updateDate = new Date();
+    const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "increment" });
     await this._incrementAttributes(uid, params, updateDate);
     const evt = {
@@ -820,7 +820,7 @@ abstract class Store<
     itemWriteCondition: any = undefined,
     itemWriteConditionField: string = this._uuidField
   ) {
-    let updateDate = new Date();
+    const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionUpsert" });
     await this._upsertItemToCollection(
       uid,
@@ -863,7 +863,7 @@ abstract class Store<
     itemWriteCondition: any,
     itemWriteConditionField: string = this._uuidField
   ) {
-    let updateDate = new Date();
+    const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionDelete" });
     await this._deleteItemFromCollection(
       uid,
@@ -901,9 +901,9 @@ abstract class Store<
     }
     let continuationToken;
     do {
-      let q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
-      let page = await this.query(q, context);
-      for (let item of page.results) {
+      const q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
+      const page = await this.query(q, context);
+      for (const item of page.results) {
         yield item;
       }
       continuationToken = page.continuationToken;
@@ -921,8 +921,8 @@ abstract class Store<
    * @deprecated use iterate instead
    */
   async queryAll(query: string, context?: OperationContext): Promise<T[]> {
-    let res = [];
-    for await (let item of this.iterate(query, context)) {
+    const res = [];
+    for await (const item of this.iterate(query, context)) {
       res.push(item);
     }
     return res;
@@ -943,15 +943,15 @@ abstract class Store<
    * @param context to apply permission
    */
   async query(query: string, context?: OperationContext): Promise<{ results: T[]; continuationToken?: string }> {
-    let permissionQuery = this._model.getPermissionQuery(context);
+    const permissionQuery = this._model.getPermissionQuery(context);
     let partialPermission = true;
     let fullQuery = query;
     if (permissionQuery) {
       partialPermission = permissionQuery.partial;
       fullQuery = WebdaQL.PrependCondition(query, permissionQuery.query);
     }
-    let queryValidator = new WebdaQL.QueryValidator(fullQuery);
-    let offset = queryValidator.getOffset();
+    const queryValidator = new WebdaQL.QueryValidator(fullQuery);
+    const offset = queryValidator.getOffset();
     const limit = queryValidator.getLimit();
     const parsedQuery = this.queryTypeUpdater(queryValidator.getQuery());
     parsedQuery.limit = limit;
@@ -977,13 +977,14 @@ abstract class Store<
       by database does not endup being our final page cut, so we need a page offset to 
       abstract this completely
      */
+    // eslint-disable-next-line prefer-const
     let [mainOffset, subOffset] = offset.split("_");
     let secondOffset = parseInt(subOffset || "0");
     let duration = Date.now();
     this.metrics.operations_total.inc({ operation: "query" });
 
     while (result.results.length < limit) {
-      let tmpResults = await this.find({
+      const tmpResults = await this.find({
         ...parsedQuery,
         continuationToken: mainOffset
       });
@@ -993,7 +994,7 @@ abstract class Store<
         this.log("WARN", `Store '${this.getName()}' postquery full filtering`);
       }
       let subOffsetCount = 0;
-      for (let item of tmpResults.results) {
+      for (const item of tmpResults.results) {
         item.setContext(context);
         // Because of dynamic filter and permission we need to suboffset the pagination
         subOffsetCount++;
@@ -1156,7 +1157,7 @@ abstract class Store<
     ]);
 
     this.metrics.operations_total.inc({ operation: "save" });
-    let res = await this._save(object);
+    const res = await this._save(object);
     await this._cacheStore?._save(object);
     object = this.initModel(res);
     const evtSaved = {
@@ -1319,12 +1320,9 @@ abstract class Store<
     conditionField?: CK | null,
     conditionValue?: any
   ): Promise<T | undefined> {
-    /** @ignore */
-    let saved;
-    let loaded;
     // Dont allow to update collections from map
     if (this._reverseMap != undefined && reverseMap) {
-      for (let i in this._reverseMap) {
+      for (const i in this._reverseMap) {
         if (object[this._reverseMap[i].property] != undefined) {
           delete object[this._reverseMap[i].property];
         }
@@ -1337,12 +1335,12 @@ abstract class Store<
     object._lastUpdate = new Date();
     this.metrics.operations_total.inc({ operation: "get" });
     const uuid = object.getUuid ? object.getUuid() : object[this._uuidField];
-    let load = await this._getFromCache(uuid, true);
+    const load = await this._getFromCache(uuid, true);
     if (load.__type !== this._modelType && this.parameters.strict) {
       this.log("WARN", `Object '${uuid}' was not created by this store ${load.__type}:${this._modelType}`);
       throw new StoreNotFoundError(uuid, this.getName());
     }
-    loaded = this.initModel(load);
+    const loaded = this.initModel(load);
     if (object instanceof CoreModel) {
       loaded.setContext(object.getContext());
     }
@@ -1370,7 +1368,7 @@ abstract class Store<
       res = object;
     } else {
       // Copy back the mappers
-      for (let i in this._reverseMap) {
+      for (const i in this._reverseMap) {
         object[this._reverseMap[i].property] = loaded[this._reverseMap[i].property];
       }
       object = this.initModel(object);
@@ -1378,7 +1376,7 @@ abstract class Store<
       res = await this._update(object, uuid, conditionValue, <string>conditionField);
     }
     // Reinit save
-    saved = this.initModel({
+    const saved = this.initModel({
       ...loaded,
       ...res
     });
@@ -1445,7 +1443,7 @@ abstract class Store<
     this.log("INFO", "Ensuring __types is correct from migration from v2.x");
     // Update __types for each __type will be more efficient
     await this.migration("typesCompute", async item => {
-      let __types = this.getWebda().getApplication().getModelTypes(item);
+      const __types = this.getWebda().getApplication().getModelTypes(item);
       if (
         !item.__types ||
         item.__types.length !== __types.length ||
@@ -1491,7 +1489,7 @@ abstract class Store<
     patcher: (object: T) => Promise<Partial<T> | (() => Promise<void>) | undefined>,
     batchSize: number = 500
   ) {
-    let status: RegistryEntry<{
+    const status: RegistryEntry<{
       continuationToken?: string;
       count: number;
       updated: number;
@@ -1505,8 +1503,8 @@ abstract class Store<
         status.continuationToken ? `LIMIT ${batchSize} OFFSET "${status.continuationToken}"` : `LIMIT ${batchSize}`
       );
       status.count += res.results.length;
-      for (let item of res.results) {
-        let updated = await patcher(item);
+      for (const item of res.results) {
+        const updated = await patcher(item);
         if (updated !== undefined) {
           status.updated++;
           if (typeof updated === "function") {
@@ -1642,12 +1640,12 @@ abstract class Store<
    */
   async getConfiguration(id: string): Promise<{ [key: string]: any }> {
     this.metrics.operations_total.inc({ operation: "get" });
-    let object = await this._getFromCache(id);
+    const object = await this._getFromCache(id);
     if (!object) {
       return undefined;
     }
-    let result: { [key: string]: any } = {};
-    for (let i in object) {
+    const result: { [key: string]: any } = {};
+    for (const i in object) {
       if (i === this._uuidField || i === "_lastUpdate" || i.startsWith("_")) {
         continue;
       }
@@ -1711,7 +1709,7 @@ abstract class Store<
    * @returns
    */
   async setAttribute<CK extends keyof T>(uid: string, property: CK, value: any): Promise<void> {
-    let patch: any = {};
+    const patch: any = {};
     patch[property] = value;
     patch[this.getUuidField()] = uid;
     await this.patch(patch);
@@ -1721,7 +1719,7 @@ abstract class Store<
    * @override
    */
   protected async simulateFind(query: WebdaQL.Query, uuids: string[]): Promise<StoreFindResult<T>> {
-    let result: StoreFindResult<T> = {
+    const result: StoreFindResult<T> = {
       results: [],
       continuationToken: undefined,
       filter: true
@@ -1729,7 +1727,7 @@ abstract class Store<
     let count = 0;
     let limit = query.limit;
     let offset = parseInt(query.continuationToken || "0");
-    let originalOffset = offset;
+    const originalOffset = offset;
 
     if (query.orderBy && query.orderBy.length) {
       offset = 0;
@@ -1737,13 +1735,13 @@ abstract class Store<
       limit = Number.MAX_SAFE_INTEGER;
     }
     // Need to transfert to Array
-    for (let uuid of uuids) {
+    for (const uuid of uuids) {
       count++;
       // Offset start
       if (offset >= count) {
         continue;
       }
-      let obj = await this._getFromCache(uuid);
+      const obj = await this._getFromCache(uuid);
       if (obj && query.filter.eval(obj)) {
         result.results.push(obj);
         if (result.results.length >= limit) {
@@ -1758,8 +1756,8 @@ abstract class Store<
       // Sorting the results
       result.results.sort((a, b) => {
         let valA, valB;
-        for (let orderBy of query.orderBy) {
-          let invert = orderBy.direction === "ASC" ? 1 : -1;
+        for (const orderBy of query.orderBy) {
+          const invert = orderBy.direction === "ASC" ? 1 : -1;
           valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.field.split("."));
           valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.field.split("."));
           if (valA === valB) {

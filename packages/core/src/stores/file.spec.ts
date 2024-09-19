@@ -38,7 +38,7 @@ class FileStoreTest extends StoreTest {
         folder: "./test/data/idents"
       });
       // @ts-ignore
-      let original = this.identStore._get.bind(this.identStore);
+      const original = this.identStore._get.bind(this.identStore);
       // @ts-ignore
       this.identStore._get = async (...args) => {
         await this.sleep(1);
@@ -56,9 +56,9 @@ class FileStoreTest extends StoreTest {
 
   @test
   async cov() {
-    let identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.getService<any>("Idents");
-    let userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Users");
-    let user: any = await userStore.save({});
+    const identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.getService<any>("Idents");
+    const userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Users");
+    const user: any = await userStore.save({});
     let ident = await identStore.save({
       _user: user.getUuid()
     });
@@ -131,7 +131,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async configuration() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
+    const identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
     assert.strictEqual(
       identStore.canTriggerConfiguration("plop", () => {}),
       false
@@ -146,8 +146,8 @@ class FileStoreTest extends StoreTest {
 
   @test
   async cacheMishit() {
-    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
-    let ident: CoreModel = await identStore.save({ uuid: "test" });
+    const identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("Idents");
+    const ident: CoreModel = await identStore.save({ uuid: "test" });
     await identStore._cacheStore.__clean();
     // @ts-ignore
     await ident.patch({ retest: true });
@@ -155,7 +155,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   computeParams() {
-    let usersStore: FileStore<any> = <FileStore<any>>this.getUserStore();
+    const usersStore: FileStore<any> = <FileStore<any>>this.getUserStore();
     removeSync(usersStore.getParameters().folder);
     usersStore.computeParameters();
     assert.ok(existsSync(usersStore.getParameters().folder));

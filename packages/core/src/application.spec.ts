@@ -110,7 +110,7 @@ class SampleApplicationTest extends WebdaInternalTest {
 
   @test
   getConfiguration() {
-    let config = this.sampleApp.getConfiguration();
+    const config = this.sampleApp.getConfiguration();
   }
 }
 
@@ -118,7 +118,7 @@ class SampleApplicationTest extends WebdaInternalTest {
 class ApplicationTest extends WebdaInternalTest {
   @test
   async cacheSchema() {
-    let app = new Application(__dirname + "/../test/config-cached.json");
+    const app = new Application(__dirname + "/../test/config-cached.json");
     await app.load();
     // Should load from cache
     assert.notStrictEqual(app.getSchema("WebdaTest/Mailer"), undefined);
@@ -220,7 +220,7 @@ class ApplicationTest extends WebdaInternalTest {
 
   @test
   async getFullNameFromPrototype() {
-    let app = new TestInternalApplication({});
+    const app = new TestInternalApplication({});
     await app.load();
     let services: any = app.getModdas();
     let name = Object.keys(services).pop();
@@ -238,7 +238,7 @@ class ApplicationTest extends WebdaInternalTest {
 
   @test
   async loadModule() {
-    let app = new TestInternalApplication(__dirname + "/../test/config.json");
+    const app = new TestInternalApplication(__dirname + "/../test/config.json");
     await app.loadModule(
       {
         moddas: {
@@ -265,7 +265,7 @@ class ApplicationTest extends WebdaInternalTest {
     );
     await app.loadModule({ models: { list: {}, graph: {}, tree: {}, plurals: {}, shortIds: {}, reflections: {} } }, "");
     await app.importFile("./../test/moddas/fakeservice.js");
-    let cwd = process.cwd();
+    const cwd = process.cwd();
     try {
       // Check loading of aws module
       process.chdir(path.join(__dirname, "..", "..", "aws"));

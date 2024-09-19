@@ -40,7 +40,7 @@ class LambdaCallerTest extends WebdaTest {
   @test
   async launcher() {
     const caller = new LambdaCaller(this.webda, "plop", {});
-    let stub = sinon.stub(caller, "execute").resolves();
+    const stub = sinon.stub(caller, "execute").resolves();
     caller.launchAction(undefined, jobInfo);
     assert.ok(stub.callCount === 1);
     assert.deepStrictEqual(stub.getCall(0).args, [

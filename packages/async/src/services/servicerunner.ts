@@ -104,7 +104,7 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
     }
 
     // Launch within current process
-    let promise = (async (action: AsyncWebdaAction | AsyncOperationAction) => {
+    const promise = (async (action: AsyncWebdaAction | AsyncOperationAction) => {
       let logger;
       try {
         await action.patch({ status: "RUNNING" });

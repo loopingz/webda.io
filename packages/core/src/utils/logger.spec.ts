@@ -7,7 +7,7 @@ import { FileLoggerService, Logger } from "./logger";
 class LoggerTest extends WebdaSimpleTest {
   @test
   testLogger() {
-    let output: any = {
+    const output: any = {
       log: (...args) => {},
       logWithContext: (...args) => {},
       openGroup: (...args) => {},
@@ -17,7 +17,7 @@ class LoggerTest extends WebdaSimpleTest {
       updateProgress: (...args) => {},
       setTitle: (...args) => {}
     };
-    let logger = new Logger(<WorkerOutput>output, "plop");
+    const logger = new Logger(<WorkerOutput>output, "plop");
     logger.log("DEBUG", "test");
     logger.logGroupOpen("bouzouf");
     logger.logProgressStart("test", 100, "plop");
@@ -31,7 +31,7 @@ class LoggerTest extends WebdaSimpleTest {
   @test
   async fileLogger() {
     this.cleanFiles.push("test.log");
-    let logger = new FileLoggerService(this.webda, "flogger", {
+    const logger = new FileLoggerService(this.webda, "flogger", {
       file: "test.log"
     });
   }

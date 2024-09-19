@@ -27,7 +27,7 @@ class GoogleAuthTest extends WebdaTest {
 
   @test
   generateAuthUrl() {
-    let url = this.service.generateAuthUrl("plopor", "myState", undefined);
+    const url = this.service.generateAuthUrl("plopor", "myState", undefined);
     assert.strictEqual(
       url,
       "https://accounts.google.com/o/oauth2/v2/auth?access_type=online&scope=email&redirect_uri=plopor&response_type=code&state=myState&client_id=fake"
@@ -96,7 +96,7 @@ class GoogleAuthTest extends WebdaTest {
     assert.strictEqual(await this.service.getLocalClient(null, null, null), fakeClient);
     // @ts-ignore
     this.service._client = undefined;
-    let client = await this.service.getLocalClient({ id_token: "mytoken" }, null, null);
+    const client = await this.service.getLocalClient({ id_token: "mytoken" }, null, null);
     assert.deepStrictEqual(client.credentials, { id_token: "mytoken" });
     // @ts-ignore
     this.service._client = undefined;

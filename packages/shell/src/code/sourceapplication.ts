@@ -44,7 +44,7 @@ export class SourceApplication extends UnpackedApplication {
    */
   @Cache()
   getGitInformation(packageName: string = "", version: string = ""): GitInformation {
-    let options = {
+    const options = {
       cwd: this.getAppPath()
     };
     try {
@@ -52,7 +52,7 @@ export class SourceApplication extends UnpackedApplication {
       if (process.env.GIT_INFO) {
         return JSON.parse(Buffer.from(process.env.GIT_INFO, "base64").toString());
       }
-      let tags = execSync(`git tag --points-at HEAD`, options)
+      const tags = execSync(`git tag --points-at HEAD`, options)
         .toString()
         .trim()
         .split("\n")
@@ -194,8 +194,8 @@ export class SourceApplication extends UnpackedApplication {
     if (!deploymentName) {
       return this.baseConfiguration;
     }
-    let config = JSONUtils.duplicate(this.baseConfiguration);
-    let deploymentModel = this.getDeployment(deploymentName);
+    const config = JSONUtils.duplicate(this.baseConfiguration);
+    const deploymentModel = this.getDeployment(deploymentName);
     config.parameters = this.replaceVariables(merge.recursive(config.parameters, deploymentModel.parameters));
     config.services = this.replaceVariables(merge.recursive(config.services, deploymentModel.services));
     return config;
@@ -244,7 +244,7 @@ export class SourceApplication extends UnpackedApplication {
     }
     this.deploymentFile = undefined;
     let deploymentConfig;
-    for (let ext of [".jsonc", ".json", ".yaml", ".yml"]) {
+    for (const ext of [".jsonc", ".json", ".yaml", ".yml"]) {
       deploymentConfig = path.join(this.appPath, "deployments", `${deploymentName}${ext}`);
       if (fs.existsSync(deploymentConfig)) {
         break;

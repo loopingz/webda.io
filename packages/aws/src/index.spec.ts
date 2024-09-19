@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import * as path from "path";
 const { __dirname } = getCommonJS(import.meta.url);
 
-var localStack = undefined;
+let localStack = undefined;
 
 export const defaultCreds = {
   accessKeyId: "Bouzouf",
@@ -15,7 +15,7 @@ export async function checkLocalStack() {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 500);
     try {
-      let res = await fetch("http://localhost:4566", {
+      const res = await fetch("http://localhost:4566", {
         signal: controller.signal
       });
       clearTimeout(id);

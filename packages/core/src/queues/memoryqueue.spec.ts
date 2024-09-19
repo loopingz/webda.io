@@ -93,7 +93,7 @@ class MemoryQueueTest extends QueueTest {
     MemoryQueueTest.failedIterations = [];
     await new Promise(resolve => {
       MemoryQueueTest.resolve = resolve;
-      let queue: Queue = new MemoryQueue(this.webda, "q", {
+      const queue: Queue = new MemoryQueue(this.webda, "q", {
         workerParallelism: false
       });
       queue.initMetrics();
@@ -110,7 +110,7 @@ class MemoryQueueTest extends QueueTest {
         // Should only have the msg1 handle in deleteMessage as msg2 is fake error
         assert.strictEqual(handle, "msg1");
       };
-      let callback = async event => {
+      const callback = async event => {
         switch (MemoryQueueTest.seq) {
           case 2:
             assert.strictEqual(event.title, "plop");
@@ -130,7 +130,7 @@ class MemoryQueueTest extends QueueTest {
     let op = 0;
     const run = async (parallel: boolean) => {
       await new Promise(resolve => {
-        let queue: Queue = new MemoryQueue(this.webda, "q", {
+        const queue: Queue = new MemoryQueue(this.webda, "q", {
           workerParallelism: parallel
         });
         queue.initMetrics();
@@ -145,7 +145,7 @@ class MemoryQueueTest extends QueueTest {
         };
         queue.receiveMessage = this.receiveMessageParallelism.bind(queue);
         queue.deleteMessage = async handle => {};
-        let callback = async event => {
+        const callback = async event => {
           if (event.title === "plop") {
             await this.sleep(300);
             op = 1;
@@ -165,7 +165,7 @@ class MemoryQueueTest extends QueueTest {
 
   @test
   async basic() {
-    let queue: MemoryQueue = <MemoryQueue>this.queue;
+    const queue: MemoryQueue = <MemoryQueue>this.queue;
     // For coverage
     assert.strictEqual(queue.getParameters().expire, 1000, "1s should be convert to ms");
     queue.getParameters().expire = undefined;
@@ -181,8 +181,8 @@ class MemoryQueueTest extends QueueTest {
 
   @test
   async uuid() {
-    let queue: MemoryQueue = <MemoryQueue>this.queue;
-    let first = true;
+    const queue: MemoryQueue = <MemoryQueue>this.queue;
+    const first = true;
     let callCount = 0;
     // @ts-ignore
     queue._queue = new Proxy(queue._queue, {

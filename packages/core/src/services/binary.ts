@@ -168,7 +168,7 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
           resolve();
         });
         stream.on("data", chunk => {
-          let buffer = Buffer.from(chunk);
+          const buffer = Buffer.from(chunk);
           hash.update(buffer);
           challenge.update(buffer);
         });
@@ -402,7 +402,7 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
   assign(model: CoreModel, attribute: string): this {
     this.model = model;
     this.attribute = attribute;
-    for (let binary of model[attribute] || []) {
+    for (const binary of model[attribute] || []) {
       this.push(binary);
     }
     this.__service = Core.get().getBinaryStore(model, attribute);
@@ -590,7 +590,7 @@ export abstract class BinaryService<
     let key = Object.keys(this.parameters.models).find(k => k === modelName);
     if (key) {
       // Explicit model
-      let attributes = this.parameters.models[key];
+      const attributes = this.parameters.models[key];
       if (attributes.includes(attribute)) {
         return 2;
       } else if (attributes.includes("*")) {
@@ -602,7 +602,7 @@ export abstract class BinaryService<
     if (!key) {
       return -1;
     }
-    let attributes = this.parameters.models[key];
+    const attributes = this.parameters.models[key];
     if (attributes.includes(attribute)) {
       return 1;
     }
@@ -680,8 +680,8 @@ export abstract class BinaryService<
       service: this
     });
     this.metrics.download.inc();
-    let readStream: any = await this._get(info);
-    let writeStream = fs.createWriteStream(filename);
+    const readStream: any = await this._get(info);
+    const writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
       writeStream.on("finish", _src => {
         return resolve();
@@ -744,7 +744,7 @@ export abstract class BinaryService<
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    */
   async uploadSuccess(object: BinaryModel, property: string, file: BinaryFileInfo): Promise<void> {
-    let object_uid = object.getUuid();
+    const object_uid = object.getUuid();
     // Check if the file is already in the array then skip
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
       return;
@@ -786,7 +786,7 @@ export abstract class BinaryService<
    * @returns
    */
   async deleteSuccess(object: BinaryModel, property: string, index?: number) {
-    let info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
+    const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
     const relations = this.getWebda().getApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
@@ -809,11 +809,12 @@ export abstract class BinaryService<
    * @returns
    */
   async getFile(req: OperationContext): Promise<BinaryFile> {
-    let { mimetype, size, name } = req.getParameters();
+    const { size } = req.getParameters();
+    let { mimetype, name } = req.getParameters();
     if (size > this.parameters.maxFileSize) {
       throw new WebdaError.BadRequest("File too big");
     }
-    let file = await req.getRawInput(size ?? this.parameters.maxFileSize);
+    const file = await req.getRawInput(size ?? this.parameters.maxFileSize);
     mimetype ??= "application/octet-stream";
     name ??= "data.bin";
     return new MemoryBinaryFile(Buffer.from(file), {

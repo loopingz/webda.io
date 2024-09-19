@@ -31,7 +31,7 @@ class FileQueueTest extends QueueTest {
 
     // Try to receive one message only
     await queue.sendMessage({ test: "plop" });
-    let msg = await queue.receiveMessage();
+    const msg = await queue.receiveMessage();
     let msg2 = await queue.receiveMessage();
     assert.strictEqual(msg.length, 1);
 
@@ -62,7 +62,7 @@ class FileQueueTest extends QueueTest {
 
   @test
   async sendMessage() {
-    let queue: FileQueue = <FileQueue>this.getService("FileQueue");
+    const queue: FileQueue = <FileQueue>this.getService("FileQueue");
     let firstCall = true;
     queue.getFile = (uid: string) => {
       if (firstCall) {

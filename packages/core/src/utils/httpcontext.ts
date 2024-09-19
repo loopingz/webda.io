@@ -77,7 +77,7 @@ export class HttpContext {
     this.protocol = <unknown>protocol + ":";
     this.port = port.toString();
     this.headers = {};
-    for (let i in headers) {
+    for (const i in headers) {
       if (i.toLowerCase() === "cookie") {
         this.cookies = Array.isArray(headers[i])
           ? (<string[]>headers[i]).map(c => cookieParse(c))
@@ -230,7 +230,7 @@ export class HttpContext {
   async getRawBodyAsString(limit: number = 1024 * 1024 * 10, timeout: number = 60000, encoding?: string) {
     // Get charset from header
     if (!encoding) {
-      let match = this.getUniqueHeader("content-type", "charset=utf-8").match(/charset=([^;\s]+)/);
+      const match = this.getUniqueHeader("content-type", "charset=utf-8").match(/charset=([^;\s]+)/);
       if (match) {
         encoding = match[1].trim();
       } else {
@@ -253,13 +253,13 @@ export class HttpContext {
   async getRawBody(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer | undefined> {
     if (this.body instanceof Readable) {
       return new Promise((resolve, reject) => {
-        let req = <Readable>this.body;
-        let body = [];
-        let timeoutId = setTimeout(() => {
+        const req = <Readable>this.body;
+        const body = [];
+        const timeoutId = setTimeout(() => {
           reject("Request timeout");
         }, timeout);
         req.on("readable", () => {
-          let chunk = req.read();
+          const chunk = req.read();
           if (chunk !== null) {
             if (chunk.length + body.length > limit) {
               clearTimeout(timeoutId);
@@ -312,7 +312,7 @@ export class HttpContext {
    * Return the last header found with that name
    */
   getUniqueHeader(name: string, def?: string): string {
-    let header = this.getHeader(name, def);
+    const header = this.getHeader(name, def);
     if (Array.isArray(header)) {
       return header.pop() || def;
     }

@@ -7,7 +7,7 @@ import pkg from "fs-extra";
 import sinon from "sinon";
 import { Readable } from "stream";
 import { Core } from "../core";
-import { WebdaError } from "../errors";
+import * as WebdaError from "../errors";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { FileUtils } from "../utils/serializers";
@@ -57,8 +57,8 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async _getFile() {
-    let binary = await this.getBinary();
-    let ctx = await this.newContext();
+    const binary = await this.getBinary();
+    const ctx = await this.newContext();
     ctx.getHttpContext().setBody("plop");
     ctx.getParameters()["mimetype"] = "text/plain";
     assert.deepStrictEqual(
@@ -76,10 +76,10 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async downloadSignedUrl() {
-    let binary: FileBinary = (await this.getBinary()) as FileBinary;
-    let { user1, ctx } = await this.setupDefault(false);
+    const binary: FileBinary = (await this.getBinary()) as FileBinary;
+    const { user1, ctx } = await this.setupDefault(false);
 
-    let url = await binary.getRedirectUrlFromObject(user1.images[0], ctx, 60);
+    const url = await binary.getRedirectUrlFromObject(user1.images[0], ctx, 60);
     assert.notStrictEqual(url, undefined);
     await this.execute(ctx, "test.webda.io", "GET", url.substring("http://test.webda.io".length));
     // c59d?token -> d59d?token
@@ -107,8 +107,8 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async verifyMapAndStore() {
-    let binary = await this.getBinary();
-    let ctx = await this.newContext();
+    const binary = await this.getBinary();
+    const ctx = await this.newContext();
     ctx.setParameters({ model: "User", property: "images" });
     const model = this.webda.getModel("User").store();
     assert.strictEqual(binary["verifyMapAndStore"](ctx), model);
@@ -126,7 +126,7 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async computeParameters() {
-    let binary = <FileBinary>await this.getBinary();
+    const binary = <FileBinary>await this.getBinary();
     removeSync(binary.getParameters().folder);
     binary.computeParameters();
     assert.ok(fs.existsSync(binary.getParameters().folder));
@@ -134,9 +134,9 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async badTokens() {
-    let binary = <FileBinary>await this.getBinary();
-    let ctx = await this.newContext();
-    let { hash } = await new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})).getHashes();
+    const binary = <FileBinary>await this.getBinary();
+    const ctx = await this.newContext();
+    const { hash } = await new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})).getHashes();
     let token = "badt";
     ctx.setParameters({
       hash,
@@ -179,7 +179,7 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async cleanNonExisting() {
-    let binary = <FileBinary>await this.getBinary();
+    const binary = <FileBinary>await this.getBinary();
     binary._cleanHash("plop");
     binary._cleanUsage("plop", "l");
   }
@@ -196,7 +196,7 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async cov() {
-    let binary = <FileBinary>await this.getBinary();
+    const binary = <FileBinary>await this.getBinary();
     try {
       binary._touch("./touch.txt");
       binary._touch("./touch.txt");
@@ -207,7 +207,7 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 
   @test
   async getOperationName() {
-    let binary = await this.getBinary();
+    const binary = await this.getBinary();
     binary["_name"] = "Binary";
     // @ts-ignore
     assert.strictEqual(binary.getOperationName(), "");
@@ -287,7 +287,7 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
 class BinaryAbstractTest extends WebdaTest {
   @test
   async cov() {
-    let service = new TestBinaryService(undefined, "plop", {});
+    const service = new TestBinaryService(undefined, "plop", {});
     assert.strictEqual(await service.getRedirectUrlFromObject(undefined, undefined, 60), null);
     let ctx = await this.newContext();
     await assert.rejects(
@@ -314,7 +314,7 @@ class BinaryAbstractTest extends WebdaTest {
     );
     */
     ctx = await this.newContext();
-    let binary = this.getService<BinaryService>("binary");
+    const binary = this.getService<BinaryService>("binary");
     ctx.setParameters({
       property: "images",
       store: "users",
@@ -332,9 +332,9 @@ class BinaryAbstractTest extends WebdaTest {
     );
     */
 
-    let stubs = [];
+    const stubs = [];
     try {
-      let model = <any>{
+      const model = <any>{
         images: [
           {
             size: 10
@@ -399,17 +399,17 @@ class BinaryAbstractTest extends WebdaTest {
 
   @test
   async binaryMaps() {
-    let map = new BinariesImpl().assign(new CoreModel(), "test");
+    const map = new BinariesImpl().assign(new CoreModel(), "test");
     await assert.rejects(() => map.upload(undefined));
     await assert.throws(() => map.shift());
     await assert.throws(() => map.unshift());
     await assert.throws(() => map.slice());
     await assert.throws(() => map.pop());
 
-    let binary = new Binary("test", new CoreModel());
+    const binary = new Binary("test", new CoreModel());
     await assert.rejects(() => binary.upload(undefined));
     await assert.rejects(() => binary.delete());
-    let binaryItem = new BinariesItem(
+    const binaryItem = new BinariesItem(
       map,
       new MemoryBinaryFile(Buffer.from("test"), {
         name: "test",
@@ -423,9 +423,9 @@ class BinaryAbstractTest extends WebdaTest {
 
   @test
   async streamToBufferError() {
-    let stream = new EventEmitter();
+    const stream = new EventEmitter();
     // @ts-ignore
-    let p = assert.rejects(() => BinaryService.streamToBuffer(stream), /Bad I\/O/);
+    const p = assert.rejects(() => BinaryService.streamToBuffer(stream), /Bad I\/O/);
     stream.emit("error", new Error("Bad I/O"));
     await p;
   }
@@ -442,11 +442,11 @@ class BinaryAbstractTest extends WebdaTest {
   @test
   async putRedirectUrl() {
     const binaryService = this.getService<FileBinary>("binary");
-    let ctx = await this.newContext(JSON.stringify({ hash: "123" }));
+    const ctx = await this.newContext(JSON.stringify({ hash: "123" }));
     ctx.getParameters().uuid = "456";
     ctx.getParameters().store = "Test";
     ctx.getParameters().property = "plop";
-    let dataPath = binaryService._getPath("123", "data");
+    const dataPath = binaryService._getPath("123", "data");
     mkdirSync(binaryService._getPath("123"), { recursive: true });
     writeFileSync(binaryService._getPath("123", "Test_plop_456"), "");
     if (fs.existsSync(dataPath)) {

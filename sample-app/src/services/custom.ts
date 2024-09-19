@@ -85,7 +85,7 @@ export class CustomService<T extends CustomParameters = CustomParameters> extend
   @Route("/docs", "POST")
   autoDocs(plop: WebContext<CustomBody>) {
     plop.getRequestBody();
-    let res: DefinedOutput = {
+    const res: DefinedOutput = {
       plop: true
     };
     plop.write(res);

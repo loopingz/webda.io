@@ -13,7 +13,7 @@ class EchoTest extends WebdaSimpleTest {
       result: "plop"
     });
     // @ts-ignore
-    let stub = sinon.spy(service, "addRoute");
+    const stub = sinon.spy(service, "addRoute");
     try {
       service.initRoutes();
       assert.strictEqual(stub.callCount, 1);

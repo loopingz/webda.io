@@ -155,7 +155,7 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
    * @override
    */
   async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
-    let email = user.getEmail();
+    const email = user.getEmail();
     if (!email) {
       throw new Error(`Cannot find a valid email for ${user.__type} '${user.getUuid()}'`);
     }
@@ -263,9 +263,9 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
         options.replacements = {};
       }
       options.replacements.now = new Date();
-      let template = this._getTemplate(options.template);
+      const template = this._getTemplate(options.template);
       if (template) {
-        let result = await template.renderAll(options.template, options.replacements);
+        const result = await template.renderAll(options.template, options.replacements);
         if (result.subject) {
           options.subject = result.subject;
         }

@@ -40,7 +40,7 @@ class WebdaConfigurationServerTest {
   }
 
   async fetch(path: string = "/", options: any = {}): Promise<any> {
-    let res = await fetch(`http://localhost:18181${path}`, {
+    const res = await fetch(`http://localhost:18181${path}`, {
       ...options,
       headers: {
         Host: "localhost",
@@ -57,7 +57,7 @@ class WebdaConfigurationServerTest {
   @test
   async testConfigurationApi() {
     let res = await this.fetch("/configuration");
-    let cfg = FileUtils.load(WebdaSampleApplication.configurationFile);
+    const cfg = FileUtils.load(WebdaSampleApplication.configurationFile);
     delete res.cachedModules;
     cfg.parameters = {
       configurationService: "test",
@@ -75,7 +75,7 @@ class WebdaConfigurationServerTest {
   async checkRequest() {
     console.log(new Date(), "Fetching /configuration");
     // Will config.webda.io will host later on the configuration tool
-    let res = await this.fetch(`/configuration`, {
+    const res = await this.fetch(`/configuration`, {
       headers: {
         Origin: "https://config.webda.io"
       }
@@ -86,16 +86,16 @@ class WebdaConfigurationServerTest {
 
   @test
   async testNpm() {
-    let res = await this.fetch("/npm", { method: "POST" });
+    const res = await this.fetch("/npm", { method: "POST" });
   }
 
   @test
   async testApplicationApi() {
-    let res = await this.fetch("/application");
+    const res = await this.fetch("/application");
   }
 
   @test
   async testWebdaApi() {
-    let res = await this.fetch("/webda");
+    const res = await this.fetch("/webda");
   }
 }

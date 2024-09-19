@@ -110,7 +110,7 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
     // Cascade delete when target is destroyed
     if (this.parameters.cascade) {
       this.targetStore[method]("Store.Deleted", async (evt: EventStoreDeleted) => {
-        let maps = evt.object[this.parameters.targetAttribute];
+        const maps = evt.object[this.parameters.targetAttribute];
         if (!maps) {
           return;
         }
@@ -144,12 +144,12 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
    * @returns mapper object and found = true if updates will impact the mapper
    */
   createMapper(object: CoreModel, updates: any): [mapper: Mapper, found: boolean] {
-    let mapper: Mapper = {
+    const mapper: Mapper = {
       // TODO Move to getFullUuid
       uuid: object.getUuid()
     };
     let found = false;
-    for (let mapperfield of this.parameters.fields) {
+    for (const mapperfield of this.parameters.fields) {
       // Create the mapper object
       if (updates[mapperfield] !== undefined) {
         mapper[mapperfield] = updates[mapperfield];
@@ -170,7 +170,7 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
    * @returns
    */
   async _handleUpdatedMap(source: CoreModel, target: CoreModel, updates: any) {
-    let [mapper, found] = this.createMapper(source, updates);
+    const [mapper, found] = this.createMapper(source, updates);
 
     // Linked object has not changed, check if map has changed and require updates
     if (!found) {
@@ -190,7 +190,7 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
    */
   _handleUpdatedMapMapper(source: CoreModel, target: CoreModel, mapper: Mapper) {
     // Remove old reference
-    let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
+    const i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
     // If not found just add it to the collection
     if (i < 0) {
       return this.targetStore.upsertItemToCollection(target.getUuid(), this.parameters.targetAttribute, mapper);
@@ -218,7 +218,7 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
     if (target[this.parameters.targetAttribute] === undefined) {
       return;
     }
-    let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
+    const i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
     if (i >= 0) {
       return this.targetStore.deleteItemFromCollection(
         target.getUuid(),
@@ -239,7 +239,7 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
    */
   async _handleCreatedMap(source: CoreModel, target: CoreModel) {
     // Add to the object
-    let [mapper] = this.createMapper(source, {});
+    const [mapper] = this.createMapper(source, {});
     return this.targetStore.upsertItemToCollection(target.getUuid(), this.parameters.targetAttribute, mapper);
   }
 
@@ -264,8 +264,8 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
     const props: string[] = Array.isArray(property) ? property : [property];
     if (props.find(p => this.isMapped(p)) || this.isMapped("_lastUpdate")) {
       // Not optimal need to reload the object
-      let source = await this.sourceService.getObject(uid);
-      let updates = {};
+      const source = await this.sourceService.getObject(uid);
+      const updates = {};
       if (this.isMapped("_lastUpdate")) {
         updates["_lastUpdate"] = updateDate;
       }
@@ -308,14 +308,14 @@ class MapperService<T extends MapperParameters = MapperParameters> extends Servi
       if (Array.isArray(attribute)) {
         ids = attribute;
         if (typeof updates == "object" && updates[this.parameters.attribute]) {
-          let refs = updates[this.parameters.attribute];
+          const refs = updates[this.parameters.attribute];
           toAdd = refs.filter(id => !ids.includes(id));
           toDelete = attribute.filter(id => !refs.includes(id));
         }
       } else if (typeof attribute === "object") {
         ids = Object.keys(attribute);
         if (typeof updates == "object" && updates[this.parameters.attribute]) {
-          let refs = Object.keys(updates[this.parameters.attribute]);
+          const refs = Object.keys(updates[this.parameters.attribute]);
           toAdd = refs.filter(id => !ids.includes(id));
           toDelete = ids.filter(id => !refs.includes(id));
         }

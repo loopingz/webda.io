@@ -87,7 +87,7 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
   @test("POST - not logged") async postNotLogged() {
     await this.beforeEach();
 
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "POST", "/testTasks", {
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "POST", "/testTasks", {
       name: "Task #1"
     });
     assert.notStrictEqual(executor, undefined);
@@ -98,19 +98,19 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
   }
 
   @test("POST") async post() {
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "POST", "/testTasks", {
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "POST", "/testTasks", {
       name: "Task #1"
     });
     this._session.login("fake_user", "fake_ident");
     await executor.execute(this._ctx);
-    let task = JSON.parse(<string>this._ctx.getResponseBody());
+    const task = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(task.name, "Task #1");
   }
 
   @test("GET - wrong owner") async getWrongOwner() {
     await this.beforeEach();
     this._ctx.getSession().login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/testTasks/task_no_owner", {});
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/testTasks/task_no_owner", {});
     await assert.rejects(
       () => executor.execute(this._ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
@@ -119,7 +119,7 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
   @test("GET - no owner") async getNoOwner() {
     await this.beforeEach();
     this._ctx.getSession().login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/testTasks/task_user1", {});
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/testTasks/task_user1", {});
     await assert.rejects(
       () => executor.execute(this._ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
@@ -128,7 +128,7 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
   @test("PUT - wrong owner") async putWrongOwner() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/testTasks/task_user1", {});
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/testTasks/task_user1", {});
     await assert.rejects(
       () => executor.execute(this._ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
@@ -141,16 +141,16 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
       public: true,
       name: "needed"
     });
-    let result = JSON.parse(<string>this._ctx.getResponseBody());
+    const result = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(result.uuid, "task_user1");
     assert.strictEqual(result.public, true);
   }
   @test("GET - public") async getPublic() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/testTasks/task_public");
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/testTasks/task_public");
     await executor.execute(this._ctx);
-    let result = JSON.parse(<string>this._ctx.getResponseBody());
+    const result = JSON.parse(<string>this._ctx.getResponseBody());
     assert.strictEqual(result.uuid, "task_public");
   }
 
@@ -178,13 +178,13 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
   @test("DELETE") async delete() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_user2");
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_user2");
     await executor.execute(this._ctx);
   }
   @test("DELETE - wrong owner") async deleteWrongOwner() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_user1");
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_user1");
     await assert.rejects(
       () => executor.execute(this._ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
@@ -193,7 +193,7 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
   @test("DELETE - wrong owner - public") async deleteWrongOwnerPublic() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_public");
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_public");
     await assert.rejects(
       () => executor.execute(this._ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
@@ -202,7 +202,7 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
   @test("DELETE - unknown") async deleteUnknown() {
     await this.beforeEach();
     this._session.login("fake_user2", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_unknown");
+    const executor = this.getExecutor(this._ctx, "test.webda.io", "DELETE", "/testTasks/task_unknown");
     await assert.rejects(
       () => executor.execute(this._ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 404

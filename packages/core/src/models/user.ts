@@ -161,7 +161,7 @@ export class SimpleUser extends User {
   }
 
   removeGroup(group: string) {
-    let ind = this._groups.indexOf(group);
+    const ind = this._groups.indexOf(group);
     if (ind < 0) {
       return;
     }
@@ -188,7 +188,7 @@ export class SimpleUser extends User {
   }
 
   removeRole(role: string) {
-    let ind = this._roles.indexOf(role);
+    const ind = this._roles.indexOf(role);
     if (ind < 0) {
       return;
     }

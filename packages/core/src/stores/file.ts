@@ -133,7 +133,7 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
    * @inheritdoc
    */
   async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
-    let res = await this._get(uuid, true);
+    const res = await this._get(uuid, true);
     this.checkUpdateCondition(res, <keyof T>writeConditionField, writeCondition);
     delete res[attribute];
     await this._save(res);
@@ -150,7 +150,7 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
     itemWriteConditionField: string,
     updateDate: Date
   ) {
-    let res = await this._get(uid, true);
+    const res = await this._get(uid, true);
     this.checkCollectionUpdateCondition(
       res,
       <FilterAttributes<T, any[]>>prop,
@@ -177,9 +177,9 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
    * @inheritdoc
    */
   async _patch(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
-    let stored = await this._get(uid, true);
+    const stored = await this._get(uid, true);
     this.checkUpdateCondition(stored, <keyof T>writeConditionField, writeCondition);
-    for (let prop in object) {
+    for (const prop in object) {
       stored[prop] = object[prop];
     }
     return this._save(stored);
@@ -189,7 +189,7 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
    * @override
    */
   async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
-    let stored = await this._get(uid, true);
+    const stored = await this._get(uid, true);
     this.checkUpdateCondition(stored, <keyof T>writeConditionField, writeCondition);
     return this._save(this.initModel(object));
   }
@@ -200,14 +200,14 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
   async getAll(uids?: string[]): Promise<any> {
     if (!uids) {
       uids = [];
-      let files = fs.readdirSync(this.parameters.folder);
-      for (let file in files) {
+      const files = fs.readdirSync(this.parameters.folder);
+      for (const file in files) {
         uids.push(files[file].substring(0, files[file].length - FileStore.EXTENSION.length));
       }
     }
-    let result = [];
-    for (let i in uids) {
-      let model = this._get(uids[i]);
+    const result = [];
+    for (const i in uids) {
+      const model = this._get(uids[i]);
       result.push(model);
     }
     return (await Promise.all(result)).filter(f => f !== undefined);
@@ -217,9 +217,9 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
    * @override
    */
   async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
-    let res = await this.exists(uid);
+    const res = await this.exists(uid);
     if (res) {
-      let data = JSON.parse(fs.readFileSync(this.file(uid)).toString());
+      const data = JSON.parse(fs.readFileSync(this.file(uid)).toString());
       if (data.__type !== this._modelType && this.parameters.strict) {
         return undefined;
       }
@@ -237,7 +237,7 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
     params: { property: string; value: number }[],
     updateDate: Date
   ): Promise<any> {
-    let stored = await this._get(uid, true);
+    const stored = await this._get(uid, true);
     params.forEach(({ property: prop, value }) => {
       if (stored[prop] === undefined) {
         stored[prop] = 0;

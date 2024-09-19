@@ -54,7 +54,7 @@ export class Throttler {
    * @returns
    */
   static run(method: () => Promise<any> | (() => Promise<any>)[], concurrency: number = 10): Promise<void> {
-    let t = new Throttler(concurrency);
+    const t = new Throttler(concurrency);
     t.queue(method);
     return t.wait();
   }

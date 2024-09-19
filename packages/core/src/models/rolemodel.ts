@@ -14,7 +14,7 @@ abstract class RoleModel extends CoreModel {
     if (ctx.getSession().roles) {
       return ctx.getSession().roles;
     }
-    let user = await ctx.getCurrentUser();
+    const user = await ctx.getCurrentUser();
     // Cache roles in session
     ctx.getSession().roles = user.getRoles();
     return ctx.getSession().roles;
@@ -28,7 +28,7 @@ abstract class RoleModel extends CoreModel {
       }
       return "No permission for this action defined";
     }
-    let roles = await this.getRoles(ctx);
+    const roles = await this.getRoles(ctx);
     if (roles.indexOf(this.getRolesMap()[action]) >= 0) {
       return true;
     }

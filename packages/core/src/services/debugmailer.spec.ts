@@ -12,7 +12,7 @@ class DebugMailerTest extends WebdaInternalTest {
 
   @test
   async testSend() {
-    let mailer = new DebugMailer(this.webda, "test", {});
+    const mailer = new DebugMailer(this.webda, "test", {});
     mailer.send({ option1: "test" });
     assert.strictEqual(mailer.sent.length, 1);
     assert.strictEqual(mailer.sent[0].option1, "test");

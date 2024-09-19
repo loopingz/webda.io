@@ -371,7 +371,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
    * @param model
    */
   async answerInvitation(ctx: WebContext<InvitationAnswerBody>, model: CoreModel) {
-    let body = await ctx.getInput();
+    const body = await ctx.getInput();
     // Invitation on the model is gone
     if (model === undefined) {
       await this.removeInvitationFromUser(ctx.getCurrentUserId(), ctx.getParameters().uuid);
@@ -423,8 +423,8 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     body.users ??= [];
     body.idents ??= [];
     const promises = [];
-    let invitedIdents: string[] = [];
-    let invitedUsers: string[] = [];
+    const invitedIdents: string[] = [];
+    const invitedUsers: string[] = [];
     for (const ident of body.idents) {
       if (model[this.parameters.pendingAttribute][`ident_${ident}`]) {
         // Remove from pending on the object
@@ -477,9 +477,9 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
    * @param user
    */
   protected async removeInvitationFromUser(user: string, model: string): Promise<void> {
-    let userModel = await this.authenticationService.getUserStore().get(user);
+    const userModel = await this.authenticationService.getUserStore().get(user);
     let index = 0;
-    for (let invit of userModel[this.parameters.mapAttribute] || []) {
+    for (const invit of userModel[this.parameters.mapAttribute] || []) {
       if (invit.model === model) {
         await this.authenticationService
           .getUserStore()
@@ -497,11 +497,11 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
    * @returns
    */
   async invite(ctx: WebContext) {
-    let model = await this.model.ref(ctx.getParameters().uuid).get(ctx);
+    const model = await this.model.ref(ctx.getParameters().uuid).get(ctx);
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);
     }
-    let inviter = await ctx.getCurrentUser();
+    const inviter = await ctx.getCurrentUser();
     if (!model) {
       throw new WebdaError.NotFound("Model not found");
     }
@@ -528,9 +528,9 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
       }))
     );
 
-    let invitedIdents: string[] = [];
-    let invitedUsers: User[] = [];
-    let promises = [];
+    const invitedIdents: string[] = [];
+    const invitedUsers: User[] = [];
+    const promises = [];
     const metadata = {};
     this.parameters.mapFields.forEach(f => (metadata[f] = model[f]));
 
@@ -554,7 +554,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
       }
       // User is unknown to the platform
       invitedIdents.push(invitation.invitation);
-      let invitUuid = `${invitation.invitation}_${this.getName()}`;
+      const invitUuid = `${invitation.invitation}_${this.getName()}`;
       model[this.parameters.pendingAttribute] ??= {};
       model[this.parameters.pendingAttribute][`ident_${invitation.invitation}`] = body.metadata;
       const invitInfo = {
@@ -574,7 +574,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
         );
       }
       // Notify ident
-      let ident = invitation.invitation.split("_");
+      const ident = invitation.invitation.split("_");
       await this.sendNotification(Ident.init(ident.pop(), ident.join("_")), {
         model,
         metadata,
@@ -588,7 +588,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     body.users ??= [];
     promises.push(
       ...body.users.map(async u => {
-        let user = await this.authenticationService.getUserStore().get(u);
+        const user = await this.authenticationService.getUserStore().get(u);
         if (!user) {
           return;
         }
@@ -661,7 +661,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
    * @returns
    */
   async registrationListener(evt: EventAuthenticationRegister) {
-    let uuid = `${evt.identId}_${this.getName()}`;
+    const uuid = `${evt.identId}_${this.getName()}`;
     const invitations = await this.invitationStore.get(uuid);
     if (!invitations) {
       return;

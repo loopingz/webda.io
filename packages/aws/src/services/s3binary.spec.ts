@@ -47,7 +47,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   async cleanData() {
     const Bucket = "webda-test";
     try {
-      var s3 = new S3({
+      const s3 = new S3({
         endpoint: "http://localhost:4566",
         credentials: defaultCreds,
         forcePathStyle: true,
@@ -55,16 +55,16 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       });
 
       // For test we do not have more than 1k objects
-      let data = await s3.listObjectsV2({
+      const data = await s3.listObjectsV2({
         Bucket
       });
-      var params: DeleteObjectsCommandInput = {
+      const params: DeleteObjectsCommandInput = {
         Bucket,
         Delete: {
           Objects: []
         }
       };
-      for (var i in data.Contents) {
+      for (const i in data.Contents) {
         params.Delete.Objects.push({
           Key: data.Contents[i].Key
         });
@@ -79,7 +79,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   async install() {
-    var s3 = new S3({
+    const s3 = new S3({
       endpoint: "http://localhost:4566",
       forcePathStyle: true,
       credentials: defaultCreds,
@@ -105,7 +105,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async getARN() {
     const binary = await this.getBinary();
-    let policies = binary.getARNPolicy("plop");
+    const policies = binary.getARNPolicy("plop");
 
     assert.strictEqual(policies.Resource[0], "arn:aws:s3:::webda-test");
     assert.strictEqual(policies.Resource[1], "arn:aws:s3:::webda-test/*");
@@ -170,7 +170,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async signedUrl() {
     const binary = await this.getBinary();
-    let urls = [
+    const urls = [
       binary.getSignedUrl("plop/test", "putObject", {
         Bucket: "myBuck"
       }),
@@ -201,8 +201,8 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async cleanHash() {
     const binary = await this.getBinary();
-    let key1 = binary._getKey("bouzouf", "one");
-    let key2 = binary._getKey("bouzouf", "two");
+    const key1 = binary._getKey("bouzouf", "one");
+    const key2 = binary._getKey("bouzouf", "two");
     await binary.putObject(key1, "plop");
     await binary.putObject(key2, "plop");
     await binary._cleanHash("bouzouf");
@@ -222,7 +222,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async cascadeDelete() {
     const binary = await this.getBinary();
-    let stubDelete = sinon.stub(binary._s3, "deleteObject").callsFake(() => {
+    const stubDelete = sinon.stub(binary._s3, "deleteObject").callsFake(() => {
       throw new Error();
     });
     try {
@@ -235,18 +235,18 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
   @test
   async redirectUrl() {
-    let { user1, ctx } = await this.setupDefault();
+    const { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
+    const executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location !== undefined);
   }
 
   @test
   async redirectUrlInfo() {
-    let { user1, ctx } = await this.setupDefault();
+    const { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
+    const executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location === undefined);
     assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);

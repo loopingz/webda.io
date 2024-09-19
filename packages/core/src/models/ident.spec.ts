@@ -6,7 +6,7 @@ import { Ident } from "./ident";
 class IdentTest {
   @test getType() {
     // Just for COV
-    let user: Ident = new Ident();
+    const user: Ident = new Ident();
     user.setType("plop");
     assert.strictEqual(user.getType(), "plop");
   }

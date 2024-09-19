@@ -56,13 +56,13 @@ class WebdaServerTest {
 
   @test
   async testAlreadyBind() {
-    let server = http.createServer(() => {}).listen(this.port);
+    const server = http.createServer(() => {}).listen(this.port);
     const logs = [];
     await WebdaSampleApplication.load();
     WebdaSampleApplication.setCurrentDeployment("Dev");
     this.server = new WebdaServer(WebdaSampleApplication);
     await this.server.init();
-    let stub = sinon.stub(this.server, "log").callsFake((...args) => {
+    const stub = sinon.stub(this.server, "log").callsFake((...args) => {
       logs.push(args);
     });
     // @ts-ignore
@@ -81,7 +81,7 @@ class WebdaServerTest {
   @test
   async testSampleApplicationApi() {
     await this.init("Dev", true);
-    let app = new SampleApplicationTest(`http://localhost:${this.port}`);
+    const app = new SampleApplicationTest(`http://localhost:${this.port}`);
     await app.testApi();
     // Should disable CSRF check on DevMode
     this.server.setDevMode(true);
@@ -93,7 +93,7 @@ class WebdaServerTest {
     assert.strictEqual(await res.text(), "Tested");
 
     // Test errors system
-    let stub = sinon
+    const stub = sinon
       // @ts-ignore
       .stub(this.server.getService("CustomService"), "test")
       .callsFake(async () => {
@@ -191,7 +191,7 @@ class WebdaServerTest {
 
   @test
   isInSubnet() {
-    let checker = createChecker(["127.0.0.1/32"]);
+    const checker = createChecker(["127.0.0.1/32"]);
     assert.strictEqual(checker("127.0.0.1"), true);
     assert.strictEqual(checker("::ffff:127.0.0.1"), true);
     assert.strictEqual(checker("127.0.0.2"), false);
@@ -201,9 +201,9 @@ class WebdaServerTest {
   @test
   async testSampleApplicationStatic() {
     await this.init("Production", true);
-    let app = new SampleApplicationTest(`http://localhost:${this.port}`);
+    const app = new SampleApplicationTest(`http://localhost:${this.port}`);
     await app.testStatic();
-    let stub = sinon.stub(this.server, "newContext").callsFake(() => {
+    const stub = sinon.stub(this.server, "newContext").callsFake(() => {
       throw new Error("Bad context");
     });
     let res = await fetch(`http://localhost:${this.port}/test`, {
@@ -211,12 +211,12 @@ class WebdaServerTest {
     });
     assert.strictEqual(res.status, 500);
     stub.restore();
-    let resourceService = new ResourceService(this.server, "static", {
+    const resourceService = new ResourceService(this.server, "static", {
       folder: "test"
     });
     // @ts-ignore
     this.server.resourceService = resourceService;
-    let stub2 = sinon.stub(resourceService, "_serve").callsFake(() => {
+    const stub2 = sinon.stub(resourceService, "_serve").callsFake(() => {
       throw 409;
     });
     res = await fetch(`http://localhost:${this.port}/index.html`, {
@@ -243,7 +243,7 @@ class WebdaServerTest {
   @test
   async flushHeaders() {
     await this.init("Dev", false);
-    let ctx = await this.server.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
+    const ctx = await this.server.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     ctx.setFlushedHeaders();
     // Test we do not double flush headers
     this.server.flushHeaders(ctx);
@@ -263,7 +263,7 @@ class WebdaServerTest {
   @test
   async stop() {
     await this.init("Dev", true);
-    let stub = sinon.stub(this.server, "waitForStatus").callsFake(async () => {});
+    const stub = sinon.stub(this.server, "waitForStatus").callsFake(async () => {});
     // @ts-ignore
     this.server.serverStatus = ServerStatus.Starting;
     await this.server.stop();

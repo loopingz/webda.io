@@ -13,7 +13,7 @@ class MemoryConsoleTest {
 
   @test
   testLogsOnlyAndFilter() {
-    let logger = new MemoryLogger(this.output);
+    const logger = new MemoryLogger(this.output);
     this.output.log("DEBUG", "Test 1");
     assert.strictEqual(logger.getMessages().length, 1);
     assert.strictEqual(logger.getLogs().length, 1);
@@ -37,7 +37,7 @@ class MemoryConsoleTest {
 
   @test
   testAllMessagesLimit() {
-    let logger = new MemoryLogger(this.output, "TRACE", 3, true);
+    const logger = new MemoryLogger(this.output, "TRACE", 3, true);
     this.output.log("DEBUG", "Test 1");
     assert.strictEqual(logger.getMessages().length, 1);
     assert.strictEqual(logger.getLogs().length, 1);

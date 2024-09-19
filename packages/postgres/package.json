@@ -14,9 +14,11 @@
     "build": "webda build",
     "build:watch": "webda build --watch",
     "pretest": "npm run build",
-    "lint": "prettier --check src/**/*",
-    "lint:fix": "prettier --write src/**/*",
-    "test": "c8 mocha"
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "c8 mocha",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
   },
   "dependencies": {
     "@webda/core": "^4.0.0-beta.1",

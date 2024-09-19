@@ -300,7 +300,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     if (this.runners.length === 0) {
       throw new Error(`AsyncJobService.worker requires runners`);
     }
-    let p: CancelablePromise[] = [this.queue.consume(this.handleEvent.bind(this))];
+    const p: CancelablePromise[] = [this.queue.consume(this.handleEvent.bind(this))];
     if (this.parameters.includeSchedulerInWorker) {
       p.push(this.scheduler());
     }
@@ -323,7 +323,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   protected async handleEvent(event: AsyncActionQueueItem): Promise<void> {
     let selectedRunner;
     // Take first to acknowledge the job
-    for (let runner of this.runners) {
+    for (const runner of this.runners) {
       if (runner.handleType(event.type)) {
         selectedRunner = runner;
         break;
@@ -347,7 +347,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       status: "STARTING"
     });
     const action = await this.model.ref(event.uuid).get();
-    let job = await selectedRunner.launchAction(action, this.getJobInfo(action));
+    const job = await selectedRunner.launchAction(action, this.getJobInfo(action));
     await action.patch({ job }, null);
     return job.promise || Promise.resolve();
   }
@@ -393,7 +393,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       | string[]
     >
   ): Promise<void> {
-    let filtered: typeof this.operations = JSONUtils.duplicate(this.operations);
+    const filtered: typeof this.operations = JSONUtils.duplicate(this.operations);
     // Filter operations based on permissions
     Object.keys(filtered.operations)
       .filter(key => filtered.operations[key].permission && !this.getWebda().checkOperationPermission(context, key))
@@ -495,7 +495,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @returns
    */
   getHeaders(jobInfo: JobInfo) {
-    let res: { [key: string]: string } = {
+    const res: { [key: string]: string } = {
       "X-Job-Id": jobInfo.JOB_ID,
       "X-Job-Time": Date.now().toString()
     };
@@ -578,7 +578,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     this.log("DEBUG", "Getting action to execute from hook", jobInfo);
     // Get action info by calling the hook
-    let action = await this.postHook(jobInfo, {
+    const action = await this.postHook(jobInfo, {
       agent: {
         ...Runner.getAgentInfo(),
         nodeVersion: process.version
@@ -593,7 +593,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         throw new Error("WebdaAsyncAction must have method and serviceName defined at least");
       }
       // Call the service[method](...args)
-      let service = this.getService(action.serviceName);
+      const service = this.getService(action.serviceName);
       if (!service) {
         throw new Error(`WebdaAsyncAction Service '${action.serviceName}' not found: mismatch app version`);
       }

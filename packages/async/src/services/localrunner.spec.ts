@@ -30,7 +30,7 @@ class LocalRunnerTest extends WebdaTest {
   @test
   cov() {
     new LocalRunner(this.webda, "runner", {});
-    let runner = new LocalRunner(this.webda, "runner", { actions: ["plop"], options: { env: { OK: "test" } } });
+    const runner = new LocalRunner(this.webda, "runner", { actions: ["plop"], options: { env: { OK: "test" } } });
     assert.strictEqual(runner.handleType("plop"), true);
     assert.strictEqual(runner.handleType("plop2"), false);
     new LocalRunner(this.webda, "runner", { options: { env: { OK: "test" } } });
@@ -55,7 +55,7 @@ class LocalRunnerTest extends WebdaTest {
     try {
       const action = await this.getService<Store<AsyncAction>>("AsyncJobs").save({ status: "STARTING", logs: [] });
 
-      let job = await runner.launchAction(action, this.getJobInfo(action));
+      const job = await runner.launchAction(action, this.getJobInfo(action));
 
       assert.strictEqual(spawn.calledOnce, true);
       assert.strictEqual(job.pid, "fake");
@@ -77,7 +77,7 @@ class LocalRunnerTest extends WebdaTest {
     try {
       const action = await this.getService<Store<AsyncAction>>("AsyncJobs").save({ status: "STARTING", logs: [] });
 
-      let job = await runner.launchAction(action, this.getJobInfo(action));
+      const job = await runner.launchAction(action, this.getJobInfo(action));
 
       assert.strictEqual(spawn.calledOnce, true);
       assert.strictEqual(job.pid, 666);

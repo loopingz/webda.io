@@ -1,4 +1,4 @@
-"use strict";
+
 import { suite, test } from "@testdeck/mocha";
 import { FileUtils, JSONUtils, Logger, Module, WebdaError, getCommonJS } from "@webda/core";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
@@ -19,7 +19,7 @@ const { __dirname } = getCommonJS(import.meta.url);
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
-    let res = super.getLogs().slice(start);
+    const res = super.getLogs().slice(start);
     this.clear();
     return res;
   }
@@ -127,7 +127,7 @@ class ConsoleTest {
     assert.notStrictEqual(data.test.split(":").pop(), oldTest);
     assert.notStrictEqual(data.other.enc.split(":").pop(), oldEnc);
     assert.strictEqual(data.other.test, "plop");
-    let res = await this.commandLine("--noCompile config-encrypt " + filePath + "d");
+    const res = await this.commandLine("--noCompile config-encrypt " + filePath + "d");
     assert.strictEqual(res, -1);
   }
 
@@ -146,7 +146,7 @@ class ConsoleTest {
   async newDeployment() {
     // Just to initiate it
     await this.commandLine("service-configuration Test");
-    let output = WebdaConsole.app.getWorkerOutput();
+    const output = WebdaConsole.app.getWorkerOutput();
 
     let deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf.json");
     this.cleanFiles.push(deploymentPath);
@@ -157,7 +157,7 @@ class ConsoleTest {
     assert.ok(fs.existsSync(deploymentPath));
 
     // @ts-ignore
-    let stub = sinon.stub(output, "requestInput").callsFake(async () => {
+    const stub = sinon.stub(output, "requestInput").callsFake(async () => {
       if (stub.callCount === 1) {
         return "bouzouf";
       } else if (stub.callCount === 2) {
@@ -217,10 +217,10 @@ class ConsoleTest {
     await this.waitForWebda();
     await WebdaConsole.webda.waitForStatus(ServerStatus.Started);
     assert.strictEqual(WebdaConsole.webda.getServerStatus(), ServerStatus.Started);
-    let app = new SampleApplicationTest(`http://localhost:28080`);
+    const app = new SampleApplicationTest(`http://localhost:28080`);
     await app.testApi();
     await WebdaConsole.webda.stop();
-    let p = WebdaConsole.serve({
+    const p = WebdaConsole.serve({
       port: Math.floor(Math.random() * 10000 + 10000)
     });
     await p.cancel();
@@ -235,7 +235,7 @@ class ConsoleTest {
   async waitForStatus(status: DebuggerStatus, timeout: number = 20000) {
     let time = 0;
     do {
-      let currentStatus = WebdaConsole.getDebuggerStatus();
+      const currentStatus = WebdaConsole.getDebuggerStatus();
       if (currentStatus === status) {
         return;
       }
@@ -249,9 +249,9 @@ class ConsoleTest {
 
   @test
   async configurationWatch() {
-    let file = WebdaConsole.app.deploymentFile;
+    const file = WebdaConsole.app.deploymentFile;
     try {
-      let file = WebdaConsole.app.deploymentFile;
+      const file = WebdaConsole.app.deploymentFile;
       WebdaConsole.app.deploymentFile = null;
       WebdaConsole.configurationWatch(() => {}, "plop");
     } finally {
@@ -274,7 +274,7 @@ class ConsoleTest {
     await this.waitForWebda();
     console.log("Waiting for Serving");
     await this.waitForStatus(DebuggerStatus.Serving);
-    let app = new SampleApplicationTest(`http://localhost:28080`);
+    const app = new SampleApplicationTest(`http://localhost:28080`);
     // CSRF is disabled by default in debug mode
     await app.testApi(200);
     let p = this.waitForStatus(DebuggerStatus.Launching);
@@ -300,7 +300,7 @@ export class DynamicService extends Service {
     console.log("Test new route");
     // Keep until tested on GitHub
     // try {
-    let res = await fetch(`http://localhost:28080/myNewRoute`);
+    const res = await fetch(`http://localhost:28080/myNewRoute`);
     assert.strictEqual(res.status, 200);
     // } catch (err) {
     //   // Skip this part on Travis and GitHub actions for now
@@ -331,7 +331,7 @@ class DynamicService extend Service {
     console.log("Waiting for Serving");
     await this.waitForStatus(DebuggerStatus.Serving);
     // @ts-ignore
-    let stub = sinon.stub(process, "exit").callsFake(() => {});
+    const stub = sinon.stub(process, "exit").callsFake(() => {});
     const deploymentFile = WebdaSampleApplication.getAppPath("deployments/Dev.json");
     try {
       p = this.waitForStatus(DebuggerStatus.Launching);
@@ -457,13 +457,13 @@ class DynamicService extend Service {
   async build() {
     let stub;
     try {
-      let moduleFile = WebdaSampleApplication.getAppPath("webda.module.json");
+      const moduleFile = WebdaSampleApplication.getAppPath("webda.module.json");
       if (fs.existsSync(moduleFile)) {
         fs.unlinkSync(moduleFile);
       }
       await this.commandLine(`build`);
       assert.strictEqual(fs.existsSync(moduleFile), true);
-      let module: Module = FileUtils.load(moduleFile);
+      const module: Module = FileUtils.load(moduleFile);
       assert.ok(Object.keys(module.schemas).length >= 9);
       assert.deepStrictEqual(module.schemas["WebdaDemo/CustomDeployer"].title, "CustomDeployer");
       assert.notStrictEqual(module.schemas["WebdaDemo/CustomReusableService"], undefined);
@@ -493,7 +493,7 @@ class DynamicService extend Service {
       restore: () => {}
     };
     // @ts-ignore
-    let stub = sinon.stub(WebdaConsole, "parser").callsFake(async () => {
+    const stub = sinon.stub(WebdaConsole, "parser").callsFake(async () => {
       const res = {
         showHelp: () => {
           fallback = true;
@@ -530,7 +530,7 @@ class DynamicService extend Service {
     await this.waitForWebda();
     await this.commandLine(`-d Dev openapi`, true);
     assert.strictEqual(fs.existsSync("./openapi.json"), true);
-    let def = JSON.parse(fs.readFileSync("./openapi.json").toString());
+    const def = JSON.parse(fs.readFileSync("./openapi.json").toString());
     assert.notStrictEqual(def.paths["/test"], undefined);
     assert.notStrictEqual(def.paths["/msg/{msg}"], undefined);
     await this.commandLine(`-d Dev openapi myopenapi.yml`);
@@ -561,16 +561,16 @@ class DynamicService extend Service {
 
   @test
   async exporterBadDeployment() {
-    let res = await this.commandLine("-d TestLambda config test.export.json");
+    const res = await this.commandLine("-d TestLambda config test.export.json");
     assert.strictEqual(res, -1);
-    let logs = this.logger.getLogs();
+    const logs = this.logger.getLogs();
     assert.strictEqual(logs[0].log.args[0], "Unknown deployment: TestLambda");
   }
 
   @test
   async types() {
     await this.commandLine("types");
-    let logs = this.logger
+    const logs = this.logger
       .getLogs()
       .filter(
         l =>
@@ -588,7 +588,7 @@ class DynamicService extend Service {
   @test
   async stores() {
     await this.commandLine("stores");
-    let logs = this.logger.getLogs().filter(l => l.log?.args[0].startsWith("Store "));
+    const logs = this.logger.getLogs().filter(l => l.log?.args[0].startsWith("Store "));
     assert.strictEqual(logs.length, 2, "We should have 2 Stores (Registry, contacts)");
   }
 
@@ -627,9 +627,9 @@ class DynamicService extend Service {
   @test
   async executeShellExtension() {
     // Create a fake js file
-    let appPath = path.join(__dirname, "..", "..", "test", "fakeoldapp");
-    let jsPath = path.join(appPath, "fake.js");
-    let jsTerminalPath = path.join(appPath, "terminal.js");
+    const appPath = path.join(__dirname, "..", "..", "test", "fakeoldapp");
+    const jsPath = path.join(appPath, "fake.js");
+    const jsTerminalPath = path.join(appPath, "terminal.js");
     try {
       fs.mkdirSync(appPath, { recursive: true });
       fs.writeFileSync(
@@ -719,7 +719,7 @@ export default class FakeTerminal {
     assert.strictEqual(await this.commandLine(`deploy testor`), -1);
     assert.strictEqual(await this.commandLine(`deploy -d Dev`), 0);
     assert.strictEqual(await this.commandLine(`deploy -d Bouzouf`), -1);
-    let badFile = WebdaSampleApplication.getAppPath("deployments/Bad.json");
+    const badFile = WebdaSampleApplication.getAppPath("deployments/Bad.json");
     this.cleanFiles.push(badFile);
     fs.writeFileSync(badFile, "plop");
     assert.strictEqual(await this.commandLine(`deploy -d Bad`), -1);
@@ -727,11 +727,11 @@ export default class FakeTerminal {
 
   @test
   async initYeoman() {
-    let yeoman = await WebdaConsole.getYeoman();
-    let register = sinon.stub();
-    let run = sinon.stub();
+    const yeoman = await WebdaConsole.getYeoman();
+    const register = sinon.stub();
+    const run = sinon.stub();
     // @ts-ignore
-    let stub = sinon.stub(yeoman, "createEnv").callsFake(() => {
+    const stub = sinon.stub(yeoman, "createEnv").callsFake(() => {
       return {
         register,
         run
@@ -760,9 +760,9 @@ export default class FakeTerminal {
 
   @test
   async handleCommand() {
-    let packagePath = WebdaSampleApplication.getAppPath("package.json");
-    let originalContent = fs.readFileSync(packagePath).toString();
-    let logoPath = WebdaSampleApplication.getAppPath("none.txt");
+    const packagePath = WebdaSampleApplication.getAppPath("package.json");
+    const originalContent = fs.readFileSync(packagePath).toString();
+    const logoPath = WebdaSampleApplication.getAppPath("none.txt");
     if (fs.existsSync(logoPath)) {
       fs.unlinkSync(logoPath);
     }
@@ -776,7 +776,7 @@ export default class FakeTerminal {
         },
         this.workerOutput
       );
-      let pack = JSONUtils.loadFile(packagePath);
+      const pack = JSONUtils.loadFile(packagePath);
       pack.webda = {
         logo: ["A", "A"]
       };
@@ -849,7 +849,7 @@ export default class FakeTerminal {
     WebdaConsole.app = new SourceApplication(WebdaSampleApplication.getAppPath());
     await WebdaConsole.app.load();
     const config = WebdaSampleApplication.getConfiguration();
-    let stub = sinon.stub(WebdaConsole.app, "getConfiguration").callsFake(() => {
+    const stub = sinon.stub(WebdaConsole.app, "getConfiguration").callsFake(() => {
       return {
         ...config,
         services: {

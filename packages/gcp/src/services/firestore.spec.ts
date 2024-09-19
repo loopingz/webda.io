@@ -20,13 +20,13 @@ class FireStoreTest extends StoreTest {
   }
 
   getIdentStore(): FireStore<any> {
-    let ident = <FireStore<any>>this.getService("fireidents");
+    const ident = <FireStore<any>>this.getService("fireidents");
     ident.getParameters().collection += "_" + this.unitUuid;
     return ident;
   }
 
   getUserStore(): FireStore<any> {
-    let user = <FireStore<any>>this.getService("fireusers");
+    const user = <FireStore<any>>this.getService("fireusers");
     user.getParameters().collection += "_" + this.unitUuid;
     return user;
   }
@@ -44,7 +44,7 @@ class FireStoreTest extends StoreTest {
   }
 
   async cleanCollection() {
-    let collections = await this.firestore.listCollections();
+    const collections = await this.firestore.listCollections();
     await Promise.all(
       collections.map(c => {
         return this.deleteCollection(c.id, 500);
@@ -54,13 +54,13 @@ class FireStoreTest extends StoreTest {
 
   async fillForQuery(): Promise<FireStore> {
     // Create a new store
-    let store = new FireStore(this.webda, "queryStore", {
+    const store = new FireStore(this.webda, "queryStore", {
       collection: "webda-query",
       compoundIndexes: [{ state: "asc", "team.id": "asc" }]
     });
     store.resolve();
     await store.init();
-    let res = await this.firestore.collection("webda-query").where("order", "==", 1).get();
+    const res = await this.firestore.collection("webda-query").where("order", "==", 1).get();
     if (!res.docs.length) {
       console.log("Init the query collection");
       await Promise.all(this.getQueryDocuments().map(d => store.save(d)));
@@ -70,7 +70,7 @@ class FireStoreTest extends StoreTest {
 
   @test
   async query() {
-    let store = await super.query();
+    const store = await super.query();
     let exp = new WebdaQL.QueryValidator('state = "CA" AND role = 4').getExpression();
     let res = await store.find({ filter: exp, limit: 1000 });
     assert.strictEqual(res.filter, true, `Should not have any post filter ${res.filter.toString()}`);
@@ -88,7 +88,7 @@ class FireStoreTest extends StoreTest {
     res = await store.find({ filter: exp, limit: 1000 });
     assert.notStrictEqual(res.filter, true, "Should have post filter");
     assert.strictEqual(res.results.length, 250);
-    let items = ["CA", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+    const items = ["CA", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
     res = await store.find({
       filter: new WebdaQL.QueryValidator(`state IN [${items.map(i => `"${i}"`).join(",")}]`).getExpression(),
       limit: 1000
@@ -115,7 +115,7 @@ class FireStoreTest extends StoreTest {
   @test
   async queryOrder() {
     // Disable default ordering query as it is not possible with Dynamo
-    let store = await this.fillForQuery();
+    const store = await this.fillForQuery();
     let res = await store.query("order > 900 ORDER BY order DESC LIMIT 10");
     assert.strictEqual((<any>res.results.shift()).order, 999);
     res = await store.query("ORDER BY order ASC LIMIT 10");
@@ -171,8 +171,8 @@ class FireStoreTest extends StoreTest {
 
   @test
   async deleteCondition() {
-    let idents = this.getIdentStore();
-    let obj = await idents.save({
+    const idents = this.getIdentStore();
+    const obj = await idents.save({
       plop: 3
     });
     await assert.rejects(() => idents._delete(obj.getUuid(), 2, "plop"), /UpdateCondition not met/);

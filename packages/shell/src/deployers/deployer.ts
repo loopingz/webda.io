@@ -132,7 +132,7 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   ): Promise<{ status: number; output: string; error: string }> {
     this.logger.log("DEBUG", "Command", command, stdin ? "with stdin <<EOF\n" + stdin + "\nEOF\n" : undefined);
     return new Promise((resolve, reject) => {
-      let res = {
+      const res = {
         status: 0,
         error: "",
         output: ""

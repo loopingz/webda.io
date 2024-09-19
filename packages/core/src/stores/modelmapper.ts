@@ -30,11 +30,11 @@ export class ModelMapper extends Service {
     super.resolve();
     const app = this.getWebda().getApplication();
     const graph = app.getGraph();
-    for (let i in graph) {
+    for (const i in graph) {
       if (!graph[i].maps) continue;
       this.log("INFO", i, graph[i].maps);
       const targetModel = app.getModel(i);
-      for (let j in graph[i].maps) {
+      for (const j in graph[i].maps) {
         const mapper = graph[i].maps[j];
         this.mappers[mapper.model] ??= [];
         // Search for links
@@ -47,7 +47,7 @@ export class ModelMapper extends Service {
         });
       }
     }
-    for (let modelName in this.mappers) {
+    for (const modelName in this.mappers) {
       const model = app.getModel(modelName);
       model.on("Store.Deleted", async evt => {
         return this.handleEvent(modelName, evt, "Store.Deleted");
@@ -98,8 +98,8 @@ export class ModelMapper extends Service {
     evt: any,
     type: "Store.Saved" | "Store.Deleted" | "Store.Updated" | "Store.PatchUpdated" | "Store.PartialUpdated"
   ) {
-    let p = [];
-    for (let mapper of this.mappers[modelName]) {
+    const p = [];
+    for (const mapper of this.mappers[modelName]) {
       // For each mapper we identify uuid to add mapper to, uuid to remove mapper from and uuid to update
       const toAdds = [];
       const toRemoves = [];
@@ -189,7 +189,7 @@ export class ModelMapper extends Service {
     } else if (type === "Store.PatchUpdated") {
       attributes.push(...Object.keys((<EventStorePatchUpdated>evt).object));
     }
-    for (let mapper of this.mappers[modelName]) {
+    for (const mapper of this.mappers[modelName]) {
       this.log("TRACE", "Should update a mapper based on Store.PartialUpdated", evt);
       const partial: EventStorePartialUpdated = evt;
       // Search if one property is mapped then redirect to Store.Updated
@@ -210,8 +210,8 @@ export class ModelMapper extends Service {
    * @returns
    */
   getMapped(model: any, mapper: Mapper): any {
-    let obj = {};
-    for (let attr of mapper.attributes) {
+    const obj = {};
+    for (const attr of mapper.attributes) {
       obj[attr] = model[attr];
     }
     obj["uuid"] = model.getUuid();

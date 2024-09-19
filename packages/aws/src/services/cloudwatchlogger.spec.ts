@@ -14,7 +14,7 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
 
   async before() {
     await checkLocalStack();
-    let cloudwatch = new CloudWatchLogs({
+    const cloudwatch = new CloudWatchLogs({
       credentials: defaultCreds,
       endpoint: "http://localhost:4566",
       region: "us-east-1"
@@ -40,7 +40,7 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     this.webda.getLogger("whatever").logProgressStart("test", 100, "other");
     this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
-    let res = await this.service._cloudwatch.describeLogStreams({
+    const res = await this.service._cloudwatch.describeLogStreams({
       logGroupName: "webda-test"
     });
     assert.strictEqual(res.logStreams.length, 1);

@@ -166,7 +166,7 @@ class FileConfigurationNoReloadServiceTest extends FileConfigurationAbstractTest
 @suite
 class FileConfigurationNoReloadMissingServiceTest extends FileConfigurationAbstractTest {
   getTestConfiguration() {
-    let cfg: any = super.getTestConfiguration();
+    const cfg: any = super.getTestConfiguration();
     cfg.services.FileConfigurationService.default.services.Authentication.providers.email.text = "Test";
     return cfg;
   }
@@ -189,7 +189,7 @@ class FileConfigurationNoReloadMissingServiceTest extends FileConfigurationAbstr
 @suite
 class FileConfigurationMissingFileNoDefaultTest extends FileConfigurationAbstractTest {
   getTestConfiguration() {
-    let cfg: any = super.getTestConfiguration();
+    const cfg: any = super.getTestConfiguration();
     cfg.services.FileConfigurationService.default = undefined;
     cfg.services.FileConfigurationService.source = "./test/my-missing-file.json";
     return cfg;
@@ -212,7 +212,7 @@ class FileConfigurationMissingFileNoDefaultTest extends FileConfigurationAbstrac
 @suite
 class FileConfigurationMissingFileTest extends FileConfigurationAbstractTest {
   getTestConfiguration() {
-    let cfg: any = super.getTestConfiguration();
+    const cfg: any = super.getTestConfiguration();
     cfg.services.FileConfigurationService.source = "./test/my-missing-file.json";
     return cfg;
   }

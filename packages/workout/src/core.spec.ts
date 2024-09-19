@@ -4,7 +4,7 @@ import { WorkerInputType, WorkerOutput, WorkerProgress } from ".";
 import { WorkerInput } from "./core";
 
 function mapper([msg]) {
-  let res = {};
+  const res = {};
 
   ["type", "group", "groups", "currentProgress", "progresses", "log", "input", "progress"].forEach(a => {
     if (msg[a] !== undefined) {
@@ -36,7 +36,7 @@ class WorkerOutputTest {
 
   @test
   async bunyan() {
-    let logger = this.output.getBunyanLogger();
+    const logger = this.output.getBunyanLogger();
     let err;
     try {
       this.calls[10].plop();
@@ -64,7 +64,7 @@ class WorkerOutputTest {
 
   @test
   async testValidator() {
-    let input = new WorkerInput("myId", "title");
+    const input = new WorkerInput("myId", "title");
     assert.ok(input.validate("test"));
     input.validators = [new RegExp(/nop/), new RegExp(/n.*/)];
     assert.ok(input.validate("net"));
@@ -229,7 +229,7 @@ class WorkerOutputTest {
     // Setters
     this.output.setTitle("test");
     this.output.setInteractive(true);
-    let ratio = new WorkerProgress("yop", 100, []);
+    const ratio = new WorkerProgress("yop", 100, []);
     ratio.incrementProgress(10);
     assert.strictEqual(ratio.getRatio(), 0.1);
     ratio.incrementProgress(40);
@@ -251,11 +251,11 @@ class WorkerOutputTest {
       async () => this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], true, 20),
       /Request input timeout/g
     );
-    let input = await this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 200);
-    let ok = this.output.waitForInput(input);
+    const input = await this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 200);
+    const ok = this.output.waitForInput(input);
     this.output.returnInput(input, "test");
     assert.strictEqual(await ok, "test");
-    let events = [
+    const events = [
       {
         type: "input.request",
         groups: [],
@@ -282,7 +282,7 @@ class WorkerOutputTest {
       }
     ];
     events.forEach(e => delete e.input.uuid);
-    let received: any[] = this.calls.map(mapper);
+    const received: any[] = this.calls.map(mapper);
     received.forEach(e => delete e.input.uuid);
     assert.deepStrictEqual(received, events);
 
@@ -292,7 +292,7 @@ class WorkerOutputTest {
       value = uuid;
       return value;
     };
-    let testDefault = await this.output.requestInput("My Question");
+    const testDefault = await this.output.requestInput("My Question");
     assert.strictEqual(await testDefault, value);
   }
 }

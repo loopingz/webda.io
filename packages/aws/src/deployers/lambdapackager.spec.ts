@@ -24,7 +24,7 @@ class LambdaPackagerTest extends DeployerTest<LambdaPackager> {
     this.deployer.resources.entrypoint = "mine.js";
     await this.deployer.loadDefaults();
     assert.strictEqual(this.deployer.resources.entrypoint, "mine.js");
-    let other = new LambdaPackager(this.manager, {
+    const other = new LambdaPackager(this.manager, {
       name: "deployer2",
       type: "LambdaPackager",
       zipPath: "test.zip",

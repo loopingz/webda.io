@@ -52,7 +52,7 @@ abstract class StoreTest extends WebdaSimpleTest {
    * Get the base of documents to query
    */
   getQueryDocuments(): any[] {
-    let docs = [];
+    const docs = [];
     for (let i = 0; i < 1000; i++) {
       docs.push({
         state: ["CA", "OR", "NY", "FL"][i % 4],
@@ -71,7 +71,7 @@ abstract class StoreTest extends WebdaSimpleTest {
    * Fill the Store with data to be queried
    */
   async fillForQuery(): Promise<Store> {
-    let userStore = this.getUserStore();
+    const userStore = this.getUserStore();
     this.webda.getApplication().getModel("Webda/User").prototype.canAct = async () => true;
     userStore._model.prototype.canAct = async () => true;
     await Promise.all(this.getQueryDocuments().map(d => userStore.save(d)));
@@ -80,7 +80,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async query() {
-    let userStore = await this.fillForQuery();
+    const userStore = await this.fillForQuery();
 
     const queries = {
       'state = "CA"': 250,
@@ -101,7 +101,7 @@ abstract class StoreTest extends WebdaSimpleTest {
       "role = 4": 100,
       "": 1000
     };
-    for (let i in queries) {
+    for (const i in queries) {
       assert.strictEqual(
         (await userStore.query(i)).results.length,
         queries[i],
@@ -196,8 +196,8 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async queryOrder() {
-    let userStore = await this.fillForQuery();
-    let model = await userStore.save({
+    const userStore = await this.fillForQuery();
+    const model = await userStore.save({
       order: 996,
       state: "CA",
       team: { id: 16 }
@@ -251,8 +251,8 @@ abstract class StoreTest extends WebdaSimpleTest {
   @test
   async mapper() {
     // Create a mapper - keep the test here as it is a good test for stores
-    let identStore = this.getIdentStore();
-    let userStore = this.getUserStore();
+    const identStore = this.getIdentStore();
+    const userStore = this.getUserStore();
     const mapper = await this.addService(
       MapperService,
       {
@@ -270,9 +270,8 @@ abstract class StoreTest extends WebdaSimpleTest {
       key: "idents-index",
       fields: ["type"]
     });
-    let user1, ident1, ident2, user2;
-    var eventFired = 0;
-    var events: (keyof StoreEvents)[] = [
+    let eventFired = 0;
+    const events: (keyof StoreEvents)[] = [
       "Store.Save",
       "Store.Saved",
       "Store.Get",
@@ -283,13 +282,13 @@ abstract class StoreTest extends WebdaSimpleTest {
       "Store.Query",
       "Store.Queried"
     ];
-    for (let evt in events) {
-      identStore.on(events[evt], function (evt) {
+    for (const evt in events) {
+      identStore.on(events[evt], evt => {
         eventFired++;
       });
     }
     assert.strictEqual(await userStore.get(undefined), undefined);
-    user1 = (
+    let user1 = (
       await userStore.save({
         name: "test"
       })
@@ -298,7 +297,7 @@ abstract class StoreTest extends WebdaSimpleTest {
     // Save a user and add an ident
     assert.notStrictEqual(user, undefined);
     user1 = user.getUuid();
-    ident1 = await identStore.save({
+    const ident1 = await identStore.save({
       type: "facebook",
       _user: user.getUuid()
     });
@@ -308,7 +307,7 @@ abstract class StoreTest extends WebdaSimpleTest {
     assert.notStrictEqual(user.idents, undefined);
     assert.strictEqual(user.idents.length, 1);
     // Retrieve index to verify it is in it too
-    let index = await this.webda.getRegistry().get("idents-index");
+    const index = await this.webda.getRegistry().get("idents-index");
     // Do not force index test for store
     if (index) {
       assert.notStrictEqual(index[ident1.uuid], undefined);
@@ -349,7 +348,7 @@ abstract class StoreTest extends WebdaSimpleTest {
       "lastUpdate on a map after deleteItemFromCollection"
     );
 
-    ident2 = await identStore.save({
+    const ident2 = await identStore.save({
       type: "google",
       _user: user.uuid
     });
@@ -369,7 +368,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
     ident2.type = "google2";
     // Update ident2 to check mapper update
-    let res = await identStore.patch(
+    const res = await identStore.patch(
       {
         uuid: ident2.uuid,
         type: "google2"
@@ -397,7 +396,7 @@ abstract class StoreTest extends WebdaSimpleTest {
     user = await userStore.save({
       name: "test2"
     });
-    user2 = user.uuid;
+    const user2 = user.uuid;
     // Move ident2 from user1 to user2
     await identStore.patch({
       _user: user.uuid,
@@ -436,7 +435,7 @@ abstract class StoreTest extends WebdaSimpleTest {
     assert.strictEqual(user.idents[0].type, "google2");
     // Verify delete cascade
     await userStore.delete(user2);
-    let ident = await identStore.get(ident2.uuid);
+    const ident = await identStore.get(ident2.uuid);
     assert.strictEqual(ident, undefined);
 
     // Check index
@@ -451,8 +450,8 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async collection() {
-    let identStore = this.getIdentStore();
-    var ident;
+    const identStore = this.getIdentStore();
+    let ident;
     ident = await identStore.save({
       test: "plop"
     });
@@ -540,16 +539,14 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async getAll() {
-    let userStore = this.getUserStore();
-    var user1;
-    var user3;
-    user1 = await userStore.save({
+    const userStore = this.getUserStore();
+    const user1 = await userStore.save({
       name: "test1"
     });
     await userStore.save({
       name: "test2"
     });
-    user3 = await userStore.save({
+    const user3 = await userStore.save({
       name: "test3"
     });
     let users = await userStore.getAll();
@@ -565,9 +562,9 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async crud() {
-    let identStore = this.getIdentStore();
-    var eventFired = 0;
-    var events: (keyof StoreEvents)[] = [
+    const identStore = this.getIdentStore();
+    let eventFired = 0;
+    const events: (keyof StoreEvents)[] = [
       "Store.Save",
       "Store.Saved",
       "Store.Get",
@@ -581,8 +578,8 @@ abstract class StoreTest extends WebdaSimpleTest {
       "Store.Query",
       "Store.Queried"
     ];
-    for (let evt in events) {
-      identStore.on(events[evt], function (e) {
+    for (const evt in events) {
+      identStore.on(events[evt], e => {
         eventFired++;
       });
     }
@@ -618,7 +615,6 @@ abstract class StoreTest extends WebdaSimpleTest {
     getter.details.blank = "";
     getter.details.bouzouf = undefined;
     getter.empty = [];
-    let object;
     this.log("DEBUG", "Update ident");
     await identStore.update(getter);
     assert.strictEqual(eventFired, 2);
@@ -631,7 +627,7 @@ abstract class StoreTest extends WebdaSimpleTest {
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
     this.log("DEBUG", "Get ident to check update");
-    object = await identStore.get(ident1.uuid);
+    const object = await identStore.get(ident1.uuid);
     this.log("DEBUG", "Retrieved object", object);
     assert.strictEqual(object.test, "plop2");
     assert.strictEqual(object.details.plop, "plop2");
@@ -677,8 +673,8 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async exists() {
-    let store = this.getIdentStore();
-    let model = await store.save({});
+    const store = this.getIdentStore();
+    const model = await store.save({});
     assert.ok(await store.exists(model.getUuid()));
     assert.ok(await store.exists(model));
     assert.ok(!(await store.exists(randomUUID())));
@@ -686,8 +682,8 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async incrementAttribute() {
-    let store = this.getIdentStore();
-    let model = await store.save({ counter: 0 });
+    const store = this.getIdentStore();
+    const model = await store.save({ counter: 0 });
     await store.incrementAttribute(model.getUuid(), "counter", 3);
     await store.incrementAttribute(model.getUuid(), "counter2", 2);
     await model.refresh();
@@ -698,8 +694,8 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async removeAttribute() {
-    let store = this.getIdentStore();
-    let model = await store.save({ counter: 0, counter2: 12, counter3: 13 });
+    const store = this.getIdentStore();
+    const model = await store.save({ counter: 0, counter2: 12, counter3: 13 });
     await store.removeAttribute(model.getUuid(), "counter");
     await model.refresh();
     assert.strictEqual(model.counter, undefined);
@@ -714,8 +710,8 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async setAttribute() {
-    let store = this.getIdentStore();
-    let model = await store.save({ counter: 0 });
+    const store = this.getIdentStore();
+    const model = await store.save({ counter: 0 });
     await store.setAttribute(model.getUuid(), "counter", 3);
     await store.setAttribute(model.getUuid(), "status", "TESTED");
     await model.refresh();
@@ -746,7 +742,7 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async deleteAsync() {
-    let store = this.getIdentStore();
+    const store = this.getIdentStore();
     let model = await store.save({ counter: 1 });
     // Delete with condition
     await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
@@ -762,7 +758,7 @@ abstract class StoreTest extends WebdaSimpleTest {
   @test
   async delete() {
     // UserStore is not supposed to be async
-    let store = this.getUserStore();
+    const store = this.getUserStore();
     let model = await store.save({ counter: 1 });
     // Delete with condition
     await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
@@ -777,8 +773,8 @@ abstract class StoreTest extends WebdaSimpleTest {
   }
 
   async deleteConcurrent() {
-    let store = this.getUserStore();
-    let model = await store.save({ counter: 1 });
+    const store = this.getUserStore();
+    const model = await store.save({ counter: 1 });
     store.addListener("Store.Delete", async () => {
       await store.incrementAttribute(model.getUuid(), "counter", 1);
     });
@@ -789,8 +785,8 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async conditionUpdate() {
-    let store = this.getIdentStore();
-    let model = await store.save({ counter: 1 });
+    const store = this.getIdentStore();
+    const model = await store.save({ counter: 1 });
     assert.ok(
       await store.conditionalPatch(
         model.getUuid(),
@@ -835,14 +831,14 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async update(delay: number = 1) {
-    let store = this.getIdentStore();
-    let model = await store.save({ counter: 1 });
+    const store = this.getIdentStore();
+    const model = await store.save({ counter: 1 });
     model.saveUpdateCompat = true;
     await store.save(model, await this.newContext());
     model.saveInnerMethod = true;
     model.setContext(await this.newContext());
     await model.save();
-    let model2 = await store.get(model.getUuid());
+    const model2 = await store.get(model.getUuid());
     store.on("Store.Update", async () => {
       model2._lastUpdate = new Date(100);
       // @ts-ignore
@@ -869,10 +865,10 @@ abstract class StoreTest extends WebdaSimpleTest {
 
   @test
   async upsertItem() {
-    let store = this.getIdentStore();
+    const store = this.getIdentStore();
     this.log("DEBUG", "Save empty logs array");
-    let model = await store.save({ logs: [] });
-    let ps = [];
+    const model = await store.save({ logs: [] });
+    const ps = [];
     this.log("DEBUG", "Upsert 10 lines");
     for (let i = 0; i < 10; i++) {
       ps.push(store.upsertItemToCollection(model.getUuid(), "logs", `line${i}`));

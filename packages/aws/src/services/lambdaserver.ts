@@ -49,9 +49,9 @@ export default class LambdaServer extends Webda {
       headers,
       statusCode: ctx.statusCode
     };
-    let cookies = ctx.getResponseCookies();
+    const cookies = ctx.getResponseCookies();
     this._result.multiValueHeaders = { "Set-Cookie": [] };
-    for (let i in cookies) {
+    for (const i in cookies) {
       this._result.multiValueHeaders["Set-Cookie"].push(
         cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options || {})
       );
@@ -79,8 +79,8 @@ export default class LambdaServer extends Webda {
   }
 
   private async handleAWSEvent(source, events) {
-    for (let i in this._awsEventsHandlers) {
-      let handler = this._awsEventsHandlers[i];
+    for (const i in this._awsEventsHandlers) {
+      const handler = this._awsEventsHandlers[i];
       if (handler.isAWSEventHandled(source, events)) {
         await handler.handleAWSEvent(source, events);
       }
@@ -135,10 +135,10 @@ export default class LambdaServer extends Webda {
     }
     // Manual launch of webda
     if (sourceEvent.command === "launch" && sourceEvent.service && sourceEvent.method) {
-      let commandEvent: LambdaCommandEvent = sourceEvent;
-      let args = commandEvent.args || [];
+      const commandEvent: LambdaCommandEvent = sourceEvent;
+      const args = commandEvent.args || [];
       this.log("INFO", "Executing", commandEvent.method, "on", commandEvent.service, "with", args);
-      let service = this.getService(commandEvent.service);
+      const service = this.getService(commandEvent.service);
       if (!service) {
         this.log("ERROR", "Cannot find", commandEvent.service);
         return;
@@ -152,17 +152,16 @@ export default class LambdaServer extends Webda {
       return;
     }
 
-    let event: APIGatewayProxyEvent = <APIGatewayProxyEvent>sourceEvent;
+    const event: APIGatewayProxyEvent = <APIGatewayProxyEvent>sourceEvent;
     context.callbackWaitsForEmptyEventLoop =
       (this.getConfiguration().parameters && this.getConfiguration().parameters.waitForEmptyEventLoop) || false;
     this._result = {};
-    let vhost: string;
     let i: any;
 
-    let headers = event.headers || {};
-    vhost = headers.Host;
-    let method = event.httpMethod || "GET";
-    let protocol = headers["CloudFront-Forwarded-Proto"] || "https";
+    const headers = event.headers || {};
+    const vhost = headers.Host;
+    const method = event.httpMethod || "GET";
+    const protocol = headers["CloudFront-Forwarded-Proto"] || "https";
     let port = headers["X-Forwarded-Port"] || 443;
     if (typeof port === "string") {
       port = Number(port);
@@ -182,7 +181,7 @@ export default class LambdaServer extends Webda {
       }
     }
     this.log("INFO", event.httpMethod || "GET", event.path);
-    let httpContext = new HttpContext(
+    const httpContext = new HttpContext(
       vhost,
       <HttpMethodType>method,
       resourcePath,
@@ -194,7 +193,7 @@ export default class LambdaServer extends Webda {
       httpContext.setBody(event.body);
     }
     this.computePrefix(event, httpContext);
-    let ctx = await this.newWebContext(httpContext);
+    const ctx = await this.newWebContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
 
@@ -203,7 +202,7 @@ export default class LambdaServer extends Webda {
     if (this.getConfiguration().parameters.lambdaRequestHeader) {
       ctx.setHeader(this.getConfiguration().parameters.lambdaRequestHeader, context.awsRequestId);
     }
-    let origin = headers.Origin || headers.origin;
+    const origin = headers.Origin || headers.origin;
     try {
       // Set predefined headers for CORS
       if (!origin || (await this.checkCORSRequest(ctx))) {
@@ -232,7 +231,7 @@ export default class LambdaServer extends Webda {
       ctx.setHeader("Access-Control-Allow-Headers", headers["access-control-request-headers"] || "content-type");
       if (method === "OPTIONS") {
         // Return allow all methods for now
-        let routes = this.router.getRouteMethodsFromUrl(ctx.getHttpContext().getRelativeUri());
+        const routes = this.router.getRouteMethodsFromUrl(ctx.getHttpContext().getRelativeUri());
         if (routes.length == 0) {
           ctx.statusCode = 404;
           return this.handleLambdaReturn(ctx);
@@ -277,7 +276,7 @@ export default class LambdaServer extends Webda {
   computePrefix(event: any, httpContext: HttpContext) {
     if (event.path !== event.resource) {
       let relativeUri = event.resource;
-      for (let j in event.pathParameters) {
+      for (const j in event.pathParameters) {
         relativeUri = relativeUri.replace(new RegExp(`\\{${j}\\+?\\}`), event.pathParameters[j]);
       }
       if (relativeUri !== event.path) {

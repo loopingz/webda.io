@@ -78,7 +78,7 @@ class CronService extends Service {
   }
 
   static getCronId(cron: CronDefinition, name: string = "") {
-    let hash = createHash("sha256");
+    const hash = createHash("sha256");
     return hash
       .update(JSON.stringify(cron) + name)
       .digest("hex")
@@ -86,12 +86,12 @@ class CronService extends Service {
   }
 
   static loadAnnotations(services): CronDefinition[] {
-    let cronsResult: CronDefinition[] = [];
-    for (let i in services) {
-      let props = Object.getOwnPropertyDescriptors(services[i].constructor.prototype);
-      for (let method in props) {
+    const cronsResult: CronDefinition[] = [];
+    for (const i in services) {
+      const props = Object.getOwnPropertyDescriptors(services[i].constructor.prototype);
+      for (const method in props) {
         // @ts-ignore
-        let crons: CronDefinition[] = props[method].value?.cron;
+        const crons: CronDefinition[] = props[method].value?.cron;
         if (crons) {
           crons.forEach(cron => {
             cron.method = method;
@@ -140,7 +140,7 @@ class CronService extends Service {
       }
     });
 
-    let msgs = [];
+    const msgs = [];
     // Display before
     this.crons.forEach(c => {
       if (c.cb) {
@@ -149,8 +149,8 @@ class CronService extends Service {
         msgs.push(`${c.serviceName}.${c.method}(${c.args.length ? "..." + c.args : ""})`);
       }
     });
-    let cronPad = Math.max(...this.crons.map(c => c.cron.length));
-    let servicePad = Math.max(...msgs.map(c => c.length));
+    const cronPad = Math.max(...this.crons.map(c => c.cron.length));
+    const servicePad = Math.max(...msgs.map(c => c.length));
     this.crons.forEach((c, i) => {
       this.log(
         "INFO",
@@ -171,7 +171,7 @@ class CronService extends Service {
         throw new Error();
       } catch (err) {
         // Based on stack trace (not super clean)
-        let info = err.stack.split("\n")[2].match(/\((.*)\)/);
+        const info = err.stack.split("\n")[2].match(/\((.*)\)/);
         context = info[1].replace(process.cwd() + "/", "");
       }
       this.crons.push({ cron, cb, description, context });

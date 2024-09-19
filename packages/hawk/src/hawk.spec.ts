@@ -60,7 +60,7 @@ class HawkServiceTest extends WebdaSimpleTest {
 
   @test
   async otherAuthorizationSignature() {
-    let logs = [];
+    const logs = [];
     this.service.getWebda().log = (...args) => {
       logs.push(args);
     };
@@ -130,7 +130,7 @@ class HawkServiceTest extends WebdaSimpleTest {
     // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = header;
     assert.strictEqual(await this.checkRequest(this.context), true, "Should accept as signature valid");
-    let body = JSON.stringify({ fake: "answer" });
+    const body = JSON.stringify({ fake: "answer" });
     this.context.write(body);
     await this.webda.emitSync("Webda.Result", { context: this.context });
     assert.strictEqual(
@@ -139,7 +139,7 @@ class HawkServiceTest extends WebdaSimpleTest {
       "Server-Authorization should be set"
     );
     // Verify the server signature
-    let isValid = Hawk.client.authenticate(
+    const isValid = Hawk.client.authenticate(
       {
         headers: {
           "server-authorization": this.context.getResponseHeaders()["Server-Authorization"],
@@ -195,7 +195,7 @@ class HawkServiceTest extends WebdaSimpleTest {
         authorization: header
       })
     );
-    for (let k in headers) {
+    for (const k in headers) {
       // @ts-ignore
       this.context.getHttpContext().getHeaders()[k] = headers[k];
     }
@@ -242,7 +242,7 @@ class HawkServiceTest extends WebdaSimpleTest {
 
   @test
   async validOriginOptionsString() {
-    let origin = "https://remotehost:3000";
+    const origin = "https://remotehost:3000";
     this.key.origins = [origin];
     await this.key.save();
     // Reset cache
@@ -252,7 +252,7 @@ class HawkServiceTest extends WebdaSimpleTest {
 
   @test
   async validOriginNoMatch() {
-    let origin = "https://localhost:3000";
+    const origin = "https://localhost:3000";
     this.key.origins = [origin];
     await this.key.save();
     // Reset cache
@@ -282,28 +282,28 @@ class HawkServiceTest extends WebdaSimpleTest {
 
   @test
   async redirect() {
-    let test = new HawkService(this.webda, "cov", {
+    const test = new HawkService(this.webda, "cov", {
       dynamicSessionKey: "bouzouf",
       redirectUrl: "/redirect"
     });
     await test.resolve().init();
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     ctx.getParameters().url = "http://test.webda.io";
     await assert.rejects(() => test._redirect(ctx), WebdaError.Forbidden);
     test.getParameters().redirectUris.push("http://test.webda.io");
     await test._redirect(ctx);
-    let location = new URL(ctx.getResponseHeaders().Location);
+    const location = new URL(ctx.getResponseHeaders().Location);
     assert.notStrictEqual(location.searchParams.get("csrf"), undefined);
   }
 
   @test
   async session() {
-    let test = await new HawkService(this.webda, "cov", {
+    const test = await new HawkService(this.webda, "cov", {
       dynamicSessionKey: "myCSRF"
     })
       .resolve()
       .init();
-    let key = this.webda.getCrypto().current;
+    const key = this.webda.getCrypto().current;
     const url = "/plop";
     const sessionKey = "whatever";
     const { header, artifacts } = Hawk.client.header(`http://test.webda.io${url}`, "GET", {

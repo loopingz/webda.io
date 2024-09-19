@@ -18,17 +18,17 @@ class FileConsoleTest {
   }
 
   clean() {
-    let files = readdirSync(".").filter(f => f.startsWith("test-file"));
+    const files = readdirSync(".").filter(f => f.startsWith("test-file"));
     files.forEach(f => unlinkSync(f));
     return files.length;
   }
 
   @test
   async testLogsOnlyAndFilter() {
-    let logger = new FileLogger(this.output, "TRACE", "./test-file.log");
+    const logger = new FileLogger(this.output, "TRACE", "./test-file.log");
     writeFileSync("./test-file2.log", "PAD\n".repeat(50));
 
-    let logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 5000, "%(d)s [%(l)s] %(m)s");
+    const logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 5000, "%(d)s [%(l)s] %(m)s");
     for (let i = 0; i < 200; i++) {
       this.output.log("DEBUG", `Test ${i}`);
     }
@@ -62,7 +62,7 @@ class FileConsoleTest {
 
   @test
   async debugLogger() {
-    let logger = new DebugLogger(this.output, "./test-file-debug.log");
+    const logger = new DebugLogger(this.output, "./test-file-debug.log");
     assert.strictEqual(logger.filter(), true);
     assert.notStrictEqual(
       logger

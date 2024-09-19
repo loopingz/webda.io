@@ -11,8 +11,10 @@
     "test:debug": "mocha",
     "new-model": "webda init webda:model",
     "new-service": "webda init webda:service",
-    "lint": "prettier --check src/**/*",
-    "lint:fix": "prettier --write src/**/*"
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
   },
   "keywords": [
     "webda-module"

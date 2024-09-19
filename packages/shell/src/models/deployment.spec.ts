@@ -6,7 +6,7 @@ import { Deployment } from "./deployment";
 class DeploymentTest {
   @test
   async canAct() {
-    let deployment = new Deployment();
+    const deployment = new Deployment();
     assert.strictEqual(await deployment.canAct(undefined, undefined), true);
   }
 }

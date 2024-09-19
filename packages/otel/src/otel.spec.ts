@@ -22,19 +22,19 @@ class FakeService extends Service {
 class OtelTest extends WebdaSimpleTest {
   @test
   async test() {
-    let resource = await this.registerService(
+    const resource = await this.registerService(
       new ResourceService(this.webda, "ResourceService", { folder: "./src", url: "/" })
     )
       .resolve()
       .init();
-    let fake = await this.registerService(new FakeService(this.webda, "fake", {}))
+    const fake = await this.registerService(new FakeService(this.webda, "fake", {}))
       .resolve()
       .init();
-    let service = await this.registerService(new OtelService(this.webda, "otel", {}))
+    const service = await this.registerService(new OtelService(this.webda, "otel", {}))
       .resolve()
       .init();
 
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await this.execute(ctx, "test.webda.io", "GET", "/otel.ts");
     fake.myRecursiveMethod();
     assert.throws(() => fake.myFaultyMethod());
@@ -47,7 +47,7 @@ class OtelTest extends WebdaSimpleTest {
 
   @test
   async otelLogger() {
-    let out = this.webda.getApplication().getWorkerOutput();
+    const out = this.webda.getApplication().getWorkerOutput();
     new OtelLogger({ emit: () => {} }, out);
     out.log("INFO", "test");
     await this.nextTick(2);

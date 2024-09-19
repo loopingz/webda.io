@@ -48,7 +48,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   async before() {
     await checkLocalStack();
-    let app = new TestApplication(this.getTestConfiguration());
+    const app = new TestApplication(this.getTestConfiguration());
     app.addService("Test/AWSEvents", (await import("../../test/moddas/awsevents.js")).AWSEventsHandler);
     await app.load();
     this.webda = this.handler = new LambdaServer(app);
@@ -80,7 +80,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.handler._requestFilters = [];
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     // No filter return ok now
     assert.strictEqual(res.statusCode, 200);
   }
@@ -95,7 +95,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.handler.registerRequestFilter({
       checkRequest: async () => false
     });
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 403);
   }
 
@@ -111,7 +111,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
         throw new WebdaError.Redirect("Need Auth", "https://google.com");
       }
     });
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 302);
     console.log(res);
     assert.strictEqual(res.headers.Location, "https://google.com");
@@ -161,7 +161,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   @test
   async handleRequestKnownRoute() {
     this.ensureGoodCSRF();
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.body, "CodeCoverage");
   }
 
@@ -169,7 +169,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestIdHeader() {
     this.ensureGoodCSRF();
     this.handler.getConfiguration().parameters.lambdaRequestHeader = "x-webda-request-id";
-    let res = await this.handler.handleRequest(this.evt, {
+    const res = await this.handler.handleRequest(this.evt, {
       ...this.context,
       awsRequestId: "toto"
     });
@@ -184,7 +184,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.path = "/prefix/route/param/myid";
     this.evt.resource = "/route/param/{uuid}";
     this.evt.pathParameters = { uuid: "myid" };
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.body, "CodeCoveragemyidPlop");
   }
 
@@ -194,7 +194,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.path = "/prefix/route/param/myid";
     this.evt.resource = "/route/param/{uuid}";
     this.evt.pathParameters = { uuid: "myid" };
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.body, "CodeCoveragemyid");
   }
 
@@ -202,7 +202,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestKnownRouteWithQuery() {
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.body, "CodeCoveragePlop");
   }
 
@@ -212,7 +212,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.path = "/route/unknown";
     this.evt.resource = "/route/unknown";
     delete this.evt.headers.Cookie;
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 404);
   }
 
@@ -233,7 +233,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestThrowError() {
     this.ensureGoodCSRF();
     this.evt.path = "/route/broken/Error";
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 500);
   }
 
@@ -241,7 +241,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestOPTIONS() {
     this.ensureGoodCSRF();
     this.evt.httpMethod = "OPTIONS";
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 204);
     assert.strictEqual(res.headers["Access-Control-Allow-Methods"], "GET,OPTIONS");
   }
@@ -251,7 +251,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.ensureGoodCSRF();
     this.evt.path = "/route/unknown";
     this.evt.httpMethod = "OPTIONS";
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 404);
   }
 
@@ -290,7 +290,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
         }, 100);
       });
     });
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Origin);
     assert.strictEqual(wait, true);
   }
@@ -299,7 +299,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestOriginCSRF() {
     this.evt.headers.Origin = "https://test3.webda.io";
     this.evt.headers.Host = "test3.webda.io";
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 401);
   }
 
@@ -308,7 +308,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.headers.Referer = "https://test3.webda.io";
     this.evt.headers.Host = "test3.webda.io";
     this.evt.headers.origin = "test3.webda.io";
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.statusCode, 401);
   }
 
@@ -318,7 +318,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     // BUt request should be served as no CORS is requested (lack of Origin)
     this.evt.headers.Referer = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
-    let res = await this.handler.handleRequest(this.evt, this.context);
+    const res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.headers["Access-Control-Allow-Origin"], undefined);
     assert.strictEqual(res.statusCode, 200);
   }
@@ -355,11 +355,11 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   @test
   async awsEvents() {
-    let service: any = this.handler.getService("awsEvents");
-    let files = fs.readdirSync(__dirname + "/../../test/aws-events");
-    for (let f in files) {
-      let file = files[f];
-      let event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
+    const service: any = this.handler.getService("awsEvents");
+    const files = fs.readdirSync(__dirname + "/../../test/aws-events");
+    for (const f in files) {
+      const file = files[f];
+      const event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
       await this.handler.handleRequest(event, this.context);
       if (file === "api-gateway-aws-proxy.json") {
         assert.strictEqual(service.getEvents().length, 0, "API Gateway should go through the normal request handling");
@@ -376,7 +376,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
    */
   @test
   async computePrefix() {
-    let httpContext = new HttpContext("test.webda.io", "GET", "/prefix/static1234/test/subfolder/index.html");
+    const httpContext = new HttpContext("test.webda.io", "GET", "/prefix/static1234/test/subfolder/index.html");
     this.handler.computePrefix(
       {
         path: "/prefix/static1234/test/subfolder/index.html",

@@ -124,7 +124,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    */
   @Cache()
   async getAWSIdentity(): Promise<GetCallerIdentityResponse> {
-    let sts = new STS({
+    const sts = new STS({
       endpoint: this.resources.endpoints.STS
     });
     return sts.getCallerIdentity({});
@@ -135,16 +135,15 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    */
   @Cache()
   async getDefaultVpc() {
-    let defaultVpc = {
+    const defaultVpc = {
       Id: "",
       Subnets: []
     };
-    let vpcFilter;
-    let ec2 = new EC2({
+    const ec2 = new EC2({
       endpoint: this.resources.endpoints.EC2
     });
-    let res = await ec2.describeVpcs({});
-    for (let i in res.Vpcs) {
+    const res = await ec2.describeVpcs({});
+    for (const i in res.Vpcs) {
       if (res.Vpcs[i].IsDefault) {
         defaultVpc.Id = res.Vpcs[i].VpcId;
         break;
@@ -153,7 +152,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (defaultVpc.Id === "") {
       return undefined;
     }
-    vpcFilter = {
+    const vpcFilter = {
       Filters: [
         {
           Name: "vpc-id",
@@ -161,8 +160,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         }
       ]
     };
-    let res2 = await ec2.describeSubnets(vpcFilter);
-    for (let i in res2.Subnets) {
+    const res2 = await ec2.describeSubnets(vpcFilter);
+    for (const i in res2.Subnets) {
       defaultVpc.Subnets.push(res2.Subnets[i]);
     }
     return defaultVpc;
@@ -206,11 +205,11 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (domain.endsWith(".")) {
       domain = domain.substring(0, domain.length - 1);
     }
-    let acm: ACM = new ACM({
+    const acm: ACM = new ACM({
       endpoint: this.resources.endpoints.ACM,
       region
     });
-    let params: any = {};
+    const params: any = {};
     let res: ListCertificatesResponse;
     let certificate;
     do {
@@ -220,7 +219,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     } while (!certificate && res.NextToken);
     // We did not find the certificate need to create one
     if (!certificate) {
-      let zone = await this.getZoneForDomainName(domain);
+      const zone = await this.getZoneForDomainName(domain);
       if (!zone) {
         throw new WebdaError.CodeError("ROUTE53_NOTFOUND", "Cannot create certificate as Route53 Zone was not found");
       }
@@ -250,8 +249,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (Array.isArray(tags)) {
       return tags;
     }
-    let res = [];
-    for (let i in tags) {
+    const res = [];
+    for (const i in tags) {
       res.push({ Key: i, Value: tags[i] });
     }
     return res;
@@ -266,7 +265,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (!Array.isArray(tags)) {
       return tags;
     }
-    let res = {};
+    const res = {};
     tags.forEach(t => (res[t.Key] = t.Value));
     return res;
   }
@@ -284,7 +283,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       Tags = this.transformMapTagsToArray(key) || [];
     }
     if (this.resources.Tags.length) {
-      let TagKeys = Tags.map(t => t.Key);
+      const TagKeys = Tags.map(t => t.Key);
       Tags.push(...(<any[]>this.resources.Tags).filter(t => TagKeys.indexOf(t.Key) < 0));
     }
     return Tags;
@@ -327,13 +326,13 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param zone
    */
   async doCreateCertificate(domain: string, zone: HostedZone) {
-    let acm: ACM = new ACM({
+    const acm: ACM = new ACM({
       endpoint: this.resources.endpoints.S3
     });
     if (domain.endsWith(".")) {
       domain = domain.substring(0, domain.length - 1);
     }
-    let params: RequestCertificateCommandInput = {
+    const params: RequestCertificateCommandInput = {
       DomainName: domain,
       DomainValidationOptions: [
         {
@@ -344,10 +343,10 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       ValidationMethod: "DNS",
       IdempotencyToken: "Webda_" + this.md5(domain).substring(0, 26)
     };
-    let certificate = await acm.requestCertificate(params);
+    const certificate = await acm.requestCertificate(params);
     let cert: CertificateDetail = await this.waitFor(
       async resolve => {
-        let res = await acm.describeCertificate({
+        const res = await acm.describeCertificate({
           CertificateArn: certificate.CertificateArn
         });
         if (res.Certificate.DomainValidationOptions && res.Certificate.DomainValidationOptions[0].ResourceRecord) {
@@ -365,13 +364,13 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     }
     if (cert.Status === "PENDING_VALIDATION") {
       // On create need to wait
-      let record = cert.DomainValidationOptions[0].ResourceRecord;
+      const record = cert.DomainValidationOptions[0].ResourceRecord;
       this.logger.log("INFO", "Need to validate certificate", cert.CertificateArn);
       await this.createDNSEntry(record.Name, "CNAME", record.Value, zone);
       // Waiting for certificate validation
       cert = await this.waitFor(
         async (resolve, reject) => {
-          let res = await acm.describeCertificate({
+          const res = await acm.describeCertificate({
             CertificateArn: cert.CertificateArn
           });
           if (res.Certificate.Status === "ISSUED") {
@@ -407,7 +406,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     targetZone: HostedZone = undefined
   ): Promise<void> {
     this.logger.log("INFO", `Creating DNS entry ${domain} ${type} ${value}`);
-    let r53 = new Route53({
+    const r53 = new Route53({
       endpoint: this.resources.endpoints.S3
     });
     if (!domain.endsWith(".")) {
@@ -462,14 +461,14 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    */
   @Cache()
   async getPolicyDocument(additionalStatements: any[] = []) {
-    let me = await this.getAWSIdentity();
-    let services = this.manager.getWebda().getServices();
-    let statements = [];
+    const me = await this.getAWSIdentity();
+    const services = this.manager.getWebda().getServices();
+    const statements = [];
     // Build policy
-    for (let i in services) {
+    for (const i in services) {
       if ("getARNPolicy" in services[i]) {
         // Update to match recuring policy - might need to split if policy too big
-        let res = (<IAMPolicyContributor>(<any>services[i])).getARNPolicy(me.Account, this.getRegion());
+        const res = (<IAMPolicyContributor>(<any>services[i])).getARNPolicy(me.Account, this.getRegion());
         if (Array.isArray(res)) {
           statements.push(...res);
         } else {
@@ -478,7 +477,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       }
     }
     statements.push(...this.getARNPolicy(me.Account, this.getRegion()));
-    let policyDocument = {
+    const policyDocument = {
       Version: "2012-10-17",
       Statement: [...statements, ...additionalStatements]
     };
@@ -493,7 +492,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param bucket to create
    */
   async createBucket(Bucket: string): Promise<void> {
-    let s3 = new S3({
+    const s3 = new S3({
       endpoint: this.resources.endpoints.S3,
       forcePathStyle: this.resources.endpoints.S3 !== undefined
     });
@@ -510,7 +509,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         await s3.createBucket({
           Bucket: Bucket
         });
-        let Tags = this.getDefaultTags([]);
+        const Tags = this.getDefaultTags([]);
         if (Tags.length) {
           await s3.putBucketTagging({
             Bucket,
@@ -531,8 +530,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param prefix prefix on the bucket
    */
   async putFolderOnBucket(bucket: string, folder: string, prefix: string = "") {
-    let absFolder = path.resolve(folder);
-    let files = globSync(`${absFolder}/**/*`);
+    const absFolder = path.resolve(folder);
+    const files = globSync(`${absFolder}/**/*`);
     await this.putFilesOnBucket(
       bucket,
       // Replace \ by / for Windows system
@@ -579,7 +578,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param files to send
    */
   async putFilesOnBucket(bucket: string, files: { key?: string; src: any; mimetype?: string }[]) {
-    let s3 = new S3({
+    const s3 = new S3({
       endpoint: this.resources.endpoints.S3,
       forcePathStyle: this.resources.endpoints.S3 !== undefined
     });
@@ -597,30 +596,30 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     // Create the bucket
     await this.createBucket(bucket);
     // Retrieve current files to only upload the one we do not have
-    let currentFiles = {};
-    let Prefix = files.reduce((prev, cur) => this.commonPrefix(prev, cur.key), files[0].key);
-    let Params = {
+    const currentFiles = {};
+    const Prefix = files.reduce((prev, cur) => this.commonPrefix(prev, cur.key), files[0].key);
+    const Params = {
       Bucket: bucket,
       Prefix,
       MaxKeys: 1000,
       ContinuationToken: undefined
     };
     do {
-      let res = await s3.listObjectsV2(Params);
+      const res = await s3.listObjectsV2(Params);
       res.Contents.forEach(obj => {
         currentFiles[obj.Key] = obj;
       });
       Params.ContinuationToken = res.NextContinuationToken;
     } while (Params.ContinuationToken);
     // Should implement multithread here - cleaning too
-    let uuid = randomUUID();
+    const uuid = randomUUID();
     let fullSize = 0;
     files = files.filter(info => {
       if (typeof info.src === "string") {
-        let s3obj = currentFiles[info.key];
-        let stat = fs.statSync(info.src);
+        const s3obj = currentFiles[info.key];
+        const stat = fs.statSync(info.src);
         if (s3obj && stat.size === s3obj.Size) {
-          let md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
+          const md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
           if (md5 === s3obj.ETag) {
             this.logger.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
             return false;
@@ -635,7 +634,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       files,
       async info => {
         // Need to have mimetype to serve the content correctly
-        let mimetype = info.mimetype || mime.contentType(path.extname(info.key)) || "application/octet-stream";
+        const mimetype = info.mimetype || mime.contentType(path.extname(info.key)) || "application/octet-stream";
         // use of upload and get size length
         await s3.putObject({
           Bucket: bucket,

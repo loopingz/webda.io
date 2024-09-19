@@ -51,7 +51,7 @@ export class NDJSONStream extends Readable {
 export class NDJSonReader extends Writable {
   current: string = "";
   _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
-    let res = chunk.toString().split("\n");
+    const res = chunk.toString().split("\n");
     res[0] = this.current + res[0];
     for (let i = 0; i < res.length - 1; i++) {
       this.emit("data", JSON.parse(res[i]));
@@ -162,7 +162,7 @@ export const FileUtils: StorageFinder & {
     options: WalkerOptionsType = { maxDepth: 100 },
     depth: number = 0
   ) => {
-    let files = readdirSync(path);
+    const files = readdirSync(path);
     const fileItemCallback = async p => {
       try {
         const stat = lstatSync(p);
@@ -240,7 +240,7 @@ export const FileUtils: StorageFinder & {
    * @returns
    */
   find: async (currentPath: string, options: FinderOptionsType = { maxDepth: 3 }) => {
-    let found = [];
+    const found = [];
     const processor = (filepath: string) => {
       if (!options.filterPattern || options.filterPattern.test(filepath)) {
         // unless an existing regexp filter forces to skip
@@ -269,7 +269,7 @@ export const FileUtils: StorageFinder & {
     }
     format ??= getFormatFromFilename(filename);
     if (format === "yaml") {
-      let res = yaml.parseAllDocuments(content);
+      const res = yaml.parseAllDocuments(content);
       if (res.length === 1) {
         return res.pop().toJSON();
       }
@@ -333,10 +333,10 @@ export const JSONUtils = {
     space: number | string = 2,
     publicAudience: boolean = false
   ) => {
-    let stringified = [];
+    const stringified = [];
     return JSON.stringify(
       value,
-      function (key: string, val: any): any {
+      (key: string, val: any): any => {
         if ((stringified.indexOf(val) >= 0 && typeof val === "object") || (key.startsWith("__") && publicAudience)) {
           return undefined;
         }
@@ -450,7 +450,7 @@ export const JSONUtils = {
     return Object.keys(unordered)
       .sort()
       .reduce((obj, key) => {
-        let res = transformer(unordered[key]);
+        const res = transformer(unordered[key]);
         if (!res) {
           return obj;
         }
@@ -484,7 +484,7 @@ export const YAMLUtils = {
    * @returns object parsed
    */
   parse: value => {
-    let res = yaml.parseAllDocuments(value);
+    const res = yaml.parseAllDocuments(value);
     if (res.length === 1) {
       return res.pop().toJSON();
     }

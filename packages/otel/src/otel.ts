@@ -78,7 +78,7 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
   sdk: NodeSDK;
   wrapper: InstrumentationNodeModuleDefinition;
   stubs: Map<
-    Object,
+    object,
     {
       [key: string]: Function;
     }
@@ -190,8 +190,8 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
    */
   unpatch() {
     if (!this.stubs) return;
-    for (let [object, methods] of this.stubs) {
-      for (let [method, original] of Object.entries(methods)) {
+    for (const [object, methods] of this.stubs) {
+      for (const [method, original] of Object.entries(methods)) {
         object[method] = original;
       }
     }
@@ -203,7 +203,7 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
    * @param method
    * @param wrapper
    */
-  protected _wrap(object: Object, method: string, wrapper: Function) {
+  protected _wrap(object: object, method: string, wrapper: Function) {
     const original = object[method];
     this.stubs ??= new Map();
     if (!this.stubs.has(object)) {
@@ -222,8 +222,8 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
     //Core.get().newWebContext("test");
     // Apply patch for new context -> to inject the span
     this._wrap(Core.get(), "newWebContext", (original: Function) => {
-      return function (this: any, ...args: any[]) {
-        return original.apply(this, args).then(ctx => {
+      return (...args: any[]) => {
+        return original.apply(Core.get(), args).then(ctx => {
           const originalExecute = ctx.execute;
           ctx.setExtension("otel", tracer);
           ctx.execute = async () => {
@@ -245,14 +245,14 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
     });
     diag.debug(`Applying patch for each services`);
     const services = Core.get().getServices();
-    for (let i in services) {
+    for (const i in services) {
       // Avoid patching itself
       if (services[i] === this) continue;
-      for (let p of Object.getOwnPropertyNames(services[i].constructor.prototype).filter(
+      for (const p of Object.getOwnPropertyNames(services[i].constructor.prototype).filter(
         item => typeof services[i][item] === "function"
       )) {
         this._wrap(services[i], <any>p, (original: Function) => {
-          return function (this: any, ...args: any[]) {
+          return (...args: any[]) => {
             const spanName = `${i}.${p}`;
             // Avoid recursive function to be created child span
             // @ts-ignore

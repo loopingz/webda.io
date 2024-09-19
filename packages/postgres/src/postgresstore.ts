@@ -127,7 +127,7 @@ export class PostgresStore<
    */
   async executeQuery(query: string, values: any[] = []): Promise<SQLResult<T>> {
     this.log("DEBUG", "Query", query);
-    let res = await this.client.query(query, values);
+    const res = await this.client.query(query, values);
     return {
       rows: res.rows.map(r => this.initModel(r.data)),
       rowCount: res.rowCount
@@ -147,7 +147,7 @@ export class PostgresStore<
     const app = webda.getApplication();
     const validator = new RegExpStringValidator(this.parameters.views);
 
-    for (let model of Object.values(models)) {
+    for (const model of Object.values(models)) {
       const store = webda.getModelStore(model);
       if (!(store instanceof PostgresStore)) {
         continue;
@@ -165,12 +165,12 @@ export class PostgresStore<
         continue;
       }
       const plural = webda.getApplication().getModelPlural(model.getIdentifier());
-      for (let field of Object.keys(schema.properties)) {
+      for (const field of Object.keys(schema.properties)) {
         if (field === "uuid" || !field.match(/^[0-9a-zA-Z-_$]+$/)) {
           continue;
         }
         let cast = "";
-        let type = (<JSONSchema7>schema.properties[field]).type;
+        const type = (<JSONSchema7>schema.properties[field]).type;
         if (type === "number") {
           cast = "::bigint";
         } else if (type === "boolean") {
@@ -217,7 +217,7 @@ export class PostgresStore<
     if (itemWriteCondition) {
       query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
     }
-    let res = await this.sqlQuery(query, args);
+    const res = await this.sqlQuery(query, args);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
@@ -237,7 +237,7 @@ export class PostgresStore<
     if (itemWriteCondition) {
       query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
     }
-    let res = await this.sqlQuery(query, args);
+    const res = await this.sqlQuery(query, args);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
@@ -251,7 +251,7 @@ export class PostgresStore<
    * @override
    */
   getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string, params: any[]) {
-    let condition = itemWriteCondition instanceof Date ? itemWriteCondition.toISOString() : itemWriteCondition;
+    const condition = itemWriteCondition instanceof Date ? itemWriteCondition.toISOString() : itemWriteCondition;
     params.push(condition);
     return ` AND data->>'${itemWriteConditionField}'=$${params.length}`;
   }
@@ -272,10 +272,10 @@ export class PostgresStore<
         index + 2
       })::text::jsonb)::jsonb`;
     });
-    let query = `UPDATE ${
+    const query = `UPDATE ${
       this.parameters.table
     } SET data = jsonb_set(${data}, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = $1`;
-    let res = await this.sqlQuery(query, args);
+    const res = await this.sqlQuery(query, args);
     if (res.rowCount === 0) {
       throw new StoreNotFoundError(uid, this.getName());
     }
@@ -307,7 +307,7 @@ export class PostgresStore<
       args.push(itemWriteCondition);
       query += ` AND (data#>>'{${attribute}, ${index}}')::jsonb->>'${itemWriteConditionField}'=$${args.length}`;
     }
-    let res = await this.sqlQuery(query, args);
+    const res = await this.sqlQuery(query, args);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
@@ -336,7 +336,7 @@ export class PostgresStore<
       args.push(itemWriteCondition);
       query += ` AND (data#>>'{${attribute}, ${index}}')::jsonb->>'${itemWriteConditionField}'=$2`;
     }
-    let res = await this.sqlQuery(query, args);
+    const res = await this.sqlQuery(query, args);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);

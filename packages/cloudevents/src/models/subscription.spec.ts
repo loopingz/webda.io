@@ -18,7 +18,7 @@ test("Subscription", async () => {
       }
     ]
   });
-  let source = {
+  const source = {
     type: "test",
     source: "unit-test",
     data: {},

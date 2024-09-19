@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
-import { WebdaError } from "../errors";
+import * as WebdaError from "../errors";
 import { WebdaInternalTest } from "../test";
 import { ResourceService, ResourceServiceParameters } from "./resource";
 import { UnpackedConfiguration } from "../application";
@@ -37,7 +37,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   async parentFolder() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/../config.json");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/../config.json");
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(
       () => executor.execute(this.ctx),
@@ -47,7 +47,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   params() {
-    let params = new ResourceServiceParameters({
+    const params = new ResourceServiceParameters({
       url: "/test/",
       rootRedirect: true
     });
@@ -68,7 +68,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   async index() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/");
     // index.html does not exist in our case
     await assert.rejects(
       () => executor.execute(this.ctx),
@@ -79,7 +79,7 @@ class ResourceTest extends WebdaInternalTest {
   @test
   async unknownFile() {
     this.getService<ResourceService>("ResourceService").getParameters().indexFallback = true;
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.unknown.json");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.unknown.json");
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(
       () => executor.execute(this.ctx),
@@ -89,7 +89,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   async jsonFile() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.json");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.json");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/config.json").toString());
@@ -98,7 +98,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   async textFile() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.txt");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.txt");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.txt").toString());
@@ -107,7 +107,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   async pngFile() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.png");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.png");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.png").toString());
@@ -117,7 +117,7 @@ class ResourceTest extends WebdaInternalTest {
   // Check Store HTTP mapping
   @test
   async testStoreHttpMapping() {
-    let executor = this.getExecutor(
+    const executor = this.getExecutor(
       this.ctx,
       "test.webda.io",
       "GET",

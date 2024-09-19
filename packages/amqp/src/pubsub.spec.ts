@@ -10,7 +10,7 @@ class AMQPPubSubTest extends WebdaTest {
   @test
   async params() {
     // just for cov
-    let p = new AMQPPubSubParameters({
+    const p = new AMQPPubSubParameters({
       exchange: {
         type: "fanout2"
       }
@@ -20,9 +20,9 @@ class AMQPPubSubTest extends WebdaTest {
 
   @test
   async basic() {
-    let pubsub: AMQPPubSubService = this.webda.getService<AMQPPubSubService>("pubsub");
+    const pubsub: AMQPPubSubService = this.webda.getService<AMQPPubSubService>("pubsub");
     let counter = 0;
-    let consumers: CancelablePromise[] = [];
+    const consumers: CancelablePromise[] = [];
     await new Promise<void>(resolve => {
       consumers.push(
         pubsub.consume(async evt => {
@@ -76,7 +76,7 @@ class AMQPPubSubTest extends WebdaTest {
     await Promise.all(consumers.map(p => p.cancel()));
     // Hack our way to test close by server
     // @ts-ignore
-    let stub = sinon.stub(pubsub.channel, "consume").callsFake((ex, call) => {
+    const stub = sinon.stub(pubsub.channel, "consume").callsFake((ex, call) => {
       call(null);
     });
     // Should reject

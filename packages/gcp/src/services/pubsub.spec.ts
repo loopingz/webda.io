@@ -20,7 +20,7 @@ class GCPPubSubTest extends WebdaTest {
   async after() {
     await super.after();
     const pubsub = new PubSub();
-    for (let subscription of this.subscriptions) {
+    for (const subscription of this.subscriptions) {
       try {
         const [exists] = await pubsub.subscription(subscription).exists();
         if (exists) {
@@ -31,7 +31,7 @@ class GCPPubSubTest extends WebdaTest {
   }
   @test
   async basic() {
-    let pubsub: GCPPubSubService = this.webda.getService<GCPPubSubService>("pubsub");
+    const pubsub: GCPPubSubService = this.webda.getService<GCPPubSubService>("pubsub");
     let subscriptionCount = 1;
     assert.strictEqual(pubsub.getSubscriptionName(), `${pubsub.getName()}-${Core.getMachineId()}`);
     sinon.stub(pubsub, "getSubscriptionName").callsFake(() => {
@@ -40,7 +40,7 @@ class GCPPubSubTest extends WebdaTest {
       return name;
     });
     let counter = 0;
-    let consumers: CancelablePromise[] = [];
+    const consumers: CancelablePromise[] = [];
     let subscription;
     await new Promise<void>((resolve, reject) => {
       consumers.push(
@@ -84,7 +84,7 @@ class GCPPubSubTest extends WebdaTest {
     await assert.rejects(() => consumers[1], /Fake server error/);
     await consumers[0].cancel();
     // Hack our way to test exception within the main loop
-    let stub = sinon.stub(pubsub.pubsub, "subscription").callsFake(() => {
+    const stub = sinon.stub(pubsub.pubsub, "subscription").callsFake(() => {
       throw new Error("Bad code?");
     });
     // Should reject

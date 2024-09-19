@@ -1,4 +1,4 @@
-"use strict";
+
 
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
@@ -51,7 +51,7 @@ class MailerTest extends WebdaInternalTest {
 
   @test
   params() {
-    let params = new MailerParameters({
+    const params = new MailerParameters({
       templates: "ts",
       templatesEngine: "b"
     });

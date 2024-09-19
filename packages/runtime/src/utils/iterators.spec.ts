@@ -7,11 +7,11 @@ import { EventIterator, MergedIterator } from "./iterators";
 class IteratorsTest {
   @test
   async maxListeners() {
-    let emitter = new EventEmitter();
-    let it1 = new EventIterator(emitter, "test").iterate();
-    let it2 = new EventIterator(emitter, "test").iterate();
-    let it3 = new EventIterator(emitter, "test").iterate();
-    let it4 = new EventIterator(emitter, "test2").iterate();
+    const emitter = new EventEmitter();
+    const it1 = new EventIterator(emitter, "test").iterate();
+    const it2 = new EventIterator(emitter, "test").iterate();
+    const it3 = new EventIterator(emitter, "test").iterate();
+    const it4 = new EventIterator(emitter, "test2").iterate();
     let p: any = Promise.all([it1.next(), it2.next(), it3.next()]);
     emitter.emit("test", "test");
     let v = await p;
@@ -28,7 +28,7 @@ class IteratorsTest {
 
   @test
   async cov() {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
     let callCount = 0;
     let it = new EventIterator(
       emitter,
@@ -73,15 +73,15 @@ class IteratorsTest {
 
   @test
   async mergeIterator() {
-    let emitter = new EventEmitter();
+    const emitter = new EventEmitter();
 
-    let eventIterator = new EventIterator(emitter, "test");
-    let objectIterator = new EventIterator(emitter, {
+    const eventIterator = new EventIterator(emitter, "test");
+    const objectIterator = new EventIterator(emitter, {
       test2: evt => {
         return "test" + evt.evt;
       }
     });
-    let it = MergedIterator.iterate(
+    const it = MergedIterator.iterate(
       {
         event: eventIterator.iterate(),
         static: "static",

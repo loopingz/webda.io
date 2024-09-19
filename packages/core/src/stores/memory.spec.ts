@@ -28,7 +28,7 @@ class MemoryStoreTest extends StoreTest {
     if (!this.identStore) {
       this.identStore = new MemoryStore(this.webda, "Idents", { model: "WebdaTest/Ident" });
       // @ts-ignore
-      let original = this.identStore._get.bind(this.identStore);
+      const original = this.identStore._get.bind(this.identStore);
       // @ts-ignore
       this.identStore._get = async (...args) => {
         await this.sleep(1);
@@ -45,14 +45,14 @@ class MemoryStoreTest extends StoreTest {
 
   @test
   async queryAdditional() {
-    let userStore = await this.fillForQuery();
+    const userStore = await this.fillForQuery();
     // Verify permission issue and half pagination
     userStore.setModel(PermissionModel);
     userStore.getParameters().forceModel = true;
     // Return undefined as filter to trigger the warning
-    let find = userStore.find;
+    const find = userStore.find;
     userStore.find = async query => {
-      let res = await find.bind(userStore)({
+      const res = await find.bind(userStore)({
         filter: new WebdaQL.AndExpression([]),
         continuationToken: query.continuationToken,
         limit: query.limit
@@ -62,7 +62,7 @@ class MemoryStoreTest extends StoreTest {
         filter: undefined
       };
     };
-    let context = await this.newContext();
+    const context = await this.newContext();
     // Verify pagination system
     let res, offset;
     let total = 0;
@@ -79,7 +79,7 @@ class MemoryStoreTest extends StoreTest {
 
   @test
   getSync() {
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    const identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     assert.throws(() => identStore._getSync("plop", true), StoreNotFoundError);
   }
 
@@ -87,7 +87,7 @@ class MemoryStoreTest extends StoreTest {
   async persistence() {
     this.cleanFiles.push(".test.json.gz");
 
-    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    const identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     identStore.getParameters().persistence = {
       path: ".test.json.gz",
       delay: 10,
@@ -147,7 +147,7 @@ class AdditionalMemoryTest extends WebdaTest {
 
     await Promise.all(
       [Teacher, Project, SubProject, AnotherSubProject, SubSubProject].map(model => {
-        let p = [];
+        const p = [];
         for (let i = 1; i < 4; i++) {
           p.push(model.create({ name: `${model.name} ${i}` }));
         }
@@ -192,7 +192,7 @@ class AdditionalMemoryTest extends WebdaTest {
 
   @test
   async multiModel() {
-    let identStore: MemoryStore<CoreModel> = await this.addService(
+    const identStore: MemoryStore<CoreModel> = await this.addService(
       MemoryStore,
       { model: "Webda/Ident", strict: false },
       "Idents"
@@ -214,7 +214,7 @@ class AdditionalMemoryTest extends WebdaTest {
   async migration() {
     this.webda.getApplication().addModel("Webda/User", User);
     this.webda.getApplication().addModel("WebdaDemo/User", DemoUser);
-    let usersStore: MemoryStore<any> = await this.addService(MemoryStore, { model: "Webda/User" });
+    const usersStore: MemoryStore<any> = await this.addService(MemoryStore, { model: "Webda/User" });
     for (let i = 0; i < 1200; i++) {
       await usersStore.save({ uuid: `id_${i}`, id: i });
       if (i % 10 === 0) {

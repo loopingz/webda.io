@@ -135,7 +135,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     if (this.resources.cronTemplate) {
       this.logger.log("INFO", "Adding CronJob resources");
       // Load all existing Cron annotations
-      let crons = CronService.loadAnnotations(this.manager.getWebda().getServices());
+      const crons = CronService.loadAnnotations(this.manager.getWebda().getServices());
       // Load CronJob resource template
       let resource;
       if (typeof this.resources.cronTemplate === "boolean") {
@@ -146,20 +146,20 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         resource = this.resources.cronTemplate;
       }
       // Namespace where cronjob resource are created
-      let cronNamespace = resource.metadata.namespace || "default";
+      const cronNamespace = resource.metadata.namespace || "default";
       // Add annotations to the CronJob template
       this.completeResource(resource);
-      let cronDeployerId = crypto
+      const cronDeployerId = crypto
         .createHash("sha256")
         .update(this.name + this.manager.getDeploymentName() + this.getApplication().getPackageDescription().name)
         .digest("hex");
       jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);
 
       const k8sApi = <k8s.BatchV1Api>this.getClient(k8s.BatchV1Api);
-      let currentJobs = (
+      const currentJobs = (
         await k8sApi.listNamespacedCronJob(resource.metadata.namespace || "default")
       ).body.items.filter(i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId);
-      let currentJobsNamesMap = {};
+      const currentJobsNamesMap = {};
       currentJobs.forEach(
         i =>
           (currentJobsNamesMap[i.metadata.name] =
@@ -173,7 +173,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         };
         jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
         jsonpath.value(resource, '$.metadata.annotations["webda.io/crondescription"]', cron.toString());
-        let cronResource = CronReplace(resource, this.parameters.cron, this.getApplication(), {
+        const cronResource = CronReplace(resource, this.parameters.cron, this.getApplication(), {
           resources: this.resources,
           deployer: {
             name: this.name,
@@ -191,7 +191,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       });
       this.parameters.cron = undefined;
       // Remove any cronjob created by this deployer that is not required anymore
-      for (let i in currentJobsNamesMap) {
+      for (const i in currentJobsNamesMap) {
         this.logger.log("INFO", `Deleting CronJob ${i}: ${currentJobsNamesMap[i]}`);
         // Delete resource
         await k8sApi.deleteNamespacedCronJob(i, cronNamespace);
@@ -200,8 +200,8 @@ export class Kubernetes extends Deployer<KubernetesResources> {
 
     this.logger.log("INFO", "Manage patch resources");
     // Patch resource
-    for (let i in this.resources.patchResources) {
-      let resource: KubernetesObject = this.resources.patchResources[i];
+    for (const i in this.resources.patchResources) {
+      const resource: KubernetesObject = this.resources.patchResources[i];
 
       if (!this.completeResource(resource)) {
         this.logger.log("ERROR", `Resource #${i} of patchResources is incorrect (kind,metadata.name) are required`);
@@ -211,8 +211,8 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       try {
         // move to any
         // error TS2345: Argument of type 'KubernetesObject' is not assignable to parameter of type 'KubernetesObjectHeader<KubernetesObject>
-        let spec = (await this.client.read(<any>resource)).body;
-        for (let prop in resource.patch) {
+        const spec = (await this.client.read(<any>resource)).body;
+        for (const prop in resource.patch) {
           let path = prop;
           if (!prop.startsWith("$.")) {
             path = "$." + path;
@@ -228,8 +228,8 @@ export class Kubernetes extends Deployer<KubernetesResources> {
 
     this.logger.log("INFO", "Manage inline resources");
     // Inline resource
-    for (let i in this.resources.resources) {
-      let resource: KubernetesObject = this.resources.resources[i];
+    for (const i in this.resources.resources) {
+      const resource: KubernetesObject = this.resources.resources[i];
 
       if (!this.completeResource(resource)) {
         this.logger.log("ERROR", `Resource #${i} of resources is incorrect (kind,metadata.name) are required`);
@@ -242,14 +242,14 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     this.logger.log("INFO", "Manage file resources");
     // File resource
 
-    for (let i in this.resources.resourcesFiles) {
-      let resourcesFile = this.resources.resourcesFiles[i];
+    for (const i in this.resources.resourcesFiles) {
+      const resourcesFile = this.resources.resourcesFiles[i];
       let resources = FileUtils.load(resourcesFile);
       if (!Array.isArray(resources)) {
         resources = [resources];
       }
-      for (let j in resources) {
-        let resource = this.replaceVariables(resources[j]);
+      for (const j in resources) {
+        const resource = this.replaceVariables(resources[j]);
         if (!this.completeResource(resource)) {
           this.logger.log("ERROR", `Resource invalid #${j} of resourcesFile`);
           continue;

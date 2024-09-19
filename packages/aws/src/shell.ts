@@ -4,7 +4,7 @@ import { Route53Service } from "./services/route53";
 
 export class AWSShell {
   static async shellCommand(Console, args) {
-    let command = args._.shift();
+    const command = args._.shift();
     switch (command) {
       case "init":
         return CloudFormationDeployer.init(Console);

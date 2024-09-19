@@ -15,7 +15,7 @@ class BinaryModelTest extends WebdaSimpleTest {
     await this.registerService(new FileBinary(this.webda, "file", { folder: "/tmp", models: { "*": ["*"] } }))
       .resolve()
       .init();
-    let model = new BinaryModel().load({}, true);
+    const model = new BinaryModel().load({}, true);
     // @ts-ignore
     model.uuid = "test";
     assert.strictEqual(model.needsUpload(), false);
@@ -29,7 +29,7 @@ class BinaryModelTest extends WebdaSimpleTest {
     model.data.test = "OK2";
     assert.strictEqual(model.needsUpload(), true);
     await model.save();
-    let stored = <BinaryModel<TestData>>await BinaryModel.ref("test").get();
+    const stored = <BinaryModel<TestData>>await BinaryModel.ref("test").get();
     await stored.loadData();
     // Call it twice to check that it is not downloaded twice
     await stored.loadData();

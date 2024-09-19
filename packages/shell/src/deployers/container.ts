@@ -102,7 +102,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
       this.resources.includeWorkspaces &&
       this.getApplication().getPackageWebda().workspaces
     ) {
-      let workspacePath = this.getApplication().getPackageWebda().workspaces.path;
+      const workspacePath = this.getApplication().getPackageWebda().workspaces.path;
       if (workspacePath) {
         this.workspaces = true;
         this.logger.log("INFO", `Workspaces detected using ${workspacePath} as workingDirectory`);
@@ -119,7 +119,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
    * @param command webda command to run
    */
   async buildContainer(tag, file) {
-    let args: any = {};
+    const args: any = {};
     let stdin;
     let cmd;
     if (tag) {
@@ -154,7 +154,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
    * @returns
    */
   replaceArgs(cmd: string, args: any): string {
-    for (let i in args) {
+    for (const i in args) {
       cmd = cmd.replace(new RegExp("\\$\\{" + i + "\\}", "g"), args[i]);
     }
     return cmd;
@@ -164,9 +164,9 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
    * Create Docker image and push
    */
   async deploy() {
-    let { tag, push, Dockerfile } = this.resources;
+    const { tag, push, Dockerfile } = this.resources;
 
-    let cwd = process.cwd();
+    const cwd = process.cwd();
     try {
       process.chdir(this.resources.workDirectory || cwd);
       if (this.resources.includeLinkModules) {
@@ -192,16 +192,16 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
       return;
     }
     this.logger.log("INFO", "Copying", pkg, "to linked modules");
-    let packageInfo = Packager.loadPackageInfo(pkg);
-    let includes = packageInfo.files || ["lib"];
+    const packageInfo = Packager.loadPackageInfo(pkg);
+    const includes = packageInfo.files || ["lib"];
     includes.push("package.json");
     if (includeModules) {
       includes.push("node_modules");
     }
     includes.forEach(p => {
-      let includeDir = path.join(pkg, p);
+      const includeDir = path.join(pkg, p);
       globSync(includeDir).forEach(src => {
-        let rel = path.relative(pkg, src);
+        const rel = path.relative(pkg, src);
         this.logger.log("INFO", "Copying", src, `link_modules/${packageInfo.name}/${rel}`);
         fs.copySync(src, `link_modules/${packageInfo.name}/${rel}`, {
           filter: f => {
@@ -219,11 +219,11 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
   }
 
   scanLinkModules(absPath: string, onLinkModule: (src, relPath) => void) {
-    let nodeModulesDir = path.join(absPath, "node_modules");
+    const nodeModulesDir = path.join(absPath, "node_modules");
     const checkDir = modulesDir => {
       if (fs.existsSync(modulesDir)) {
         fs.readdirSync(modulesDir).forEach(f => {
-          let stat = fs.lstatSync(path.join(modulesDir, f));
+          const stat = fs.lstatSync(path.join(modulesDir, f));
           if (stat.isSymbolicLink()) {
             onLinkModule(
               fs.realpathSync(path.join(modulesDir, f)),
@@ -260,7 +260,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
       if (fs.existsSync(".webda-shell/hash")) {
         sign = fs.readFileSync(".webda-shell/hash").toString();
       }
-      let currentSign = Packager.getPackageLastChanges(path.join(__dirname, "../.."), true);
+      const currentSign = Packager.getPackageLastChanges(path.join(__dirname, "../.."), true);
       if (currentSign !== sign) {
         this.logger.log("INFO", "Updating @webda/shell version as development version is different");
         fs.emptyDirSync(".webda-shell");
@@ -279,7 +279,7 @@ ENV PATH=\${PATH}:/devshell/packages/shell/bin\n`;
     }
 
     // Normal take the same version as local webda-shell
-    let tag = JSONUtils.loadFile(__dirname + "/../../package.json").version;
+    const tag = JSONUtils.loadFile(__dirname + "/../../package.json").version;
     return `# Install current @webda/shell version\nRUN yarn -W add @webda/shell@${tag}\n\n`;
   }
 
@@ -297,11 +297,11 @@ ADD package.json /webda/\n\n`;
   }
 
   getWorkspacesDockerfile(): string {
-    let appPath = this.manager.getApplication().getAppPath();
-    let relPath = path.relative(process.cwd(), appPath);
+    const appPath = this.manager.getApplication().getAppPath();
+    const relPath = path.relative(process.cwd(), appPath);
 
     let dockerfile = this.getDockerfileHeader();
-    let packages = Packager.getWorkspacesPackages();
+    const packages = Packager.getWorkspacesPackages();
     packages.forEach(pack => {
       dockerfile += `ADD ${pack}/package.json /webda/${pack}/package.json\n`;
     });
@@ -326,14 +326,14 @@ ADD package.json /webda/\n\n`;
       dockerfile += "# Add link modules to node_modules\n";
       this.scanLinkModules(process.cwd(), (src, rel) => {
         if (!src.startsWith(process.cwd())) {
-          let root = Packager.getWorkspacesRoot(src);
+          const root = Packager.getWorkspacesRoot(src);
           if (root) {
             this.logger.log("INFO", "Copying linked package workspace", rel);
             // Copy all workspace packages
             Packager.getWorkspacesPackages(root).forEach(p => {
-              let pPath = path.join(root, p);
+              const pPath = path.join(root, p);
               if (fs.existsSync(path.join(pPath, "package.json"))) {
-                let name = Packager.loadPackageInfo(pPath).name;
+                const name = Packager.loadPackageInfo(pPath).name;
                 this.logger.log("INFO", "Copying linked package workspace deps", name);
                 dockerfile += `RUN rm -rf /webda/node_modules/${name}\n`;
                 this.copyPackageToLinkModules(pPath);
@@ -376,8 +376,8 @@ ADD package.json /webda/\n\n`;
    * @returns
    */
   addDeploymentToImage(localPath: string = "deployments", appPath: string = "/webda/") {
-    let deployment = this.manager.getDeploymentName();
-    let gitInfo = Buffer.from(JSON.stringify(this.app.getGitInformation())).toString("base64");
+    const deployment = this.manager.getDeploymentName();
+    const gitInfo = Buffer.from(JSON.stringify(this.app.getGitInformation())).toString("base64");
     if (deployment) {
       // Export deployment
       return `# Add deployment
@@ -391,9 +391,9 @@ RUN rm -rf deployments\n\n`;
   }
 
   copyPackageFilesTo(pkg: string, dst: string, addFiles: string[] = []) {
-    let absPath = path.resolve(pkg);
-    let packageInfo = Packager.loadPackageInfo(absPath);
-    let includes = packageInfo.files || ["lib"];
+    const absPath = path.resolve(pkg);
+    const packageInfo = Packager.loadPackageInfo(absPath);
+    const includes = packageInfo.files || ["lib"];
     addFiles.forEach(f => {
       if (includes.indexOf(f) < 0) {
         includes.push(f);
@@ -424,7 +424,8 @@ RUN rm -rf deployments\n\n`;
   }
 
   addCommandToImage(): string {
-    let { command, logFile, errorFile } = this.resources;
+    const { command } = this.resources;
+    let { logFile, errorFile } = this.resources;
     if (logFile) {
       logFile = " > " + logFile;
     } else {

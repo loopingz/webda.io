@@ -28,7 +28,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   mocks: { [key: string]: any } = {};
 
   async getDeployer(manager: DeploymentManager): Promise<CloudFormationDeployer> {
-    let deployer = await (<any>manager.getDeployer("WebdaSampleApplication"));
+    const deployer = await (<any>manager.getDeployer("WebdaSampleApplication"));
     MockAWSDeployerMethods(deployer, this);
     return <CloudFormationDeployer>deployer;
   }
@@ -150,7 +150,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
 
   @test
   async testDeploy() {
-    let resources = this.deployer.resources;
+    const resources = this.deployer.resources;
     resources.Lambda = {};
     resources.Resources = {};
     resources.APIGateway = {};
@@ -164,10 +164,10 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     resources.CustomResources = {
       MyResource: { Type: "Test" }
     };
-    let uploadStatics = sinon.stub(this.deployer, "uploadStatics");
-    let createCloudFormation = sinon.stub(this.deployer, "createCloudFormation");
-    let sendCloudFormation = sinon.stub(this.deployer, "sendCloudFormationTemplate");
-    let generateLambdaPackage = sinon.stub(this.deployer, "generateLambdaPackage");
+    const uploadStatics = sinon.stub(this.deployer, "uploadStatics");
+    const createCloudFormation = sinon.stub(this.deployer, "createCloudFormation");
+    const sendCloudFormation = sinon.stub(this.deployer, "sendCloudFormationTemplate");
+    const generateLambdaPackage = sinon.stub(this.deployer, "generateLambdaPackage");
     sendCloudFormation.callsFake(async () => {
       this.deployer.result.CloudFormation = {
         Bucket: "plop",
@@ -231,7 +231,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   @test
   async testInit() {
     let logs = [];
-    let console = {
+    const console = {
       app: {
         getAppPath: () => {
           return "./noexisting";
@@ -241,17 +241,17 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         logs.push(args);
       }
     };
-    let caller = sinon.stub().callsFake(async () => {
+    const caller = sinon.stub().callsFake(async () => {
       if (caller.callCount === 1) {
         throw new Error("Bad");
       }
       return { Account: "myAccount" };
     });
-    let saver = sinon.stub(JSONUtils, "saveFile").callsFake(() => {});
+    const saver = sinon.stub(JSONUtils, "saveFile").callsFake(() => {});
     const mocks = [];
     try {
       mocks.push(mockClient(STS).on(GetCallerIdentityCommand).callsFake(caller));
-      let stub = sinon.stub().resolves({});
+      const stub = sinon.stub().resolves({});
       mocks.push(mockClient(CloudFormation).on(CreateStackCommand).callsFake(stub));
       assert.ok((await CloudFormationDeployer.init(console)) === -1);
       assert.deepStrictEqual(logs[0], ["ERROR", "package.json not found"]);
@@ -276,8 +276,8 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
 
   @test
   async createCloudFormation() {
-    let describeChangeSetResult: any = { Status: "FAILED" };
-    let describeStackEventsResult: any = {
+    const describeChangeSetResult: any = { Status: "FAILED" };
+    const describeStackEventsResult: any = {
       StackEvents: [
         {
           EventId: "123",
@@ -286,7 +286,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         }
       ]
     };
-    let logs = sinon.stub(this.deployer.logger, "log");
+    const logs = sinon.stub(this.deployer.logger, "log");
     sinon.stub(this.deployer, "waitFor").callsFake(callback => {
       return new Promise((resolve, reject) => {
         callback(resolve, reject);
@@ -301,7 +301,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       .resolves({})
       .on(DescribeStackEventsCommand)
       .callsFake(async () => {
-        let res = {
+        const res = {
           ...describeStackEventsResult,
           StackEvents: [...describeStackEventsResult.StackEvents]
         };
@@ -334,7 +334,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       });
     mocks.push(mock);
     try {
-      let createDeployment = sinon.stub().resolves({});
+      const createDeployment = sinon.stub().resolves({});
       mocks.push(mockClient(APIGateway).on(CreateDeploymentCommand).callsFake(createDeployment));
       // 'FAILED' scenario with unknown error
       logs.resetHistory();
@@ -390,7 +390,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
 
   @test
   async generateLambdaPackage() {
-    let run = sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
+    const run = sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
     try {
       this.deployer.resources.KeepPackage = true;
       await this.deployer.generateLambdaPackage();
@@ -417,12 +417,12 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       .resolves({});
     sinon.stub(this.deployer, "deleteCloudFormation").callsFake(async () => {});
     try {
-      let cloudformation = new CloudFormation({ credentials: defaultCreds });
+      const cloudformation = new CloudFormation({ credentials: defaultCreds });
       // Nominal case
       await this.deployer.createCloudFormationChangeSet(cloudformation);
       // With error
       let testError;
-      let errorFirst = sinon.stub().callsFake(async () => {
+      const errorFirst = sinon.stub().callsFake(async () => {
         if (errorFirst.callCount === 1) {
           throw testError;
         } else {

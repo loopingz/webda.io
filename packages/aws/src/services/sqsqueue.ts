@@ -74,7 +74,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * @inheritdoc
    */
   async size(): Promise<number> {
-    let res = await this.sqs.getQueueAttributes({
+    const res = await this.sqs.getQueueAttributes({
       AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
       QueueUrl: this.parameters.queue
     });
@@ -105,12 +105,12 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * @inheritdoc
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
-    let queueArg: ReceiveMessageRequest = {
+    const queueArg: ReceiveMessageRequest = {
       QueueUrl: this.parameters.queue,
       WaitTimeSeconds: this.parameters.WaitTimeSeconds,
       MaxNumberOfMessages: this.parameters.maxConsumers > 10 ? 10 : this.parameters.maxConsumers
     };
-    let data = await this.sqs.receiveMessage(queueArg);
+    const data = await this.sqs.receiveMessage(queueArg);
     data.Messages ??= [];
     return data.Messages.map(m => ({
       ReceiptHandle: m.ReceiptHandle,
@@ -155,7 +155,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
       if (fail || err.name !== "AWS.SimpleQueueService.PurgeQueueInProgress") {
         throw err;
       }
-      let delay = Math.floor(err.retryDelay * 1100);
+      const delay = Math.floor(err.retryDelay * 1100);
       // 10% of margin
       return new Promise(resolve => {
         setTimeout(() => {
@@ -184,7 +184,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
 
   getARNPolicy() {
     // Parse this._params.queue;
-    let queue = this._getQueueInfosFromUrl();
+    const queue = this._getQueueInfosFromUrl();
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",
@@ -203,8 +203,8 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
-    let { name: QueueName } = this._getQueueInfosFromUrl();
-    let resources = {};
+    const { name: QueueName } = this._getQueueInfosFromUrl();
+    const resources = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     this.parameters.CloudFormation.Queue = this.parameters.CloudFormation.Queue || {};
     resources[this._name + "Queue"] = {

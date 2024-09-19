@@ -8,11 +8,11 @@ class DeploymentManagerTest {
   @test
   async testGetDeployers() {
     await WebdaSampleApplication.load();
-    let deploymentManager = new DeploymentManager(WebdaSampleApplication, "Shell");
+    const deploymentManager = new DeploymentManager(WebdaSampleApplication, "Shell");
     assert.strictEqual(Object.keys(deploymentManager.deployers).length, 1);
     assert.rejects(() => deploymentManager.getDeployer("plop"), /Unknown deployer/g);
     assert.notStrictEqual(await deploymentManager.getDeployer("Packager"), undefined);
-    let output = deploymentManager.getOutput();
+    const output = deploymentManager.getOutput();
     deploymentManager.setOutput(null);
     assert.strictEqual(deploymentManager.getOutput(), null);
     assert.notStrictEqual(deploymentManager.getWebda(), undefined);
@@ -22,7 +22,7 @@ class DeploymentManagerTest {
 
   @test
   async commandLine() {
-    let deploymentManager = new DeploymentManager(WebdaSampleApplication, "Shell", {
+    const deploymentManager = new DeploymentManager(WebdaSampleApplication, "Shell", {
       out: console.log,
       err: console.error
     });

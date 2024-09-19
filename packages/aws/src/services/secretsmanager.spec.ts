@@ -33,7 +33,7 @@ class SecretsManagerTest extends WebdaAwsTest {
     let result = await this.service.get("webda-test-manual");
     assert.strictEqual(result["webda-test-1"], "Test1");
     assert.strictEqual(result["webda-test-2"], "Test2");
-    let config = await this.service.getConfiguration("webda-test-manual");
+    const config = await this.service.getConfiguration("webda-test-manual");
     assert.strictEqual(config["webda-test-1"], result["webda-test-1"]);
     assert.strictEqual(config["webda-test-2"], result["webda-test-2"]);
     await this.service.create("webda-test-unit-test", {

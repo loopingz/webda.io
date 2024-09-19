@@ -3,7 +3,7 @@ import { JSONSchema7 } from "json-schema";
 import util from "util";
 import { ModelGraph, ModelsTree } from "../application";
 import { Core, EventEmitterUtils } from "../core";
-import { WebdaError } from "../errors";
+import * as WebdaError from "../errors";
 import { EventService } from "../services/asyncevents";
 import { BinariesImpl, Binary } from "../services/binary";
 import { Service } from "../services/service";
@@ -30,7 +30,7 @@ import {
  * @returns
  */
 export function Expose(params: Partial<ExposeParameters> = {}) {
-  return function (target: CoreModelDefinition): void {
+  return (target: CoreModelDefinition): void => {
     params.restrict ??= {};
     target.Expose = <ExposeParameters>params;
   };
@@ -120,7 +120,7 @@ export class CoreModelQuery {
    * @returns
    */
   async getAll(context?: OperationContext): Promise<this[]> {
-    let res = [];
+    const res = [];
     for await (const item of this.iterate(this.completeQuery(), context)) {
       res.push(item);
     }
@@ -424,7 +424,7 @@ const ActionsAnnotated: Map<any, ModelActions> = new Map();
  * @param propertyKey
  */
 export function Action(options: { methods?: HttpMethodType[]; openapi?: any; name?: string } = {}) {
-  return function (target: any, propertyKey: string) {
+  return (target: any, propertyKey: string) => {
     let custom: Record<"Actions", ModelActions> = target;
     const global = typeof target === "function";
     if (!global) {
@@ -589,7 +589,7 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @returns
    */
   async create(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
-    let result = new this.model().setContext(context).load(defaultValue, true).setUuid(this.uuid);
+    const result = new this.model().setContext(context).load(defaultValue, true).setUuid(this.uuid);
     if (withSave) {
       await result.save();
     }
@@ -736,6 +736,7 @@ class CoreModel {
     event: Key,
     evt: StoreEvents[Key]
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let clazz = this;
     // @ts-ignore
     while (clazz) {
@@ -762,8 +763,9 @@ class CoreModel {
     event: Key,
     evt: StoreEvents[Key]
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let clazz = this;
-    let p = [];
+    const p = [];
     // @ts-ignore
     while (clazz) {
       // Emit for all parent class
@@ -973,7 +975,7 @@ class CoreModel {
    */
   static unflat<T = any>(data: any, split: string = "#"): T {
     const res: any = {};
-    for (let i in data) {
+    for (const i in data) {
       const attrs = i.split(split);
       let attr = attrs.shift();
       let cur = res;
@@ -1025,7 +1027,7 @@ class CoreModel {
    * @param prefix
    */
   static flat(target: any, data: any, split: string = "#", prefix: string = ""): any {
-    for (let i in data) {
+    for (const i in data) {
       if (typeof data[i] === "object") {
         CoreModel.flat(target, data[i], split, i + split);
       } else {
@@ -1187,6 +1189,7 @@ class CoreModel {
   static getActions<T>(this: Constructor<T>): ModelActions {
     const actions = [];
     // Explore all parent classes to collect all known actions
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let clazz = this;
     // @ts-ignore
     while (clazz !== CoreModel) {
@@ -1223,7 +1226,7 @@ class CoreModel {
       | "subscribe" // To manage MQTT or Websockets
       | string
   ) {
-    let msg = await this.canAct(context, action);
+    const msg = await this.canAct(context, action);
     if (msg !== true) {
       throw new WebdaError.Forbidden(msg === false ? "No permission" : msg);
     }
@@ -1299,7 +1302,7 @@ class CoreModel {
     partials?: any
   ): Promise<T> {
     const [model, uuid] = fullUuid.split("$");
-    let modelObject = core.getApplication().getModel(model.replace("-", "/"));
+    const modelObject = core.getApplication().getModel(model.replace("-", "/"));
     if (partials) {
       return <T>new modelObject().load(partials, true).setUuid(uuid);
     }
@@ -1334,7 +1337,7 @@ class CoreModel {
    */
   load(raw: RawModel<this>, secure: boolean = false, relations: boolean = true): this {
     // Object assign with filter
-    for (let prop in raw) {
+    for (const prop in raw) {
       let val = raw[prop];
       if (!secure) {
         val = this.attributePermission(prop, raw[prop], "WRITE");
@@ -1370,7 +1373,7 @@ class CoreModel {
       Core.get()
         ?.getApplication()
         ?.getRelations(<any>this) || {};
-    for (let link of rel.links || []) {
+    for (const link of rel.links || []) {
       const model = Core.get().getModel(link.model);
       if (link.type === "LINK") {
         this[link.attribute] ??= "";
@@ -1385,12 +1388,12 @@ class CoreModel {
         this[link.attribute] = createModelLinksMap(model, this[link.attribute], this);
       }
     }
-    for (let link of rel.maps || []) {
+    for (const link of rel.maps || []) {
       this[link.attribute] = (this[link.attribute] || []).map(
         el => new ModelMapLoaderImplementation(Core.get().getModel(link.model), el, this)
       );
     }
-    for (let query of rel.queries || []) {
+    for (const query of rel.queries || []) {
       this[query.attribute] = new CoreModelQuery(query.model, this, query.targetAttribute);
     }
     if (rel.parent) {
@@ -1403,7 +1406,7 @@ class CoreModel {
         );
       }
     }
-    for (let binary of rel.binaries || []) {
+    for (const binary of rel.binaries || []) {
       if (binary.cardinality === "ONE") {
         this[binary.attribute] = new Binary(binary.attribute, this);
       } else {
@@ -1450,10 +1453,10 @@ class CoreModel {
    * @throws Error if the object is not coming from a store
    */
   async refresh(): Promise<this> {
-    let obj = await this.__store.get(this.getUuid());
+    const obj = await this.__store.get(this.getUuid());
     if (obj) {
       Object.assign(this, obj);
-      for (let i in this) {
+      for (const i in this) {
         // @ts-ignore
         if (obj[i] !== this[i]) {
           delete this[i];
@@ -1512,7 +1515,7 @@ class CoreModel {
         patch[k] = this[k];
       });
     } else {
-      for (let entry of this.__dirty.entries()) {
+      for (const entry of this.__dirty.entries()) {
         patch[entry[0]] = this[entry[0]];
       }
     }
@@ -1549,7 +1552,7 @@ class CoreModel {
    * @returns
    */
   toStoredJSON(stringify = false): any | string {
-    let obj = this._toJSON(true);
+    const obj = this._toJSON(true);
     if (stringify) {
       return JSON.stringify(obj);
     }
@@ -1575,8 +1578,8 @@ class CoreModel {
    * @returns filtered object to be serialized
    */
   _toJSON(secure): any {
-    let obj: any = {};
-    for (let i in this) {
+    const obj: any = {};
+    for (const i in this) {
       let value = this[i];
       if (!secure) {
         value = this.attributePermission(i, value, "READ");
@@ -1695,7 +1698,7 @@ class CoreModel {
    */
   async incrementAttributes(info: { property: string; value: number }[]) {
     await this.getRef().incrementAttributes(<any>info);
-    for (let inc of info) {
+    for (const inc of info) {
       this[inc.property] ??= 0;
       this[inc.property] += inc.value;
     }

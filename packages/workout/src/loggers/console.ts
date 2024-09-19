@@ -88,7 +88,7 @@ class ConsoleLogger extends WorkerLogger {
     if (!msg.log) {
       return "";
     }
-    let info: WorkerLogMessage = {
+    const info: WorkerLogMessage = {
       m: msg.log.args
         .map(a => {
           if (a === undefined) {

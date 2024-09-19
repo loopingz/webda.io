@@ -15,7 +15,7 @@ export abstract class DeployerTest<T extends Deployer<any>> {
   abstract getDeployer(manager: DeploymentManager): Promise<T>;
 
   async before(logger: WorkerLogLevel = "INFO") {
-    let workerOutput = new WorkerOutput();
+    const workerOutput = new WorkerOutput();
     if (logger) {
       new ConsoleLogger(workerOutput, logger);
     }

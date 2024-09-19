@@ -31,7 +31,7 @@ class SQSQueueTest extends QueueTest {
   }
 
   async install() {
-    var sqs = new SQS({
+    const sqs = new SQS({
       endpoint: "http://localhost:4566",
       credentials: defaultCreds,
       region: "us-east-1"
@@ -72,7 +72,7 @@ class SQSQueueTest extends QueueTest {
   @test
   @timeout(80000)
   async basic() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
+    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test";
     await queue.__clean();
     // Update timeout to 80000ms as Purge can only be sent once every 60s
@@ -83,7 +83,7 @@ class SQSQueueTest extends QueueTest {
 
   @test
   async fifo() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
+    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test2.fifo";
     queue.getParameters().MessageGroupId = "myGroup";
     await queue.sendMessage({});
@@ -91,19 +91,19 @@ class SQSQueueTest extends QueueTest {
 
   @test
   ARN() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
-    let arn = queue.getARNPolicy();
+    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
+    const arn = queue.getARNPolicy();
     assert.strictEqual(arn.Action.indexOf("sqs:SendMessage") >= 0, true);
     assert.strictEqual(arn.Resource[0], "arn:aws:sqs:us-east-1:000000000000:webda-test");
   }
 
   @test
   getQueueInfos() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
+    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     queue.getParameters().queue = "none";
     let error = false;
     try {
-      let info = queue._getQueueInfosFromUrl();
+      const info = queue._getQueueInfosFromUrl();
     } catch (ex) {
       error = true;
     }
@@ -112,11 +112,11 @@ class SQSQueueTest extends QueueTest {
 
   @test
   async purgeQueueError() {
-    let queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
+    const queue: SQSQueue = <SQSQueue>this.webda.getService("SQSQueue");
     let mock = mockClient(SQS)
       .on(PurgeQueueCommand)
       .callsFake(async () => {
-        let error: any = new Error("AWS.SimpleQueueService.PurgeQueueInProgress");
+        const error: any = new Error("AWS.SimpleQueueService.PurgeQueueInProgress");
         error.name = "AWS.SimpleQueueService.PurgeQueueInProgress";
         error.retryDelay = 1;
         throw error;
@@ -134,7 +134,7 @@ class SQSQueueTest extends QueueTest {
 
   @test
   getMaxConsumers() {
-    let queue = new SQSQueue(this.webda, "plop", { maxConsumers: 30 });
+    const queue = new SQSQueue(this.webda, "plop", { maxConsumers: 30 });
     assert.strictEqual(queue.getMaxConsumers(), 3);
     queue.getParameters().maxConsumers = 3;
     assert.strictEqual(queue.getMaxConsumers(), 1);

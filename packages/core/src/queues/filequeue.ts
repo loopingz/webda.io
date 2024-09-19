@@ -86,7 +86,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
       .filter(f => f.endsWith(".json"))
       .map(f => {
         const lockFile = join(this.parameters.folder, f + ".lock");
-        let res = {
+        const res = {
           ...fs.lstatSync(join(this.parameters.folder, f)),
           path: join(this.parameters.folder, f),
           hasLock: fs.existsSync(lockFile),
@@ -111,7 +111,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
         return -1;
       });
     if (files.length) {
-      let el = files.shift();
+      const el = files.shift();
       // Create the lock
       fs.writeFileSync(el.path + ".lock", "");
       return [

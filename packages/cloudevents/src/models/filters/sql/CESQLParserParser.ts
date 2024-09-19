@@ -187,7 +187,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public cesql(): CesqlContext {
-    let _localctx: CesqlContext = new CesqlContext(this._ctx, this.state);
+    const _localctx: CesqlContext = new CesqlContext(this._ctx, this.state);
     this.enterRule(_localctx, 0, CESQLParserParser.RULE_cesql);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -219,11 +219,11 @@ export class CESQLParserParser extends Parser {
       _p = 0;
     }
 
-    let _parentctx: ParserRuleContext = this._ctx;
-    let _parentState: number = this.state;
+    const _parentctx: ParserRuleContext = this._ctx;
+    const _parentState: number = this.state;
     let _localctx: ExpressionContext = new ExpressionContext(this._ctx, _parentState);
     let _prevctx: ExpressionContext = _localctx;
-    let _startState: number = 2;
+    const _startState: number = 2;
     this.enterRecursionRule(_localctx, 2, CESQLParserParser.RULE_expression, _p);
     let _la: number;
     try {
@@ -584,7 +584,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public identifier(): IdentifierContext {
-    let _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
+    const _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
     this.enterRule(_localctx, 6, CESQLParserParser.RULE_identifier);
     let _la: number;
     try {
@@ -618,7 +618,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public functionIdentifier(): FunctionIdentifierContext {
-    let _localctx: FunctionIdentifierContext = new FunctionIdentifierContext(this._ctx, this.state);
+    const _localctx: FunctionIdentifierContext = new FunctionIdentifierContext(this._ctx, this.state);
     this.enterRule(_localctx, 8, CESQLParserParser.RULE_functionIdentifier);
     let _la: number;
     try {
@@ -652,7 +652,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public booleanLiteral(): BooleanLiteralContext {
-    let _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
+    const _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 10, CESQLParserParser.RULE_booleanLiteral);
     let _la: number;
     try {
@@ -686,7 +686,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public stringLiteral(): StringLiteralContext {
-    let _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
+    const _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 12, CESQLParserParser.RULE_stringLiteral);
     let _la: number;
     try {
@@ -720,7 +720,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public integerLiteral(): IntegerLiteralContext {
-    let _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
+    const _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 14, CESQLParserParser.RULE_integerLiteral);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -743,7 +743,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public functionParameterList(): FunctionParameterListContext {
-    let _localctx: FunctionParameterListContext = new FunctionParameterListContext(this._ctx, this.state);
+    const _localctx: FunctionParameterListContext = new FunctionParameterListContext(this._ctx, this.state);
     this.enterRule(_localctx, 16, CESQLParserParser.RULE_functionParameterList);
     let _la: number;
     try {
@@ -811,7 +811,7 @@ export class CESQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public setExpression(): SetExpressionContext {
-    let _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
+    const _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 18, CESQLParserParser.RULE_setExpression);
     let _la: number;
     try {

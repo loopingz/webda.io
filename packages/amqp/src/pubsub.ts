@@ -85,7 +85,7 @@ export default class AMQPPubSubService<
     await super.init();
     this.conn = await amqplib.connect(this.parameters.url);
     this.channel = await this.conn.createChannel();
-    let params = { ...this.parameters.exchange };
+    const params = { ...this.parameters.exchange };
     delete params.type;
     this.exchange = await this.channel.assertExchange(
       this.parameters.channel,
@@ -117,7 +117,7 @@ export default class AMQPPubSubService<
     let consumerTag: string;
     return new CancelablePromise(
       async (_resolve, reject) => {
-        let queue = await this.channel.assertQueue(this.parameters.subscription, {
+        const queue = await this.channel.assertQueue(this.parameters.subscription, {
           exclusive: true,
           durable: false,
           autoDelete: true

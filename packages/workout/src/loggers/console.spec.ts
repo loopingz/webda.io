@@ -12,7 +12,7 @@ class ConsoleLoggerTest {
   test() {
     this.output = new WorkerOutput();
     new ConsoleLogger(this.output);
-    let log = sinon.spy(console, "log");
+    const log = sinon.spy(console, "log");
     try {
       this.output.log("WARN", "Testor");
       this.output.log("ERROR", "Testor");

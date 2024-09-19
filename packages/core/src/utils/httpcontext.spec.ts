@@ -10,7 +10,7 @@ export class FakeReadable extends Readable {
 class HttpContextTest {
   @test
   lowerCaseHeader() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
+    const ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
       "X-Test": "weBda",
       other: ["head1", "head2"],
       cookie: ["", ""]
@@ -23,13 +23,13 @@ class HttpContextTest {
 
   @test
   async stream() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
+    const ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
       "X-Test": "weBda"
     });
     ctx.setBody("Test");
     // Next line is just for cov
     ctx.setClientIp("127.0.0.1").getClientIp();
-    let stream = ctx.getRawStream();
+    const stream = ctx.getRawStream();
     ctx.setBody(stream);
     ctx.getRawStream();
     assert.strictEqual(await ctx.getRawBodyAsString(), "Test");
@@ -43,21 +43,21 @@ class HttpContextTest {
 
   @test
   async oversize() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
+    const ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
       "X-Test": "weBda"
     });
     ctx.setBody("Test".repeat(1024));
-    let stream = ctx.getRawStream();
+    const stream = ctx.getRawStream();
     ctx.setBody(stream);
     await assert.rejects(() => ctx.getRawBody(128), /Request oversized/);
   }
 
   @test
   async timeout() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
+    const ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {
       "X-Test": "weBda"
     });
-    let str = new FakeReadable();
+    const str = new FakeReadable();
     ctx.setBody(str);
     await assert.rejects(() => ctx.getRawBody(undefined, 100), /Request timeout/);
   }

@@ -88,7 +88,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     if (writeCondition) {
       query += this.getQueryCondition(writeCondition, writeConditionField, args);
     }
-    let res = await this.sqlQuery(query, args);
+    const res = await this.sqlQuery(query, args);
     if (res.rowCount === 0 && writeCondition) {
       throw new UpdateConditionFailError(uid, writeConditionField, writeCondition);
     }
@@ -158,7 +158,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    * @override
    */
   async _exists(uid: string): Promise<boolean> {
-    let res = await this.sqlQuery(
+    const res = await this.sqlQuery(
       `SELECT uuid FROM ${this.parameters.table} WHERE ${this.getModel().getUuidField()} = $1`,
       [this.getUuid(uid)]
     );
@@ -169,7 +169,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    * @override
    */
   async _get(uid: string, raiseIfNotFound?: boolean): Promise<T> {
-    let res = await this.sqlQuery(`${this.getModel().getUuidField()} = $1`, [this.getUuid(uid)]);
+    const res = await this.sqlQuery(`${this.getModel().getUuidField()} = $1`, [this.getUuid(uid)]);
     if (res.rowCount === 0 && raiseIfNotFound) {
       throw new StoreNotFoundError(uid, this.getName());
     }
@@ -203,7 +203,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     if (itemWriteCondition) {
       q += this.getQueryCondition(itemWriteCondition, itemWriteConditionField, args);
     }
-    let res = await this.sqlQuery(q, args);
+    const res = await this.sqlQuery(q, args);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }

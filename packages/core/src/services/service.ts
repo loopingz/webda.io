@@ -94,7 +94,7 @@ class Injector {
  * Might consider to split into two annotations
  */
 export function Inject(parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) {
-  return function (target: any, propertyName: string): void {
+  return (target: any, propertyName: string): void => {
     target.Injectors = target.Injectors || [];
     if (typeof defaultValue === "boolean") {
       target.Injectors.push(new Injector(propertyName, parameterOrName || propertyName, undefined, defaultValue));
@@ -133,7 +133,7 @@ export function Operation(
     openapi?: OpenAPIWebdaDefinition;
   }
 ) {
-  return function (target: any, executor: string) {
+  return (target: any, executor: string) => {
     target.constructor.operations ??= {};
     properties ??= {};
     properties.id ??= executor.substring(0, 1).toUpperCase() + executor.substring(1);
@@ -151,7 +151,7 @@ export function Operation(
       route.method ??= "GET";
       route.openapi ??= {};
       route.openapi[route.method.toLowerCase()] ??= {};
-      let def = route.openapi[route.method.toLowerCase()];
+      const def = route.openapi[route.method.toLowerCase()];
       def.operationId = id;
       def.schemas ??= {};
       def.schemas.input ??= properties.id.toLowerCase() + ".input";
@@ -469,7 +469,7 @@ abstract class Service<
     openapi: OpenAPIWebdaDefinition = {},
     override: boolean = false
   ) {
-    let finalUrl = this.getUrl(url, methods);
+    const finalUrl = this.getUrl(url, methods);
     if (!finalUrl) {
       return;
     }
@@ -496,8 +496,8 @@ abstract class Service<
    */
   initRoutes() {
     // @ts-ignore
-    let routes = this.constructor.routes || {};
-    for (let j in routes) {
+    const routes = this.constructor.routes || {};
+    for (const j in routes) {
       this.log("TRACE", "Adding route", j, "for bean", this.getName());
       routes[j].forEach(route => {
         this.addRoute(j, route.methods, this[route.executor], route.openapi);
@@ -510,8 +510,8 @@ abstract class Service<
    */
   initOperations() {
     // @ts-ignore
-    let operations = this.constructor.operations || {};
-    for (let j in operations) {
+    const operations = this.constructor.operations || {};
+    for (const j in operations) {
       const id = this.getOperationId(j);
       if (!id) continue;
       this.log("TRACE", "Adding operation", id, "for bean", this.getName());

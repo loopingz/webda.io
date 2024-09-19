@@ -64,7 +64,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
    * @inheritdoc
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
-    for (let i in this._queue) {
+    for (const i in this._queue) {
       if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
         this._queue[i].Claimed = new Date().getTime();
         return [

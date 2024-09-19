@@ -9,7 +9,7 @@ import { CookieSessionManager, UnknownSession } from "./session";
 class SessionTest {
   @test
   basic() {
-    let session = new UnknownSession().getProxy();
+    const session = new UnknownSession().getProxy();
     session.plop = "test";
     assert.ok(session.isDirty());
     assert.ok(!session.isLogged());
@@ -43,26 +43,26 @@ class SessionStoreTest extends WebdaSimpleTest {
       .resolve()
       .init());
     this.getService<CookieSessionManager>("SessionManager").resolve();
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     ctx.getSession().identUsed = "bouzouf";
     await ctx.end();
-    let sessions = await store.getAll();
+    const sessions = await store.getAll();
     assert.strictEqual(sessions.length, 1);
-    let cookie = await this.webda.getCrypto().jwtVerify(ctx.getResponseCookies()["test"].value);
+    const cookie = await this.webda.getCrypto().jwtVerify(ctx.getResponseCookies()["test"].value);
     assert.strictEqual(cookie.uuid, undefined);
     assert.strictEqual(cookie.identUsed, undefined);
     assert.strictEqual(cookie.sub, sessions[0].getUuid());
 
-    let ctx2 = await this.newContext();
+    const ctx2 = await this.newContext();
     ctx2.getHttpContext().cookies = {
       test: ctx.getResponseCookies()["test"].value
     };
     await ctx2.init(true);
-    let session = ctx2.getSession<UnknownSession>();
+    const session = ctx2.getSession<UnknownSession>();
     assert.strictEqual(session.uuid, sessions[0].getUuid());
     assert.strictEqual(session.identUsed, "bouzouf");
     assert.strictEqual(session.sub, undefined);
-    let opCtx = new OperationContext(this.webda);
+    const opCtx = new OperationContext(this.webda);
     // cov
     await this.getService<CookieSessionManager>("SessionManager").load(opCtx);
     await this.getService<CookieSessionManager>("SessionManager").save(opCtx, undefined);

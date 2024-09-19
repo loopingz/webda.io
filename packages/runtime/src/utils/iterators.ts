@@ -29,7 +29,7 @@ export class EventIterator {
       events = { [events]: i => i };
     }
     // Replace true by identity function
-    for (let i in events) {
+    for (const i in events) {
       if (events[i] === true) {
         events[i] = i => i;
       }
@@ -39,7 +39,7 @@ export class EventIterator {
   }
 
   async push(event: string, data: any) {
-    let tdata = await this.events[event](data);
+    const tdata = await this.events[event](data);
     if (tdata === undefined) {
       return;
     }
@@ -68,7 +68,7 @@ export class EventIterator {
         yield this.prefix ? { [this.prefix]: value } : value;
       }
       this.eventEmitter.setMaxListeners(this.eventEmitter.getMaxListeners() + Object.keys(this.events).length);
-      for (let event in this.events) {
+      for (const event in this.events) {
         this.listeners[event] = data => {
           this.push(event, data);
         };
@@ -113,19 +113,19 @@ function isAsyncGenerator(it: any): it is AsyncGenerator {
  */
 export class MergedIterator {
   static async *iterate(data: any, ignoreUndefined = false, transformer: (data: any) => any = a => a) {
-    let res = {};
+    const res = {};
     let available = false;
-    let asyncs: {
+    const asyncs: {
       [key: string]: {
         attr: any;
         value: Promise<any>;
         type: string;
       };
     } = {};
-    for (let i in data) {
+    for (const i in data) {
       const attr = data[i];
       const getPromise = async attr => {
-        let info = await attr.next();
+        const info = await attr.next();
         available = true;
         if (info.done) {
           delete asyncs[i];
@@ -162,7 +162,7 @@ export class MergedIterator {
         yield res;
         available = false;
       }
-      let p = Object.keys(asyncs).map(i => asyncs[i].value);
+      const p = Object.keys(asyncs).map(i => asyncs[i].value);
       await Promise.race(p);
     }
   }

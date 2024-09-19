@@ -5,11 +5,11 @@ import { Store, CoreModel, Ident, User, WebdaError } from "../index";
 class RESTDomainServiceTest extends WebdaInternalSimpleTest {
   async httpCRUD(url: string = "/users") {
     let eventFired;
-    let userStore: Store<User> = User.store();
-    let ctx, executor;
+    const userStore: Store<User> = User.store();
+    let executor;
     await userStore.__clean();
-    ctx = await this.newContext({});
-    ctx.session.login("PLOP", "fake_ident");
+    const ctx = await this.newContext({});
+    ctx.getSession().login("PLOP", "fake_ident");
     executor = this.getExecutor(ctx, "test.webda.io", "POST", url, {
       type: "CRUD",
       uuid: "PLOP",
@@ -17,7 +17,7 @@ class RESTDomainServiceTest extends WebdaInternalSimpleTest {
     });
     assert.notStrictEqual(executor, undefined);
     await executor.execute(ctx);
-    ctx.body = undefined;
+    ctx["body"] = undefined;
     assert.strictEqual((await userStore.getAll()).length, 1);
     await this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`).execute(ctx);
     assert.notStrictEqual(ctx.getResponseBody(), undefined);
@@ -93,17 +93,17 @@ class RESTDomainServiceTest extends WebdaInternalSimpleTest {
   }
 
   async modelActions(url = "/idents") {
-    let identStore: Store<CoreModel> = Ident.store();
+    const identStore: Store<CoreModel> = Ident.store();
     assert.notStrictEqual(identStore.getModel(), undefined);
     let eventFired = 0;
-    let executor, ctx;
+    let executor;
     identStore.on("Store.Action", evt => {
       eventFired++;
     });
     identStore.on("Store.Actioned", evt => {
       eventFired++;
     });
-    ctx = await this.newContext({
+    const ctx = await this.newContext({
       type: "CRUD",
       uuid: "PLOP"
     });

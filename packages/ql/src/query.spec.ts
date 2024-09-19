@@ -18,7 +18,7 @@ const targets = [
 class QueryTest {
   @test
   dev() {
-    let queryMap = {
+    const queryMap = {
       "a = 1 AND b = 2 AND c = 3 AND d = 4": "a = 1 AND b = 2 AND c = 3 AND d = 4",
       "a = 1 AND (b = 2 AND c = 3) AND d = 4": "a = 1 AND b = 2 AND c = 3 AND d = 4",
       "a = 1 AND ((b = 2 AND c = 3) AND d = 4)": "a = 1 AND b = 2 AND c = 3 AND d = 4",
@@ -55,7 +55,7 @@ class QueryTest {
       "a = 1 ORDER BY a DESC, b ASC": null,
       "(attr3 >= 12)": true
     };
-    for (let query in queryMap) {
+    for (const query in queryMap) {
       const validator = new WebdaQL.QueryValidator(query);
       assert.strictEqual(validator.displayTree().replace(/\s/g, ""), query.replace(/\s/g, ""));
       if (typeof queryMap[query] === "string") {
@@ -199,7 +199,7 @@ class QueryTest {
 
   @test
   partialValidator() {
-    let validator = new WebdaQL.PartialValidator("attr1 = 'plop' AND attr2 = 'ok'");
+    const validator = new WebdaQL.PartialValidator("attr1 = 'plop' AND attr2 = 'ok'");
     assert.ok(validator.eval({ attr1: "plop" }));
     assert.ok(validator.wasPartialMatch());
     assert.ok(!validator.eval({ attr1: "plop" }, false));

@@ -8,13 +8,13 @@ import { MigrationStore } from "./migration";
 class MigrationTest extends WebdaSimpleTest {
   @test
   async test() {
-    let from = await this.registerService(new MemoryStore(this.webda, "from", {}))
+    const from = await this.registerService(new MemoryStore(this.webda, "from", {}))
       .resolve()
       .init();
-    let to = await this.registerService(new MemoryStore(this.webda, "to", {}))
+    const to = await this.registerService(new MemoryStore(this.webda, "to", {}))
       .resolve()
       .init();
-    let migration = await this.registerService(new MigrationStore(this.webda, "migration", { from: "from", to: "to" }))
+    const migration = await this.registerService(new MigrationStore(this.webda, "migration", { from: "from", to: "to" }))
       .resolve()
       .init();
     for (let i = 1; i <= 1000; i++) {

@@ -16,7 +16,7 @@ export function Route(
   methods: HttpMethodType | HttpMethodType[] = ["GET"],
   openapi: OpenAPIWebdaDefinition = {}
 ) {
-  return function (target: any, executor: string) {
+  return (target: any, executor: string) => {
     target.constructor.routes ??= {};
     target.constructor.routes[route] ??= [];
     target.constructor.routes[route].push({
@@ -185,7 +185,7 @@ export class Router {
         return;
       }
       // Check and add warning if same method is used
-      let methods = this.routes[finalUrl].map((r: RouteInfo) => r.methods).flat();
+      const methods = this.routes[finalUrl].map((r: RouteInfo) => r.methods).flat();
       info.methods.forEach(m => {
         if (methods.indexOf(m) >= 0) {
           if (!info.override) {
@@ -242,7 +242,7 @@ export class Router {
 
     // Order path desc
     this.pathMap = [];
-    for (let i in this.routes) {
+    for (const i in this.routes) {
       // Might need to trail the query string
       this.routes[i].forEach((config: RouteInfo) => {
         this.pathMap.push({
@@ -258,9 +258,9 @@ export class Router {
   protected comparePath(a, b): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
-    let bs = b.url.replace(/\{[^{}]+}/, "{}").split("/");
-    let as = a.url.replace(/\{[^{}]+}/, "{}").split("/");
-    for (let i in as) {
+    const bs = b.url.replace(/\{[^{}]+}/, "{}").split("/");
+    const as = a.url.replace(/\{[^{}]+}/, "{}").split("/");
+    for (const i in as) {
       if (bs[i] === undefined) return -1;
       if (as[i] === bs[i]) continue;
       if (as[i][0] === "{" && bs[i][0] !== "{") return 1;
@@ -275,13 +275,13 @@ export class Router {
    */
   protected initURITemplates(config: Map<string, RouteInfo[]>): void {
     // Prepare tbe URI parser
-    for (let map in config) {
+    for (const map in config) {
       if (map.indexOf("{") !== -1) {
         config[map].forEach((e: RouteInfo) => {
-          let idx = map.indexOf("{?");
+          const idx = map.indexOf("{?");
           let queryOptional = true;
           if (idx >= 0) {
-            let query = map.substring(idx + 2, map.length - 1);
+            const query = map.substring(idx + 2, map.length - 1);
             e._queryParams = [];
             query.split(",").forEach(q => {
               if (q.endsWith("*")) {
@@ -301,7 +301,7 @@ export class Router {
             // We do not use uri-templates for query parsing
             //map = map.substring(0, idx) + "?{+URITemplateQuery}";
             const templates = [uriTemplates(map.substring(0, idx) + "?{+URITemplateQuery}")];
-            let pathTemplate = uriTemplates(map.substring(0, idx));
+            const pathTemplate = uriTemplates(map.substring(0, idx));
             if (queryOptional) {
               templates.push(pathTemplate);
             }
@@ -327,8 +327,8 @@ export class Router {
    */
   getRouteMethodsFromUrl(url): HttpMethodType[] {
     const finalUrl = this.getFinalUrl(url);
-    let methods = new Set<HttpMethodType>();
-    for (let i in this.pathMap) {
+    const methods = new Set<HttpMethodType>();
+    for (const i in this.pathMap) {
       const routeUrl = this.pathMap[i].url;
       const map = this.pathMap[i].config;
 
@@ -349,8 +349,8 @@ export class Router {
    */
   public getRouteFromUrl(ctx: WebContext, method: HttpMethodType, url: string): any {
     const finalUrl = this.getFinalUrl(url);
-    let parameters = this.webda.getConfiguration().parameters;
-    for (let i in this.pathMap) {
+    const parameters = this.webda.getConfiguration().parameters;
+    for (const i in this.pathMap) {
       const routeUrl = this.pathMap[i].url;
       const map = this.pathMap[i].config;
 
@@ -368,7 +368,7 @@ export class Router {
       }
       const parse_result = map._uriTemplateParse.fromUri(finalUrl, { strict: true });
       if (parse_result !== undefined) {
-        let parseUrl = new URL(`http://localhost${finalUrl}`);
+        const parseUrl = new URL(`http://localhost${finalUrl}`);
         if (map._queryCatchAll) {
           parse_result[map._queryCatchAll] = {};
           parseUrl.searchParams.forEach((v, k) => {
@@ -419,8 +419,8 @@ export class Router {
    * @param skipHidden add hidden routes or not
    */
   completeOpenAPI(openapi: OpenAPIV3.Document, skipHidden: boolean = true) {
-    let hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
-    for (let i in this.routes) {
+    const hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
+    for (const i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
         route.openapi = this.webda
           .getApplication()
@@ -471,7 +471,7 @@ export class Router {
           let summary;
           let operationId;
           let requestBody;
-          let tags = route.openapi.tags ?? [];
+          const tags = route.openapi.tags ?? [];
           // Refactor here
           if (route.openapi[method.toLowerCase()]) {
             responses = route.openapi[method.toLowerCase()].responses;
@@ -487,9 +487,9 @@ export class Router {
               description: "Operation success"
             }
           };
-          for (let j in responses) {
+          for (const j in responses) {
             // Add default answer
-            let code = parseInt(j);
+            const code = parseInt(j);
             if (code < 300 && code >= 200 && !responses[j].description) {
               responses[j].description = "Operation success";
               responses[j].content ??= {};
@@ -502,7 +502,7 @@ export class Router {
           if (tags.length === 0) {
             tags.push(route.executor);
           }
-          let desc: OpenAPIV3.OperationObject = {
+          const desc: OpenAPIV3.OperationObject = {
             tags,
             responses: responses,
             description,

@@ -44,7 +44,7 @@ export class FileLogger extends WorkerLogger {
       }
       this.outputStream = fs.createWriteStream(this.filepath, { flags: "a" });
     }
-    let line = this.getLine(msg);
+    const line = this.getLine(msg);
     this.outputStream.write(line);
     this.outputCount += line.length;
 
@@ -83,9 +83,9 @@ export class FileLogger extends WorkerLogger {
 
   rotateLogs(filepath: string) {
     this.outputStream?.close();
-    let filename = path.basename(filepath);
-    let dirname = path.dirname(filepath);
-    let num = fs.readdirSync(dirname).filter(n => n.startsWith(filename)).length + 1;
+    const filename = path.basename(filepath);
+    const dirname = path.dirname(filepath);
+    const num = fs.readdirSync(dirname).filter(n => n.startsWith(filename)).length + 1;
     fs.renameSync(filepath, path.join(dirname, filename + num));
     this.outputStream = fs.createWriteStream(filepath, { flags: "a" });
     this.outputCount = 0;

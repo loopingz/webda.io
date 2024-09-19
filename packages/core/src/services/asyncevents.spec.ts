@@ -11,12 +11,12 @@ import { AsyncEvent, EventService } from "./asyncevents";
 class AsyncEventsTest extends WebdaTest {
   @test
   async simple() {
-    var users: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("Users");
-    var eventsCount = 0;
-    var priorityEventsCount = 0;
-    var defaultQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("EventQueue");
-    var priorityQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("PriorityEventQueue");
-    var eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
+    const users: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("Users");
+    let eventsCount = 0;
+    let priorityEventsCount = 0;
+    const defaultQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("EventQueue");
+    const priorityQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("PriorityEventQueue");
+    const eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
     users.onAsync("Store.Saved", () => {
       eventsCount++;
     });
@@ -68,7 +68,7 @@ class AsyncEventsTest extends WebdaTest {
   }
 
   @test worker() {
-    let eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
+    const eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
     eventService._queues = {
       plop: {
         // @ts-ignore
@@ -84,12 +84,12 @@ class AsyncEventsTest extends WebdaTest {
   }
 
   @test async computeParameters() {
-    let evt = new EventService(this.webda, "none", { sync: false });
+    const evt = new EventService(this.webda, "none", { sync: false });
     await assert.rejects(() => evt.computeParameters(), /Need at least one queue for async to be ready/);
   }
 
   @test async cov() {
-    let evt = new EventService(this.webda, "none", { sync: true });
+    const evt = new EventService(this.webda, "none", { sync: true });
     assert.throws(
       () => evt.bindAsyncListener(evt, "plop", undefined, "plop"),
       /EventService is not configured for asynchronous/
@@ -100,7 +100,7 @@ class AsyncEventsTest extends WebdaTest {
       /Callbacks should not be empty, possible application version mismatch between emitter and worker/
     );
     evt._async = true;
-    let stub = sinon.spy(this.webda.getService("Users"), "on");
+    const stub = sinon.spy(this.webda.getService("Users"), "on");
     try {
       evt.bindAsyncListener(this.webda.getService("Users"), "plop", () => {}, "priority");
       evt.bindAsyncListener(this.webda.getService("Users"), "plop", () => {}, "priority");

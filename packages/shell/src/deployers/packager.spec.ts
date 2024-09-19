@@ -29,7 +29,7 @@ export class WorkspaceTestApplication extends SourceTestApplication {
         [path.join(__dirname, "..", "..", "test", "fakeworkspace", "package1"), "package1"],
         [path.join("/tmp/.webda-unit-test", "package2"), "package2"]
       ].forEach(link => {
-        let dst = path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", ...link[1].split("/"));
+        const dst = path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", ...link[1].split("/"));
         // Remove symbolic link
         try {
           if (fse.lstatSync(dst)) {
@@ -60,7 +60,7 @@ class PackagerTest {
     console.log("PackagerTest.simple:Starting");
     await WebdaSampleApplication.load();
     // Check override is ok
-    let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-2");
+    const zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-2");
 
     [
       WebdaSampleApplication.getAppPath("lib/services/dynamic.js"),
@@ -82,8 +82,8 @@ class PackagerTest {
     await deployer.deploy();
 
     // Check webda.config.json contains cachedModules
-    let files = {};
-    let captureFiles = {
+    const files = {};
+    const captureFiles = {
       "webda.config.json": ""
     };
     console.log("PackagerTest.simple:Reading zip");
@@ -91,8 +91,8 @@ class PackagerTest {
       fs
         .createReadStream(zipPath + ".zip", { emitClose: true })
         .pipe(unzip.Parse())
-        .on("entry", async function (entry) {
-          var fileName = entry.path;
+        .on("entry", async entry => {
+          const fileName = entry.path;
           files[fileName] = true;
           if (captureFiles[fileName] === undefined) {
             entry.autodrain();
@@ -112,7 +112,7 @@ class PackagerTest {
     assert.notStrictEqual(files["node_modules/@webda/core/package.json"], undefined, "Cannot find @webda/core package");
     // Should get the module
     assert.notStrictEqual(files["node_modules/uuid/package.json"], undefined, "Cannot find uuid package");
-    let config = JSON.parse(captureFiles["webda.config.json"]);
+    const config = JSON.parse(captureFiles["webda.config.json"]);
     // Ensure CachedModules are generated for packages
     assert.notStrictEqual(config.cachedModules, undefined);
     assert.strictEqual(
@@ -139,8 +139,8 @@ class PackagerTest {
   @test
   async excludePackages() {
     await WebdaSampleApplication.load();
-    let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-3");
-    let deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
+    const zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-3");
+    const deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
       name: "deployer",
       type: "Packager",
       package: {
@@ -175,7 +175,7 @@ class PackagerTest {
 
   @test
   getDependencies() {
-    let cwd = process.cwd();
+    const cwd = process.cwd();
     try {
       process.chdir(path.join(__dirname, "..", "..", "..", ".."));
       Packager.getDependencies("packages/core");
@@ -187,7 +187,7 @@ class PackagerTest {
   @test
   getResolvedDependencies() {
     // @ts-ignore
-    let stub = sinon.stub(Packager, "getDependencies").callsFake(() => {
+    const stub = sinon.stub(Packager, "getDependencies").callsFake(() => {
       return {
         yargs: [{ version: ">=1.0.0" }, { version: "<1.0.0" }]
       };
@@ -213,8 +213,8 @@ class PackagerTest {
     const workspaceApp = await WorkspaceTestApplication.init();
     try {
       fse.removeSync(path.join(workspaceApp.getAppPath(), "dist"));
-      let zipPath = path.join(workspaceApp.getAppPath(), "dist", "package-2");
-      let deployer = new Packager(new DeploymentManager(workspaceApp, "Production"), {
+      const zipPath = path.join(workspaceApp.getAppPath(), "dist", "package-2");
+      const deployer = new Packager(new DeploymentManager(workspaceApp, "Production"), {
         name: "deployer",
         type: "Packager",
         package: {
@@ -230,8 +230,8 @@ class PackagerTest {
       await deployer.deploy();
 
       // Do archive error
-      let stub = sinon.stub(deployer, "getArchiver").callsFake(async () => {
-        let evt = new EventEmitter();
+      const stub = sinon.stub(deployer, "getArchiver").callsFake(async () => {
+        const evt = new EventEmitter();
         // @ts-ignore
         evt.pipe = () => {
           evt.emit("error", new Error("I/O"));

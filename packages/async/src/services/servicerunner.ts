@@ -127,13 +127,13 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
 
         await action.patch({ status: "SUCCESS" }, null);
         this.log("INFO", "Job", action.getUuid(), "finished");
-      } catch (err) {
+      } catch (err: unknown) {
         await logger?.saveAndClose();
         await action.patch(
           {
             status: "ERROR",
-            errorMessage: err.message,
-            errorName: err.name
+            errorMessage: (err as Error).message,
+            errorName: (err as Error).name
           },
           null
         );

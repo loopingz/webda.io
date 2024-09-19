@@ -6,10 +6,12 @@ export default [
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
   {
+    ignores: ["node_modules", "**/lib/*"]
+  },
+  {
     plugins: {
       "unused-imports": unusedImports
     },
-    ignores: ["node_modules", "**/lib/*"],
     files: ["**/*.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",

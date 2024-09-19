@@ -153,8 +153,10 @@
         "authenticationService",
         "client_id",
         "client_secret",
+        "exposeScope",
         "no_referer",
         "redirects",
+        "scope",
         "type"
       ],
       "description": "Credentials to manage Google Auth https://developers.google.com/identity/protocols/oauth2",

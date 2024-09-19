@@ -520,12 +520,15 @@ export class Compiler {
     const className = node.name.escapedText.toString();
     if (exportNodes.length === 0) {
       // Try to find a generic export
-      const namedExports = tsquery(this.getParent(node, ts.SyntaxKind.SourceFile), `ExportSpecifier [name=${className}]`);
+      const namedExports = tsquery(
+        this.getParent(node, ts.SyntaxKind.SourceFile),
+        `ExportSpecifier [name=${className}]`
+      );
       if (namedExports.length === 0) {
         return undefined;
       }
       // Return the export alias
-      return (<ts.ExportSpecifier>namedExports.shift().parent).name.escapedText.toString();
+      return (<ts.ExportSpecifier>namedExports.shift().parent).name.toString();
     }
     if (tsquery(node, "DefaultKeyword").length) {
       return "default";

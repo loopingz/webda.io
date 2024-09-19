@@ -31,7 +31,7 @@
         "scheduled": "number",
         "errorMessage": "string",
         "errorName": "string",
-        "job": "Job",
+        "job": "unknown",
         "_lastJobUpdate": "number",
         "results": "any",
         "statusDetails": "any",
@@ -56,7 +56,7 @@
         "scheduled": "number",
         "errorMessage": "string",
         "errorName": "string",
-        "job": "Job",
+        "job": "unknown",
         "_lastJobUpdate": "number",
         "results": "any",
         "statusDetails": "any",
@@ -82,7 +82,7 @@
         "scheduled": "number",
         "errorMessage": "string",
         "errorName": "string",
-        "job": "Job",
+        "job": "unknown",
         "_lastJobUpdate": "number",
         "results": "any",
         "statusDetails": "any",
@@ -149,7 +149,6 @@
           "description": "If an error occured it should contain the name"
         },
         "job": {
-          "type": "object",
           "description": "Job information"
         },
         "_lastJobUpdate": {
@@ -332,7 +331,6 @@
           "description": "If an error occured it should contain the name"
         },
         "job": {
-          "type": "object",
           "description": "Job information"
         },
         "_lastJobUpdate": {
@@ -547,7 +545,6 @@
           "description": "If an error occured it should contain the name"
         },
         "job": {
-          "type": "object",
           "description": "Job information"
         },
         "_lastJobUpdate": {
@@ -791,7 +788,15 @@
                     },
                     "searchParams": {
                       "type": "object",
-                      "properties": {},
+                      "properties": {
+                        "size": {
+                          "type": "number",
+                          "description": "The total number of parameter entries."
+                        }
+                      },
+                      "required": [
+                        "size"
+                      ],
                       "description": "Gets the `URLSearchParams` object representing the query parameters of the URL. This property is read-only but the `URLSearchParams` object it provides can be used to mutate the URL instance; to replace the entirety of query parameters of the URL, use the  {@link  search }  setter. See `URLSearchParams` documentation for details.\n\nUse care when using `.searchParams` to modify the `URL` because, per the WHATWG specification, the `URLSearchParams` object uses different rules to determine which characters to percent-encode. For instance, the `URL` object will not percent encode the ASCII tilde (`~`) character, while `URLSearchParams` will always encode it:\n\n```js const myUrl = new URL('https://example.org/abc?foo=~bar');\n\nconsole.log(myUrl.search);  // prints ?foo=~bar\n\n// Modify the URL via searchParams... myUrl.searchParams.sort();\n\nconsole.log(myUrl.search);  // prints ?foo=%7Ebar ```"
                     },
                     "username": {
@@ -828,13 +833,15 @@
             },
             "windowsHide": {
               "type": "boolean",
-              "default": true
+              "default": false
             },
             "argv0": {
               "type": "string"
             },
             "stdio": {
-              "$ref": "#/definitions/StdioOptions"
+              "$ref": "#/definitions/StdioOptions",
+              "description": "Can be set to 'pipe', 'inherit', 'overlapped', or 'ignore', or an array of these strings. If passed as an array, the first element is used for `stdin`, the second for `stdout`, and the third for `stderr`. A fourth element can be used to specify the `stdio` behavior beyond the standard streams. See  {@link  ChildProcess.stdio }  for more information.",
+              "default": "pipe"
             },
             "shell": {
               "type": [

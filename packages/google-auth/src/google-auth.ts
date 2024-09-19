@@ -58,7 +58,7 @@ export class GoogleParameters extends OAuthServiceParameters {
 
   constructor(params) {
     super(params);
-    this.access_type = this.access_type || "online";
+    this.access_type ??= "online";
   }
 }
 

@@ -424,6 +424,9 @@
                           "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
                           "default": true
                         },
+                        "ALPNCallback": {
+                          "description": "If set, this will be called when a client opens a connection using the ALPN extension. One argument will be passed to the callback: an object containing `servername` and `protocols` fields, respectively containing the server name from the SNI extension (if any) and an array of ALPN protocol name strings. The callback must return either one of the strings listed in `protocols`, which will be returned to the client as the selected ALPN protocol, or `undefined`, to reject the connection with a fatal alert. If a string is returned that does not match one of the client's ALPN protocols, an error will be thrown. This option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
+                        },
                         "ca": {
                           "anyOf": [
                             {
@@ -685,7 +688,7 @@
                               ]
                             }
                           ],
-                          "description": "Diffie Hellman parameters, required for Perfect Forward Secrecy. Use openssl dhparam to create the parameters. The key length must be greater than or equal to 1024 bits or else an error will be thrown. Although 1024 bits is permissible, use 2048 bits or larger for stronger security. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available."
+                          "description": "`'auto'` or custom Diffie-Hellman parameters, required for non-ECDHE perfect forward secrecy. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available. ECDHE-based perfect forward secrecy will still be available."
                         },
                         "ecdhCurve": {
                           "type": "string",
@@ -1520,6 +1523,9 @@
                           "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
                           "default": true
                         },
+                        "ALPNCallback": {
+                          "description": "If set, this will be called when a client opens a connection using the ALPN extension. One argument will be passed to the callback: an object containing `servername` and `protocols` fields, respectively containing the server name from the SNI extension (if any) and an array of ALPN protocol name strings. The callback must return either one of the strings listed in `protocols`, which will be returned to the client as the selected ALPN protocol, or `undefined`, to reject the connection with a fatal alert. If a string is returned that does not match one of the client's ALPN protocols, an error will be thrown. This option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
+                        },
                         "ca": {
                           "anyOf": [
                             {
@@ -1781,7 +1787,7 @@
                               ]
                             }
                           ],
-                          "description": "Diffie Hellman parameters, required for Perfect Forward Secrecy. Use openssl dhparam to create the parameters. The key length must be greater than or equal to 1024 bits or else an error will be thrown. Although 1024 bits is permissible, use 2048 bits or larger for stronger security. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available."
+                          "description": "`'auto'` or custom Diffie-Hellman parameters, required for non-ECDHE perfect forward secrecy. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available. ECDHE-based perfect forward secrecy will still be available."
                         },
                         "ecdhCurve": {
                           "type": "string",

@@ -26,7 +26,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/json-schema": "^7.0.8",
-    "@types/node": "18.11.13",
+    "@types/node": "18.19.0",
     "@types/sprintf-js": "^1.1.2",
     "@webda/tsc-esm": "^4.0.0-beta.1",
     "c8": "^10.1.2",

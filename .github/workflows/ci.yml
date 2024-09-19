@@ -53,14 +53,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          cache: "pnpm"
 
       - uses: fsouza/fake-gcs-action@v0.4.1
         with:
@@ -103,13 +98,13 @@ jobs:
           postgresql init scripts: packages/postgres/test/sql
 
       - name: Install dependencies
-        run: pnpm install
+        run: yarn install
 
       - name: Build
-        run: pnpm run build
+        run: yarn run build
 
       - name: Run tests
-        run: pnpm run test --exclude @webda/shell
+        run: yarn run test --exclude @webda/shell
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
           GCS_API_ENDPOINT: http://storage.gcs.127.0.0.1.nip.io:4443
@@ -118,7 +113,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/webda.io/webda.io/packages/gcp/webda-test.json
 
       - name: Run shell tests
-        run: pnpm run nx run @webda/shell:test
+        run: yarn run nx run @webda/shell:test
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 

@@ -1,3 +1,5 @@
 packages:
- - packages/*
- - sample-app
+  - packages/*
+  - sample-app
+prefer-workspace-packages: true
+link-workspace-packages: true

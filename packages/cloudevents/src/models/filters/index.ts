@@ -1,13 +1,20 @@
 //import RegexEscape from "regex-escape";
-import { Filter, FilterImplementation } from "./abstract";
-import { AllFilterImplementation, AnyFilterImplementation } from "./logical";
-import { SqlFilterImplementation } from "./sql";
-import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string";
+import { FilterImplementation } from "./abstract";
+import { AllFilter, AllFilterImplementation, AnyFilter, AnyFilterImplementation, NotFilter } from "./logical";
+import { SqlFilter, SqlFilterImplementation } from "./sql";
+import {
+  ExactFilter,
+  ExactFilterImplementation,
+  PrefixFilter,
+  PrefixFilterImplementation,
+  SuffixFilter,
+  SuffixFilterImplementation
+} from "./string";
 
 export * from "./abstract";
 
 interface FilterImplementationConstructor {
-  new (definition: any): FilterImplementation;
+  new (definition: any): FilterImplementation<Filter>;
 }
 
 /**
@@ -22,6 +29,8 @@ const FilterImplementations: { [key: string]: FilterImplementationConstructor } 
   sql: SqlFilterImplementation
 };
 
+export type Filter = NotFilter | AllFilter | SqlFilter | ExactFilter | PrefixFilter | SuffixFilter | AnyFilter;
+
 /**
  * Retrieve an FilterImplementation object based on the
  * definition
@@ -32,11 +41,11 @@ export class FiltersHelper {
    * @param filter
    * @returns
    */
-  static get(filter: Filter): FilterImplementation {
+  static get<T extends Filter>(filter: T): FilterImplementation<Filter> {
     const type = Object.keys(filter).pop();
     if (type === undefined || !FilterImplementations[type]) {
       throw new Error(`Unsupported filter type '${type}'`);
     }
-    return new FilterImplementations[type](filter).optimize();
+    return <FilterImplementation<T>>new FilterImplementations[type](filter).optimize();
   }
 }

@@ -1,6 +1,6 @@
 import { CloudEvent } from "cloudevents";
-import { FiltersHelper } from ".";
-import { Filter, FilterImplementation } from "./abstract";
+import { FiltersHelper, Filter } from ".";
+import { FilterImplementation } from "./abstract";
 
 /**
  * Use of this MUST include one nested filter expression, where the result of this

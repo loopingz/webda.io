@@ -220,7 +220,7 @@
                 "retry": {
                   "anyOf": [
                     {
-                      "$ref": "#/definitions/Partial%3Cclass-1630537056-822-3488-1630537056-0-17392%3E"
+                      "$ref": "#/definitions/Partial%3Cclass-657338214-822-3488-657338214-0-17392%3E"
                     },
                     {
                       "type": "null"
@@ -1203,7 +1203,7 @@
             }
           }
         },
-        "Partial<class-1630537056-822-3488-1630537056-0-17392>": {
+        "Partial<class-657338214-822-3488-657338214-0-17392>": {
           "type": "object",
           "properties": {
             "retryCodes": {

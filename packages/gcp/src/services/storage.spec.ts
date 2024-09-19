@@ -113,7 +113,7 @@ class StorageTest extends BinaryTest<Storage> {
 
   @test
   async cascadeDelete() {
-    const stubDelete = sinon.stub(this.getBinary(), "_cleanUsage").callsFake(() => {
+    const stubDelete = sinon.stub(await this.getBinary(), "_cleanUsage").callsFake(() => {
       throw new Error();
     });
     try {

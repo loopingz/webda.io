@@ -1,5 +1,6 @@
 import { CloudEvent } from "cloudevents";
 import { FilterImplementation } from "./abstract";
+import { Filter } from ".";
 
 /**
  * Use of this MUST include exactly one nested property, where the key is the name of the
@@ -46,7 +47,7 @@ export interface PrefixFilter {
 /**
  * Abstract class to read CloudEvent specified property
  */
-export abstract class StringPropertyFilterImplementation<T = unknown> extends FilterImplementation<T> {
+export abstract class StringPropertyFilterImplementation<T extends Filter> extends FilterImplementation<T> {
   /**
    * Property to read event from
    */

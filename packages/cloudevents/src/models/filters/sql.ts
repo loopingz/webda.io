@@ -283,7 +283,7 @@ export class UnaryLogicExpression extends Expression {
   /**
    * @override
    */
-  eval(target) {
+  eval(target: any): boolean {
     return !this.deps[0].eval(target);
   }
 
@@ -311,7 +311,7 @@ export class UnaryNumericExpression extends Expression {
   /**
    * @override
    */
-  eval(target) {
+  eval(target: any): number {
     return -1 * this.child.eval(target);
   }
 
@@ -352,7 +352,7 @@ export class LikeExpression extends Expression {
   /**
    * @override
    */
-  eval(target) {
+  eval(target: any): boolean {
     const res = this.regexp.exec(this.left.eval(target)) !== null;
     if (this.invert) {
       return !res;
@@ -383,7 +383,7 @@ export class ExistsExpression extends Expression {
   /**
    * @override
    */
-  eval(target) {
+  eval(target: any): boolean {
     return target[this.property] !== undefined;
   }
 
@@ -399,7 +399,7 @@ export class ExistsExpression extends Expression {
  * Represent a IN expression
  */
 export class InExpression extends Expression {
-  staticContent: any[];
+  staticContent?: any[];
   /**
    *
    * @param left part of the expression
@@ -419,7 +419,7 @@ export class InExpression extends Expression {
   /**
    * @override
    */
-  eval(target: any) {
+  eval(target: any): boolean {
     const right = this.staticContent || this.right.map(r => r.eval(target));
     if (this.invert) {
       return !right.includes(this.left.eval(target));
@@ -648,7 +648,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitCesql(ctx: CesqlContext): Expression {
-    return this.visit(ctx.children[0]);
+    return this.visit(ctx.children![0]);
   }
 
   /**
@@ -657,9 +657,9 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
   visitFunctionInvocationExpression(ctx: FunctionInvocationExpressionContext): Expression {
     const args = [];
     for (let i = 1; i < ctx.childCount; i += 2) {
-      args.push(...(<Expression[]>(<any>this.visit(ctx.children[i]))));
+      args.push(...(<Expression[]>(<any>this.visit(ctx.children![i]))));
     }
-    return new FunctionExpression(<any>ctx.children[0].text, ...args).resolve();
+    return new FunctionExpression(<any>ctx.children![0].text, ...args).resolve();
   }
 
   /**
@@ -680,7 +680,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitLikeExpression(ctx: LikeExpressionContext): Expression {
-    const [left, regexp] = [this.visit(ctx.children[0]), ctx.children[ctx.children.length - 1].text];
+    const [left, regexp] = [this.visit(ctx.children![0]), ctx.children![ctx.children!.length - 1].text];
     return new LikeExpression(left, regexp, ctx.childCount === 4).resolve();
   }
 
@@ -707,7 +707,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitBinaryMultiplicativeExpression(ctx: BinaryMultiplicativeExpressionContext): Expression {
-    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
     if (!["*", "/", "%"].includes(op)) {
       throw new Error("Not implemented");
@@ -719,7 +719,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitBinaryAdditiveExpression(ctx: BinaryAdditiveExpressionContext): Expression {
-    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
     if (!["+", "-"].includes(op)) {
       throw new Error("Not implemented");
@@ -732,7 +732,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @param ctx
    * @returns
    */
-  getChildrenResults(ctx: any) {
+  getChildrenResults(ctx: any): any[] {
     return ctx.children.map((c: any) => this.visit(c));
   }
 
@@ -742,7 +742,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @returns
    */
   visitBinaryComparisonExpression(ctx: BinaryComparisonExpressionContext): Expression {
-    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
     if (!["<", ">", "<=", ">=", "!=", "="].includes(op)) {
       throw new Error("Not implemented");
@@ -754,7 +754,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitBinaryLogicExpression(ctx: BinaryLogicExpressionContext): Expression {
-    const [left, op, right] = [this.visit(ctx.children[0]), ctx.children[1].text, this.visit(ctx.children[2])];
+    const [left, op, right] = [this.visit(ctx.children![0]), ctx.children![1].text, this.visit(ctx.children![2])];
     /* istanbul ignore next */
     if (!["AND", "OR", "XOR"].includes(op)) {
       throw new Error("Not implemented");
@@ -766,7 +766,7 @@ export class CESQLExpressionBuilder extends AbstractParseTreeVisitor<Expression>
    * @override
    */
   visitSubExpression(ctx: SubExpressionContext): Expression {
-    return this.visit(ctx.children[1]);
+    return this.visit(ctx.children![1]);
   }
 
   /**

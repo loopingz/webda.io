@@ -1,5 +1,6 @@
 import { CloudEvent, EmitterFunction, emitterFor, httpTransport } from "cloudevents";
 import { Filter, FilterImplementation, FiltersHelper } from "./filters";
+import { randomUUID } from "crypto";
 
 /**
  * For HTTP, the following settings properties SHOULD be supported by all implementations.
@@ -212,6 +213,11 @@ export function SubscriptionMixIn(clazz: any) {
     sink: string = "";
     filters: Filter[] = [];
 
+    constructor() {
+      super();
+      this.id ??= randomUUID();
+    }
+
     /**
      * Verify that an event match its filters
      * @param event
@@ -230,10 +236,11 @@ export function SubscriptionMixIn(clazz: any) {
      * Create the emitter for the subscription
      * @returns
      */
-    createEmitter() {
+    createEmitter(): EmitterFunction {
       if (this.protocol === "HTTP") {
         return emitterFor(httpTransport(this.sink), this.protocolsettings as any);
       }
+      throw new Error("Unsupported protocol");
     }
 
     /**

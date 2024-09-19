@@ -136,16 +136,17 @@ export async function WaitFor<T = any>(
  * Return a promise that can be cancelled
  */
 export class CancelablePromise<T = void> extends Promise<T> {
-  cancel: () => Promise<void>;
+  cancel: () => Promise<void> = () => {
+    throw new Error("Not initialized");
+  };
   constructor(
     callback: (resolve: (res: T) => void, reject: (err: any) => void) => void = () => {
       // noop
     },
-    onCancel: () => Promise<void> = undefined
+    onCancel?: () => Promise<void>
   ) {
-    let localReject;
     super((resolve, reject) => {
-      localReject = async () => {
+      this.cancel = async () => {
         if (onCancel) {
           await onCancel();
         }
@@ -154,7 +155,6 @@ export class CancelablePromise<T = void> extends Promise<T> {
       };
       callback(resolve, reject);
     });
-    this.cancel = localReject;
     Core.registerInteruptableProcess(this);
   }
 }
@@ -163,26 +163,26 @@ export class CancelablePromise<T = void> extends Promise<T> {
  * Create a promise that will loop on the same callback until cancelled
  */
 export class CancelableLoopPromise extends Promise<void> {
-  cancel: () => Promise<void>;
-  constructor(callback: (canceller: () => Promise<void>) => Promise<void>, onCancel: () => Promise<void> = undefined) {
-    let localReject;
+  cancel: () => Promise<void> = async () => {
+    throw new Error("Not initialized");
+  };
+  constructor(callback: (canceller: () => Promise<void>) => Promise<void>, onCancel?: () => Promise<void>) {
     let shouldRun = true;
     super(resolve => {
-      localReject = async () => {
+      this.cancel = async () => {
         if (onCancel) {
           await onCancel();
         }
         shouldRun = false;
         Core.unregisterInteruptableProcess(this);
       };
-      const loop = () => {
+      const loop: () => Promise<void> = async () => {
         if (shouldRun) {
-          return callback(localReject).then(loop);
+          return callback(this.cancel).then(loop);
         }
       };
-      resolve(callback(localReject).then(loop));
+      resolve(callback(this.cancel).then(loop));
     });
-    this.cancel = localReject;
     Core.registerInteruptableProcess(this);
   }
 

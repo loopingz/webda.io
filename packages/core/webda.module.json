@@ -2,33 +2,33 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/Aggregator": "lib/stores/aggregator:AggregatorService",
-    "Webda/AsyncEvents": "lib/services/asyncevents:EventService",
-    "Webda/Authentication": "lib/services/authentication:Authentication",
+    "Webda/Aggregator": "lib/stores/aggregator:[object Object]",
+    "Webda/AsyncEvents": "lib/services/asyncevents:[object Object]",
+    "Webda/Authentication": "lib/services/authentication:[object Object]",
     "Webda/Binary": "lib/services/binary:BinaryService",
-    "Webda/ConfigurationService": "lib/services/configuration:ConfigurationService",
+    "Webda/ConfigurationService": "lib/services/configuration:[object Object]",
     "Webda/ConsoleLogger": "lib/utils/logger:ConsoleLoggerService",
     "Webda/CookieSessionManager": "lib/utils/session:CookieSessionManager",
-    "Webda/CronService": "lib/services/cron:CronService",
+    "Webda/CronService": "lib/services/cron:[object Object]",
     "Webda/CryptoService": "lib/services/cryptoservice:CryptoService",
     "Webda/DebugMailer": "lib/services/debugmailer:DebugMailer",
     "Webda/FileBinary": "lib/services/filebinary:FileBinary",
     "Webda/FileConfiguration": "lib/services/fileconfiguration:FileConfigurationService",
     "Webda/FileLogger": "lib/utils/logger:FileLoggerService",
     "Webda/FileQueue": "lib/queues/filequeue:FileQueue",
-    "Webda/FileStore": "lib/stores/file:FileStore",
+    "Webda/FileStore": "lib/stores/file:[object Object]",
     "Webda/InvitationService": "lib/services/invitationservice:InvitationService",
     "Webda/KubernetesConfigurationService": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
-    "Webda/Mailer": "lib/services/mailer:Mailer",
-    "Webda/Mapper": "lib/stores/mapper:MapperService",
+    "Webda/Mailer": "lib/services/mailer:[object Object]",
+    "Webda/Mapper": "lib/stores/mapper:[object Object]",
     "Webda/MemoryLogger": "lib/utils/logger:MemoryLoggerService",
     "Webda/MemoryQueue": "lib/queues/memoryqueue:MemoryQueue",
-    "Webda/MemoryStore": "lib/stores/memory:MemoryStore",
+    "Webda/MemoryStore": "lib/stores/memory:[object Object]",
     "Webda/ModelsOperationsService": "lib/services/domainservice:ModelsOperationsService",
     "Webda/MultiNotificationService": "lib/services/notificationservice:default",
     "Webda/PrometheusService": "lib/services/prometheus:PrometheusService",
     "Webda/RESTDomainService": "lib/rest/restdomainservice:RESTDomainService",
-    "Webda/ResourceService": "lib/services/resource:ResourceService"
+    "Webda/ResourceService": "lib/services/resource:[object Object]"
   },
   "models": {
     "graph": {
@@ -109,16 +109,16 @@
     "plurals": {},
     "list": {
       "Webda/AclModel": "lib/models/aclmodel:AclModel",
-      "Webda/CoreModel": "lib/models/coremodel:CoreModel",
+      "Webda/CoreModel": "lib/models/coremodel:[object Object]",
       "Webda/Ident": "lib/test:Ident",
       "Webda/MyIdent": "lib/models/test:MyIdent",
       "Webda/MySimpleUser": "lib/models/test:MySimpleUser",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
-      "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
+      "Webda/RoleModel": "lib/models/rolemodel:[object Object]",
       "Webda/SimpleUser": "lib/models/user:SimpleUser",
       "Webda/Task": "lib/test:Task",
       "Webda/User": "lib/models/user:User",
-      "Webda/UuidModel": "lib/models/coremodel:UuidModel"
+      "Webda/UuidModel": "lib/models/coremodel:[object Object]"
     },
     "reflections": {
       "Webda/AclModel": {

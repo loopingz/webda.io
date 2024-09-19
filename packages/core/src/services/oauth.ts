@@ -33,14 +33,16 @@ export class OAuthServiceParameters extends ServiceParameters {
    *
    * The default value varying based on implementation
    * It should by default be the provider name in lowercase
+   *
+   * @SchemaOptional
    */
-  url?: string;
+  url: string;
   /**
    * Scope to request on OAuth flow
    *
    * @defaut ["email"]
    */
-  scope?: string[];
+  scope: string[];
   /**
    * If set to true it will add a ${url}/scope
    * So client can anticipate the requested scope
@@ -50,7 +52,7 @@ export class OAuthServiceParameters extends ServiceParameters {
    *
    * @default false
    */
-  exposeScope?: boolean;
+  exposeScope: boolean;
   /**
    * List of URIs authorized for redirect post authorization
    *
@@ -81,6 +83,8 @@ export class OAuthServiceParameters extends ServiceParameters {
     this.scope ??= ["email"];
     this.exposeScope ??= false;
     this.authenticationService ??= "Authentication";
+    this.authorized_uris ??= [];
+    this.no_referer ??= false;
   }
 }
 
@@ -137,7 +141,7 @@ export abstract class OAuthService<
    */
   constructor(webda: Core, name: string, params?: any) {
     super(webda, name, params);
-    this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}`;
+    this.parameters.url ??= this.getDefaultUrl();
   }
 
   initMetrics(): void {

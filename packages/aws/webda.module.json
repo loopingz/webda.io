@@ -8,7 +8,7 @@
     "Webda/AWSSecretsManager": "lib/services/secretsmanager:default",
     "Webda/CloudWatchLogger": "lib/services/cloudwatchlogger:default",
     "Webda/DynamoStore": "lib/services/dynamodb:default",
-    "Webda/LambdaCaller": "lib/services/lambdacaller:LambdaCaller",
+    "Webda/LambdaCaller": "lib/services/lambdacaller:[object Object]",
     "Webda/S3Binary": "lib/services/s3binary:default",
     "Webda/SQSQueue": "lib/services/sqsqueue:default"
   },

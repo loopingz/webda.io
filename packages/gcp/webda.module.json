@@ -80,15 +80,6 @@
           "description": "Additional models\n\nAllow this store to manage other models",
           "default": []
         },
-        "asyncDelete": {
-          "type": "boolean",
-          "description": "async delete"
-        },
-        "expose": {
-          "$ref": "#/definitions/StoreExposeParameters",
-          "description": "Expose the service to an urls",
-          "deprecated": "will probably be removed in 4.0 in favor of Expose annotation"
-        },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
@@ -137,7 +128,6 @@
         }
       },
       "required": [
-        "asyncDelete",
         "collection",
         "compoundIndexes",
         "slowQueryThreshold",
@@ -146,53 +136,6 @@
       "description": "Firebase parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "StoreExposeParameters": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL endpoint to use to expose REST Resources API",
-              "default": "service.getName().toLowerCase()"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "create": {
-                  "type": "boolean",
-                  "description": "Do not expose the POST"
-                },
-                "update": {
-                  "type": "boolean",
-                  "description": "Do not expose the PUT and PATCH"
-                },
-                "get": {
-                  "type": "boolean",
-                  "description": "Do not expose the GET"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Do not expose the DELETE"
-                },
-                "query": {
-                  "type": "boolean",
-                  "description": "Do not expose the query endpoint"
-                }
-              },
-              "description": "You can restrict any part of the CRUD",
-              "default": {}
-            },
-            "queryMethod": {
-              "type": "string",
-              "enum": [
-                "PUT",
-                "GET"
-              ],
-              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
-              "default": "GET"
-            }
-          },
-          "deprecated": "Store should not be exposed directly anymore\nYou should use the DomainService instead"
-        },
         "FireStoreIndex": {
           "type": "object",
           "additionalProperties": {
@@ -277,7 +220,7 @@
                 "retry": {
                   "anyOf": [
                     {
-                      "$ref": "#/definitions/Partial%3Cclass-657338214-822-3488-657338214-0-17392%3E"
+                      "$ref": "#/definitions/Partial%3Cclass-1630537056-822-3488-1630537056-0-17392%3E"
                     },
                     {
                       "type": "null"
@@ -1260,7 +1203,7 @@
             }
           }
         },
-        "Partial<class-657338214-822-3488-657338214-0-17392>": {
+        "Partial<class-1630537056-822-3488-1630537056-0-17392>": {
           "type": "object",
           "properties": {
             "retryCodes": {
@@ -1460,17 +1403,6 @@
           "type": "string",
           "description": "URL on which to serve the content"
         },
-        "map": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in",
-          "deprecated": true
-        },
         "models": {
           "type": "object",
           "additionalProperties": {
@@ -1481,41 +1413,10 @@
           },
           "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
         },
-        "expose": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL to expose the service to"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "get": {
-                  "type": "boolean",
-                  "description": "Restrict GET"
-                },
-                "create": {
-                  "type": "boolean",
-                  "description": "Restrict POST"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Restrict DELETE"
-                },
-                "metadata": {
-                  "type": "boolean",
-                  "description": "Restrict update of metadata"
-                }
-              },
-              "description": "Restrict some APIs"
-            }
-          },
-          "required": [
-            "url"
-          ],
-          "description": "Expose the service to http",
-          "deprecated": "will be removed in 4.0"
+        "maxFileSize": {
+          "type": "number",
+          "description": "Define the maximum filesize to accept as direct upload",
+          "default": "10*1024*1024"
         },
         "prefix": {
           "type": "string"
@@ -1534,7 +1435,6 @@
       },
       "required": [
         "bucket",
-        "map",
         "models",
         "type"
       ],

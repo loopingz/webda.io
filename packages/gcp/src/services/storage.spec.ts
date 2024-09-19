@@ -5,8 +5,7 @@ import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
-import { GCSFinder, Storage } from "./storage";
-import { readFileSync } from "fs";
+import { GCSFinder, Storage, StorageParameters } from "./storage";
 const { __dirname } = getCommonJS(import.meta.url);
 
 const BUCKET = "webda-dev";
@@ -19,9 +18,18 @@ class StorageTest extends BinaryTest<Storage> {
     this.buildWebda();
     await this.install();
     await super.before();
-    this.prefix = this.getBinary().getWebda().getUuid();
-    this.getBinary().getParameters().prefix = this.prefix;
-    this.getBinary().getParameters().endpoint = this.apiEndpoint;
+    this.prefix = this.binary.getWebda().getUuid();
+    this.binary.getParameters().prefix = this.prefix;
+    this.binary.getParameters().endpoint = this.apiEndpoint;
+  }
+
+  getBinary(): Promise<Storage<StorageParameters>> {
+    return this.addService(Storage, {
+      bucket: "webda-dev",
+      map: {
+        Users: ["images"]
+      }
+    });
   }
 
   async after() {
@@ -66,8 +74,8 @@ class StorageTest extends BinaryTest<Storage> {
   async putObject() {
     const body = `RAW Body: ${new Date()}`;
     const name = `${this.prefix}/plop/test`;
-    await this.getBinary().putObject(name, Buffer.from(body), { meta1: "meta1" }, BUCKET);
-    let getFile = this.getBinary().getStorageBucket().file(name);
+    await this.binary.putObject(name, Buffer.from(body), { meta1: "meta1" }, BUCKET);
+    let getFile = this.binary.getStorageBucket().file(name);
 
     assert.deepStrictEqual((await getFile.getMetadata())[0].metadata, {
       meta1: "meta1"
@@ -91,11 +99,6 @@ class StorageTest extends BinaryTest<Storage> {
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location !== undefined);
-  }
-
-  @test
-  async challenge() {
-    await this.testChallenge(false);
   }
 
   @test
@@ -125,7 +128,7 @@ class StorageTest extends BinaryTest<Storage> {
   async defaultGCS() {
     let { user1, ctx } = await this.setupDefault();
     // COV for double
-    const binary = this.getBinary();
+    const binary = await this.getBinary();
     const from = `${this.prefix}/rawAccess`;
     const to = `${this.prefix}/movedAccess`;
     await binary.putObject(from, path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
@@ -189,7 +192,7 @@ class StorageTest extends BinaryTest<Storage> {
 
   @test
   async bucketSize() {
-    const binary: Storage = this.getBinary();
+    const binary: Storage = await this.getBinary();
     sinon.stub(binary["storage"], "bucket").callsFake(() => {
       return <any>{
         getFiles: ({ pageToken }) => {

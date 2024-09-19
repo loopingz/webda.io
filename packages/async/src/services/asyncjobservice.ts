@@ -9,7 +9,6 @@ import {
   FileUtils,
   JSONUtils,
   OperationContext,
-  OperationError,
   Queue,
   RequestFilter,
   Service,
@@ -440,21 +439,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   async launchOperation(context: WebContext) {
     const { operationId, schedule } = context.getParameters();
-    try {
-      await this.getWebda().checkOperation(context, operationId);
-    } catch (err) {
-      if (err instanceof OperationError) {
-        if (err.type === "InvalidInput") {
-          throw new WebdaError.BadRequest("Invalid Input");
-        } else if (err.type === "PermissionDenied") {
-          throw new WebdaError.Forbidden("Permission Denied");
-        } else if (err.type === "Unknown") {
-          throw new WebdaError.NotFound("Operation not found");
-        }
-      } else {
-        throw err;
-      }
-    }
+    await this.getWebda().checkOperation(context, operationId);
     let action;
     if (schedule) {
       action = await this.scheduleAction(

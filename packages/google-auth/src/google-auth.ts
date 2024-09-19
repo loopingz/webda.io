@@ -175,14 +175,11 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    */
   async handleCallback(ctx: WebContext) {
     // Verify state are equal
-    if (ctx.getRequestParameters().state !== ctx.getSession<OAuthSession>().oauth?.state) {
-      this.log(
-        "WARN",
-        `Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth?.state}`
-      );
+    if (ctx.getParameters().state !== ctx.getSession<OAuthSession>().oauth?.state) {
+      this.log("WARN", `Bad State ${ctx.getParameters().state} !== ${ctx.getSession<OAuthSession>().oauth?.state}`);
       throw new WebdaError.Forbidden("Bad State");
     }
-    let code: string = ctx.getRequestParameters().code;
+    let code: string = ctx.getParameters().code;
     let redirect_uri = ctx.getHttpContext().getAbsoluteUrl(`${this.parameters.url}/callback`);
     let oauthClient = this.getOAuthClient(redirect_uri);
     let profile, identId;

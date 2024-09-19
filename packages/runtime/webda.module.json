@@ -206,10 +206,6 @@
           "description": "Additional models\n\nAllow this store to manage other models",
           "default": []
         },
-        "asyncDelete": {
-          "type": "boolean",
-          "description": "async delete"
-        },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
@@ -255,7 +251,6 @@
         }
       },
       "required": [
-        "asyncDelete",
         "from",
         "slowQueryThreshold",
         "to",

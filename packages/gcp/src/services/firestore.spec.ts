@@ -1,6 +1,6 @@
 import { Firestore } from "@google-cloud/firestore";
 import { suite, test } from "@testdeck/mocha";
-import { Ident } from "@webda/core";
+import { CoreModelDefinition } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import * as sinon from "sinon";
@@ -31,10 +31,6 @@ class FireStoreTest extends StoreTest {
     return user;
   }
 
-  getModelClass() {
-    return Ident;
-  }
-
   /**
    * Delete a full collection
    */
@@ -60,10 +56,7 @@ class FireStoreTest extends StoreTest {
     // Create a new store
     let store = new FireStore(this.webda, "queryStore", {
       collection: "webda-query",
-      compoundIndexes: [{ state: "asc", "team.id": "asc" }],
-      expose: {
-        url: "/query"
-      }
+      compoundIndexes: [{ state: "asc", "team.id": "asc" }]
     });
     store.resolve();
     await store.init();

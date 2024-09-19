@@ -82,7 +82,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
     let body = await ctx.getRequestBody();
     const { uuid, store, property } = ctx.getParameters();
-    let targetStore = this._verifyMapAndStore(ctx);
+    let targetStore = this.verifyMapAndStore(ctx);
     let object: any = await targetStore.get(uuid);
     let base64String = Buffer.from(body.hash, "hex").toString("base64");
     let params = {

@@ -12,8 +12,7 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc-esm",
-    "build:module": "webda build",
-    "build:watch": "webda build --watch",
+    "build:watch": "tsc-esm --watch",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && yarn run lint:fix",
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
@@ -22,7 +21,8 @@
     "test:bun": "bun test --coverage"
   },
   "dependencies": {
-    "cloudevents": "^8.0.1"
+    "cloudevents": "^8.0.1",
+    "antlr4ts": "^0.5.0-alpha.4"
   },
   "devDependencies": {
     "@types/node": "18.11.13",

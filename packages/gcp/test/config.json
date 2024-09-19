@@ -22,18 +22,12 @@
       "logLevel": "TEST"
     },
     "Users": {
-      "expose": {
-        "url": "/users"
-      },
       "type": "MemoryStore",
       "model": "Webda/User"
     },
     "binary": {
       "type": "Webda/GoogleCloudStorage",
       "bucket": "webda-dev",
-      "expose": {
-        "url": "/binary"
-      },
       "map": {
         "Users": ["images"]
       }

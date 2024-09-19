@@ -4,6 +4,7 @@
     "module": "es2020",
     "outDir": "./lib",
     "strict": false,
+    "skipLibCheck": true,
     "strictPropertyInitialization": false,
     "declaration": true,
     "sourceMap": true,
@@ -12,11 +13,6 @@
     "moduleResolution": "node",
     "declarationMap": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "**/node_modules",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["**/node_modules", "**/*.spec.ts"]
 }

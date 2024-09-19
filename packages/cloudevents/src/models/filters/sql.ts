@@ -25,7 +25,14 @@ import {
   UnaryNumericExpressionContext
 } from "./sql/CESQLParserParser";
 import { CESQLParserVisitor } from "./sql/CESQLParserVisitor";
-import { ExactFilterImplementation, PrefixFilterImplementation, SuffixFilterImplementation } from "./string";
+import {
+  ExactFilter,
+  ExactFilterImplementation,
+  PrefixFilter,
+  PrefixFilterImplementation,
+  SuffixFilter,
+  SuffixFilterImplementation
+} from "./string";
 
 /**
  * Use of this MUST have a string value, representing a CloudEvents SQL Expression.
@@ -853,7 +860,7 @@ export class SqlFilterImplementation extends FilterImplementation<SqlFilter> {
    *
    * @returns
    */
-  optimize(): FilterImplementation {
+  optimize(): FilterImplementation<ExactFilter | PrefixFilter | SuffixFilter | SqlFilter> {
     if (
       this.query instanceof BinaryComparisonExpression &&
       this.query.operator === "=" &&

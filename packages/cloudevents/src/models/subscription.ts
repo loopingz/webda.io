@@ -196,7 +196,7 @@ export function SubscriptionMixIn(clazz: any) {
   /**
    * Filter implementation
    */
-  let resolvedFilters: FilterImplementation;
+  let resolvedFilters: FilterImplementation<Filter>;
 
   /**
    * Emitter

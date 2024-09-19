@@ -67,7 +67,7 @@ export default class AsyncAction extends CoreModel {
   /**
    * Job information
    */
-  public job: Job;
+  public job: unknown;
 
   /**
    * Last time the job was updated

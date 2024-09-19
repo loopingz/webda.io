@@ -42,7 +42,7 @@
     "namespace": "WebdaDemo"
   },
   "devDependencies": {
-    "@types/node": "18.11.13",
+    "@types/node": "18.19.0",
     "tsx": "^4.17.0"
   },
   "type": "module",

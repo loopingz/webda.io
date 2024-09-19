@@ -14,7 +14,7 @@ import { WebdaTest } from "../test";
 import { AuthenticationParameters } from "./authentication";
 
 const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^& ]+)(&user=([^ &]+))?/;
-var userId;
+let userId;
 @suite
 class AuthenticationTest extends WebdaTest {
   events: number = 0;
@@ -54,7 +54,7 @@ class AuthenticationTest extends WebdaTest {
   }
 
   async registerTest2(ctx: WebContext) {
-    let executor = this.getExecutor(
+    const executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "POST",
@@ -77,7 +77,7 @@ class AuthenticationTest extends WebdaTest {
     this.authentication.addProvider("plop");
     this.authentication.addProvider("plop");
     this.authentication.addProvider("plop2");
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     this.authentication._listAuthentications(ctx);
     assert.strictEqual(ctx.getResponseBody(), JSON.stringify(["email", "plop", "plop2"]));
     ctx.setParameters({ provider: "plop" });
@@ -99,7 +99,7 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(params.url, "/aaa");
     this.authentication.getParameters().email = undefined;
     assert.strictEqual(this.authentication.getUrl("./emails", ["POST"]), undefined);
-    let auth = new Authentication(this.webda, "auth", {
+    const auth = new Authentication(this.webda, "auth", {
       email: { mailer: "plop" }
     });
     assert.throws(() => auth.resolve(), /email authentication requires a Mailer service/);
@@ -107,7 +107,7 @@ class AuthenticationTest extends WebdaTest {
 
   @test("register") async register() {
     // By default service does not have postValidation enable
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     this.events = 0;
     // Should reject because it is login and not email
     let executor = this.getExecutor(
@@ -160,7 +160,7 @@ class AuthenticationTest extends WebdaTest {
     userId = ctx.getSession().userId;
     assert.notStrictEqual(ctx.getSession().userId, undefined);
     assert.strictEqual(this.mailer.sent.length, 2);
-    let user: any = await this.userStore.get(ctx.getSession().userId);
+    const user: any = await this.userStore.get(ctx.getSession().userId);
     assert.notStrictEqual(user, undefined);
     assert.notStrictEqual(user.getPassword(), undefined);
     assert.strictEqual(user.locale, "en");
@@ -171,7 +171,7 @@ class AuthenticationTest extends WebdaTest {
     // Now validate first user
     ctx.getExecutor().getParameters().email.postValidation = false;
     assert.strictEqual(ctx.getSession().userId, undefined);
-    var match = this.mailer.sent[0].replacements.url.match(validationUrl);
+    let match = this.mailer.sent[0].replacements.url.match(validationUrl);
     assert.notStrictEqual(match, undefined);
     assert.strictEqual(match[1], "test@webda.io");
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
@@ -241,14 +241,14 @@ class AuthenticationTest extends WebdaTest {
 
   @test("register - bad password") async registerBadPassword() {
     // By default a password of 8 is needed
-    var params = {
+    const params = {
       login: "testBad@Webda.io",
       password: "test",
       register: true
     };
-    let ctx = await this.newContext(params);
+    const ctx = await this.newContext(params);
 
-    let executor = this.getExecutor(
+    const executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "POST",
@@ -270,7 +270,7 @@ class AuthenticationTest extends WebdaTest {
   }
 
   @test("/me") async me() {
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");
     await assert.rejects(
       () => executor.execute(ctx),
@@ -287,7 +287,7 @@ class AuthenticationTest extends WebdaTest {
     // Get me on known user
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");
     await executor.execute(ctx);
-    let user = JSON.parse(<string>ctx.getResponseBody());
+    const user = JSON.parse(<string>ctx.getResponseBody());
     assert.strictEqual(user.plop, "yep");
     assert.strictEqual(user.register, undefined);
     assert.strictEqual(user.locale, "es-ES");
@@ -295,11 +295,11 @@ class AuthenticationTest extends WebdaTest {
   }
 
   @test("login") async login() {
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await this.registerTest2(ctx);
     await ctx.newSession();
     this.events = 0;
-    let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
+    const executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
       login: "test3@webda.io",
       password: "testtest"
     });
@@ -319,7 +319,7 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(this.events, 1); // Login
     assert.notStrictEqual(ctx.getSession().userId, undefined);
     // Verify ident type
-    let ident = await this.identStore.get(ctx.getSession().identUsed);
+    const ident = await this.identStore.get(ctx.getSession().identUsed);
     assert.strictEqual(ident._type, "email");
     ctx.getHttpContext().setBody({
       login: "test2@webda.io",
@@ -347,7 +347,7 @@ class AuthenticationTest extends WebdaTest {
 
   @test("passwordRecovery") async testPasswordRecovery() {
     let tokenInfo: PasswordRecoveryInfos;
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await this.registerTest2(ctx);
     this.mailer.sent = [];
     this.events = 0;
@@ -438,7 +438,7 @@ class AuthenticationTest extends WebdaTest {
 
   @test("add email to existing account") async addEmailToAccount() {
     // Log in as test2
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await this.registerTest2(ctx);
     this.mailer.sent = [];
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest@webda.io/validate", {
@@ -450,7 +450,7 @@ class AuthenticationTest extends WebdaTest {
     assert.notStrictEqual(ident, undefined);
     assert.strictEqual(ident._validation, undefined);
     userId = ctx.getCurrentUserId();
-    var match = this.mailer.sent[0].replacements.url.match(validationUrl);
+    const match = this.mailer.sent[0].replacements.url.match(validationUrl);
     assert.notStrictEqual(match, undefined);
     assert.strictEqual(match[1], "newtest@webda.io");
     // Send another one on newtest2
@@ -459,7 +459,7 @@ class AuthenticationTest extends WebdaTest {
       password: "retesttest"
     });
     await executor.execute(ctx);
-    var match2 = this.mailer.sent[1].replacements.url.match(validationUrl);
+    const match2 = this.mailer.sent[1].replacements.url.match(validationUrl);
     assert.notStrictEqual(match2, undefined);
     assert.strictEqual(match2[1], "newtest2@webda.io");
 
@@ -551,8 +551,8 @@ class AuthenticationTest extends WebdaTest {
 
   @test
   async redirectEmailRegister() {
-    let token = await this.authentication.generateEmailValidationToken(undefined, "test@webda.io");
-    let ctx = await this.newContext();
+    const token = await this.authentication.generateEmailValidationToken(undefined, "test@webda.io");
+    const ctx = await this.newContext();
     await this.execute(ctx, "test.webda.io", "GET", `/auth/email/callback?email=test@webda.io&token=${token}`);
     assert.strictEqual(ctx.statusCode, 302);
     assert.strictEqual(

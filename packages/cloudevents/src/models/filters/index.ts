@@ -33,7 +33,7 @@ export class FiltersHelper {
    * @returns
    */
   static get(filter: Filter): FilterImplementation {
-    let type = Object.keys(filter).pop();
+    const type = Object.keys(filter).pop();
     if (type === undefined || !FilterImplementations[type]) {
       throw new Error(`Unsupported filter type '${type}'`);
     }

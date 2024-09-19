@@ -38,11 +38,11 @@ export class FakeCloudBinaryTest extends WebdaTest {
 
   @test
   async testDefaults() {
-    let service = new CloudBinaryFakeService(this.webda, "fake", {});
-    let binaryMap: any = { hash: "test", size: 10 };
+    const service = new CloudBinaryFakeService(this.webda, "fake", {});
+    const binaryMap: any = { hash: "test", size: 10 };
 
     await service.cascadeDelete(binaryMap, "plop");
-    let stub = sinon.stub(service, "_cleanUsage").callsFake(() => {
+    const stub = sinon.stub(service, "_cleanUsage").callsFake(() => {
       throw new Error();
     });
     // Should not fail even with exception
@@ -56,7 +56,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
     assert.strictEqual(new CloudBinaryParameters({}, service).prefix, "");
 
     sinon.stub(service, "deleteSuccess").resolves();
-    let model = new CoreModel();
+    const model = new CoreModel();
     // @ts-ignore
     model.load({ plop: [{}, { hash: "fake" }] }, true);
     await service.delete(<BinaryModel>model, "plop", 1);

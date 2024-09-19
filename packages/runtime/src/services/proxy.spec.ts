@@ -158,7 +158,7 @@ class ProxyTest extends WebdaTest {
     this.registerService(proxyService);
     await proxyService.resolve().init();
     this.webda.getRouter().remapRoutes();
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     ctx.getHttpContext().setClientIp("127.0.0.1");
 
     let exec = this.getExecutor(ctx, "test.webda.io", "PUT", "/proxy/test/plop", "Bouzouf");

@@ -70,7 +70,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   mapToArrayTags() {
-    let deployer = new TestAWSDeployer(this.manager, {
+    const deployer = new TestAWSDeployer(this.manager, {
       Tags: { Test: "Plop" }
     });
     assert.deepStrictEqual(deployer.resources.Tags, [{ Key: "Test", Value: "Plop" }]);
@@ -87,14 +87,14 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       () => this.deployer.putFilesOnBucket("plop", [{ key: "/test" }]),
       /Should have src and key defined/
     );
-    let Contents = [
+    const Contents = [
       {
         Key: "awsevents.js",
         Size: 527,
         ETag: '"ea1db4bb1545c62c50e6f0893e9f0992"'
       }
     ];
-    let stub = sinon.stub().resolves({ Contents });
+    const stub = sinon.stub().resolves({ Contents });
     // Fake any uploads
     let uploads = [];
     mockClient(S3)
@@ -131,7 +131,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
           { Sid: "", Effect: "Allow", Action: [], Resource: "*" }
         ];
       };
-      let result = await this.deployer.getPolicyDocument();
+      const result = await this.deployer.getPolicyDocument();
       assert.strictEqual(result.Statement.length, 4);
     } finally {
       mock.restore();
@@ -140,7 +140,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testGetDefaultVpc() {
-    var vpcsSpy = sinon.stub().callsFake(async () => {
+    const vpcsSpy = sinon.stub().callsFake(async () => {
       if (vpcsSpy.callCount === 1) {
         return {
           Vpcs: []
@@ -159,7 +159,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         ]
       };
     });
-    var subnetsSpy = sinon.stub().callsFake(async () => {
+    const subnetsSpy = sinon.stub().callsFake(async () => {
       return {
         Subnets: [
           {
@@ -217,9 +217,9 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     this.deployer.resources.Tags = this.deployer.transformMapTagsToArray({
       test: "mytag"
     });
-    var headSpy = sinon.stub();
+    const headSpy = sinon.stub();
     headSpy.callsFake(async () => {
-      let res = {};
+      const res = {};
       switch (headSpy.callCount) {
         case 2:
           throw {
@@ -233,8 +233,8 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       }
       return res;
     });
-    var createSpy = sinon.stub().resolves();
-    var tagSpy = sinon.stub().resolves();
+    const createSpy = sinon.stub().resolves();
+    const tagSpy = sinon.stub().resolves();
     const mock = mockClient(S3)
       .on(HeadBucketCommand)
       .callsFake(headSpy)
@@ -272,9 +272,9 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testPutBucket() {
-    var putSpy = sinon.stub();
-    var listSpy = sinon.stub();
-    var createBucket = sinon.stub(this.deployer, "createBucket");
+    const putSpy = sinon.stub();
+    const listSpy = sinon.stub();
+    const createBucket = sinon.stub(this.deployer, "createBucket");
     createBucket.resolves();
     putSpy.resolves();
     listSpy.resolves({ Contents: [] });
@@ -305,9 +305,9 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testGetCertificate() {
-    var putSpy = sinon.stub();
-    var getZoneForDomainName = sinon.stub(this.deployer, "getZoneForDomainName");
-    var doCreateCertificate = sinon.stub(this.deployer, "doCreateCertificate");
+    const putSpy = sinon.stub();
+    const getZoneForDomainName = sinon.stub(this.deployer, "getZoneForDomainName");
+    const doCreateCertificate = sinon.stub(this.deployer, "doCreateCertificate");
     getZoneForDomainName.callsFake(async () => {
       if (getZoneForDomainName.callCount === 1) {
         return undefined;
@@ -340,7 +340,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     });
     const mock = mockClient(ACM).on(ListCertificatesCommand).callsFake(putSpy);
     try {
-      let certificate = await this.deployer.getCertificate("test.webda.io.");
+      const certificate = await this.deployer.getCertificate("test.webda.io.");
       assert.strictEqual(putSpy.calledTwice, true);
       assert.strictEqual(doCreateCertificate.notCalled, true);
       assert.strictEqual(getZoneForDomainName.notCalled, true);
@@ -368,7 +368,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testGetZoneForDomainName() {
-    var callSpy = sinon.stub();
+    const callSpy = sinon.stub();
     callSpy.callsFake(async () => {
       switch (callSpy.callCount) {
         case 1:
@@ -404,10 +404,10 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testDoCreateCertificate() {
-    var requestCertificate = sinon.stub();
-    var describeCertificate = sinon.stub();
-    var createDNSEntry = sinon.stub(this.deployer, "createDNSEntry");
-    var waitFor = sinon.stub(this.deployer, "waitFor");
+    const requestCertificate = sinon.stub();
+    const describeCertificate = sinon.stub();
+    const createDNSEntry = sinon.stub(this.deployer, "createDNSEntry");
+    const waitFor = sinon.stub(this.deployer, "waitFor");
     createDNSEntry.callsFake(async () => {});
     describeCertificate.resolves({});
     const mock = mockClient(ACM)
@@ -530,8 +530,8 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testCreateDNSEntry() {
-    var callSpy = sinon.stub();
-    var getZoneForDomainName = sinon.stub(this.deployer, "getZoneForDomainName");
+    const callSpy = sinon.stub();
+    const getZoneForDomainName = sinon.stub(this.deployer, "getZoneForDomainName");
     getZoneForDomainName.callsFake(async () => {
       if (getZoneForDomainName.callCount === 1) {
         return undefined;

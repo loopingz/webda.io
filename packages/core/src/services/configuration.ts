@@ -110,7 +110,7 @@ class ConfigurationService<
     if (!this.parameters.source) {
       throw new WebdaError.CodeError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
     }
-    let source = this.parameters.source.split(":");
+    const source = this.parameters.source.split(":");
     this.sourceService = <ConfigurationProvider>(<unknown>this.getService(source[0]));
     if (!this.sourceService) {
       throw new WebdaError.CodeError(
@@ -216,16 +216,16 @@ class ConfigurationService<
       // Add the webda parameters logical
       if (this.configuration && this.configuration.services) {
         // Merge parameters with each service - cannot add new services for security
-        for (let i in this.configuration.services) {
+        for (const i in this.configuration.services) {
           if (this.getWebda().getService(i)) {
             this.configuration.services[i] = this.getWebda().getServiceParams(i, this.configuration);
           }
         }
       }
-      let promises = [];
+      const promises = [];
       this.watchs.forEach(w => {
         this.log("TRACE", "Apply new configuration value", jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
-        let p = w.callback(jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
+        const p = w.callback(jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
         if (p) {
           promises.push(p);
         }
@@ -267,7 +267,7 @@ class ConfigurationService<
    * Read the file and store it
    */
   async loadAndStoreConfiguration(): Promise<{ [key: string]: any }> {
-    let res = await this.loadGoodConfiguration();
+    const res = await this.loadGoodConfiguration();
     this.emit("Configuration.Loaded", res);
     this.serializedConfiguration = JSON.stringify(res);
     return res;

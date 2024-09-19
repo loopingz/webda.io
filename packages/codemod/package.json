@@ -20,7 +20,11 @@
     "url": "git+https://github.com/loopingz/webda.io.git"
   },
   "scripts": {
-    "test": "exit 0"
+    "test": "exit 0",
+    "format": "prettier --check src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "format:fix": "prettier --write src/**/*"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

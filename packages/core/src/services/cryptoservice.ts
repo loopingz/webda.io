@@ -320,7 +320,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Load keys from registry
    */
   async load(): Promise<boolean> {
-    let load = <KeysRegistry>(<unknown>await this.registry.get("keys"));
+    const load = <KeysRegistry>(<unknown>await this.registry.get("keys"));
     if (!load) {
       return false;
     }
@@ -376,7 +376,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     if (typeof data !== "string") {
       data = JSONUtils.stringify(data);
     }
-    let key = keyId ? { id: keyId, keys: this.keys[keyId] } : await this.getCurrentKeys();
+    const key = keyId ? { id: keyId, keys: this.keys[keyId] } : await this.getCurrentKeys();
     return key.id + "." + createHmac("sha256", key.keys.symetric).update(data).digest("hex");
   }
 
@@ -389,7 +389,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     if (typeof data !== "string") {
       data = JSONUtils.stringify(data);
     }
-    let [keyId, mac] = hmac.split(".");
+    const [keyId, mac] = hmac.split(".");
     if (!(await this.checkKey(keyId))) {
       return false;
     }
@@ -400,11 +400,11 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * JWT token generation
    */
   public async jwtSign(data: any, options?: JWTOptions): Promise<string> {
-    let res = { ...this.parameters.jwt, ...options };
+    const res = { ...this.parameters.jwt, ...options };
     let key = res.secretOrPublicKey;
     // Default to our current private key
     if (!res.secretOrPublicKey) {
-      let keyInfo = await this.getCurrentKeys();
+      const keyInfo = await this.getCurrentKeys();
       // Depending on the algo fallback to the right key
       if (res.algorithm.startsWith("HS")) {
         key = keyInfo.keys.symetric;
@@ -445,7 +445,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       callback(new Error("Unknown key"));
       return;
     }
-    let keyId = header.kid.substring(1);
+    const keyId = header.kid.substring(1);
     if (!(await this.checkKey(keyId))) {
       callback(new Error("Unknown key"));
       return;
@@ -487,11 +487,11 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Encrypt data
    */
   public async encrypt(data: any): Promise<string> {
-    let key = await this.getCurrentKeys();
+    const key = await this.getCurrentKeys();
     // Initialization Vector
-    let iv = randomBytes(16);
-    let cipher = createCipheriv(this.parameters.symetricCipher, Buffer.from(key.keys.symetric, "base64"), iv);
-    let encrypted = Buffer.concat([iv, cipher.update(Buffer.from(JSON.stringify(data))), cipher.final()]).toString(
+    const iv = randomBytes(16);
+    const cipher = createCipheriv(this.parameters.symetricCipher, Buffer.from(key.keys.symetric, "base64"), iv);
+    const encrypted = Buffer.concat([iv, cipher.update(Buffer.from(JSON.stringify(data))), cipher.final()]).toString(
       "base64"
     );
     return this.jwtSign(encrypted, {
@@ -513,13 +513,13 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   public static async encryptConfiguration(data: any) {
     if (data instanceof Object) {
-      for (let i in data) {
+      for (const i in data) {
         data[i] = await CryptoService.encryptConfiguration(data[i]);
       }
     } else if (typeof data === "string") {
       if (data.startsWith("encrypt:") || data.startsWith("sencrypt:")) {
         let str = data.substring(data.indexOf(":") + 1);
-        let type = str.substring(0, str.indexOf(":"));
+        const type = str.substring(0, str.indexOf(":"));
         str = str.substring(str.indexOf(":") + 1);
         if (!CryptoService.encrypters[type]) {
           throw new Error("Unknown encrypter " + type);
@@ -540,13 +540,13 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   public static async decryptConfiguration(data: any): Promise<any> {
     if (data instanceof Object) {
-      for (let i in data) {
+      for (const i in data) {
         data[i] = await CryptoService.decryptConfiguration(data[i]);
       }
     } else if (typeof data === "string") {
       if (data.startsWith("crypt:") || data.startsWith("scrypt:")) {
         let str = data.substring(data.indexOf(":") + 1);
-        let type = str.substring(0, str.indexOf(":"));
+        const type = str.substring(0, str.indexOf(":"));
         str = str.substring(str.indexOf(":") + 1);
         if (!CryptoService.encrypters[type]) {
           throw new Error("Unknown encrypter " + type);
@@ -566,10 +566,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Decrypt data
    */
   public async decrypt(token: string): Promise<any> {
-    let input = Buffer.from(await this.jwtVerify(token), "base64");
-    let header = this.getJWTHeader(token);
-    let iv = input.subarray(0, 16);
-    let decipher = createDecipheriv(
+    const input = Buffer.from(await this.jwtVerify(token), "base64");
+    const header = this.getJWTHeader(token);
+    const iv = input.subarray(0, 16);
+    const decipher = createDecipheriv(
       this.parameters.symetricCipher,
       Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64"),
       iv
@@ -582,7 +582,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   getNextId(): { id: string; age: number } {
     // Should be good for years as 8char
-    let age = Math.floor(Date.now() / 1000);
+    const age = Math.floor(Date.now() / 1000);
     return { age, id: age.toString(36) };
   }
 
@@ -591,7 +591,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   async rotate() {
     const { age, id } = this.getNextId();
-    let next: KeysRegistry = {
+    const next: KeysRegistry = {
       current: id,
       rotationInstance: this.getWebda().getInstanceId()
     };
@@ -621,16 +621,16 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
 CryptoService.registerEncrypter("local", {
   encrypt: async (data: string) => {
     // Initialization Vector
-    let iv = randomBytes(16);
+    const iv = randomBytes(16);
     const key = createHash("sha256").update(Core.getMachineId()).digest();
-    let cipher = createCipheriv("aes-256-ctr", key, iv);
+    const cipher = createCipheriv("aes-256-ctr", key, iv);
     return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
   },
   decrypt: async (data: string) => {
-    let input = Buffer.from(data, "base64");
-    let iv = input.subarray(0, 16);
+    const input = Buffer.from(data, "base64");
+    const iv = input.subarray(0, 16);
     const key = createHash("sha256").update(Core.getMachineId()).digest();
-    let decipher = createDecipheriv("aes-256-ctr", key, iv);
+    const decipher = createDecipheriv("aes-256-ctr", key, iv);
     return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
   }
 });

@@ -95,7 +95,7 @@ export class Terminal {
   }
 
   onData(data: Buffer | string): void {
-    let str = data.toString();
+    const str = data.toString();
     /* c8 ignore next 3 */
     if (str.charCodeAt(0) === 3) {
       process.kill(process.pid, constants.signals.SIGINT);
@@ -233,7 +233,7 @@ export class Terminal {
       return;
     }
     const getLevelColor: (lvl: string) => string = ConsoleLogger.getColor(level);
-    let levelColor = level.padStart(5);
+    const levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
       groupsPart = `[${groups.map(g => getLevelColor(g)).join(chalk.grey(">"))}] `;
@@ -243,7 +243,7 @@ export class Terminal {
       .join(" ")
       .split("\n")
       .forEach(info => {
-        let line = `[${getLevelColor(levelColor)}] ${groupsPart}${getLevelColor(info)}`;
+        const line = `[${getLevelColor(levelColor)}] ${groupsPart}${getLevelColor(info)}`;
         this.pushHistory(line);
       });
     this.displayScreen();
@@ -262,7 +262,7 @@ export class Terminal {
 
   stripColorString(str: string, limit: number = -1): string {
     let match;
-    let regexp = /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
+    const regexp = /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
     let originalString = "";
     let fullString = "";
     let noMore = false;
@@ -286,7 +286,7 @@ export class Terminal {
   }
 
   displayString(str: string, limit: number = this.width): string {
-    let len = this.getTrueLength(str);
+    const len = this.getTrueLength(str);
     if (len > limit) {
       return this.stripColorString(str, limit);
     }
@@ -329,12 +329,12 @@ export class Terminal {
   }
 
   displayProgress(p: WorkerProgress) {
-    let bar = this.displayBar(p.getRatio(), 40);
+    const bar = this.displayBar(p.getRatio(), 40);
     // @ts-ignore
-    let percent = Number(p.getRatio() * 100)
+    const percent = Number(p.getRatio() * 100)
       .toFixed(2)
       .padStart(5);
-    let numberLength = p.total.toString().length;
+    const numberLength = p.total.toString().length;
     let line = this.displayString(
       `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${p.total} ${percent}% ${
         p.title || ""
@@ -350,7 +350,7 @@ export class Terminal {
     // Separator
 
     let res = this.progressChars[this.progressChar] + " " + "\u2015".repeat(this.width - 2) + "\n";
-    let values = Object.values(this.progresses);
+    const values = Object.values(this.progresses);
     let k = values.length;
     if (this.title) {
       res += this.displayTitle();
@@ -358,7 +358,7 @@ export class Terminal {
     if (this.inputs.length) {
       k++;
     }
-    for (let i in this.progresses) {
+    for (const i in this.progresses) {
       res += this.displayProgress(this.progresses[i]);
       if (--k > 0) {
         res += `\r`;
@@ -399,7 +399,7 @@ export class Terminal {
     if (start < 0) {
       start = 0;
     }
-    let history = this.history.slice(start, start + lines);
+    const history = this.history.slice(start, start + lines);
     let j = history.length - lines;
     complete = complete || this.logo.length !== 0;
     if (!complete && j < 0) {
@@ -410,14 +410,14 @@ export class Terminal {
       j++;
     }
     for (; j < history.length; j++) {
-      let line = this.displayString(history[j].padEnd(this.width));
+      const line = this.displayString(history[j].padEnd(this.width));
       res += `${line}\n`;
     }
     // Inserting logo
     if (this.height > 30 && this.width > 50 && this.logo.length) {
-      let linesData = res.split("\n");
+      const linesData = res.split("\n");
       let i = 0;
-      for (let y in this.logo) {
+      for (const y in this.logo) {
         i = parseInt(y) + this.getFooterSize();
         /* c8 ignore next 3  */
         if (!linesData[i]) {

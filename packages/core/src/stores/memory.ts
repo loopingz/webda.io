@@ -121,8 +121,8 @@ class LDJSONMemoryStreamReader extends Writable {
   _final(callback: (error?: Error) => void): void {
     // Parse the content if old format
     if (this.oldFormat !== undefined) {
-      let data = JSON.parse(this.oldFormat);
-      for (let i in data) {
+      const data = JSON.parse(this.oldFormat);
+      for (const i in data) {
         this.data[i] = data[i];
       }
     }
@@ -179,8 +179,8 @@ class MemoryStore<
 
     const dest = createWriteStream(this.parameters.persistence.path);
     if (this.key) {
-      let iv = crypto.randomBytes(16);
-      let cipher = crypto.createCipheriv(this.parameters.persistence.cipher, this.key, iv);
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv(this.parameters.persistence.cipher, this.key, iv);
       pipeline = pipeline.pipe(cipher);
       dest.write(iv);
     }
@@ -203,10 +203,10 @@ class MemoryStore<
   async load() {
     let pipeline: Readable;
     if (this.key) {
-      let fh = await open(this.parameters.persistence.path, "r");
-      let iv = Buffer.alloc(16);
+      const fh = await open(this.parameters.persistence.path, "r");
+      const iv = Buffer.alloc(16);
       await fh.read(iv, 0, 16);
-      let decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, this.key, iv);
+      const decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, this.key, iv);
       pipeline = fh.createReadStream({ start: 16 }).pipe(decipher);
     } else {
       pipeline = createReadStream(this.parameters.persistence.path);
@@ -302,7 +302,7 @@ class MemoryStore<
    * @override
    */
   async _save(object: T): Promise<T> {
-    let uid = object.getUuid();
+    const uid = object.getUuid();
     this.storage[uid] = object.toStoredJSON(true);
     return this._getSync(uid);
   }
@@ -318,9 +318,9 @@ class MemoryStore<
    * @override
    */
   async _patch(object: any, uuid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
-    let obj = await this._get(uuid, true);
+    const obj = await this._get(uuid, true);
     this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
-    for (let prop in object) {
+    for (const prop in object) {
       obj[prop] = object[prop];
     }
     this.storage[uuid] = obj.toStoredJSON(true);
@@ -331,7 +331,7 @@ class MemoryStore<
    * @override
    */
   async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
-    let obj = await this._get(uid, true);
+    const obj = await this._get(uid, true);
     this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
     return this._save(object);
   }
@@ -345,8 +345,8 @@ class MemoryStore<
         return this._getSync(key);
       });
     }
-    let result = [];
-    for (let i in uids) {
+    const result = [];
+    for (const i in uids) {
       if (this.storage[uids[i]]) {
         result.push(this._getSync(uids[i]));
       }
@@ -377,7 +377,7 @@ class MemoryStore<
    * @override
    */
   async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
-    let res = await this._get(uuid, true);
+    const res = await this._get(uuid, true);
     this.checkUpdateCondition(res, <keyof T>writeConditionField, writeCondition);
     delete res[attribute];
     this._save(res);
@@ -445,7 +445,7 @@ class MemoryStore<
    * @override
    */
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
-    let res = await this._get(uid, true);
+    const res = await this._get(uid, true);
     if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }

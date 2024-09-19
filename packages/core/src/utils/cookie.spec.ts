@@ -33,22 +33,22 @@ class CookieTest extends WebdaSimpleTest {
   }
 
   @test("Bad cookie") async testBadSecret() {
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     ctx.getHttpContext().cookies = {};
     ctx.getHttpContext().cookies["test"] = "plop";
-    let session = await SecureCookie.load("test", ctx, undefined);
+    const session = await SecureCookie.load("test", ctx, undefined);
     assert.strictEqual(Object.keys(session).length, 0);
   }
 
   @test
   async cov() {
-    let session = await SecureCookie.load("test", new WebContextMock(this.webda, undefined, undefined), undefined);
+    const session = await SecureCookie.load("test", new WebContextMock(this.webda, undefined, undefined), undefined);
     assert.strictEqual(Object.keys(session).length, 0);
     assert.strictEqual(
       await new SimpleOperationContext(this.webda).setInput(Buffer.from("plop")).getRawInputAsString(),
       "plop"
     );
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     assert.ok(!new CookieOptions({}, ctx.getHttpContext()).secure);
     ctx.getHttpContext().protocol = "https:";
     assert.ok(new CookieOptions({}, ctx.getHttpContext()).secure);
@@ -61,7 +61,7 @@ class CookieTest extends WebdaSimpleTest {
   }
 
   @test("Oversize cookie") async testOversize() {
-    var cookie = new Session().getProxy();
+    const cookie = new Session().getProxy();
     cookie.identUsed = "PLOP".repeat(3005);
     assert.strictEqual(cookie.isDirty(), true);
     await SecureCookie.save("test", this._ctx, cookie);
@@ -70,8 +70,8 @@ class CookieTest extends WebdaSimpleTest {
       const cookie = this._ctx.getResponseCookies()[`test${i > 1 ? i : ""}`];
       assert.strictEqual(cookieSerialize(cookie.name, cookie.value, cookie.options || {}).length, 4096);
     }
-    let ctx = await this.newContext();
-    let cookies = this._ctx.getResponseCookies();
+    const ctx = await this.newContext();
+    const cookies = this._ctx.getResponseCookies();
     ctx.getHttpContext().cookies = {};
     Object.keys(cookies).forEach(k => {
       ctx.getHttpContext().cookies[k] = cookies[k].value;

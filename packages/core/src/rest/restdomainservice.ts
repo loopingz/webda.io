@@ -198,13 +198,13 @@ export class RESTDomainService<
       }
     };
     // Add query route
-    model.Expose.restrict.query ||
+    if (!model.Expose.restrict.query) {
       this.addRoute(
         `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
         [this.parameters.queryMethod],
         async (context: WebContext) => {
           let query = "";
-          let parentId = `pid.${depth - 1}`;
+          const parentId = `pid.${depth - 1}`;
           if (context.getHttpContext().getMethod() === "PUT") {
             query = (await context.getInput()).q ?? "";
             context.clearInput();
@@ -224,6 +224,7 @@ export class RESTDomainService<
         },
         openapi
       );
+    }
     openapi = {
       post: {
         tags: [name],
@@ -261,7 +262,7 @@ export class RESTDomainService<
         }
       }
     };
-    model.Expose.restrict.create ||
+    if (!model.Expose.restrict.create) {
       this.addRoute(
         `${prefix}`,
         ["POST"],
@@ -274,6 +275,7 @@ export class RESTDomainService<
         },
         openapi
       );
+    }
     openapi = {
       delete: {
         tags: [name],
@@ -293,14 +295,16 @@ export class RESTDomainService<
         }
       }
     };
-    model.Expose.restrict.delete ||
+    if (!model.Expose.restrict.delete) {
       this.addRoute(
         `${prefix}/{uuid}`,
         ["DELETE"],
         (context: WebContext) => this._webda.callOperation(context, `${shortId}.Delete`),
         openapi
       );
-    let openapiInfo = {
+    }
+
+    const openapiInfo = {
       tags: [name],
       operationId: `update${name}`,
       description: `Update ${name} if the permissions allow`,
@@ -333,7 +337,7 @@ export class RESTDomainService<
       put: openapiInfo,
       patch: openapiInfo
     };
-    model.Expose.restrict.update ||
+    if (!model.Expose.restrict.update) {
       this.addRoute(
         `${prefix}/{uuid}`,
         ["PUT", "PATCH"],
@@ -346,6 +350,7 @@ export class RESTDomainService<
         },
         openapi
       );
+    }
     openapi = {
       get: {
         tags: [name],
@@ -374,19 +379,19 @@ export class RESTDomainService<
         }
       }
     };
-    model.Expose.restrict.get ||
+    if (!model.Expose.restrict.get) {
       this.addRoute(
         `${prefix}/{uuid}`,
         ["GET"],
         (context: WebContext) => this._webda.callOperation(context, `${shortId}.Get`),
         openapi
       );
-
+    }
     // Add all actions
     // Actions cannot be restricted as its purpose is to be exposed
-    let actions = model.getActions();
+    const actions = model.getActions();
     Object.keys(actions).forEach(actionName => {
-      let action: ModelAction = actions[actionName];
+      const action: ModelAction = actions[actionName];
       openapi = {
         ...action.openapi
       };

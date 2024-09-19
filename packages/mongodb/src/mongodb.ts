@@ -111,7 +111,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
    * @returns
    */
   protected getFilter(uuid: string, itemWriteCondition?: any, itemWriteConditionField?: string): any {
-    let filter = {
+    const filter = {
       _id: uuid
     };
     if (itemWriteCondition && itemWriteConditionField) {
@@ -130,14 +130,14 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
     itemWriteConditionField?: string
   ): Promise<void> {
     await this._connect();
-    let filter = this.getFilter(uuid, itemWriteCondition, itemWriteConditionField);
-    let params = {
+    const filter = this.getFilter(uuid, itemWriteCondition, itemWriteConditionField);
+    const params = {
       $unset: {},
       $set: {}
     };
     params["$set"]["_lastUpdate"] = new Date();
     params["$unset"][attribute] = 1;
-    let res = await this._collection.updateOne(filter, params);
+    const res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
@@ -153,23 +153,23 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     await this._connect();
 
-    let filter = {
+    const filter = {
       _id: uid
     };
     if (itemWriteCondition) {
       filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
     }
-    let params = {
+    const params = {
       $unset: {},
       $set: {}
     };
     params["$set"]["_lastUpdate"] = updateDate;
     params["$unset"][prop + "." + index] = 1;
-    let res = await this._collection.updateOne(filter, params);
+    const res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
-    let remove = {
+    const remove = {
       $pull: {},
       $set: {}
     };
@@ -188,7 +188,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
    */
   async _incrementAttributes(uid: string, parameters: { property: string; value: number }[], updateDate: Date) {
     await this._connect();
-    let params = {
+    const params = {
       $inc: {},
       $set: {}
     };
@@ -196,7 +196,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
     parameters.forEach(p => {
       params["$inc"][p.property] = p.value;
     });
-    let res = await this._collection.updateOne(
+    const res = await this._collection.updateOne(
       {
         _id: {
           $eq: <ObjectId>(<unknown>uid)
@@ -214,7 +214,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
    */
   async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     await this._connect();
-    let filter = {
+    const filter = {
       _id: uid
     };
     let params = {};
@@ -234,7 +234,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
       filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
     }
 
-    let res = await this._collection.updateOne(filter, params);
+    const res = await this._collection.updateOne(filter, params);
     if (res.matchedCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
@@ -318,7 +318,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
     if (isNaN(offset)) {
       offset = 0;
     }
-    let sortObject = {};
+    const sortObject = {};
     if (query.orderBy) {
       query.orderBy.forEach(e => {
         sortObject[e.field] = e.direction === "ASC" ? 1 : -1;
@@ -353,7 +353,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
    */
   async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<void> {
     await this._connect();
-    let res = await this._collection.updateOne(this.getFilter(uid, itemWriteCondition, itemWriteConditionField), {
+    const res = await this._collection.updateOne(this.getFilter(uid, itemWriteCondition, itemWriteConditionField), {
       $set: object
     });
     if (res.matchedCount === 0) {
@@ -370,8 +370,8 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
     }
 
     await this._connect();
-    let filter = this.getFilter(uid, itemWriteCondition, itemWriteConditionField);
-    let res = await this._collection.updateOne(filter, {
+    const filter = this.getFilter(uid, itemWriteCondition, itemWriteConditionField);
+    const res = await this._collection.updateOne(filter, {
       $set: object
     });
     if (res.matchedCount === 0) {
@@ -386,7 +386,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   async getAll(uids) {
     await this._connect();
 
-    let params: any = {};
+    const params: any = {};
     if (uids) {
       params._id = {
         $in: uids
@@ -400,7 +400,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
    */
   async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
     await this._connect();
-    let res = await this._collection.findOne({
+    const res = await this._collection.findOne({
       _id: <unknown>uid
     });
     if (res === null) {

@@ -76,7 +76,7 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
   resolve(): this {
     super.resolve();
     this.senders = this.parameters.senders.map(s => {
-      let service = <NotificationService>(<unknown>this.getService(s));
+      const service = <NotificationService>(<unknown>this.getService(s));
       if (!service) {
         throw new Error(`Unknown service '${s}'`);
       }

@@ -69,7 +69,7 @@ class GraphQLServiceTest extends WebdaTest {
     // 2 Companies
     const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];
     const users: any[] = [];
-    for (let conpany of companies) {
+    for (const conpany of companies) {
       users.push(
         await User.create({
           name: `User ${i++}`,
@@ -94,7 +94,7 @@ class GraphQLServiceTest extends WebdaTest {
     });
     assert.strictEqual(result.data.Teachers.results.length, 0);
     assert.strictEqual(result.errors[0].message, "Object not found");
-    let context = await this.newContext();
+    const context = await this.newContext();
     context.getSession().login("test", "test");
     result = await this.http({
       method: "POST",
@@ -159,7 +159,7 @@ class GraphQLServiceTest extends WebdaTest {
   @test
   async coreGraph() {
     await this.createGraphObjects();
-    let context = await this.newContext();
+    const context = await this.newContext();
     context.getSession().login("test", "test");
     let q = `{ Courses { results { uuid, name, teacher { name, uuid }, classroom { name, uuid }, students { email } } } }`;
     let result = await this.http({
@@ -210,7 +210,7 @@ class GraphQLServiceTest extends WebdaTest {
       result.data.Courses.results.map(c => c.students).filter(i => i !== null && i.length > 0).length,
       4
     );
-    let course = result.data.Courses.results[0];
+    const course = result.data.Courses.results[0];
     q = `{ Course(uuid: "${course.uuid}") {  classroom { uuid, name, courses { uuid },  hardwares { results { uuid, classroom { uuid } } } } } }`;
     result = await this.http({
       method: "POST",
@@ -266,7 +266,7 @@ class GraphQLServiceTest extends WebdaTest {
 
   @test
   async mutations() {
-    let context = await this.newContext();
+    const context = await this.newContext();
 
     // Test successfull creation and update
     context.getSession().login("test", "test");
@@ -544,7 +544,7 @@ class GraphQLSubscriptionTest {
 
       // Test with a cookie
       User.ref("test").create({ name: "plop" });
-      let ctx = await server.newWebContext(new HttpContext("test.webda.io", "GET", "/graphql"));
+      const ctx = await server.newWebContext(new HttpContext("test.webda.io", "GET", "/graphql"));
       await SecureCookie.save("webda", ctx, { userId: "test" });
       // Test with a cookie
       MyWebSocket.headers.Cookie = `webda=${ctx._cookie["webda"].value}`;

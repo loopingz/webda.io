@@ -44,7 +44,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     if (dir === "") {
       dir = process.cwd();
     }
-    let result = this.loadPackageInfo(dir).workspaces || ["packages/*"];
+    const result = this.loadPackageInfo(dir).workspaces || ["packages/*"];
     return result
       .map(r => globSync(path.join(dir, r)))
       .flat()
@@ -65,7 +65,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
       if (fs.existsSync(path.join(dir, "package.json"))) {
         try {
-          let pkg = JSONUtils.loadFile(path.join(dir, "package.json"));
+          const pkg = JSONUtils.loadFile(path.join(dir, "package.json"));
           if (pkg.workspaces) {
             return dir;
           }
@@ -80,9 +80,9 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
   }
 
   static getPackageLastChanges(pkg: string, includeWorkspace: boolean = false): string {
-    let hash = crypto.createHash("md5");
+    const hash = crypto.createHash("md5");
     if (includeWorkspace) {
-      let root = this.getWorkspacesRoot(pkg);
+      const root = this.getWorkspacesRoot(pkg);
       if (root) {
         this.getWorkspacesPackages(root).forEach(p => {
           if (fs.existsSync(path.join(root, p, "package.json"))) {
@@ -92,13 +92,13 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
         return hash.digest("hex");
       }
     }
-    let main = Packager.loadPackageInfo(pkg);
+    const main = Packager.loadPackageInfo(pkg);
     main.files ??= [];
     main.files.forEach(p => {
-      let includeDir = path.join(pkg, p);
+      const includeDir = path.join(pkg, p);
       if (fs.existsSync(includeDir)) {
         globSync(includeDir).forEach(src => {
-          let stat = fs.lstatSync(src);
+          const stat = fs.lstatSync(src);
           if (stat.isDirectory()) {
             return globSync(src + "/**").forEach(f => hash.update(fs.lstatSync(f).mtime + f));
           } else {
@@ -111,15 +111,15 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
   }
 
   static getDependencies(pkg: string): { [key: string]: { name: string; version: string }[] } {
-    let deps: { [key: string]: any[] } = {};
-    let wrk = Packager.getWorkspacesRoot();
-    let main = Packager.loadPackageInfo(pkg);
+    const deps: { [key: string]: any[] } = {};
+    const wrk = Packager.getWorkspacesRoot();
+    const main = Packager.loadPackageInfo(pkg);
     main.resolutions = main.resolutions || {};
     const browsed = [];
-    let browse = (p: string, depth: number) => {
+    const browse = (p: string, depth: number) => {
       if (browsed.includes(p)) return;
       browsed.push(p);
-      let info = Packager.loadPackageInfo(p);
+      const info = Packager.loadPackageInfo(p);
       info.dependencies = info.dependencies || {};
       Object.keys(info.dependencies).forEach(name => {
         let version = info.dependencies[name];
@@ -146,8 +146,8 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
   static getResolvedDependencies(pkg: string): { [key: string]: string } {
     const deps = Packager.getDependencies(pkg);
-    let resolutions: { [key: string]: string } = {};
-    for (let i in deps) {
+    const resolutions: { [key: string]: string } = {};
+    for (const i in deps) {
       if (deps[i].length > 1) {
         try {
           resolutions[i] = intersect(
@@ -192,7 +192,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
    * Generate a full code package including dependencies
    */
   async deploy(): Promise<any> {
-    let { zipPath, entrypoint } = this.resources;
+    const { zipPath, entrypoint } = this.resources;
 
     if (this.packagesGenerated[zipPath + entrypoint || ""]) {
       return;
@@ -201,14 +201,14 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     this.app.compile();
     this.app.generateModule();
 
-    let targetDir = path.dirname(zipPath);
+    const targetDir = path.dirname(zipPath);
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir);
     }
     if (fs.existsSync(zipPath)) {
       fs.unlinkSync(zipPath);
     }
-    let ignores = [
+    const ignores = [
       "dist",
       "bin",
       "test",
@@ -224,14 +224,14 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     let toPacks = [];
 
     let files;
-    let appPath = this.app.getAppPath();
-    let packageFile = this.app.getAppPath("package.json");
+    const appPath = this.app.getAppPath();
+    const packageFile = this.app.getAppPath("package.json");
     if (fs.existsSync(packageFile)) {
       files = JSONUtils.loadFile(packageFile).files;
     }
     files ??= fs.readdirSync(appPath);
-    for (let i in files) {
-      let name = files[i];
+    for (const i in files) {
+      const name = files[i];
       if (name.startsWith(".")) continue;
       if (ignores.indexOf(name) >= 0) continue;
       toPacks.push(`${appPath}/${name}`);
@@ -242,18 +242,18 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     // Ensure dependencies
     // Get deps info
     // Include specified modules
-    let deps = [...this.resources.package.modules.includes];
+    const deps = [...this.resources.package.modules.includes];
     deps.push(...Object.keys(Packager.getDependencies(appPath)));
     // Remove any excludes modules
     this.resources.package.modules.excludes.forEach(i => {
-      let id = deps.indexOf(i);
+      const id = deps.indexOf(i);
       if (id >= 0) {
         deps.splice(id, 1);
       }
     });
 
     // Include workspace deps
-    let workspace = Packager.getWorkspacesRoot(this.app.getAppPath());
+    const workspace = Packager.getWorkspacesRoot(this.app.getAppPath());
     deps.forEach(dep => {
       // Include package dep
       if (fs.existsSync(`${appPath}/node_modules/${dep}`)) {
@@ -265,7 +265,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       }
     });
 
-    let output = fs.createWriteStream(zipPath);
+    const output = fs.createWriteStream(zipPath);
     const archive = await this.getArchiver();
     return new Promise<void>((resolve, reject) => {
       output.on("close", () => {
@@ -273,7 +273,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
         resolve();
       });
 
-      archive.on("error", function (err) {
+      archive.on("error", err => {
         console.log(err);
         reject(err);
       });
@@ -281,7 +281,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       // Patch the archiver to allow filtering
       const originalFile = archive._append;
       archive._append = (from, to) => {
-        let name = from;
+        const name = from;
         let exclude = false;
         this.resources.package.excludePatterns.forEach(r => {
           if (exclude || new RegExp(r).exec(from)) {
@@ -296,9 +296,9 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       };
 
       archive.pipe(output);
-      for (let i in toPacks) {
-        let stat = fs.lstatSync(toPacks[i]);
-        let dstPath = path.relative(appPath, toPacks[i]).replace(/\.\.\//g, "");
+      for (const i in toPacks) {
+        const stat = fs.lstatSync(toPacks[i]);
+        const dstPath = path.relative(appPath, toPacks[i]).replace(/\.\.\//g, "");
         if (stat.isSymbolicLink() && this.resources.includeLinkModules) {
           this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), dstPath);
         } else if (stat.isDirectory()) {
@@ -342,7 +342,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
    * @param toPath relative path within archive
    */
   protected addLinkPackage(archive, fromPath: string, toPath: string) {
-    let packageFile = fromPath + "/package.json";
+    const packageFile = fromPath + "/package.json";
     let files;
     if (fs.existsSync(packageFile)) {
       archive.file(`${packageFile}`, { name: `${toPath}/package.json` });
@@ -351,7 +351,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     files ??= fs.readdirSync(fromPath);
     files.forEach(file => {
       if (file.startsWith(".") || file === "package.json") return;
-      let stat = fs.lstatSync(`${fromPath}/${file}`);
+      const stat = fs.lstatSync(`${fromPath}/${file}`);
       if (stat.isDirectory()) {
         archive.directory(`${fromPath}/${file}`, `${toPath}/${file}`);
       } else if (stat.isFile()) {

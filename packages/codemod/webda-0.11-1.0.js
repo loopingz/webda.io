@@ -17,7 +17,6 @@ const packagesReplaceMap = {
 
 export default function transformer(fileInfo, api, options) {
   const j = api.jscodeshift;
-  // eslint-disable-next-line global-require, import/no-dynamic-require
   const printOptions = options.printOptions || {
     createParenthesizedExpressions: false
   };

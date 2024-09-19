@@ -72,7 +72,7 @@ class WebdaSchemaResults {
    * @param info
    */
   generateSchemas(compiler: Compiler) {
-    let schemas = {};
+    const schemas = {};
     Object.entries(this.store)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .forEach(([name, { schemaNode, link, title, addOpenApi }]) => {
@@ -304,7 +304,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         // Check for other tags
         let ignore = false;
         let generated = false;
-        let jsDocs = ts.getAllJSDocTags(member, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
+        const jsDocs = ts.getAllJSDocTags(member, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
           return true;
         });
         jsDocs.forEach(n => {
@@ -321,7 +321,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         }
 
         // @ts-ignore
-        let typeName = member.type?.typeName?.escapedText;
+        const typeName = member.type?.typeName?.escapedText;
         let readOnly =
           jsDocs.filter(n => n.tagName.text === "readOnly").length > 0 ||
           this.getPropertyName(member.name).startsWith("_");
@@ -334,26 +334,26 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         } else if (typeName === "ModelLinksSimpleArray") {
           type = new ArrayType(new StringType());
         } else if (typeName === "ModelLinksArray") {
-          let subtype = <any>(
+          const subtype = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
           );
           subtype.properties.push(new ObjectProperty("uuid", new StringType(), true));
           type = new ArrayType(subtype);
         } else if (typeName === "ModelLinksMap") {
-          let subtype = <any>(
+          const subtype = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[1], context)
           );
           subtype.properties.push(new ObjectProperty("uuid", new StringType(), true));
           type = new ObjectType("modellinksmap-test", [], [], subtype);
         } else if (typeName === "ModelsMapped") {
-          let subtype = <any>(
+          const subtype = <any>(
             this.childNodeParser.createType((<ts.NodeWithTypeArguments>member.type).typeArguments[0], context)
           );
-          let attrs = this.childNodeParser.createType(
+          const attrs = this.childNodeParser.createType(
             (<ts.NodeWithTypeArguments>member.type).typeArguments[2],
             context
           );
-          let keep = [];
+          const keep = [];
           if (attrs instanceof LiteralType) {
             keep.push(attrs.getValue());
           } else if (attrs instanceof UnionType) {
@@ -396,7 +396,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         }
         type ??= this.childNodeParser.createType(member.type, context);
         if (readOnly || generated) {
-          let annotations = {};
+          const annotations = {};
           if (readOnly || generated) {
             annotations["readOnly"] = true;
           }
@@ -500,7 +500,7 @@ export class Compiler {
    * @returns
    */
   getJSTargetFile(sourceFile: ts.SourceFile, absolutePath: boolean = false) {
-    let filePath = ts.getOutputFileNames(this.configParseResult, sourceFile.fileName, true)[0];
+    const filePath = ts.getOutputFileNames(this.configParseResult, sourceFile.fileName, true)[0];
     if (absolutePath) {
       return filePath;
     }
@@ -516,11 +516,11 @@ export class Compiler {
    * @returns
    */
   getExportedName(node: ts.ClassDeclaration | ts.InterfaceDeclaration): string | undefined {
-    let exportNodes = tsquery(node, "ExportKeyword");
+    const exportNodes = tsquery(node, "ExportKeyword");
     const className = node.name.escapedText.toString();
     if (exportNodes.length === 0) {
       // Try to find a generic export
-      let namedExports = tsquery(this.getParent(node, ts.SyntaxKind.SourceFile), `ExportSpecifier [name=${className}]`);
+      const namedExports = tsquery(this.getParent(node, ts.SyntaxKind.SourceFile), `ExportSpecifier [name=${className}]`);
       if (namedExports.length === 0) {
         return undefined;
       }
@@ -541,8 +541,8 @@ export class Compiler {
     let res;
     try {
       this.app.log("INFO", "Generating schema for " + title);
-      let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
-      let definitionName = decodeURI(schema.$ref.split("/").pop());
+      const schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
+      const definitionName = decodeURI(schema.$ref.split("/").pop());
       res = <JSONSchema7>schema.definitions[definitionName];
       res.$schema = schema.$schema;
       // Copy sub definition if needed
@@ -574,7 +574,7 @@ export class Compiler {
   ): ts.Node {
     let schemaNode;
     classTree.some(type => {
-      let res = (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).heritageClauses?.some(t => {
+      const res = (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).heritageClauses?.some(t => {
         return t.types?.some(subtype => {
           return subtype.typeArguments?.some(arg => {
             if (this.extends(this.getClassTree(this.typeChecker.getTypeFromTypeNode(arg)), packageName, typeName)) {
@@ -589,7 +589,7 @@ export class Compiler {
       }
       return (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).typeParameters?.some(t => {
         // @ts-ignore
-        let paramType = ts.getEffectiveConstraintOfTypeParameter(t);
+        const paramType = ts.getEffectiveConstraintOfTypeParameter(t);
         if (this.extends(this.getClassTree(this.typeChecker.getTypeFromTypeNode(paramType)), packageName, typeName)) {
           schemaNode = t.constraint;
           return true;
@@ -605,7 +605,7 @@ export class Compiler {
    * @returns
    */
   getTagsName(node: ts.Node) {
-    let tags = {};
+    const tags = {};
     ts.getAllJSDocTags(node, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
       return true;
     }).forEach(n => {
@@ -738,7 +738,7 @@ export class Compiler {
             );
             return;
           }
-          let info: WebdaSearchResult = {
+          const info: WebdaSearchResult = {
             type,
             symbol,
             node,
@@ -875,7 +875,7 @@ export class Compiler {
         `${rootName}.${method.name.getText()} have more than 1 parameter, only the first one will be used as context`
       );
     }
-    let obj = <ts.TypeReferenceNode>method.parameters[0].type;
+    const obj = <ts.TypeReferenceNode>method.parameters[0].type;
     if (!obj.typeArguments) {
       this.app.log("INFO", `${rootName}.${method.name.getText()} have no input defined, no validation will happen`);
       return;
@@ -883,9 +883,9 @@ export class Compiler {
     const infos = [".input", ".output", ".parameters"];
     obj.typeArguments.slice(0, 3).forEach((schemaNode, index) => {
       // TODO Check if id is overriden and use it or fallback to method.name
-      let name = rootName + "." + method.name.getText() + infos[index];
+      const name = rootName + "." + method.name.getText() + infos[index];
       if (ts.isTypeReferenceNode(schemaNode)) {
-        let decl = schemas.get(this.typeChecker.getTypeFromTypeNode(schemaNode).getSymbol().declarations[0]);
+        const decl = schemas.get(this.typeChecker.getTypeFromTypeNode(schemaNode).getSymbol().declarations[0]);
         if (decl) {
           schemas.add(name, decl);
           return;
@@ -941,14 +941,14 @@ export class Compiler {
    * @param models
    */
   processModels(models: WebdaSearchResults) {
-    let graph: {
+    const graph: {
       [key: string]: ModelGraph;
     } = {};
-    let tree = {};
-    let plurals = {};
-    let symbolMap = new Map<number, string>();
-    let list = {};
-    let reflections = {};
+    const tree = {};
+    const plurals = {};
+    const symbolMap = new Map<number, string>();
+    const list = {};
+    const reflections = {};
     Object.values(models).forEach(({ name, type, tags, lib }) => {
       // @ts-ignore
       symbolMap.set(type.id, name);
@@ -973,10 +973,10 @@ export class Compiler {
             .filter(c => c.kind === ts.SyntaxKind.TypeReference)
             .shift();
 
-          let children = prop.valueDeclaration.getChildren();
+          const children = prop.valueDeclaration.getChildren();
           let type;
           let captureNext = false;
-          for (let i in children) {
+          for (const i in children) {
             if (captureNext) {
               type = children[i];
             }
@@ -1245,7 +1245,7 @@ export class Compiler {
     // Ensure we have compiled already
     this.compile();
 
-    let rawSchema: JSONSchema7 = this.schemaGenerator.createSchema("UnpackedConfiguration");
+    const rawSchema: JSONSchema7 = this.schemaGenerator.createSchema("UnpackedConfiguration");
     let res: JSONSchema7 = <JSONSchema7>rawSchema.definitions["UnpackedConfiguration"];
     res.definitions ??= {};
     // Add the definition for types
@@ -1275,7 +1275,7 @@ export class Compiler {
         });
         delete res.definitions[key]["$schema"];
         // Flatten definition (might not be the best idea)
-        for (let def in definition.definitions) {
+        for (const def in definition.definitions) {
           res.definitions[def] ??= definition.definitions[def];
         }
         delete definition.definitions;
@@ -1370,7 +1370,7 @@ export class Compiler {
    */
   getServiceTypePattern(type: string): string {
     // Namespace is optional
-    let split = this.app.completeNamespace(type).split("/");
+    const split = this.app.completeNamespace(type).split("/");
     return `^(${split[0]}/)?${split[1]}$`;
   }
 
@@ -1480,7 +1480,7 @@ export class Compiler {
    * @returns
    */
   getClassTree(type: ts.Type): ts.Type[] {
-    let res = [type];
+    const res = [type];
     while (type.getBaseTypes()) {
       type = type.getBaseTypes()[0];
       if (!type || !type.symbol) {
@@ -1546,7 +1546,7 @@ export class Compiler {
    */
   static displayParents(node: ts.Node, stream?: any) {
     let parent = node.parent;
-    let parents = [];
+    const parents = [];
     while (parent !== undefined) {
       parents.unshift(parent);
       parent = parent.parent;

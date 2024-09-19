@@ -151,7 +151,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    * @param state
    */
   generateAuthUrl(redirect_uri: string, state: string, _ctx: WebContext) {
-    let oauthClient = this.getOAuthClient(redirect_uri);
+    const oauthClient = this.getOAuthClient(redirect_uri);
     return oauthClient.generateAuthUrl({
       access_type: this.parameters.access_type,
       scope: this.parameters.scope,
@@ -179,9 +179,9 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
       this.log("WARN", `Bad State ${ctx.getParameters().state} !== ${ctx.getSession<OAuthSession>().oauth?.state}`);
       throw new WebdaError.Forbidden("Bad State");
     }
-    let code: string = ctx.getParameters().code;
-    let redirect_uri = ctx.getHttpContext().getAbsoluteUrl(`${this.parameters.url}/callback`);
-    let oauthClient = this.getOAuthClient(redirect_uri);
+    const code: string = ctx.getParameters().code;
+    const redirect_uri = ctx.getHttpContext().getAbsoluteUrl(`${this.parameters.url}/callback`);
+    const oauthClient = this.getOAuthClient(redirect_uri);
     let profile, identId;
     // Now that we have the code, use that to acquire tokens.
     try {
@@ -217,7 +217,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    * Verify a Google Auth Token
    */
   async handleToken(context: WebContext) {
-    let tokens = (await context.getRequestBody()).tokens;
+    const tokens = (await context.getRequestBody()).tokens;
     if (!tokens) {
       throw new WebdaError.BadRequest("No tokens provided");
     }

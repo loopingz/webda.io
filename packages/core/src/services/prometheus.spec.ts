@@ -28,7 +28,7 @@ class PrometheusTest extends WebdaInternalTest {
   async sideServe() {
     try {
       // Should be listen on 9090 now
-      let res = await axios.get("http://localhost:9090/metrics");
+      const res = await axios.get("http://localhost:9090/metrics");
       assert.ok(res.data.includes("webda_registry_operations_total"));
       await assert.rejects(() => axios.get("http://localhost:9090/metrics2"), /Request failed with status code 404/);
     } finally {
@@ -48,7 +48,7 @@ class EmbeddedPrometheusTest extends WebdaInternalTest {
   }
   @test
   async normal() {
-    let ctx = await this.newContext("toto");
+    const ctx = await this.newContext("toto");
     ctx.setHttpContext(new HttpContext("localhost", "GET", "/version"));
     await this.webda.emitSync("Webda.Request", { context: ctx });
     await this.webda.emitSync("Webda.Result", { context: ctx });

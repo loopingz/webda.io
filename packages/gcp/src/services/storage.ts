@@ -106,8 +106,8 @@ export class GCSFinder implements StorageFinder {
     const { bucket, key } = this.getInfo(path);
     let pageToken;
     do {
-      let res = await this._storage.bucket(bucket).getFiles(pageToken ? pageToken : { prefix: key });
-      for (let file of res[0]) {
+      const res = await this._storage.bucket(bucket).getFiles(pageToken ? pageToken : { prefix: key });
+      for (const file of res[0]) {
         processor(`${path}${file.name}`);
       }
       pageToken = res[1].pageToken;
@@ -127,7 +127,7 @@ export class GCSFinder implements StorageFinder {
       processor?: (filepath: string) => void;
     }
   ): Promise<string[]> {
-    let res = [];
+    const res = [];
     await this.walk(currentPath, f => {
       if (options?.filterPattern && !options.filterPattern.test(f)) {
         return;
@@ -324,12 +324,12 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    * @inheritdoc
    */
   async putRedirectUrl(ctx: WebContext): Promise<{ url: string; method: string; headers: { [key: string]: string } }> {
-    let body = await ctx.getRequestBody();
+    const body = await ctx.getRequestBody();
     const { uuid, store, property } = ctx.getParameters();
-    let targetStore = this.verifyMapAndStore(ctx);
-    let object: any = await targetStore.get(uuid);
-    let base64String = Buffer.from(body.hash, "hex").toString("base64");
-    let params: SignedUrlParams = {
+    const targetStore = this.verifyMapAndStore(ctx);
+    const object: any = await targetStore.get(uuid);
+    const base64String = Buffer.from(body.hash, "hex").toString("base64");
+    const params: SignedUrlParams = {
       bucket: this.parameters.bucket,
       key: this._getKey(body.hash, "data"),
       action: "write",
@@ -342,7 +342,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     // List bucket to check if the file already exist
     let challenge;
     try {
-      let res = await this.getStorageBucket().file(params.key).getMetadata();
+      const res = await this.getStorageBucket().file(params.key).getMetadata();
       challenge = res[0].metadata.challenge;
     } catch (err) {
       // Ignore error
@@ -353,7 +353,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     if (challenge && challenge === body.challenge) {
       return;
     }
-    let url = await this.getSignedUrl(params);
+    const url = await this.getSignedUrl(params);
     // Re-upload, we should probably queue for recheck
     return {
       url,
@@ -437,7 +437,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       };
     };
     do {
-      let [files, page, _] = await this.storage.bucket(bucket).getFiles({ maxResults: 1000, pageToken, prefix });
+      const [files, page, _] = await this.storage.bucket(bucket).getFiles({ maxResults: 1000, pageToken, prefix });
       files.filter(f => (regex ? f.name.match(regex) : true)).forEach(f => throttler.queue(dwl(f)));
       await throttler.wait();
       pageToken = (<any>page)?.pageToken;

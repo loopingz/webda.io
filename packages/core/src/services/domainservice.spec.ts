@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as crypto from "crypto";
-import { WebdaError } from "../errors";
+import * as WebdaError from "../errors";
 import { WebdaTest } from "../test";
 import { DomainServiceParameters, ModelsOperationsService } from "./domainservice";
 import { RESTDomainService } from "../rest/restdomainservice";
@@ -29,7 +29,7 @@ class DomainServiceTest extends WebdaTest {
   }
 
   async callOperation<T = any>(operationId: string, body: any = "", parameters: any = {}, userId?: string): Promise<T> {
-    let context = new SimpleOperationContext(this.webda);
+    const context = new SimpleOperationContext(this.webda);
     context.setParameters(parameters);
     if (typeof body === "string") {
       context.setInput(Buffer.from(body));
@@ -52,7 +52,7 @@ class DomainServiceTest extends WebdaTest {
   async operations() {
     //assert.strictEqual(Object.keys(this.webda.listOperations()).length, 0);
     //await this.addService(ModelsOperationsService);
-    let operations = this.webda.listOperations();
+    const operations = this.webda.listOperations();
     assert.deepStrictEqual(Object.keys(operations).sort(), [
       "Classroom.Create",
       "Classroom.Delete",
@@ -151,7 +151,7 @@ class DomainServiceTest extends WebdaTest {
       /InvalidInput/
     );
     // Test the operations
-    let computerScreen = await this.callOperation(
+    const computerScreen = await this.callOperation(
       "ComputerScreen.Create",
       {
         name: "Test",
@@ -168,7 +168,7 @@ class DomainServiceTest extends WebdaTest {
       /Only test user can access/
     );
 
-    let retrieved = await this.callOperation("ComputerScreen.Get", undefined, { uuid: computerScreen.uuid }, "test");
+    const retrieved = await this.callOperation("ComputerScreen.Get", undefined, { uuid: computerScreen.uuid }, "test");
     assert.strictEqual(retrieved.name, "Test");
     // Test binary
     let user = await this.callOperation("User.Create", {
@@ -344,15 +344,15 @@ class DomainServiceTest extends WebdaTest {
         id: "123"
       },
       context
-    }),
-      await this.http({
-        method: "PUT",
-        url: `/classrooms/${result.results[0].uuid}/hardwares/globalAction`,
-        body: {
-          q: ""
-        },
-        context
-      });
+    });
+    await this.http({
+      method: "PUT",
+      url: `/classrooms/${result.results[0].uuid}/hardwares/globalAction`,
+      body: {
+        q: ""
+      },
+      context
+    });
     await this.http({
       method: "PUT",
       url: `/hardwares/globalAction`,
@@ -377,7 +377,7 @@ class DomainServiceTest extends WebdaTest {
     const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService")).resolve().init();
 
     // Play with the rest api now
-    let company = await this.http({
+    const company = await this.http({
       method: "POST",
       url: "/companies",
       body: {
@@ -385,7 +385,7 @@ class DomainServiceTest extends WebdaTest {
         name: "Test 1"
       }
     });
-    let company2 = await this.http({
+    const company2 = await this.http({
       method: "POST",
       url: "/companies",
       body: {
@@ -394,7 +394,7 @@ class DomainServiceTest extends WebdaTest {
       }
     });
     assert.notStrictEqual(company.uuid, undefined);
-    let user = await this.http({
+    const user = await this.http({
       method: "POST",
       url: `/companies/${company.uuid}/users`,
       body: {
@@ -403,7 +403,7 @@ class DomainServiceTest extends WebdaTest {
       }
     });
     assert.notStrictEqual(user.uuid, undefined);
-    let user2 = await this.http({
+    const user2 = await this.http({
       method: "POST",
       url: `/companies/${company2.uuid}/users`,
       body: {
@@ -411,7 +411,7 @@ class DomainServiceTest extends WebdaTest {
         name: "User"
       }
     });
-    let user3 = await this.http({
+    const user3 = await this.http({
       method: "POST",
       url: `/companies/${company2.uuid}/users`,
       body: {
@@ -443,7 +443,7 @@ class DomainServiceTest extends WebdaTest {
 
   @test async deleteAsyncHttp() {
     await this.addService(ModelsOperationsService);
-    let company = await this.webda.getModel<CoreModel & { uuid: string }>("Company").create({
+    const company = await this.webda.getModel<CoreModel & { uuid: string }>("Company").create({
       __deleted: true
     });
     await assert.rejects(
@@ -492,7 +492,7 @@ class DomainServiceTest extends WebdaTest {
 
   @test
   async parametersCov() {
-    let params = new DomainServiceParameters({
+    const params = new DomainServiceParameters({
       models: ["!User", "!Company"]
     });
     assert.ok(params.isIncluded("Plop"));
@@ -511,7 +511,7 @@ class DomainServiceTest extends WebdaTest {
     const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService")).resolve().init();
 
     // Play with the rest api now
-    let company = await this.http({
+    const company = await this.http({
       method: "POST",
       url: "/companies",
       body: {
@@ -520,7 +520,7 @@ class DomainServiceTest extends WebdaTest {
       }
     });
     assert.notStrictEqual(company.uuid, undefined);
-    let user = await this.http({
+    const user = await this.http({
       method: "POST",
       url: `/companies/${company.uuid}/users`,
       body: {
@@ -545,7 +545,7 @@ class DomainServiceTest extends WebdaTest {
     challenge.update("WEBDA");
     hash.update(value);
     challenge.update(value);
-    let res = await this.http({
+    const res = await this.http({
       method: "PUT",
       url: `/companies/${company.uuid}/users/${user.uuid}/images`,
       body: {
@@ -577,7 +577,7 @@ class DomainServiceTest extends WebdaTest {
     )
       .resolve()
       .init();
-    let result = await this.http({
+    const result = await this.http({
       method: "GET",
       url: "/openapi"
     });

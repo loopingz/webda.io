@@ -15,7 +15,7 @@ class AclModelTest {
   _user: SimpleUser;
 
   async before() {
-    let app = new TestApplication();
+    const app = new TestApplication();
     await app.load();
     this._webda = new Core(app);
     await this._webda.init();
@@ -123,7 +123,7 @@ class AclModelTest {
         };
       }
     };
-    let actions = AclModel.getActions();
+    const actions = AclModel.getActions();
     assert.notStrictEqual(actions.acl, undefined);
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "PUT", "/"));
     this._ctx.getHttpContext().setBody({ acl: "mine" });
@@ -139,7 +139,7 @@ class AclModelTest {
     await User.ref("acl").create({
       displayName: "Plopi"
     });
-    let res = await this.model.acl(this._ctx);
+    const res = await this.model.acl(this._ctx);
     assert.deepStrictEqual(res, {
       raw: {
         acl: "mine"

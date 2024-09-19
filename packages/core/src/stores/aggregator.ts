@@ -63,10 +63,10 @@ class AggregatorService<T extends AggregatorParameters = AggregatorParameters> e
    * @returns
    */
   async handleMap(object: CoreModel, updates: MapUpdates) {
-    let mapUpdates: any = {};
+    const mapUpdates: any = {};
     if (typeof updates === "object") {
       let toUpdate = false;
-      for (let i in updates) {
+      for (const i in updates) {
         if (this.parameters.fields.indexOf(i) >= 0) {
           toUpdate = true;
         }
@@ -81,7 +81,7 @@ class AggregatorService<T extends AggregatorParameters = AggregatorParameters> e
       updates = object;
     }
     // Create mapper
-    let mapper = {};
+    const mapper = {};
     this.parameters.fields.forEach(id => {
       mapper[id] = updates[id];
     });

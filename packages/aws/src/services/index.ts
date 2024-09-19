@@ -9,7 +9,7 @@ export interface IAMPolicyContributor {
    * @param accountId The account where the application is being deployed
    * @param region The region where the application is being deployed
    */
-  getARNPolicy: (accountId: string, region: string) => {};
+  getARNPolicy: (accountId: string, region: string) => object;
 }
 
 /**
@@ -21,7 +21,7 @@ export interface CloudFormationContributor {
    * {@link S3Binary.getCloudFormation}
    * @param deployer The current deployer asking for contribution
    */
-  getCloudFormation: (deployer: CloudFormationDeployer) => {};
+  getCloudFormation: (deployer: CloudFormationDeployer) => object;
 }
 
 export * from "./aws-mixin";

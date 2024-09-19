@@ -30,7 +30,7 @@ class TerminalTest {
   }
 
   after() {
-    for (let i in this.stubs) {
+    for (const i in this.stubs) {
       try {
         this.stubs[i].restore();
       } catch (e) {}
@@ -59,7 +59,7 @@ class TerminalTest {
     this.terminal.onData("\u001B\u005B\u0036\u007e");
     this.terminal.onData("\u001B\u005B\u0042");
     this.terminal.onData("\u001B\u005B\u0041");
-    let uuidP = this.output.requestInput("My Question", undefined, [new RegExp(/\d+/)], true);
+    const uuidP = this.output.requestInput("My Question", undefined, [new RegExp(/\d+/)], true);
     await new Promise(resolve => nextTick(resolve));
     assert.ok(this.terminal.inputs.length > 0, `Should have one input ${JSON.stringify(this.output.listeners)}`);
     this.terminal.onData("\x0d");
@@ -109,9 +109,9 @@ class TerminalTest {
 
   @test
   async testColorDisplayStripping() {
-    let str =
+    const str =
       "[[33m WARN[39m] [33mCannot resolve require /datas/git/lib/handlers/batch_idents.js Not a webda application folder or webda.config.json file: ../webda.config.json[39m";
-    let res = this.terminal.displayString(str, 40);
+    const res = this.terminal.displayString(str, 40);
     assert.strictEqual(res.endsWith("...[39m"), true);
   }
 
@@ -126,7 +126,7 @@ class TerminalTest {
     this.output.openGroup("group1");
     this.output.log("WARN", "coucou2");
     this.output.log("TRACE", "coucou3");
-    let res = this.terminal.displayHistory(12);
+    const res = this.terminal.displayHistory(12);
   }
 
   @test
@@ -151,16 +151,16 @@ class TerminalTest {
 
   async visu() {
     return new Promise<void>(async resolve => {
-      let output = new WorkerOutput();
-      let terminal = new Terminal(output);
+      const output = new WorkerOutput();
+      const terminal = new Terminal(output);
       let i = 1;
       output.setTitle("Webda Deployer");
       output.openGroup("MyGroup");
       output.startProgress("transfer1", 100);
       output.startProgress("transfer2", 100);
       output.startProgress("transfer3", 100);
-      let interval = setInterval(() => {
-        let keys = Object.keys(output.progresses);
+      const interval = setInterval(() => {
+        const keys = Object.keys(output.progresses);
         if (!keys || keys.length === 0) {
           clearInterval(interval);
           return;
@@ -172,7 +172,7 @@ class TerminalTest {
       }, 300);
       output.openGroup("Subgroup");
       output.closeGroup();
-      let interval2 = setInterval(() => {
+      const interval2 = setInterval(() => {
         output.log(<any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)], "This is my log " + i++);
       }, 500);
 

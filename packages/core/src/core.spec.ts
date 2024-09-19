@@ -262,7 +262,7 @@ class CSRFTest extends WebdaInternalSimpleTest {
 
   @test
   async originFilter() {
-    let filter = new OriginFilter(["https://localhost3"]);
+    const filter = new OriginFilter(["https://localhost3"]);
     this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "https", 443));
     assert.strictEqual(await filter.checkRequest(this.ctx), true);
   }
@@ -313,10 +313,10 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   async exportOpenAPI() {
-    let app = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
+    const app = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
     await app.load();
 
-    let webda = new Core(app);
+    const webda = new Core(app);
     // @ts-ignore
     webda.services["ConsoleLogger"] = new ConsoleLoggerService(webda, "ConsoleLogger", {});
     await webda.init();
@@ -334,7 +334,7 @@ class CoreTest extends WebdaInternalTest {
       }
     });
     app.getSchema = type => {
-      let res = {
+      const res = {
         definitions: {},
         properties: {},
         title: type
@@ -381,16 +381,16 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   async getStringRoute() {
-    let ctx = await this.newContext();
-    let exec = this.getExecutor(ctx, "test.webda.io", "GET", "/route/string");
+    const ctx = await this.newContext();
+    const exec = this.getExecutor(ctx, "test.webda.io", "GET", "/route/string");
     exec.execute(ctx);
     assert.strictEqual(ctx.getResponseBody(), "CodeCoverage");
   }
 
   @test
   async getStringPostRoute() {
-    let ctx = await this.newContext();
-    let exec = this.getExecutor(ctx, "test.webda.io", "POST", "/route/string");
+    const ctx = await this.newContext();
+    const exec = this.getExecutor(ctx, "test.webda.io", "POST", "/route/string");
     exec.execute(ctx);
     assert.strictEqual(ctx.getResponseBody(), "CodeCoveragePOST");
   }
@@ -408,18 +408,18 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   getServicesImplementations() {
-    let moddas = this.webda.getServicesOfType();
+    const moddas = this.webda.getServicesOfType();
     assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 17);
   }
 
   @test
   getStores() {
-    let moddas = this.webda.getStores();
+    const moddas = this.webda.getStores();
     assert.strictEqual(Object.keys(moddas).filter(k => !k.startsWith("Auto/")).length, 4);
   }
   @test
   getServicesImplementationsWithType() {
-    let stores = this.webda.getServicesOfType(<any>Store);
+    const stores = this.webda.getServicesOfType(<any>Store);
     assert.strictEqual(Object.keys(stores).filter(k => !k.startsWith("Auto/")).length, 4);
   }
 
@@ -430,20 +430,20 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   knownPage() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/");
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["TEST_ADD"], undefined);
-    let service = this.ctx.getExecutor();
+    const service = this.ctx.getExecutor();
     assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
     assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
   knownPageMultipleMethod() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "POST", "/");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "POST", "/");
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx["parameters"]["TEST_ADD"], undefined);
-    let service = this.ctx.getExecutor();
+    const service = this.ctx.getExecutor();
     assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
     assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
@@ -460,10 +460,10 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   knownTemplatePage() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/urltemplate/666");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/urltemplate/666");
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["id"], "666");
-    let service = this.ctx.getExecutor();
+    const service = this.ctx.getExecutor();
     assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
     assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
@@ -493,7 +493,7 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   slashInPath() {
-    let executor = this.getExecutor(undefined, "test.webda.io", "GET", "/urltemplate/666/test");
+    const executor = this.getExecutor(undefined, "test.webda.io", "GET", "/urltemplate/666/test");
     assert.notStrictEqual(executor, undefined);
     assert.notStrictEqual(this.ctx.getParameters().id, "666/test");
   }
@@ -510,7 +510,7 @@ class CoreTest extends WebdaInternalTest {
   }
   @test
   me() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/auth/me");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/auth/me");
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters().provider, undefined);
   }
@@ -601,13 +601,13 @@ class CoreTest extends WebdaInternalTest {
   @test
   covRemoveRoute() {
     this.webda.removeRoute("/version");
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/version");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/version");
     assert.strictEqual(executor, undefined);
   }
 
   @test
   toPublicJson() {
-    let obj = {
+    const obj = {
       _title: "private",
       title: "public"
     };
@@ -617,13 +617,13 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   async updateConfiguration() {
-    let service = this.webda.getService<Authentication>("Authentication");
+    const service = this.webda.getService<Authentication>("Authentication");
     assert.strictEqual(service.getParameters().password.regexp, ".{8,}");
     assert.strictEqual(service.getParameters().email.mailer, "DefinedMailer");
     await this.webda.reinit({
       "Authentication.password.regexp": ".{12,}"
     });
-    let newService = this.webda.getService<Authentication>("Authentication");
+    const newService = this.webda.getService<Authentication>("Authentication");
     assert.strictEqual(newService.getParameters().password.regexp, ".{12,}");
     assert.strictEqual(newService.getParameters().email.mailer, "DefinedMailer");
     await assert.rejects(
@@ -645,7 +645,7 @@ class CoreTest extends WebdaInternalTest {
   }
 
   assertInitError(service, msg) {
-    let serviceBean = this.webda.getService(service);
+    const serviceBean = this.webda.getService(service);
     assert.notStrictEqual(serviceBean._initException, undefined, `${service} should have failed init with ${msg}`);
     assert.strictEqual(serviceBean._initException.message.indexOf(msg) >= 0, true);
   }
@@ -660,22 +660,22 @@ class CoreTest extends WebdaInternalTest {
     this.webda._currentExecutor = {
       session: "test"
     };
-    let local = this.webda.getConfiguration().parameters.locales;
+    const local = this.webda.getConfiguration().parameters.locales;
     this.webda.getConfiguration().parameters.locales = undefined;
     assert.strictEqual(this.webda.getLocales().indexOf("en-GB"), 0);
     this.webda.getConfiguration().parameters.locales = local;
     assert.strictEqual(this.webda.getService("plop"), undefined);
     assert.strictEqual(JSON.stringify(this.webda.getModels()), "{}");
     process.env.WEBDA_CONFIG = __dirname + "/../test/config.broken.json";
-    let err = new WebdaError.CodeError("CODE", "");
+    const err = new WebdaError.CodeError("CODE", "");
     assert.strictEqual(err.getCode(), "CODE");
   }
 
   @test
   async autoConnectFailure() {
-    let app = new TestApplication(FileUtils.load(__dirname + "/../test/config.broken.json"));
+    const app = new TestApplication(FileUtils.load(__dirname + "/../test/config.broken.json"));
     await app.load();
-    let core = new Core(app);
+    const core = new Core(app);
     await core.init();
     core.getServices()["ImplicitBean"].resolve = () => {
       throw new Error();
@@ -691,10 +691,10 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   async sigintPromises() {
-    let stub = sinon.stub(process, "exit").callsFake(<any>(() => {}));
+    const stub = sinon.stub(process, "exit").callsFake(<any>(() => {}));
     try {
       let found = false;
-      let p = new CancelablePromise(
+      const p = new CancelablePromise(
         () => {},
         async () => {
           found = true;
@@ -718,7 +718,7 @@ class CoreTest extends WebdaInternalTest {
     assert.ok(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(this.webda.getUuid()) !== null);
     assert.ok(/[0-9a-f]{32}/.exec(this.webda.getUuid("hex")) !== null);
     assert.ok(/[0-9a-zA-Z\-_]{22}/.exec(this.webda.getUuid("base64")) !== null);
-    let provider: ContextProvider = {
+    const provider: ContextProvider = {
       getContext(info) {
         return undefined;
       }
@@ -754,8 +754,8 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   async listenersTest() {
-    let stub = sinon.stub();
-    let stub2 = sinon.stub().callsFake(async () => {});
+    const stub = sinon.stub();
+    const stub2 = sinon.stub().callsFake(async () => {});
     this.webda.on("Test", stub);
     this.webda.on("Test", stub2);
     // @ts-ignore
@@ -768,7 +768,7 @@ class CoreTest extends WebdaInternalTest {
   createServices() {
     this.webda.getApplication();
     // @ts-ignore
-    let method = this.webda.createServices.bind(this.webda);
+    const method = this.webda.createServices.bind(this.webda);
     method(["definedmailer"]);
     // @ts-ignore
     this.webda.getApplication().getModda = type => {
@@ -783,7 +783,7 @@ class CoreTest extends WebdaInternalTest {
 
   @test
   async badInit() {
-    let service = this.webda.getService("DefinedMailer");
+    const service = this.webda.getService("DefinedMailer");
     service.init = async () => {
       throw new Error("Not happy");
     };

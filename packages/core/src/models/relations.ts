@@ -60,7 +60,8 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
   getAll: () => Promise<T[]>;
 };
 
-// Empty class to allow filtering it
+// Empty class to allow filtering it with FilterAttributes
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ModelLinker {}
 /**
  * Define a link to 1:n relation
@@ -149,7 +150,7 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
   }
 
   remove(model: ModelRef<T> | string | T) {
-    let index = this.findIndex(m => m.toString() === (typeof model === "string" ? model : model.getUuid()));
+    const index = this.findIndex(m => m.toString() === (typeof model === "string" ? model : model.getUuid()));
     if (index >= 0) {
       this.splice(index, 1);
     }
@@ -210,7 +211,7 @@ export class ModelLinksArray<T extends CoreModel, K>
 
   remove(model: ModelRefCustomProperties<T, K> | string | T) {
     const uuid = typeof model === "string" ? model : (<{ uuid: string }>model).uuid || model.getUuid();
-    let index = this.findIndex(m => m.getUuid() === uuid);
+    const index = this.findIndex(m => m.getUuid() === uuid);
     if (index >= 0) {
       this.splice(index, 1);
       this.parent?.__dirty.add(
@@ -238,7 +239,7 @@ export function createModelLinksMap<T extends CoreModel>(
   data: any = {},
   parent?: CoreModel
 ) {
-  let result = {
+  const result = {
     add: (model: ModelRefCustomProperties<T, any>) => {
       result[model.uuid || model.getUuid()] = model;
       parent?.__dirty.add(

@@ -186,7 +186,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public webdaql(): WebdaqlContext {
-    let _localctx: WebdaqlContext = new WebdaqlContext(this._ctx, this.state);
+    const _localctx: WebdaqlContext = new WebdaqlContext(this._ctx, this.state);
     this.enterRule(_localctx, 0, WebdaQLParserParser.RULE_webdaql);
     let _la: number;
     try {
@@ -262,7 +262,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public limitExpression(): LimitExpressionContext {
-    let _localctx: LimitExpressionContext = new LimitExpressionContext(this._ctx, this.state);
+    const _localctx: LimitExpressionContext = new LimitExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 2, WebdaQLParserParser.RULE_limitExpression);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -287,7 +287,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public offsetExpression(): OffsetExpressionContext {
-    let _localctx: OffsetExpressionContext = new OffsetExpressionContext(this._ctx, this.state);
+    const _localctx: OffsetExpressionContext = new OffsetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 4, WebdaQLParserParser.RULE_offsetExpression);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -312,7 +312,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public orderFieldExpression(): OrderFieldExpressionContext {
-    let _localctx: OrderFieldExpressionContext = new OrderFieldExpressionContext(this._ctx, this.state);
+    const _localctx: OrderFieldExpressionContext = new OrderFieldExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 6, WebdaQLParserParser.RULE_orderFieldExpression);
     let _la: number;
     try {
@@ -355,7 +355,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public orderExpression(): OrderExpressionContext {
-    let _localctx: OrderExpressionContext = new OrderExpressionContext(this._ctx, this.state);
+    const _localctx: OrderExpressionContext = new OrderExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 8, WebdaQLParserParser.RULE_orderExpression);
     let _la: number;
     try {
@@ -404,11 +404,11 @@ export class WebdaQLParserParser extends Parser {
       _p = 0;
     }
 
-    let _parentctx: ParserRuleContext = this._ctx;
-    let _parentState: number = this.state;
+    const _parentctx: ParserRuleContext = this._ctx;
+    const _parentState: number = this.state;
     let _localctx: ExpressionContext = new ExpressionContext(this._ctx, _parentState);
     let _prevctx: ExpressionContext = _localctx;
-    let _startState: number = 10;
+    const _startState: number = 10;
     this.enterRecursionRule(_localctx, 10, WebdaQLParserParser.RULE_expression, _p);
     let _la: number;
     try {
@@ -682,7 +682,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public identifier(): IdentifierContext {
-    let _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
+    const _localctx: IdentifierContext = new IdentifierContext(this._ctx, this.state);
     this.enterRule(_localctx, 16, WebdaQLParserParser.RULE_identifier);
     let _la: number;
     try {
@@ -716,7 +716,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public booleanLiteral(): BooleanLiteralContext {
-    let _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
+    const _localctx: BooleanLiteralContext = new BooleanLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 18, WebdaQLParserParser.RULE_booleanLiteral);
     let _la: number;
     try {
@@ -750,7 +750,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public stringLiteral(): StringLiteralContext {
-    let _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
+    const _localctx: StringLiteralContext = new StringLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 20, WebdaQLParserParser.RULE_stringLiteral);
     let _la: number;
     try {
@@ -786,7 +786,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public integerLiteral(): IntegerLiteralContext {
-    let _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
+    const _localctx: IntegerLiteralContext = new IntegerLiteralContext(this._ctx, this.state);
     this.enterRule(_localctx, 22, WebdaQLParserParser.RULE_integerLiteral);
     try {
       this.enterOuterAlt(_localctx, 1);
@@ -809,7 +809,7 @@ export class WebdaQLParserParser extends Parser {
   }
   // @RuleVersion(0)
   public setExpression(): SetExpressionContext {
-    let _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
+    const _localctx: SetExpressionContext = new SetExpressionContext(this._ctx, this.state);
     this.enterRule(_localctx, 24, WebdaQLParserParser.RULE_setExpression);
     let _la: number;
     try {

@@ -21,11 +21,6 @@ export interface AsyncActionQueueItem {
 }
 
 /**
- * Job information
- */
-export interface Job {}
-
-/**
  * Define here a model that can be used along with Store service
  * @WebdaModel
  */

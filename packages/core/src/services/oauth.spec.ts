@@ -70,7 +70,7 @@ class OAuthServiceTest extends WebdaInternalTest {
   @test
   async testCheckRequest() {
     this.service = this.getService("fake");
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     ctx.setHttpContext(
       new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, {
         referer: "bouzouf.com"
@@ -110,7 +110,7 @@ class OAuthServiceTest extends WebdaInternalTest {
   @test
   async testRoute() {
     this.service = this.getService("fake");
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await this.getExecutor(
       ctx,
       "test.webda.io",
@@ -129,7 +129,7 @@ class OAuthServiceTest extends WebdaInternalTest {
       () => this.service.handleReturn(undefined, undefined, undefined),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await this.webda.getService<Store<Ident>>("Idents").__clean();
     // Register with oauth
     await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
@@ -141,7 +141,7 @@ class OAuthServiceTest extends WebdaInternalTest {
     assert.strictEqual(ctx.getSession().identUsed, undefined);
     await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
     assert.strictEqual(ctx.getSession().identUsed, "plop_fake");
-    let userId = ctx.getCurrentUserId();
+    const userId = ctx.getCurrentUserId();
     await ctx.newSession();
     // Log with new ident / known email
     await this.service.handleReturn(ctx, "plop2", { email: "rcattiau@gmail.com" }, undefined);
@@ -208,7 +208,7 @@ class OAuthServiceTest extends WebdaInternalTest {
   @test
   async redirect() {
     this.service = this.getService("fake");
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     ctx.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/fake", "https", 443, {
         referer: "https://redirect.me/plop"

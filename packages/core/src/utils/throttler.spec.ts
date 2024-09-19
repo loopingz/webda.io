@@ -6,8 +6,8 @@ import { Throttler } from "./throttler";
 class ThrottlerTest {
   @test
   async test() {
-    let resolvers: (() => void)[] = [];
-    let t = new Throttler(2);
+    const resolvers: (() => void)[] = [];
+    const t = new Throttler(2);
     t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P1");
     t.queue(() => new Promise<void>(resolve => resolvers.push(resolve)), "P2");
     t.execute(() => new Promise<void>(resolve => resolvers.push(resolve)), "P3");
@@ -23,11 +23,11 @@ class ThrottlerTest {
     // @ts-ignore
     resolvers.shift()();
     await new Promise(resolve => setImmediate(resolve));
-    let curs = t.getInProgress();
+    const curs = t.getInProgress();
     assert.strictEqual(curs.length, 1, `Currents ${curs}`);
     t.setConcurrency(3);
     assert.strictEqual(t.getInProgress().length, 3);
-    let p = t.wait();
+    const p = t.wait();
     resolvers.forEach(r => r());
     await new Promise(resolve => setImmediate(resolve));
     resolvers.forEach(r => r());

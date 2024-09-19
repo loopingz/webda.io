@@ -95,7 +95,7 @@ export default class FireStore<
    * Return all for now
    */
   async find(parsedQuery: WebdaQL.Query): Promise<StoreFindResult<T>> {
-    let offset: number = parseInt(parsedQuery.continuationToken || "0");
+    const offset: number = parseInt(parsedQuery.continuationToken || "0");
     let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = this.firestore.collection(
       this.parameters.collection
     );
@@ -103,7 +103,7 @@ export default class FireStore<
       query = query.offset(offset);
     }
 
-    let filter = new WebdaQL.AndExpression([]);
+    const filter = new WebdaQL.AndExpression([]);
     let rangeAttribute: string;
     let toProcess: WebdaQL.AndExpression;
     if (!(parsedQuery.filter instanceof WebdaQL.AndExpression)) {
@@ -112,7 +112,7 @@ export default class FireStore<
       toProcess = parsedQuery.filter;
     }
     const queryAttributes = new Set<string>();
-    let count = 0;
+    const count = 0;
     let hasIn = false;
     let hasContains = false;
     toProcess.children.forEach((child: WebdaQL.Expression) => {
@@ -128,7 +128,7 @@ export default class FireStore<
         return;
       }
       let operator: FirebaseFirestore.WhereFilterOp;
-      let attribute = child.attribute.join(".");
+      const attribute = child.attribute.join(".");
       queryAttributes.add(attribute);
       // CONTAINS -> array_contains
       // Translate operators
@@ -207,7 +207,7 @@ export default class FireStore<
     if (!orderBy) {
       return query;
     }
-    let requiredIndex = orderBy.map(order => order.field).sort();
+    const requiredIndex = orderBy.map(order => order.field).sort();
     let orders;
     // Require index with multiple ORDER BY
     if (requiredIndex.length > 1) {
@@ -278,7 +278,7 @@ export default class FireStore<
     } else if (Array.isArray(doc)) {
       return doc.map(d => this.giveDatesBack(d));
     } else if (doc instanceof Object) {
-      let res = {};
+      const res = {};
       Object.keys(doc).forEach(k => {
         res[k] = this.giveDatesBack(doc[k]);
       });
@@ -292,7 +292,7 @@ export default class FireStore<
    * @override
    */
   async _get(uid: string, raiseIfNotFound?: boolean): Promise<T> {
-    let doc = (await this.getDocumentRef(uid).get()).data();
+    const doc = (await this.getDocumentRef(uid).get()).data();
     if (!doc) {
       if (raiseIfNotFound) {
         throw new StoreNotFoundError(uid, this.getName());
@@ -326,7 +326,7 @@ export default class FireStore<
 
   protected checkCondition(uid: string, data: any, field: string, condition: any): void {
     if (condition) {
-      let current = data[field] instanceof Timestamp ? data[field].toDate().toISOString() : data[field];
+      const current = data[field] instanceof Timestamp ? data[field].toDate().toISOString() : data[field];
       if (condition instanceof Date) {
         condition = condition.toISOString();
       }

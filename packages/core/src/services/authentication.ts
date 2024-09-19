@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Counter, EventWithContext } from "../core";
-import { WebdaError } from "../errors";
+import * as WebdaError from "../errors";
 import { CoreModelDefinition } from "../models/coremodel";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
@@ -444,8 +444,8 @@ class Authentication<
     }
   })
   async _sendEmailValidation(ctx) {
-    let identKey = ctx.parameters.email + "_email";
-    let ident = await this._identModel.ref(identKey).get();
+    const identKey = ctx.parameters.email + "_email";
+    const ident = await this._identModel.ref(identKey).get();
     if (!ident) {
       await this._identModel.ref(`${ctx.parameters.email}_email`).create({
         _lastValidationEmail: Date.now(),
@@ -481,7 +481,7 @@ class Authentication<
     }
   })
   async _getMe(ctx: OperationContext) {
-    let user = await ctx.getCurrentUser();
+    const user = await ctx.getCurrentUser();
     if (user === undefined) {
       throw new WebdaError.NotFound("No user found");
     }
@@ -605,7 +605,7 @@ class Authentication<
     if (await this._identModel.ref(`${identId}_${provider}`).exists()) {
       throw new Error("Ident is already known");
     }
-    let ctx = await this._webda.newWebContext(new HttpContext("fake", "GET", "/"));
+    const ctx = await this._webda.newWebContext(new HttpContext("fake", "GET", "/"));
     // Pretend we logged in with the ident
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
@@ -655,12 +655,12 @@ class Authentication<
    * @param ctx
    */
   async _passwordRecoveryEmail(ctx: WebContext) {
-    let email = ctx.parameter("email");
-    let ident: Ident = await this._identModel.ref(email + "_email").get();
+    const email = ctx.parameter("email");
+    const ident: Ident = await this._identModel.ref(email + "_email").get();
     if (!ident) {
       throw new WebdaError.NotFound("Email not found");
     }
-    let user: User = await this._userModel.ref(ident.getUser().toString()).get();
+    const user: User = await this._userModel.ref(ident.getUser().toString()).get();
     // Dont allow to do too many request
     if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
       throw new WebdaError.TooManyRequests("Password recovery already requested recently");
@@ -682,15 +682,15 @@ class Authentication<
       }
       return;
     }
-    let regexp = new RegExp(this.parameters.password.regexp);
+    const regexp = new RegExp(this.parameters.password.regexp);
     if (regexp.exec(password) === null) {
       throw new WebdaError.BadRequest("Password does not match the policy");
     }
   }
 
   async _passwordRecovery(ctx: WebContext<PasswordRecoveryBody>) {
-    let body = await ctx.getRequestBody();
-    let user: User = await this._userModel.ref(body.login.toLowerCase()).get();
+    const body = await ctx.getRequestBody();
+    const user: User = await this._userModel.ref(body.login.toLowerCase()).get();
     if (!user) {
       throw new WebdaError.Forbidden("User not found");
     }
@@ -703,7 +703,7 @@ class Authentication<
       throw new WebdaError.Gone("Expired token");
     }
     await this._verifyPassword(body.password, user);
-    let password = this.hashPassword(body.password);
+    const password = this.hashPassword(body.password);
     await user.patch(
       {
         __password: password
@@ -782,10 +782,10 @@ class Authentication<
    * @returns
    */
   async sendRecoveryEmail(ctx: WebContext, user, email: string) {
-    let infos = await this.getPasswordRecoveryInfos(user);
+    const infos = await this.getPasswordRecoveryInfos(user);
     const mailer: Mailer = this.getMailMan();
-    let locale = user.locale || ctx.getLocale();
-    let mailOptions = {
+    const locale = user.locale || ctx.getLocale();
+    const mailOptions = {
       to: email,
       locale: locale,
       template: "EMAIL_RECOVERY",
@@ -809,7 +809,7 @@ class Authentication<
    */
   async sendValidationEmail(ctx: WebContext, email: string) {
     const mailer: Mailer = this.getMailMan();
-    let replacements = {
+    const replacements = {
       ...this.parameters.email,
       context: ctx,
       url: ctx
@@ -821,11 +821,11 @@ class Authentication<
           )}`
         )
     };
-    let userId = ctx.getCurrentUserId();
+    const userId = ctx.getCurrentUserId();
     if (userId && userId.length > 0) {
       replacements.url += "&user=" + userId;
     }
-    let mailOptions = {
+    const mailOptions = {
       to: email,
       locale: ctx.getLocale(),
       template: "EMAIL_REGISTER",
@@ -901,8 +901,8 @@ class Authentication<
    * @param ident
    */
   protected async handleLogin(ctx: WebContext<LoginBody>, ident: Ident) {
-    let updates: any = {};
-    let user: User = await this._userModel.ref(ident.getUser().toString()).get();
+    const updates: any = {};
+    const user: User = await this._userModel.ref(ident.getUser().toString()).get();
     // Check password
     if (this.checkPassword(user.getPassword(), (await ctx.getRequestBody()).password)) {
       if (ident._failedLogin > 0) {
@@ -946,7 +946,7 @@ class Authentication<
       throw new WebdaError.Gone("Already logged in");
     }
 
-    let body = await ctx.getRequestBody();
+    const body = await ctx.getRequestBody();
 
     const mailConfig = this.parameters.email;
     const uuid = body.login.toLowerCase() + "_email";
@@ -982,13 +982,13 @@ class Authentication<
         throw new WebdaError.BadRequest("Password is required");
       }
       // Store with a _
-      let __password = this.hashPassword(body.password);
+      const __password = this.hashPassword(body.password);
       await this._verifyPassword(body.password);
       // Remove useless attributes
       delete body.password;
       delete body.register;
       delete body.token;
-      let user = await this.registerUser(
+      const user = await this.registerUser(
         ctx,
         {},
         uuid,

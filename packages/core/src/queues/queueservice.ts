@@ -112,7 +112,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   }> {
     try {
       let speed = Date.now();
-      let items = await this.receiveMessage(this.eventPrototype);
+      const items = await this.receiveMessage(this.eventPrototype);
       this.metrics.messages_received.inc(items.length);
       speed = Date.now() - speed;
       this.failedIterations = 0;
@@ -173,19 +173,19 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     this.failedIterations = 0;
     this.callback = callback;
     this.eventPrototype = eventPrototype;
-    let consumers = new Set<CancelableLoopPromise>();
-    let childQueueCallback = async (canceller: () => Promise<void>) => {
-      let res = await this.consumerReceiveMessage();
+    const consumers = new Set<CancelableLoopPromise>();
+    const childQueueCallback = async (canceller: () => Promise<void>) => {
+      const res = await this.consumerReceiveMessage();
       // If an error occured or no results found, stop the child
       if (res.items <= 0) {
         await canceller();
       }
     };
-    let parentQueueCallback = async (_canceller: () => Promise<void>) => {
-      let res = await this.consumerReceiveMessage();
+    const parentQueueCallback = async (_canceller: () => Promise<void>) => {
+      const res = await this.consumerReceiveMessage();
       if (res.items > 0 && res.speed < 3000 && consumers.size < this.getMaxConsumers() - 1) {
         this.log("TRACE", `Launching a new queue consumer for ${this.getName()}`);
-        let consumer = new CancelableLoopPromise(childQueueCallback);
+        const consumer = new CancelableLoopPromise(childQueueCallback);
         // Add consumer to our list
         consumers.add(consumer);
         // Remove consumer once finished

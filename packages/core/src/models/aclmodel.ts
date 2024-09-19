@@ -162,7 +162,7 @@ export class AclModel extends CoreModel {
    *
    */
   async _httpPutAcls(ctx: OperationContext) {
-    let acl = await ctx.getInput();
+    const acl = await ctx.getInput();
     // This looks like a bad request
     if (acl.raw) {
       throw new WebdaError.BadRequest("ACL should have raw field");
@@ -195,9 +195,9 @@ export class AclModel extends CoreModel {
     if (!user) {
       user = await ctx.getCurrentUser();
     }
-    let permissions = new Set<string>();
-    let groups = this.getGroups(ctx, user);
-    for (let i in this.__acl) {
+    const permissions = new Set<string>();
+    const groups = this.getGroups(ctx, user);
+    for (const i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
         this.__acl[i].split(",").forEach(p => permissions.add(p));
       }
@@ -206,8 +206,8 @@ export class AclModel extends CoreModel {
   }
 
   async hasPermission(ctx: OperationContext, user: User, action: string): Promise<boolean> {
-    let groups = this.getGroups(ctx, user);
-    for (let i in this.__acl) {
+    const groups = this.getGroups(ctx, user);
+    for (const i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
         if (this.__acl[i] === "all" || this.__acl[i].split(",").indexOf(action) >= 0) {
           return true;
@@ -224,7 +224,7 @@ export class AclModel extends CoreModel {
     if (!this.getAcl() || !ctx.getCurrentUserId()) {
       return "No ACL or user";
     }
-    let user = await ctx.getCurrentUser();
+    const user = await ctx.getCurrentUser();
     if (await this.hasPermission(ctx, user, action)) {
       return true;
     }

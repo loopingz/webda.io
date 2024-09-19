@@ -99,7 +99,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    * Return information for hawk
    */
   async getHawkRequest(context: WebContext) {
-    let http = context.getHttpContext();
+    const http = context.getHttpContext();
     return {
       method: http.getMethod(),
       url: http.getUrl(),
@@ -179,7 +179,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     context.getSession()[this.parameters.dynamicSessionKey] ??= `${
       this.cryptoService.current
     }.${this.getWebda().getUuid("base64")}`;
-    let updatedUrl = new URL(url);
+    const updatedUrl = new URL(url);
     const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
     updatedUrl.searchParams.set("csrf", await this.cryptoService.hmac(data, key));
     context.redirect(updatedUrl.toString());
@@ -197,15 +197,15 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
 
   @Cache()
   async checkOPTIONS(origin: string) {
-    let origins = await this.getOrigins();
+    const origins = await this.getOrigins();
 
-    for (let key of Object.keys(origins).filter(n => n.startsWith("key_"))) {
+    for (const key of Object.keys(origins).filter(n => n.startsWith("key_"))) {
       // Origin is strictly matched by string search
       if (origins[key].statics.indexOf(origin) > -1) {
         return true;
       }
       // Origin can be matched by a special regexp too
-      for (let pattern of origins[key].patterns) {
+      for (const pattern of origins[key].patterns) {
         if (origin.match(pattern)) {
           return true;
         }
@@ -226,7 +226,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     }
 
     // Only check Hawk
-    let authorization = context.getHttpContext().getUniqueHeader("authorization");
+    const authorization = context.getHttpContext().getUniqueHeader("authorization");
     if (!authorization || !authorization.startsWith("Hawk ")) {
       return false;
     }
@@ -262,7 +262,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       // We have an Api Key store
       try {
         context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
-        let fullKey = await this.model.ref(context.getExtension("hawk").credentials.id).get();
+        const fullKey = await this.model.ref(context.getExtension("hawk").credentials.id).get();
         if (!fullKey.canRequest(context)) {
           throw new WebdaError.Forbidden("Key not allowed to request");
         }

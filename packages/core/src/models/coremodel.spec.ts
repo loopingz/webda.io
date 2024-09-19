@@ -64,7 +64,7 @@ class SubTestMask extends TestMask {
 @suite
 class CoreModelTest extends WebdaSimpleTest {
   @test("Verify unsecure loaded") unsecureLoad() {
-    let object: any = new CoreModel();
+    const object: any = new CoreModel();
     object.load({
       _test: "plop",
       test: "plop"
@@ -75,7 +75,7 @@ class CoreModelTest extends WebdaSimpleTest {
 
   @test
   maskAttribute() {
-    let test = new TestMask().load({ card: "1234-1245-5667-0124" });
+    const test = new TestMask().load({ card: "1234-1245-5667-0124" });
     assert.strictEqual(test.card, "123X-XXXX-XXXX-X124");
   }
 
@@ -142,7 +142,7 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test("Verify secure constructor") secureConstructor() {
-    let object: any = new CoreModel();
+    const object: any = new CoreModel();
     object.load(
       {
         _test: "plop",
@@ -157,8 +157,8 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test("Verify JSON export") jsonExport() {
-    let object = this.secureConstructor();
-    let exported = JSON.parse(JSON.stringify(object));
+    const object = this.secureConstructor();
+    const exported = JSON.parse(JSON.stringify(object));
     assert.strictEqual(exported.__serverOnly, undefined);
     assert.strictEqual(exported._test, "plop");
     assert.strictEqual(exported.test, "plop");
@@ -166,16 +166,16 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test("Verify JSON stored export") jsonStoredExport() {
-    let object = this.secureConstructor();
-    let exported = object.toStoredJSON();
+    const object = this.secureConstructor();
+    const exported = object.toStoredJSON();
     assert.strictEqual(exported.__serverOnly, "server");
     assert.strictEqual(exported._test, "plop");
     assert.strictEqual(exported.test, "plop");
   }
 
   @test("Verify JSON stored export - stringify") jsonStoredExportStringify() {
-    let object = this.secureConstructor();
-    let exported = JSON.parse(object.toStoredJSON(true));
+    const object = this.secureConstructor();
+    const exported = JSON.parse(object.toStoredJSON(true));
     assert.strictEqual(exported.__serverOnly, "server");
     assert.strictEqual(exported._test, "plop");
     assert.strictEqual(exported.test, "plop");
@@ -183,11 +183,11 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test("Verify Context access within output to server") async withContext() {
-    let ctx = await this.newContext();
-    let task = new Task();
+    const ctx = await this.newContext();
+    const task = new Task();
     task.setContext(ctx);
     ctx.write(task);
-    let result = JSON.parse(<string>ctx.getResponseBody());
+    const result = JSON.parse(<string>ctx.getResponseBody());
     assert.strictEqual(result._gotContext, true);
   }
 
@@ -204,7 +204,7 @@ class CoreModelTest extends WebdaSimpleTest {
     assert.ok(!task.isDirty());
     task.plop = 2;
     assert.ok(task.isDirty());
-    let store = {
+    const store = {
       getService: this.webda.getService.bind(this.webda),
       delete: () => {},
       patch: () => {},
@@ -216,9 +216,9 @@ class CoreModelTest extends WebdaSimpleTest {
     assert.strictEqual((await task.get()).test, "123");
     assert.strictEqual(task.getStore(), store);
     assert.notStrictEqual(task.generateUid(), undefined);
-    let stub = sinon.stub(Task, "getUuidField").callsFake(() => "bouzouf");
-    let deleteSpy = sinon.spy(store, "delete");
-    let updateSpy = sinon.stub(store, "patch").callsFake(() => ({ plop: "bouzouf" }));
+    const stub = sinon.stub(Task, "getUuidField").callsFake(() => "bouzouf");
+    const deleteSpy = sinon.spy(store, "delete");
+    const updateSpy = sinon.stub(store, "patch").callsFake(() => ({ plop: "bouzouf" }));
     try {
       task.setUuid("test");
       assert.strictEqual(task.getUuid(), "test");
@@ -254,7 +254,7 @@ class CoreModelTest extends WebdaSimpleTest {
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
     // @ts-ignore
-    let task = await TestMask.ref("unit1").getOrCreate({ test: false });
+    const task = await TestMask.ref("unit1").getOrCreate({ test: false });
     assert.strictEqual(await TestMask.ref("unit1").exists(), true);
     await TestMask.ref("unit1").incrementAttributes([{ property: "counter", value: 1 }]);
     await TestMask.ref("unit1").setAttribute("side", "plop");
@@ -275,12 +275,12 @@ class CoreModelTest extends WebdaSimpleTest {
     await task.refresh();
     assert.deepStrictEqual(task.__types, ["webdatest"]);
     // Relations test
-    let link = new ModelLink("unit1", TestMask);
+    const link = new ModelLink("unit1", TestMask);
     // @ts-ignore
     assert.strictEqual((await link.get()).counter, 3);
     assert.strictEqual(link.getUuid(), "unit1");
     assert.strictEqual(link.toString(), "unit1");
-    let customLink = createModelLinksMap(TestMask, { test: { uuid: "test", label: "test" } });
+    const customLink = createModelLinksMap(TestMask, { test: { uuid: "test", label: "test" } });
     // @ts-ignore
     assert.strictEqual(customLink.test.label, "test");
 
@@ -294,7 +294,7 @@ class CoreModelTest extends WebdaSimpleTest {
     this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
     assert.strictEqual(new Task().__type, "Task");
     assert.notStrictEqual(new Task().__store, undefined);
-    let task = await Task.ref("task#1").getOrCreate({ test: false });
+    const task = await Task.ref("task#1").getOrCreate({ test: false });
     assert.strictEqual(task.getFullUuid(), "Task$task#1");
     let taskB = await this.webda.getModelObject("Task$task#1");
     // @ts-ignore
@@ -305,7 +305,7 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test async refresh() {
-    let task = new Task();
+    const task = new Task();
     task.__store = <any>{
       get: () => undefined
     };
@@ -319,7 +319,7 @@ class CoreModelTest extends WebdaSimpleTest {
 
   @test
   async isDirty() {
-    let task = new Task().getProxy();
+    const task = new Task().getProxy();
     assert.ok(!task.isDirty());
     task.plop = [];
     // Adding a property
@@ -411,7 +411,7 @@ class CoreModelTest extends WebdaSimpleTest {
       };
     };
     this.webda.getApplication().getModels()["webdatest/testmask"] = TestMask;
-    let test = new TestMask().load({ card: "plop", maps: [{ uuid: "uuid-test" }] }, true);
+    const test = new TestMask().load({ card: "plop", maps: [{ uuid: "uuid-test" }] }, true);
     await new TestMask().load({ side: "uuid-test" }).save();
     await new TestMask().load({ side: "uuid-test", card: "plip" }).save();
     test.setUuid("uuid-test");
@@ -444,7 +444,7 @@ class CoreModelTest extends WebdaSimpleTest {
     assert.strictEqual(count, 2);
     await test.setAttribute("side", "uuid-test2");
     await test.incrementAttribute("counter", 1);
-    let test2 = await TestMask.ref(test.getUuid()).get();
+    const test2 = await TestMask.ref(test.getUuid()).get();
     assert.strictEqual(test2.counter, test.counter);
     assert.strictEqual(test2.side, "uuid-test2");
     assert.strictEqual(test2.counter, 1);

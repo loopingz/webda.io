@@ -29,7 +29,7 @@ export class DeploymentManager {
     this.application = app;
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
-    let deployment = this.application.getDeployment(deploymentName);
+    const deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
     this.webda.initStatics();
     this.deployersDefinition = <any>this.application.getDeployers();
@@ -57,10 +57,10 @@ export class DeploymentManager {
 
   static async newDeployment(argv: yargs.Arguments) {
     let name = argv.name;
-    let application = WebdaConsole.app;
-    let output = application.getWorkerOutput();
+    const application = WebdaConsole.app;
+    const output = application.getWorkerOutput();
     await application.load();
-    let deployment: Deployment = {
+    const deployment: Deployment = {
       $schema: "../.webda-deployment-schema.json",
       units: [],
       resources: {},
@@ -109,9 +109,9 @@ export class DeploymentManager {
       this.logger.log("ERROR", "Unknown deployer", deployerName);
       return 1;
     }
-    let args = <string[]>argv._.slice(2);
-    for (let i in deployers) {
-      let deployer = await this.getDeployer(deployers[i]);
+    const args = <string[]>argv._.slice(2);
+    for (const i in deployers) {
+      const deployer = await this.getDeployer(deployers[i]);
       this.logger.logTitle(`Deploying ${deployers[i]} (${this.getApplication().getCurrentDeployment()})`);
       await deployer[command](...args);
     }
@@ -141,7 +141,7 @@ export class DeploymentManager {
         `Unknown deployer ${name} (${Object.keys(this.deployers).join(",")})`
       );
     }
-    let deployer = new this.deployersDefinition[this.deployers[name].type](this, this.deployers[name]);
+    const deployer = new this.deployersDefinition[this.deployers[name].type](this, this.deployers[name]);
     deployer.setName(name);
     deployer.setType(this.deployers[name].type);
     await deployer.defaultResources();
@@ -162,7 +162,7 @@ export class DeploymentManager {
     if (!this.deployersDefinition[type.toLowerCase()]) {
       throw new WebdaError.CodeError("DEPLOYER_TYPE_UNKNOWN", "Unknown deployer type " + type);
     }
-    let deployer = new this.deployersDefinition[type.toLowerCase()](this, resources);
+    const deployer = new this.deployersDefinition[type.toLowerCase()](this, resources);
     await deployer.defaultResources();
     return deployer.deploy();
   }

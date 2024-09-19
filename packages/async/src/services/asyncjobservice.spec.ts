@@ -51,7 +51,7 @@ class AsyncJobServiceTest extends WebdaTest {
    * @returns
    */
   getValidService(): AsyncJobService {
-    let service = new AsyncJobService(this.webda, "async", {
+    const service = new AsyncJobService(this.webda, "async", {
       queue: "AsyncQueue",
       runners: ["LocalRunner"]
     });
@@ -77,10 +77,10 @@ class AsyncJobServiceTest extends WebdaTest {
     assert.strictEqual(this.service.runners.length, 0);
     this.service.getParameters().binaryStore = "Binary";
     // @ts-ignore
-    let previousRouteCount = Object.keys(this.webda.getRouter().routes).length;
+    const previousRouteCount = Object.keys(this.webda.getRouter().routes).length;
     this.service.resolve();
     // @ts-ignore
-    let routeCount = Object.keys(this.webda.getRouter().routes).length;
+    const routeCount = Object.keys(this.webda.getRouter().routes).length;
     assert.strictEqual(routeCount, previousRouteCount + 2);
 
     // Just for COV
@@ -99,10 +99,10 @@ class AsyncJobServiceTest extends WebdaTest {
   async checkRequest() {
     this.service = this.getValidService();
     // @ts-ignore
-    let action = await AsyncAction.create({ uuid: "plop", __secretKey: "plop" });
-    let jobTime = Date.now().toString();
-    let jobHash = crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex");
-    let context = await this.newContext();
+    const action = await AsyncAction.create({ uuid: "plop", __secretKey: "plop" });
+    const jobTime = Date.now().toString();
+    const jobHash = crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex");
+    const context = await this.newContext();
     context.setHttpContext(new HttpContext("test.webda.io", "GET", "/", "https", 443, {}));
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
@@ -148,7 +148,7 @@ class AsyncJobServiceTest extends WebdaTest {
   async launchAction() {
     const service = this.getValidService();
     // @ts-ignore protected field
-    let stub = sinon.stub(service, "handleEvent");
+    const stub = sinon.stub(service, "handleEvent");
     await service.launchAction(new AsyncAction());
     const actions = (await AsyncAction.query()).results;
     assert.strictEqual(actions.length, 1);
@@ -168,7 +168,7 @@ class AsyncJobServiceTest extends WebdaTest {
     assert.strictEqual(stub.callCount, 1);
 
     // Try to launch an existing action
-    let action = await service.getService<Store<AsyncAction>>("AsyncJobs").create({});
+    const action = await service.getService<Store<AsyncAction>>("AsyncJobs").create({});
     await service.launchAction(action);
   }
 
@@ -176,7 +176,7 @@ class AsyncJobServiceTest extends WebdaTest {
   async statusHook() {
     const service = this.getValidService();
     service.getParameters().logsLimit = 100;
-    let context = await this.newContext();
+    const context = await this.newContext();
     // @ts-ignore
     const hook = service.statusHook.bind(service);
     context.setHttpContext(
@@ -297,7 +297,7 @@ class AsyncJobServiceTest extends WebdaTest {
   async postHook() {
     const service = this.getValidService();
     const action = await AsyncAction.create({ __secretKey: "plop" });
-    let stub = sinon.stub(axios, "post").callsFake(async () => ({
+    const stub = sinon.stub(axios, "post").callsFake(async () => ({
       data: {}
     }));
     const jobInfo = {
@@ -405,15 +405,15 @@ class AsyncJobServiceTest extends WebdaTest {
       process.env.JOB_HOOK = hook;
 
       const stub = sinon.stub(service, "postHook").callsFake(async (...args) => {
-        let ctx = await this.newContext(args[1]);
+        const ctx = await this.newContext(args[1]);
         // @ts-ignore
         if (args.length > 2 && args[2].headers) {
           // @ts-ignore
-          for (let k in args[2].headers) {
+          for (const k in args[2].headers) {
             // @ts-ignore
           }
         }
-        let headers = ctx.getHttpContext()?.headers || {};
+        const headers = ctx.getHttpContext()?.headers || {};
         headers["x-job-id"] = action.getUuid();
         headers["x-job-time"] = Date.now().toString();
         headers["x-job-hash"] = crypto
@@ -433,7 +433,7 @@ class AsyncJobServiceTest extends WebdaTest {
 
       await service.runAsyncOperationAction();
 
-      let args: any[] = stub.getCall(0).args;
+      const args: any[] = stub.getCall(0).args;
       assert.deepStrictEqual(args[1], {
         agent: { ...Runner.getAgentInfo(), nodeVersion: process.version },
         status: "RUNNING"
@@ -525,8 +525,8 @@ class AsyncJobServiceTest extends WebdaTest {
     const fakeService = new FakeService(this.webda, "fake");
     this.registerService(fakeService);
     const service = this.getValidService();
-    let action = new AsyncWebdaAction("fake", "schedule");
-    let time = Date.now() + 1;
+    const action = new AsyncWebdaAction("fake", "schedule");
+    const time = Date.now() + 1;
     await service.scheduleAction(action, time);
     await action.refresh();
     // It should be rounded to the prior minute
@@ -536,7 +536,7 @@ class AsyncJobServiceTest extends WebdaTest {
     let p = service.scheduler();
     await this.sleep(100);
     await p.cancel();
-    let stubLaunch = stub(service, "launchAction").callsFake(async () => new AsyncAction());
+    const stubLaunch = stub(service, "launchAction").callsFake(async () => new AsyncAction());
     await service.getCronExecutor({
       cron: "* * * * *",
       args: [],
@@ -557,7 +557,7 @@ class AsyncJobServiceTest extends WebdaTest {
     })();
     assert.strictEqual(stubLaunch.getCalls().length, 2);
 
-    let stubExec = stub(service, "getCronExecutor").callsFake(() => {
+    const stubExec = stub(service, "getCronExecutor").callsFake(() => {
       return async () => {};
     });
     service.getParameters().includeCron = true;

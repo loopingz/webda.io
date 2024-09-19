@@ -51,11 +51,6 @@ export class KubeRunnerParameters extends RunnerParameters implements Kubernetes
 }
 
 /**
- * Type of action returned by LocalRunner
- */
-export interface KubeJob {}
-
-/**
  * Run a Job locally on the server by spawning a child process
  *
  * @WebdaModda
@@ -73,7 +68,7 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
   /**
    * @inheritdoc
    */
-  async launchAction(_action: AsyncAction, info: JobInfo): Promise<KubeJob> {
+  async launchAction(_action: AsyncAction, info: JobInfo): Promise<k8s.V1Job> {
     const resources = this.getWebda()
       .getApplication()
       .replaceVariables(this.parameters.jobResources, {
@@ -89,9 +84,9 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
       resources.spec.template.spec &&
       resources.spec.template.spec.containers
     ) {
-      for (let cont of resources.spec.template.spec.containers) {
+      for (const cont of resources.spec.template.spec.containers) {
         cont.env ??= [];
-        for (let envKey in info) {
+        for (const envKey in info) {
           cont.env.push({
             name: envKey,
             value: info[envKey]

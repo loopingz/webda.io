@@ -134,12 +134,12 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
 
   @test
   async cov() {
-    let serv = new KubernetesConfigurationService(this.webda, "t", {});
+    const serv = new KubernetesConfigurationService(this.webda, "t", {});
     serv.getParameters().source = undefined;
     assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
     serv.getParameters().source = "/notexisting";
     assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
-    let mock = stub(serv, "loadAndStoreConfiguration").resolves();
+    const mock = stub(serv, "loadAndStoreConfiguration").resolves();
     await serv.initConfiguration();
     assert.strictEqual(mock.callCount, 1);
   }

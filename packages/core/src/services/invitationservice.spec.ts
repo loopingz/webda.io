@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { WebdaError } from "../errors";
+import * as WebdaError from "../errors";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { Ident } from "../models/ident";
@@ -121,7 +121,7 @@ class InvitationTest extends WebdaInternalTest {
 
   @test
   params() {
-    let p = new InvitationParameters({
+    const p = new InvitationParameters({
       mapFields: "test,test2",
       attribute: "_attr"
     });
@@ -158,7 +158,7 @@ class InvitationTest extends WebdaInternalTest {
 
   @test
   async initNoTemplate() {
-    let stub = sinon.stub(this.mailer, "hasNotification").callsFake(() => false);
+    const stub = sinon.stub(this.mailer, "hasNotification").callsFake(() => false);
     try {
       this.service.getParameters().notification = "plop";
       await assert.rejects(() => this.service.init(), /Email template should exist/);
@@ -169,7 +169,7 @@ class InvitationTest extends WebdaInternalTest {
 
   @test
   async inviteOnMissing() {
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await assert.rejects(
       () => this.execute(ctx, "test.webda.io", "POST", `/companies/unknown/invitations`, {}),
       WebdaError.NotFound
@@ -182,8 +182,8 @@ class InvitationTest extends WebdaInternalTest {
     this.service.getParameters().notification = "COMPANY_INVITE";
     sinon.stub(this.service.notificationService, "sendNotification").callsFake(async () => {});
     // New model as owner
-    let ctx = await this.newContext();
-    let user = await this.authentication.getUserStore().save({ displayName: "Webda.io Test" });
+    const ctx = await this.newContext();
+    const user = await this.authentication.getUserStore().save({ displayName: "Webda.io Test" });
     ctx.getSession().userId = user.getUuid();
     const company = await MyCompany.create({ name: "MyTestCompany", __acl: { [user.getUuid()]: "all" } });
 
@@ -206,7 +206,7 @@ class InvitationTest extends WebdaInternalTest {
       [ident2.getUser().toString()]: "read",
       [user.getUuid()]: "all"
     });
-    let getter = await this.execute(ctx, "test.webda.io", "GET", `/companies/${company.getUuid()}/invitations`);
+    const getter = await this.execute(ctx, "test.webda.io", "GET", `/companies/${company.getUuid()}/invitations`);
     // @ts-ignore
     assert.deepStrictEqual(company.__invitations, {
       "ident_test3@webda.io_email": "read",
@@ -373,8 +373,8 @@ class InvitationTest extends WebdaInternalTest {
   async inviteOnAclWithoutAutoAccept() {
     this.service.getParameters().autoAccept = false;
     // New model as owner
-    let ctx = await this.newContext();
-    let user = await this.authentication.getUserStore().save({
+    const ctx = await this.newContext();
+    const user = await this.authentication.getUserStore().save({
       displayName: "Webda.io Test"
     });
     ctx.getSession().userId = user.getUuid();
@@ -452,7 +452,7 @@ class InvitationTest extends WebdaInternalTest {
     await userCheck.save("_companies");
 
     // Accepting the invite for user1
-    let ctx2 = await this.newContext();
+    const ctx2 = await this.newContext();
     ctx2.getSession().userId = ident1.getUser().toString();
     await this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {
       accept: true
@@ -576,7 +576,7 @@ class InvitationTest extends WebdaInternalTest {
     // Force refresh of user as we changed user manually
     await ctx2.getCurrentUser(true);
     ctx2.getCurrentUser = async () => {
-      let user = await ident4.getUser().get();
+      const user = await ident4.getUser().get();
       user.getIdents = () => [
         <ModelMapLoader<Ident, "_type">>new ModelMapLoaderImplementation(ident4.__class, ident4, user)
       ];
@@ -598,8 +598,8 @@ class InvitationTest extends WebdaInternalTest {
   async invitationDeletedModel() {
     this.service.getParameters().autoAccept = false;
     // New model as owner
-    let ctx = await this.newContext();
-    let user = await this.authentication.getUserStore().save({
+    const ctx = await this.newContext();
+    const user = await this.authentication.getUserStore().save({
       displayName: "Webda.io Test"
     });
     ctx.getSession().userId = user.getUuid();
@@ -621,7 +621,7 @@ class InvitationTest extends WebdaInternalTest {
     let checkUser = await this.authentication.getUserStore().get(ident1.getUser().toString());
     assert.strictEqual(checkUser["_companies"].length, 1);
     // Accepting the invite for user1
-    let ctx2 = await this.newContext();
+    const ctx2 = await this.newContext();
     ctx2.getSession().userId = ident1.getUser().toString();
     // It should be removed and get a 410 error code
     await assert.rejects(

@@ -179,8 +179,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     await super.init();
 
     this.models = this.getWebda().getModels();
-    for (let i in this.models) {
-      for (let event of this.models[i].getClientEvents()) {
+    for (const i in this.models) {
+      for (const event of this.models[i].getClientEvents()) {
         this.models[i].on(<any>event, data => {
           this.sendMessage({
             event: typeof event === "string" ? event : event.name,
@@ -192,8 +192,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
       }
     }
     this.services = this.getWebda().getServices();
-    for (let i in this.services) {
-      for (let event of this.services[i].getClientEvents()) {
+    for (const i in this.services) {
+      for (const event of this.services[i].getClientEvents()) {
         if (storeEvents.includes(event)) {
           continue;
         }
@@ -210,8 +210,8 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     // Store could have been treated like a normal service with emitter/listener
     // Kept the specific because stores are probably quite chatty
     this.stores = this.getWebda().getStores();
-    for (let i in this.stores) {
-      for (let event of storeEvents) {
+    for (const i in this.stores) {
+      for (const event of storeEvents) {
         this.stores[i].on(<any>event, (data: any) => {
           this.sendMessage({
             event,
@@ -269,7 +269,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     await this.sendMessage(keepAliveEvent, true);
     // Clean members
     time -= this.parameters.ttl;
-    for (let i in this.members) {
+    for (const i in this.members) {
       if (this.members[i].lastSeen <= time) {
         this.log("INFO", `Lost cluster member ${i} ${Math.floor((time - this.members[i].lastSeen) / 1000)}s ago`);
         this.metrics.members.dec();
@@ -380,7 +380,7 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
 
     // Dispatch the event
     if (message.type === "model") {
-      let model = this.models[message.emitter];
+      const model = this.models[message.emitter];
       const shouldAlert =
         !this.models[message.emitter] &&
         ((this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||

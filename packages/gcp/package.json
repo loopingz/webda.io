@@ -7,10 +7,12 @@
     "build": "webda build",
     "build:watch": "webda build --watch",
     "pretest": "npm run build",
-    "lint": "prettier --check src/**/*",
-    "lint:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "test": "c8 mocha",
-    "test:debug": "mocha src/**/*.spec.ts"
+    "test:debug": "mocha src/**/*.spec.ts",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
   },
   "repository": {
     "type": "git",

@@ -3,7 +3,7 @@ import acceptLanguage from "accept-language";
 import { EventEmitter } from "events";
 import * as http from "http";
 import sanitize from "sanitize-html";
-import { Readable, Writable } from "stream";
+import { PipelineOptions, Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
 import { Core } from "../core";
 import { NotEnumerable } from "../models/coremodel";
@@ -247,7 +247,7 @@ export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
     if (this._sanitized && !sanitizedOptions.raw) {
       return this._sanitized;
     }
-    let recursiveSanitize = (obj, options = undefined, path: string = "") => {
+    const recursiveSanitize = (obj, options = undefined, path: string = "") => {
       if (typeof obj === "string") {
         return sanitize(obj, options);
       }
@@ -262,7 +262,7 @@ export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
       return obj;
     };
     try {
-      let data = await this.getRawInputAsString(
+      const data = await this.getRawInputAsString(
         this.getWebda().getGlobalParams().requestLimit,
         this.getWebda().getGlobalParams().requestTimeout
       );
@@ -807,19 +807,15 @@ export class WebContext<T = any, U = any, P = any> extends OperationContext<T, U
    *
    * @see https://nodejs.org/api/stream.html#streampipelinestreams-options
    */
-  pipeline(...args): Promise<void> {
-    let last = true;
-    if (args.length) {
-      let lastItem = args[args.length - 1];
-      last = !(lastItem.signal || lastItem.end !== undefined);
-    }
-    if (last) {
-      args.push(this.getOutputStream());
+  pipeline(stream1: NodeJS.ReadableStream, ...streams: Array<NodeJS.ReadWriteStream | PipelineOptions>): Promise<void> {
+    const isPipelineOptions = (arg: NodeJS.ReadWriteStream | PipelineOptions): arg is PipelineOptions =>
+      (arg as NodeJS.ReadWriteStream).writable === undefined;
+    const item = streams.pop();
+    if (isPipelineOptions(item)) {
+      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), this.getOutputStream()], item);
     } else {
-      let item = args.pop();
-      args.push(this.getOutputStream(), item);
+      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), this.getOutputStream()]);
     }
-    return pipeline.apply(null, args);
   }
 
   /**
@@ -840,9 +836,9 @@ export class WebContext<T = any, U = any, P = any> extends OperationContext<T, U
    * Get the request locale if found
    */
   getLocale() {
-    let locales = this._webda.getLocales();
+    const locales = this._webda.getLocales();
     acceptLanguage.languages(locales);
-    let header = this.getHttpContext().getUniqueHeader("accept-language");
+    const header = this.getHttpContext().getUniqueHeader("accept-language");
     if (header) {
       return acceptLanguage.get(header);
     }

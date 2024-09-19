@@ -34,7 +34,7 @@ class ModelTest extends WebdaSimpleTest {
 
   @test
   testRoutes() {
-    let routes = this.webda.getRouter().getRoutes();
+    const routes = this.webda.getRouter().getRoutes();
     assert.notStrictEqual(routes["/customAsyncActions/{uuid}/inputs"], undefined);
   }
 

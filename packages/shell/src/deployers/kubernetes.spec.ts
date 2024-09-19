@@ -70,9 +70,9 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
     this.deployer.resources.resourcesFiles = ["plop.json"];
     await assert.rejects(() => this.deployer.deploy(), /f/);
     this.deployer.resources.resourcesFiles = ["./test/myres.yml", "./test/myotherres.json"];
-    let runner = sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
+    const runner = sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
     // @ts-ignore
-    let client = sinon.stub(this.deployer, "getClient").callsFake(api => {
+    const client = sinon.stub(this.deployer, "getClient").callsFake(api => {
       if (api) {
         return {
           deleteNamespacedCronJob: async () => {},
@@ -177,9 +177,9 @@ spec:
   async upsertKubernetesObject() {
     // @ts-ignore
     this.deployer.client = this.deployer.getClient();
-    let patch = sinon.stub(this.deployer.client, "patch");
-    let read = sinon.stub(this.deployer.client, "read");
-    let create = sinon.stub(this.deployer.client, "create");
+    const patch = sinon.stub(this.deployer.client, "patch");
+    const read = sinon.stub(this.deployer.client, "read");
+    const create = sinon.stub(this.deployer.client, "create");
     // Test no update on certificate
     await this.deployer.upsertKubernetesObject({
       kind: "Certificate",

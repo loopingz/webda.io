@@ -32,8 +32,8 @@ class WaiterTest {
 
   @test
   async testWaitFor() {
-    let logger = new Logger(undefined, undefined);
-    let consoleSpy = sinon.stub(logger, "log");
+    const logger = new Logger(undefined, undefined);
+    const consoleSpy = sinon.stub(logger, "log");
     sinon.stub(logger, "logProgressStart");
     sinon.stub(logger, "logProgressUpdate");
     WaitDelayerFactories.registerFactory("static", () => {
@@ -49,7 +49,7 @@ class WaiterTest {
       assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
       assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), true);
       consoleSpy.resetHistory();
-      let res = await WaitFor(
+      const res = await WaitFor(
         async (resolve, reject) => {
           if (consoleSpy.callCount === 2) {
             resolve({ myobject: "test" });
@@ -66,7 +66,7 @@ class WaiterTest {
       assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
       assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), false);
       assert.deepStrictEqual(res, { myobject: "test" });
-      let time = Date.now();
+      const time = Date.now();
       consoleSpy.resetHistory();
       await WaitFor(
         async (resolve, reject) => {
@@ -79,7 +79,7 @@ class WaiterTest {
         "title",
         logger
       );
-      let elapsed = Date.now() - time;
+      const elapsed = Date.now() - time;
       assert.strictEqual(
         elapsed > 2500 && elapsed < 3500,
         true,

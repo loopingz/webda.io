@@ -10,12 +10,16 @@ export abstract class AbstractProject<T> extends AclModel {
   protected abstract method1(arg1: string, arg2: CoreModel, arg3: Store<CoreModel>): Store<CoreModel>;
 }
 
-export interface Test {}
+export interface Test {
+  test2: string;
+}
 
 /**
  *
  */
-export interface TestDoc2 {}
+export interface TestDoc2 {
+  n: number;
+}
 
 /**
  * @WebdaModel
@@ -25,6 +29,8 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
   name: string;
   type: string;
   uuid: string;
+  n: number;
+  test2: string;
   constructor(private myparam?: string) {
     super();
   }
@@ -91,17 +97,13 @@ export class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
        */
       param: string;
     }>
-  ) {
-    
-  }
+  ) {}
 
   @Action()
   action2(context: OperationContext<Partial<Project>>) {}
 
   @Action()
-  action3(context: OperationContext<Project>) {
-
-  }
+  action3(context: OperationContext<Project>) {}
 
   @Action()
   action4(toto: string) {}

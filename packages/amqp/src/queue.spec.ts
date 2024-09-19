@@ -7,7 +7,7 @@ import AMQPQueue from "./queue";
 class AMQPQueueTest extends QueueTest {
   @test
   async basic() {
-    let queue: AMQPQueue = this.webda.getService<AMQPQueue>("queue");
+    const queue: AMQPQueue = this.webda.getService<AMQPQueue>("queue");
     await queue.__clean();
     await this.simple(queue, true);
     assert.deepStrictEqual(await queue.receiveMessage(), []);

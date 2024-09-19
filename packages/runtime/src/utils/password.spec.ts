@@ -9,23 +9,23 @@ import { PasswordEncryptionService } from "./password";
 class PasswordEncrypterTest extends WebdaSimpleTest {
   @test
   async normal() {
-    let service = await this.registerService(new PasswordEncryptionService(this.webda, "test", {}))
+    const service = await this.registerService(new PasswordEncryptionService(this.webda, "test", {}))
       .resolve()
       .init();
-    let data = await service.encrypt("test", "test");
+    const data = await service.encrypt("test", "test");
     assert.strictEqual(await service.decrypt(data, "test"), "test");
   }
 
   @test
   async passwordInput() {
-    let service = await this.registerService(new PasswordEncryptionService(this.webda, "test", {}))
+    const service = await this.registerService(new PasswordEncryptionService(this.webda, "test", {}))
       .resolve()
       .init();
     sinon.stub(Core.get().getWorkerOutput(), "requestInput").callsFake(async () => {
       return "test";
     });
     Core.get().getWorkerOutput().interactive = true;
-    let data = await service.encrypt("test");
+    const data = await service.encrypt("test");
     assert.strictEqual(await service.decrypt(data), "test");
     assert.strictEqual(await service.decrypt(data, "test"), "test");
   }

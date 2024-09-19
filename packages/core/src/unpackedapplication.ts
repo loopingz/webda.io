@@ -105,15 +105,15 @@ export class UnpackedApplication extends Application {
    */
   completeConfiguration(configuration: Configuration): Configuration {
     // Only one level of includes is permitted
-    let imports = configuration.imports || [];
-    let effectiveImports = [];
-    for (let importFile of imports) {
+    const imports = configuration.imports || [];
+    const effectiveImports = [];
+    for (const importFile of imports) {
       if (!fs.existsSync(this.getAppPath(importFile))) {
         this.log("WARN", `Cannot import configuration '${importFile}'`);
         continue;
       }
       effectiveImports.push(importFile);
-      let includeConfiguration = FileUtils.load(this.getAppPath(importFile));
+      const includeConfiguration = FileUtils.load(this.getAppPath(importFile));
       if (includeConfiguration.imports?.length) {
         this.log("WARN", `Imported configuration '${importFile}' has nested imports that will be skipped`);
       }
@@ -181,11 +181,11 @@ export class UnpackedApplication extends Application {
     do {
       packageJson = path.join(parent, "package.json");
       if (fs.existsSync(packageJson)) {
-        let currentInfo = FileUtils.load(packageJson);
+        const currentInfo = FileUtils.load(packageJson);
         if (currentInfo.workspaces) {
           this.log("DEBUG", "Application is running within a workspace");
           // Replace any relative path by absolute one
-          for (let i in currentInfo.webda) {
+          for (const i in currentInfo.webda) {
             if (currentInfo.webda[i].startsWith("./")) {
               currentInfo.webda[i] = path.join(path.resolve(parent), currentInfo.webda[i].substr(2));
             }
@@ -233,8 +233,8 @@ export class UnpackedApplication extends Application {
       return cacheModules[appPath];
     }
     // Modules should be cached on deploy
-    let files = [];
-    let currentModule = this.getAppPath("webda.module.json");
+    const files = [];
+    const currentModule = this.getAppPath("webda.module.json");
     if (fs.existsSync(currentModule)) {
       files.push(currentModule);
     }
@@ -282,7 +282,7 @@ export class UnpackedApplication extends Application {
    * @returns
    */
   loadWebdaModule(moduleFile: string): CachedModule {
-    let module = FileUtils.load(moduleFile);
+    const module = FileUtils.load(moduleFile);
     Object.keys(SectionEnum)
       .filter(k => Number.isNaN(+k))
       .forEach(p => {
@@ -291,7 +291,7 @@ export class UnpackedApplication extends Application {
           delete module[SectionEnum[p]];
           return;
         }
-        for (let key in module[SectionEnum[p]]) {
+        for (const key in module[SectionEnum[p]]) {
           module[SectionEnum[p]][key] = path.join(
             path.relative(this.getAppPath(), path.dirname(moduleFile)),
             module[SectionEnum[p]][key]
@@ -299,7 +299,7 @@ export class UnpackedApplication extends Application {
         }
       });
 
-    for (let key in module.models.list) {
+    for (const key in module.models.list) {
       module.models.list[key] = path.join(
         path.relative(this.getAppPath(), path.dirname(moduleFile)),
         module.models.list[key]
@@ -316,10 +316,10 @@ export class UnpackedApplication extends Application {
   mergeModules(configuration: Configuration) {
     const module: CachedModule = configuration.cachedModules;
     const appModule = this.getAppPath("webda.module.json");
-    let files = this.findModules(module);
-    let value = files
+    const files = this.findModules(module);
+    const value = files
       .map(f => {
-        let currentModule = this.loadWebdaModule(f);
+        const currentModule = this.loadWebdaModule(f);
         // We only take the Beans from current application
         if (appModule !== f) {
           this.log("DEBUG", `Load module without beans '${f}'`);

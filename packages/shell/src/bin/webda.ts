@@ -13,7 +13,7 @@ function getVersion(packageName) {
   return JSON.parse(fs.readFileSync(packageName + "/package.json").toString()).version;
 }
 
-let versions = {
+const versions = {
   "@webda/core": {
     path: "",
     version: "",

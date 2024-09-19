@@ -15,10 +15,12 @@
     "build:watch": "tsc-esm --watch",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && yarn run lint:fix",
     "pretest": "npm run build",
-    "lint": "prettier --check src/**/*",
-    "lint:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "test": "NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest",
-    "test:bun": "bun test --coverage"
+    "test:bun": "bun test --coverage",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
   },
   "dependencies": {
     "cloudevents": "^8.0.1",

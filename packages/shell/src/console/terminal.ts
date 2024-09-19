@@ -22,7 +22,7 @@ export class WebdaTerminal extends Terminal {
   }
 
   setDefaultLogo() {
-    let logo = `[48;5;236m [48;5;61m                  [48;5;67m [48;5;178m                  [48;5;136m [48;5;237m [0m
+    const logo = `[48;5;236m [48;5;61m                  [48;5;67m [48;5;178m                  [48;5;136m [48;5;237m [0m
       [48;5;61m                   [48;5;208m                    [48;5;172m [0m
       [48;5;61m                  [48;5;244m [48;5;208m                    [48;5;172m [0m
       [48;5;61m                  [48;5;66m [48;5;208m   [48;5;172m [48;5;137m  [48;5;208m              [48;5;172m [0m
@@ -44,9 +44,9 @@ export class WebdaTerminal extends Terminal {
       [48;5;72m [48;5;107m                  [48;5;240m [48;5;231m                   [48;5;146m [0m
           `.split("\n");
     if (Object.keys(this.versions).length) {
-      let logoLength = Math.max(...logo.map(this.getTrueLength));
+      const logoLength = Math.max(...logo.map(this.getTrueLength));
       logo.push("");
-      for (let j in this.versions) {
+      for (const j in this.versions) {
         let version: string = chalk.bold(`${j} - v${this.versions[j].version}`);
         version = version.padStart(version.length + (logoLength - version.length) / 2).padEnd(logoLength);
         logo.push(version);

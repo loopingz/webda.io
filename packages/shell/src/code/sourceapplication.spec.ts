@@ -24,7 +24,7 @@ class SourceApplicationTest extends WebdaTest {
    * @override
    */
   protected async buildWebda() {
-    let app = new SourceTestApplication(this.getTestConfiguration());
+    const app = new SourceTestApplication(this.getTestConfiguration());
     await app.load();
 
     this.webda = new Core(app);
@@ -65,8 +65,8 @@ class SourceApplicationTest extends WebdaTest {
 
   @test
   getConfiguration() {
-    let config = this.sampleApp.getConfiguration();
-    let deploymentConfig = this.sampleApp.getConfiguration("Production");
+    const config = this.sampleApp.getConfiguration();
+    const deploymentConfig = this.sampleApp.getConfiguration("Production");
     assert.strictEqual(deploymentConfig.parameters.accessKeyId, "PROD_KEY");
     assert.strictEqual(deploymentConfig.services.contacts.table, "webda-sample-app-contacts");
     assert.strictEqual(config.services.contacts.table, "local-table");
@@ -75,9 +75,9 @@ class SourceApplicationTest extends WebdaTest {
 
   @test
   gitInformations() {
-    let app = new SourceApplication(__dirname + "/../../../core/test/badapp", undefined);
+    const app = new SourceApplication(__dirname + "/../../../core/test/badapp", undefined);
     try {
-      let options = {
+      const options = {
         cwd: app.getAppPath()
       };
       // Create a repo
@@ -212,15 +212,15 @@ class SourceApplicationTest extends WebdaTest {
     this.cleanSampleApp();
     await this.sampleApp.generateModule();
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("webda.module.json")), true);
-    let config: Module = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
+    const config: Module = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
     assert.strictEqual(config.moddas["WebdaDemo/CustomReusableService"], "lib/services/reusable:default");
     // Won't be find as it is in a test context
     assert.strictEqual(config.models.list["WebdaDemo/Contact"], "lib/models/contact:default");
     assert.strictEqual(config.deployers["WebdaDemo/CustomDeployer"], "lib/services/deployer:CustomDeployer");
     console.log(Object.keys(config.schemas));
     assert.deepStrictEqual(config.schemas["WebdaDemo/CustomDeployer"].title, "CustomDeployer");
-    let app = new BuildSourceApplication(this.sampleApp.getAppPath());
-    let stub = sinon.stub(app, "compile").callsFake(() => false);
+    const app = new BuildSourceApplication(this.sampleApp.getAppPath());
+    const stub = sinon.stub(app, "compile").callsFake(() => false);
     try {
       await app.generateModule();
     } finally {

@@ -51,7 +51,7 @@ class ElasticSearchTest extends WebdaSimpleTest {
 
   @test
   async testStore() {
-    let model: any = await this.store.save({});
+    const model: any = await this.store.save({});
     model.testor = "plop";
     this.service.setRefreshMode("wait_for");
     await this.store.update(model);
@@ -81,8 +81,8 @@ class ElasticSearchTest extends WebdaSimpleTest {
 
   @test
   async badIndex() {
-    let methods = ["search", "exists", "count"];
-    for (let m of methods) {
+    const methods = ["search", "exists", "count"];
+    for (const m of methods) {
       await assert.rejects(() => this.service[m]("notexisting"), /Unknown index "notexisting"/);
     }
   }
@@ -103,7 +103,7 @@ class ElasticSearchTest extends WebdaSimpleTest {
 
   @test
   async partialUpdate() {
-    let model: any = await this.store.save({ toRemove: "REMOVED?", items: [] });
+    const model: any = await this.store.save({ toRemove: "REMOVED?", items: [] });
     await this.waitAsyncEnded();
     await this.sleep(300);
     // incrementAttribute
@@ -128,7 +128,7 @@ class ElasticSearchTest extends WebdaSimpleTest {
     await this.waitAsyncEnded();
     // Have to wait 1s for now...
     await this.sleep(1000);
-    let results = await this.service.search<TestCoreModel>("articles", "*");
+    const results = await this.service.search<TestCoreModel>("articles", "*");
     assert.strictEqual(results.length, 1);
     if (results[0].items.length > 1) {
       // TODO Investigate this one
@@ -145,8 +145,8 @@ class ElasticSearchTest extends WebdaSimpleTest {
 
   @test
   async timeIndex() {
-    let store = this.webda.getService<Store>("MemoryStore");
-    let es = new ElasticSearchService(this.webda, "ESService", {
+    const store = this.webda.getService<Store>("MemoryStore");
+    const es = new ElasticSearchService(this.webda, "ESService", {
       client: {
         node: "http://localhost:9200"
       },
@@ -223,7 +223,7 @@ class ElasticSearchTest extends WebdaSimpleTest {
 
     await this.service.__clean();
     await this.waitAsyncEnded();
-    let store = this.webda.getService<Store>("MemoryStore");
+    const store = this.webda.getService<Store>("MemoryStore");
     await store.save({
       "@timestamp": "2019-01-01T00:00:00.000Z",
       uuid: "1"
@@ -335,7 +335,7 @@ class ModelElasticSearchTest extends WebdaSimpleTest {
     }
     await this.waitAsyncEnded();
     // create a subproject
-    let model = await this.SubProject.ref("subproject_1").getOrCreate({
+    const model = await this.SubProject.ref("subproject_1").getOrCreate({
       name: "subproject_1"
     });
     // create a project

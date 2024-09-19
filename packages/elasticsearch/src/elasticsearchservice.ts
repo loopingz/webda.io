@@ -111,7 +111,7 @@ export default class ElasticSearchService<
     super.resolve();
     this._client = new Client(this.parameters.client);
     this.log("DEBUG", "Indexes", this.parameters.indexes);
-    for (let i in this.parameters.indexes) {
+    for (const i in this.parameters.indexes) {
       let index;
 
       const partialUpdatedListener = evt => {
@@ -151,7 +151,7 @@ export default class ElasticSearchService<
           name: i,
           _store: this.getService<Store<CoreModel>>(this.parameters.indexes[i].store)
         };
-        let store = index._store;
+        const store = index._store;
 
         if (!store) {
           this.log("ERROR", "Cannot initiate index", index.name, ": missing store", index.store);
@@ -170,7 +170,7 @@ export default class ElasticSearchService<
           name: i,
           _model: this.getWebda().getModels()[this.parameters.indexes[i].model]
         };
-        let model = <CoreModelDefinition>index._model;
+        const model = <CoreModelDefinition>index._model;
 
         if (!model) {
           this.log("ERROR", "Cannot initiate index", index.name, ": missing model", index.model);
@@ -194,12 +194,12 @@ export default class ElasticSearchService<
    * @param index
    */
   public async reindex(index: string) {
-    let info = this.indexes[index];
+    const info = this.indexes[index];
     if (!info) {
       throw new ESUnknownIndexError(index);
     }
     const store = info._store;
-    let status: RegistryEntry<{
+    const status: RegistryEntry<{
       continuationToken?: string;
       count: number;
       errors: number;
@@ -284,11 +284,11 @@ export default class ElasticSearchService<
     if (!this.indexes[index]) {
       throw new ESUnknownIndexError(index);
     }
-    let indexInfo = this.indexes[index];
+    const indexInfo = this.indexes[index];
     if (!indexInfo.dateSplit) {
       return index;
     }
-    let date = new Date(object[indexInfo.dateSplit.attribute]);
+    const date = new Date(object[indexInfo.dateSplit.attribute]);
 
     switch (indexInfo.dateSplit.frequency) {
       case "yearly":
@@ -311,7 +311,7 @@ export default class ElasticSearchService<
    * @returns
    */
   async getTimedIndexFromUuid(index: string, uuid: string) {
-    let object = await this.indexes[index]._store.get(uuid);
+    const object = await this.indexes[index]._store.get(uuid);
     return this.getTimedIndex(index, object);
   }
 
@@ -440,7 +440,7 @@ export default class ElasticSearchService<
    * @returns
    */
   async search<T extends CoreModel = CoreModel>(index: string, query: any, from: number = 0): Promise<T[]> {
-    let idx = this.checkIndex(index);
+    const idx = this.checkIndex(index);
     // Cannot import type from ES client easily
     let q: any = {};
     if (typeof query === "string") {
@@ -449,10 +449,10 @@ export default class ElasticSearchService<
       q = { index: index, body: query };
     }
     q.from = from;
-    let result = await this._client.search(q);
-    let objects = [];
-    for (let i in result.hits.hits) {
-      let hit = result.hits.hits[i];
+    const result = await this._client.search(q);
+    const objects = [];
+    for (const i in result.hits.hits) {
+      const hit = result.hits.hits[i];
       // Get the model from the Store linked to the index
       // Might want to replace null by undefined
       objects.push(idx._store.newModel(hit._source));

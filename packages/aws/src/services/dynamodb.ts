@@ -103,26 +103,26 @@ export default class DynamoStore<
    * @param target
    */
   static async copyTable(output: WorkerOutput, source: string, target: string): Promise<void> {
-    let db = new DynamoDB({});
+    const db = new DynamoDB({});
     let ExclusiveStartKey;
-    let props = await db.describeTable({
+    const props = await db.describeTable({
       TableName: source
     });
     output.startProgress("copyTable", props.Table.ItemCount, `Copying ${source} to ${target}`);
     do {
-      let info = await db.scan({
+      const info = await db.scan({
         TableName: source,
         ExclusiveStartKey
       });
       do {
-        let items = [];
+        const items = [];
         while (info.Items.length && items.length < 25) {
           items.push(info.Items.shift());
         }
         if (!items.length) {
           break;
         }
-        let params = {
+        const params = {
           RequestItems: {}
         };
         params.RequestItems[target] = items.map(Item => ({
@@ -160,15 +160,15 @@ export default class DynamoStore<
     let scan = true;
     let IndexName = undefined;
     let result: ScanCommandOutput | QueryCommandOutput;
-    let primaryKeys = { uuid: null };
+    const primaryKeys = { uuid: null };
     Object.keys(this.parameters.globalIndexes).forEach(name => {
       primaryKeys[this.parameters.globalIndexes[name].key] = name;
     });
     // We could use PartQL but localstack is not compatible
-    let filter: WebdaQL.AndExpression = new WebdaQL.AndExpression([]);
+    const filter: WebdaQL.AndExpression = new WebdaQL.AndExpression([]);
     let KeyConditionExpression = "";
     let ExpressionAttributeValues = {};
-    let FilterExpression: string[] = [];
+    const FilterExpression: string[] = [];
     let ExpressionAttributeNames = {};
     let indexNode;
     let sortOrder = "ASC";
@@ -235,10 +235,10 @@ export default class DynamoStore<
         }
 
         // Subfields like team.id needs to be #a1.#a2
-        let attr = `a${count++}`;
+        const attr = `a${count++}`;
         let fullAttr = `#${attr}`;
         child.attribute.slice(1).forEach(v => {
-          let subAttr = `#a${count++}`;
+          const subAttr = `#a${count++}`;
           fullAttr += `.${subAttr}`;
           ExpressionAttributeNames[subAttr] = v;
         });
@@ -251,7 +251,7 @@ export default class DynamoStore<
           valueExpression = "(" + valueExpression;
           ExpressionAttributeValues[`:${attr}`] = child.value[0];
           (<any[]>child.value).splice(1).forEach(v => {
-            let subAttr = `:a${count++}`;
+            const subAttr = `:a${count++}`;
             valueExpression += `, ${subAttr}`;
             ExpressionAttributeValues[subAttr] = v;
           });
@@ -344,7 +344,7 @@ export default class DynamoStore<
    * @param object
    * @returns
    */
-  _cleanObject(object: Object): any {
+  _cleanObject(object: object): any {
     if (typeof object !== "object") return object;
     if (object instanceof Date) {
       return this._serializeDate(object);
@@ -358,7 +358,7 @@ export default class DynamoStore<
     } else {
       res = {};
     }
-    for (let i in object) {
+    for (const i in object) {
       if (object[i] === "" || i.startsWith("__store")) {
         continue;
       }
@@ -371,13 +371,13 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
-    let params: any = {
+    const params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid
       }
     };
-    let attrs = {};
+    const attrs = {};
     attrs["#attr"] = attribute;
     attrs["#lastUpdate"] = "_lastUpdate";
     params.ExpressionAttributeNames = attrs;
@@ -410,13 +410,13 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
-    let params: any = {
+    const params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
     };
-    let attrs = {};
+    const attrs = {};
     attrs["#" + prop] = prop;
     attrs["#lastUpdate"] = "_lastUpdate";
     params.ExpressionAttributeNames = attrs;
@@ -454,14 +454,14 @@ export default class DynamoStore<
     itemWriteConditionField: string | undefined,
     updateDate: Date
   ) {
-    let params: any = {
+    const params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid
       }
     };
-    let attrValues = {};
-    let attrs = {};
+    const attrValues = {};
+    const attrs = {};
     attrs["#" + prop] = prop;
     attrs["#lastUpdate"] = "_lastUpdate";
 
@@ -527,7 +527,7 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string) {
-    let params: any = {
+    const params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
@@ -553,11 +553,11 @@ export default class DynamoStore<
     object = this._cleanObject(object);
     let expr = "SET ";
     let sep = "";
-    let attrValues = {};
-    let attrs = {};
+    const attrValues = {};
+    const attrs = {};
     let skipUpdate = true;
     let i = 1;
-    for (let attr in object) {
+    for (const attr in object) {
       if (attr === "uuid" || object[attr] === undefined) {
         continue;
       }
@@ -571,7 +571,7 @@ export default class DynamoStore<
     if (skipUpdate) {
       return;
     }
-    let params: any = {
+    const params: any = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
@@ -600,7 +600,7 @@ export default class DynamoStore<
   async _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
     object = this._cleanObject(object);
     object.uuid = uid;
-    let params: any = {
+    const params: any = {
       TableName: this.parameters.table,
       Item: object
     };
@@ -623,12 +623,12 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _scan(items = [], paging = undefined): Promise<T[]> {
-    let data = await this._client.scan({
+    const data = await this._client.scan({
       TableName: this.parameters.table,
       Limit: this.parameters.scanPage,
       ExclusiveStartKey: paging
     });
-    for (let i in data.Items) {
+    for (const i in data.Items) {
       items.push(this.initModel(data.Items[i]));
     }
     if (data.LastEvaluatedKey) {
@@ -644,7 +644,7 @@ export default class DynamoStore<
     if (!uids) {
       return this._scan([]);
     }
-    let params = {
+    const params = {
       RequestItems: {}
     };
     params["RequestItems"][this.parameters.table] = {
@@ -654,7 +654,7 @@ export default class DynamoStore<
         };
       })
     };
-    let result = await this._client.batchGet(params);
+    const result = await this._client.batchGet(params);
     return result.Responses[this.parameters.table].map(this.initModel, this);
   }
 
@@ -662,13 +662,13 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
-    let params = {
+    const params = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
     };
-    let item = (await this._client.get(params)).Item;
+    const item = (await this._client.get(params)).Item;
     if (!item) {
       if (raiseIfNotFound) {
         throw new StoreNotFoundError(uid, this.getName());
@@ -682,7 +682,7 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async _incrementAttributes(uid, parameters: { property: string; value: number }[], updateDate: Date) {
-    let params = {
+    const params = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
@@ -716,7 +716,7 @@ export default class DynamoStore<
    * @inheritdoc
    */
   getARNPolicy(accountId: string) {
-    let region = this.parameters.region || "us-east-1";
+    const region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",
@@ -740,12 +740,12 @@ export default class DynamoStore<
    * @inheritdoc
    */
   async __clean() {
-    let params = {
+    const params = {
       TableName: this.parameters.table
     };
-    let result = await this._client.scan(params);
-    let promises = [];
-    for (let i in result.Items) {
+    const result = await this._client.scan(params);
+    const promises = [];
+    for (const i in result.Items) {
       promises.push(this._delete(result.Items[i].uuid));
     }
     await Promise.all(promises);
@@ -758,11 +758,11 @@ export default class DynamoStore<
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
-    let resources = {};
+    const resources = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     this.parameters.CloudFormation.Table = this.parameters.CloudFormation.Table || {};
-    let KeySchema = this.parameters.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: "uuid" }];
-    let AttributeDefinitions = this.parameters.CloudFormation.AttributeDefinitions || [];
+    const KeySchema = this.parameters.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: "uuid" }];
+    const AttributeDefinitions = this.parameters.CloudFormation.AttributeDefinitions || [];
     this.parameters.CloudFormation.Table.BillingMode =
       this.parameters.CloudFormation.Table.BillingMode || "PAY_PER_REQUEST";
     AttributeDefinitions.push({ AttributeName: "uuid", AttributeType: "S" });

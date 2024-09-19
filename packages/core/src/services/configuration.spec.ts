@@ -68,7 +68,7 @@ class ConfigurationServiceTest extends WebdaInternalSimpleTest {
 
   @test
   async init() {
-    let service = new ConfigurationService(this.webda, "name", {});
+    const service = new ConfigurationService(this.webda, "name", {});
     assert.deepStrictEqual(service.getConfiguration(), {});
     // @ts-ignore
     service.configuration = { test: "plop" };
@@ -90,7 +90,7 @@ class ConfigurationServiceTest extends WebdaInternalSimpleTest {
   async initialLoad() {
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
-    let test = {
+    const test = {
       uuid: "test",
       services: {
         Authentication: {
@@ -102,18 +102,18 @@ class ConfigurationServiceTest extends WebdaInternalSimpleTest {
         }
       }
     };
-    let store: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("ConfigurationStore");
+    const store: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("ConfigurationStore");
     await new Promise(async resolve => {
       this.webda.getService("ConfigurationService").on("Configuration.Applied", resolve);
       await store.save(test);
     });
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
-    let service = this.webda.getService<ConfigurationService>("ConfigurationService");
+    const service = this.webda.getService<ConfigurationService>("ConfigurationService");
     // @ts-ignore
     await service.checkUpdate();
     // @ts-ignore
-    let mock = stub(service, "loadConfiguration").callsFake(() => {});
+    const mock = stub(service, "loadConfiguration").callsFake(() => {});
     // @ts-ignore
     service.nextCheck = Date.now() + 86400000;
     // @ts-ignore

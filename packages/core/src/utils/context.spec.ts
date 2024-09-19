@@ -70,7 +70,7 @@ class ContextTest extends WebdaTest {
 
   @test
   async sanitize() {
-    let context = await this.newContext();
+    const context = await this.newContext();
     let input = "";
     context.getRawInputAsString = async () => {
       return input;
@@ -83,7 +83,7 @@ class ContextTest extends WebdaTest {
 
   @test
   async copyContext() {
-    let context = await this.newContext();
+    const context = await this.newContext();
     await SimpleOperationContext.fromContext(context);
   }
 
@@ -173,9 +173,9 @@ class ContextTest extends WebdaTest {
   async pipe() {
     this.ctx.statusCode = 204;
     await this.ctx.init();
-    let stream = Readable.from(Buffer.from("Plop"));
+    const stream = Readable.from(Buffer.from("Plop"));
     this.ctx.setHeader("x-plop", "1");
-    let prom = new Promise((resolve, reject) => {
+    const prom = new Promise((resolve, reject) => {
       stream.on("close", resolve);
       stream.on("error", reject);
     });
@@ -211,7 +211,7 @@ class ContextTest extends WebdaTest {
   @test
   getRequest() {
     // Need to finish this
-    let req = this.ctx.getRequest();
+    const req = this.ctx.getRequest();
     // cov
     req.setTimeout(1, () => {});
   }
@@ -358,7 +358,7 @@ class ContextTest extends WebdaTest {
     ctx.setHeader("test", "plip");
 
     // cov
-    let http = new HttpContext("test.webda.io", "GET", "/");
+    const http = new HttpContext("test.webda.io", "GET", "/");
     ctx = new WebContextMock(this.webda, http);
     await ctx.getRawInput();
     ctx.getRawStream();

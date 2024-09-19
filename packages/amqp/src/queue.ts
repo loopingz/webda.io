@@ -43,7 +43,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    * @override
    */
   async receiveMessage<L>(proto?: new () => L): Promise<MessageReceipt<L>[]> {
-    let msg = await this.channel.get(this.parameters.queue);
+    const msg = await this.channel.get(this.parameters.queue);
     if (msg === false) {
       return [];
     }

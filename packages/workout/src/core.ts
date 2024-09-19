@@ -93,7 +93,7 @@ export class WorkerInput {
     if (!this.validators.length) {
       return true;
     }
-    for (let i in this.validators) {
+    for (const i in this.validators) {
       if (this.validators[i].exec(input)) {
         return true;
       }
@@ -167,7 +167,7 @@ export type WorkerMessageType =
 function getFullErrorStack(ex) {
   let ret = ex.stack || ex.toString();
   if (ex.cause && typeof ex.cause === "function") {
-    let cex = ex.cause();
+    const cex = ex.cause();
     if (cex) {
       ret += "\nCaused by: " + getFullErrorStack(cex);
     }
@@ -304,7 +304,7 @@ export class WorkerOutput extends EventEmitter {
     if (this.groups.length === 0) {
       return;
     }
-    let name = this.groups.pop();
+    const name = this.groups.pop();
     this.emitMessage("group.close", { group: name });
   }
 
@@ -408,7 +408,7 @@ export class WorkerOutput extends EventEmitter {
     if (!this.interactive) {
       throw new Error("No interactive session registered");
     }
-    let uuid = randomUUID();
+    const uuid = randomUUID();
     this.inputs[uuid] = new WorkerInputEmitter(uuid, title, type, regexp);
     this.inputs[uuid].promise = new Promise<string>((resolve, reject) => {
       this.inputs[uuid].resolve = resolve;

@@ -5,7 +5,7 @@ import { SimpleUser, User } from "./user";
 @suite
 class UserTest {
   @test("Verify groups in user") groupManagement() {
-    let user: SimpleUser = new SimpleUser();
+    const user: SimpleUser = new SimpleUser();
     user.addGroup("test");
     assert.strictEqual(user.inGroup("test"), true);
     user.addGroup("test");
@@ -17,7 +17,7 @@ class UserTest {
   }
 
   @test("Verify roles in user") roleManagement() {
-    let user: SimpleUser = new SimpleUser();
+    const user: SimpleUser = new SimpleUser();
     user.addRole("test");
     assert.strictEqual(user.hasRole("test"), true);
     user.addRole("test");
@@ -35,19 +35,19 @@ class UserTest {
 
   @test
   password() {
-    let user: User = new User();
+    const user: User = new User();
     user.setPassword("bouzouf");
   }
 
   @test
   idents() {
-    let user: User = new User();
+    const user: User = new User();
     assert.deepStrictEqual(user.getIdents(), []);
   }
 
   @test
   emailGetter() {
-    let user: SimpleUser = new SimpleUser();
+    const user: SimpleUser = new SimpleUser();
     assert.strictEqual(user.getEmail(), undefined);
     assert.deepStrictEqual(user.toPublicEntry(), {
       avatar: undefined,

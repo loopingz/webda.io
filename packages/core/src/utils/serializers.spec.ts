@@ -49,7 +49,7 @@ class UtilsTest {
 
   @test("CircularJSON")
   circularJSON() {
-    let a: any = {
+    const a: any = {
       b: "test",
       c: {},
       __test: true,
@@ -77,7 +77,7 @@ class UtilsTest {
 
   @test("DuplicateJSON")
   duplicatedJSON() {
-    let a: any = {
+    const a: any = {
       b: "test",
       c: {
         plop: "bouzouf"
@@ -171,7 +171,7 @@ class UtilsTest {
 
   @test
   duplicate() {
-    let obj = { plop: "test" };
+    const obj = { plop: "test" };
     let obj2 = JSONUtils.duplicate(obj);
     assert.notStrictEqual(obj, obj2);
     assert.deepStrictEqual(obj, obj2);
@@ -272,14 +272,14 @@ plop: test
 
   @test
   async finder() {
-    let res = await FileUtils.find("test", { filterPattern: /Dockerfile/ });
+    const res = await FileUtils.find("test", { filterPattern: /Dockerfile/ });
     assert.ok(res.includes("test/Dockerfile"));
   }
 
   @test
   async streams() {
     const st = await FileUtils.getWriteStream("/tmp/webda.stream");
-    let p = new Promise(resolve => st.on("finish", resolve));
+    const p = new Promise(resolve => st.on("finish", resolve));
     st.end();
     await p;
     await FileUtils.getReadStream("/tmp/webda.stream");

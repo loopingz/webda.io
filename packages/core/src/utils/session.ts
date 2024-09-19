@@ -74,7 +74,7 @@ export class CookieSessionManager<
       return new Session();
     }
     const session = new Session();
-    let cookie = await SecureCookie.load(this.parameters.cookie.name, context, this.parameters.jwt);
+    const cookie = await SecureCookie.load(this.parameters.cookie.name, context, this.parameters.jwt);
     if (this.sessionStore) {
       if (cookie.sub) {
         Object.assign(session, (await this.sessionStore.get(cookie.sub))?.session);

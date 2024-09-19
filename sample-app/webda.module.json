@@ -333,6 +333,8 @@
         "name": "string",
         "type": "string",
         "uuid": "string",
+        "n": "number",
+        "test2": "string",
         "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
         "_creator": "string",
         "__acl": "Acl",
@@ -484,6 +486,8 @@
         "name": "string",
         "type": "string",
         "uuid": "string",
+        "n": "number",
+        "test2": "string",
         "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
         "_creator": "string",
         "__acl": "Acl",
@@ -523,6 +527,8 @@
         "name": "string",
         "type": "string",
         "uuid": "string",
+        "n": "number",
+        "test2": "string",
         "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
         "_creator": "string",
         "__acl": "Acl",
@@ -543,6 +549,8 @@
         "name": "string",
         "type": "string",
         "uuid": "string",
+        "n": "number",
+        "test2": "string",
         "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
         "_creator": "string",
         "__acl": "Acl",
@@ -725,6 +733,12 @@
     "WebdaDemo/AnotherSubProject": {
       "type": "object",
       "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
         "_creationDate": {
           "type": "string",
           "format": "date-time",
@@ -757,7 +771,9 @@
         }
       },
       "required": [
+        "n",
         "name",
+        "test2",
         "type",
         "uuid"
       ],
@@ -1439,6 +1455,12 @@
     "WebdaDemo/Project": {
       "type": "object",
       "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
         "_creationDate": {
           "type": "string",
           "format": "date-time",
@@ -1471,7 +1493,9 @@
         }
       },
       "required": [
+        "n",
         "name",
+        "test2",
         "type",
         "uuid"
       ],
@@ -1729,6 +1753,12 @@
     "WebdaDemo/SubProject": {
       "type": "object",
       "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
         "_creationDate": {
           "type": "string",
           "format": "date-time",
@@ -1761,7 +1791,9 @@
         }
       },
       "required": [
+        "n",
         "name",
+        "test2",
         "type",
         "uuid"
       ],
@@ -1771,6 +1803,12 @@
     "WebdaDemo/SubSubProject": {
       "type": "object",
       "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
         "_creationDate": {
           "type": "string",
           "format": "date-time",
@@ -1807,7 +1845,9 @@
       },
       "required": [
         "attribute1",
+        "n",
         "name",
+        "test2",
         "type",
         "uuid"
       ],
@@ -1842,6 +1882,12 @@
           "type": "string"
         },
         "uuid": {
+          "type": "string"
+        },
+        "n": {
+          "type": "number"
+        },
+        "test2": {
           "type": "string"
         },
         "_creator": {},

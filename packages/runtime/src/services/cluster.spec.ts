@@ -23,7 +23,7 @@ class ClusterServiceTest extends WebdaSimpleTest {
   async test() {
     process.env["CLUSTER_SERVICE"] = "Cluster";
     console.log(Object.keys(this.webda.getModels()));
-    let CoreModel = this.webda.getModels()["Webda/CoreModel"];
+    const CoreModel = this.webda.getModels()["Webda/CoreModel"];
     CoreModel.getClientEvents = () => ["test"];
     this.pubsub = this.registerService(await new FakePubSub(this.webda, "PubSub", {}).resolve().init());
     this.service = this.registerService(
@@ -82,7 +82,7 @@ class ClusterServiceTest extends WebdaSimpleTest {
 
     // Handle message
 
-    let stub = Sinon.stub(this.service, "updateCluster").callsFake(async () => {});
+    const stub = Sinon.stub(this.service, "updateCluster").callsFake(async () => {});
     await this.service["handleMessage"]({
       emitterId: "testor",
       type: "cluster",
@@ -106,7 +106,7 @@ class ClusterServiceTest extends WebdaSimpleTest {
     });
     assert.strictEqual(stub.callCount, 1);
     stub.restore();
-    let logStub = Sinon.stub(this.service, "log").callsFake(() => {});
+    const logStub = Sinon.stub(this.service, "log").callsFake(() => {});
     this.service.models["fake"] = <any>{
       emit: Sinon.stub().callsFake(() => {})
     };
@@ -118,7 +118,7 @@ class ClusterServiceTest extends WebdaSimpleTest {
     };
 
     // Test the out of sync
-    for (let type of ["Model", "Store", "Service"]) {
+    for (const type of ["Model", "Store", "Service"]) {
       this.service.hasCodeSyncAlert = false;
       await this.service["handleMessage"]({
         emitterId: "testor",

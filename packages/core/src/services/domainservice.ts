@@ -292,7 +292,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    */
   async modelCreate(context: OperationContext) {
     const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
-    let object = model.factory(await context.getInput(), context);
+    const object = model.factory(await context.getInput(), context);
     await object.checkAct(context, "create");
     // Enforce the UUID
     object.setUuid(object.generateUid());
@@ -310,8 +310,8 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async modelUpdate(context: OperationContext) {
-    let object = await this.getModel(context);
-    let input = await context.getInput();
+    const object = await this.getModel(context);
+    const input = await context.getInput();
     await object.checkAct(context, "update");
     object.load(input);
     await object.save(true);
@@ -323,7 +323,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async modelGet(context: OperationContext) {
-    let object = await this.getModel(context);
+    const object = await this.getModel(context);
     await object.checkAct(context, "get");
     const evt = {
       context,
@@ -339,7 +339,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async modelDelete(context: OperationContext) {
-    let object = await this.getModel(context);
+    const object = await this.getModel(context);
     if (!object) {
       throw new WebdaError.NotFound("Object not found");
     }
@@ -371,7 +371,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async modelPatch(context: OperationContext) {
-    let object = await this.getModel(context);
+    const object = await this.getModel(context);
     const input = await context.getInput();
     await object.checkAct(context, "update");
     await object.patch(input);
@@ -414,7 +414,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     const app = this.getWebda().getApplication();
 
     // Add default schemas - used for operation parameters
-    for (let i in ModelsOperationsService.schemas) {
+    for (const i in ModelsOperationsService.schemas) {
       if (app.hasSchema(i)) {
         continue;
       }
@@ -422,7 +422,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     }
 
     const models = app.getModels();
-    for (let modelKey in models) {
+    for (const modelKey in models) {
       const model = models[modelKey];
       const expose = model.Expose;
       // Skip if not exposed or not included
@@ -497,7 +497,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
         });
       }
       // Add all operations for Actions
-      let actions = model.getActions();
+      const actions = model.getActions();
       Object.keys(actions).forEach(name => {
         const id = `${shortId}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
         const info: any = {
@@ -586,20 +586,20 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async binaryChallenge(context: OperationContext) {
-    let body = await context.getInput();
+    const body = await context.getInput();
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
       model: CoreModelDefinition;
       binary: any;
     }>("operationContext");
     // First verify if map exist
-    let object = await model.ref(context.parameter("uuid")).get();
+    const object = await model.ref(context.parameter("uuid")).get();
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
     await object.checkAct(context, "attach_binary");
-    let url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
-    let base64String = Buffer.from(body.hash, "hex").toString("base64");
+    const url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
+    const base64String = Buffer.from(body.hash, "hex").toString("base64");
     context.write({
       ...url,
       done: url === undefined,
@@ -619,7 +619,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       binary: any;
     }>("operationContext");
     // First verify if map exist
-    let object = await model.ref(context.parameter("uuid")).get();
+    const object = await model.ref(context.parameter("uuid")).get();
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
@@ -640,7 +640,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     }>("operationContext");
     const { index, uuid } = context.getParameters();
     // First verify if map exist
-    let object = await model.ref(uuid).get();
+    const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
@@ -650,7 +650,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     }
     await object.checkAct(context, "get_binary");
     const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
-    let url = await binaryStore.getRedirectUrlFromObject(file, context);
+    const url = await binaryStore.getRedirectUrlFromObject(file, context);
     // No url, we return the file
     if (url === null) {
       if (returnUrl) {
@@ -668,7 +668,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
           "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
           "Content-Length": file.size
         });
-        let readStream: any = await binaryStore.get(file);
+        const readStream: any = await binaryStore.get(file);
         await new Promise<void>((resolve, reject) => {
           // We replaced all the event handlers with a simple call to readStream.pipe()
           context._stream.on("finish", resolve);
@@ -690,7 +690,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     }>("operationContext");
     const { index, uuid, hash } = context.getParameters();
     // First verify if map exist
-    let object = await model.ref(uuid).get();
+    const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
@@ -710,7 +710,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       await binaryStore.delete(object, binary.attribute, index);
     } else if (action === "metadata") {
       await object.checkAct(context, "update_binary_metadata");
-      let metadata: BinaryMetadata = await context.getInput();
+      const metadata: BinaryMetadata = await context.getInput();
       // Limit metadata to 4kb
       if (JSON.stringify(metadata).length >= 4096) {
         throw new WebdaError.BadRequest("Metadata is too big: 4kb max");

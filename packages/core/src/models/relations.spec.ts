@@ -96,15 +96,15 @@ export class ModelDrivenTest extends WebdaTest {
   @test
   async test() {
     // Init mapper
-    let mapper = new ModelMapper(this.webda, "test", {}).resolve();
+    const mapper = new ModelMapper(this.webda, "test", {}).resolve();
     await mapper.init();
 
     const Contact = this.webda.getModel<ContactInterface>("Contact");
     const User = this.webda.getModel<UserInterface>("User");
 
     // Create a User
-    let user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, undefined, true);
-    let user2 = await User.ref("user2").getOrCreate(<any>{ uuid: "user2" }, undefined, true);
+    const user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, undefined, true);
+    const user2 = await User.ref("user2").getOrCreate(<any>{ uuid: "user2" }, undefined, true);
 
     Contact.factory({ firstName: "test", lastName: "" });
     let contact = new Contact().load({ firstName: "test", lastName: "", age: 18 }, true);
@@ -187,7 +187,7 @@ export class ModelDrivenTest extends WebdaTest {
   @test
   async classrooms() {
     // Init mapper
-    let mapper = new ModelMapper(this.webda, "test", {}).resolve();
+    const mapper = new ModelMapper(this.webda, "test", {}).resolve();
     await mapper.init();
 
     const Course = this.webda.getModel<CourseInterface>("Course");

@@ -23,14 +23,14 @@ class KMSTest extends WebdaSimpleTest {
         }
       ];
     });
-    let service = await this.registerService(
+    const service = await this.registerService(
       new GCPKMSService(this.webda, "KMSService", {
         defaultKey: "projects/my-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key"
       })
     )
       .resolve()
       .init();
-    let encoded = await service.encrypt("test");
+    const encoded = await service.encrypt("test");
     assert.deepStrictEqual(Buffer.from(encoded.split(":")[0], "base64").toString().split(":"), [
       "my-project",
       "us-east1",
@@ -38,7 +38,7 @@ class KMSTest extends WebdaSimpleTest {
       "my-key"
     ]);
     assert.strictEqual(encoded.split(":").pop(), "Y2lwaGVydGV4dA==");
-    let decoded = await service.decrypt(encoded);
+    const decoded = await service.decrypt(encoded);
     assert.strictEqual(decoded, "plaintext");
     assert.rejects(() => service.decrypt(Buffer.from("test:plop").toString("base64") + ":test"));
   }

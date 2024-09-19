@@ -11,14 +11,14 @@ export class Route53Service extends Service {
     domain = this.completeDomain(domain);
     let targetZone: HostedZone;
     // Find the right zone
-    let r53: Route53 = new Route53({});
+    const r53: Route53 = new Route53({});
     let res: ListHostedZonesResponse;
-    let params: ListHostedZonesRequest = {};
+    const params: ListHostedZonesRequest = {};
     // Identify the right zone first
     do {
       res = await r53.listHostedZones(params);
-      for (let i in res.HostedZones) {
-        let zone = res.HostedZones[i];
+      for (const i in res.HostedZones) {
+        const zone = res.HostedZones[i];
         if (domain.endsWith(zone.Name)) {
           if (targetZone && targetZone.Name.length > zone.Name.length) {
             // The previous target zone is closer to the domain
@@ -54,7 +54,7 @@ export class Route53Service extends Service {
     targetZone: HostedZone = undefined,
     Comment: string = "@webda/aws-created"
   ): Promise<void> {
-    let r53 = new Route53({});
+    const r53 = new Route53({});
     domain = this.completeDomain(domain);
     if (!targetZone) {
       targetZone = await this.getZoneForDomainName(domain);
@@ -91,7 +91,7 @@ export class Route53Service extends Service {
    * @param domain to retrieve from
    */
   static async getEntries(domain: string) {
-    let r53 = new Route53({});
+    const r53 = new Route53({});
     const zone = await Route53Service.getZoneForDomainName(domain);
     if (!zone) {
       throw new Error(`Domain '${domain}' is not handled on AWS`);
@@ -120,7 +120,7 @@ export class Route53Service extends Service {
     },
     Console
   ) {
-    let data = JSONUtils.loadFile(options.file);
+    const data = JSONUtils.loadFile(options.file);
     const targetZone = await this.getZoneForDomainName(data.domain);
     const r53 = new Route53({});
     if (!targetZone) {
@@ -148,9 +148,9 @@ export class Route53Service extends Service {
         return;
       }
       let continuationToken;
-      let toDelete = [];
+      const toDelete = [];
       do {
-        let records = await r53.listResourceRecordSets({
+        const records = await r53.listResourceRecordSets({
           HostedZoneId: targetZone.Id,
           StartRecordIdentifier: continuationToken
         });

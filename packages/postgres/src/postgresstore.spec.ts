@@ -34,7 +34,7 @@ export class PostgresTest extends StoreTest {
     try {
       await client.connect();
       await client.query("DROP TABLE IF EXISTS create_test");
-      let store: PostgresStore = this.getService<PostgresStore>("idents");
+      const store: PostgresStore = this.getService<PostgresStore>("idents");
       store.getParameters().table = "create_test";
       store.getParameters().autoCreateTable = true;
       await store.init();
@@ -48,7 +48,7 @@ export class PostgresTest extends StoreTest {
 
   @test
   async cov() {
-    let store: PostgresStore = this.getService<PostgresStore>("idents");
+    const store: PostgresStore = this.getService<PostgresStore>("idents");
     store.getParameters().usePool = false;
     await store.init();
     await store.query("test = TRUE");
@@ -61,7 +61,7 @@ export class PostgresTest extends StoreTest {
 
   @test
   async stoppedPostgres() {
-    let obj = await this.getIdentStore().save({
+    const obj = await this.getIdentStore().save({
       test: 0
     });
     await obj.patch({ test: 1 });
@@ -71,7 +71,7 @@ export class PostgresTest extends StoreTest {
 
   @test
   async createViews() {
-    let store: PostgresStore = this.getService<PostgresStore>("idents");
+    const store: PostgresStore = this.getService<PostgresStore>("idents");
     let info = await store.getClient().query(`SELECT 'DROP VIEW ' || table_name || ';'
     FROM information_schema.views
    WHERE table_schema NOT IN ('pg_catalog', 'information_schema')

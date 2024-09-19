@@ -9,7 +9,11 @@
     "build:watch": "webda build --watch",
     "pretest": "npm run build",
     "test": "c8 mocha -r ../../node_modules/ts-node/register",
-    "run": "node core"
+    "run": "node core",
+    "format": "prettier --check src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "format:fix": "prettier --write src/**/*"
   },
   "keywords": [
     "webda-module"

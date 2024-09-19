@@ -65,19 +65,19 @@ export class StorageDiagram extends Diagram {
     const tree = webda.getApplication().getModelHierarchy("CoreModel");
     const stores: { [key: string]: string[] } = {};
     const recursive = (name: string, children: ModelsTree) => {
-      let storeName = webda.getModelStore(webda.getModel(name)).getName();
+      const storeName = webda.getModelStore(webda.getModel(name)).getName();
       stores[storeName] ??= [];
       stores[storeName].push(name);
-      for (let child in children) {
+      for (const child in children) {
         diagram += `\t${child} --> ${name}\n`;
         recursive(child, children[child]);
       }
     };
     recursive("CoreModel", tree.children);
     // Add subgraph for Stores
-    for (let store in stores) {
+    for (const store in stores) {
       diagram += `\n\tsubgraph ${store}\n`;
-      for (let model of stores[store]) {
+      for (const model of stores[store]) {
         diagram += `\t\t${model}\n`;
       }
       diagram += `\tend\n`;
@@ -149,13 +149,13 @@ export class ServiceDiagram extends Diagram {
   generate(webda: Core<CoreEvents>): string {
     const services = Object.values(webda.getServices()).filter(service => service.getName);
     let diagram = "```mermaid\nflowchart TD\n";
-    let ids = {};
+    const ids = {};
     services.forEach((service, i) => {
       diagram += `\tS${i}(${service.getName()}<br /><i>${service.getParameters().type}</i>)\n`;
       ids[service.getName()] = i;
     });
     services.forEach((service, i) => {
-      for (let attr in service) {
+      for (const attr in service) {
         if (service[attr] instanceof Service) {
           diagram += `\tS${i} -->|${attr}| S${ids[service[attr].getName()]}\n`;
         }

@@ -102,7 +102,7 @@ export class WebdaServer extends Webda {
       protocol = <"http" | "https">req.headers["x-forwarded-proto"];
     }
 
-    let method = req.method;
+    const method = req.method;
     let port;
     if (req.socket && req.socket.address()) {
       port = (<AddressInfo>req.socket.address()).port;
@@ -113,7 +113,7 @@ export class WebdaServer extends Webda {
       // GCP send a proto without port so fallback on default port
       port = protocol === "http" ? 80 : 443;
     }
-    let httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req.headers);
+    const httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req.headers);
     httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket.remoteAddress));
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
@@ -150,7 +150,7 @@ export class WebdaServer extends Webda {
     }
 
     try {
-      let httpContext = ctx.getHttpContext();
+      const httpContext = ctx.getHttpContext();
 
       if (!this.updateContextWithRoute(ctx) && httpContext.getMethod() !== "OPTIONS") {
         // Static served should not be reachable via XHR
@@ -191,7 +191,7 @@ export class WebdaServer extends Webda {
       }
       // Handle OPTIONS
       if (req.method === "OPTIONS") {
-        let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
+        const routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         // OPTIONS on unknown route should return 404
         if (routes.length === 0) {
           ctx.writeHead(404);
@@ -226,7 +226,9 @@ export class WebdaServer extends Webda {
         ctx.statusCode = 500;
       }
       // If we have a context, we can send the error
-      emitResult && (await this.emitSync("Webda.Result", { context: ctx }));
+      if (emitResult) {
+        await this.emitSync("Webda.Result", { context: ctx });
+      }
       if (ctx.statusCode >= 500) {
         this.log("ERROR", err);
       }
@@ -247,7 +249,7 @@ export class WebdaServer extends Webda {
     const headers = ctx.getResponseHeaders();
     const cookies = ctx.getResponseCookies();
     try {
-      for (let i in cookies) {
+      for (const i in cookies) {
         res.setHeader("Set-Cookie", cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options));
       }
       res.writeHead(ctx.statusCode, headers);

@@ -68,7 +68,7 @@ export default class ApiKey extends OwnerModel {
    * @returns
    */
   generateSecret(): string {
-    let secret = this["secret"] || randomBytes(64).toString("base64").replace(/=/g, "");
+    const secret = this["secret"] || randomBytes(64).toString("base64").replace(/=/g, "");
     this["secret"] = undefined;
     return secret;
   }
@@ -100,8 +100,8 @@ export default class ApiKey extends OwnerModel {
     }
 
     // Returns TRUE as soon as we found a matching authorized regexp
-    for (let x in this.origins) {
-      let pattern = new RegExp(this.origins[x]);
+    for (const x in this.origins) {
+      const pattern = new RegExp(this.origins[x]);
       if (origin.match(pattern)) {
         return true;
       }
@@ -138,7 +138,7 @@ export default class ApiKey extends OwnerModel {
     if (!this.permissions[method]) {
       return false;
     }
-    for (let i in this.permissions[method]) {
+    for (const i in this.permissions[method]) {
       if (ctx.getUrl().match(this.permissions[method][i])) {
         return true;
       }

@@ -155,7 +155,7 @@ export abstract class OAuthService<
    * @param params
    */
   loadParameters(params: any): ServiceParameters {
-    let result = new OAuthServiceParameters(params);
+    const result = new OAuthServiceParameters(params);
     if (result.authorized_uris === undefined) {
       this.log("WARN", "Not defining authorized_uris is a security risk");
     } else {
@@ -174,13 +174,13 @@ export abstract class OAuthService<
     if (!context.getHttpContext().getRelativeUri().startsWith(this.parameters.url)) {
       return false;
     }
-    let regexps = this.getCallbackReferer();
+    const regexps = this.getCallbackReferer();
     let valid = false;
-    let referer = context.getHttpContext().getUniqueHeader("referer", "");
+    const referer = context.getHttpContext().getUniqueHeader("referer", "");
     if (this.parameters.no_referer && referer === "") {
       return true;
     }
-    for (let i in regexps) {
+    for (const i in regexps) {
       valid = referer.match(regexps[i]) !== null;
       if (valid) {
         break;
@@ -224,7 +224,7 @@ export abstract class OAuthService<
    */
   initRoutes() {
     super.initRoutes();
-    let name = this.getName();
+    const name = this.getName();
 
     this.addRoute(`${this.parameters.url}{?redirect?}`, ["GET"], this._redirect, {
       get: {
@@ -343,8 +343,8 @@ export abstract class OAuthService<
    */
   _redirect(ctx: WebContext) {
     // implement default behavior
-    let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
-    let redirect = ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
+    const redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
+    const redirect = ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
 
     if (!this.isAuthorizedUri(redirect, ctx)) {
       throw new WebdaError.Unauthorized("Unauthorized redirect parameter");

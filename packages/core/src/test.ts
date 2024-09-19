@@ -309,18 +309,18 @@ export class TestApplication extends UnpackedApplication {
   loadWebdaModule(moduleFile: string): CachedModule {
     // Test are using ts-node so local source should be loaded from .ts with ts-node aswell
     if (process.cwd() === path.dirname(moduleFile)) {
-      let module = FileUtils.load(moduleFile);
+      const module = FileUtils.load(moduleFile);
       Object.keys(SectionEnum)
         .filter(k => Number.isNaN(+k))
         .forEach(p => {
-          for (let key in module[SectionEnum[p]]) {
+          for (const key in module[SectionEnum[p]]) {
             module[SectionEnum[p]][key] = path.join(
               path.relative(this.getAppPath(), path.dirname(moduleFile)),
               module[SectionEnum[p]][key].replace(/^lib\//, "src/")
             );
           }
         });
-      for (let key in module.models.list) {
+      for (const key in module.models.list) {
         module.models.list[key] = path.join(
           path.relative(this.getAppPath(), path.dirname(moduleFile)),
           module.models.list[key].replace(/^lib\//, "src/")
@@ -398,7 +398,7 @@ class WebdaTest {
    * Add a ConsoleLogger if addConsoleLogger is true
    */
   protected async buildWebda() {
-    let app = this.getApplication();
+    const app = this.getApplication();
     await app.load();
     await this.tweakApp(app);
 
@@ -460,7 +460,7 @@ class WebdaTest {
    * @returns
    */
   async newContext<T extends WebContext>(body: any = {}): Promise<T> {
-    let res = await this.webda.newWebContext<T>(new HttpContext("test.webda.io", "GET", "/"));
+    const res = await this.webda.newWebContext<T>(new HttpContext("test.webda.io", "GET", "/"));
     res.getHttpContext().setBody(body);
     return res;
   }
@@ -484,7 +484,7 @@ class WebdaTest {
     body: any = {},
     headers: { [key: string]: string } = {}
   ): { execute: (context?: WebContext) => Promise<any> } {
-    let httpContext = new HttpContext(host, method, url, "http", 80, headers);
+    const httpContext = new HttpContext(host, method, url, "http", 80, headers);
     httpContext.setBody(body);
     httpContext.setClientIp("127.0.0.1");
     if (!ctx) {
@@ -536,7 +536,7 @@ class WebdaTest {
     }
     await exec.execute(context);
 
-    let res = <string>context.getResponseBody();
+    const res = <string>context.getResponseBody();
     if (res) {
       try {
         return JSON.parse(res);
@@ -577,7 +577,7 @@ class WebdaTest {
     // 2 Companies
     const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];
     const users = [];
-    for (let company of companies) {
+    for (const company of companies) {
       for (let i = 1; i < 6; i++) {
         // 2 User per company
         users.push(
@@ -609,9 +609,9 @@ class WebdaTest {
     // 10 Topics
     const topics = ["Math", "French", "English", "Physics", "Computer Science"];
     for (let i = 1; i < 13; i++) {
-      let courseStudents = [];
+      const courseStudents = [];
       for (let j = i; j < i + 6; j++) {
-        let s = students[j % 10];
+        const s = students[j % 10];
         courseStudents.push({
           uuid: s.getUuid(),
           email: s.email,
@@ -631,7 +631,7 @@ class WebdaTest {
     // 3 classrooms
     const classrooms = [];
     for (let i = 1; i < 4; i++) {
-      let classCourses = [];
+      const classCourses = [];
       classCourses.push({ uuid: courses[i].uuid, name: courses[i].name });
       classCourses.push({ uuid: courses[i * 2].uuid, name: courses[i * 2].name });
       classCourses.push({ uuid: courses[i * 3].uuid, name: courses[i * 3].name });
@@ -644,7 +644,7 @@ class WebdaTest {
     }
 
     let count = 1;
-    for (let course of courses) {
+    for (const course of courses) {
       course.classroom.set(classrooms[count++ % 3].uuid);
       await course.save();
     }
@@ -670,8 +670,8 @@ class WebdaTest {
     }
 
     count = 1;
-    for (let classroom of classrooms) {
-      let classCourses = [];
+    for (const classroom of classrooms) {
+      const classCourses = [];
       for (let i = 0; i < 3; i++) {
         classCourses.push({
           uuid: courses[count++ % 12].uuid,
@@ -756,7 +756,7 @@ class WebdaSimpleTest extends WebdaTest {
 
 export class TestInternalApplication extends TestApplication {
   loadProjectInformation() {
-    let info = super.loadProjectInformation();
+    const info = super.loadProjectInformation();
     delete info.webda.workspaces;
     return info;
   }

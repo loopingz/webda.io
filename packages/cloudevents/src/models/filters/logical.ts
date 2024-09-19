@@ -45,7 +45,7 @@ export class AllFilterImplementation extends FilterImplementation<AllFilter> {
    * @override
    */
   match(event: CloudEvent): boolean {
-    for (let filter of this.filters) {
+    for (const filter of this.filters) {
       if (!filter.match(event)) {
         return false;
       }
@@ -70,7 +70,7 @@ export class AnyFilterImplementation extends FilterImplementation<AnyFilter> {
    * @override
    */
   match(event: CloudEvent): boolean {
-    for (let filter of this.filters) {
+    for (const filter of this.filters) {
       if (filter.match(event)) {
         return true;
       }

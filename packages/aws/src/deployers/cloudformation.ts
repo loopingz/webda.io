@@ -74,7 +74,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   APIGateway?: {
     Name?: string;
   };
-  APIGatewayDeployment?: {};
+  APIGatewayDeployment?: object;
   APIGatewayStage?: {
     StageName?: string;
   };
@@ -93,9 +93,9 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     Stage?: string;
   };
 
-  APIGatewayV2?: {};
-  APIGatewayV2Deployment?: {};
-  APIGatewayV2Stage?: {};
+  APIGatewayV2?: unknown;
+  APIGatewayV2Deployment?: unknown;
+  APIGatewayV2Stage?: unknown;
   APIGatewayV2Domain?: {
     DomainName: string;
     DomainNameConfigurations?: {
@@ -128,7 +128,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
   StackOptions?: any;
 
-  Resources?: {};
+  Resources?: unknown;
 
   /**
    * Policy to create
@@ -205,7 +205,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     Timeout?: number;
   };
 
-  Fargate?: {};
+  Fargate?: object;
   // Workers Image
 
   Docker?: AWSDockerResources;
@@ -270,7 +270,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async defaultResources() {
     await super.defaultResources();
-    let packageDesc = this.getApplication().getPackageDescription();
+    const packageDesc = this.getApplication().getPackageDescription();
     packageDesc.webda = packageDesc.webda || {};
     packageDesc.webda.aws = packageDesc.webda.aws || {};
 
@@ -401,7 +401,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         }
       }
       if (conf.CloudFront) {
-        let DistributionConfig = conf.CloudFront.DistributionConfig || {};
+        const DistributionConfig = conf.CloudFront.DistributionConfig || {};
         DistributionConfig.Aliases = DistributionConfig.Aliases || [];
         if (DistributionConfig.Aliases.indexOf(conf.DomainName) < 0) {
           DistributionConfig.Aliases.push(conf.DomainName);
@@ -441,7 +441,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.Docker.includeRepository =
         this.resources.Docker.includeRepository === undefined ? true : this.resources.Docker.includeRepository;
       if (this.resources.Docker.includeRepository && this.resources.Docker.tag) {
-        let accountId = (await this.getAWSIdentity()).Account;
+        const accountId = (await this.getAWSIdentity()).Account;
         this.resources.Docker.tag =
           accountId + ".dkr.ecr.eu-west-1.amazonaws.com/${package.webda.aws.Repository}:" + this.resources.Docker.tag;
       }
@@ -463,7 +463,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     await this.createBucket(this.resources.AssetsBucket);
 
     // Check if we need OpenAPI export
-    let openapi = await this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
+    const openapi = await this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
     this.openapiS3Object = this.getStringified(openapi, this.resources.OpenAPIFileName);
     await this.putFilesOnBucket(this.resources.AssetsBucket, [this.openapiS3Object]);
     // If APIGatewayImportOpenApi update REST API
@@ -483,7 +483,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     await this.uploadStatics();
 
     // Dynamicly call each methods
-    for (let i in this.resources) {
+    for (const i in this.resources) {
       if (this[i] && typeof this[i] === "function") {
         this.logger.log("TRACE", "Add CloudFormation Resource", i);
         await this[i]();
@@ -491,7 +491,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
 
     // Add any static
-    for (let i in this.resources.Statics) {
+    for (const i in this.resources.Statics) {
       this.logger.log("TRACE", "Add Static Resource", i);
       await this.createStatic(this.resources.Statics[i]);
     }
@@ -508,7 +508,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * Upload any asset to bucket
    */
   async uploadStatics() {
-    for (let i in this.resources.Statics) {
+    for (const i in this.resources.Statics) {
       const { Source, AssetsPath } = this.resources.Statics[i];
 
       await this.putFolderOnBucket(
@@ -523,7 +523,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     const { DomainName, CloudFront, Bucket } = info;
     info.Bucket = info.Bucket || {};
     // Create bucket
-    let resPrefix = `Static${DomainName.replace(/\./g, "")}`;
+    const resPrefix = `Static${DomainName.replace(/\./g, "")}`;
     if (Bucket) {
       this.template.Resources[`${resPrefix}Bucket`] = {
         Type: "AWS::S3::Bucket",
@@ -560,7 +560,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * Copy the CloudFormation template to the Assets bucket
    */
   async sendCloudFormationTemplate() {
-    let res = this.getStringified(this.template, this.resources.FileName);
+    const res = this.getStringified(this.template, this.resources.FileName);
     this.result.CloudFormation = {
       Bucket: this.resources.AssetsBucket,
       Key: res.key
@@ -574,7 +574,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @returns
    */
   async deleteCloudFormation() {
-    let cloudformation = new CloudFormation({});
+    const cloudformation = new CloudFormation({});
     await cloudformation.deleteStack({ StackName: this.resources.StackName });
     return this.waitFor(
       async resolve => {
@@ -601,7 +601,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @returns
    */
   async createCloudFormationDNSEntry(ref: any, domain: string, HostedZoneId: any) {
-    let zone = await this.getZoneForDomainName(domain);
+    const zone = await this.getZoneForDomainName(domain);
     if (!zone) {
       this.logger.log("WARN", "Cannot find Route53 zone for", domain, ", you will have to create manually the CNAME");
       return;
@@ -620,7 +620,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async importOpenApi(openapi) {
-    let apigateway = new APIGateway({});
+    const apigateway = new APIGateway({});
     console.log("Creating API Gateway");
     await apigateway.putRestApi({
       body: Buffer.from(JSON.stringify(openapi)),
@@ -636,7 +636,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @returns
    */
   async createCloudFormationChangeSet(cloudformation: CloudFormation) {
-    let changeSetParams = {
+    const changeSetParams = {
       ...this.resources.StackOptions,
       StackName: this.resources.StackName,
       ChangeSetName: "WebdaCloudFormationDeployer",
@@ -667,7 +667,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       } else if (err.message.endsWith(" state and can not be updated.")) {
         await this.waitFor(
           async resolve => {
-            let res = await cloudformation.describeStacks({
+            const res = await cloudformation.describeStacks({
               StackName: this.resources.StackName
             });
             if (res.Stacks.length === 0) {
@@ -715,16 +715,16 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @returns
    */
   async createCloudFormation() {
-    let cloudformation: CloudFormation = new CloudFormation({});
+    const cloudformation: CloudFormation = new CloudFormation({});
 
-    let changeSet = await this.createCloudFormationChangeSet(cloudformation);
+    const changeSet = await this.createCloudFormationChangeSet(cloudformation);
 
     // Wait for change set
     this.logger.log("TRACE", `ChangeSet: ${changeSet}`);
     // It will trigger an exception if timeout
-    let changes = await this.waitFor(
+    const changes = await this.waitFor(
       async resolve => {
-        let localChanges = await cloudformation.describeChangeSet({
+        const localChanges = await cloudformation.describeChangeSet({
           ChangeSetName: "WebdaCloudFormationDeployer",
           StackName: this.resources.StackName
         });
@@ -769,7 +769,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     let i = 0;
     let Timeout = true;
     do {
-      let events = (
+      const events = (
         await cloudformation.describeStackEvents({
           StackName: this.resources.StackName
         })
@@ -818,7 +818,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       let restApiId;
       // Retrieve resources
       do {
-        let res = await cloudformation.listStackResources({
+        const res = await cloudformation.listStackResources({
           StackName: this.resources.StackName,
           NextToken
         });
@@ -852,13 +852,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async Resources() {
-    let services = this.manager.getWebda().getServices();
+    const services = this.manager.getWebda().getServices();
     // Build policy
-    for (let i in services) {
+    for (const i in services) {
       if ("getCloudFormation" in services[i]) {
         // Update to match recuring policy - might need to split if policy too big
-        let res = (<CloudFormationContributor>(<any>services[i])).getCloudFormation(this);
-        for (let j in res) {
+        const res = (<CloudFormationContributor>(<any>services[i])).getCloudFormation(this);
+        for (const j in res) {
           this.template.Resources[`Service${i}_${j}`] = res[j];
         }
       }
@@ -871,15 +871,15 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async completeOpenAPI(openapi) {
     openapi.info.title = this.resources.OpenAPITitle;
-    let info = await this.getAWSIdentity();
-    let arn = `arn:aws:lambda:${this.getRegion()}:${info.Account}:function:${this.resources.Lambda.FunctionName}`;
-    for (let p in openapi.paths) {
+    const info = await this.getAWSIdentity();
+    const arn = `arn:aws:lambda:${this.getRegion()}:${info.Account}:function:${this.resources.Lambda.FunctionName}`;
+    for (const p in openapi.paths) {
       // Not using mockCors as the {@link RequestFilter.checkRequest} can be dynamic
       // Invalid mapping expression parameter specified: method.response.header.Access-Control-Allow-Credentials
       if (!openapi.paths[p]["options"]) {
         openapi.paths[p]["options"] = {};
       }
-      for (let m in openapi.paths[p]) {
+      for (const m in openapi.paths[p]) {
         openapi.paths[p][m]["x-amazon-apigateway-integration"] = {
           httpMethod: "POST",
           uri: `arn:aws:apigateway:${this.getRegion()}:lambda:path/2015-03-31/functions/${arn}/invocations`,
@@ -1013,7 +1013,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async Policy() {
-    let PolicyDocument = JSON.stringify(
+    const PolicyDocument = JSON.stringify(
       await this.getPolicyDocument(this.resources.Policy.PolicyDocument.Statement),
       undefined,
       2
@@ -1036,7 +1036,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async Role() {
     // add auto generation
-    let AssumeRolePolicyDocument = JSON.stringify(this.resources.Role.AssumeRolePolicyDocument, undefined, 2);
+    const AssumeRolePolicyDocument = JSON.stringify(this.resources.Role.AssumeRolePolicyDocument, undefined, 2);
     this.template.Resources.Role = {
       Type: "AWS::IAM::Role",
       Properties: {
@@ -1082,7 +1082,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   async generateLambdaPackage(): Promise<{ S3Bucket: string; S3Key: string }> {
     const { AssetsBucket: S3Bucket, LambdaPackager, AssetsPrefix = "", KeepPackage = false } = this.resources;
     const { zipPath: ZipPath } = LambdaPackager;
-    let result: { S3Bucket: string; S3Key: string } = {
+    const result: { S3Bucket: string; S3Key: string } = {
       S3Bucket,
       S3Key: AssetsPrefix + path.basename(ZipPath)
     };
@@ -1116,14 +1116,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @returns
    */
   static async init(console) {
-    let packageDescr = console.app.getAppPath("package.json");
+    const packageDescr = console.app.getAppPath("package.json");
     if (!fs.existsSync(packageDescr)) {
       console.log("ERROR", "package.json not found");
       return -1;
     }
-    let pkg = JSONUtils.loadFile(packageDescr);
+    const pkg = JSONUtils.loadFile(packageDescr);
     pkg.webda = pkg.webda || {};
-    let sts = new STS({});
+    const sts = new STS({});
     let identity;
     try {
       identity = await sts.getCallerIdentity({});
@@ -1131,8 +1131,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       console.log("ERROR", "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup");
       return -1;
     }
-    let pkgName = (pkg.name || "").replace(/@/g, "").replace(/\//g, "-");
-    let StackName = `webda-${pkgName}-global`;
+    const pkgName = (pkg.name || "").replace(/@/g, "").replace(/\//g, "-");
+    const StackName = `webda-${pkgName}-global`;
     if (!pkg.webda.aws) {
       console.log(
         "INFO",
@@ -1145,7 +1145,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         AssetsBucket: `webda-${pkgName}-assets`,
         Repository: `webda-${pkgName}`
       };
-      let cloudformation = new CloudFormation({});
+      const cloudformation = new CloudFormation({});
       await cloudformation.createStack({
         StackName,
         TemplateBody: JSON.stringify({

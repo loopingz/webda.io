@@ -11,10 +11,12 @@
     "build": "webda build",
     "build:watch": "webda build --watch",
     "pretest": "npm run build",
-    "lint": "prettier --check src/**/*",
-    "lint:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "test": "c8 mocha",
-    "test:debug": "mocha --no-timeouts"
+    "test:debug": "mocha --no-timeouts",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",

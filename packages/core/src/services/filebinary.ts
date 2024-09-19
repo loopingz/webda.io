@@ -78,7 +78,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
     // Will redirect to this URL for direct download
     let url = this.parameters.url + "/download/data/{hash}{?token,content-disposition,content-type}";
-    let name = this.getOperationName();
+    const name = this.getOperationName();
     this.addRoute(url, ["GET"], this.downloadBinaryLink, {
       put: {
         operationId: `get${name}Binary`,
@@ -126,7 +126,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const { hash } = ctx.getParameters();
     // Verify token
     try {
-      let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
+      const dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
       if (dt.hash !== hash) {
         throw new WebdaError.Forbidden("Wrong hash");
       }
@@ -137,7 +137,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       "content-disposition": ctx.parameter("content-disposition"),
       "content-type": ctx.parameter("content-type")
     });
-    let map = await this.get({ hash } as BinaryMap);
+    const map = await this.get({ hash } as BinaryMap);
     // Fake a binary map for this case
     return new Promise<void>((resolve, reject) => {
       const stream = ctx.getStream();
@@ -150,7 +150,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @inheritdoc
    */
   async _get(info: BinaryMap): Promise<Readable> {
-    let path = this._getPath(info.hash, "data");
+    const path = this._getPath(info.hash, "data");
     if (!fs.existsSync(path)) {
       throw new BinaryNotFoundError(info.hash, this.getName());
     }
@@ -213,10 +213,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @returns
    */
   async getPutUrl(ctx: OperationContext<BinaryFile>) {
-    let body = await ctx.getInput();
+    const body = await ctx.getInput();
     // Get a full URL, this method should be in a Route Object
     // Add a JWT token for 60s
-    let token = await this.getToken(body.hash, "PUT");
+    const token = await this.getToken(body.hash, "PUT");
     if (ctx instanceof WebContext) {
       return ctx.getHttpContext().getAbsoluteUrl(this.parameters.url + "/upload/data/" + body.hash + `?token=${token}`);
     }
@@ -235,7 +235,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     context?: OperationContext<BinaryFile>
   ): Promise<{ url: string; method: string }> {
     info ??= await context.getInput();
-    let result = { url: await this.getPutUrl(context), method: "PUT" };
+    const result = { url: await this.getPutUrl(context), method: "PUT" };
     const marker = `${object.getStore().getName()}_${object.getUuid}_${attribute}`;
     if (fs.existsSync(this._getPath(info.hash, marker))) {
       if (!fs.existsSync(this._getPath(info.hash, "data"))) {
@@ -269,8 +269,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @ignore
    */
   async storeBinary(ctx: WebContext) {
-    let body = await ctx.getHttpContext().getRawBody(this.parameters.maxSize);
-    let result = await new MemoryBinaryFile(body, {
+    const body = await ctx.getHttpContext().getRawBody(this.parameters.maxSize);
+    const result = await new MemoryBinaryFile(body, {
       mimetype: (ctx.getHttpContext().getUniqueHeader("content-type") || "application/json").split(";")[0],
       name: "",
       size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length"))
@@ -281,7 +281,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
     // Verify token
     try {
-      let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
+      const dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
       if (dt.hash !== result.hash) {
         this.log("WARN", "JWT hash differ", ctx.parameter("hash"), "!==", result.hash);
         throw new WebdaError.Forbidden("JWT hash differ");
@@ -294,7 +294,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       // The folder should have been create by a previous request
       throw new WebdaError.PreconditionFailed("No folder for hash " + result.hash);
     }
-    let path = this._getPath(result.hash, "data");
+    const path = this._getPath(result.hash, "data");
     if (!fs.existsSync(path)) {
       // Save the data
       fs.writeFileSync(path, body);
@@ -307,11 +307,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @inheritdoc
    */
   async getUsageCount(hash: string) {
-    let path = this._getPath(hash);
+    const path = this._getPath(hash);
     if (!fs.existsSync(path)) {
       return 0;
     }
-    let files = fs.readdirSync(path);
+    const files = fs.readdirSync(path);
     return files.length - 2;
   }
 
@@ -325,7 +325,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
     try {
-      let files = fs.readdirSync(p);
+      const files = fs.readdirSync(p);
       files.forEach(file => fs.unlinkSync(join(p, file)));
       fs.rmdirSync(p);
     } catch (err) {}
@@ -338,7 +338,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
     uuid = uuid.startsWith("_") ? uuid : `_${uuid}`;
-    let files = fs.readdirSync(p);
+    const files = fs.readdirSync(p);
     files
       .filter(f => f.endsWith(attribute ? `_${attribute}${uuid}` : `${uuid}`))
       .forEach(f => fs.unlinkSync(this._getPath(hash, f)));
@@ -352,13 +352,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @inheritdoc
    */
   async delete(object: CoreModel, property: string, index?: number): Promise<void> {
-    let hash = (index !== undefined ? object[property][index] : object[property]).hash;
+    const hash = (index !== undefined ? object[property][index] : object[property]).hash;
     await this.deleteSuccess(<BinaryModel>object, property, index);
     await this._cleanUsage(hash, object.getUuid(), property);
   }
 
   challenge(hash, challenge) {
-    let path = this._getPath(hash);
+    const path = this._getPath(hash);
     return fs.existsSync(path) && fs.existsSync(`${path}/_${challenge}`);
   }
 

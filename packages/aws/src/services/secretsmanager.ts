@@ -95,7 +95,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * @returns JSON.parse of SecretString
    */
   async get(SecretId: string) {
-    let res = await this._client.getSecretValue({
+    const res = await this._client.getSecretValue({
       SecretId
     });
     return JSON.parse(res.SecretString);
@@ -105,7 +105,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * @inheritdoc
    */
   getARNPolicy(accountId) {
-    let region = this.parameters.region || "us-east-1";
+    const region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",

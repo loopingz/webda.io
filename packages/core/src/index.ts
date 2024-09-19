@@ -7,7 +7,8 @@ const CacheService = new MethodCacheService();
 
 export * from "./application";
 export * from "./core";
-export * from "./errors";
+import * as WebdaError from "./errors";
+export { WebdaError };
 export * from "./unpackedapplication";
 
 // Models

@@ -114,7 +114,7 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
     this.receiverPromise ??= new Promise<MessageReceipt<L>[]>((resolve, _) => {
       this.receiverResolve = resolve;
     });
-    let result = this.receiverPromise;
+    const result = this.receiverPromise;
     this.receiverPromise = undefined;
     if (this.subscription.listenerCount("message") === 0) {
       const msgHandler = (message: Message) => {

@@ -82,7 +82,7 @@ class FakeOperationContext extends OperationContext {
 class RegExpStringValidatorTest {
   @test
   async validate() {
-    let validator = new RegExpStringValidator(["test1", "regex:test[2-3]+", "regex:^itest[4-5]b$", "test[1-9]+"]);
+    const validator = new RegExpStringValidator(["test1", "regex:test[2-3]+", "regex:^itest[4-5]b$", "test[1-9]+"]);
 
     assert.ok(validator.validate("test1"));
     assert.ok(validator.validate("test[1-9]+"));
@@ -139,7 +139,7 @@ class ServiceTest extends WebdaInternalTest {
     await ctx.init();
     ctx.setInput(JSON.stringify({ output: "plop" }));
     assert.rejects(() => this.webda.callOperation(ctx, "MyOperation2"));
-    let service = await this.registerService(new FakeService(this.webda, "plop", { bean: "Authentication" }));
+    const service = await this.registerService(new FakeService(this.webda, "plop", { bean: "Authentication" }));
     service.initOperations();
     // @ts-ignore
     const schemaRegistry = this.webda.getApplication().baseConfiguration.cachedModules.schemas;
@@ -209,7 +209,7 @@ class ServiceTest extends WebdaInternalTest {
 
   @test
   async clean() {
-    let service = new FakeService(this.webda, "plop");
+    const service = new FakeService(this.webda, "plop");
     // @ts-ignore
     const origin = global.it;
     // @ts-ignore
@@ -222,8 +222,8 @@ class ServiceTest extends WebdaInternalTest {
 
   @test
   toPublicJSON() {
-    let service = new FakeService(this.webda, "plop", {});
-    let stub = sinon.stub(this.webda, "toPublicJSON").callsFake(() => "plop");
+    const service = new FakeService(this.webda, "plop", {});
+    const stub = sinon.stub(this.webda, "toPublicJSON").callsFake(() => "plop");
     try {
       assert.strictEqual(service.toPublicJSON({ l: "p" }), "plop");
     } finally {
@@ -233,20 +233,20 @@ class ServiceTest extends WebdaInternalTest {
 
   @test
   toStringMethod() {
-    let service = new FakeService(this.webda, "plop", { type: "FakeService" });
+    const service = new FakeService(this.webda, "plop", { type: "FakeService" });
     assert.strictEqual(service.toString(), "FakeService[plop]");
   }
 
   @test
   publicEvents() {
-    let service = new FakeService(this.webda, "plop", { type: "FakeService" });
+    const service = new FakeService(this.webda, "plop", { type: "FakeService" });
     assert.deepStrictEqual(service.getClientEvents(), []);
     assert.deepStrictEqual(service.authorizeClientEvent("plop", undefined), false);
   }
 
   @test
   getUrl() {
-    let service = new FakeService(this.webda, "plop", { type: "FakeService" });
+    const service = new FakeService(this.webda, "plop", { type: "FakeService" });
     assert.strictEqual(service.getUrl("/plop", ["GET"]), "/plop");
     assert.strictEqual(service.getUrl("./plop", ["GET"]), undefined);
     assert.strictEqual(service.getUrl("plop", ["GET"]), undefined);
@@ -264,8 +264,8 @@ class ServiceTest extends WebdaInternalTest {
    */
   @test
   async longListener() {
-    let service = new FakeService(this.webda, "plop", {});
-    let logs = [];
+    const service = new FakeService(this.webda, "plop", {});
+    const logs = [];
     Core.get().log = (...args) => {
       logs.push(args);
     };

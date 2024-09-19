@@ -101,7 +101,7 @@ class ApiKeyTest extends WebdaSimpleTest {
 
   @test
   async canAct() {
-    let key = new ApiKey();
+    const key = new ApiKey();
     key.uuid = "origins";
     await assert.rejects(() => key.checkAct(this.context, "get"), WebdaError.Forbidden);
     // By default key should be on a owner model

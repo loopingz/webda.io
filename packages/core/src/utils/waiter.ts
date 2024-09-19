@@ -109,7 +109,7 @@ export async function WaitFor<T = any>(
   }
   return new Promise<T>(async (mainResolve, mainReject) => {
     let tries: number = 0;
-    let uuid = randomUUID();
+    const uuid = randomUUID();
     if (logger) {
       logger.logProgressStart(uuid, retries, title);
     }
@@ -175,7 +175,7 @@ export class CancelableLoopPromise extends Promise<void> {
         shouldRun = false;
         Core.unregisterInteruptableProcess(this);
       };
-      let loop = () => {
+      const loop = () => {
         if (shouldRun) {
           return callback(localReject).then(loop);
         }

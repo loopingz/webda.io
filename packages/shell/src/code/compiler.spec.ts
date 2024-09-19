@@ -29,9 +29,9 @@ class CompilerTest {
         }
       }
     };
-    let app = new SourceApplication(WebdaSampleApplication.getAppPath(), undefined);
+    const app = new SourceApplication(WebdaSampleApplication.getAppPath(), undefined);
     await app.load();
-    let compiler = new Compiler(app);
+    const compiler = new Compiler(app);
     compiler.compile();
     Compiler.displayParents(node);
     assert.strictEqual(compiler.getParent(node, ts.SyntaxKind.AnyKeyword), node.parent);
@@ -69,9 +69,9 @@ class CompilerTest {
   async specificCases() {
     const app = new SourceApplication(path.join(__dirname, "..", "..", "..", "..", "test", "compiler"), undefined);
     await app.load();
-    let compiler = new Compiler(app);
+    const compiler = new Compiler(app);
     compiler.compile();
-    let mod = compiler.generateModule();
+    const mod = compiler.generateModule();
 
     // Goodbean should be use the SubDefinition
     assert.strictEqual(mod.schemas["Webda/GoodBean"].required.length, 3);
@@ -90,9 +90,9 @@ class CompilerTest {
   async SampleAppSchemas() {
     const app = new SourceApplication(path.join(__dirname, "..", "..", "..", "..", "sample-app"), undefined);
     await app.load();
-    let compiler = new Compiler(app);
+    const compiler = new Compiler(app);
     compiler.compile();
-    let mod = compiler.generateModule();
+    const mod = compiler.generateModule();
     assert.strictEqual(mod.schemas["WebdaDemo/Company"].properties.testNotEnumerable, undefined);
     assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.avatar, { type: "object", readOnly: true });
     assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.photos, {

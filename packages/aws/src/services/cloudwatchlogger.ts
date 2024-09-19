@@ -58,7 +58,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     }
     this._logStreamName = (this.parameters.logStreamNamePrefix || "") + randomUUID();
     this._cloudwatch = new CloudWatchLogs(this.parameters);
-    let res = await this._cloudwatch.describeLogGroups({
+    const res = await this._cloudwatch.describeLogGroups({
       logGroupNamePrefix: this._logGroupName
     });
     if (!res.logGroups.length) {
@@ -101,13 +101,13 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     } else {
       toSend = this._bufferedLogs;
     }
-    let params = {
+    const params = {
       logEvents: toSend,
       logGroupName: this._logGroupName,
       logStreamName: this._logStreamName,
       sequenceToken: this._seqToken
     };
-    let res = await this._cloudwatch.putLogEvents(params);
+    const res = await this._cloudwatch.putLogEvents(params);
     this._seqToken = res.nextSequenceToken;
     if (!copy) {
       this._bufferedLogs = [];
@@ -131,7 +131,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
    * @inheritdoc
    */
   getARNPolicy(accountId: string) {
-    let region = this.parameters.region || "us-east-1";
+    const region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",
@@ -150,7 +150,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     if (this.parameters.CloudFormationSkip) {
       return {};
     }
-    let resources = {};
+    const resources = {};
     this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     resources[this._name + "LogGroup"] = {
       Type: "AWS::Logs::LogGroup",

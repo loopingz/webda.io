@@ -44,8 +44,8 @@ const { machineIdSync } = pkg;
 
 export class EventEmitterUtils {
   static emit(eventEmitter: events.EventEmitter, event: string | number | symbol, data: any) {
-    for (let listener of eventEmitter.listeners(<string>event)) {
-      let start = Date.now();
+    for (const listener of eventEmitter.listeners(<string>event)) {
+      const start = Date.now();
       listener(data);
       this.elapse(start);
     }
@@ -53,10 +53,10 @@ export class EventEmitterUtils {
   }
 
   static async emitSync(eventEmitter: events.EventEmitter, event: string | number | symbol, data: any) {
-    let promises = [];
-    for (let listener of eventEmitter.listeners(<string>event)) {
-      let start = Date.now();
-      let result = listener(data);
+    const promises = [];
+    for (const listener of eventEmitter.listeners(<string>event)) {
+      const start = Date.now();
+      const result = listener(data);
       if (result instanceof Promise) {
         promises.push(
           result
@@ -79,7 +79,7 @@ export class EventEmitterUtils {
    * @param start
    */
   static elapse(start: number) {
-    let elapsed = Date.now() - start;
+    const elapsed = Date.now() - start;
     if (elapsed > 100) {
       Core.get().log("INFO", "Long listener", elapsed, "ms");
     }
@@ -192,7 +192,7 @@ export class OriginFilter implements RequestFilter<WebContext> {
    * @returns
    */
   async checkRequest(context: WebContext): Promise<boolean> {
-    let httpContext = context.getHttpContext();
+    const httpContext = context.getHttpContext();
     return this.regexs.validate(httpContext.hostname) || this.regexs.validate(httpContext.origin);
   }
 }
@@ -215,7 +215,7 @@ export class WebsiteOriginFilter implements RequestFilter<WebContext> {
   }
 
   async checkRequest(context: WebContext): Promise<boolean> {
-    let httpContext = context.getHttpContext();
+    const httpContext = context.getHttpContext();
     if (
       this.websites.indexOf(httpContext.origin) >= 0 ||
       this.websites.indexOf(httpContext.host) >= 0 ||
@@ -229,7 +229,7 @@ export class WebsiteOriginFilter implements RequestFilter<WebContext> {
 
 // @Bean to declare as a Singleton service
 export function Bean(constructor: Function) {
-  let name = constructor.name;
+  const name = constructor.name;
   // @ts-ignore
   process.webdaBeans ??= {};
   // @ts-ignore
@@ -534,7 +534,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   static get(): Core {
     // @ts-ignore
-    let singleton: Core = process.webda;
+    const singleton: Core = process.webda;
     if (
       Core.singleton !== singleton &&
       !singleton._dualImportWarn &&
@@ -584,8 +584,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     const stores = this.getStores();
     let actualScore: number;
     let actualStore: Store = this.getService(this.parameter("defaultStore") || "Registry");
-    for (let store in stores) {
-      let score = stores[store].handleModel(model);
+    for (const store in stores) {
+      const score = stores[store].handleModel(model);
       // As 0 mean exact match we stop there
       if (score === 0) {
         setCache(stores[store]);
@@ -613,8 +613,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     const setCache = store => {
       this._modelBinariesCache.set(model, store);
     };
-    for (let binary in binaries) {
-      let score = binaries[binary].handleBinary(model, attribute);
+    for (const binary in binaries) {
+      const score = binaries[binary].handleBinary(model, attribute);
       // As 0 mean exact match we stop there
       if (score === 2) {
         setCache(binaries[binary]);
@@ -726,7 +726,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         this.log("INFO", `Using ConfigurationService '${this.configuration.parameters.configurationService}'`);
         // Create the configuration service
         this.createService(this.configuration.services, this.configuration.parameters.configurationService);
-        let cfg = await this.getService<ConfigurationService>(
+        const cfg = await this.getService<ConfigurationService>(
           this.configuration.parameters.configurationService
         ).initConfiguration();
         if (cfg) {
@@ -745,7 +745,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
               };
             });
           // Merge services - for security reason we cannot add new services from configuration
-          for (let i in this.configuration.services) {
+          for (const i in this.configuration.services) {
             this.configuration.services[i] = {
               ...deepmerge(this.configuration.services[i], cfg.services[i] || {}),
               type: this.configuration.services[i].type
@@ -772,7 +772,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
       // Init services
       let service;
-      let inits = [];
+      const inits = [];
       for (service in this.services) {
         if (
           this.services[service].init !== undefined &&
@@ -831,7 +831,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     try {
       if (this.operations[operationId].input) {
-        let input = await context.getInput();
+        const input = await context.getInput();
         if (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true) {
           throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
         }
@@ -1008,8 +1008,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   getLogger(clazz: string | Service) {
     let className = clazz;
     if (typeof clazz !== "string") {
-      let definitions = this.application.getModdas();
-      for (let i in definitions) {
+      const definitions = this.application.getModdas();
+      for (const i in definitions) {
         if (definitions[i] === clazz.constructor) {
           className = i.replace(/\//g, ".");
           break;
@@ -1068,9 +1068,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @returns {{}}
    */
   getServicesOfType<T extends Service>(type: Constructor<T, [Core, string, any]> = undefined): { [key: string]: T } {
-    let result = {};
-    for (let i in this.services) {
-      let service = this.services[i];
+    const result = {};
+    for (const i in this.services) {
+      const service = this.services[i];
       if (!type || service instanceof type) {
         result[i] = service;
       }
@@ -1111,9 +1111,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Add to context information and executor based on the http context
    */
   public updateContextWithRoute(ctx: WebContext): boolean {
-    let http = ctx.getHttpContext();
+    const http = ctx.getHttpContext();
     // Check mapping
-    let route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
+    const route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
     if (route === undefined) {
       return false;
     }
@@ -1178,7 +1178,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   protected async reinitService(service: string): Promise<void> {
     try {
       this.log("TRACE", "Re-Initializing service", service);
-      let serviceBean = this.services[service];
+      const serviceBean = this.services[service];
       await serviceBean.reinit(this.getServiceParams(serviceBean.getName()));
     } catch (err) {
       this.log("ERROR", "Re-Init service " + service + " failed", err);
@@ -1192,8 +1192,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @returns
    */
   public async reinit(updates: any): Promise<void> {
-    let configuration = JSON.parse(JSON.stringify(this.configuration.services));
-    for (let service in updates) {
+    const configuration = JSON.parse(JSON.stringify(this.configuration.services));
+    for (const service in updates) {
       jsonpath.value(configuration, service, updates[service]);
     }
     if (JSON.stringify(Object.keys(configuration)) !== JSON.stringify(Object.keys(this.configuration.services))) {
@@ -1204,8 +1204,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       );
     }
     this.configuration.services = configuration;
-    let inits: Promise<void>[] = [];
-    for (let service in this.services) {
+    const inits: Promise<void>[] = [];
+    for (const service in this.services) {
       inits.push(this.reinitService(service));
     }
     await Promise.all(inits);
@@ -1281,8 +1281,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       }
     }
     this.log("DEBUG", "BEANS", beans, "IGNORING", this.configuration.parameters.ignoreBeans);
-    for (let i in beans) {
-      let name = beans[i].name;
+    for (const i in beans) {
+      const name = beans[i].name;
       if (!services[name]) {
         services[name] = {};
       }
@@ -1293,7 +1293,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
 
     // Construct services
-    for (let service in services) {
+    for (const service in services) {
       if (excludes.indexOf(service) >= 0) {
         continue;
       }
@@ -1391,7 +1391,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     };
 
     if (this.configuration.services !== undefined) {
-      let excludes = ["Registry", "CryptoService"];
+      const excludes = ["Registry", "CryptoService"];
       if (this.configuration.parameters.configurationService) {
         excludes.push(this.configuration.parameters.configurationService);
       }
@@ -1457,11 +1457,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Plan to implement base64 and maybe base85
    */
   public getUuid(format: "ascii" | "base64" | "hex" | "binary" | "uuid" = "uuid"): string {
-    let uid = randomUUID();
+    const uid = randomUUID();
     if (format === "uuid") {
       return uid;
     }
-    let buffer = Buffer.from(uid.replace(/-/g, ""), "hex");
+    const buffer = Buffer.from(uid.replace(/-/g, ""), "hex");
     if (format === "base64") {
       // Remove useless = we won't transfer back to original value or could just add ==
       // https://datatracker.ietf.org/doc/html/rfc4648#page-7
@@ -1482,9 +1482,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   public emitSync<K extends keyof E>(eventType: K | symbol, event?: E[K], ...data: any[]): Promise<any[]> {
     let result;
-    let promises = [];
-    let listeners = this.listeners(<string>eventType);
-    for (let listener of listeners) {
+    const promises = [];
+    const listeners = this.listeners(<string>eventType);
+    for (const listener of listeners) {
       result = listener(event, ...data);
       if (result instanceof Promise) {
         promises.push(result);
@@ -1549,7 +1549,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @returns
    */
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
-    let packageInfo = this.application.getPackageDescription();
+    const packageInfo = this.application.getPackageDescription();
     let contact: OpenAPIV3.ContactObject;
     if (typeof packageInfo.author === "string") {
       contact = {
@@ -1566,7 +1566,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     } else if (packageInfo.license) {
       license = packageInfo.license;
     }
-    let openapi: OpenAPIV3.Document = deepmerge(
+    const openapi: OpenAPIV3.Document = deepmerge(
       {
         openapi: "3.0.3",
         info: {
@@ -1589,10 +1589,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       },
       this.application.getConfiguration().openapi || {}
     );
-    let models = this.application.getModels();
+    const models = this.application.getModels();
     const schemas = this.application.getSchemas();
     // Copy all input/output from actions
-    for (let i in schemas) {
+    for (const i in schemas) {
       if (!(i.endsWith(".input") || i.endsWith(".output"))) {
         continue;
       }
@@ -1600,20 +1600,20 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       openapi.components.schemas[i] ??= schemas[i];
       // Not sure how to test following
       /* c8 ignore next 5 */
-      for (let j in schemas[i].definitions) {
+      for (const j in schemas[i].definitions) {
         // @ts-ignore
         openapi.components.schemas[j] ??= schemas[i].definitions[j];
       }
     }
-    for (let i in models) {
-      let model = models[i];
+    for (const i in models) {
+      const model = models[i];
       let desc: JSONSchema7 = {
         type: "object"
       };
-      let modelName = model.name || i.split("/").pop();
-      let schema = this.application.getSchema(i);
+      const modelName = model.name || i.split("/").pop();
+      const schema = this.application.getSchema(i);
       if (schema) {
-        for (let j in schema.definitions) {
+        for (const j in schema.definitions) {
           // @ts-ignore
           openapi.components.schemas[j] ??= schema.definitions[j];
         }
@@ -1635,7 +1635,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     this.router.completeOpenAPI(openapi, skipHidden);
     openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-    let paths = {};
+    const paths = {};
     Object.keys(openapi.paths)
       .sort()
       .forEach(i => (paths[i] = openapi.paths[i]));

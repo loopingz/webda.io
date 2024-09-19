@@ -47,7 +47,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @inheritdoc
    */
   async delete(object: BinaryModel, property: string, index: number) {
-    let hash = object[property][index].hash;
+    const hash = object[property][index].hash;
     await this.deleteSuccess(object, property, index);
     await this._cleanUsage(hash, object.getUuid(), property);
   }

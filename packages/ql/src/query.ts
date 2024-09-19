@@ -178,6 +178,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    */
   getComparison(ctx: AndLogicExpressionContext | OrLogicExpressionContext): any[] {
     const res = [];
+    // eslint-disable-next-line prefer-const
     let [left, _, right] = ctx.children;
     if (right instanceof SubExpressionContext) {
       right = right.getChild(1);
@@ -231,7 +232,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    */
   visitLikeExpression(ctx: LikeExpressionContext) {
     const [left, _, right] = ctx.children;
-    let value = <any[]>(<unknown>this.visit(right));
+    const value = <any[]>(<unknown>this.visit(right));
     return new ComparisonExpression("LIKE", left.text, value);
   }
 
@@ -240,7 +241,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    */
   visitInExpression(ctx: InExpressionContext) {
     const [left, _, right] = ctx.children;
-    let value = <any[]>(<unknown>this.visit(right));
+    const value = <any[]>(<unknown>this.visit(right));
     return new ComparisonExpression("IN", left.text, value);
   }
 
@@ -249,7 +250,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
    */
   visitContainsExpression(ctx: ContainsExpressionContext) {
     const [left, _, right] = ctx.children;
-    let value = <any[]>(<unknown>this.visit(right));
+    const value = <any[]>(<unknown>this.visit(right));
     return new ComparisonExpression("CONTAINS", left.text, value);
   }
 
@@ -531,7 +532,7 @@ export class AndExpression extends LogicalExpression<"AND"> {
    * @override
    */
   eval(target: any): boolean {
-    for (let child of this.children) {
+    for (const child of this.children) {
       if (!child.eval(target)) {
         return false;
       }
@@ -555,7 +556,7 @@ export class OrExpression extends LogicalExpression<"OR"> {
    * @override
    */
   eval(target: any): boolean {
-    for (let child of this.children) {
+    for (const child of this.children) {
       if (child.eval(target)) {
         return true;
       }
@@ -578,8 +579,8 @@ export class QueryValidator {
     builder: ExpressionBuilder = new ExpressionBuilder()
   ) {
     this.lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
-    let tokenStream = new CommonTokenStream(this.lexer);
-    let parser = new WebdaQLParserParser(tokenStream);
+    const tokenStream = new CommonTokenStream(this.lexer);
+    const parser = new WebdaQLParserParser(tokenStream);
     parser.removeErrorListeners();
     parser.addErrorListener({
       syntaxError: (
@@ -777,7 +778,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
    */
   visitLikeExpression(ctx: any) {
     const [left, _, right] = ctx.children;
-    let value = <any[]>(<unknown>this.visit(right));
+    const value = <any[]>(<unknown>this.visit(right));
     return new PartialComparisonExpression(this, "LIKE", left.text, value);
   }
 
@@ -795,7 +796,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
    */
   visitInExpression(ctx: any) {
     const [left, _, right] = ctx.children;
-    let value = <any[]>(<unknown>this.visit(right));
+    const value = <any[]>(<unknown>this.visit(right));
     return new PartialComparisonExpression(this, "IN", left.text, value);
   }
 
@@ -804,7 +805,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
    */
   visitContainsExpression(ctx: any) {
     const [left, _, right] = ctx.children;
-    let value = <any[]>(<unknown>this.visit(right));
+    const value = <any[]>(<unknown>this.visit(right));
     return new PartialComparisonExpression(this, "CONTAINS", left.text, value);
   }
 }

@@ -13,8 +13,8 @@ import { CryptoService, SecretString } from "./cryptoservice";
 class CryptoServiceTest extends WebdaInternalTest {
   @test
   async hmac() {
-    let hmac = await this.webda.getCrypto().hmac({ test: "plop" });
-    let hmacString = await this.webda.getCrypto().hmac(JSONUtils.stringify({ test: "plop" }));
+    const hmac = await this.webda.getCrypto().hmac({ test: "plop" });
+    const hmacString = await this.webda.getCrypto().hmac(JSONUtils.stringify({ test: "plop" }));
     assert.strictEqual(hmac, hmacString);
     await this.webda.getCrypto().hmacVerify({ test: "plop" }, hmac);
     await this.webda.getCrypto().hmacVerify(JSONUtils.stringify({ test: "plop" }), hmac);
@@ -22,20 +22,20 @@ class CryptoServiceTest extends WebdaInternalTest {
 
   @test
   async encryption() {
-    let encrypted = await this.webda.getCrypto().encrypt({ test: "plop" });
-    let decrypted = await this.webda.getCrypto().decrypt(encrypted);
+    const encrypted = await this.webda.getCrypto().encrypt({ test: "plop" });
+    const decrypted = await this.webda.getCrypto().decrypt(encrypted);
     assert.strictEqual(decrypted.test, "plop");
   }
 
   @test
   async rotate() {
     const crypto = this.webda.getCrypto();
-    let encrypted = await crypto.encrypt({ test: "plop" });
-    let oldKey = crypto.current;
-    let hmac = await crypto.hmac({ test: "plop" });
+    const encrypted = await crypto.encrypt({ test: "plop" });
+    const oldKey = crypto.current;
+    const hmac = await crypto.hmac({ test: "plop" });
     sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
     await crypto.rotate();
-    let decrypted = await crypto.decrypt(encrypted);
+    const decrypted = await crypto.decrypt(encrypted);
     assert.strictEqual(decrypted.test, "plop");
     await crypto.hmacVerify({ test: "plop" }, hmac);
     assert.strictEqual(await crypto.hmac({ test: "plop" }, oldKey), hmac);
@@ -53,7 +53,7 @@ class CryptoServiceTest extends WebdaInternalTest {
    */
   nextIdStub(crypto: CryptoService) {
     return () => {
-      let age = parseInt(crypto.current, 36) + 10;
+      const age = parseInt(crypto.current, 36) + 10;
       return {
         id: age.toString(36),
         age
@@ -66,7 +66,7 @@ class CryptoServiceTest extends WebdaInternalTest {
     const crypto = this.webda.getCrypto();
     crypto.getParameters().url = "/jwk";
     await crypto.resolve().init();
-    let ctx = await this.newContext();
+    const ctx = await this.newContext();
     await this.execute(ctx, "test.webda.io", "GET", "/jwk");
     let body = JSON.parse(<string>ctx.getResponseBody());
     sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
@@ -89,10 +89,10 @@ class CryptoServiceTest extends WebdaInternalTest {
 
     assert.ok(!(await crypto.hmacVerify("mydata", "md.ss")));
 
-    let oldKey = crypto.current;
+    const oldKey = crypto.current;
     sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
     await crypto.rotate();
-    let encrypted = await this.webda.getCrypto().encrypt({ test: "plop" });
+    const encrypted = await this.webda.getCrypto().encrypt({ test: "plop" });
     delete crypto.keys[crypto.current];
     crypto.current = oldKey;
     crypto.age = parseInt(oldKey, 36); // It should be reloaded
@@ -137,7 +137,7 @@ class CryptoConfigurationTest {
         return data;
       }
     });
-    let data = {
+    const data = {
       key: {
         secret: "encrypt:local:plop",
         port: 21
@@ -152,7 +152,7 @@ class CryptoConfigurationTest {
     assert.ok(data.anotherSecret.startsWith("crypt:local:"));
     assert.ok(!data.anotherSecret.includes("plop"));
     assert.strictEqual(data.alreadyEncrypted, "crypt:test:plop3");
-    let decrypted = await CryptoService.decryptConfiguration(JSONUtils.duplicate(data));
+    const decrypted = await CryptoService.decryptConfiguration(JSONUtils.duplicate(data));
     assert.strictEqual(decrypted.anotherSecret.getValue(), "plop2");
     assert.strictEqual(decrypted.anotherSecret.toString(), "********");
     assert.strictEqual(SecretString.from(decrypted.alreadyEncrypted), "plop3");

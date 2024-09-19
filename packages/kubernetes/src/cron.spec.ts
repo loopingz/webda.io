@@ -7,7 +7,7 @@ import { CronReplace } from "./cron";
 class CronTest extends WebdaTest {
   @test
   basic() {
-    let text = `{
+    const text = `{
       "value": ["a", "\${cron.argsArray}"],
       "value2": ["a", "\${...cron.args}"],
       "cmdline": "echo 'a' '\${cron.argsLine}'"

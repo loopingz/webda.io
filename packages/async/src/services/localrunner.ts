@@ -61,7 +61,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
    * @inheritdoc
    */
   async launchAction(action: AsyncAction, info: JobInfo): Promise<ProcessAction> {
-    let envs: { [key: string]: string } = {
+    const envs: { [key: string]: string } = {
       ...this.parameters.options?.env,
       ...info
     };

@@ -38,7 +38,7 @@ class RolePolicyTest {
   _user: SimpleUser;
 
   async before() {
-    let app = new TestApplication({
+    const app = new TestApplication({
       parameters: {
         ignoreBeans: true
       }

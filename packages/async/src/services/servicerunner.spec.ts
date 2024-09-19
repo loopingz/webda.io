@@ -30,7 +30,7 @@ class ServiceRunnerTest extends WebdaTest {
   async operationAction() {
     this.registerService(new FakeRunner(this.webda, "calledRunner"));
     this.webda.initStatics();
-    let runner = new ServiceRunner(this.webda, "runner", { actions: ["plop"] });
+    const runner = new ServiceRunner(this.webda, "runner", { actions: ["plop"] });
     const ctx = new OperationContext(this.webda);
     const action = new AsyncOperationAction("calledRunner.testOp", ctx);
     await this.getService<Store<AsyncAction>>("AsyncJobs").save(action);
@@ -45,7 +45,7 @@ class ServiceRunnerTest extends WebdaTest {
   @test
   async cov() {
     this.registerService(new FakeRunner(this.webda, "calledRunner"));
-    let runner = new ServiceRunner(this.webda, "runner", { actions: ["plop"] });
+    const runner = new ServiceRunner(this.webda, "runner", { actions: ["plop"] });
     const action = new AsyncWebdaAction();
     action.serviceName = "calledRunner";
     action.method = "test";

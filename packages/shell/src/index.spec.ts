@@ -31,11 +31,11 @@ export class SourceTestApplication extends SourceApplication {
   loadWebdaModule(moduleFile: string): CachedModule {
     // Test are using ts-node so local source should be loaded from .ts with ts-node aswell
     if (process.cwd() === path.dirname(moduleFile)) {
-      let module = FileUtils.load(moduleFile);
+      const module = FileUtils.load(moduleFile);
       Object.keys(SectionEnum)
         .filter(k => Number.isNaN(+k))
         .forEach(p => {
-          for (let key in module[SectionEnum[p]]) {
+          for (const key in module[SectionEnum[p]]) {
             module[SectionEnum[p]][key] = path.join(
               path.relative(this.getAppPath(), path.dirname(moduleFile)),
               module[SectionEnum[p]][key].replace(/^lib\//, "src/")

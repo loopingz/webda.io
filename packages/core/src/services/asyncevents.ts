@@ -68,7 +68,7 @@ export class AsyncEvent {
    * @returns
    */
   static fromQueue(data: any, service: Service) {
-    let evt = new AsyncEvent(
+    const evt = new AsyncEvent(
       data.service,
       data.type,
       JSON.parse(data.payload, (_key: string, value: any) => {
@@ -190,7 +190,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
     if (!queue) {
       queue = this._defaultQueue;
     }
-    let mapper = new AsyncEvent(service, event).getMapper();
+    const mapper = new AsyncEvent(service, event).getMapper();
     if (!this._callbacks[mapper]) {
       if (service instanceof Service) {
         service.on(event, data => this.pushEvent(service, event, queue, data));
@@ -212,7 +212,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @returns
    */
   async pushEvent(service: Service | CoreModelDefinition, type: string, queue: string, payload: any) {
-    let event = new AsyncEvent(service, type, payload);
+    const event = new AsyncEvent(service, type, payload);
     if (this._async) {
       return this._queues[queue].sendMessage(event);
     } else {
@@ -232,7 +232,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
         "Callbacks should not be empty, possible application version mismatch between emitter and worker"
       );
     }
-    let promises = [];
+    const promises = [];
     this._callbacks[event.getMapper()].map(executor => {
       promises.push(executor(event.payload, event));
     });

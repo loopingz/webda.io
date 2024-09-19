@@ -7,8 +7,8 @@ import { VersionService } from "./version";
 class VersionTest extends WebdaSimpleTest {
   @test
   async normal() {
-    let ctx = await this.newContext();
-    let service = await this.registerService(new VersionService(this.webda, "test", {}))
+    const ctx = await this.newContext();
+    const service = await this.registerService(new VersionService(this.webda, "test", {}))
       .resolve()
       .init();
     await service.version(ctx);

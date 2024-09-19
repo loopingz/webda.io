@@ -588,7 +588,7 @@ export class Application {
     await this.loadModule(this.baseConfiguration.cachedModules);
     // Flat the model tree
     const addParent = (parent: string, tree: ModelGraph) => {
-      for (let key in tree) {
+      for (const key in tree) {
         this.flatHierarchy[key] = parent;
         addParent(key, tree[key]);
       }
@@ -628,15 +628,15 @@ export class Application {
    * @param proto Prototype to send
    */
   getFullNameFromPrototype(proto): string {
-    for (let section in SectionEnum) {
-      for (let i in this[SectionEnum[section]]) {
+    for (const section in SectionEnum) {
+      for (const i in this[SectionEnum[section]]) {
         if (this[SectionEnum[section]][i] && this[SectionEnum[section]][i].prototype === proto) {
           return i;
         }
       }
     }
     // Manage CoreModel too
-    for (let i in this.models) {
+    for (const i in this.models) {
       if (this.models[i].prototype === proto) {
         return i;
       }
@@ -786,7 +786,7 @@ export class Application {
     if (this.plurals[name]) {
       return this.plurals[name];
     }
-    let value = name.split("/").pop();
+    const value = name.split("/").pop();
     return value.endsWith("s") ? value : value + "s";
   }
 
@@ -881,7 +881,7 @@ export class Application {
    */
   getRootExposedModels(): string[] {
     const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Expose));
-    for (let model in this.models) {
+    for (const model in this.models) {
       if (this.models[model].Expose?.root) {
         results.add(model);
       }
@@ -936,7 +936,7 @@ export class Application {
       return { ancestors: [], children: this.baseConfiguration?.cachedModules?.models?.tree };
     }
 
-    let ancestors: string[] = [];
+    const ancestors: string[] = [];
     let modelInfo = model;
     while ((this.flatHierarchy[modelInfo] || "Webda/CoreModel") !== "Webda/CoreModel") {
       modelInfo = this.flatHierarchy[modelInfo];
@@ -1057,8 +1057,8 @@ export class Application {
         scan = scan.substring(scan.indexOf("}", index));
         continue;
       }
-      let next = scan.indexOf("}", index);
-      let variable = scan.substring(index + 2, next);
+      const next = scan.indexOf("}", index);
+      const variable = scan.substring(index + 2, next);
       scan = scan.substring(next);
       if (variable.match(/[|&;<>\\{]/)) {
         throw new Error(`Variable cannot use every javascript features found ${variable}`);
@@ -1116,8 +1116,10 @@ export class Application {
     if (typeof object === "string") {
       return this.stringParameter(object, replacements);
     }
-    let app = this;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const app = this;
     return JSON.parse(
+      // eslint-disable-next-line func-names
       JSON.stringify(object, function (key: string, value: any) {
         if (typeof this[key] === "string") {
           return app.stringParameter(value, replacements);
@@ -1178,6 +1180,7 @@ export class Application {
     }
     try {
       this.log("TRACE", "Load file", info);
+      // eslint-disable-next-line prefer-const
       let [importFilename, importName = "default"] = info.split(":");
       if (!importFilename.endsWith(".js")) {
         importFilename += ".js";
@@ -1200,7 +1203,7 @@ export class Application {
    * Load local module
    */
   async loadLocalModule() {
-    let moduleFile = path.join(process.cwd(), "webda.module.json");
+    const moduleFile = path.join(process.cwd(), "webda.module.json");
     if (fs.existsSync(moduleFile)) {
       await this.loadModule(FileUtils.load(moduleFile), process.cwd());
     }
@@ -1215,7 +1218,7 @@ export class Application {
   async loadModule(module: Module, parent: string = this.appPath) {
     const info: Omit<CachedModule, "project"> = { beans: {}, ...module };
     const sectionLoader = async (section: Section) => {
-      for (let key in info[section]) {
+      for (const key in info[section]) {
         this[section][key] ??= await this.importFile(path.join(parent, info[section][key]));
       }
     };
@@ -1230,10 +1233,10 @@ export class Application {
       // Load models
       (async () => {
         // Copy plurals
-        for (let key in info.models.plurals || {}) {
+        for (const key in info.models.plurals || {}) {
           this.plurals[key] = info.models.plurals[key];
         }
-        for (let key in info.models.list) {
+        for (const key in info.models.list) {
           this.addModel(key, await this.importFile(path.join(parent, info.models.list[key])), false);
         }
       })(),

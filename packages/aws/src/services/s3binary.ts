@@ -392,7 +392,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         Bucket: this.parameters.bucket,
         Key: this._getKey(file.hash),
         Metadata: s3metas,
-        Body: await file.get()
+        Body: await file.get(),
+        ContentLength: file.size
       });
     }
     // Set challenge aside for now

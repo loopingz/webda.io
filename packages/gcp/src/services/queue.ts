@@ -25,7 +25,12 @@ export class GCPQueueParameters extends QueueParameters {
    * If receiver, the usage is to call receiveMessage and deleteMessage manually
    * If consumer, the usage is to call consume, the normal flow is used in parallel
    */
-  mode: "consumer" | "receiver" = "consumer";
+  mode: "consumer" | "receiver";
+
+  constructor(params: DeepPartial<GCPQueueParameters>) {
+    super(params);
+    this.mode ??= "consumer";
+  }
 }
 
 /**

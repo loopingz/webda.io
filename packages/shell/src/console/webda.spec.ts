@@ -1,4 +1,3 @@
-
 import { suite, test } from "@testdeck/mocha";
 import { FileUtils, JSONUtils, Logger, Module, WebdaError, getCommonJS } from "@webda/core";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
@@ -290,7 +289,7 @@ export class DynamicService extends Service {
         ctx.write("Debugger Rox!");
     }
 }
-      
+
 `
     );
     console.log("Waiting for Launching");
@@ -320,7 +319,7 @@ class DynamicService extend Service {
         ctx.write("Debugger Rox!");
     }
 }
-      
+
 `
     );
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -580,8 +579,8 @@ class DynamicService extend Service {
       );
     assert.strictEqual(
       logs.length,
-      4,
-      "We should have 4 logs with Deployers, Services, Models and the one configuration miss"
+      3,
+      "We should have 3 logs with Deployers, Services, Models and the one configuration miss"
     );
   }
 

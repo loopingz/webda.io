@@ -70,10 +70,10 @@ class CronService extends Service {
   crontabSchedule = schedule;
   private _scanned: boolean = false;
 
-  static Annotation(cron: string, description: string = "", ...args) {
-    return (_target: any, property: string, descriptor: PropertyDescriptor) => {
+  static Annotation(cron: string, description: string = "", ...args): MethodDecorator {
+    return (_target: any, property: string | symbol, descriptor: PropertyDescriptor) => {
       descriptor.value.cron = descriptor.value.cron || [];
-      descriptor.value.cron.push(new CronDefinition(cron, args, "", property, description));
+      descriptor.value.cron.push(new CronDefinition(cron, args, "", <string>property, description));
     };
   }
 

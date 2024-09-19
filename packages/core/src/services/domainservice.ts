@@ -576,7 +576,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
           returnUrl: true
         },
         method: "binaryGet",
-        parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
+        parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest"
       });
     });
   }
@@ -651,6 +651,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     await object.checkAct(context, "get_binary");
     const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
     const url = await binaryStore.getRedirectUrlFromObject(file, context);
+    console.log("URL", url);
     // No url, we return the file
     if (url === null) {
       if (returnUrl) {
@@ -678,6 +679,10 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       }
     } else if (returnUrl) {
       context.write({ Location: url, Map: file });
+    } else {
+      context.writeHead(302, {
+        Location: url
+      });
     }
   }
 

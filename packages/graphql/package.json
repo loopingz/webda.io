@@ -7,7 +7,7 @@
   "scripts": {
     "build": "webda build",
     "pretest": "npm run build",
-    "test": "c8 mocha -r ../../node_modules/ts-node/register",
+    "test": "c8 mocha",
     "test:debug": "mocha",
     "new-model": "webda init webda:model",
     "new-service": "webda init webda:service",
@@ -43,9 +43,7 @@
     "js-beautify": "^1.14.7",
     "mocha": "^10.2.0",
     "prettier": "^3.0.0",
-    "source-map-support": "^0.5.21",
-    "typescript": "^5.0.2",
-    "tsx": "^4.17.0"
+    "source-map-support": "^0.5.21"
   },
   "c8": {
     "extends": "@istanbuljs/nyc-config-typescript",

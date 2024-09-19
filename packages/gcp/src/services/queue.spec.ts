@@ -26,9 +26,12 @@ class GCPQueueTest extends QueueTest {
 
   @test
   async basic() {
-    const queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
-    queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
-    queue.getParameters().mode = "receiver";
+    const queue: GCPQueue = await this.addService(GCPQueue, {
+      subscription: `queue_${this.webda.getUuid()}`,
+      mode: "receiver",
+      topic: "unit-tests",
+      timeout: 30000
+    });
     await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
       ackDeadlineSeconds: 10,
       enableExactlyOnceDelivery: true
@@ -51,8 +54,12 @@ class GCPQueueTest extends QueueTest {
 
   @test
   async consumers() {
-    const queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
-    queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
+    const queue: GCPQueue = await this.addService(GCPQueue, {
+      subscription: `queue_${this.webda.getUuid()}`,
+      mode: "receiver",
+      topic: "unit-tests",
+      timeout: 30000
+    });
     await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
       ackDeadlineSeconds: 10,
       enableMessageOrdering: true
@@ -87,7 +94,12 @@ class GCPQueueTest extends QueueTest {
 
   @test
   async receiveError() {
-    const queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
+    const queue: GCPQueue = await this.addService(GCPQueue, {
+      subscription: `queue_${this.webda.getUuid()}`,
+      mode: "consumer",
+      topic: "unit-tests",
+      timeout: 30000
+    });
     await assert.rejects(() => queue.receiveMessage(), /You can only use receiveMessage in 'receiver' mode/);
   }
 }

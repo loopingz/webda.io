@@ -89,7 +89,7 @@ class ServiceRunnerTest extends WebdaTest {
     );
 
     const opAction = new AsyncOperationAction(
-      "calledRunner.operation",
+      "CalledRunner.Operation",
       new SimpleOperationContext(this.webda).setInput(Buffer.from("{}"))
     );
     this.webda.initStatics();

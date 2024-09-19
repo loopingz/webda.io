@@ -15,6 +15,11 @@ docker run -d --name webda-postgres -v `pwd`/packages/postgres/test/sql:/docker-
 echo "Launching GCP emulators"
 gcloud beta emulators firestore start --host-port=localhost:19090
 gcloud beta emulators pubsub start --host-port=localhost:19091
+docker run -d --name fake-gcs-server -p 4443:4443 fsouza/fake-gcs-server -scheme http
+export PUBSUB_EMULATOR_HOST=127.0.0.1:19091
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:19090
+export GCS_API_ENDPOINT=http://127.0.0.1:4443
+export GOOGLE_APPLICATION_CREDENTIALS=`pwd`/packages/gcp/webda-test.json
 
 echo "Launching RabbitMQ"
 docker run -d -p 5672:5672 --name webda-amqp rabbitmq:3

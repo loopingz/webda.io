@@ -1,6 +1,6 @@
 import { Storage as GCS } from "@google-cloud/storage";
 import { suite, test } from "@testdeck/mocha";
-import { BinaryService, FileUtils, getCommonJS } from "@webda/core";
+import { BinaryService, getCommonJS, RESTDomainService } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import * as assert from "assert";
 import * as path from "path";
@@ -15,20 +15,17 @@ class StorageTest extends BinaryTest<Storage> {
   apiEndpoint: string;
   async before() {
     this.apiEndpoint = process.env["GCS_API_ENDPOINT"] || "";
-    this.buildWebda();
+    await this.buildWebda();
     await this.install();
     await super.before();
-    this.prefix = this.binary.getWebda().getUuid();
-    this.binary.getParameters().prefix = this.prefix;
-    this.binary.getParameters().endpoint = this.apiEndpoint;
   }
 
   getBinary(): Promise<Storage<StorageParameters>> {
+    this.prefix = this.webda.getUuid();
     return this.addService(Storage, {
       bucket: "webda-dev",
-      map: {
-        Users: ["images"]
-      }
+      endpoint: this.apiEndpoint,
+      prefix: this.prefix
     });
   }
 
@@ -46,6 +43,8 @@ class StorageTest extends BinaryTest<Storage> {
           location: "US-WEST2",
           storageClass: "COLDLINE"
         });
+      } else {
+        await this.cleanData();
       }
     } catch (e: any) {
       console.log("ERROR", `Google Cloud Storage error (${e.message})`);
@@ -95,8 +94,15 @@ class StorageTest extends BinaryTest<Storage> {
   @test
   async redirectUrl() {
     const { user1, ctx } = await this.setupDefault();
+    await this.addService(RESTDomainService, {});
     // Making sure we are redirected on GET
-    const executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
+    const executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      `${this.webda.getRouter().getModelUrl(user1)}/${user1.getUuid()}/images/0`,
+      {}
+    );
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location !== undefined);
   }
@@ -104,8 +110,15 @@ class StorageTest extends BinaryTest<Storage> {
   @test
   async redirectUrlInfo() {
     const { user1, ctx } = await this.setupDefault();
+    await this.addService(RESTDomainService, {});
     // Making sure we are redirected on GET
-    const executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
+    const executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      `${this.webda.getRouter().getModelUrl(user1)}/${user1.getUuid()}/images/0/url`,
+      {}
+    );
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location === undefined);
     assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);
@@ -118,7 +131,7 @@ class StorageTest extends BinaryTest<Storage> {
     });
     try {
       // @ts-ignore
-      await this.getBinary().cascadeDelete({ hash: "pp" }, "pp");
+      await (await this.getBinary()).cascadeDelete({ hash: "pp" }, "pp");
     } finally {
       stubDelete.restore();
     }

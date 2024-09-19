@@ -1,28 +1,18 @@
 {
   "compilerOptions": {
     "target": "es2020",
+    "lib": ["es2019", "DOM"],
     "module": "es2020",
     "outDir": "./lib",
     "strict": false,
-    "sourceMap": true,
     "declaration": true,
+    "sourceMap": true,
     "experimentalDecorators": true,
-    "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "skipLibCheck": true,
     "declarationMap": true
   },
-  "ts-node": {
-    "emit": false,
-    "compilerOptions": {
-      "declaration": false
-    }
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "**/node_modules",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["**/node_modules"]
 }

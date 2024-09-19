@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import * as path from "path";
 import { SourceApplication } from "./code/sourceapplication";
 const { __dirname } = getCommonJS(import.meta.url);
-import { DebugMailer, FakeService, VoidStore, Task, Ident } from "@webda/core/lib/test";
+import { DebugMailer, FakeService, VoidStore, Task, TestIdent } from "@webda/core/lib/test";
 
 export class SourceTestApplication extends SourceApplication {
   /**
@@ -58,7 +58,7 @@ export class SourceTestApplication extends SourceApplication {
     this.addService("webdatest/fakeservice", FakeService);
     this.addService("webdatest/mailer", DebugMailer);
     this.addModel("webdatest/task", Task);
-    this.addModel("webdatest/ident", Ident);
+    this.addModel("webdatest/ident", TestIdent);
     return this;
   }
 }

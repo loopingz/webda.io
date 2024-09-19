@@ -90,8 +90,8 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     const Contents = [
       {
         Key: "awsevents.js",
-        Size: 527,
-        ETag: '"ea1db4bb1545c62c50e6f0893e9f0992"'
+        Size: 522,
+        ETag: '"4b247638f61338e77cb2e8b59405d05d"'
       }
     ];
     const stub = sinon.stub().resolves({ Contents });

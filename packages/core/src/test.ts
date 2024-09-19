@@ -217,7 +217,7 @@ export class DebugMailer extends Service {
 /**
  * @class
  */
-export class Ident extends WebdaIdent {
+export class TestIdent extends WebdaIdent {
   static getActions() {
     return <any>{
       plop: {},
@@ -363,7 +363,7 @@ class WebdaTest {
     app.addService("WebdaTest/FakeService", FakeService);
     app.addService("WebdaTest/Mailer", DebugMailer);
     app.addModel("WebdaTest/Task", Task);
-    app.addModel("WebdaTest/Ident", Ident);
+    app.addModel("WebdaTest/Ident", TestIdent);
     app.getGraph()["WebdaTest/Ident"] = {
       links: [
         {

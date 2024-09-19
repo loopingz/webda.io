@@ -8,7 +8,8 @@
     "build:module": "webda build",
     "build:watch": "webda build --watch",
     "pretest": "npm run build",
-    "test": "c8 mocha -r ../../node_modules/ts-node/register",
+    "test": "c8 mocha",
+    "test:debug": "mocha --no-timeouts",
     "run": "node core",
     "format": "prettier --check src/**/*",
     "lint": "eslint",
@@ -37,7 +38,6 @@
     "mocha": "^10.0.0",
     "sinon": "^18.0.0",
     "source-map-support": "^0.5.19",
-    "typescript": "~5.5.3",
     "tsx": "^4.17.0"
   },
   "c8": {

@@ -818,6 +818,9 @@ export class Application {
       objectName = `Webda/${name}`;
     }
     if (!this[section][objectName]) {
+      if (Object.keys(this[section]).includes(objectName)) {
+        throw Error(`Null ${section.substring(0, section.length - 1)} ${objectName}`);
+      }
       throw Error(
         `Undefined ${section.substring(0, section.length - 1)} ${objectName} (${Object.keys(this[section]).join(", ")})`
       );

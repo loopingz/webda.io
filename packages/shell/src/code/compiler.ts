@@ -1,6 +1,6 @@
 //node.kind === ts.SyntaxKind.ClassDeclaration
 import { tsquery } from "@phenomnomnominal/tsquery";
-import { Application, FileUtils, JSONUtils, Logger, ModelGraph } from "@webda/core";
+import { Application, FileUtils, JSONUtils, Logger, ModelGraphBinaryDefinition, ModelRelation } from "@webda/core";
 import { writer } from "@webda/tsc-esm";
 import { existsSync } from "fs";
 import { JSONSchema7 } from "json-schema";
@@ -32,6 +32,25 @@ import {
 } from "ts-json-schema-generator";
 import ts from "typescript";
 import { SourceApplication } from "./sourceapplication";
+
+/**
+ * Used to store type id and type name
+ * until we have a full resolution
+ */
+type SymbolMapper = {
+  id: number;
+  type: string;
+  symbolMap: true;
+};
+
+/**
+ * Ensure the model is of type SymbolMapper
+ * @param symbol
+ * @returns
+ */
+function isSymbolMapper(symbol: string | SymbolMapper): symbol is SymbolMapper {
+  return (symbol as SymbolMapper)?.symbolMap === true;
+}
 
 type WebdaSearchResult = {
   type: ts.Type;
@@ -364,7 +383,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
                 keep.push(t.getValue());
               });
           }
-          subtype.properties = subtype.properties.filter(o => keep.includes(o.name));
+          subtype.properties = (subtype.properties || []).filter(o => keep.includes(o.name));
           subtype.properties.push(new ObjectProperty("uuid", new StringType(), true));
           type = new ArrayType(
             new ObjectType(
@@ -528,7 +547,13 @@ export class Compiler {
         return undefined;
       }
       // Return the export alias
-      return (<ts.ExportSpecifier>namedExports.shift().parent).name.toString();
+      const alias = <ts.ExportSpecifier>namedExports.shift().parent;
+
+      if (ts.isIdentifier(alias.name)) {
+        return alias.name.escapedText.toString();
+      } else {
+        return alias.name.getText();
+      }
     }
     if (tsquery(node, "DefaultKeyword").length) {
       return "default";
@@ -684,6 +709,7 @@ export class Compiler {
               if (!name) {
                 return;
               }
+              // @ts-ignore
               result["models"][name] = {
                 name,
                 tags: {},
@@ -934,8 +960,12 @@ export class Compiler {
    * @param type
    * @returns
    */
-  getTypeIdFromTypeNode(type: ts.TypeNode) {
-    return (<any>this.typeChecker.getTypeFromTypeNode(type)).id;
+  getTypeIdFromTypeNode(type: ts.TypeNode): SymbolMapper {
+    return {
+      id: (<any>this.typeChecker.getTypeFromTypeNode(type)).id,
+      type: type.getText(),
+      symbolMap: true
+    };
   }
 
   /**
@@ -945,7 +975,24 @@ export class Compiler {
    */
   processModels(models: WebdaSearchResults) {
     const graph: {
-      [key: string]: ModelGraph;
+      [key: string]: {
+        parent?: Omit<ModelRelation, "type" | "model"> & { model: string | SymbolMapper };
+        links?: (Omit<ModelRelation, "model"> & { model: string | SymbolMapper })[];
+        queries?: {
+          attribute: string;
+          model: string | SymbolMapper;
+          targetAttribute: string;
+        }[];
+        maps?: {
+          attribute: string;
+          model: string | SymbolMapper;
+          targetAttributes: string[];
+          targetLink: string;
+          cascadeDelete: boolean;
+        }[];
+        children?: string[];
+        binaries?: ModelGraphBinaryDefinition[];
+      };
     } = {};
     const tree = {};
     const plurals = {};
@@ -1017,7 +1064,6 @@ export class Compiler {
                 const map = {
                   attribute: prop.getName(),
                   cascadeDelete,
-                  // @ts-ignore
                   model: this.getTypeIdFromTypeNode(pType.typeArguments[0]),
                   targetLink: pType.typeArguments[1].getText().replace(/"/g, ""),
                   targetAttributes: pType.typeArguments[2]
@@ -1061,23 +1107,42 @@ export class Compiler {
           }
         });
     });
+
     Object.values(graph).forEach(graph => {
-      if (graph.parent && typeof graph.parent.model === "number") {
-        graph.parent.model = symbolMap.get(graph.parent.model) || "unknown";
+      if (graph.parent && (graph.parent.model as any).symbolMap) {
+        if (isSymbolMapper(graph.parent.model)) {
+          const value = symbolMap.get(graph.parent.model.id);
+          if (!value) {
+            throw new Error(`Cannot find model for ${graph.parent.model.type}`);
+          }
+          graph.parent.model = value;
+        }
       }
       graph.links?.forEach(link => {
-        if (typeof link.model === "number") {
-          link.model = symbolMap.get(link.model) || "unknown";
+        if (isSymbolMapper(link.model)) {
+          const value = symbolMap.get(link.model.id);
+          if (!value) {
+            throw new Error(`Cannot find model for ${link.model.type}`);
+          }
+          link.model = value;
         }
       });
       graph.queries?.forEach(query => {
-        if (typeof query.model === "number") {
-          query.model = symbolMap.get(query.model) || "unknown";
+        if (isSymbolMapper(query.model)) {
+          const value = symbolMap.get(query.model.id);
+          if (!value) {
+            throw new Error(`Cannot find model for ${query.model.type}`);
+          }
+          query.model = value;
         }
       });
       graph.maps?.forEach(map => {
-        if (typeof map.model === "number") {
-          map.model = symbolMap.get(map.model) || "unknown";
+        if (isSymbolMapper(map.model)) {
+          const value = symbolMap.get(map.model.id);
+          if (!value) {
+            throw new Error(`Cannot find model for ${map.model.type}`);
+          }
+          map.model = value;
         }
       });
     });
@@ -1102,9 +1167,9 @@ export class Compiler {
 
     // Compute children now
     Object.keys(graph)
-      .filter(k => graph[k].parent && graph[graph[k].parent.model])
+      .filter(k => graph[k].parent && graph[<string>graph[k].parent.model])
       .forEach(k => {
-        const parent = graph[graph[k].parent.model];
+        const parent = graph[<string>graph[k].parent.model];
         parent.children ??= [];
         if (!ancestorsMap[k] || !graph[ancestorsMap[k]]?.parent) {
           parent.children.push(k);

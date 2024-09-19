@@ -1,9 +1,16 @@
 import * as fs from "fs";
 import { join } from "path";
 import { Readable } from "stream";
-import { CloudBinary, CloudBinaryParameters, CoreModel, CoreModelDefinition, WebdaError } from "../index";
+import { CloudBinary, CloudBinaryParameters, CoreModel, WebdaError } from "../index";
 import { OperationContext, WebContext } from "../utils/context";
-import { BinaryFile, BinaryMap, BinaryModel, BinaryNotFoundError, BinaryService, MemoryBinaryFile } from "./binary";
+import {
+  BinaryFile,
+  BinaryMap,
+  CoreModelWithBinary,
+  BinaryNotFoundError,
+  BinaryService,
+  MemoryBinaryFile
+} from "./binary";
 import { CryptoService } from "./cryptoservice";
 import { Inject } from "./service";
 
@@ -246,7 +253,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       return;
     }
     // Get the target object to add the mapping
-    await this.uploadSuccess(<BinaryModel>object, attribute, info);
+    await this.uploadSuccess(<CoreModelWithBinary>object, attribute, info);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(info.hash))) {
       fs.mkdirSync(this._getPath(info.hash));
@@ -353,7 +360,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    */
   async delete(object: CoreModel, property: string, index?: number): Promise<void> {
     const hash = (index !== undefined ? object[property][index] : object[property]).hash;
-    await this.deleteSuccess(<BinaryModel>object, property, index);
+    await this.deleteSuccess(<CoreModelWithBinary>object, property, index);
     await this._cleanUsage(hash, object.getUuid(), property);
   }
 
@@ -394,11 +401,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     this.checkMap(object, property);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${property}_${object.getUuid()}`));
-      await this.uploadSuccess(<BinaryModel>object, property, fileInfo);
+      await this.uploadSuccess(<CoreModelWithBinary>object, property, fileInfo);
       return;
     }
     await this._store(file, object, property);
-    await this.uploadSuccess(<BinaryModel>object, property, fileInfo);
+    await this.uploadSuccess(<CoreModelWithBinary>object, property, fileInfo);
   }
 
   /**

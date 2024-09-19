@@ -85,7 +85,7 @@ jobs:
       - name: Runs Elasticsearch
         uses: elastic/elastic-github-actions/elasticsearch@master
         with:
-          stack-version: 8.2.0
+          stack-version: 8.15.0
           security-enabled: false
 
       - name: Setup postgresql
@@ -101,7 +101,7 @@ jobs:
         run: yarn install
 
       - name: Build
-        run: yarn run build
+        run: yarn run build:ci # Build is required as we use sample-app for some tests
 
       - name: Run tests
         run: yarn run test --exclude @webda/shell

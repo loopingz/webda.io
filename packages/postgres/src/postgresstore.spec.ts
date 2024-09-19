@@ -1,17 +1,46 @@
 import { suite, test } from "@testdeck/mocha";
-import { Ident, Store } from "@webda/core";
+import { CoreModel, Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import pg from "pg";
 import PostgresStore from "./postgresstore";
 
-@suite
-export class PostgresTest extends StoreTest {
-  getIdentStore(): Store<any> {
-    return <Store<any>>this.getService("idents");
+const params = {
+  database: "webda.io",
+  postgresqlServer: {
+    host: "localhost",
+    user: "webda.io",
+    database: "webda.io",
+    password: "webda.io",
+    statement_timeout: 60000,
+    max: 2
   }
-  getUserStore(): Store<any> {
-    return <Store<any>>this.getService("users");
+};
+
+@suite
+export class PostgresTest extends StoreTest<PostgresStore> {
+  async getIdentStore(): Promise<PostgresStore<any>> {
+    return this.addService(
+      PostgresStore,
+      {
+        ...params,
+        asyncDelete: true,
+        table: "idents",
+        model: "Webda/Ident"
+      },
+      "idents"
+    );
+  }
+  async getUserStore(): Promise<PostgresStore<any>> {
+    return this.addService(
+      PostgresStore,
+      {
+        ...params,
+        table: "users",
+        model: "Webda/User"
+      },
+      "users"
+    );
   }
 
   getModelClass() {
@@ -48,7 +77,7 @@ export class PostgresTest extends StoreTest {
 
   @test
   async cov() {
-    const store: PostgresStore = this.getService<PostgresStore>("idents");
+    const store: PostgresStore = this.identStore;
     store.getParameters().usePool = false;
     await store.init();
     await store.query("test = TRUE");
@@ -61,7 +90,7 @@ export class PostgresTest extends StoreTest {
 
   @test
   async stoppedPostgres() {
-    const obj = await this.getIdentStore().save({
+    const obj = <CoreModel & { test: number }>await this.identStore.save({
       test: 0
     });
     await obj.patch({ test: 1 });
@@ -71,7 +100,7 @@ export class PostgresTest extends StoreTest {
 
   @test
   async createViews() {
-    const store: PostgresStore = this.getService<PostgresStore>("idents");
+    const store: PostgresStore = this.identStore;
     let info = await store.getClient().query(`SELECT 'DROP VIEW ' || table_name || ';'
     FROM information_schema.views
    WHERE table_schema NOT IN ('pg_catalog', 'information_schema')

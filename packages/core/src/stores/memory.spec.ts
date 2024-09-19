@@ -15,7 +15,7 @@ import { WebdaTest } from "../test";
 class DemoUser extends User {}
 
 @suite
-class MemoryStoreTest extends StoreTest {
+class MemoryStoreTest extends StoreTest<MemoryStore> {
   userStore: MemoryStore;
   identStore: MemoryStore;
 
@@ -24,23 +24,20 @@ class MemoryStoreTest extends StoreTest {
     return super.before();
   }
 
-  getIdentStore(): Store<any> {
-    if (!this.identStore) {
-      this.identStore = new MemoryStore(this.webda, "Idents", { model: "WebdaTest/Ident" });
-      // @ts-ignore
-      const original = this.identStore._get.bind(this.identStore);
-      // @ts-ignore
-      this.identStore._get = async (...args) => {
-        await this.sleep(1);
-        return original(...args);
-      };
-    }
-    return this.identStore;
+  async getIdentStore(): Promise<MemoryStore<any>> {
+    const identStore = new MemoryStore(this.webda, "Idents", { model: "WebdaTest/Ident" });
+    // @ts-ignore
+    const original = identStore._get.bind(identStore);
+    // @ts-ignore
+    identStore._get = async (...args) => {
+      await this.sleep(1);
+      return original(...args);
+    };
+    return await identStore.resolve().init();
   }
 
-  getUserStore(): Store<any> {
-    this.userStore ??= new MemoryStore(this.webda, "Users", { model: "Webda/User" });
-    return this.userStore;
+  async getUserStore(): Promise<MemoryStore<any>> {
+    return this.addService(MemoryStore, { model: "Webda/User" }, "Users");
   }
 
   @test
@@ -79,15 +76,14 @@ class MemoryStoreTest extends StoreTest {
 
   @test
   getSync() {
-    const identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
-    assert.throws(() => identStore._getSync("plop", true), StoreNotFoundError);
+    assert.throws(() => this.identStore._getSync("plop", true), StoreNotFoundError);
   }
 
   @test
   async persistence() {
     this.cleanFiles.push(".test.json.gz");
 
-    const identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    const identStore = this.identStore;
     identStore.getParameters().persistence = {
       path: ".test.json.gz",
       delay: 10,

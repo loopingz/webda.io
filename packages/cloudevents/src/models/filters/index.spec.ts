@@ -183,7 +183,7 @@ test("Common errors", () => {
   const event = new CloudEvent({ type: "com.test", source: "unit-test", data: {} });
 
   expect(() =>
-    FiltersHelper.get({
+    FiltersHelper.get(<any>{
       unknown: {
         type: "com.test"
       }

@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Binaries, Expose, FileBinary, RESTDomainService } from "@webda/core";
+import { Binaries, Expose, FileBinary, OperationContext, RESTDomainService } from "@webda/core";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { AsyncAction } from "./models";
@@ -54,5 +54,9 @@ class ModelTest extends WebdaSimpleTest {
     context.getHttpContext()!.headers["x-job-hash"] = "hash";
     context.getHttpContext()!.headers["x-job-time"] = "time";
     await assert.rejects(() => action.checkAct(context, "get_binary"), /Invalid Job HMAC/);
+    await assert.rejects(
+      () => action.statusAction(new OperationContext(this.webda)),
+      /Only WebContext can call this action/
+    );
   }
 }

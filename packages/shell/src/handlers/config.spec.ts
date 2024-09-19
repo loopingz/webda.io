@@ -60,7 +60,6 @@ class WebdaConfigurationServerTest {
     const cfg = FileUtils.load(WebdaSampleApplication.configurationFile);
     delete res.cachedModules;
     cfg.parameters = {
-      configurationService: "test",
       import1: true,
       import2: true,
       trustedProxies: "127.0.0.1, ::1"

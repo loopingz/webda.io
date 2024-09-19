@@ -23,11 +23,26 @@ export class Ident extends OwnerModel {
   /**
    * Provider profile
    */
-  __profile: unknown;
+  __profile: any;
+  /**
+   * Tokens for this ident
+   */
   __tokens: IdentTokens;
+  /**
+   * Last time the ident was used
+   */
   _lastUsed: Date;
+  /**
+   * User linked to this ident
+   */
   _user: ModelLink<User>;
+  /**
+   * If the ident is new
+   */
   __new: boolean;
+  /**
+   * If the ident is validated
+   */
   _failedLogin: number;
   /**
    * If EmailIdent
@@ -45,27 +60,6 @@ export class Ident extends OwnerModel {
    * Provider id
    */
   provider?: string;
-
-  static init(
-    type: string,
-    uid: string,
-    accessToken: string = "",
-    refreshToken: string = "",
-    profile: object = {}
-  ): Ident {
-    const obj = new Ident();
-    obj._type = type.toLowerCase();
-    obj.uid = uid.toLowerCase();
-    if (obj._type === "email") {
-      obj.email = obj.uid;
-    }
-    obj.uuid = obj.uid + "_" + obj._type;
-    obj.__profile = profile;
-    obj.__tokens = new IdentTokens();
-    obj.__tokens.refresh = refreshToken;
-    obj.__tokens.access = accessToken;
-    return obj;
-  }
 
   getUser(): ModelLink<User> {
     return this._user;

@@ -1,6 +1,6 @@
 import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
 import { suite, test } from "@testdeck/mocha";
-import { BinaryService, getCommonJS } from "@webda/core";
+import { BinaryService, getCommonJS, RESTDomainService } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import { TestApplication } from "@webda/core/lib/test";
 import * as assert from "assert";
@@ -36,7 +36,12 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
   getBinary(): Promise<S3Binary<S3BinaryParameters>> {
     return this.addService(S3Binary, {
-      bucket: "webda-test"
+      bucket: "webda-test",
+      endpoint: "http://localhost:4566",
+      forcePathStyle: true,
+      map: {
+        Users: ["images"]
+      }
     });
   }
 
@@ -236,8 +241,15 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async redirectUrl() {
     const { user1, ctx } = await this.setupDefault();
+    await this.addService(RESTDomainService, {}, "test");
     // Making sure we are redirected on GET
-    const executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
+    const executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      `${this.webda.getRouter().getModelUrl(user1)}/${user1.getUuid()}/images/0`,
+      {}
+    );
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location !== undefined);
   }
@@ -245,8 +257,15 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async redirectUrlInfo() {
     const { user1, ctx } = await this.setupDefault();
+    await this.addService(RESTDomainService, {}, "test");
     // Making sure we are redirected on GET
-    const executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
+    const executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      `${this.webda.getRouter().getModelUrl(user1)}/${user1.getUuid()}/images/0/url`,
+      {}
+    );
     await executor.execute(ctx);
     assert.ok(ctx.getResponseHeaders().Location === undefined);
     assert.notStrictEqual(JSON.parse(<string>ctx.getResponseBody()).Location, undefined);

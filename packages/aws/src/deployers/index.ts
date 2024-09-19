@@ -15,6 +15,7 @@ import * as path from "path";
 import { randomUUID } from "crypto";
 import { IAMPolicyContributor } from "../services";
 import { Route53Service } from "../services/route53";
+import { O_CREAT, O_EXCL, O_RDWR } from "node:constants";
 
 export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]: string };
 
@@ -617,7 +618,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     files = files.filter(info => {
       if (typeof info.src === "string") {
         const s3obj = currentFiles[info.key];
-        const stat = fs.statSync(info.src);
+        const fd = fs.openSync(info.src, "r");
+        const stat = fs.fstatSync(fd);
         if (s3obj && stat.size === s3obj.Size) {
           const md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
           if (md5 === s3obj.ETag) {

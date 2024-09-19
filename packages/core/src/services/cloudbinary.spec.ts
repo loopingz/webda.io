@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
-import { BinaryFile, BinaryMap, BinaryMetadata, BinaryModel } from "./binary";
+import { BinaryFile, BinaryMap, BinaryMetadata, CoreModelWithBinary } from "./binary";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 
 class CloudBinaryFakeService extends CloudBinary {
@@ -59,7 +59,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
     const model = new CoreModel();
     // @ts-ignore
     model.load({ plop: [{}, { hash: "fake" }] }, true);
-    await service.delete(<BinaryModel>model, "plop", 1);
+    await service.delete(<CoreModelWithBinary>model, "plop", 1);
     // Check called with "fake", 1
   }
 }

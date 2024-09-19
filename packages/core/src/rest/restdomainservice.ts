@@ -488,6 +488,9 @@ export class RESTDomainService<
       };
       const modelInjectorGet = async (context: WebContext) => {
         const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
+        if (binary.cardinality === "MANY") {
+          context.getParameters().index = parseInt(context.parameter("index"));
+        }
         return this._webda.callOperation(
           context,
           `${shortId}.${attribute}.Get${context.getHttpContext().getUrl().endsWith("url") ? "Url" : ""}`

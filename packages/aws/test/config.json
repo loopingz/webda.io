@@ -38,13 +38,6 @@
       "cascade": true
     },
     "Idents": {
-      "expose": {
-        "restrict": {
-          "create": true,
-          "update": true,
-          "get": true
-        }
-      },
       "asyncDelete": true,
       "endpoint": "http://localhost:4566",
       "type": "DynamoStore",
@@ -52,13 +45,6 @@
       "model": "Webda/Ident"
     },
     "Users": {
-      "expose": {
-        "url": "/users",
-        "restrict": {
-          "authentication": true,
-          "create": true
-        }
-      },
       "scanPage": 2,
       "endpoint": "http://localhost:4566",
       "type": "DynamoStore",
@@ -72,9 +58,6 @@
       "forcePathStyle": true,
       "map": {
         "Users": ["images"]
-      },
-      "expose": {
-        "url": "/binary"
       }
     },
     "awsEvents": {

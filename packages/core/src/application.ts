@@ -1239,10 +1239,13 @@ export class Application {
       })(),
       ...Object.keys(info.beans)
         .filter(f => {
-          if (this.baseConfiguration.parameters.ignoreBeans === true) {
+          if (this.baseConfiguration?.parameters?.ignoreBeans === true) {
             return false;
           }
-          if (Array.isArray(this.baseConfiguration.parameters.ignoreBeans)) {
+          if (
+            this.baseConfiguration?.parameters?.ignoreBeans &&
+            Array.isArray(this.baseConfiguration.parameters.ignoreBeans)
+          ) {
             return !this.baseConfiguration.parameters.ignoreBeans.includes(f);
           }
           return true;

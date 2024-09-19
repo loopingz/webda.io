@@ -55,10 +55,6 @@ export class DynamoDBTest extends StoreTest {
     return <Store<any>>this.getService("Users");
   }
 
-  getModelClass() {
-    return Ident;
-  }
-
   @test
   async queryOrder() {
     // Disable default ordering query as it is not possible with Dynamo

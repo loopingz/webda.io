@@ -13,7 +13,7 @@ import {
   User,
   WebdaError
 } from "../index";
-import { CoreModel } from "../models/coremodel";
+import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { WebdaSimpleTest, WebdaTest } from "../test";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 
@@ -44,7 +44,7 @@ abstract class StoreTest extends WebdaSimpleTest {
     await this.getIdentStore()?.__clean();
   }
 
-  getModelClass() {
+  getModelClass(): CoreModelDefinition {
     return Ident;
   }
 

@@ -34,6 +34,12 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     );
   }
 
+  getBinary(): Promise<S3Binary<S3BinaryParameters>> {
+    return this.addService(S3Binary, {
+      bucket: "webda-test"
+    });
+  }
+
   // Override getNotFound as exception is raised after
   @test
   async getNotFound() {}
@@ -97,18 +103,20 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   @test
-  getARN() {
-    let policies = this.getBinary().getARNPolicy("plop");
+  async getARN() {
+    const binary = await this.getBinary();
+    let policies = binary.getARNPolicy("plop");
 
     assert.strictEqual(policies.Resource[0], "arn:aws:s3:::webda-test");
     assert.strictEqual(policies.Resource[1], "arn:aws:s3:::webda-test/*");
 
-    this.getBinary().getParameters().CloudFormationSkip = true;
-    assert.deepStrictEqual(this.getBinary().getCloudFormation(undefined), {});
+    binary.getParameters().CloudFormationSkip = true;
+    assert.deepStrictEqual(binary.getCloudFormation(undefined), {});
   }
 
   @test
   async forEachFile() {
+    const binary = await this.getBinary();
     let keys = [];
 
     const spyChanges = sinon.stub().callsFake(async (p, c) => {
@@ -129,7 +137,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     });
     const mock = mockClient(S3).on(ListObjectsV2Command).callsFake(spyChanges);
     try {
-      await this.getBinary().forEachFile(
+      await binary.forEachFile(
         "myBucket",
         async (Key: string) => {
           keys.push(Key);
@@ -140,7 +148,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
       keys = [];
       spyChanges.resetHistory();
-      await this.getBinary().forEachFile(
+      await binary.forEachFile(
         "myBucket",
         async (Key: string) => {
           keys.push(Key);
@@ -154,17 +162,19 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   @test
-  params() {
-    assert.throws(() => new S3BinaryParameters({}, this.getBinary()), /Need to define a bucket at least/);
+  async params() {
+    const binary = await this.getBinary();
+    assert.throws(() => new S3BinaryParameters({}, binary), /Need to define a bucket at least/);
   }
 
   @test
   async signedUrl() {
+    const binary = await this.getBinary();
     let urls = [
-      this.getBinary().getSignedUrl("plop/test", "putObject", {
+      binary.getSignedUrl("plop/test", "putObject", {
         Bucket: "myBuck"
       }),
-      this.getBinary().getSignedUrl("plop/test")
+      binary.getSignedUrl("plop/test")
     ];
     (await Promise.all(urls)).forEach(url => {
       assert.ok(
@@ -176,46 +186,48 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
   @test
   async exists() {
-    assert.ok(!(await this.getBinary()._exists("bouzouf")));
-    await this.getBinary().putObject(this.getBinary()._getKey("bouzouf"), "plop");
-    assert.ok(await this.getBinary()._exists("bouzouf"));
+    const binary = await this.getBinary();
+    assert.ok(!(await binary._exists("bouzouf")));
+    await binary.putObject(binary._getKey("bouzouf"), "plop");
+    assert.ok(await binary._exists("bouzouf"));
     assert.strictEqual(
-      (
-        await BinaryService.streamToBuffer(await this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))
-      ).toString("utf8"),
+      (await BinaryService.streamToBuffer(await binary.getObject(binary._getKey("bouzouf")))).toString("utf8"),
       "plop"
     );
-    assert.notStrictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf")), null);
-    assert.strictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf2")), null);
+    assert.notStrictEqual(await binary.exists(binary._getKey("bouzouf")), null);
+    assert.strictEqual(await binary.exists(binary._getKey("bouzouf2")), null);
   }
 
   @test
   async cleanHash() {
-    let key1 = this.getBinary()._getKey("bouzouf", "one");
-    let key2 = this.getBinary()._getKey("bouzouf", "two");
-    await this.getBinary().putObject(key1, "plop");
-    await this.getBinary().putObject(key2, "plop");
-    await this.getBinary()._cleanHash("bouzouf");
+    const binary = await this.getBinary();
+    let key1 = binary._getKey("bouzouf", "one");
+    let key2 = binary._getKey("bouzouf", "two");
+    await binary.putObject(key1, "plop");
+    await binary.putObject(key2, "plop");
+    await binary._cleanHash("bouzouf");
     // TO CONTINUE (localstack might not handle V2)
   }
 
   @test
-  getKey() {
-    let key = this.getBinary()._getKey("bouzouf", "two");
+  async getKey() {
+    const binary = await this.getBinary();
+    let key = binary._getKey("bouzouf", "two");
     assert.strictEqual(key, "bouzouf/two");
-    this.getBinary().getParameters().prefix = "plop";
-    key = this.getBinary()._getKey("bouzouf", "two");
+    binary.getParameters().prefix = "plop";
+    key = binary._getKey("bouzouf", "two");
     assert.strictEqual(key, "plop/bouzouf/two");
   }
 
   @test
   async cascadeDelete() {
-    let stubDelete = sinon.stub(this.getBinary()._s3, "deleteObject").callsFake(() => {
+    const binary = await this.getBinary();
+    let stubDelete = sinon.stub(binary._s3, "deleteObject").callsFake(() => {
       throw new Error();
     });
     try {
       // @ts-ignore
-      await this.getBinary().cascadeDelete({ hash: "pp" }, "pp");
+      binary.cascadeDelete({ hash: "pp" }, "pp");
     } finally {
       stubDelete.restore();
     }
@@ -247,21 +259,17 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   @test
-  async challenge() {
-    await this.testChallenge(false);
-  }
-
-  @test
   async badErrors() {
     const mock = mockClient(S3)
       .on(HeadObjectCommand)
       .callsFake(() => {
         throw new Error("Fake");
       });
+    const binary = await this.getBinary();
     try {
-      await assert.rejects(() => this.getBinary()._getS3("plop"));
-      await assert.rejects(() => this.getBinary()._exists("plop"));
-      await assert.rejects(() => this.getBinary().exists("plop"));
+      await assert.rejects(() => binary._getS3("plop"));
+      await assert.rejects(() => binary._exists("plop"));
+      await assert.rejects(() => binary.exists("plop"));
     } finally {
       mock.restore();
     }

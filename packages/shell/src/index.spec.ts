@@ -4,6 +4,8 @@ import fetch from "node-fetch";
 import * as path from "path";
 import { SourceApplication } from "./code/sourceapplication";
 const { __dirname } = getCommonJS(import.meta.url);
+import { DebugMailer, FakeService, VoidStore, Task, Ident } from "@webda/core/lib/test";
+
 export class SourceTestApplication extends SourceApplication {
   /**
    * Only allow local and core module and sample-app
@@ -52,11 +54,11 @@ export class SourceTestApplication extends SourceApplication {
   async load() {
     await super.load();
 
-    this.addService("webdatest/voidstore", <Modda>(<unknown>await import("../../core/test/moddas/voidstore")));
-    this.addService("webdatest/fakeservice", <Modda>(<unknown>await import("../../core/test/moddas/fakeservice")));
-    this.addService("webdatest/mailer", <Modda>(<unknown>await import("../../core/test/moddas/debugmailer")));
-    this.addModel("webdatest/task", (await import("../../core/test/models/task")).Task);
-    this.addModel("webdatest/ident", (await import("../../core/test/models/ident")).Ident);
+    this.addService("webdatest/voidstore", VoidStore);
+    this.addService("webdatest/fakeservice", FakeService);
+    this.addService("webdatest/mailer", DebugMailer);
+    this.addModel("webdatest/task", Task);
+    this.addModel("webdatest/ident", Ident);
     return this;
   }
 }

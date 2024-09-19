@@ -68,13 +68,22 @@
           {
             "attribute": "_idents",
             "cascadeDelete": false,
-            "model": "Webda/Ident",
+            "model": "unknown",
             "targetLink": "_user",
             "targetAttributes": [
               "_type",
               "uuid",
               "email"
             ]
+          }
+        ]
+      },
+      "Webda/Task": {
+        "links": [
+          {
+            "attribute": "_user",
+            "model": "Webda/User",
+            "type": "LINK"
           }
         ]
       },
@@ -91,9 +100,9 @@
       },
       "Webda/UuidModel": {
         "Webda/OwnerModel": {
-          "Webda/Ident": {
-            "Webda/MyIdent": {}
-          }
+          "Webda/Ident": {},
+          "Webda/Task": {},
+          "Webda/MyIdent": {}
         }
       }
     },
@@ -101,12 +110,13 @@
     "list": {
       "Webda/AclModel": "lib/models/aclmodel:AclModel",
       "Webda/CoreModel": "lib/models/coremodel:CoreModel",
-      "Webda/Ident": "lib/models/ident:Ident",
+      "Webda/Ident": "lib/test:Ident",
       "Webda/MyIdent": "lib/models/test:MyIdent",
       "Webda/MySimpleUser": "lib/models/test:MySimpleUser",
       "Webda/OwnerModel": "lib/models/ownermodel:OwnerModel",
       "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
       "Webda/SimpleUser": "lib/models/user:SimpleUser",
+      "Webda/Task": "lib/test:Task",
       "Webda/User": "lib/models/user:User",
       "Webda/UuidModel": "lib/models/coremodel:UuidModel"
     },
@@ -242,6 +252,28 @@
         "_avatar": "string",
         "locale": "string",
         "email": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "Webda/Task": {
+        "_autoListener": "number",
+        "plop": "any",
+        "plop2": "any",
+        "card": "any",
+        "test": "any",
+        "bouzouf": "any",
+        "side": "string",
+        "_gotContext": "boolean",
+        "_user": "ModelLink<User>",
+        "public": "boolean",
+        "uuid": "string",
         "__class": "CoreModelDefinition<this>",
         "__type": "string",
         "__types": "string[]",
@@ -1489,7 +1521,6 @@
         "uid",
         "uuid"
       ],
-      "description": "First basic model for Ident",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ident"
     },
@@ -2333,6 +2364,63 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RoleModel"
+    },
+    "Webda/Task": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "description": "UUID of the object"
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        },
+        "_autoListener": {
+          "type": "number",
+          "readOnly": true
+        },
+        "plop": {},
+        "plop2": {},
+        "card": {},
+        "test": {},
+        "bouzouf": {},
+        "side": {
+          "type": "string"
+        },
+        "_gotContext": {
+          "type": "boolean",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "bouzouf",
+        "card",
+        "plop",
+        "plop2",
+        "side",
+        "test",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task"
     },
     "Webda/User": {
       "type": "object",

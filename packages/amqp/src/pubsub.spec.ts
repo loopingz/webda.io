@@ -1,12 +1,23 @@
 import { suite, test } from "@testdeck/mocha";
 import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { WebdaSimpleTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { AMQPPubSubParameters, AMQPPubSubService } from "./pubsub";
 
 @suite
-class AMQPPubSubTest extends WebdaTest {
+class AMQPPubSubTest extends WebdaSimpleTest {
+  pubsub: AMQPPubSubService;
+
+  async before() {
+    await super.before();
+    this.pubsub = await this.addService(AMQPPubSubService, {
+      endpoint: "amqp://localhost:5672",
+      channel: "webda-test-pub",
+      maxConsumers: 1
+    });
+  }
+
   @test
   async params() {
     // just for cov
@@ -20,12 +31,11 @@ class AMQPPubSubTest extends WebdaTest {
 
   @test
   async basic() {
-    const pubsub: AMQPPubSubService = this.webda.getService<AMQPPubSubService>("pubsub");
     let counter = 0;
     const consumers: CancelablePromise[] = [];
     await new Promise<void>(resolve => {
       consumers.push(
-        pubsub.consume(async evt => {
+        this.pubsub.consume(async evt => {
           counter++;
           if (counter > 2) {
             throw new Error("Only consume 2");
@@ -33,7 +43,7 @@ class AMQPPubSubTest extends WebdaTest {
         })
       );
       consumers.push(
-        pubsub.consume(
+        this.pubsub.consume(
           async evt => {
             counter++;
           },
@@ -42,8 +52,8 @@ class AMQPPubSubTest extends WebdaTest {
         )
       );
     });
-    await pubsub.sendMessage("plop");
-    await pubsub.size();
+    await this.pubsub.sendMessage("plop");
+    await this.pubsub.size();
     await WaitFor(
       async resolve => {
         if (counter === 2) {
@@ -58,7 +68,7 @@ class AMQPPubSubTest extends WebdaTest {
       WaitLinearDelay(10)
     );
     assert.strictEqual(counter, 2);
-    await pubsub.sendMessage("error");
+    await this.pubsub.sendMessage("error");
     await WaitFor(
       async resolve => {
         if (counter === 4) {
@@ -82,7 +92,7 @@ class AMQPPubSubTest extends WebdaTest {
     // Should reject
     await assert.rejects(
       () =>
-        pubsub.consume(async evt => {
+        this.pubsub.consume(async evt => {
           counter++;
         }),
       /Cancelled by server/

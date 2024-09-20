@@ -7,7 +7,11 @@ import AMQPQueue from "./queue";
 class AMQPQueueTest extends QueueTest {
   @test
   async basic() {
-    const queue: AMQPQueue = this.webda.getService<AMQPQueue>("queue");
+    const queue: AMQPQueue = await this.addService(AMQPQueue, {
+      endpoint: "amqp://localhost:5672",
+      queue: "webda-test",
+      maxConsumers: 1
+    });
     await queue.__clean();
     await this.simple(queue, true);
     assert.deepStrictEqual(await queue.receiveMessage(), []);

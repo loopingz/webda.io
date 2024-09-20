@@ -86,7 +86,7 @@ class AMQPPubSubTest extends WebdaSimpleTest {
     await Promise.all(consumers.map(p => p.cancel()));
     // Hack our way to test close by server
     // @ts-ignore
-    const stub = sinon.stub(pubsub.channel, "consume").callsFake((ex, call) => {
+    const stub = sinon.stub(this.pubsub.channel, "consume").callsFake((ex, call) => {
       call(null);
     });
     // Should reject

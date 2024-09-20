@@ -19,38 +19,38 @@ jobs:
           target-branch: ${{ github.ref_name }}
           prerelease: ${{ contains(github.ref, 'main') }} # when `manifest-release` creates GitHub Releases per package, create those as "Prerelease" releases that have pre-major or prerelease versions. absence defaults to false and all versions are fully Published.
 
-      - uses: actions/setup-node@v2
-        if: ${{ steps.release.outputs.releases_created }}
+      - uses: actions/setup-node@v4
+        if: ${{ steps.release.outputs.release_created }}
         with:
-          node-version: 20
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
 
       - name: Checkout repository
-        if: ${{ steps.release.outputs.releases_created }}
+        if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
 
       - name: Build
-        if: ${{ steps.release.outputs.releases_created }}
+        if: ${{ steps.release.outputs.release_created }}
         run: yarn && yarn run build
 
       - name: Publish project
-        if: ${{ steps.release.outputs.releases_created }}
+        if: ${{ steps.release.outputs.release_created }}
         run: yarn run lerna:publish from-package --yes
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install docs dependencies
-        if: ${{ steps.release.outputs.releases_created }}
+        if: ${{ steps.release.outputs.release_created }}
         run: cd docs && yarn install
 
       - name: Build docs
-        if: ${{ steps.release.outputs.releases_created }}
+        if: ${{ steps.release.outputs.release_created }}
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
         run: yarn docs
 
       - name: Deploy docs 🚀
-        if: ${{ steps.release.outputs.releases_created }}
+        if: ${{ steps.release.outputs.release_created }}
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           branch: gh-pages # The branch the action should deploy to.

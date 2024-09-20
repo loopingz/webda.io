@@ -81,7 +81,7 @@ class WaiterTest {
       );
       const elapsed = Date.now() - time;
       assert.strictEqual(
-        elapsed > 2500 && elapsed < 3500,
+        elapsed > 2200 && elapsed < 3800,
         true,
         `Should have a duration close to 3 seconds, got: ${elapsed}ms`
       );

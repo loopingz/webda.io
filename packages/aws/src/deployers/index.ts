@@ -15,7 +15,6 @@ import * as path from "path";
 import { randomUUID } from "crypto";
 import { IAMPolicyContributor } from "../services";
 import { Route53Service } from "../services/route53";
-import { O_CREAT, O_EXCL, O_RDWR } from "node:constants";
 
 export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]: string };
 

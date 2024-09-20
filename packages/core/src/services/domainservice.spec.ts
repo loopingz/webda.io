@@ -508,7 +508,7 @@ class DomainServiceTest extends WebdaTest {
   @test
   async testBinary() {
     // Setup a user
-    const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService")).resolve().init();
+    await this.registerService(new RESTDomainService(this.webda, "DomainService")).resolve().init();
 
     // Play with the rest api now
     const company = await this.http({
@@ -554,7 +554,9 @@ class DomainServiceTest extends WebdaTest {
         name: "file.txt"
       }
     });
-    console.log("PUT binary", res);
+    await userModel.refresh();
+    console.log("UserModel", userModel);
+    console.log("PUT binary", res, userModel);
     res = await this.http({
       method: "POST",
       url: `/companies/${company.uuid}/users/${user.uuid}/images`,

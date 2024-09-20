@@ -2,6 +2,7 @@ import { JSONSchema7 } from "json-schema";
 import {
   Application,
   Binary,
+  BinaryFileInfo,
   BinaryMap,
   BinaryMetadata,
   BinaryService,
@@ -585,7 +586,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * Implement the binary challenge operation
    * @param context
    */
-  async binaryChallenge(context: OperationContext) {
+  async binaryChallenge(context: OperationContext<BinaryFileInfo & { hash: string; challenge: string }>) {
     const body = await context.getInput();
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
@@ -597,6 +598,9 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
+    if (this.checkBinaryAlreadyLinked(object[binary.attribute], body.hash)) {
+      return;
+    }
     await object.checkAct(context, "attach_binary");
     const url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
@@ -605,7 +609,19 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       done: url === undefined,
       md5: base64String
     });
-    await binaryStore.uploadSuccess(<any>object, binary.attribute, body);
+  }
+
+  /**
+   *
+   * @param property
+   * @param hash
+   * @returns
+   */
+  protected checkBinaryAlreadyLinked(property: BinaryMap | BinaryMap[], hash: string): boolean {
+    if (Array.isArray(property)) {
+      return property.find(f => f.hash === hash) !== undefined;
+    }
+    return property && property.hash === hash;
   }
 
   /**
@@ -623,8 +639,13 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     if (object === undefined || object.isDeleted()) {
       throw new WebdaError.NotFound("Object does not exist");
     }
+    const file = await binaryStore.getFile(context);
+    const { hash } = await file.getHashes();
+    if (this.checkBinaryAlreadyLinked(object[binary.attribute], hash)) {
+      return;
+    }
     await object.checkAct(context, "attach_binary");
-    await binaryStore.store(object, binary.attribute, await binaryStore.getFile(context));
+    await binaryStore.store(object, binary.attribute, file);
   }
 
   /**
@@ -651,7 +672,6 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     await object.checkAct(context, "get_binary");
     const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
     const url = await binaryStore.getRedirectUrlFromObject(file, context);
-    console.log("URL", url);
     // No url, we return the file
     if (url === null) {
       if (returnUrl) {
@@ -711,7 +731,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       throw new WebdaError.BadRequest("Hash does not match");
     }
     if (action === "delete") {
-      await object.checkAct(context, "attach_binary");
+      await object.checkAct(context, "detach_binary");
       await binaryStore.delete(object, binary.attribute, index);
     } else if (action === "metadata") {
       await object.checkAct(context, "update_binary_metadata");

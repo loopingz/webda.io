@@ -87,6 +87,7 @@ jobs:
         with:
           stack-version: 8.15.0
           security-enabled: false
+          wait: 0
 
       - name: Setup postgresql
         uses: Softwarepark/postgresql-action@v2

@@ -118,6 +118,9 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=6144"
 
+      - name: Lint
+        run: yarn run lint
+
       - name: CodeCov
         uses: codecov/codecov-action@v2
         with:

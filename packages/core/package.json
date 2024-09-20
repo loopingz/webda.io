@@ -92,7 +92,7 @@
       "text"
     ],
     "exclude": [
-      "src/test.ts",
+      "**/src/test.ts",
       "**/*.spec.ts",
       "test/**/*",
       "*/stores/webdaql/WebdaQL*"

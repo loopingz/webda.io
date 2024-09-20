@@ -244,7 +244,7 @@ export class OtelService<T extends OtelServiceParameters> extends Service<T> {
    */
   patch() {
     const tracer = trace.getTracer("webda");
-    let mod = Math.floor(1 / this.parameters.traceExporter.sampling);
+    const mod = Math.floor(1 / this.parameters.traceExporter.sampling);
     let count = 0;
     //Core.get().newWebContext("test");
     // Apply patch for new context -> to inject the span

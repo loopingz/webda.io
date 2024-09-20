@@ -244,6 +244,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     info ??= await context.getInput();
     const result = { url: await this.getPutUrl(context), method: "PUT" };
     const marker = `${object.getStore().getName()}_${object.getUuid}_${attribute}`;
+
+    // Get the target object to add the mapping
+    await this.uploadSuccess(<CoreModelWithBinary>object, attribute, info);
+
     if (fs.existsSync(this._getPath(info.hash, marker))) {
       if (!fs.existsSync(this._getPath(info.hash, "data"))) {
         // 232-237
@@ -252,8 +256,6 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       // If the link is already register just return directly ok
       return;
     }
-    // Get the target object to add the mapping
-    await this.uploadSuccess(<CoreModelWithBinary>object, attribute, info);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(info.hash))) {
       fs.mkdirSync(this._getPath(info.hash));

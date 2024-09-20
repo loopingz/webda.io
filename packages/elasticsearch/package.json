@@ -57,7 +57,7 @@
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "20.0.0",
     "@webda/shell": "^4.0.0-beta.1",
-    "sinon": "^18.0.0",
+    "sinon": "^19.0.2",
     "tsx": "^4.17.0"
   },
   "type": "module",

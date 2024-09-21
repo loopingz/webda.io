@@ -51,5 +51,6 @@
       "@webda/core",
       "@webda/shell"
     ]
-  }
+  },
+  "license": "LGPL-3.0-only"
 }

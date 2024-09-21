@@ -28,7 +28,7 @@
     "package.json"
   ],
   "author": "loopingz",
-  "license": "MIT",
+  "license": "LGPL-3.0-only",
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"
   },

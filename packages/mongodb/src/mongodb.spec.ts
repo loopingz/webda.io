@@ -1,5 +1,4 @@
 import { suite, test } from "@testdeck/mocha";
-import { Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import { MongoStore, MongoParameters } from "./mongodb";
@@ -27,12 +26,8 @@ class MongoDBTest extends StoreTest<MongoStore> {
         model: "Webda/User",
         collection: "users"
       },
-      "Idents"
+      "Users"
     );
-  }
-
-  getModelClass() {
-    return Ident;
   }
 
   @test

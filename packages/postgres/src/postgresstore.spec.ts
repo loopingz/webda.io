@@ -105,7 +105,6 @@ export class PostgresTest extends StoreTest<PostgresStore> {
     FROM information_schema.views
    WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
      AND table_name !~ '^pg_';`);
-    console.log(info.rows);
     store.getParameters().viewPrefix = "view_";
     // Execute all the drop views
     await store.createViews();
@@ -116,7 +115,14 @@ export class PostgresTest extends StoreTest<PostgresStore> {
       );
     assert.deepStrictEqual(
       info.rows.sort((a, b) => a.table_name.localeCompare(b.table_name)),
-      [{ table_name: "view_idents" }, { table_name: "view_users" }]
+      [
+        { table_name: "view_idents" },
+        { table_name: "view_myidents" },
+        { table_name: "view_mysimpleusers" },
+        { table_name: "view_simpleusers" },
+        { table_name: "view_testidents" },
+        { table_name: "view_users" }
+      ]
     );
     store.getParameters().viewPrefix = "";
     await store.createViews();

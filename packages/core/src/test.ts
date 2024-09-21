@@ -504,14 +504,21 @@ class WebdaTest {
    * @returns
    */
   async http<T = any>(
-    params: {
-      method?: HttpMethodType;
-      url?: string;
-      body?: any;
-      context?: WebContext;
-      headers?: { [key: string]: string };
-    } = {}
+    params:
+      | {
+          method?: HttpMethodType;
+          url?: string;
+          body?: any;
+          context?: WebContext;
+          headers?: { [key: string]: string };
+        }
+      | string = {}
   ): Promise<T> {
+    if (typeof params === "string") {
+      params = {
+        url: params
+      };
+    }
     if (params.context) {
       params.context.resetResponse();
     }

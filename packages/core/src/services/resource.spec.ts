@@ -37,6 +37,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   async parentFolder() {
+    this.resource.getParameters().allowHiddenFiles = true;
     const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/../config.json");
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(
@@ -112,6 +113,14 @@ class ResourceTest extends WebdaInternalTest {
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.png").toString());
     assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "image/png");
+  }
+
+  @test
+  async hiddenFile() {
+    await assert.rejects(() => this.http("/resources/data/.env"), WebdaError.NotFound);
+    this.resource.getParameters().allowHiddenFiles = true;
+    const res = await this.http("/resources/data/.env");
+    assert.strictEqual(res.toString(), "TEST=plop");
   }
 
   // Check Store HTTP mapping

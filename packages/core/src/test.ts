@@ -68,14 +68,6 @@ export class Task extends OwnerModel {
   async _onSaved() {
     this._autoListener = 2;
   }
-
-  toJSON() {
-    // Context should be available to the toJSON
-    if (this.getContext() !== undefined) {
-      this._gotContext = true;
-    }
-    return super.toJSON();
-  }
 }
 
 /**

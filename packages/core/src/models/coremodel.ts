@@ -9,7 +9,7 @@ import { BinariesImpl, Binary } from "../services/binary";
 import { Service } from "../services/service";
 import { Store, StoreEvents } from "../stores/store";
 import * as WebdaQL from "@webda/ql";
-import { OperationContext } from "../utils/context";
+import { Context, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
 import {
@@ -92,15 +92,10 @@ export class CoreModelQuery {
    * @param callback
    * @param context
    */
-  async forEach(
-    callback: (model: any) => Promise<void>,
-    query?: string,
-    context?: OperationContext,
-    parallelism: number = 3
-  ) {
+  async forEach(callback: (model: any) => Promise<void>, query?: string, parallelism: number = 3) {
     const throttler = new Throttler();
     throttler.setConcurrency(parallelism);
-    for await (const model of this.iterate(query, context)) {
+    for await (const model of this.iterate(query)) {
       throttler.execute(() => callback(model));
     }
     return throttler.wait();
@@ -111,17 +106,17 @@ export class CoreModelQuery {
    * @param context
    * @returns
    */
-  iterate(query?: string, context?: OperationContext) {
-    return Core.get().getModelStore(this.getTargetModel()).iterate(this.completeQuery(query), context);
+  iterate(query?: string) {
+    return Core.get().getModelStore(this.getTargetModel()).iterate(this.completeQuery(query));
   }
 
   /**
    * Get all the objects
    * @returns
    */
-  async getAll(context?: OperationContext): Promise<this[]> {
+  async getAll(): Promise<this[]> {
     const res = [];
-    for await (const item of this.iterate(this.completeQuery(), context)) {
+    for await (const item of this.iterate(this.completeQuery())) {
       res.push(item);
     }
     return res;
@@ -276,7 +271,7 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    * Permission query for the model
    * @param context
    */
-  getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
+  getPermissionQuery(context?: Context): null | { partial: boolean; query: string };
   /**
    * Reference to an object without doing a DB request yet
    */
@@ -459,8 +454,8 @@ export class ModelRef<T extends CoreModel> {
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
     this.store = Core.get().getModelStore(model);
   }
-  async get(context?: OperationContext): Promise<T> {
-    return (await this.store.get(this.uuid))?.setContext(context || this.parent?.getContext());
+  async get(): Promise<T> {
+    return await this.store.get(this.uuid);
   }
   set(id: string | T) {
     this.uuid = id instanceof CoreModel ? id.getUuid() : id;
@@ -539,7 +534,7 @@ export class ModelRef<T extends CoreModel> {
   conditionalPatch(updates: Partial<T>, conditionField: any, condition: any): Promise<boolean> {
     return this.store.conditionalPatch(this.uuid, updates, conditionField, condition);
   }
-  patch(updates: Partial<T>): Promise<boolean> {
+  patch(updates: Partial<RawModel<T>>): Promise<boolean> {
     return this.store.conditionalPatch(this.uuid, updates, null, undefined);
   }
   async setAttribute(attribute: keyof T, value: any): Promise<this> {
@@ -588,8 +583,8 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param withSave
    * @returns
    */
-  async create(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
-    const result = new this.model().setContext(context).load(defaultValue, true).setUuid(this.uuid);
+  async create(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
+    const result = new this.model().load(defaultValue, true).setUuid(this.uuid);
     if (withSave) {
       await result.save();
     }
@@ -605,8 +600,18 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param context to set on the object
    * @returns
    */
-  async getOrCreate(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
-    return (await this.get()) || this.create(defaultValue, context, withSave);
+  async getOrCreate(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
+    return (await this.get()) || this.create(defaultValue, withSave);
+  }
+
+  async upsert(defaultValue: RawModel<T>): Promise<T> {
+    let result = await this.get();
+    if (await this.exists()) {
+      await this.patch(defaultValue);
+    } else {
+      result = await this.create(defaultValue);
+    }
+    return result;
   }
 }
 
@@ -1237,7 +1242,7 @@ class CoreModel {
    * @returns
    */
   async canAct(
-    _context: OperationContext,
+    _context: Context,
     _action:
       | "create"
       | "update"
@@ -1264,8 +1269,8 @@ class CoreModel {
    * Create an object
    * @returns
    */
-  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T {
-    return object instanceof this ? object : new this().setContext(context).load(object, context === undefined);
+  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>): T {
+    return object instanceof this ? object : new this().load(object, true);
   }
 
   /**
@@ -1416,23 +1421,6 @@ class CoreModel {
   }
 
   /**
-   * Context of the request
-   */
-  setContext(ctx: OperationContext): this {
-    this.__ctx = ctx;
-    return this;
-  }
-
-  /**
-   * Get object context
-   *
-   * Global object does not belong to a request
-   */
-  getContext<T extends OperationContext>(): T {
-    return <any>this.__ctx || Core.get().getGlobalContext();
-  }
-
-  /**
    * Return the object registered store
    */
   getStore(): Store<this> {
@@ -1501,7 +1489,7 @@ class CoreModel {
     // If proxy is not used and not field specified call save
     if ((!util.types.isProxy(this) && full === undefined) || full === true) {
       if (!this._creationDate || !this._lastUpdate) {
-        await this.__store.create(this, this.getContext());
+        await this.__store.create(this);
       } else {
         await this.__store.update(this);
       }

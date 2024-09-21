@@ -16,7 +16,8 @@ import {
   ModelsMapped,
   OperationContext,
   WebdaError,
-  createModelLinksMap
+  createModelLinksMap,
+  runInContext
 } from "..";
 import { WebdaSimpleTest, Task } from "../test";
 
@@ -185,10 +186,11 @@ class CoreModelTest extends WebdaSimpleTest {
   @test("Verify Context access within output to server") async withContext() {
     const ctx = await this.newContext();
     const task = new Task();
-    task.setContext(ctx);
-    ctx.write(task);
-    const result = JSON.parse(<string>ctx.getResponseBody());
-    assert.strictEqual(result._gotContext, true);
+    await runInContext(ctx, () => {
+      ctx.write(task);
+      const result = JSON.parse(<string>ctx.getResponseBody());
+      assert.strictEqual(result._gotContext, true);
+    });
   }
 
   @test async cov() {

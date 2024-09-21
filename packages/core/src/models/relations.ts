@@ -79,7 +79,7 @@ export class ModelLink<T extends CoreModel> implements ModelLinker {
   }
 
   async get(): Promise<T> {
-    return (await this.model.ref(this.uuid).get())?.setContext(this.parent?.getContext());
+    return await this.model.ref(this.uuid).get();
   }
   set(id: string | T) {
     this.uuid = typeof id === "string" ? id : id.getUuid();
@@ -308,7 +308,7 @@ export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
    * @returns the model
    */
   async get(): Promise<T> {
-    return this._model.ref(this.uuid).get(this._parent.getContext());
+    return this._model.ref(this.uuid).get();
   }
 }
 

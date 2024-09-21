@@ -109,12 +109,6 @@ class ContextTest extends WebdaTest {
     this.ctx.addAsyncRequest((async () => {})());
     assert.strictEqual(this.ctx._promises.length, 1);
 
-    let caught = false;
-    this.ctx.on("error", () => {
-      caught = true;
-    });
-    this.ctx.emitError("plop");
-    assert.ok(caught);
     this.ctx.log("INFO", "Test");
 
     assert.rejects(() => this.ctx.execute(), /Not Implemented/);

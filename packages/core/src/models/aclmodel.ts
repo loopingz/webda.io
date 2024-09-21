@@ -1,4 +1,4 @@
-import { OperationContext, User, WebContext, WebdaError } from "../index";
+import { Context, Core, getContext, OperationContext, User, WebContext, WebdaError } from "../index";
 import { Action, CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -27,7 +27,7 @@ export class AclModel extends CoreModel {
    */
   async _onSave() {
     await super._onSave();
-    this._creator = this.getContext().getCurrentUserId();
+    this._creator = getContext().getCurrentUserId();
     if (Object.keys(this.__acl).length === 0 && this._creator) {
       this.__acl[this._creator] = "all";
     }
@@ -37,12 +37,7 @@ export class AclModel extends CoreModel {
    * Add the permissions for current user
    */
   async _onGet() {
-    const ctx = this.getContext();
-    if (!ctx.isGlobal()) {
-      this._permissions = await this.getPermissions(ctx);
-    } else {
-      this._permissions = [];
-    }
+    this._permissions = await this.getPermissions();
   }
 
   /**
@@ -172,7 +167,7 @@ export class AclModel extends CoreModel {
   }
 
   // Should cache the user role in the session
-  getGroups(_ctx: OperationContext, user: User) {
+  getGroups(user: User) {
     if (!user) {
       return [];
     }
@@ -191,12 +186,15 @@ export class AclModel extends CoreModel {
    * @param user
    * @returns
    */
-  async getPermissions(ctx: OperationContext, user?: User): Promise<string[]> {
+  async getPermissions(user?: User): Promise<string[]> {
     if (!user) {
-      user = await ctx.getCurrentUser();
+      user = await getContext().getCurrentUser();
+    }
+    if (!user) {
+      return [];
     }
     const permissions = new Set<string>();
-    const groups = this.getGroups(ctx, user);
+    const groups = this.getGroups(user);
     for (const i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
         this.__acl[i].split(",").forEach(p => permissions.add(p));
@@ -205,8 +203,8 @@ export class AclModel extends CoreModel {
     return [...permissions.values()];
   }
 
-  async hasPermission(ctx: OperationContext, user: User, action: string): Promise<boolean> {
-    const groups = this.getGroups(ctx, user);
+  async hasPermission(user: User, action: string): Promise<boolean> {
+    const groups = this.getGroups(user);
     for (const i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
         if (this.__acl[i] === "all" || this.__acl[i].split(",").indexOf(action) >= 0) {
@@ -217,7 +215,7 @@ export class AclModel extends CoreModel {
     return false;
   }
 
-  async canAct(ctx: OperationContext, action: string): Promise<string | boolean> {
+  async canAct(ctx: Context, action: string): Promise<string | boolean> {
     if (action === "create" && ctx.getCurrentUserId()) {
       return true;
     }
@@ -225,7 +223,7 @@ export class AclModel extends CoreModel {
       return "No ACL or user";
     }
     const user = await ctx.getCurrentUser();
-    if (await this.hasPermission(ctx, user, action)) {
+    if (await this.hasPermission(user, action)) {
       return true;
     }
     return "No permission";

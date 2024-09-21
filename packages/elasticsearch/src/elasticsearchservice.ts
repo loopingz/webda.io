@@ -204,7 +204,7 @@ export default class ElasticSearchService<
       count: number;
       errors: number;
       done: boolean;
-    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.reindex.${index}`, undefined, {});
+    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.reindex.${index}`, {});
     status.count ??= 0;
     status.errors ??= 0;
     // Bulk reindex

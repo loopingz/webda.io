@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
-import { CoreModel, Ident, MemoryStore, Store, User } from "../index";
+import { CoreModel, Ident, MemoryStore, runInContext, Store, User } from "../index";
 import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
@@ -63,14 +63,19 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
     // Verify pagination system
     let res, offset;
     let total = 0;
-    do {
-      res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`, context);
-      offset = res.continuationToken;
-      total += res.results.length;
-    } while (offset);
-    assert.strictEqual(total, 100);
-    assert.rejects(() => userStore.queryAll("state = 'CA' OFFSET 123"), /Cannot contain an OFFSET for queryAll method/);
-    assert.strictEqual((await userStore.queryAll("state = 'CA' LIMIT 50")).length, 250);
+    await runInContext(context, async () => {
+      do {
+        res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
+        offset = res.continuationToken;
+        total += res.results.length;
+      } while (offset);
+      assert.strictEqual(total, 100);
+      assert.rejects(
+        () => userStore.queryAll("state = 'CA' OFFSET 123"),
+        /Cannot contain an OFFSET for queryAll method/
+      );
+      assert.strictEqual((await userStore.queryAll("state = 'CA' LIMIT 50")).length, 250);
+    });
     return userStore;
   }
 

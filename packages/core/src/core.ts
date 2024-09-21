@@ -6,6 +6,7 @@ import * as events from "events";
 import { JSONSchema7 } from "json-schema";
 import jsonpath from "jsonpath";
 import pkg from "node-machine-id";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { OpenAPIV3 } from "openapi-types";
 import {
   Counter,
@@ -22,6 +23,7 @@ import { Application, Configuration, Modda } from "./application";
 import {
   BinaryService,
   ConfigurationService,
+  Context,
   ContextProvider,
   ContextProviderInfo,
   GlobalContext,
@@ -195,6 +197,30 @@ export class OriginFilter implements RequestFilter<WebContext> {
     const httpContext = context.getHttpContext();
     return this.regexs.validate(httpContext.hostname) || this.regexs.validate(httpContext.origin);
   }
+}
+
+/**
+ * Shortcut to get the current context
+ * @returns
+ */
+export function getContext() {
+  return Core.get().getContext();
+}
+
+/**
+ * Shortcut to run with a context
+ * @returns
+ */
+export function runInContext(context: Context, callback: () => unknown) {
+  return Core.get().runInContext(context, callback);
+}
+
+/**
+ * Shortcut to run with as system
+ * @returns
+ */
+export function runAsSystem(callback: () => unknown) {
+  return Core.get().runAsSystem(callback);
 }
 
 /**
@@ -430,6 +456,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    */
   interuptables: { cancel: () => Promise<void> }[] = [];
+  /**
+   * Store execution context
+   */
+  static asyncLocalStorage = new AsyncLocalStorage<{ context: Context } & any>();
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -1121,6 +1151,32 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     ctx.setExecutor(this.getService(route.executor));
     this.emit("Webda.UpdateContextRoute", { context: ctx });
     return true;
+  }
+  /**
+   * Return the current context or global context
+   * @returns
+   */
+  public getContext<T extends Context>(): T {
+    return Core.asyncLocalStorage.getStore()?.context || this.globalContext;
+  }
+  /**
+   * Run this function as system
+   *
+   * @param run
+   * @returns
+   */
+  runAsSystem<T>(run: () => T): T {
+    return this.runInContext(this.globalContext, run);
+  }
+  /**
+   * Run this function as user
+   * @param context
+   * @param run
+   * @returns
+   */
+  runInContext<T>(context: Context, run: () => T): T {
+    const previousContext = Core.asyncLocalStorage.getStore()?.context;
+    return Core.asyncLocalStorage.run({ context, previousContext }, run);
   }
 
   /**

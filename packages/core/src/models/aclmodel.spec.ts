@@ -1,10 +1,18 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { AclModel, Core, HttpContext, Session, SimpleUser, User, WebContext, WebdaError } from "../index";
+import {
+  AclModel,
+  Core,
+  HttpContext,
+  runAsSystem,
+  runInContext,
+  Session,
+  SimpleUser,
+  User,
+  WebContext,
+  WebdaError
+} from "../index";
 import { TestApplication } from "../test";
-import { getCommonJS } from "../utils/esm";
-
-const { __filename, __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class AclModelTest {
@@ -33,7 +41,7 @@ class AclModelTest {
   }
 
   @test cov() {
-    assert.deepStrictEqual(this.model.getGroups(undefined, undefined), []);
+    assert.deepStrictEqual(this.model.getGroups(undefined), []);
   }
 
   @test async get() {
@@ -43,18 +51,19 @@ class AclModelTest {
   }
 
   @test async multipermissions() {
-    await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
-    this.model.__acl["gip-123"] = "get,action";
-    assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
-    assert.strictEqual(await this.model.canAct(this._ctx, "action"), true);
-    assert.deepStrictEqual(await this.model.getPermissions(this._ctx), ["get", "action"]);
-    await this.model._onGet();
-    // @ts-ignore
-    assert.deepStrictEqual(this.model._permissions, []);
-    this.model.setContext(this._ctx);
-    await this.model._onGet();
-    // @ts-ignore
-    assert.deepStrictEqual(this.model._permissions, ["get", "action"]);
+    await runInContext(this._ctx, async () => {
+      await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
+      this.model.__acl["gip-123"] = "get,action";
+      assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
+      assert.strictEqual(await this.model.canAct(this._ctx, "action"), true);
+      assert.deepStrictEqual(await this.model.getPermissions(), ["get", "action"]);
+      await this.model._onGet();
+      assert.deepStrictEqual(this.model["_permissions"], ["get", "action"]);
+    });
+    await runAsSystem(async () => {
+      await this.model._onGet();
+      assert.deepStrictEqual(this.model["_permissions"], []);
+    });
   }
 
   @test async multigroups() {
@@ -166,9 +175,10 @@ class AclModelTest {
   }
 
   @test async onSave() {
-    this.model.setContext(this._ctx);
-    await this.model._onSave();
-    assert.deepStrictEqual(this.model.__acl, { "user-uid": "all" });
-    assert.strictEqual(this.model._creator, "user-uid");
+    runInContext(this._ctx, async () => {
+      await this.model._onSave();
+      assert.deepStrictEqual(this.model.__acl, { "user-uid": "all" });
+      assert.strictEqual(this.model._creator, "user-uid");
+    });
   }
 }

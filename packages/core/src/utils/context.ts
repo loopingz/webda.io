@@ -56,6 +56,97 @@ export interface ContextProvider {
   getContext(info: ContextProviderInfo): OperationContext;
 }
 
+export abstract class Context {
+  /**
+   * Contain emitting Core
+   */
+  @NotEnumerable
+  protected _webda: Core;
+  /**
+   * Session
+   */
+  protected session: Session;
+  /**
+   * Allow extensions
+   */
+  protected extensions: { [key: string]: any };
+  /**
+   * Contain all registered promises to this context
+   */
+  @NotEnumerable
+  _promises: Promise<any>[];
+  /**
+   *
+   * @param webda
+   */
+  constructor(webda: Core) {
+    this._webda = webda;
+  }
+  /**
+   * Get current user id
+   */
+  abstract getCurrentUserId(): string | "system";
+  /**
+   * Return the current execution context
+   * @param this
+   * @returns
+   */
+  static get<T extends Context>(): T {
+    return <T>Core.get().getContext();
+  }
+  /**
+   * Register a promise with the context
+   * @param promise
+   */
+  registerPromise(promise) {
+    this._promises.push(promise);
+  }
+  /**
+   * Get an extension of the context
+   * @param name of the extension
+   * @returns extension object
+   */
+  public getExtension<K = any>(name: string): K {
+    return <K>this.extensions[name];
+  }
+  /**
+   *
+   * @param name to add
+   * @param extension object to store
+   */
+  public setExtension(name: string, extension: any): this {
+    this.extensions[name] = extension;
+    return this;
+  }
+  /**
+   * Ensure the whole execution is finished
+   */
+  async end() {
+    await Promise.all(this._promises);
+  }
+  /**
+   * Return the user
+   * @returns
+   */
+  abstract getCurrentUser(): Promise<User | undefined>;
+  /**
+   * Proxy for simplification
+   * @param level
+   * @param args
+   */
+  log(level: WorkerLogLevel, ...args: any[]) {
+    this._webda.log(level, ...args);
+  }
+  /**
+   * Can be used to init the context if needed
+   * Reading from the input or reaching to a db
+   * @returns
+   */
+  async init(): Promise<this> {
+    return this;
+  }
+}
+
 /**
  * OperationInput
  */
@@ -71,7 +162,7 @@ export type OperationInput<T = any, U = any> = {
  * @param U type of output for this context
  * @param P type of parameters for this context
  */
-export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
+export class OperationContext<T = any, U = any, P = any> extends Context {
   protected static __globalContext: OperationContext;
   /**
    * Contain emitting Core
@@ -113,7 +204,7 @@ export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
    * Used by Webda framework to set the body, session and output stream if known
    */
   constructor(webda: Core, stream: Writable = undefined) {
-    super();
+    super(webda);
     this.extensions = {};
     this._webda = webda;
     this._promises = [];
@@ -226,9 +317,7 @@ export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
    * Ensure the whole execution is finished
    */
   async end() {
-    this.emit("end");
     await Promise.all(this._promises);
-    this.emit("close");
   }
 
   /**
@@ -407,7 +496,9 @@ export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
     }
     // Caching the answer
     if (!this.user || refresh) {
-      this.user = <User>await this._webda.getApplication().getModel("User").ref(this.getCurrentUserId()).get(this);
+      await this._webda.runAsSystem(async () => {
+        this.user = <User>await this._webda.getApplication().getModel("User").ref(this.getCurrentUserId()).get();
+      });
     }
     return <K>this.user;
   }
@@ -421,36 +512,31 @@ export class OperationContext<T = any, U = any, P = any> extends EventEmitter {
     }
     return undefined;
   }
-
-  /**
-   * Global context is the default Context
-   *
-   * Whenever a request is internal to the system
-   * or not linked to a user request
-   * @returns
-   */
-  isGlobal() {
-    return false;
-  }
 }
 
-export class GlobalContext extends OperationContext {
-  session: Session = new Session();
-
+/**
+ * Global Context is used as system context
+ */
+export class GlobalContext extends Context {
   constructor(webda: Core) {
     super(webda);
+    this.session = new Session();
     this.session.login("system", "system");
     // Disable logout
     this.session.logout = () => {};
   }
 
+  getCurrentUserId(): string {
+    return "system";
+  }
   /**
    * @override
    */
-  isGlobal() {
-    return true;
+  getCurrentUser(): Promise<User> {
+    return undefined;
   }
 }
+
 /**
  * Simple Operation Context with custom input
  */
@@ -713,7 +799,6 @@ export class WebContext<T = any, U = any, P = any> extends OperationContext<T, U
       return this._ended;
     }
     this._ended = (async () => {
-      this.emit("end");
       if (this.getExtension("http")) {
         await this._webda.getService<SessionManager>("SessionManager").save(this, this.session);
       }
@@ -726,7 +811,6 @@ export class WebContext<T = any, U = any, P = any> extends OperationContext<T, U
         this._webda.flushHeaders(this);
       }
       this._webda.flush(this);
-      this.emit("close");
     })();
     return this._ended;
   }
@@ -918,9 +1002,5 @@ export class WebContext<T = any, U = any, P = any> extends OperationContext<T, U
     }
     this._init = super.init();
     return this._init;
-  }
-
-  emitError(err) {
-    this.emit("error", err);
   }
 }

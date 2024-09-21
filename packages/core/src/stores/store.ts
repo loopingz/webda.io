@@ -1,8 +1,15 @@
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
-import { ConfigurationProvider, MemoryStore, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
+import {
+  ConfigurationProvider,
+  MemoryStore,
+  ModelMapLoaderImplementation,
+  RawModel,
+  Throttler,
+  WebdaError
+} from "../index";
 import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
-import { OperationContext } from "../utils/context";
+import { GlobalContext, OperationContext } from "../utils/context";
 import * as WebdaQL from "@webda/ql";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
@@ -35,10 +42,6 @@ interface EventStore {
    * Store emitting
    */
   store: Store;
-  /**
-   * Context of the operation
-   */
-  context?: OperationContext;
 }
 /**
  * Event called before save of an object
@@ -207,10 +210,6 @@ export interface EventStoreQuery {
    * The parsed query by our grammar
    */
   parsedQuery: WebdaQL.Query;
-  /**
-   * Context in which the query was run
-   */
-  context: OperationContext;
 }
 /**
  * Event sent when query is resolved
@@ -895,14 +894,14 @@ abstract class Store<
    * @param query
    * @param context
    */
-  async *iterate(query: string = "", context?: OperationContext): AsyncGenerator<T> {
+  async *iterate(query: string = ""): AsyncGenerator<T> {
     if (query.includes("OFFSET")) {
       throw new Error("Cannot contain an OFFSET for iterate method");
     }
     let continuationToken;
     do {
       const q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
-      const page = await this.query(q, context);
+      const page = await this.query(q);
       for (const item of page.results) {
         yield item;
       }
@@ -920,9 +919,9 @@ abstract class Store<
    * @returns
    * @deprecated use iterate instead
    */
-  async queryAll(query: string, context?: OperationContext): Promise<T[]> {
+  async queryAll(query: string): Promise<T[]> {
     const res = [];
-    for await (const item of this.iterate(query, context)) {
+    for await (const item of this.iterate(query)) {
       res.push(item);
     }
     return res;
@@ -942,8 +941,12 @@ abstract class Store<
    * @param query
    * @param context to apply permission
    */
-  async query(query: string, context?: OperationContext): Promise<{ results: T[]; continuationToken?: string }> {
-    const permissionQuery = this._model.getPermissionQuery(context);
+  async query(query: string): Promise<{ results: T[]; continuationToken?: string }> {
+    let context = this._webda.getContext();
+    if (context instanceof GlobalContext) {
+      context = undefined;
+    }
+    const permissionQuery = context ? this._model.getPermissionQuery(context) : null;
     let partialPermission = true;
     let fullQuery = query;
     if (permissionQuery) {
@@ -960,8 +963,7 @@ abstract class Store<
     await this.emitSync("Store.Query", {
       query,
       parsedQuery,
-      store: this,
-      context
+      store: this
     });
     const result = {
       results: [],
@@ -995,7 +997,6 @@ abstract class Store<
       }
       let subOffsetCount = 0;
       for (const item of tmpResults.results) {
-        item.setContext(context);
         // Because of dynamic filter and permission we need to suboffset the pagination
         subOffsetCount++;
         if (subOffsetCount <= secondOffset) {
@@ -1037,8 +1038,7 @@ abstract class Store<
       parsedQuery: parsedQuery,
       store: this,
       continuationToken: result.continuationToken,
-      results: result.results,
-      context
+      results: result.results
     });
     return result;
   }
@@ -1112,14 +1112,11 @@ abstract class Store<
    *
    * Might want to rename to create
    */
-  async save(object, ctx: OperationContext = undefined): Promise<T> {
+  async save(object): Promise<T> {
     if (object instanceof this._model && object._creationDate !== undefined && object._lastUpdate !== undefined) {
-      if (ctx) {
-        object.setContext(ctx);
-      }
       return <T>await object.save();
     }
-    return this.create(object, ctx);
+    return this.create(object);
   }
 
   /**
@@ -1128,7 +1125,7 @@ abstract class Store<
    * @param ctx
    * @returns
    */
-  async create(object, ctx: OperationContext = undefined) {
+  async create(object) {
     object = this.initModel(object);
 
     // Dates should be store by the Store
@@ -1140,15 +1137,11 @@ abstract class Store<
     const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
     object.__types = [object.__type, ...ancestors].filter(i => i !== "Webda/CoreModel" && i !== "CoreModel");
 
-    if (ctx) {
-      object.setContext(ctx);
-    }
     // Handle object auto listener
     const evt = {
       object: object,
       object_id: object.getUuid(),
-      store: this,
-      context: ctx
+      store: this
     };
     await Promise.all([
       this.emitSync("Store.Save", evt),
@@ -1163,8 +1156,7 @@ abstract class Store<
     const evtSaved = {
       object: object,
       object_id: object.getUuid(),
-      store: this,
-      context: ctx
+      store: this
     };
     await Promise.all([
       this.emitSync("Store.Saved", evtSaved),
@@ -1245,7 +1237,7 @@ abstract class Store<
    */
   async conditionalPatch<CK extends keyof T>(
     uuid: string,
-    updates: Partial<T>,
+    updates: Partial<RawModel<T>>,
     conditionField: CK,
     condition: any
   ): Promise<boolean> {
@@ -1341,9 +1333,6 @@ abstract class Store<
       throw new StoreNotFoundError(uuid, this.getName());
     }
     const loaded = this.initModel(load);
-    if (object instanceof CoreModel) {
-      loaded.setContext(object.getContext());
-    }
     const update = object;
     const evt = {
       object: loaded,
@@ -1494,7 +1483,7 @@ abstract class Store<
       count: number;
       updated: number;
       done: boolean;
-    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, undefined, {});
+    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, {});
     status.count ??= 0;
     status.updated ??= 0;
     const worker = new Throttler(20);
@@ -1672,7 +1661,7 @@ abstract class Store<
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(uid: string, ctx: OperationContext = undefined, defaultValue: any = undefined): Promise<T> {
+  async get(uid: string, defaultValue: any = undefined): Promise<T> {
     /** @ignore */
     if (!uid) {
       return undefined;
@@ -1687,12 +1676,10 @@ abstract class Store<
       return undefined;
     }
     object = this.initModel(object);
-    object.setContext(ctx);
     const evt = {
       object: object,
       object_id: object.getUuid(),
-      store: this,
-      context: ctx
+      store: this
     };
     await Promise.all([this.emitSync("Store.Get", evt), object.__class.emitSync("Store.Get", evt), object._onGet()]);
     return object;

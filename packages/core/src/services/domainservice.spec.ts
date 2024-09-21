@@ -555,8 +555,6 @@ class DomainServiceTest extends WebdaTest {
       }
     });
     await userModel.refresh();
-    console.log("UserModel", userModel);
-    console.log("PUT binary", res, userModel);
     res = await this.http({
       method: "POST",
       url: `/companies/${company.uuid}/users/${user.uuid}/images`,
@@ -565,7 +563,6 @@ class DomainServiceTest extends WebdaTest {
         "X-Filename": "file2.txt"
       }
     });
-    console.log("POST binary", res);
     await userModel.refresh();
     assert.strictEqual(userModel.profilePicture.hash, "098f6bcd4621d373cade4e832627b4f6");
     assert.strictEqual(userModel.images[0].hash, "098f6bcd4621d373cade4e832627b4f6");

@@ -37,6 +37,7 @@ class ResourceTest extends WebdaInternalTest {
 
   @test
   async parentFolder() {
+    this.resource.getParameters().allowHiddenFiles = true;
     const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/../config.json");
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(

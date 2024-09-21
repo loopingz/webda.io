@@ -45,11 +45,26 @@ export class ResourceServiceParameters extends ServiceParameters {
    * @default "public, max-age=31536000"
    */
   cacheControl?: string;
+  /**
+   * Cache control for index file
+   * SPA usually do not cache the index file
+   *
+   * @default "no-cache, no-store, must-revalidate"
+   */
+  indexCacheControl?: string;
+  /**
+   * Serve also . prefixed files
+   * . files usually have some secrets and should not be served
+   *
+   * @default false
+   */
+  allowHiddenFiles?: boolean;
 
   constructor(params: any) {
     super(params);
     this.url ??= "resources";
     this.cacheControl ??= "public, max-age=31536000";
+    this.indexCacheControl ??= "no-cache, no-store, must-revalidate";
     this.rootRedirect ??= false;
     if (!this.url.startsWith("/")) {
       this.url = "/" + this.url;
@@ -63,6 +78,7 @@ export class ResourceServiceParameters extends ServiceParameters {
     }
     this.index ??= "index.html";
     this.indexFallback ??= true;
+    this.allowHiddenFiles ??= false;
   }
 }
 
@@ -179,9 +195,21 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
    */
   _serve(ctx: WebContext) {
     let file = this._resolved;
+    let cacheControl = this.parameters.cacheControl;
     // If resource is not a file
     if (!this.fileOnly) {
       file = path.join(this._resolved, ctx.parameter("resource") || this.parameters.index);
+      if (!ctx.parameter("resource")) {
+        cacheControl = this.parameters.indexCacheControl;
+      } else if (
+        ctx
+          .parameter("resource")
+          .split("/")
+          .find(f => f.startsWith(".")) &&
+        !this.parameters.allowHiddenFiles
+      ) {
+        throw new WebdaError.NotFound("Hidden files are not allowed");
+      }
     }
 
     // Avoid path transversal
@@ -195,6 +223,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
       if (!(this.parameters.indexFallback && fs.existsSync(file))) {
         throw new WebdaError.NotFound(file);
       }
+      cacheControl = this.parameters.indexCacheControl;
     }
     let mimetype = mime.lookup(file) || "application/octet-stream";
     if (mimetype.startsWith("text/")) {

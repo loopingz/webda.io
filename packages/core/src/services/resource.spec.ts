@@ -114,6 +114,14 @@ class ResourceTest extends WebdaInternalTest {
     assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "image/png");
   }
 
+  @test
+  async hiddenFile() {
+    await assert.rejects(() => this.http("/resources/data/.env"), WebdaError.NotFound);
+    this.resource.getParameters().allowHiddenFiles = true;
+    const res = await this.http("/resources/data/.env");
+    assert.strictEqual(res.toString(), "TEST=plop");
+  }
+
   // Check Store HTTP mapping
   @test
   async testStoreHttpMapping() {

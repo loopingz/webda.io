@@ -9,7 +9,7 @@
   "type": "module",
   "author": "Remi Cattiau <remi@cattiau.com>",
   "homepage": "https://github.com/loopingz/webda.io/tree/master/packages/codemod#readme",
-  "license": "ISC",
+  "license": "LGPL-3.0-only",
   "directories": {
     "lib": "lib",
     "test": "__tests__"

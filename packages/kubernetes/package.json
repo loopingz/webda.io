@@ -76,5 +76,6 @@
       "@webda/tsc-esm",
       "@webda/async"
     ]
-  }
+  },
+  "license": "LGPL-3.0-only"
 }

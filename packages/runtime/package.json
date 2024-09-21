@@ -100,5 +100,6 @@
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
-  }
+  },
+  "license": "LGPL-3.0-only"
 }

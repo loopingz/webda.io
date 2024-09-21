@@ -52,12 +52,12 @@
     "@types/node": "20.0.0"
   },
   "c8": {
-    "extends": "@istanbuljs/nyc-config-typescript",
     "report-dir": "./reports",
     "reporter": [
       "html",
       "lcov",
-      "json"
+      "json",
+      "text"
     ],
     "exclude": [
       "**/*.spec.ts",

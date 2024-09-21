@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { WorkerOutput } from "..";
+import { WorkerOutput } from "../core";
 import { MemoryLogger } from "./memory";
 
 @suite

@@ -1,7 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { WorkerInputType, WorkerOutput, WorkerProgress } from ".";
-import { WorkerInput } from "./core";
+import { WorkerInput, WorkerInputType, WorkerOutput, WorkerProgress } from "./core";
 
 function mapper([msg]) {
   const res = {};

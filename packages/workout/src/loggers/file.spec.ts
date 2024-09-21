@@ -1,10 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
-import { WaitFor, WaitLinearDelay } from "@webda/core";
-import { WorkerLog } from "@webda/workout";
 import * as assert from "assert";
 import { readdirSync, unlinkSync, writeFileSync } from "fs";
-import { WorkerOutput } from "..";
-import { WorkerMessage } from "../core";
+import { WorkerMessage, WorkerLog, WorkerOutput } from "../core";
 import { DebugLogger } from "./debug";
 import { FileLogger } from "./file";
 
@@ -33,18 +30,12 @@ class FileConsoleTest {
       this.output.log("DEBUG", `Test ${i}`);
     }
     this.output.log("TRACE", `Trace`);
-    await WaitFor<void>(
-      async resolve => {
-        if (readdirSync(".").filter(f => f.startsWith("test-file")).length === 3) {
-          resolve();
-        }
-        return false;
-      },
-      100,
-      "loggers",
-      undefined,
-      WaitLinearDelay(200)
-    );
+    for (let i = 0; i < 50; i++) {
+      if (readdirSync(".").filter(f => f.startsWith("test-file")).length === 3) {
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
 
     logger.onMessage(new WorkerMessage("title.set", undefined, { title: "Title" }));
     logger.onMessage(

@@ -1,12 +1,10 @@
 import { suite, test } from "@testdeck/mocha";
-import { WorkerInputType } from "@webda/workout";
 import * as assert from "assert";
 import chalk from "chalk";
 import { stdin } from "mock-stdin";
 import { nextTick } from "process";
 import * as sinon from "sinon";
-import { WorkerLogLevelEnum, WorkerOutput } from "..";
-import { WorkerProgress } from "../core";
+import { WorkerLogLevelEnum, WorkerOutput, WorkerProgress, WorkerInputType } from "../core";
 import { Terminal } from "./terminal";
 
 // This is needed to trigger stdin within github-actions

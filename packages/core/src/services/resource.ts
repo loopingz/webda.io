@@ -232,7 +232,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
     ctx.writeHead(200, {
       "content-type": mimetype,
       "content-length": fs.lstatSync(file).size,
-      "cache-control": this.parameters.cacheControl
+      "cache-control": cacheControl
     });
     const stream = fs.createReadStream(file);
     return new Promise((resolve, reject) => {

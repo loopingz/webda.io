@@ -7,7 +7,7 @@ import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import * as WebdaQL from "@webda/ql";
-import { WebdaTest } from "../test";
+import { consumeAsyncIterator, WebdaTest } from "../test";
 
 /**
  * Fake User for migration test
@@ -65,17 +65,19 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
     let total = 0;
     await runInContext(context, async () => {
       do {
-        res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
+        res = await userStore.query(`state = 'CA' LIMIT 10 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
         offset = res.continuationToken;
         total += res.results.length;
       } while (offset);
       assert.strictEqual(total, 100);
+
       assert.rejects(
-        () => userStore.queryAll("state = 'CA' OFFSET 123"),
+        () => consumeAsyncIterator(userStore.iterate("state = 'CA' OFFSET 123")),
         /Cannot contain an OFFSET for queryAll method/
       );
-      assert.strictEqual((await userStore.queryAll("state = 'CA' LIMIT 50")).length, 250);
     });
+    // Run as system
+    assert.strictEqual((await consumeAsyncIterator(userStore.iterate("state = 'CA' LIMIT 50"))).length, 250);
     return userStore;
   }
 

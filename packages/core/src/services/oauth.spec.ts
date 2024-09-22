@@ -134,8 +134,8 @@ class OAuthServiceTest extends WebdaInternalTest {
     // Register with oauth
     await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
     // We should have two idents existing now
-    assert.ok(await this.service._authenticationService._identModel.ref("plop_fake").exists());
-    assert.ok(await this.service._authenticationService._identModel.ref("rcattiau@gmail.com_email").exists());
+    assert.ok(await this.service._authenticationService.getIdentModel().ref("plop_fake").exists());
+    assert.ok(await this.service._authenticationService.getIdentModel().ref("rcattiau@gmail.com_email").exists());
     await ctx.newSession();
     // Log with known ident / email
     assert.strictEqual(ctx.getSession().identUsed, undefined);

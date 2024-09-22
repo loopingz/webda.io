@@ -13,6 +13,7 @@ import {
   WebdaError
 } from "../index";
 import { TestApplication } from "../test";
+import { getDirtyProxy } from "../utils/dirtyproxy";
 
 @suite
 class AclModelTest {
@@ -30,7 +31,7 @@ class AclModelTest {
     this._ctx = await this._webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");
-    this.model = new AclModel().getProxy();
+    this.model = getDirtyProxy(new AclModel());
     this._user = new SimpleUser();
     this._user.setUuid("user-uid");
     this._user.addGroup("gip-123");

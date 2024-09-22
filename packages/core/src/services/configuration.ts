@@ -1,5 +1,5 @@
 import jsonpath from "jsonpath";
-import { WebdaError } from "../index";
+import { useService, WebdaError } from "../index";
 import { Service, ServiceParameters } from "./service";
 
 /**
@@ -111,7 +111,7 @@ class ConfigurationService<
       throw new WebdaError.CodeError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
     }
     const source = this.parameters.source.split(":");
-    this.sourceService = <ConfigurationProvider>(<unknown>this.getService(source[0]));
+    this.sourceService = <ConfigurationProvider>(<unknown>useService(source[0]));
     if (!this.sourceService) {
       throw new WebdaError.CodeError(
         "CONFIGURATION_SOURCE_INVALID",

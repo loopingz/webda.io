@@ -17,7 +17,7 @@ import {
   OperationDefinition,
   Service,
   ServiceParameters,
-  WebContext,
+  runInContext,
   WebdaError
 } from "../index";
 import { TransformCase, TransformCaseType } from "../utils/case";
@@ -293,19 +293,21 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    */
   async modelCreate(context: OperationContext) {
     const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
-    const object = model.factory(await context.getInput(), context);
-    await object.checkAct(context, "create");
-    // Enforce the UUID
-    object.setUuid(object.generateUid());
-    // Check for conflict
-    // await object.validate(context, {});
-    if (await model.ref(object.getUuid()).exists()) {
-      throw new WebdaError.Conflict("Object already exists");
-    }
-    await object.save();
-    // Set the location header to only uuid for now
-    context.setHeader("Location", object.getUuid());
-    context.write(object);
+    await runInContext(context, async () => {
+      const object = model.factory(await context.getInput());
+      await object.checkAct(context, "create");
+      // Enforce the UUID
+      object.setUuid(object.generateUid());
+      // Check for conflict
+      // await object.validate(context, {});
+      if (await model.ref(object.getUuid()).exists()) {
+        throw new WebdaError.Conflict("Object already exists");
+      }
+      await object.save();
+      // Set the location header to only uuid for now
+      context.setHeader("Location", object.getUuid());
+      context.write(object);
+    });
   }
 
   /**
@@ -358,15 +360,17 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async modelQuery(context: OperationContext) {
     const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
     const { query } = context.getParameters();
-    try {
-      context.write(await model.query(query, true, context));
-    } catch (err) {
-      if (err instanceof SyntaxError) {
-        this.log("INFO", "Query syntax error");
-        throw new WebdaError.BadRequest("Query syntax error");
+    await runInContext(context, async () => {
+      try {
+        context.write(await model.query(query, true));
+      } catch (err) {
+        if (err instanceof SyntaxError) {
+          this.log("INFO", "Query syntax error");
+          throw new WebdaError.BadRequest("Query syntax error");
+        }
+        throw err;
       }
-      throw err;
-    }
+    });
   }
 
   /**

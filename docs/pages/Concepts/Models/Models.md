@@ -39,17 +39,16 @@ Action are using the method `PUT` by default.
 
 ```js title="src/mymodel.ts"
 class MyModel extends CoreModel {
-
   @Action()
   export(context: Context) {
-  	ctx.write("My export");
+    ctx.write("My export");
   }
 
   canAct(ctx: Context, action: string) {
-  	if (action === "export") {
-  		return this;
-  	}
-  	return super.canAct(ctx,action);
+    if (action === "export") {
+      return this;
+    }
+    return super.canAct(ctx, action);
   }
 }
 ```
@@ -145,3 +144,46 @@ Relations are resolved at compile time.
 The domain service is the service that based on the resolved relationship can automate the creation of the different stores and mapper.
 
 It can also expose the GraphQL API
+
+## CRUD
+
+```
+class MyModel extends CoreModel {}
+
+// Create
+MyModel.create({...}); // A factory concept exists to allow auto subclassing
+// Get
+MyModel.get(uuid);
+// Get or create
+MyModel.get(uuid, {...});
+// Patch
+MyModel.ref(uuid).patch({...});
+// Patch or create
+MyModel.ref(uuid).upsert({...});
+// Query
+MyModel.query();
+// Iterate on a query
+for await (let model of MyModel.iterate("")) {
+
+}
+// For each object
+MyModel.forEach(() => {
+
+}, "Query", 3)
+// Delete
+MyModel.delete(uuid);
+
+// On the instance itself you have
+const model = await MyModel.create({...});
+model.delete();
+model.save();
+model.refresh();
+// Load data into the object
+model.load(...)
+// To see
+model.setAttribute();
+model.incrementAttributes();
+model.incrementAttribute();
+model.removeAttribute();
+model.upsert...
+```

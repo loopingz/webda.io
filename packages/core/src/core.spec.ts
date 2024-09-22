@@ -89,14 +89,14 @@ class ModelDomainTest extends WebdaInternalTest {
 
   protected async buildWebda(): Promise<void> {
     await super.buildWebda();
-    await this.addService(
+    await this.addService<MemoryStore>(
       MemoryStore,
       {
         model: "WebdaTest/ClassA"
       },
       "ClassA"
     );
-    await this.addService(
+    await this.addService<MemoryStore>(
       MemoryStore,
       {
         model: "WebdaTest/ChildClassA"
@@ -308,7 +308,7 @@ class CoreTest extends WebdaInternalTest {
   async before() {
     await super.before();
     this.ctx = await this.newContext({});
-    this.addService(ExceptionExecutor, "ExceptionExecutor");
+    await this.addService(ExceptionExecutor);
   }
 
   @test

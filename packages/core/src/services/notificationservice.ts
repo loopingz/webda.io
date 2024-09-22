@@ -1,3 +1,4 @@
+import { useService } from "../hooks";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Service, ServiceParameters } from "./service";
@@ -76,7 +77,7 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
   resolve(): this {
     super.resolve();
     this.senders = this.parameters.senders.map(s => {
-      const service = <NotificationService>(<unknown>this.getService(s));
+      const service = <NotificationService>(<unknown>useService(s));
       if (!service) {
         throw new Error(`Unknown service '${s}'`);
       }

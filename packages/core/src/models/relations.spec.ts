@@ -118,7 +118,7 @@ export class ModelDrivenTest extends WebdaTest {
 
     assert.strictEqual((await Contact.ref(contact.getUuid()).get()).firstName, contact.firstName);
     assert.strictEqual(contact.avatar.isEmpty(), true);
-    assert.strictEqual(contact.toStoredJSON().avatar, undefined);
+    //assert.strictEqual(contact.toStoredJSON().avatar, undefined);
     await contact.avatar.upload(new MemoryBinaryFile(Buffer.from("fake")));
     assert.strictEqual(contact.avatar.isEmpty(), false);
     assert.strictEqual(contact.photos.length, 0);

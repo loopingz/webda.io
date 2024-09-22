@@ -10,7 +10,8 @@ import {
   Histogram,
   Logger,
   MetricConfiguration,
-  OperationContext
+  OperationContext,
+  useService
 } from "../index";
 import { OpenAPIWebdaDefinition, Route } from "../rest/router";
 import { HttpMethodType } from "../utils/httpcontext";
@@ -59,7 +60,7 @@ class Injector {
     if (this.parameter) {
       name = service.getParameters()[this.parameter] || this.value;
     }
-    service[this.property] = service.getService(name);
+    service[this.property] = useService(name);
     if (!service[this.property] && !this.optional) {
       if (this.parameter) {
         throw new Error(
@@ -602,14 +603,6 @@ abstract class Service<
    */
   onAsync<Key extends keyof E>(event: Key, listener: (evt: E[Key]) => void, queue: string = undefined) {
     this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
-  }
-
-  /**
-   * Return a webda service
-   * @param service name to retrieve
-   */
-  getService<K extends Service<ServiceParameters>>(service: string): K {
-    return this._webda.getService<K>(service);
   }
 
   /**

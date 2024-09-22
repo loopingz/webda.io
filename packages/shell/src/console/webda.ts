@@ -1315,9 +1315,8 @@ ${Object.keys(operationsExport.operations)
           continuationToken = result.continuationToken;
           for (const model of result.results) {
             writer.write(
-              JSON.stringify(model.toStoredJSON(), (_, value) =>
-                typeof value === "bigint" ? value.toString() : value
-              ) + "\n"
+              JSON.stringify(model.toJSON(), (_, value) => (typeof value === "bigint" ? value.toString() : value)) +
+                "\n"
             );
           }
         } while (continuationToken);

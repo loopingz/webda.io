@@ -42,6 +42,7 @@ import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel"
 import { RouteInfo, Router } from "./rest/router";
 import { CryptoService } from "./services/cryptoservice";
 import { JSONUtils } from "./utils/serializers";
+import { setContextUpdate as CoreProxyContextUpdate } from "./models/coremodelproxy";
 const { machineIdSync } = pkg;
 
 export class EventEmitterUtils {
@@ -197,30 +198,6 @@ export class OriginFilter implements RequestFilter<WebContext> {
     const httpContext = context.getHttpContext();
     return this.regexs.validate(httpContext.hostname) || this.regexs.validate(httpContext.origin);
   }
-}
-
-/**
- * Shortcut to get the current context
- * @returns
- */
-export function getContext() {
-  return Core.get().getContext();
-}
-
-/**
- * Shortcut to run with a context
- * @returns
- */
-export function runInContext(context: Context, callback: () => unknown) {
-  return Core.get().runInContext(context, callback);
-}
-
-/**
- * Shortcut to run with as system
- * @returns
- */
-export function runAsSystem(callback: () => unknown) {
-  return Core.get().runAsSystem(callback);
 }
 
 /**
@@ -1159,14 +1136,26 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   public getContext<T extends Context>(): T {
     return Core.asyncLocalStorage.getStore()?.context || this.globalContext;
   }
+
+  /**
+   * Used to update model context
+   *
+   * @param models
+   * @param context
+   */
+  private attachModels(models: CoreModel[], context: Context) {
+    CoreProxyContextUpdate(true);
+    models.forEach(m => (m.context = context));
+    CoreProxyContextUpdate(false);
+  }
   /**
    * Run this function as system
    *
    * @param run
    * @returns
    */
-  runAsSystem<T>(run: () => T): T {
-    return this.runInContext(this.globalContext, run);
+  runAsSystem<T>(run: () => T, attach: CoreModel[] = []): T {
+    return this.runInContext(this.globalContext, run, attach);
   }
   /**
    * Run this function as user
@@ -1174,9 +1163,17 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param run
    * @returns
    */
-  runInContext<T>(context: Context, run: () => T): T {
+  runInContext<T>(context: Context, run: () => T, attach: CoreModel[] = []): T {
     const previousContext = Core.asyncLocalStorage.getStore()?.context;
-    return Core.asyncLocalStorage.run({ context, previousContext }, run);
+    this.attachModels(attach, context);
+    let res = Core.asyncLocalStorage.run({ context, previousContext }, run);
+    // Manage both promise and normal
+    if (res instanceof Promise) {
+      res.then(() => this.attachModels(attach, undefined));
+    } else {
+      this.attachModels(attach, undefined);
+    }
+    return res;
   }
 
   /**
@@ -1756,8 +1753,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 export type MetricConfiguration<T = Counter | Gauge | Histogram, K extends string = string> = T extends Counter
   ? CounterConfiguration<K>
   : T extends Gauge
-    ? GaugeConfiguration<K>
-    : HistogramConfiguration<K>;
+  ? GaugeConfiguration<K>
+  : HistogramConfiguration<K>;
 
 /**
  * Export a Registry type alias

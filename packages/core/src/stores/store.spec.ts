@@ -210,7 +210,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     const userStore = this.userStore;
     await this.addService(
       MapperService,
-      {
+      <any>{
         source: identStore.getName(),
         targetAttribute: "idents",
         target: userStore.getName(),
@@ -220,7 +220,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
       },
       "Mapper"
     );
-    await this.addService(AggregatorService, {
+    await this.addService(AggregatorService, <any>{
       source: identStore.getName(),
       key: "idents-index",
       fields: ["type"]

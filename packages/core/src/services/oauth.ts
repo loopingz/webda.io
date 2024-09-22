@@ -1,5 +1,5 @@
 import { Core, Counter } from "../core";
-import { EventWithContext, OperationContext, RequestFilter, WebContext, WebdaError } from "../index";
+import { EventWithContext, OperationContext, RequestFilter, useService, WebContext, WebdaError } from "../index";
 import { Authentication } from "./authentication";
 import { RegExpStringValidator, Service, ServiceParameters } from "./service";
 
@@ -198,7 +198,7 @@ export abstract class OAuthService<
    */
   resolve(): this {
     super.resolve();
-    this._authenticationService = this.getService(this.parameters.authenticationService);
+    this._authenticationService = useService(this.parameters.authenticationService);
     return this;
   }
 

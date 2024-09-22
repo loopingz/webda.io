@@ -1,4 +1,4 @@
-import { Context, Core, getContext, OperationContext, User, WebContext, WebdaError } from "../index";
+import { Context, useContext, OperationContext, User, WebContext, WebdaError } from "../index";
 import { Action, CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -27,7 +27,7 @@ export class AclModel extends CoreModel {
    */
   async _onSave() {
     await super._onSave();
-    this._creator = getContext().getCurrentUserId();
+    this._creator = useContext().getCurrentUserId();
     if (Object.keys(this.__acl).length === 0 && this._creator) {
       this.__acl[this._creator] = "all";
     }
@@ -188,7 +188,7 @@ export class AclModel extends CoreModel {
    */
   async getPermissions(user?: User): Promise<string[]> {
     if (!user) {
-      user = await getContext().getCurrentUser();
+      user = await useContext().getCurrentUser();
     }
     if (!user) {
       return [];

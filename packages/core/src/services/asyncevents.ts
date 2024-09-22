@@ -1,3 +1,4 @@
+import { useService } from "../hooks";
 import { CoreModelDefinition } from "../models/coremodel";
 import { Queue } from "../queues/queueservice";
 import { Service, ServiceParameters } from "./service";
@@ -73,7 +74,7 @@ export class AsyncEvent {
       data.type,
       JSON.parse(data.payload, (_key: string, value: any) => {
         if (typeof value === "string" && value.startsWith(AsyncEvent.ServiceTag)) {
-          return service.getService(value.substring(AsyncEvent.ServiceTag.length));
+          return useService(value.substring(AsyncEvent.ServiceTag.length));
         }
         return value;
       })
@@ -148,7 +149,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
       if (!this._defaultQueue) {
         this._defaultQueue = key;
       }
-      this._queues[key] = this.getService<Queue>(this.parameters.queues[key]);
+      this._queues[key] = useService<Queue>(this.parameters.queues[key]);
     });
 
     this._async = !this.parameters.sync;

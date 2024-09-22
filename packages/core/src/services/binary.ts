@@ -15,10 +15,6 @@ import { Service, ServiceParameters } from "./service";
 export interface EventBinary {
   object: BinaryFileInfo;
   service: BinaryService;
-  /**
-   * In case the Context is known
-   */
-  context?: OperationContext;
 }
 
 export interface EventBinaryUploadSuccess extends EventBinary {
@@ -240,11 +236,6 @@ export type BinaryMetadata = any;
  */
 export class BinaryMap<T = any> extends BinaryFile<T> {
   /**
-   * Current context
-   */
-  @NotEnumerable
-  __ctx: OperationContext;
-  /**
    * Link to the binary store
    */
   @NotEnumerable
@@ -281,14 +272,6 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
    */
   async downloadTo(filename: string): Promise<void> {
     return this.__store.downloadTo(this, filename);
-  }
-
-  /**
-   * Set the http context
-   * @param ctx
-   */
-  setContext(ctx: OperationContext) {
-    this.__ctx = ctx;
   }
 }
 
@@ -757,11 +740,11 @@ export abstract class BinaryService<
     const relations = this.getWebda().getApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     if (cardinality === "MANY") {
-      await (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object)
-        .getStore()
+      await (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class
+        .store()
         .upsertItemToCollection(object_uid, property, file);
     } else {
-      await object.getStore().setAttribute(object_uid, property, file);
+      await object.__class.store().setAttribute(object_uid, property, file);
     }
     await this.emitSync("Binary.Create", {
       object: file,
@@ -793,11 +776,11 @@ export abstract class BinaryService<
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
     if (cardinality === "MANY") {
-      update = (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object)
-        .getStore()
+      update = (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class
+        .store()
         .deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
     } else {
-      object.getStore().removeAttribute(object.getUuid(), property);
+      object.__class.store().removeAttribute(object.getUuid(), property);
     }
     await this.emitSync("Binary.Delete", {
       object: info,

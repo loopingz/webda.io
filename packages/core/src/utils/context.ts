@@ -13,6 +13,7 @@ import { Session, SessionManager } from "../utils/session";
 import { HttpContext } from "./httpcontext";
 import { JSONUtils } from "./serializers";
 import { pipeline } from "node:stream/promises";
+import { runInContext } from "../hooks";
 
 /**
  * @category CoreFeatures
@@ -913,7 +914,7 @@ export class WebContext<T = any, U = any, P = any> extends OperationContext<T, U
    * Execute the target route
    */
   async execute() {
-    return this._route._method(this);
+    return runInContext(this, () => this._route._method(this));
   }
 
   /**

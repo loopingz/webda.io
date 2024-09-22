@@ -441,7 +441,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
         // Remove user
         promises.push(
           (async () => {
-            const id = await this.authenticationService.getIdentStore().get(ident);
+            const id = await this.authenticationService.getIdentModel().get(ident);
             if (id && id.getUser()) {
               delete model[this.parameters.attribute][id.getUser()];
               await this.removeInvitationFromUser(id.getUser().toString(), model.getUuid());
@@ -477,12 +477,13 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
    * @param user
    */
   protected async removeInvitationFromUser(user: string, model: string): Promise<void> {
-    const userModel = await this.authenticationService.getUserStore().get(user);
+    const userModel = await this.authenticationService.getUserModel().get(user);
     let index = 0;
     for (const invit of userModel[this.parameters.mapAttribute] || []) {
       if (invit.model === model) {
         await this.authenticationService
-          .getUserStore()
+          .getUserModel()
+          .store()
           .deleteItemFromCollection(user, <any>this.parameters.mapAttribute, index, model, "model");
         return;
       }
@@ -519,7 +520,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     }
     const body: Invitation = await ctx.getRequestBody();
     // For each ident
-    const identsStore = this.authenticationService.getIdentStore();
+    const identsStore = this.authenticationService.getIdentModel();
     // Load all idents with orignal
     const invitations: { invitation: string; ident: Ident }[] = await Promise.all(
       (body.idents || []).map(async i => ({
@@ -545,7 +546,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
         }
         promises.push(
           (async () => {
-            const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser().toString());
+            const user = await this.authenticationService.getUserModel().get(invitation.ident.getUser().toString());
             invitedUsers.push(user);
             await this.addInvitationToUser(model, user, inviter, metadata, body.notification);
           })()
@@ -597,7 +598,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     body.users ??= [];
     promises.push(
       ...body.users.map(async u => {
-        const user = await this.authenticationService.getUserStore().get(u);
+        const user = await this.authenticationService.getUserModel().get(u);
         if (!user) {
           return;
         }
@@ -629,7 +630,8 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
       return;
     }
     await this.authenticationService
-      .getUserStore()
+      .getUserModel()
+      .store()
       .upsertItemToCollection(user.getUuid(), <any>this.parameters.mapAttribute, {
         model: model.getUuid(),
         metadata,

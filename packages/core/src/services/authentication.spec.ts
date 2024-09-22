@@ -8,6 +8,7 @@ import {
   PasswordRecoveryInfos,
   Store,
   WebContext,
+  runInContext,
   WebdaError
 } from "..";
 import { WebdaTest } from "../test";
@@ -24,11 +25,11 @@ class AuthenticationTest extends WebdaTest {
   authentication: Authentication;
 
   getUserStore(): Store<any> {
-    return this.authentication._userModel.store();
+    return this.authentication.getUserModel().store();
   }
 
   getIdentStore(): Store<any> {
-    return this.authentication._identModel.store();
+    return this.authentication.getIdentModel().store();
   }
 
   async before() {
@@ -271,12 +272,11 @@ class AuthenticationTest extends WebdaTest {
 
   @test("/me") async me() {
     const ctx = await this.newContext();
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");
     await assert.rejects(
-      () => executor.execute(ctx),
+      () => this.http("/auth/me"),
       (err: WebdaError.HttpError) => err.getResponseCode() === 404
     );
-    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
+    const executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
       login: "test5@webda.io",
       password: "testtest",
       register: true,
@@ -285,8 +285,7 @@ class AuthenticationTest extends WebdaTest {
     ctx.getExecutor().getParameters().email.postValidation = true;
     await executor.execute(ctx);
     // Get me on known user
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");
-    await executor.execute(ctx);
+    await this.http("/auth/me", ctx);
     const user = JSON.parse(<string>ctx.getResponseBody());
     assert.strictEqual(user.plop, "yep");
     assert.strictEqual(user.register, undefined);

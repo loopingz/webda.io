@@ -1,3 +1,4 @@
+import { WorkerLogLevel } from "@webda/workout";
 import { Core } from "./core";
 import { CoreModel } from "./models/coremodel";
 import { Service } from "./services/service";
@@ -24,6 +25,14 @@ export function useService<T extends Service>(name: string): T {
  */
 export function useCore(): Core {
   return Core.get();
+}
+
+/**
+ * Get the log function
+ * @returns
+ */
+export function useLog(level: WorkerLogLevel, message: string, ...args: any[]): void {
+  return Core.get().log(level, message, ...args);
 }
 
 /**

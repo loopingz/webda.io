@@ -166,7 +166,7 @@ export class Route53Service extends Service {
         toDelete.forEach(r => {
           Console.log("INFO", "Deleting entry\n", JSON.stringify(r, undefined, 2));
         });
-      } else {
+      } else if (toDelete.length) {
         await r53.changeResourceRecordSets({
           HostedZoneId: targetZone.Id,
           ChangeBatch: {

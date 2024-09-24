@@ -32,7 +32,6 @@
         "__class": "CoreModelDefinition<this>",
         "__type": "string",
         "__types": "string[]",
-        "__ctx": "OperationContext",
         "__store": "Store<this>",
         "__dirty": "Set<string | symbol>",
         "_creationDate": "Date",

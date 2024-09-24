@@ -103,19 +103,19 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
 
     // Test guard-rails (seems hardly reachable so might be useless)
     assert.throws(
-      () => identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 1, null),
+      () => identStore["checkCollectionUpdateCondition"](ident, "plops", undefined, 1, null),
       UpdateConditionFailError
     );
     // @ts-ignore
     ident.plops = [];
     assert.throws(
-      () => identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 1, null),
+      () => identStore["checkCollectionUpdateCondition"](ident, "plops", undefined, 1, null),
       UpdateConditionFailError
     );
-    identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 0, null);
+    identStore["checkCollectionUpdateCondition"](ident, "plops", undefined, 0, null);
 
     assert.rejects(
-      () => identStore.simulateUpsertItemToCollection(undefined, <any>"__proto__", undefined, new Date()),
+      () => identStore["simulateUpsertItemToCollection"](undefined, <any>"__proto__", undefined, new Date()),
       /Cannot update __proto__: js\/prototype-polluting-assignment/
     );
   }

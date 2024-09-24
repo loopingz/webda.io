@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { CoreModel, FilterAttributes } from "../models/coremodel";
+import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
 import * as WebdaQL from "@webda/ql";
+import type { FilterAttributes } from "@webda/tsc-esm";
 
 class FileStoreParameters extends StoreParameters {
   /**
@@ -96,7 +97,7 @@ class FileStore<T extends CoreModel = CoreModel, K extends FileStoreParameters =
   async _save(object: T) {
     fs.writeFileSync(
       this.file(object.getUuid()),
-      JSON.stringify(object.toStoredJSON(), undefined, this.parameters.beautify)
+      JSON.stringify(this.toStoredJSON(object), undefined, this.parameters.beautify)
     );
     return object;
   }

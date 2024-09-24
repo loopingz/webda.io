@@ -210,7 +210,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     const userStore = this.userStore;
     await this.addService(
       MapperService,
-      {
+      <any>{
         source: identStore.getName(),
         targetAttribute: "idents",
         target: userStore.getName(),
@@ -220,7 +220,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
       },
       "Mapper"
     );
-    await this.addService(AggregatorService, {
+    await this.addService(AggregatorService, <any>{
       source: identStore.getName(),
       key: "idents-index",
       fields: ["type"]
@@ -789,9 +789,9 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     const store = this.identStore;
     const model = await store.save({ counter: 1 });
     model.saveUpdateCompat = true;
-    await store.save(model, await this.newContext());
+
+    await store.save(model);
     model.saveInnerMethod = true;
-    model.setContext(await this.newContext());
     await model.save();
     const model2 = await store.get(model.getUuid());
     store.on("Store.Update", async () => {

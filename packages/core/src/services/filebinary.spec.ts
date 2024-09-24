@@ -39,7 +39,8 @@ class FileBinaryTest<T extends FileBinary = FileBinary> extends BinaryTest<T> {
    * @override
    */
   async getBinary(): Promise<T> {
-    return <Promise<T>>this.addService(FileBinary, {
+    // @ts-ignore
+    return this.addService(FileBinary, {
       folder: "./test/data/binaries",
       models: {
         "*": ["*"],

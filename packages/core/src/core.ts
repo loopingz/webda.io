@@ -6,6 +6,7 @@ import * as events from "events";
 import { JSONSchema7 } from "json-schema";
 import jsonpath from "jsonpath";
 import pkg from "node-machine-id";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { OpenAPIV3 } from "openapi-types";
 import {
   Counter,
@@ -22,6 +23,7 @@ import { Application, Configuration, Modda } from "./application";
 import {
   BinaryService,
   ConfigurationService,
+  Context,
   ContextProvider,
   ContextProviderInfo,
   GlobalContext,
@@ -40,6 +42,7 @@ import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel"
 import { RouteInfo, Router } from "./rest/router";
 import { CryptoService } from "./services/cryptoservice";
 import { JSONUtils } from "./utils/serializers";
+import { setContextUpdate as CoreProxyContextUpdate } from "./models/coremodelproxy";
 const { machineIdSync } = pkg;
 
 export class EventEmitterUtils {
@@ -430,6 +433,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    */
   interuptables: { cancel: () => Promise<void> }[] = [];
+  /**
+   * Store execution context
+   */
+  static asyncLocalStorage = new AsyncLocalStorage<{ context: Context } & any>();
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -1122,6 +1129,52 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     this.emit("Webda.UpdateContextRoute", { context: ctx });
     return true;
   }
+  /**
+   * Return the current context or global context
+   * @returns
+   */
+  public getContext<T extends Context>(): T {
+    return Core.asyncLocalStorage.getStore()?.context || this.globalContext;
+  }
+
+  /**
+   * Used to update model context
+   *
+   * @param models
+   * @param context
+   */
+  private attachModels(models: CoreModel[], context: Context) {
+    CoreProxyContextUpdate(true);
+    models.forEach(m => (m.context = context));
+    CoreProxyContextUpdate(false);
+  }
+  /**
+   * Run this function as system
+   *
+   * @param run
+   * @returns
+   */
+  runAsSystem<T>(run: () => T, attach: CoreModel[] = []): T {
+    return this.runInContext(this.globalContext, run, attach);
+  }
+  /**
+   * Run this function as user
+   * @param context
+   * @param run
+   * @returns
+   */
+  runInContext<T>(context: Context, run: () => T, attach: CoreModel[] = []): T {
+    const previousContext = Core.asyncLocalStorage.getStore()?.context;
+    this.attachModels(attach, context);
+    let res = Core.asyncLocalStorage.run({ context, previousContext }, run);
+    // Manage both promise and normal
+    if (res instanceof Promise) {
+      res.then(() => this.attachModels(attach, undefined));
+    } else {
+      this.attachModels(attach, undefined);
+    }
+    return res;
+  }
 
   /**
    * Flush the headers to the response, no more header modification is possible after that
@@ -1700,8 +1753,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 export type MetricConfiguration<T = Counter | Gauge | Histogram, K extends string = string> = T extends Counter
   ? CounterConfiguration<K>
   : T extends Gauge
-    ? GaugeConfiguration<K>
-    : HistogramConfiguration<K>;
+  ? GaugeConfiguration<K>
+  : HistogramConfiguration<K>;
 
 /**
  * Export a Registry type alias

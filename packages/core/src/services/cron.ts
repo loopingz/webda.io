@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { schedule } from "node-cron";
-import { CancelablePromise } from "../index";
+import { CancelablePromise, useService } from "../index";
 import { Service } from "./service";
 
 /**
@@ -135,7 +135,7 @@ class CronService extends Service {
         this.schedule(i.cron, i.cb);
       } else {
         this.schedule(i.cron, () => {
-          this.getService(i.serviceName)[i.method](...i.args);
+          useService(i.serviceName)[i.method](...i.args);
         });
       }
     });

@@ -1,8 +1,17 @@
 import { Counter, EventWithContext, Histogram, RegistryEntry } from "../core";
-import { ConfigurationProvider, MemoryStore, ModelMapLoaderImplementation, Throttler, WebdaError } from "../index";
-import { Constructor, CoreModel, CoreModelDefinition, FilterAttributes } from "../models/coremodel";
+import {
+  ConfigurationProvider,
+  MemoryStore,
+  ModelMapLoaderImplementation,
+  RawModel,
+  runAsSystem,
+  Throttler,
+  WebdaError
+} from "../index";
+import { Constructor, CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
-import { OperationContext } from "../utils/context";
+import { GlobalContext } from "../utils/context";
+import type { FilterAttributes } from "@webda/tsc-esm";
 import * as WebdaQL from "@webda/ql";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
@@ -35,10 +44,6 @@ interface EventStore {
    * Store emitting
    */
   store: Store;
-  /**
-   * Context of the operation
-   */
-  context?: OperationContext;
 }
 /**
  * Event called before save of an object
@@ -207,10 +212,6 @@ export interface EventStoreQuery {
    * The parsed query by our grammar
    */
   parsedQuery: WebdaQL.Query;
-  /**
-   * Context in which the query was run
-   */
-  context: OperationContext;
 }
 /**
  * Event sent when query is resolved
@@ -571,6 +572,21 @@ abstract class Store<
   }
 
   /**
+   * Return the object to be serialized without the __store
+   *
+   * @param stringify
+   * @returns
+   */
+  toStoredJSON(obj: CoreModel, stringify = false): any | string {
+    return runAsSystem(() => {
+      if (stringify) {
+        return JSON.stringify(obj.toJSON());
+      }
+      return obj.toJSON();
+    });
+  }
+
+  /**
    * @override
    */
   initMetrics(): void {
@@ -632,7 +648,6 @@ abstract class Store<
       }
     } else {
       this.metrics.cache_hits.inc();
-      res.__store = this;
     }
     return res;
   }
@@ -695,44 +710,45 @@ abstract class Store<
    * @returns
    */
   protected initModel(object: any = {}): T {
-    object.__type ??= this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
-    // Make sure to send a model object
-    if (!(object instanceof this._model)) {
-      // Dynamic load type
-      if (object.__type && !this.getParameters().forceModel) {
-        try {
-          const modelType = this.getWebda()
-            .getApplication()
-            .getModel(this.parameters.modelAliases[object.__type] || object.__type);
-          object = new modelType().load(object, true);
-        } catch (err) {
-          if (!this.parameters.defaultModel) {
-            throw new Error(`Unknown model ${object.__type} found for Store(${this.getName()})`);
+    return runAsSystem(() => {
+      object.__type ??= this.getWebda().getApplication().getModelFromInstance(object) || this._modelType;
+      // Make sure to send a model object
+      if (!(object instanceof this._model)) {
+        // Dynamic load type
+        if (object.__type && !this.getParameters().forceModel) {
+          try {
+            const modelType = this.getWebda()
+              .getApplication()
+              .getModel(this.parameters.modelAliases[object.__type] || object.__type);
+            object = new modelType().load(object);
+          } catch (err) {
+            if (!this.parameters.defaultModel) {
+              throw new Error(`Unknown model ${object.__type} found for Store(${this.getName()})`);
+            }
+            object = this._model.factory(object);
           }
+        } else {
           object = this._model.factory(object);
         }
-      } else {
-        object = this._model.factory(object);
       }
-    }
-    if (!object.getUuid()) {
-      object.setUuid(object.generateUid(object));
-    }
-    object.__store = this;
-    for (const i in this._reverseMap) {
-      object[this._reverseMap[i].property] ??= [];
-      for (const j in object[this._reverseMap[i].property]) {
-        if (object[this._reverseMap[i].property][j] instanceof ModelMapLoaderImplementation) {
-          continue;
+      if (!object.getUuid()) {
+        object.setUuid(object.generateUid(object));
+      }
+      object.__store = this;
+      for (const i in this._reverseMap) {
+        object[this._reverseMap[i].property] ??= [];
+        for (const j in object[this._reverseMap[i].property]) {
+          if (object[this._reverseMap[i].property][j] instanceof ModelMapLoaderImplementation) {
+            continue;
+          }
+          // Use Partial
+          object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.newModel(
+            object[this._reverseMap[i].property][j]
+          );
         }
-        // Use Partial
-        object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.newModel(
-          object[this._reverseMap[i].property][j]
-        );
-        object[this._reverseMap[i].property][j].setContext(object.getContext());
       }
-    }
-    return object;
+      return object;
+    });
   }
 
   /**
@@ -766,6 +782,7 @@ abstract class Store<
    * @param uid
    * @param info
    * @returns
+   * @deprecated
    */
   async incrementAttributes<FK extends FilterAttributes<T, number>>(
     uid: string,
@@ -778,7 +795,9 @@ abstract class Store<
     }
     const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "increment" });
-    await this._incrementAttributes(uid, params, updateDate);
+    await runAsSystem(async () => {
+      await this._incrementAttributes(uid, params, updateDate);
+    });
     const evt = {
       object_id: uid,
       store: this,
@@ -797,6 +816,7 @@ abstract class Store<
    * @param prop
    * @param value
    * @returns
+   * @deprecated
    */
   async incrementAttribute<FK extends FilterAttributes<T, number>>(uid: string, prop: FK, value: number) {
     return this.incrementAttributes(uid, [{ property: prop, value }]);
@@ -811,6 +831,7 @@ abstract class Store<
    * @param index if specified update item in this index
    * @param itemWriteCondition value of the condition to test (in case of update)
    * @param itemWriteConditionField field to read the condition from (in case of update)
+   * @deprecated
    */
   async upsertItemToCollection<FK extends FilterAttributes<T, Array<any>>>(
     uid: string,
@@ -822,15 +843,17 @@ abstract class Store<
   ) {
     const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionUpsert" });
-    await this._upsertItemToCollection(
-      uid,
-      <string>prop,
-      item,
-      index,
-      itemWriteCondition,
-      itemWriteConditionField,
-      updateDate
-    );
+    await runAsSystem(async () => {
+      await this._upsertItemToCollection(
+        uid,
+        <string>prop,
+        item,
+        index,
+        itemWriteCondition,
+        itemWriteConditionField,
+        updateDate
+      );
+    });
 
     await this.emitStoreEvent("Store.PartialUpdated", {
       object_id: uid,
@@ -855,6 +878,7 @@ abstract class Store<
    * @param index of the item to remove in the array
    * @param itemWriteCondition value of the condition
    * @param itemWriteConditionField field to read the condition from
+   * @deprecated
    */
   async deleteItemFromCollection<FK extends FilterAttributes<T, Array<any>>>(
     uid: string,
@@ -894,40 +918,22 @@ abstract class Store<
    *
    * @param query
    * @param context
+   * @deprecated
    */
-  async *iterate(query: string = "", context?: OperationContext): AsyncGenerator<T> {
-    if (query.includes("OFFSET")) {
+  async *iterate(query: string = ""): AsyncGenerator<T> {
+    if (query.match(/OFFSET +["'][^'"]*["'] *$/)) {
       throw new Error("Cannot contain an OFFSET for iterate method");
     }
     let continuationToken;
     do {
       const q = query + (continuationToken !== undefined ? ` OFFSET "${continuationToken}"` : "");
-      const page = await this.query(q, context);
+      const page = await this.query(q);
       for (const item of page.results) {
         yield item;
       }
       continuationToken = page.continuationToken;
     } while (continuationToken);
   }
-
-  // REFACTOR . >= 4
-  /**
-   * Query all the results
-   *
-   *
-   * @param query
-   * @param context
-   * @returns
-   * @deprecated use iterate instead
-   */
-  async queryAll(query: string, context?: OperationContext): Promise<T[]> {
-    const res = [];
-    for await (const item of this.iterate(query, context)) {
-      res.push(item);
-    }
-    return res;
-  }
-  // END_REFACTOR
 
   /**
    * Check that __type Comparison is only used with = and CONTAINS
@@ -941,9 +947,14 @@ abstract class Store<
    * Query store with WebdaQL
    * @param query
    * @param context to apply permission
+   * @deprecated
    */
-  async query(query: string, context?: OperationContext): Promise<{ results: T[]; continuationToken?: string }> {
-    const permissionQuery = this._model.getPermissionQuery(context);
+  async query(query: string): Promise<{ results: T[]; continuationToken?: string }> {
+    let context = this._webda.getContext();
+    if (context instanceof GlobalContext) {
+      context = undefined;
+    }
+    const permissionQuery = context ? this._model.getPermissionQuery(context) : null;
     let partialPermission = true;
     let fullQuery = query;
     if (permissionQuery) {
@@ -960,8 +971,7 @@ abstract class Store<
     await this.emitSync("Store.Query", {
       query,
       parsedQuery,
-      store: this,
-      context
+      store: this
     });
     const result = {
       results: [],
@@ -995,7 +1005,6 @@ abstract class Store<
       }
       let subOffsetCount = 0;
       for (const item of tmpResults.results) {
-        item.setContext(context);
         // Because of dynamic filter and permission we need to suboffset the pagination
         subOffsetCount++;
         if (subOffsetCount <= secondOffset) {
@@ -1037,8 +1046,7 @@ abstract class Store<
       parsedQuery: parsedQuery,
       store: this,
       continuationToken: result.continuationToken,
-      results: result.results,
-      context
+      results: result.results
     });
     return result;
   }
@@ -1111,15 +1119,13 @@ abstract class Store<
    * @return {Promise} with saved object
    *
    * Might want to rename to create
+   * @deprecated
    */
-  async save(object, ctx: OperationContext = undefined): Promise<T> {
+  async save(object): Promise<T> {
     if (object instanceof this._model && object._creationDate !== undefined && object._lastUpdate !== undefined) {
-      if (ctx) {
-        object.setContext(ctx);
-      }
       return <T>await object.save();
     }
-    return this.create(object, ctx);
+    return this.create(object);
   }
 
   /**
@@ -1127,10 +1133,10 @@ abstract class Store<
    * @param object
    * @param ctx
    * @returns
+   * @deprecated
    */
-  async create(object, ctx: OperationContext = undefined) {
+  async create(object) {
     object = this.initModel(object);
-
     // Dates should be store by the Store
     if (!object._creationDate) {
       object._creationDate = object._lastUpdate = new Date();
@@ -1140,15 +1146,11 @@ abstract class Store<
     const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
     object.__types = [object.__type, ...ancestors].filter(i => i !== "Webda/CoreModel" && i !== "CoreModel");
 
-    if (ctx) {
-      object.setContext(ctx);
-    }
     // Handle object auto listener
     const evt = {
       object: object,
       object_id: object.getUuid(),
-      store: this,
-      context: ctx
+      store: this
     };
     await Promise.all([
       this.emitSync("Store.Save", evt),
@@ -1157,14 +1159,14 @@ abstract class Store<
     ]);
 
     this.metrics.operations_total.inc({ operation: "save" });
-    const res = await this._save(object);
-    await this._cacheStore?._save(object);
+    const res = await runAsSystem(async () => {
+      return (await Promise.all([this._save(object), this._cacheStore?._save(object)]))[0];
+    });
     object = this.initModel(res);
     const evtSaved = {
       object: object,
       object_id: object.getUuid(),
-      store: this,
-      context: ctx
+      store: this
     };
     await Promise.all([
       this.emitSync("Store.Saved", evtSaved),
@@ -1181,6 +1183,7 @@ abstract class Store<
    * @param object
    * @param reverseMap
    * @returns
+   * @deprecated
    */
   async patch<FK extends keyof T>(
     object: Partial<T>,
@@ -1198,7 +1201,7 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkUpdateCondition<CK extends keyof T>(model: T, conditionField?: CK, condition?: any, uid?: string) {
+  protected checkUpdateCondition<CK extends keyof T>(model: T, conditionField?: CK, condition?: any, uid?: string) {
     if (conditionField) {
       // Add toString to manage Date object
       if (model[conditionField].toString() !== condition.toString()) {
@@ -1214,7 +1217,7 @@ abstract class Store<
    * @param condition
    * @param uid
    */
-  checkCollectionUpdateCondition<FK extends FilterAttributes<T, Array<any>>, CK extends keyof T>(
+  protected checkCollectionUpdateCondition<FK extends FilterAttributes<T, Array<any>>, CK extends keyof T>(
     model: T,
     collection: FK,
     conditionField?: CK,
@@ -1242,10 +1245,11 @@ abstract class Store<
    * @param updates
    * @param conditionField
    * @param condition
+   * @deprecated
    */
   async conditionalPatch<CK extends keyof T>(
     uuid: string,
-    updates: Partial<T>,
+    updates: Partial<RawModel<T>>,
     conditionField: CK,
     condition: any
   ): Promise<boolean> {
@@ -1278,7 +1282,7 @@ abstract class Store<
    * @param itemWriteConditionField
    * @param updateDate
    */
-  async simulateUpsertItemToCollection<FK extends FilterAttributes<T, Array<any>>>(
+  protected async simulateUpsertItemToCollection<FK extends FilterAttributes<T, Array<any>>>(
     model: T,
     prop: FK,
     item: any,
@@ -1312,6 +1316,7 @@ abstract class Store<
    * @param {Object} Object to save
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
+   * @deprecated
    */
   async update<CK extends keyof T>(
     object: any,
@@ -1341,9 +1346,6 @@ abstract class Store<
       throw new StoreNotFoundError(uuid, this.getName());
     }
     const loaded = this.initModel(load);
-    if (object instanceof CoreModel) {
-      loaded.setContext(object.getContext());
-    }
     const update = object;
     const evt = {
       object: loaded,
@@ -1494,7 +1496,7 @@ abstract class Store<
       count: number;
       updated: number;
       done: boolean;
-    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, undefined, {});
+    }> = await this.getWebda().getRegistry().get(`storeMigration.${this.getName()}.${name}`, {});
     status.count ??= 0;
     status.updated ??= 0;
     const worker = new Throttler(20);
@@ -1532,6 +1534,7 @@ abstract class Store<
    * @param uuid
    * @param attribute
    * @returns
+   * @deprecated
    */
   async removeAttribute<CK extends keyof T>(
     uuid: string,
@@ -1567,6 +1570,7 @@ abstract class Store<
    *
    * @param {String} uuid to delete
    * @return {Promise} the deletion promise
+   * @deprecated
    */
   async delete<CK extends keyof T>(uid: string | T, writeCondition?: any, writeConditionField?: CK): Promise<void> {
     /** @ignore */
@@ -1658,6 +1662,7 @@ abstract class Store<
    * Upsert the uuid object
    * @param uuid
    * @param data
+   * @deprecated
    */
   async put(uuid: string, data: Partial<T>): Promise<T> {
     if (await this.exists(uuid)) {
@@ -1671,8 +1676,9 @@ abstract class Store<
    *
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
+   * @deprecated
    */
-  async get(uid: string, ctx: OperationContext = undefined, defaultValue: any = undefined): Promise<T> {
+  async get(uid: string, defaultValue: any = undefined): Promise<T> {
     /** @ignore */
     if (!uid) {
       return undefined;
@@ -1687,12 +1693,10 @@ abstract class Store<
       return undefined;
     }
     object = this.initModel(object);
-    object.setContext(ctx);
     const evt = {
       object: object,
       object_id: object.getUuid(),
-      store: this,
-      context: ctx
+      store: this
     };
     await Promise.all([this.emitSync("Store.Get", evt), object.__class.emitSync("Store.Get", evt), object._onGet()]);
     return object;
@@ -1707,6 +1711,7 @@ abstract class Store<
    * @param property to update1
    * @param value new value
    * @returns
+   * @deprecated
    */
   async setAttribute<CK extends keyof T>(uid: string, property: CK, value: any): Promise<void> {
     const patch: any = {};
@@ -1796,6 +1801,7 @@ abstract class Store<
    * Check if an object exists
    * @abstract
    * @params {String} uuid of the object or the object
+   * @deprecated
    */
   async exists(uid: string | CoreModel): Promise<boolean> {
     if (typeof uid !== "string") {
@@ -1899,6 +1905,11 @@ abstract class Store<
     itemWriteConditionField: string,
     updateDate: Date
   ): Promise<any>;
+
+  /**
+   * Inject Store into models
+   */
+  inject() {}
 }
 
 export { Store };

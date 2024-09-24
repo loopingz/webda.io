@@ -6,10 +6,9 @@ import { Core, EventEmitterUtils } from "../core";
 import * as WebdaError from "../errors";
 import { EventService } from "../services/asyncevents";
 import { BinariesImpl, Binary } from "../services/binary";
-import { Service } from "../services/service";
 import { Store, StoreEvents } from "../stores/store";
 import * as WebdaQL from "@webda/ql";
-import { OperationContext } from "../utils/context";
+import { Context, GlobalContext, OperationContext } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 import { Throttler } from "../utils/throttler";
 import {
@@ -20,6 +19,9 @@ import {
   RawModel,
   createModelLinksMap
 } from "./relations";
+import { runAsSystem, useContext } from "../hooks";
+import type { FilterAttributes } from "@webda/tsc-esm";
+import { Proxied, getContextUpdate, getProxy } from "./coremodelproxy";
 
 /**
  * Expose the model through API or GraphQL if it exists
@@ -68,14 +70,11 @@ export class CoreModelQuery {
    * @param query
    * @returns
    */
-  query(
-    query?: string,
-    context?: OperationContext
-  ): Promise<{
+  query(query?: string): Promise<{
     results: CoreModel[];
     continuationToken?: string;
   }> {
-    return this.getTargetModel().query(this.completeQuery(query), true, context);
+    return this.getTargetModel().query(this.completeQuery(query), true);
   }
 
   /**
@@ -92,15 +91,10 @@ export class CoreModelQuery {
    * @param callback
    * @param context
    */
-  async forEach(
-    callback: (model: any) => Promise<void>,
-    query?: string,
-    context?: OperationContext,
-    parallelism: number = 3
-  ) {
+  async forEach(callback: (model: any) => Promise<void>, query?: string, parallelism: number = 3) {
     const throttler = new Throttler();
     throttler.setConcurrency(parallelism);
-    for await (const model of this.iterate(query, context)) {
+    for await (const model of this.iterate(query)) {
       throttler.execute(() => callback(model));
     }
     return throttler.wait();
@@ -111,38 +105,10 @@ export class CoreModelQuery {
    * @param context
    * @returns
    */
-  iterate(query?: string, context?: OperationContext) {
-    return Core.get().getModelStore(this.getTargetModel()).iterate(this.completeQuery(query), context);
-  }
-
-  /**
-   * Get all the objects
-   * @returns
-   */
-  async getAll(context?: OperationContext): Promise<this[]> {
-    const res = [];
-    for await (const item of this.iterate(this.completeQuery(), context)) {
-      res.push(item);
-    }
-    return res;
+  iterate(query?: string) {
+    return this.getTargetModel().iterate(this.completeQuery(query));
   }
 }
-
-/**
- * Attribute of an object
- *
- * Filter out methods
- */
-export type Attributes<T extends object> = {
-  [K in keyof T]: T[K] extends Function ? never : K;
-}[keyof T];
-
-/**
- * Filter type keys by type
- */
-export type FilterAttributes<T extends CoreModel, K> = {
-  [L in keyof T]: T[L] extends K ? L : never;
-}[keyof T];
 
 /**
  * Define an Action on a model
@@ -218,6 +184,30 @@ export interface ExposeParameters {
   };
 }
 
+export interface Reflection {
+  /**
+   * Get the model actions
+   */
+  getActions(): { [key: string]: ModelAction };
+  /**
+   * Get the model schema
+   */
+  getSchema(): JSONSchema7;
+
+  /**
+   * Get the model hierarchy
+   */
+  getHierarchy(): { ancestors: string[]; children: ModelsTree };
+  /**
+   * Get the model relations
+   */
+  getRelations(): ModelGraph;
+  /**
+   * Get Model identifier
+   */
+  getIdentifier(short?: boolean): string;
+}
+
 /**
  *
  */
@@ -234,9 +224,8 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    *
    * @param model to create by default
    * @param object to load data from
-   * @param context if the data is unsafe from http
    */
-  factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T;
+  factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>): Proxied<T>;
   /**
    * Get the model actions
    */
@@ -276,33 +265,33 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    * Permission query for the model
    * @param context
    */
-  getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string };
+  getPermissionQuery(context: Context): null | { partial: boolean; query: string };
   /**
    * Reference to an object without doing a DB request yet
    */
   ref: typeof CoreModel.ref;
   /**
+   * Get an object
+   */
+  get: typeof CoreModel.get;
+  /**
    * Create a new model
    * @param this
    * @param data
    */
-  create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<T>;
+  create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<Proxied<T>>;
   /**
    * Query the model
    * @param query
    */
-  query(
-    query?: string,
-    includeSubclass?: boolean,
-    context?: OperationContext
-  ): Promise<{ results: T[]; continuationToken?: string }>;
+  query(query?: string, includeSubclass?: boolean): Promise<{ results: T[]; continuationToken?: string }>;
   /**
    * Iterate through objects
    * @param query
    * @param includeSubclass
    * @param context
    */
-  iterate(query?: string, includeSubclass?: boolean, context?: OperationContext): AsyncGenerator<T>;
+  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
   /**
    * Listen to events on the model
    * @param event
@@ -355,12 +344,6 @@ export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends Ev
    * @param context
    */
   authorizeClientEvent(_event: string, _context: OperationContext, _model?: T): boolean;
-  /**
-   * Iterate through the model
-   * @param query
-   * @param includeSubclass
-   */
-  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
   /**
    * EventEmitter interface
    * @param event
@@ -450,17 +433,13 @@ export class ModelRef<T extends CoreModel> {
   @NotEnumerable
   protected parent: CoreModel;
 
-  constructor(
-    protected uuid: string,
-    model: CoreModelDefinition<T>,
-    parent?: CoreModel
-  ) {
+  constructor(protected uuid: string, model: CoreModelDefinition<T>, parent?: CoreModel) {
     this.model = model;
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
     this.store = Core.get().getModelStore(model);
   }
-  async get(context?: OperationContext): Promise<T> {
-    return (await this.store.get(this.uuid))?.setContext(context || this.parent?.getContext());
+  async get(): Promise<T> {
+    return await this.store.get(this.uuid);
   }
   set(id: string | T) {
     this.uuid = id instanceof CoreModel ? id.getUuid() : id;
@@ -539,7 +518,7 @@ export class ModelRef<T extends CoreModel> {
   conditionalPatch(updates: Partial<T>, conditionField: any, condition: any): Promise<boolean> {
     return this.store.conditionalPatch(this.uuid, updates, conditionField, condition);
   }
-  patch(updates: Partial<T>): Promise<boolean> {
+  patch(updates: Partial<RawModel<T>>): Promise<boolean> {
     return this.store.conditionalPatch(this.uuid, updates, null, undefined);
   }
   async setAttribute(attribute: keyof T, value: any): Promise<this> {
@@ -588,12 +567,12 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param withSave
    * @returns
    */
-  async create(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
-    const result = new this.model().setContext(context).load(defaultValue, true).setUuid(this.uuid);
+  async create(defaultValue: RawModel<T>, withSave: boolean = true): Promise<Proxied<T>> {
+    const result = new this.model().load(defaultValue, true).setUuid(this.uuid);
     if (withSave) {
-      await result.save();
+      await result.save(true);
     }
-    return result;
+    return getProxy(result);
   }
 
   /**
@@ -605,18 +584,23 @@ export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
    * @param context to set on the object
    * @returns
    */
-  async getOrCreate(defaultValue: RawModel<T>, context?: OperationContext, withSave: boolean = true): Promise<T> {
-    return (await this.get()) || this.create(defaultValue, context, withSave);
+  async getOrCreate(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
+    return (await this.get()) || (await this.create(defaultValue, withSave));
+  }
+
+  async upsert(defaultValue: RawModel<T>): Promise<T> {
+    let result = await this.get();
+    if (await this.exists()) {
+      await this.patch(defaultValue);
+    } else {
+      result = await this.create(defaultValue);
+    }
+    return result;
   }
 }
 
 export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
-  constructor(
-    public uuid: string,
-    model: CoreModelDefinition<T>,
-    data: any,
-    parent: CoreModel
-  ) {
+  constructor(public uuid: string, model: CoreModelDefinition<T>, data: any, parent: CoreModel) {
     super(uuid, model, parent);
     Object.assign(this, data);
   }
@@ -649,6 +633,29 @@ class CoreModel {
    */
   @NotEnumerable
   __class: CoreModelDefinition<this>;
+  @NotEnumerable
+  private __context: Context[] = [useContext()];
+  /**
+   * Contain the context the object was loaded with
+   */
+  @NotEnumerable
+  set context(context: Context) {
+    if (!getContextUpdate()) {
+      throw new Error("Cannot update context, you have to use runInContext(() => {}, [myObject])");
+    }
+    if (context === undefined) {
+      if (this.__context.length <= 1) {
+        throw new Error("Cannot remove context");
+      }
+      this.__context.pop();
+    } else {
+      this.__context.push(context);
+    }
+  }
+  get context(): Context {
+    return this.__context[this.__context.length - 1];
+  }
+
   /**
    * Type name
    */
@@ -657,20 +664,6 @@ class CoreModel {
    * Types name
    */
   __types: string[];
-  /**
-   * Object context
-   *
-   * @TJS-ignore
-   */
-  @NotEnumerable
-  __ctx: OperationContext;
-  /**
-   * If object is attached to its store
-   *
-   * @TJS-ignore
-   */
-  @NotEnumerable
-  __store: Store<this>;
 
   @NotEnumerable
   __dirty: Set<string | symbol> = new Set();
@@ -693,10 +686,6 @@ class CoreModel {
 
   constructor() {
     this.__class = <CoreModelDefinition<this>>(<any>new.target);
-    // Get the store automatically now
-    this.__store = <Store<this>>Core.get()?.getModelStore(new.target);
-    // Get the type automatically now
-    this.__type = Core.get()?.getApplication().getShortId(Core.get()?.getApplication().getModelFromInstance(this));
   }
 
   /**
@@ -924,13 +913,22 @@ class CoreModel {
   }
 
   /**
+   * Shortcut to retrieve an object
+   *
+   * @param defaultValue if defined create an object with this value if needed
+   */
+  static get<T extends CoreModel>(this: Constructor<T>, uid: string, defaultValue?: any): Promise<T> {
+    return (<CoreModelDefinition<T>>this).store().get(uid);
+  }
+
+  /**
    * Get a reference to a model
    * @param this
    * @param uid
    * @returns
    */
-  static create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<T> {
-    return new this().load(data, true).save();
+  static async create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<Proxied<T>> {
+    return getProxy(await new this().load(data, true).save());
   }
 
   /**
@@ -1093,65 +1091,13 @@ class CoreModel {
   static async query<T extends CoreModel>(
     this: Constructor<T>,
     query: string = "",
-    includeSubclass: boolean = true,
-    context?: OperationContext
+    includeSubclass: boolean = true
   ): Promise<{
     results: T[];
     continuationToken?: string;
   }> {
     // @ts-ignore
-    return <any>this.store().query(this.completeQuery(query, includeSubclass), context);
-  }
-
-  /**
-   * Return a proxy to the object to detect if dirty
-   * @returns
-   */
-  getProxy(): this {
-    const subProxier = prop => {
-      return {
-        set: (target: this, p: string | symbol, value) => {
-          this.__dirty.add(prop);
-          target[p] = value;
-          return true;
-        },
-        get: (target: this, p: string | symbol) => {
-          if (Array.isArray(target[p]) || target[p] instanceof Object) {
-            return new Proxy(target[p], subProxier(prop));
-          }
-          return target[p];
-        },
-        deleteProperty: (t, property) => {
-          delete t[property];
-          this.__dirty.add(prop);
-          return true;
-        }
-      };
-    };
-    const proxier = {
-      deleteProperty: (t, property) => {
-        delete t[property];
-        this.__dirty.add(property);
-        return true;
-      },
-      set: (target: this, p: string | symbol, value) => {
-        if (p !== "__dirty") {
-          target.__dirty.add(p);
-        }
-        target[p] = value;
-        return true;
-      },
-      get: (target: this, p: string | symbol) => {
-        if (typeof p === "string" && p.startsWith("__")) {
-          return target[p];
-        }
-        if (Array.isArray(target[p]) || target[p] instanceof Object) {
-          return new Proxy(target[p], subProxier(p));
-        }
-        return target[p];
-      }
-    };
-    return new Proxy(this, proxier);
+    return <any>this.store().query(this.completeQuery(query, includeSubclass));
   }
 
   /**
@@ -1237,7 +1183,7 @@ class CoreModel {
    * @returns
    */
   async canAct(
-    _context: OperationContext,
+    _context: Context,
     _action:
       | "create"
       | "update"
@@ -1264,19 +1210,19 @@ class CoreModel {
    * Create an object
    * @returns
    */
-  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>, context?: OperationContext): T {
-    return object instanceof this ? object : new this().setContext(context).load(object, context === undefined);
+  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>): Proxied<T> {
+    return getProxy(object instanceof this ? object : new this().load(object, true));
   }
 
   /**
    * Detect what looks like a CoreModel but can be from different version
    * @param object
    * @returns
+   *
+   * @deprecated Use instanceof, webda do not start with two versions of itself now
    */
   static instanceOf(object: any): boolean {
-    return (
-      typeof object.toStoredJSON === "function" && object.__class && object.__class.factory && object.__class.instanceOf
-    );
+    return object.__class && object.__class.factory && object.__class.instanceOf;
   }
 
   /**
@@ -1306,7 +1252,7 @@ class CoreModel {
     if (partials) {
       return <T>new modelObject().load(partials, true).setUuid(uuid);
     }
-    return <Promise<T>>new modelObject().setUuid(uuid).get();
+    return <Promise<T>>new modelObject().setUuid(uuid).refresh();
   }
 
   /**
@@ -1321,7 +1267,10 @@ class CoreModel {
    * @param context
    * @returns updated value
    */
-  attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
+  attributePermission(key: string | symbol, value: any, mode: "READ" | "WRITE", context: Context): any {
+    if (typeof key === "symbol" || !context) {
+      return value;
+    }
     if (mode === "WRITE") {
       return key.startsWith("_") ? undefined : value;
     } else {
@@ -1330,17 +1279,44 @@ class CoreModel {
   }
 
   /**
+   * Return attributes permissions information
+   *
+   * The model proxy will refuse update to readonly property and refuse read of forbidden properties.
+   * This will be cached per context
+   * @returns
+   */
+  attributesPermissions(): { readonly: string[]; forbidden: string[] } | undefined {
+    return;
+  }
+
+  /**
+   * Usefull to check if the object has permission on an attribute
+   *
+   * Usually permissions should only be applied when a context is not system
+   * But for some specific like masked data, it can apply even for system
+   *
+   * @param context
+   * @param mode
+   * @returns
+   */
+  hasAttributePermissions(context: Context, _mode: "READ" | "WRITE"): boolean {
+    return !(context instanceof GlobalContext);
+  }
+
+  /**
    * Load an object from RAW
    *
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: RawModel<this>, secure: boolean = false, relations: boolean = true): this {
+  load(raw: RawModel<this>, relations: boolean = true): this {
+    const context = useContext();
+    const filterAttribute = this.hasAttributePermissions(context, "WRITE");
     // Object assign with filter
     for (const prop in raw) {
       let val = raw[prop];
-      if (!secure) {
-        val = this.attributePermission(prop, raw[prop], "WRITE");
+      if (filterAttribute) {
+        val = this.attributePermission(prop, raw[prop], "WRITE", context);
         if (val === undefined) {
           continue;
         }
@@ -1416,55 +1392,25 @@ class CoreModel {
   }
 
   /**
-   * Context of the request
-   */
-  setContext(ctx: OperationContext): this {
-    this.__ctx = ctx;
-    return this;
-  }
-
-  /**
-   * Get object context
-   *
-   * Global object does not belong to a request
-   */
-  getContext<T extends OperationContext>(): T {
-    return <any>this.__ctx || Core.get().getGlobalContext();
-  }
-
-  /**
-   * Return the object registered store
-   */
-  getStore(): Store<this> {
-    return this.__store;
-  }
-
-  /**
-   * Get the object
-   * @returns
-   */
-  async get(): Promise<this> {
-    return this.refresh();
-  }
-
-  /**
    * Get the object again
    *
    * @throws Error if the object is not coming from a store
    */
   async refresh(): Promise<this> {
-    const obj = await this.__store.get(this.getUuid());
-    if (obj) {
-      Object.assign(this, obj);
-      for (const i in this) {
-        // @ts-ignore
-        if (obj[i] !== this[i]) {
-          delete this[i];
+    return runAsSystem(async () => {
+      const obj = await this.__class.store().get(this.getUuid());
+      if (obj) {
+        Object.assign(this, obj);
+        for (const i in this) {
+          // @ts-ignore
+          if (obj[i] !== this[i]) {
+            delete this[i];
+          }
         }
+        this.handleRelations();
       }
-      this.handleRelations();
-    }
-    return this;
+      return this;
+    });
   }
 
   /**
@@ -1473,7 +1419,7 @@ class CoreModel {
    * @throws Error if the object is not coming from a store
    */
   async delete(): Promise<void> {
-    return this.__store.delete(this);
+    return this.__class.store().delete(this);
   }
 
   /**
@@ -1483,12 +1429,9 @@ class CoreModel {
    * @param conditionValue
    */
   async patch(obj: Partial<this>, conditionField?: keyof this | null, conditionValue?: any) {
-    await this.__store.patch(
-      { [this.__class.getUuidField()]: this.getUuid(), ...obj },
-      true,
-      conditionField,
-      conditionValue
-    );
+    await this.__class
+      .store()
+      .patch({ [this.__class.getUuidField()]: this.getUuid(), ...obj }, true, conditionField, conditionValue);
     Object.assign(this, obj);
   }
 
@@ -1501,9 +1444,9 @@ class CoreModel {
     // If proxy is not used and not field specified call save
     if ((!util.types.isProxy(this) && full === undefined) || full === true) {
       if (!this._creationDate || !this._lastUpdate) {
-        await this.__store.create(this, this.getContext());
+        await this.__class.store().create(this);
       } else {
-        await this.__store.update(this);
+        await this.__class.store().update(this);
       }
       return this;
     }
@@ -1519,7 +1462,7 @@ class CoreModel {
         patch[entry[0]] = this[entry[0]];
       }
     }
-    await this.__store.patch(patch);
+    await this.__class.store().patch(patch);
     this.__dirty.clear();
     return this;
   }
@@ -1546,43 +1489,18 @@ class CoreModel {
   }
 
   /**
-   * Return the object to be serialized without the __store
+   * Return the object without sensitive attributes
    *
-   * @param stringify
-   * @returns
+   * @returns Object to serialize
    */
-  toStoredJSON(stringify = false): any | string {
-    const obj = this._toJSON(true);
-    if (stringify) {
-      return JSON.stringify(obj);
-    }
-    return obj;
-  }
-
-  /**
-   * Get a pre typed service
-   *
-   * @param service to retrieve
-   * WARNING: Only object attached to a store can retrieve service
-   */
-  getService<T extends Service>(service): T {
-    return this.__store.getService<T>(service);
-  }
-
-  /**
-   * Remove the specific attributes if not secure
-   *
-   *
-   *
-   * @param secure serialize server fields also
-   * @returns filtered object to be serialized
-   */
-  _toJSON(secure): any {
+  toJSON(): any {
+    const context = useContext();
+    const filterAttribute = this.hasAttributePermissions(context, "READ");
     const obj: any = {};
     for (const i in this) {
       let value = this[i];
-      if (!secure) {
-        value = this.attributePermission(i, value, "READ");
+      if (filterAttribute) {
+        value = this.attributePermission(i, value, "READ", context);
       }
       if (value === undefined) continue;
       if (value instanceof ModelRef) {
@@ -1594,15 +1512,6 @@ class CoreModel {
       }
     }
     return obj;
-  }
-
-  /**
-   * Return the object without sensitive attributes
-   *
-   * @returns Object to serialize
-   */
-  toJSON(): any {
-    return this._toJSON(false);
   }
 
   /**

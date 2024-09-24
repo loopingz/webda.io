@@ -303,7 +303,7 @@ class MemoryStore<
    */
   async _save(object: T): Promise<T> {
     const uid = object.getUuid();
-    this.storage[uid] = object.toStoredJSON(true);
+    this.storage[uid] = this.toStoredJSON(object, true);
     return this._getSync(uid);
   }
 
@@ -323,7 +323,7 @@ class MemoryStore<
     for (const prop in object) {
       obj[prop] = object[prop];
     }
-    this.storage[uuid] = obj.toStoredJSON(true);
+    this.storage[uuid] = this.toStoredJSON(obj, true);
     return this._getSync(uuid);
   }
 

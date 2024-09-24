@@ -183,15 +183,15 @@ class InvitationTest extends WebdaInternalTest {
     sinon.stub(this.service.notificationService, "sendNotification").callsFake(async () => {});
     // New model as owner
     const ctx = await this.newContext();
-    const user = await this.authentication.getUserStore().save({ displayName: "Webda.io Test" });
+    const user = await this.authentication.getUserModel().create({ displayName: "Webda.io Test" });
     ctx.getSession().userId = user.getUuid();
     const company = await MyCompany.create({ name: "MyTestCompany", __acl: { [user.getUuid()]: "all" } });
 
     // Auto register 2 users
     await this.authentication.createUserWithIdent("email", "test1@webda.io");
     await this.authentication.createUserWithIdent("email", "test2@webda.io");
-    const ident1 = await this.authentication.getIdentStore().get(`test1@webda.io_email`);
-    const ident2 = await this.authentication.getIdentStore().get(`test2@webda.io_email`);
+    const ident1 = await this.authentication.getIdentModel().ref(`test1@webda.io_email`).get();
+    const ident2 = await this.authentication.getIdentModel().ref(`test2@webda.io_email`).get();
 
     // Add four users to the ACL
     // 2 unregistered , 2 registered
@@ -252,7 +252,7 @@ class InvitationTest extends WebdaInternalTest {
       [ident2.getUser().toString()]: "read,write",
       [user.getUuid()]: "all"
     });
-    let userCheck = await this.authentication.getUserStore().get(ident1.getUser().toString());
+    let userCheck = await this.authentication.getUserModel().ref(ident1.getUser().toString()).get();
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
@@ -333,8 +333,8 @@ class InvitationTest extends WebdaInternalTest {
     // Register user 3 and 4
     await this.authentication.createUserWithIdent("email", "test3@webda.io");
     await this.authentication.createUserWithIdent("email", "test4@webda.io");
-    const ident3 = await this.authentication.getIdentStore().get(`test3@webda.io_email`);
-    const ident4 = await this.authentication.getIdentStore().get(`test4@webda.io_email`);
+    const ident3 = await this.authentication.getIdentModel().get(`test3@webda.io_email`);
+    const ident4 = await this.authentication.getIdentModel().get(`test4@webda.io_email`);
 
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
@@ -351,9 +351,9 @@ class InvitationTest extends WebdaInternalTest {
       })),
       []
     );
-    userCheck = await this.authentication.getUserStore().get(ident3.getUser().toString());
+    userCheck = await this.authentication.getUserModel().get(ident3.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"] || [], []);
-    userCheck = await this.authentication.getUserStore().get(ident4.getUser().toString());
+    userCheck = await this.authentication.getUserModel().get(ident4.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
@@ -374,7 +374,7 @@ class InvitationTest extends WebdaInternalTest {
     this.service.getParameters().autoAccept = false;
     // New model as owner
     const ctx = await this.newContext();
-    const user = await this.authentication.getUserStore().save({
+    const user = await this.authentication.getUserModel().create({
       displayName: "Webda.io Test"
     });
     ctx.getSession().userId = user.getUuid();
@@ -383,8 +383,8 @@ class InvitationTest extends WebdaInternalTest {
     // Auto register 2 users
     await this.authentication.createUserWithIdent("email", "test1@webda.io");
     await this.authentication.createUserWithIdent("email", "test2@webda.io");
-    const ident1 = await this.authentication.getIdentStore().get(`test1@webda.io_email`);
-    const ident2 = await this.authentication.getIdentStore().get(`test2@webda.io_email`);
+    const ident1 = await this.authentication.getIdentModel().get(`test1@webda.io_email`);
+    const ident2 = await this.authentication.getIdentModel().get(`test2@webda.io_email`);
 
     // Add four users to the ACL
     // 2 unregistered , 2 registered
@@ -428,7 +428,7 @@ class InvitationTest extends WebdaInternalTest {
         }
       ]
     );
-    let userCheck = await this.authentication.getUserStore().get(ident1.getUser().toString());
+    let userCheck = await this.authentication.getUserModel().get(ident1.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
@@ -539,13 +539,13 @@ class InvitationTest extends WebdaInternalTest {
         }
       ]
     );
-    userCheck = await this.authentication.getUserStore().get(ident1.getUser().toString());
+    userCheck = await this.authentication.getUserModel().get(ident1.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         model: "Test"
       }
     ]);
-    userCheck = await this.authentication.getUserStore().get(ident2.getUser().toString());
+    userCheck = await this.authentication.getUserModel().get(ident2.getUser().toString());
     assert.deepStrictEqual(userCheck["_companies"], []);
 
     // Missing model
@@ -554,8 +554,8 @@ class InvitationTest extends WebdaInternalTest {
     // Register user 3 and 4
     await this.authentication.createUserWithIdent("email", "test3@webda.io");
     await this.authentication.createUserWithIdent("email", "test4@webda.io");
-    await this.authentication.getIdentStore().get(`test3@webda.io_email`);
-    const ident4 = await this.authentication.getIdentStore().get(`test4@webda.io_email`);
+    await this.authentication.getIdentModel().get(`test3@webda.io_email`);
+    const ident4 = await this.authentication.getIdentModel().get(`test4@webda.io_email`);
 
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {
@@ -599,7 +599,7 @@ class InvitationTest extends WebdaInternalTest {
     this.service.getParameters().autoAccept = false;
     // New model as owner
     const ctx = await this.newContext();
-    const user = await this.authentication.getUserStore().save({
+    const user = await this.authentication.getUserModel().create({
       displayName: "Webda.io Test"
     });
     ctx.getSession().userId = user.getUuid();
@@ -607,7 +607,7 @@ class InvitationTest extends WebdaInternalTest {
 
     // Auto register 2 users
     await this.authentication.createUserWithIdent("email", "test1@webda.io");
-    const ident1 = await this.authentication.getIdentStore().get(`test1@webda.io_email`);
+    const ident1 = await this.authentication.getIdentModel().get(`test1@webda.io_email`);
 
     // Add two users to the ACL
     // 1 unregistered , 1 registered
@@ -618,7 +618,7 @@ class InvitationTest extends WebdaInternalTest {
     });
 
     await company.delete();
-    let checkUser = await this.authentication.getUserStore().get(ident1.getUser().toString());
+    let checkUser = await this.authentication.getUserModel().get(ident1.getUser().toString());
     assert.strictEqual(checkUser["_companies"].length, 1);
     // Accepting the invite for user1
     const ctx2 = await this.newContext();
@@ -635,8 +635,8 @@ class InvitationTest extends WebdaInternalTest {
     assert.strictEqual(checkUser["_companies"].length, 0);
     // Register pending one
     await this.authentication.createUserWithIdent("email", "test2@webda.io");
-    const ident2 = await this.authentication.getIdentStore().get(`test2@webda.io_email`);
-    checkUser = await this.authentication.getUserStore().get(ident2.getUser().toString());
+    const ident2 = await this.authentication.getIdentModel().get(`test2@webda.io_email`);
+    checkUser = await this.authentication.getUserModel().get(ident2.getUser().toString());
     assert.strictEqual(checkUser["_companies"].length, 0);
   }
 }

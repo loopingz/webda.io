@@ -6,6 +6,8 @@ import {
   HttpContext,
   OwnerModel,
   RESTDomainService,
+  runAsSystem,
+  runInContext,
   Session,
   User,
   WebContext,
@@ -156,15 +158,19 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
 
   @test("Query") async queryPermission() {
     await this.beforeEach();
-    this._session.login("fake_user2", "fake_ident");
-    let res = await TestTask.query("", true, this._ctx);
-    assert.deepStrictEqual(res.results.map(r => r.getUuid()).sort(), ["task_public", "task_user2"]);
-    res = await TestTask.query("");
-    assert.deepStrictEqual(res.results.length, 4);
-    res = await TestTask.query("uuid = 'task_user1'", true, this._ctx);
-    assert.deepStrictEqual(res.results.length, 0);
-    res = await TestTask.query("uuid = 'task_public'", true, this._ctx);
-    assert.deepStrictEqual(res.results.length, 1);
+    await runInContext(this._ctx, async () => {
+      this._session.login("fake_user2", "fake_ident");
+      let res = await TestTask.query("", true);
+      assert.deepStrictEqual(res.results.map(r => r.getUuid()).sort(), ["task_public", "task_user2"]);
+      await runAsSystem(async () => {
+        res = await TestTask.query("");
+      });
+      assert.deepStrictEqual(res.results.length, 4);
+      res = await TestTask.query("uuid = 'task_user1'", true);
+      assert.deepStrictEqual(res.results.length, 0);
+      res = await TestTask.query("uuid = 'task_public'", true);
+      assert.deepStrictEqual(res.results.length, 1);
+    });
   }
 
   @test("Actions") async actions() {

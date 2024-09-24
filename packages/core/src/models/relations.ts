@@ -1,39 +1,19 @@
 import {
-  Attributes,
   CoreModel,
   CoreModelDefinition,
-  FilterAttributes,
   ModelAction,
   ModelRef,
   ModelRefCustom,
   ModelRefCustomProperties,
   NotEnumerable
 } from "./coremodel";
-
+import type { Attributes, FilterAttributes } from "@webda/tsc-esm";
 /**
  * Raw model without methods
  */
 export type RawModel<T extends object> = {
   [K in Attributes<T>]?: T[K] extends object ? RawModel<T[K]> : T[K];
 };
-
-/**
- * Methods of an object
- *
- * Filter out attributes
- */
-export type Methods<T extends object> = {
-  [K in keyof T]: T[K] extends Function ? K : never;
-}[keyof T];
-
-/**
- * Model loader with a `get` method
- */
-type ModelLoader<T extends CoreModel, K = string> = {
-  get: () => Promise<T>;
-  set: (info: K) => void;
-  toString(): string;
-} & Readonly<K>;
 
 /**
  * Load related objects
@@ -54,6 +34,10 @@ export type ModelRelated<T extends CoreModel, _K extends Attributes<T>> = {
    */
   forEach: (model: T) => Promise<void>;
   /**
+   * Iterate through linked objects
+   */
+  iterate: (query: string) => AsyncIterable<T>;
+  /**
    * Get all object linked
    * @returns
    */
@@ -70,16 +54,12 @@ export class ModelLink<T extends CoreModel> implements ModelLinker {
   @NotEnumerable
   protected parent: CoreModel;
 
-  constructor(
-    protected uuid: string,
-    protected model: CoreModelDefinition<T>,
-    parent?: CoreModel
-  ) {
+  constructor(protected uuid: string, protected model: CoreModelDefinition<T>, parent?: CoreModel) {
     this.parent = parent;
   }
 
   async get(): Promise<T> {
-    return (await this.model.ref(this.uuid).get())?.setContext(this.parent?.getContext());
+    return await this.model.ref(this.uuid).get();
   }
   set(id: string | T) {
     this.uuid = typeof id === "string" ? id : id.getUuid();
@@ -126,11 +106,7 @@ export class ModelLinksSimpleArray<T extends CoreModel> extends Array<ModelRef<T
   @NotEnumerable
   private parent: CoreModel;
 
-  constructor(
-    protected model: CoreModelDefinition<T>,
-    content: any[] = [],
-    parent?: CoreModel
-  ) {
+  constructor(protected model: CoreModelDefinition<T>, content: any[] = [], parent?: CoreModel) {
     super();
     content.forEach(c => this.add(c));
     this.parent = parent;
@@ -171,11 +147,7 @@ export class ModelLinksArray<T extends CoreModel, K>
 {
   @NotEnumerable
   parent: CoreModel;
-  constructor(
-    protected model: CoreModelDefinition<T>,
-    content: any[] = [],
-    parent?: CoreModel
-  ) {
+  constructor(protected model: CoreModelDefinition<T>, content: any[] = [], parent?: CoreModel) {
     super();
     this.parent = parent;
     this.push(
@@ -308,7 +280,7 @@ export class ModelMapLoaderImplementation<T extends CoreModel, K = any> {
    * @returns the model
    */
   async get(): Promise<T> {
-    return this._model.ref(this.uuid).get(this._parent.getContext());
+    return this._model.ref(this.uuid).get();
   }
 }
 

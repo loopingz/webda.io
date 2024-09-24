@@ -154,7 +154,6 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
     if (withLogin) {
       ctx.getSession().login(user1.getUuid(), "fake");
     }
-    user1.setContext(ctx);
     return { binary, user1, ctx };
   }
 }

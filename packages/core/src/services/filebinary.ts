@@ -243,7 +243,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   ): Promise<{ url: string; method: string }> {
     info ??= await context.getInput();
     const result = { url: await this.getPutUrl(context), method: "PUT" };
-    const marker = `${object.getStore().getName()}_${object.getUuid}_${attribute}`;
+    const marker = `${object.__class.getIdentifier()}_${object.getUuid}_${attribute}`;
 
     // Get the target object to add the mapping
     await this.uploadSuccess(<CoreModelWithBinary>object, attribute, info);
@@ -390,7 +390,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
 
     // Store the challenge
     this._touch(this._getPath(file.hash, "_" + file.challenge));
-    this._touch(this._getPath(file.hash, `${object.getStore().getName()}_${attribute}_${object.getUuid()}`));
+    this._touch(this._getPath(file.hash, `${object.__class.getIdentifier()}_${attribute}_${object.getUuid()}`));
   }
 
   /**
@@ -398,7 +398,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    */
   async store(object: CoreModel, property: string, file: BinaryFile): Promise<any> {
     await file.getHashes();
-    const storeName = object.getStore().getName();
+    const storeName = object.__class.getIdentifier();
     const fileInfo = file.toBinaryFileInfo();
     this.checkMap(object, property);
     if (fs.existsSync(this._getPath(file.hash))) {

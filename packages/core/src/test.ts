@@ -4,9 +4,12 @@ import { existsSync, unlinkSync } from "fs";
 import * as path from "path";
 import { register } from "prom-client";
 import {
+  Constructor,
   Core,
   CoreModel,
   CoreModelDefinition,
+  DeepPartial,
+  GlobalContext,
   HttpContext,
   HttpMethodType,
   MemoryStore,
@@ -15,6 +18,7 @@ import {
   Store,
   StoreFindResult,
   StoreParameters,
+  useContext,
   UuidModel,
   WebContext
 } from "./index";
@@ -27,9 +31,11 @@ import { Ident as WebdaIdent } from "./models/ident";
 import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./application";
 import { UnpackedApplication } from "./unpackedapplication";
 import { Query } from "@webda/ql";
+import { Context } from "mocha";
 
 /**
  * @class
+ * @WebdaIgnore
  */
 export class Task extends OwnerModel {
   _autoListener: number;
@@ -68,18 +74,11 @@ export class Task extends OwnerModel {
   async _onSaved() {
     this._autoListener = 2;
   }
-
-  toJSON() {
-    // Context should be available to the toJSON
-    if (this.getContext() !== undefined) {
-      this._gotContext = true;
-    }
-    return super.toJSON();
-  }
 }
 
 /**
  * VoidStore is a store that does not implement any method
+ * @WebdaIgnore
  */
 export class VoidStore<T extends CoreModel> extends Store<
   T,
@@ -196,6 +195,7 @@ export class VoidStore<T extends CoreModel> extends Store<
 
 /**
  * FakeService is a service that does not implement any method
+ * @WebdaIgnore
  */
 export class FakeService extends Service {}
 
@@ -216,6 +216,7 @@ export class DebugMailer extends Service {
 
 /**
  * @class
+ * @WebdaIgnore
  */
 export class TestIdent extends WebdaIdent {
   static getActions() {
@@ -501,6 +502,7 @@ class WebdaTest {
   /**
    * Execute a test request
    * @param params
+   * @param context used only if params is an url
    * @returns
    */
   async http<T = any>(
@@ -512,15 +514,23 @@ class WebdaTest {
           context?: WebContext;
           headers?: { [key: string]: string };
         }
-      | string = {}
+      | string = {},
+    context?: WebContext
   ): Promise<T> {
     if (typeof params === "string") {
       params = {
-        url: params
+        url: params,
+        context: context
       };
     }
+    params.context ??= context;
     if (params.context) {
       params.context.resetResponse();
+    } else {
+      params.context = useContext();
+      if (params.context instanceof GlobalContext) {
+        params.context = undefined;
+      }
     }
     params.context ??= await this.newContext();
     params.method ??= "GET";
@@ -727,8 +737,8 @@ class WebdaTest {
    * Register service with resolve and init
    */
   async addService<P extends Service>(
-    service: { new (core, name, params: any): P },
-    params?: any,
+    service: new (Core, string, any) => P,
+    params?: DeepPartial<ReturnType<P["getParameters"]>>,
     name?: string
   ): Promise<P> {
     return this.registerService(new service(this.webda, name || service.name, <any>params ?? {}))
@@ -787,6 +797,38 @@ export class WebdaInternalSimpleTest extends WebdaInternalTest {
       }
     };
   }
+}
+
+/**
+ * Consume an async iterator and return an array
+ *
+ * Useful for testing but should not be used in production
+ * @param iterator
+ * @returns
+ */
+export async function consumeAsyncIterator<T>(iterator: AsyncIterable<T>): Promise<T[]> {
+  const res = [];
+  for await (const item of iterator) {
+    // Consume the iterator
+    res.push(item);
+  }
+  return res;
+}
+
+/**
+ * Consume an iterator and return an array
+ *
+ * Useful for testing but should not be used in production
+ * @param iterator
+ * @returns
+ */
+export function consumeIterator<T>(iterator: Iterable<T>): T[] {
+  const res = [];
+  for (const item of iterator) {
+    // Consume the iterator
+    res.push(item);
+  }
+  return res;
 }
 
 export { WebdaSimpleTest, WebdaTest };

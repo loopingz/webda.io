@@ -240,7 +240,7 @@ export class RESTDomainService<
           }
         },
         responses: {
-          "200": {
+          "201": {
             description: "Operation success",
             content: {
               "application/json": {
@@ -272,6 +272,12 @@ export class RESTDomainService<
             (await context.getInput())[injectAttribute] = context.parameter(`pid.${depth - 1}`);
           }
           await this._webda.callOperation(context, `${shortId}.Create`);
+          // https://www.rfc-editor.org/rfc/rfc9110#status.201
+          if (context.getResponseHeaders().Location) {
+            context.writeHead(201, {
+              Location: `${context.getHttpContext().getAbsoluteUrl()}/${context.getResponseHeaders().Location}`
+            });
+          }
         },
         openapi
       );

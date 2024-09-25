@@ -303,6 +303,8 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       throw new WebdaError.Conflict("Object already exists");
     }
     await object.save();
+    // Set the location header to only uuid for now
+    context.setHeader("Location", object.getUuid());
     context.write(object);
   }
 

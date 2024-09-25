@@ -17,6 +17,8 @@ class RESTDomainServiceTest extends WebdaInternalSimpleTest {
     });
     assert.notStrictEqual(executor, undefined);
     await executor.execute(ctx);
+    assert.strictEqual(ctx.statusCode, 201);
+    assert.strictEqual(ctx.getResponseHeaders().Location, `http://test.webda.io/${url}/PLOP`);
     ctx["body"] = undefined;
     assert.strictEqual((await userStore.getAll()).length, 1);
     await this.getExecutor(ctx, "test.webda.io", "GET", `${url}/PLOP`).execute(ctx);

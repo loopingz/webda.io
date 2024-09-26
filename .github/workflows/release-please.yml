@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - main
-      - maintenance/v3
+      - maintenance/v3.x
   workflow_dispatch:
 
 permissions:

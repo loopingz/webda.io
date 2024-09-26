@@ -34,7 +34,7 @@
   "scripts": {
     "build": "nx run-many --target=build && nx run-many --target=build:module",
     "test": "nx run-many --target=test --exclude @webda/sample-app",
-    "new-version": "yarn build && lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
+    "new-version": "yarn build && lerna version --message 'chore(release): publish'",
     "new-module": "yarn webda init webda:module",
     "lint": "nx run-many --target=lint",
     "lint:fix": "nx run-many --target=lint:fix",

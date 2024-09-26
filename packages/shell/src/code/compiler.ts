@@ -513,7 +513,14 @@ export class Compiler {
         return undefined;
       }
       // Return the export alias
-      return (<ts.ExportSpecifier>namedExports.shift().parent).name.escapedText.toString();
+      // Return the export alias
+      const alias = <ts.ExportSpecifier>namedExports.shift().parent;
+
+      if (ts.isIdentifier(alias.name)) {
+        return alias.name.escapedText.toString();
+      } else {
+        return alias.name.getText();
+      }
     }
     if (tsquery(node, "DefaultKeyword").length) {
       return "default";

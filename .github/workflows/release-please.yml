@@ -18,6 +18,7 @@ jobs:
         with:
           command: manifest
           monorepo-tags: true
+          target-branch: maintenance/v3.x
 
       - uses: actions/setup-node@v2
         if: ${{ steps.release.outputs.releases_created }}

@@ -75,38 +75,64 @@ class QueryTest {
 
   @test
   prependQuery() {
-    assert.strictEqual(WebdaQL.PrependCondition("", "test='plop'"), "test='plop'");
-    assert.strictEqual(WebdaQL.PrependCondition("test='plop'", ""), "test='plop'");
-    assert.strictEqual(WebdaQL.PrependCondition("test='plip'", "test='plop'"), "(test='plop') AND (test='plip')");
-    assert.strictEqual(WebdaQL.PrependCondition("ORDER BY test", "test='plop'"), "test='plop' ORDER BY test");
-    assert.strictEqual(
+    // merge method is tested through the prependQuery helper
+
+    const strictEqual = (arg1, arg2) => {
+      // Ensure it is parsable
+      new WebdaQL.QueryValidator(arg1);
+      assert.deepStrictEqual(arg1, arg2);
+    };
+    strictEqual(WebdaQL.PrependCondition("", "test='plop'"), 'test = "plop"');
+    strictEqual(WebdaQL.PrependCondition("test='plop'", ""), 'test = "plop"');
+    strictEqual(WebdaQL.PrependCondition("test='plip'", "test='plop'"), 'test = "plip" AND test = "plop"');
+
+    strictEqual(WebdaQL.PrependCondition("ORDER BY test", "test='plop'"), 'test = "plop" ORDER BY test ASC');
+    strictEqual(
       WebdaQL.PrependCondition("ORDER BY test LIMIT 100", "test='plop'"),
-      "test='plop' ORDER BY test LIMIT 100"
+      'test = "plop" ORDER BY test ASC LIMIT 100'
     );
-    assert.strictEqual(
+    strictEqual(
       WebdaQL.PrependCondition("ORDER BY test DESC LIMIT 100", "test='plop'"),
-      "test='plop' ORDER BY test DESC LIMIT 100"
+      'test = "plop" ORDER BY test DESC LIMIT 100'
     );
-    assert.strictEqual(
+    strictEqual(
       WebdaQL.PrependCondition("test='plip' ORDER BY test ASC LIMIT 100", "test='plop'"),
-      "(test='plop') AND (test='plip') ORDER BY test ASC LIMIT 100"
+      'test = "plip" AND test = "plop" ORDER BY test ASC LIMIT 100'
     );
-    assert.strictEqual(
+    strictEqual(
       WebdaQL.PrependCondition("test='plip' LIMIT 100", "test='plop'"),
-      "(test='plop') AND (test='plip') LIMIT 100"
+      'test = "plip" AND test = "plop" LIMIT 100'
     );
-    assert.strictEqual(
+    strictEqual(
       WebdaQL.PrependCondition("test='plip' OFFSET 'test'", "test='plop'"),
-      "(test='plop') AND (test='plip') OFFSET 'test'"
+      'test = "plip" AND test = "plop" OFFSET "test"'
     );
-    assert.strictEqual(
+    strictEqual(
       WebdaQL.PrependCondition("test='ORDER BY plop' OFFSET 'test'", "test='plop'"),
-      "(test='plop') AND (test='ORDER BY plop') OFFSET 'test'"
+      'test = "ORDER BY plop" AND test = "plop" OFFSET "test"'
     );
-    assert.strictEqual(
+    strictEqual(
       WebdaQL.PrependCondition('test="ORDER BY plop" LIMIT 100', "test='plop'"),
-      "(test='plop') AND (test=\"ORDER BY plop\") LIMIT 100"
+      'test = "ORDER BY plop" AND test = "plop" LIMIT 100'
     );
+    // Composed ORDER BY
+    strictEqual(
+      WebdaQL.PrependCondition('test="plop" ORDER BY ab ASC LIMIT 100', "ORDER BY forced DESC"),
+      'test = "plop" ORDER BY forced DESC, ab ASC LIMIT 100'
+    );
+    // Opposite ORDER BY
+    strictEqual(
+      WebdaQL.PrependCondition('test="plop" ORDER BY forced ASC LIMIT 100', "ORDER BY forced DESC"),
+      'test = "plop" ORDER BY forced DESC LIMIT 100'
+    );
+    // Overwrite LIMIT
+    strictEqual(
+      WebdaQL.PrependCondition('test="plop" ORDER BY forced ASC LIMIT 100', "LIMIT 5"),
+      'test = "plop" ORDER BY forced ASC LIMIT 5'
+    );
+    // Overwrite OFFSET
+    strictEqual(WebdaQL.PrependCondition('OFFSET "test"', "OFFSET 'plop'"), 'OFFSET "plop"');
+    strictEqual(WebdaQL.PrependCondition('plop = "ok"', "OFFSET 'plop'"), 'plop = "ok" OFFSET "plop"');
   }
 
   @test

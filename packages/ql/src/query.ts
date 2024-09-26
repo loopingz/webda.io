@@ -36,27 +36,7 @@ export interface OrderBy {
 }
 
 export function PrependCondition(query: string = "", condition?: string): string {
-  if (!condition) {
-    return query;
-  }
-  query = query.trim();
-  // Find the right part of the query this regex will always be true as all part are optional
-  const rightPart = query.match(
-    /(?<order>ORDER BY ([a-zA-Z0-9\._]+( DESC| ASC)?,?)+ ?)?(?<offset>OFFSET ["']\w+["'] ?)?(?<limit>LIMIT \d+)?$/
-  );
-  // Remove it if found
-  query = query.substring(0, query.length - rightPart[0].length).trim();
-  // Add the condition to the query now
-  if (!query) {
-    query = condition;
-  } else {
-    query = `(${condition}) AND (${query})`;
-  }
-  // Re-add the right part
-  if (rightPart[0].length) {
-    query += " " + rightPart[0];
-  }
-  return query;
+  return new QueryValidator(query).merge(condition).toString();
 }
 /**
  * Create Expression based on the parsed token
@@ -606,6 +586,60 @@ export class QueryValidator {
    */
   getOffset(): string {
     return this.builder.getOffset() || "";
+  }
+
+  hasCondition() {
+    const filter = this.query.filter;
+    const isAnd = filter instanceof AndExpression;
+    if (isAnd) {
+      return filter.children.length > 0;
+    }
+    return true;
+  }
+
+  toString() {
+    let res = this.query.filter.toString();
+    if (this.query.orderBy) {
+      res += ` ORDER BY ${this.query.orderBy.map(o => `${o.field} ${o.direction}`).join(", ")}`;
+    }
+    if (this.query.limit) {
+      res += ` LIMIT ${this.query.limit}`;
+    }
+    if (this.query.continuationToken) {
+      res += ` OFFSET "${this.query.continuationToken}"`;
+    }
+    return res.trim();
+  }
+
+  merge(query: string, type: "OR" | "AND" = "AND"): this {
+    const adds = new QueryValidator(query);
+    // Add additional conditions
+    if (adds.hasCondition()) {
+      if (
+        (this.query.filter instanceof AndExpression && type === "AND") ||
+        (this.query.filter instanceof OrExpression && type === "OR")
+      ) {
+        this.query.filter.children.push(adds.query.filter);
+      } else {
+        this.query.filter = new (type === "AND" ? AndExpression : OrExpression)([this.query.filter, adds.query.filter]);
+      }
+    }
+    // Set the limit if overriden
+    if (adds.query.limit) {
+      this.query.limit = adds.query.limit;
+    }
+    // Set the offset if overriden
+    if (adds.query.continuationToken) {
+      this.query.continuationToken = adds.query.continuationToken;
+    }
+    // Add the order by if overriden
+    if (adds.query.orderBy) {
+      const fields = adds.query.orderBy.map(o => o.field);
+      this.query.orderBy ??= [];
+      // Remove the fields that are already in the query
+      this.query.orderBy = [...adds.query.orderBy, ...this.query.orderBy.filter(o => !fields.includes(o.field))];
+    }
+    return this;
   }
 
   /**

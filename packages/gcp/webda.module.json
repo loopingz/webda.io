@@ -683,6 +683,13 @@
                                 "null"
                               ],
                               "description": "AvroConfig writeMetadata"
+                            },
+                            "useTopicSchema": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ],
+                              "description": "AvroConfig useTopicSchema"
                             }
                           },
                           "description": "Properties of an AvroConfig."
@@ -786,6 +793,42 @@
                       ],
                       "description": "CloudStorageConfig maxBytes"
                     },
+                    "maxMessages": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "high": {
+                              "type": "number",
+                              "description": "The high 32 bits as a signed value."
+                            },
+                            "low": {
+                              "type": "number",
+                              "description": "The low 32 bits as a signed value."
+                            },
+                            "unsigned": {
+                              "type": "boolean",
+                              "description": "Whether unsigned or not."
+                            }
+                          },
+                          "required": [
+                            "high",
+                            "low",
+                            "unsigned"
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "CloudStorageConfig maxMessages"
+                    },
                     "state": {
                       "anyOf": [
                         {
@@ -810,6 +853,10 @@
                         {
                           "type": "string",
                           "const": "IN_TRANSIT_LOCATION_RESTRICTION"
+                        },
+                        {
+                          "type": "string",
+                          "const": "SCHEMA_MISMATCH"
                         },
                         {
                           "type": "null"
@@ -1338,7 +1385,8 @@
             1,
             2,
             3,
-            4
+            4,
+            5
           ],
           "description": "State enum."
         },

@@ -14,10 +14,10 @@ name: "CI"
 
 on:
   push:
-    branches: [main, maintenance/v3]
+    branches: [main, maintenance/v3.x]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [main, maintenance/v3]
+    branches: [main, maintenance/v3.x]
 
 concurrency:
   group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"

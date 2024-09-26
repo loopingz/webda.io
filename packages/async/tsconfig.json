@@ -5,6 +5,7 @@
     "outDir": "./lib",
     "strict": false,
     "strictPropertyInitialization": false,
+    "skipLibCheck": true,
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": true,
@@ -17,5 +18,5 @@
   "exclude": [
     "**/node_modules",
     "**/*.spec.ts"
-  ],
+  ]
 }

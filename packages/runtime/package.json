@@ -1,6 +1,6 @@
 {
   "name": "@webda/runtime",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0-beta.2",
   "description": "@webda runtime services",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
@@ -20,9 +20,9 @@
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
-    "@webda/core": "^4.0.0-beta.1",
-    "@webda/ql": "^4.0.0-beta.1",
-    "@webda/workout": "^4.0.0-beta.1",
+    "@webda/core": "^4.0.0-beta.2",
+    "@webda/ql": "^4.0.0-beta.2",
+    "@webda/workout": "^4.0.0-beta.2",
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "ajv-formats": "^3.0.1",
@@ -58,7 +58,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "20.0.0",
-    "@webda/shell": "^4.0.0-beta.1",
+    "@webda/shell": "^4.0.0-beta.2",
     "c8": "^10.1.2",
     "fs-extra": "^11.0.0",
     "mocha": "^10.0.0",

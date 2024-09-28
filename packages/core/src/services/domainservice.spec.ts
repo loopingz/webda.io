@@ -271,6 +271,18 @@ class DomainServiceTest extends WebdaTest {
       },
       context
     });
+    await assert.rejects(
+      () =>
+        this.http({
+          method: "PUT",
+          url: `/companies/${companies[1].uuid}/users`,
+          body: {
+            q: "invalid query"
+          },
+          context
+        }),
+      WebdaError.BadRequest
+    );
     assert.strictEqual(
       result.results.reduce((total, u) => parseInt(u.name.substring(5)) + total, 0),
       40

@@ -11,7 +11,9 @@ import {
   Service,
   ServiceParameters,
   Store,
-  WebContext
+  WebContext,
+  WebdaError,
+  WebdaQL
 } from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
 import { TransformCase, TransformCaseType } from "../utils/case";
@@ -421,21 +423,24 @@ export class RESTDomainService<
           } else {
             q = input.q;
           }
-          let query = q ? ` AND (${q})` : "";
+          let query;
+          try {
+            query = new WebdaQL.QueryValidator(q);
+          } catch (err) {
+            throw new WebdaError.BadRequest("Invalid query " + q);
+          }
           if (injectAttribute) {
-            query = ` AND ${injectAttribute} = "${context.getPathParameters()[parentId]}"` + query;
+            query.merge(`${injectAttribute} = "${context.getPathParameters()[parentId]}"`);
           }
           if (args[0] !== 0) {
-            query = `__types CONTAINS "${model.getIdentifier()}"` + query;
-          } else if (query.startsWith(" AND ")) {
-            query = query.substring(5);
+            query.merge(`__types CONTAINS "${model.getIdentifier()}"`);
           }
           if (context.getHttpContext().getMethod() === "GET") {
-            context.getParameters().q = query;
+            context.getParameters().q = query.toString();
           } else {
-            input.q = query;
+            input.q = query.toString();
           }
-          this.log("TRACE", `Query modified to '${query}' from '${q}' ${args[0]}`);
+          this.log("TRACE", `Query modified to '${query.toString()}' from '${q}' ${args[0]}`);
         }
         // Complete the uuid if needed
         if (context.getParameters().uuid) {

@@ -161,7 +161,7 @@
                   "properties": {
                     "writable": {
                       "type": "boolean",
-                      "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
+                      "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored, or ended."
                     },
                     "writableEnded": {
                       "type": "boolean",
@@ -193,7 +193,7 @@
                     },
                     "closed": {
                       "type": "boolean",
-                      "description": "Is true after 'close' has been emitted."
+                      "description": "Is `true` after `'close'` has been emitted."
                     },
                     "errored": {
                       "anyOf": [
@@ -223,7 +223,7 @@
                     },
                     "writableNeedDrain": {
                       "type": "boolean",
-                      "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                      "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`."
                     },
                     "readable": {
                       "type": "boolean",
@@ -273,7 +273,7 @@
                     },
                     "allowHalfOpen": {
                       "type": "boolean",
-                      "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
+                      "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `true`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                     }
                   },
                   "required": [
@@ -423,9 +423,6 @@
                           "type": "boolean",
                           "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
                           "default": true
-                        },
-                        "ALPNCallback": {
-                          "description": "If set, this will be called when a client opens a connection using the ALPN extension. One argument will be passed to the callback: an object containing `servername` and `protocols` fields, respectively containing the server name from the SNI extension (if any) and an array of ALPN protocol name strings. The callback must return either one of the strings listed in `protocols`, which will be returned to the client as the selected ALPN protocol, or `undefined`, to reject the connection with a fatal alert. If a string is returned that does not match one of the client's ALPN protocols, an error will be thrown. This option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
                         },
                         "ca": {
                           "anyOf": [
@@ -1014,7 +1011,7 @@
                           "properties": {
                             "writable": {
                               "type": "boolean",
-                              "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
+                              "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored, or ended."
                             },
                             "writableEnded": {
                               "type": "boolean",
@@ -1046,7 +1043,7 @@
                             },
                             "closed": {
                               "type": "boolean",
-                              "description": "Is true after 'close' has been emitted."
+                              "description": "Is `true` after `'close'` has been emitted."
                             },
                             "errored": {
                               "anyOf": [
@@ -1076,7 +1073,7 @@
                             },
                             "writableNeedDrain": {
                               "type": "boolean",
-                              "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                              "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`."
                             },
                             "readable": {
                               "type": "boolean",
@@ -1126,7 +1123,7 @@
                             },
                             "allowHalfOpen": {
                               "type": "boolean",
-                              "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
+                              "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `true`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                             }
                           },
                           "required": [
@@ -1260,7 +1257,7 @@
                   "properties": {
                     "writable": {
                       "type": "boolean",
-                      "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
+                      "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored, or ended."
                     },
                     "writableEnded": {
                       "type": "boolean",
@@ -1292,7 +1289,7 @@
                     },
                     "closed": {
                       "type": "boolean",
-                      "description": "Is true after 'close' has been emitted."
+                      "description": "Is `true` after `'close'` has been emitted."
                     },
                     "errored": {
                       "anyOf": [
@@ -1322,7 +1319,7 @@
                     },
                     "writableNeedDrain": {
                       "type": "boolean",
-                      "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                      "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`."
                     },
                     "readable": {
                       "type": "boolean",
@@ -1372,7 +1369,7 @@
                     },
                     "allowHalfOpen": {
                       "type": "boolean",
-                      "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
+                      "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `true`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                     }
                   },
                   "required": [
@@ -1522,9 +1519,6 @@
                           "type": "boolean",
                           "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
                           "default": true
-                        },
-                        "ALPNCallback": {
-                          "description": "If set, this will be called when a client opens a connection using the ALPN extension. One argument will be passed to the callback: an object containing `servername` and `protocols` fields, respectively containing the server name from the SNI extension (if any) and an array of ALPN protocol name strings. The callback must return either one of the strings listed in `protocols`, which will be returned to the client as the selected ALPN protocol, or `undefined`, to reject the connection with a fatal alert. If a string is returned that does not match one of the client's ALPN protocols, an error will be thrown. This option cannot be used with the `ALPNProtocols` option, and setting both options will throw an error."
                         },
                         "ca": {
                           "anyOf": [
@@ -2113,7 +2107,7 @@
                           "properties": {
                             "writable": {
                               "type": "boolean",
-                              "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
+                              "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored, or ended."
                             },
                             "writableEnded": {
                               "type": "boolean",
@@ -2145,7 +2139,7 @@
                             },
                             "closed": {
                               "type": "boolean",
-                              "description": "Is true after 'close' has been emitted."
+                              "description": "Is `true` after `'close'` has been emitted."
                             },
                             "errored": {
                               "anyOf": [
@@ -2175,7 +2169,7 @@
                             },
                             "writableNeedDrain": {
                               "type": "boolean",
-                              "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                              "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`."
                             },
                             "readable": {
                               "type": "boolean",
@@ -2225,7 +2219,7 @@
                             },
                             "allowHalfOpen": {
                               "type": "boolean",
-                              "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `false`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
+                              "description": "If `false` then the stream will automatically end the writable side when the readable side ends. Set initially by the `allowHalfOpen` constructor option, which defaults to `true`.\n\nThis can be changed manually to change the half-open behavior of an existing`Duplex` stream instance, but must be changed before the `'end'` event is emitted."
                             }
                           },
                           "required": [

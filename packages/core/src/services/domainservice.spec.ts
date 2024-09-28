@@ -232,9 +232,36 @@ class DomainServiceTest extends WebdaTest {
       },
       context
     });
+    // We have 5 items so 5+4+3+2+1=15
     assert.strictEqual(
       result.results.reduce((total, u) => parseInt(u.name.substring(5)) + total, 0),
       15
+    );
+    result = await this.http({
+      method: "PUT",
+      url: `/companies/${companies[0].uuid}/users`,
+      body: {
+        q: "LIMIT 3"
+      },
+      context
+    });
+    // We have 3 items so 3+2+1=6
+    assert.strictEqual(
+      result.results.reduce((total, u) => parseInt(u.name.substring(5)) + total, 0),
+      6
+    );
+    result = await this.http({
+      method: "PUT",
+      url: `/companies/${companies[0].uuid}/users`,
+      body: {
+        q: `LIMIT 2 OFFSET "${result.continuationToken}"`
+      },
+      context
+    });
+    // We should only have 2 items starting from 4
+    assert.strictEqual(
+      result.results.reduce((total, u) => parseInt(u.name.substring(5)) + total, 0),
+      9
     );
     result = await this.http({
       method: "PUT",
@@ -244,6 +271,18 @@ class DomainServiceTest extends WebdaTest {
       },
       context
     });
+    await assert.rejects(
+      () =>
+        this.http({
+          method: "PUT",
+          url: `/companies/${companies[1].uuid}/users`,
+          body: {
+            q: "invalid query"
+          },
+          context
+        }),
+      WebdaError.BadRequest
+    );
     assert.strictEqual(
       result.results.reduce((total, u) => parseInt(u.name.substring(5)) + total, 0),
       40

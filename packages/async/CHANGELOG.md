@@ -105,6 +105,30 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.1...async-v4.0.0-beta.2) (2024-09-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/ql bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/workout bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+  * devDependencies
+    * @webda/tsc-esm bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/async-v3.7.2...async-v4.0.0-beta.1) (2024-08-14)
 
 

@@ -1,14 +1,18 @@
-import { EventWithContext } from "../core";
+import { EventWithContext } from "../events/events";
 import * as WebdaError from "../errors";
 import type { CoreModel } from "../models/coremodel";
-import type { CoreModelDefinition } from "../models/coremodel";
+import type { CoreModelDefinition } from "../models/imodel";
 import { Ident } from "../models/ident";
 import type { User } from "../models/user";
 import type { Store } from "../stores/store";
-import type { OperationContext, WebContext } from "../utils/context";
 import type { Authentication, EventAuthenticationRegister } from "./authentication";
 import type { NotificationService } from "./notificationservice";
-import { type DeepPartial, Inject, Service, ServiceParameters } from "./service";
+import { Inject, Service } from "./service";
+import { ServiceParameters } from "./iservices";
+import { DeepPartial } from "@webda/tsc-esm";
+import { useApplication, useModel } from "../application/hook";
+import { WebContext } from "../contexts/webcontext";
+import { OperationContext } from "../contexts/operationcontext";
 
 interface InvitationAnswerBody {
   accept: boolean;
@@ -197,7 +201,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
   /**
    * CoreModel to manage invitation on
    */
-  model: CoreModelDefinition;
+  model: CoreModelDefinition<User>;
 
   /**
    * @inheritdoc
@@ -215,12 +219,12 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     this.authenticationService.on("Authentication.Register", (evt: EventAuthenticationRegister) =>
       this.registrationListener(evt)
     );
-    this.model = this.getWebda().getModel(this.parameters.model);
-    const url =
-      this.getParameters().url || `/${this.getWebda().getApplication().getModelPlural(this.parameters.model)}`;
+    const app = useApplication();
+    this.model = useModel(this.parameters.model);
+    const url = this.getParameters().url || `/${app.getModelPlural(this.parameters.model)}`;
     // Register routes
     this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite, {
-      tags: [this.getWebda().getApplication().getModelPlural(this.model.getIdentifier())],
+      tags: [app.getModelPlural(this.model.getIdentifier())],
       summary: "Invite users to this object",
       get: {
         summary: "Retrieve all pending invitations",
@@ -374,7 +378,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
       await this.removeInvitationFromUser(ctx.getCurrentUserId(), ctx.getParameters().uuid);
       throw new WebdaError.Gone("Invitation is gone");
     }
-    const user = await ctx.getCurrentUser();
+    const user = await ctx.getCurrentUser<User>();
     let metadata = undefined;
     user.getIdents().forEach(i => {
       if (model[this.parameters.pendingAttribute][`ident_${i.uuid}`]) {
@@ -480,8 +484,8 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
       if (invit.model === model) {
         await this.authenticationService
           .getUserModel()
-          .store()
-          .deleteItemFromCollection(user, <any>this.parameters.mapAttribute, index, model, "model");
+          .ref(user)
+          .deleteItemFromCollection(<any>this.parameters.mapAttribute, index, model, "model");
         return;
       }
       index++;
@@ -499,7 +503,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.answerInvitation(ctx, model);
     }
-    const inviter = await ctx.getCurrentUser();
+    const inviter = await ctx.getCurrentUser<User>();
     if (!model) {
       throw new WebdaError.NotFound("Model not found");
     }
@@ -628,8 +632,8 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     }
     await this.authenticationService
       .getUserModel()
-      .store()
-      .upsertItemToCollection(user.getUuid(), <any>this.parameters.mapAttribute, {
+      .ref(user.getUuid())
+      .upsertItemToCollection(<any>this.parameters.mapAttribute, {
         model: model.getUuid(),
         metadata,
         inviter: inviter.toPublicEntry(),

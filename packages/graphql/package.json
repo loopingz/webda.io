@@ -14,7 +14,8 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "format": "prettier --check src/**/*",
-    "format:fix": "prettier --write src/**/*"
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
   },
   "keywords": [
     "webda-module"
@@ -43,7 +44,8 @@
     "js-beautify": "^1.14.7",
     "mocha": "^10.2.0",
     "prettier": "^3.0.0",
-    "source-map-support": "^0.5.21"
+    "source-map-support": "^0.5.21",
+    "skott": "^0.35.3"
   },
   "c8": {
     "extends": "@istanbuljs/nyc-config-typescript",

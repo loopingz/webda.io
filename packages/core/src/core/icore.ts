@@ -77,6 +77,10 @@ export interface OperationDefinitionInfo extends OperationDefinition {
  * Useful interface to get the instance id
  */
 export interface ICore {
+  isDebug(): boolean;
+  getServices(): { [key: string]: IService };
+  getMachineId(): import("crypto").BinaryLike;
+  reinit(updates: any): void | Promise<void>;
   getBinaryStore(model: AbstractCoreModel, attribute: string): IService;
   getLocales(): string[];
   getModelStore(name: string): IService;

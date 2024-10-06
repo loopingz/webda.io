@@ -101,3 +101,12 @@ export interface StoreHelper<T = any> {
    */
   removeAttribute: (uuid: string, attribute: string, conditionField?: string, condition?: any) => Promise<void>;
 }
+
+/**
+ * A mapping service allow to link two object together
+ *
+ * Therefore they need to handle the cascadeDelete
+ */
+export interface MappingService<T = any> {
+  newModel(object: any): T;
+}

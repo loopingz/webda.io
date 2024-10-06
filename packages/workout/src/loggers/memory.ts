@@ -1,5 +1,5 @@
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
 import { WorkerLogger } from "./index";
+import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 
 /**
  * Record all messages in memory

@@ -304,7 +304,7 @@ export class WebdaServer extends Webda {
             return;
           }
           // Handle the request
-          await this.runInContext(ctx, async () => {
+          await this.runWithContext(ctx, async () => {
             await this.handleRequest(req, ctx).finally(() => {
               res.end();
             });

@@ -13,6 +13,8 @@ import type { OpenAPIV3 } from "openapi-types";
  * Application interface.
  */
 export interface IApplication {
+  getModelPlural(arg0: string): string;
+  getAppPath(source: string): string;
   getRelations(arg0: object): ModelGraph;
   getSchemas(): { [key: string]: JSONSchema7 };
   getModels(): { [key: string]: any };
@@ -40,8 +42,6 @@ export interface IApplication {
    */
   getServiceDefinition(name: string): any;
 }
-
-export type Modda<T> = Constructor<T>;
 
 export enum SectionEnum {
   Moddas = "moddas",
@@ -136,21 +136,73 @@ export type ModelGraphBinaryDefinition = {
  * Defined relationship for one model
  */
 export type ModelGraph = {
+  /**
+   * If the model has a parent
+   */
   parent?: Omit<ModelRelation, "type">;
+  /**
+   * This contains links to other models.
+   * These links are low cardinality as ids and
+   * their selected attributes are stored in the
+   * current model.
+   */
   links?: ModelRelation[];
+  /**
+   * Target other models with a new query
+   * This is usually our foreign keys
+   *
+   * This will generate queries for you:
+   * SELECT * FROM 'model' WHERE 'targetAttribute' = 'this[attribute]'
+   */
   queries?: {
+    /**
+     * Attribute in the model
+     */
     attribute: string;
+    /**
+     * Targeted model
+     */
     model: string;
+    /**
+     * Targeted model attribute
+     */
     targetAttribute: string;
   }[];
+  /**
+   * Maps are deduplication of data in your model
+   * They are managed automatically by a service like `ModelMapper`
+   *
+   * They are useful in NoSQL environment like DynamoDB or Firebase
+   */
   maps?: {
+    /**
+     * Attribute in the model
+     */
     attribute: string;
+    /**
+     * Target model
+     */
     model: string;
+    /**
+     * Target model attributes to duplicate
+     */
     targetAttributes: string[];
     targetLink: string;
+    /**
+     *
+     */
     cascadeDelete: boolean;
   }[];
+  /**
+   * References to every model that declare this model
+   * as a parent
+   */
   children?: string[];
+  /**
+   * Binaries attribute, in the model you can declare
+   * attributes as Binary, so users can upload binaries that
+   * will be linked to this object with some metadata
+   */
   binaries?: ModelGraphBinaryDefinition[];
 };
 
@@ -167,46 +219,145 @@ export type ModelsGraph = {
  * https://classic.yarnpkg.com/en/docs/package-json
  */
 export interface PackageDescriptor {
+  /**
+   * The name of the package.
+   */
   name?: string;
+  /**
+   * The version of the package.
+   */
   version?: string;
+  /**
+   * A brief description of the package.
+   */
   description?: string;
+  /**
+   * Keywords that describe the package.
+   */
   keywords?: string[];
+  /**
+   * The license for the package.
+   */
   license?: string | { name: string };
+  /**
+   * The homepage URL for the package.
+   */
   homepage?: string;
+  /**
+   * The URL to the package's issue tracker.
+   */
   bugs?: string;
+  /**
+   * The URL to the package's repository.
+   */
   repository?: string;
+  /**
+   * The author of the package.
+   */
   author?: PackageDescriptorAuthor;
+  /**
+   * The contributors to the package.
+   */
   contributors?: string[] | PackageDescriptorAuthor[];
+  /**
+   * The files included in the package.
+   */
   files?: string[];
+  /**
+   * The entry point to the package.
+   */
   main?: string;
+  /**
+   * The executable files for the package.
+   */
   bin?:
     | string
     | {
         [key: string]: string;
       };
+  /**
+   * The manual pages for the package.
+   */
   man?: string | string[];
+  /**
+   * The directories in the package.
+   */
   directories?: { [key: string]: string };
+  /**
+   * The scripts that can be run for the package.
+   */
   scripts?: { [key: string]: string };
+  /**
+   * Configuration options for the package.
+   */
   config?: any;
+  /**
+   * The dependencies of the package.
+   */
   dependencies?: { [key: string]: string };
+  /**
+   * The development dependencies of the package.
+   */
   devDependencies?: { [key: string]: string };
+  /**
+   * The peer dependencies of the package.
+   */
   peerDependencies?: { [key: string]: string };
+  /**
+   * Metadata for peer dependencies.
+   */
   peerDependenciesMeta?: {
     [key: string]: {
       optional: boolean;
     };
   };
+  /**
+   * The optional dependencies of the package.
+   */
   optionalDependencies?: { [key: string]: string };
+  /**
+   * The bundled dependencies of the package.
+   */
   bundledDependencies?: string[];
+  /**
+   * If true, the package will be installed with a flat node_modules structure.
+   */
   flat?: boolean;
+  /**
+   * Resolutions for dependencies.
+   */
   resolutions?: { [key: string]: string };
+  /**
+   * The engines that the package is compatible with.
+   */
   engines?: { [key: string]: string };
+  /**
+   * The operating systems that the package is compatible with.
+   */
   os?: string[];
+  /**
+   * The CPU architectures that the package is compatible with.
+   */
   cpu?: string[];
+  /**
+   * If true, the package is private and cannot be published.
+   */
   private?: boolean;
+  /**
+   * Configuration for publishing the package.
+   */
   publishConfig?: any;
+  /**
+   * Webda specific metadata for the package.
+   */
   webda?: Partial<WebdaPackageDescriptor>;
+  /**
+   * The terms of service for the package.
+   */
   termsOfService?: string;
+  /**
+   * The title of the package.
+   */
   title?: string;
 }
 

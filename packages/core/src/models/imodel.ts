@@ -28,10 +28,11 @@ export interface IUser extends AbstractCoreModel {
 /**
  * Define a object that act like a Webda Model
  */
-export abstract class AbstractCoreModel<E extends AsyncEventUnknown = AsyncEventUnknown>
-  implements IAttributeLevelPermissionModel
-{
-  Events: E;
+export abstract class AbstractCoreModel implements IAttributeLevelPermissionModel {
+  isDeleted(): boolean {
+    throw new Error("Method not implemented.");
+  }
+  Events: AsyncEventUnknown;
   @NotEnumerable
   private __context: Context[] = [useContext()];
   /**
@@ -141,6 +142,9 @@ export interface ExposeParameters {
 }
 
 export interface IModelRefWithCreate<T extends AbstractCoreModel> {
+  patch(updates: any): unknown;
+  setAttribute(arg0: string, arg1: number): unknown;
+  exists(): unknown;
   get(): Promise<T>;
   create(data: RawModel<T>): Promise<T>;
   upsert(data: RawModel<T>): Promise<T>;
@@ -256,7 +260,7 @@ export type CoreModelFullDefinition<T extends AbstractCoreModel> = CoreModelDefi
   store(): StoreHelper;
 };
 
-export type ModelAttributes<T extends AbstractCoreModel<any>> = Omit<T, Methods<T> | "Events">;
+export type ModelAttributes<T extends AbstractCoreModel> = Omit<T, Methods<T> | "Events">;
 
 /**
  * Event sent by models
@@ -266,9 +270,9 @@ export type ModelAttributes<T extends AbstractCoreModel<any>> = Omit<T, Methods<
  *
  * If you need to prevent the change, you should extend the object
  */
-export type CoreModelEvents = {
-  Create: { object_id: string; object: AbstractCoreModel };
+export type CoreModelEvents<T = any> = {
+  Create: { object_id: string; object: T };
   PartialUpdate: any;
   Delete: { object_id: string };
-  Update: { object_id: string; object: AbstractCoreModel; previous: AbstractCoreModel };
+  Update: { object_id: string; object: T; previous: T };
 };

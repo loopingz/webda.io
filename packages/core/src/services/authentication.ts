@@ -1,22 +1,27 @@
 import bcrypt from "bcryptjs";
-import { Counter, EventWithContext } from "../core";
+import { Counter } from "../metrics/metrics";
 import * as WebdaError from "../errors";
-import type { CoreModelDefinition } from "../models/coremodel";
+import type { CoreModelDefinition, IUser } from "../models/imodel";
 import type { Ident } from "../models/ident";
 import type { User } from "../models/user";
-import { Inject, Service, ServiceParameters } from "../services/service";
-import { Route } from "../rest/router";
-import type { OperationContext, WebContext } from "../utils/context";
-import { HttpContext, type HttpMethodType } from "../utils/httpcontext";
+import { Inject, Service } from "../services/service";
+import { Route } from "../rest/irest";
+import type { OperationContext } from "../contexts/operationcontext";
+import { HttpContext, type HttpMethodType } from "../contexts/httpcontext";
 import type { CryptoService } from "./cryptoservice";
 import type { Mailer } from "./mailer";
-import { runAsSystem, useService } from "../hooks";
+import { runAsSystem } from "../contexts/execution";
+import { EventWithContext } from "../events/events";
+import { ServiceParameters } from "./iservices";
+import { useModel } from "../application/hook";
+import { useService } from "../core/hooks";
+import { WebContext } from "../contexts/webcontext";
 
 /**
  * Emitted when the /me route is called
  */
 export interface EventAuthenticationGetMe extends EventWithContext {
-  user: User;
+  user: IUser;
 }
 
 /**
@@ -44,7 +49,7 @@ export interface EventAuthenticationPasswordUpdate extends EventAuthenticationGe
  */
 export interface EventAuthenticationLogin extends EventWithContext {
   userId: string;
-  user?: User;
+  user?: IUser;
   identId: string;
   ident: Ident;
 }
@@ -297,8 +302,8 @@ class Authentication<
   computeParameters(): void {
     super.computeParameters();
 
-    this.identModel = this.getWebda().getModel(this.parameters.identModel);
-    this.userModel = this.getWebda().getModel(this.parameters.userModel);
+    this.identModel = useModel(this.parameters.identModel);
+    this.userModel = useModel(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {
       this._passwordVerifier = useService<PasswordVerifier>(this.parameters.password.verifier);
@@ -493,7 +498,7 @@ class Authentication<
     }
   })
   async _getMe(ctx: OperationContext) {
-    const user = await ctx.getCurrentUser();
+    const user = await ctx.getCurrentUser<User>();
     if (user === undefined) {
       throw new WebdaError.NotFound("No user found");
     }
@@ -616,7 +621,7 @@ class Authentication<
   /**
    * Create a new User with the link ident
    * @param ident
-   */
+   *
   async createUserWithIdent(provider: string, identId: string, profile: any = {}) {
     if (await this.identModel.ref(`${identId}_${provider}`).exists()) {
       throw new Error("Ident is already known");
@@ -625,6 +630,7 @@ class Authentication<
     // Pretend we logged in with the ident
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
+    */
 
   async registerUser(ctx: WebContext, data: any, identId: string, user: User = new this.userModel()): Promise<User> {
     runAsSystem(() => {

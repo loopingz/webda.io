@@ -1,4 +1,4 @@
-import { ServiceParameters } from "../services/service";
+import { ServiceParameters } from "../services/iservices";
 import {
   CancelableLoopPromise,
   CancelablePromise,
@@ -126,7 +126,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
           await this.deleteMessage(msg.ReceiptHandle);
         } catch (err) {
           this.metrics.errors.inc();
-          this.getWebda().log("ERROR", `Message ${msg.ReceiptHandle}`, err);
+          this.log("ERROR", `Message ${msg.ReceiptHandle}`, err);
         } finally {
           end();
         }

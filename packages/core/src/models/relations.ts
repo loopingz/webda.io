@@ -13,7 +13,7 @@ import { RawModel } from "./types";
 /**
  * Helper object that reference a AbstractCoreModel
  */
-export class ModelRef<T extends AbstractCoreModel<any> = AbstractCoreModel> {
+export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel> {
   @NotEnumerable
   protected model: CoreModelFullDefinition<T>;
   @NotEnumerable
@@ -28,7 +28,7 @@ export class ModelRef<T extends AbstractCoreModel<any> = AbstractCoreModel> {
   constructor(
     protected uuid: string,
     model: CoreModelDefinition<T>,
-    parent?: AbstractCoreModel<any>
+    parent?: AbstractCoreModel
   ) {
     this.model = <CoreModelFullDefinition<T>>model;
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
@@ -429,7 +429,7 @@ export class ModelLinksSimpleArray<T extends AbstractCoreModel> extends Array<Mo
   constructor(
     protected model: CoreModelDefinition<T>,
     content: any[] = [],
-    parent?: AbstractCoreModel<any>
+    parent?: AbstractCoreModel
   ) {
     super();
     content.forEach(c => this.add(c));
@@ -484,7 +484,7 @@ export class ModelLinksArray<T extends AbstractCoreModel, K>
   constructor(
     protected model: CoreModelDefinition<T>,
     content: any[] = [],
-    parent?: AbstractCoreModel<any>
+    parent?: AbstractCoreModel
   ) {
     super();
     this.parent = parent;
@@ -548,7 +548,7 @@ export type ModelLinksMap<T extends AbstractCoreModel, K> = Readonly<{
 export function createModelLinksMap<T extends AbstractCoreModel = AbstractCoreModel>(
   model: CoreModelDefinition<T>,
   data: any = {},
-  parent?: AbstractCoreModel<any>
+  parent?: AbstractCoreModel
 ) {
   const result = {
     add: (model: ModelRefCustomProperties<T, any>) => {
@@ -622,7 +622,7 @@ export class ModelMapLoaderImplementation<T extends AbstractCoreModel, K = any> 
    */
   public uuid: string;
 
-  constructor(model: CoreModelDefinition<T>, data: { uuid: string } & K, parent: AbstractCoreModel<any>) {
+  constructor(model: CoreModelDefinition<T>, data: { uuid: string } & K, parent: AbstractCoreModel) {
     Object.assign(this, data);
     this._model = model;
     this._parent = parent;

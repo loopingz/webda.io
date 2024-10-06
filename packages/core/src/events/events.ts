@@ -8,15 +8,15 @@ export type CoreEvents = {
   /**
    * Emitted when new result is sent
    */
-  "Webda.Result": null;
+  "Webda.Result": { context: IWebContext };
   /**
    * Emitted when new request comes in
    */
-  "Webda.Request": null;
+  "Webda.Request": { context: IWebContext };
   /**
    * Emitted when a request does not match any route
    */
-  "Webda.404": null;
+  "Webda.404": { context: IWebContext };
   /**
    * Emitted when Services have been initialized
    */
@@ -58,6 +58,10 @@ export type CoreEvents = {
   [key: string]: unknown;
 };
 
+export class EventWithContext<T extends Context = Context> {
+  context: T;
+}
+
 /**
  * Emit a core event
  * @param event
@@ -70,4 +74,7 @@ export function emitCoreEvent<K extends keyof CoreEvents>(event: K, data: CoreEv
  * @param event
  * @param listener
  */
-export function useCoreEvents<K extends keyof CoreEvents>(event: K, listener: (evt: CoreEvents[K]) => Promise<void>) {}
+export function useCoreEvents<K extends keyof CoreEvents>(
+  event: K,
+  listener: (evt: CoreEvents[K]) => Promise<void> | void
+) {}

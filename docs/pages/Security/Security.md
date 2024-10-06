@@ -13,4 +13,12 @@ It prevents [Stored XSS](https://portswigger.net/web-security/cross-site-scripti
 ctx.getRequestBody();
 ```
 
-## CSRF Filters
+## Context
+
+It represents the execution context, it knows the current user and the current object being processed.
+
+## Strict mode
+
+Webda by default is in Strict mode which means it will enforce attribute level security on all the objects while reading and writing them.
+
+If the Strict mode is disable, it will only enforce it on serialization and deserialization.

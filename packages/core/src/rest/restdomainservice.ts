@@ -1,11 +1,14 @@
 import { QueryValidator } from "@webda/ql";
-import type { CoreModelDefinition } from "../models/coremodel";
+import type { CoreModelDefinition } from "../models/imodel";
 import { ModelAction } from "../models/types";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
-import { DeepPartial } from "../services/service";
-import { WebContext } from "../utils/context";
-import { OpenAPIWebdaDefinition } from "./router";
+import { IWebContext } from "../contexts/icontext";
+import { OpenAPIWebdaDefinition } from "./irest";
 import * as WebdaError from "../errors";
+import { useRouter } from "./hooks";
+import { useApplication } from "../application/hook";
+import { DeepPartial } from "@webda/tsc-esm";
+import { useCore } from "../core/hooks";
 
 /**
  * Swagger static html
@@ -98,7 +101,7 @@ export class RESTDomainService<
    * @returns
    */
   resolve() {
-    this.parameters.exposeOpenAPI ??= this.getWebda().isDebug();
+    this.parameters.exposeOpenAPI ??= useCore().isDebug();
     super.resolve();
     if (this.parameters.exposeOpenAPI) {
       this.addRoute(".", ["GET"], this.openapi, { hidden: true });
@@ -124,7 +127,7 @@ export class RESTDomainService<
     const depth = context.depth || 0;
     const relations = model.getRelations();
     const injectAttribute = relations?.parent?.attribute;
-    const app = this.getWebda().getApplication();
+    const app = useApplication();
     // Update prefix
     const prefix =
       (context.prefix || (this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + "/")) +
@@ -134,7 +137,7 @@ export class RESTDomainService<
     const plurial = app.getModelPlural(model.getIdentifier());
 
     // Register the model url
-    this.getWebda().getRouter().registerModelUrl(app.getModelName(model), prefix);
+    useRouter().registerModelUrl(app.getModelId(model), prefix);
 
     let openapi: OpenAPIWebdaDefinition = {
       [this.parameters.queryMethod.toLowerCase()]: {
@@ -205,7 +208,7 @@ export class RESTDomainService<
       this.addRoute(
         `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
         [this.parameters.queryMethod],
-        async (context: WebContext) => {
+        async (context: IWebContext) => {
           let queryString = "";
           const parentId = `pid.${depth - 1}`;
           if (context.getHttpContext().getMethod() === "PUT") {
@@ -272,7 +275,7 @@ export class RESTDomainService<
       this.addRoute(
         `${prefix}`,
         ["POST"],
-        async (context: WebContext) => {
+        async (context: IWebContext) => {
           // Inject the parent attribute
           if (injectAttribute) {
             (await context.getInput())[injectAttribute] = context.parameter(`pid.${depth - 1}`);
@@ -311,7 +314,7 @@ export class RESTDomainService<
       this.addRoute(
         `${prefix}/{uuid}`,
         ["DELETE"],
-        (context: WebContext) => this._webda.callOperation(context, `${shortId}.Delete`),
+        (context: IWebContext) => this._webda.callOperation(context, `${shortId}.Delete`),
         openapi
       );
     }
@@ -353,7 +356,7 @@ export class RESTDomainService<
       this.addRoute(
         `${prefix}/{uuid}`,
         ["PUT", "PATCH"],
-        (context: WebContext) => {
+        (context: IWebContext) => {
           if (context.getHttpContext().getMethod() === "PUT") {
             return this._webda.callOperation(context, `${shortId}.Update`);
           } else {
@@ -395,7 +398,7 @@ export class RESTDomainService<
       this.addRoute(
         `${prefix}/{uuid}`,
         ["GET"],
-        (context: WebContext) => this._webda.callOperation(context, `${shortId}.Get`),
+        (context: IWebContext) => this._webda.callOperation(context, `${shortId}.Get`),
         openapi
       );
     }
@@ -478,7 +481,7 @@ export class RESTDomainService<
     */
 
     (relations.binaries || []).forEach(binary => {
-      const modelInjector = async (context: WebContext) => {
+      const modelInjector = async (context: IWebContext) => {
         context.getParameters().model = model.getIdentifier();
         context.getParameters().property = binary.attribute;
         let action = "SetMetadata";
@@ -494,11 +497,11 @@ export class RESTDomainService<
         const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
         return this._webda.callOperation(context, `${shortId}.${attribute}.${action}`);
       };
-      const modelInjectorChallenge = async (context: WebContext) => {
+      const modelInjectorChallenge = async (context: IWebContext) => {
         const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
         return this._webda.callOperation(context, `${shortId}.${attribute}.AttachChallenge`);
       };
-      const modelInjectorGet = async (context: WebContext) => {
+      const modelInjectorGet = async (context: IWebContext) => {
         const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
         if (binary.cardinality === "MANY") {
           context.getParameters().index = parseInt(context.parameter("index"));
@@ -753,10 +756,10 @@ export class RESTDomainService<
    * Serve the openapi with the swagger-ui
    * @param ctx
    */
-  async openapi(ctx: WebContext) {
+  async openapi(ctx: IWebContext) {
     this.openapiContent ??= SWAGGER_HTML.replace(/\{\{VERSION}}/g, this.parameters.swaggerVersion).replace(
       "{{OPENAPI}}",
-      JSON.stringify(this.getWebda().exportOpenAPI(true))
+      JSON.stringify(useRouter().exportOpenAPI(true))
     );
     ctx.write(this.openapiContent);
   }

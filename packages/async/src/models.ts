@@ -1,4 +1,4 @@
-import { Action, Core, CoreModel, OperationContext, WebContext, WebdaError } from "@webda/core";
+import { Action, Core, CoreModel, CoreModelDefinition, OperationContext, WebContext, WebdaError } from "@webda/core";
 import { WorkerLogLevel } from "@webda/workout";
 import * as crypto from "crypto";
 
@@ -275,4 +275,13 @@ export class AsyncOperationAction extends AsyncAction {
   }
 }
 
+/**
+ * Listen to a model event asynchronously
+ * It will go through the store etc
+ * @param model
+ * @param args
+ */
+function onAsync(model: CoreModelDefinition, ...args: Parameters<CoreModelDefinition["on"]>) {
+  model.on(...args);
+}
 export { AsyncAction };

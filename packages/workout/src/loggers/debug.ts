@@ -1,4 +1,4 @@
-import { WorkerMessage, WorkerOutput } from "../index";
+import { WorkerMessage, WorkerOutput } from "../core";
 import { FileLogger } from "./file";
 
 /**

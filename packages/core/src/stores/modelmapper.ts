@@ -1,5 +1,7 @@
-import type { CoreModel, CoreModelEvents, ModelRef } from "../models/coremodel";
-import type { CoreModelDefinition } from "../models/coremodel";
+import { useApplication, useModel } from "../application/hook";
+import type { CoreModel } from "../models/coremodel";
+import type { CoreModelDefinition, CoreModelEvents } from "../models/imodel";
+import { ModelRef } from "../models/relations";
 import { Service } from "../services/service";
 
 export interface Mapper {
@@ -28,7 +30,7 @@ export class ModelMapper extends Service {
   } = {};
   resolve() {
     super.resolve();
-    const app = this.getWebda().getApplication();
+    const app = useApplication();
     const graph = app.getGraph();
     for (const i in graph) {
       if (!graph[i].maps) continue;
@@ -184,7 +186,7 @@ export class ModelMapper extends Service {
       this.log("TRACE", "Should update a mapper based on Store.PartialUpdated", evt);
       // Search if one property is mapped then redirect to Store.Updated
       if (mapper.attributes.find(p => attributes.find(i => i === p))) {
-        const Model = this._webda.getApplication().getModel(modelName);
+        const Model = useModel(modelName);
         const instance = await Model.ref(uuid).get();
         return await this.handleEvent(modelName, { object: instance, previous: instance }, "Updated");
       }

@@ -1,13 +1,15 @@
-import { useService } from "../hooks";
+import { useService } from "../core/hooks";
+import { IService } from "../core/icore";
 import type { Ident } from "../models/ident";
 import type { User } from "../models/user";
-import { Service, ServiceParameters } from "./service";
+import { ServiceParameters } from "./iservices";
+import { Service } from "./service";
 
 /**
  * Define a service that can notify a user based on his info
  * It can use email or SMS or any other media
  */
-export interface NotificationService {
+export interface NotificationService extends IService {
   /**
    * Check if this type of notification is available
    */
@@ -77,7 +79,7 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
   resolve(): this {
     super.resolve();
     this.senders = this.parameters.senders.map(s => {
-      const service = <NotificationService>(<unknown>useService(s));
+      const service = useService<NotificationService>(s);
       if (!service) {
         throw new Error(`Unknown service '${s}'`);
       }

@@ -22,8 +22,9 @@ import {
   WebdaPackageDescriptor
 } from "./iapplication";
 import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
-import { Modda } from "./iapplication";
+import { Service } from "../services/service";
 
+export type Modda = Constructor<Service, [name: string, params: any]>;
 /**
  * Map a Webda Application
  *

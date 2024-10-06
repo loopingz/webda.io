@@ -1,14 +1,14 @@
 import { CryptoService } from "../services/cryptoservice";
 import { JWTOptions } from "../services/icryptoservice";
-import { type DeepPartial, Inject, Service } from "../services/service";
+import { Inject, Service } from "../services/service";
 import { Store } from "../stores/store";
 
 import { CookieOptions, SecureCookie } from "./cookie";
-import { Context } from "../contexts/context";
+import { Context, isWebContext } from "../contexts/icontext";
 import { getUuid } from "../utils/uuid";
-import { isWebContext } from "../interfaces";
 import { ServiceParameters } from "../services/iservices";
 import { Session } from "./session";
+import { DeepPartial } from "@webda/tsc-esm";
 
 /**
  * Manage load and save of sessions

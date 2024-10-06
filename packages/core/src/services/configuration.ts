@@ -1,7 +1,9 @@
 import jsonpath from "jsonpath";
-import { useService } from "../hooks";
 import * as WebdaError from "../errors";
-import { Service, ServiceParameters } from "./service";
+import { Service } from "./service";
+import { ServiceParameters } from "./iservices";
+import { useCore, useService } from "../core/hooks";
+import { useParameters } from "../core/instancestorage";
 
 /**
  * Service that can store configuration
@@ -136,7 +138,7 @@ class ConfigurationService<
     }
 
     // Add webda info
-    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
+    this.watch("$.services", (updates: any) => useCore().reinit(updates));
     return this;
   }
 
@@ -218,8 +220,8 @@ class ConfigurationService<
       if (this.configuration && this.configuration.services) {
         // Merge parameters with each service - cannot add new services for security
         for (const i in this.configuration.services) {
-          if (this.getWebda().getService(i)) {
-            this.configuration.services[i] = this.getWebda().getServiceParams(i, this.configuration);
+          if (useCore().getService(i)) {
+            this.configuration.services[i] = { ...useParameters(i), ...this.configuration.services[i] };
           }
         }
       }

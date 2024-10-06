@@ -26,7 +26,7 @@ import { IService, OperationDefinitionInfo } from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { OriginFilter, WebsiteOriginFilter } from "../rest/originfilter";
 import { useParameters } from "./instancestorage";
-import { Modda } from "../application/iapplication";
+import { Modda } from "../application/application";
 import { useApplication } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
@@ -610,7 +610,7 @@ export class Core {
    */
   protected createServices(excludes: string[] = []): void {
     const services = this.configuration.services;
-    let beans: { [key: string]: Constructor<IService> } = this.getBeans();
+    let beans: { [key: string]: Modda } = this.getBeans();
     if (this.configuration.parameters.ignoreBeans) {
       if (Array.isArray(this.configuration.parameters.ignoreBeans)) {
         this.configuration.parameters.ignoreBeans.forEach(bean => {

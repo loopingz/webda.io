@@ -5,10 +5,14 @@ import * as WebdaError from "../errors";
 import { Throttler } from "../utils/throttler";
 
 import type { CoreModel } from "../models/coremodel";
-import type { CoreModelDefinition } from "../models/coremodel";
-import { Service, ServiceParameters } from "../services/service";
+import type { CoreModelDefinition } from "../models/imodel";
+import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
-import { useContext } from "../contexts/execution";
+import { runAsSystem, useContext } from "../contexts/execution";
+import { ServiceParameters } from "../services/iservices";
+import { MappingService } from "./istore";
+import { useApplication, useModel, useModelId } from "../application/hook";
+import { useRegistry } from "../models/registry";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
@@ -282,15 +286,6 @@ export type StoreEvents = {
 };
 
 /**
- * A mapping service allow to link two object together
- *
- * Therefore they need to handle the cascadeDelete
- */
-export interface MappingService<T = any> {
-  newModel(object: any): T;
-}
-
-/**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object
  *
  * It emits events :
@@ -359,13 +354,13 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   computeParameters(): void {
     super.computeParameters();
-    const app = this.getWebda().getApplication();
+    const app = useApplication();
     const p = this.parameters;
-    this._model = app.getModel(p.model);
+    this._model = useModel(p.model);
     this._modelType = this._model.getIdentifier();
     this._uuidField = this._model.getUuidField();
     if (!this.parameters.noCache) {
-      this._cacheStore = <Store>new (app.getModda("Webda/MemoryStore"))(this._webda, `_${this.getName()}_cache`, <
+      this._cacheStore = <Store>new (app.getServiceDefinition("Webda/MemoryStore"))(`_${this.getName()}_cache`, <
         StoreParameters
       >{
         model: this.parameters.model
@@ -395,7 +390,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         this.log("ERROR", "Cannot add additional models in strict mode");
       } else {
         for (const modelType of this.parameters.additionalModels) {
-          const model = app.getModel(modelType);
+          const model = useModel(modelType);
           this._modelsHierarchy[model.getIdentifier()] = 0;
           recursive(model.getHierarchy().children, 1);
         }
@@ -416,22 +411,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       this.metrics.cache_invalidations.inc();
       await this._cacheStore.delete(uid);
     }
-  }
-
-  /**
-   * Return the object to be serialized without the __store
-   *
-   * @param stringify
-   * @returns
-   */
-  toStoredJSON(obj: CoreModel, stringify = false): any | string {
-    return runAsSystem(() => {
-      if (stringify) {
-        console.log("TO JSON", obj.toJSON());
-        return JSON.stringify(obj.toJSON());
-      }
-      return obj.toJSON();
-    });
   }
 
   /**
@@ -477,7 +456,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    *
    */
   handleModel(model: CoreModelDefinition | CoreModel): number {
-    const name = this.getWebda().getApplication().getModelName(model);
+    const name = useModelId(model, true);
     return this._modelsHierarchy[name] ?? -1;
   }
 
@@ -618,18 +597,15 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   ) {
     const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionUpsert" });
-    await runAsSystem(async () => {
-      await this._upsertItemToCollection(
-        uid,
-        <string>prop,
-        item,
-        index,
-        itemWriteCondition,
-        itemWriteConditionField,
-        updateDate
-      );
-    });
-
+    await this._upsertItemToCollection(
+      uid,
+      <string>prop,
+      item,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField,
+      updateDate
+    );
     await this.emitStoreEvent("Store.PartialUpdated", {
       object_id: uid,
       store: this,
@@ -726,7 +702,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   async query(query: string): Promise<{ results: any[]; continuationToken?: string }> {
     let context = useContext();
-    if (context instanceof GlobalContext) {
+    if (context.isGlobalContext()) {
       context = undefined;
     }
     const permissionQuery = context ? this._model.getPermissionQuery(context) : null;
@@ -901,17 +877,16 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @deprecated
    */
   async create(uuid: string, object: any) {
-    runAsSystem(() => {
-      // Dates should be store by the Store
-      if (!object._creationDate) {
-        object._creationDate = object._lastUpdate = new Date();
-      } else {
-        object._lastUpdate = new Date();
-      }
-      object.__type = object.__class.getIdentifier();
-      const ancestors = this.getWebda().getApplication().getModelHierarchy(object.__type).ancestors;
-      object.__types = [object.__type, ...ancestors].filter(i => i !== "Webda/CoreModel" && i !== "CoreModel");
-    });
+    // Dates should be store by the Store
+    if (!object._creationDate) {
+      object._creationDate = object._lastUpdate = new Date();
+    } else {
+      object._lastUpdate = new Date();
+    }
+    object.__type = object.__class.getIdentifier();
+    // TODO Get ancestors
+    const ancestors = [];
+    object.__types = [object.__type, ...ancestors].filter(i => i !== "Webda/CoreModel" && i !== "CoreModel");
     // Handle object auto listener
     this.metrics.operations_total.inc({ operation: "save" });
     object = await Promise.all([this._create(uuid, object), this._cacheStore?._create(uuid, object)]);
@@ -1143,13 +1118,13 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   async recomputeTypeLongId() {
     this.log("INFO", "Ensuring __type is using its long id form");
-    const app = this.getWebda().getApplication();
+    const app = useApplication();
     // We need to be laxist for migration
     this.parameters.strict = false;
     await this.migration("typesLongId", async item => {
-      if (item.__type !== undefined && item.__type.includes("/")) {
-        const model = app.getWebdaObject("models", item.__type);
-        const name = app.getModelName(model);
+      if (item.__type !== undefined && !item.__type.includes("/")) {
+        const model = app.getModelDefinition(item.__type);
+        const name = app.getModelId(model, true);
         if (name !== item.__type) {
           this.log("INFO", "Migrating type " + item.__type + " to " + name);
           return <Partial<any>>{
@@ -1157,6 +1132,22 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
           };
         }
       }
+    });
+  }
+
+  /**
+   * Return the object to be serialized without the __store
+   *
+   * @param stringify
+   * @returns
+   */
+  toStoredJSON(obj: CoreModel, stringify = false): any | string {
+    return runAsSystem(() => {
+      if (stringify) {
+        console.log("TO JSON", obj.toJSON());
+        return JSON.stringify(obj.toJSON());
+      }
+      return obj.toJSON();
     });
   }
 
@@ -1174,33 +1165,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         this.log("INFO", "Migrating type " + item.__type + " to " + this.parameters.modelAliases[item.__type]);
         return <Partial<any>>{
           __type: this.parameters.modelAliases[item.__type]
-        };
-      }
-    });
-  }
-
-  /**
-   * Recompute the __types for all objects (storeMigration.Registry.typesCompute)
-   */
-  async recomputeTypes() {
-    this.log("INFO", "Ensuring __types is correct from migration from v2.x");
-    // Update __types for each __type will be more efficient
-    await this.migration("typesCompute", async item => {
-      const __types = this.getWebda().getApplication().getModelTypes(item);
-      if (
-        !item.__types ||
-        item.__types.length !== __types.length ||
-        !__types.every((element, index) => element === item.__types[index])
-      ) {
-        this.log(
-          "INFO",
-          "Migrating types " + JSON.stringify(item.__types) + " to " + JSON.stringify(__types),
-          "for",
-          item.__type,
-          item.getUuid()
-        );
-        return <Partial<any>>{
-          __types
         };
       }
     });

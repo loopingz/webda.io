@@ -1,12 +1,18 @@
 import { Context } from "../contexts/icontext";
-import { CoreModel, type CoreModelEvents } from "./coremodel";
+import { CoreModel } from "./coremodel";
+import { CoreModelEvents } from "./imodel";
 
+export type UserEvents<T> = CoreModelEvents<T> & {
+  Login: { user: T };
+  Logout: { user: T };
+};
 /**
  * First basic model for User
  * @class
  * @WebdaModel
  */
-export class User<E extends CoreModelEvents = CoreModelEvents> extends CoreModel<E> {
+export class User extends CoreModel {
+  Events: UserEvents<this>;
   /**
    * Password of the user if defined
    */

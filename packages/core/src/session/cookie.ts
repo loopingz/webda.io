@@ -1,7 +1,7 @@
 import { type CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
 import type { JWTOptions } from "../services/icryptoservice";
 import type { HttpContext } from "../contexts/httpcontext";
-import { isWebContext, IWebContext } from "../interfaces";
+import { isWebContext, IWebContext } from "../contexts/icontext";
 import { useCrypto } from "../services/cryptoservice";
 import { useLog } from "../loggers/hooks";
 

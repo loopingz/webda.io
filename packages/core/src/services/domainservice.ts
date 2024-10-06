@@ -1,17 +1,21 @@
 import type { DeepPartial } from "@webda/tsc-esm";
 import { TransformCase, TransformCaseType } from "../utils/case";
-import { Service, ServiceParameters } from "./service";
-import { Application } from "../application";
-import { ModelGraphBinaryDefinition } from "../interfaces";
-import type { CoreModelDefinition } from "../models/coremodel";
+import { Service } from "./service";
+import { Application } from "../application/application";
+import type { CoreModelDefinition } from "../models/imodel";
 import { JSONUtils } from "../utils/serializers";
-import { OperationContext } from "../utils/context";
+import { OperationContext } from "../contexts/operationcontext";
 import { CoreModel } from "../models/coremodel";
-import { runAsSystem, runWithContext, useCore } from "../hooks";
+import { runAsSystem, runWithContext } from "../contexts/execution";
 import type { ModelAction } from "../models/types";
-import type { OperationDefinition } from "../core";
+
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
 import * as WebdaError from "../errors";
+import { ServiceParameters } from "./iservices";
+import { useApplication } from "../application/hook";
+import { OperationDefinition } from "../core/icore";
+import { ModelGraphBinaryDefinition } from "../application/iapplication";
+import { useCore } from "../core/hooks";
 
 export class DomainServiceParameters extends ServiceParameters {
   /**
@@ -249,7 +253,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    */
   resolve(): this {
     super.resolve();
-    this.app = this.getWebda().getApplication();
+    this.app = <Application>(<any>useApplication());
     // Add all routes per model
     this.app.getRootExposedModels().forEach(name => {
       const model = this.app.getModel(name);
@@ -265,7 +269,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param uuid
    */
   private async getModel(context: OperationContext): Promise<CoreModel> {
-    const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
+    const { model } = context.getExtension<{ model: CoreModelDefinition<CoreModel> }>("operationContext");
     const { uuid } = context.getParameters();
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
@@ -283,7 +287,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async modelCreate(context: OperationContext) {
-    const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
+    const { model } = context.getExtension<{ model: CoreModelDefinition<CoreModel> }>("operationContext");
     await runWithContext(context, async () => {
       const object = await model.factory(await context.getInput());
       await object.checkAct(context, "create");
@@ -381,7 +385,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    */
   async modelAction(context: OperationContext) {
     const { model, action } = context.getExtension<{
-      model: CoreModelDefinition;
+      model: CoreModelDefinition<CoreModel>;
       action: ModelAction & { name: string };
     }>("operationContext");
     if (!action.global) {
@@ -408,8 +412,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       return;
     }
 
-    const app = this.getWebda().getApplication();
-    this.app = app;
+    const app = (this.app = <Application>(<any>useApplication()));
 
     // Add default schemas - used for operation parameters
     for (const i in ModelsOperationsService.schemas) {
@@ -518,7 +521,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     }
   }
 
-  addBinaryOperations(model: CoreModelDefinition, name: string) {
+  addBinaryOperations(model: CoreModelDefinition<CoreModel>, name: string) {
     (model.getRelations().binaries || []).forEach(binary => {
       const webda = useCore();
       const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
@@ -527,7 +530,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
         context: {
           model,
           binary,
-          binaryStore: this.getWebda().getBinaryStore(model, binary.attribute)
+          binaryStore: webda.getBinaryStore(model, binary.attribute)
         },
         parameters: "uuidRequest"
       };
@@ -588,7 +591,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     const body = await context.getInput();
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: CoreModelDefinition;
+      model: CoreModelDefinition<CoreModel>;
       binary: any;
     }>("operationContext");
     // First verify if map exist
@@ -653,7 +656,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async binaryGet(context: OperationContext) {
     const { model, returnUrl, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: CoreModelDefinition;
+      model: CoreModelDefinition<CoreModel>;
       binary: ModelGraphBinaryDefinition;
       returnUrl: boolean;
     }>("operationContext");
@@ -707,7 +710,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async binaryAction(context: OperationContext) {
     const { model, binaryStore, binary, action } = context.getExtension<{
       binaryStore: BinaryService;
-      model: CoreModelDefinition;
+      model: CoreModelDefinition<CoreModel>;
       binary: ModelGraphBinaryDefinition;
       action: "delete" | "metadata" | "create";
     }>("operationContext");

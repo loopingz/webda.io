@@ -21,7 +21,8 @@
     "format": "prettier --check src/**/*",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "format:fix": "prettier --write src/**/*"
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -43,7 +44,8 @@
   },
   "devDependencies": {
     "@types/node": "20.0.0",
-    "tsx": "^4.17.0"
+    "tsx": "^4.17.0",
+    "skott": "^0.35.3"
   },
   "type": "module",
   "nx": {

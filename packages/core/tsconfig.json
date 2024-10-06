@@ -14,7 +14,7 @@
     "declarationMap": true
   },
   "include": ["src/**/*"],
-  "exclude": ["**/node_modules"],
+  "exclude": ["**/node_modules", "src/**/*.spec.ts", "src/test.ts"],
   "ts-node": {
     "transpileOnly": true,
     "preferTsExts": true,

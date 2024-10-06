@@ -45,6 +45,7 @@
     "lerna:publish": "lerna publish",
     "docs": "cd docs && yarn update:typedoc && yarn build && echo 'webda.io' > build/CNAME",
     "docs:publish": "yarn docs && gh-pages -t -d docs/build",
+    "deps:graph": "nx run-many --target=deps:graph",
     "init": "husky install"
   },
   "command": {

@@ -3,6 +3,8 @@ import * as path from "path";
 import * as WebdaError from "../errors";
 import { FileUtils } from "../utils/serializers";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
+import { useApplication } from "../application/hook";
+import { useCore } from "../core/hooks";
 
 /**
  * Allow for dynamic configuration from ConfigMap or Secrets
@@ -22,7 +24,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
         "Need a source for KubernetesConfigurationService"
       );
     }
-    this.parameters.source = this._webda.getAppPath(this.parameters.source);
+    this.parameters.source = useApplication().getAppPath(this.parameters.source);
     if (!fs.existsSync(this.parameters.source)) {
       throw new WebdaError.CodeError(
         "KUBE_CONFIGURATION_SOURCE_MISSING",
@@ -31,7 +33,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
     }
 
     // Add webda info
-    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
+    this.watch("$.services", (updates: any) => useCore().reinit(updates));
 
     fs.watchFile(path.join(this.parameters.source, "..data"), this.checkUpdate.bind(this));
     await this.checkUpdate();

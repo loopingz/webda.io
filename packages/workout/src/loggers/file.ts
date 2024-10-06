@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
+import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 import { WorkerLogger } from "./index";
 
 /**

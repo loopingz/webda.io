@@ -4,22 +4,16 @@ The Configuration Service allows you to get new configuration dynamically either
 
 It will trigger only when the object changes.
 
-If inside the object, at path `webda.services` it will update services configuration dynamically.
-
 ```js title="local.config.json"
 {
-    "mycustom": "test",
-    ...
-    "webda": {
-		"parameters": {
-			"param2": "test"
-		},
-        "services": {
-            "MyService": {
-                "param1": "dynamic"
-            }
-        }
-    }
+	"parameters": {
+		"param2": "test"
+	},
+	"services": {
+		"MyService": {
+			"param1": "dynamic"
+		}
+	}
 }
 ```
 

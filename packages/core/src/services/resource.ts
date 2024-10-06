@@ -2,8 +2,9 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import * as WebdaError from "../errors";
-import type { WebContext } from "../utils/context";
-import { Service, ServiceParameters } from "./service";
+import type { IWebContext } from "../contexts/icontext";
+import { Service } from "./service";
+import { ServiceParameters } from "./iservices";
 
 /**
  * ResourceService parameters
@@ -183,7 +184,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
    *
    * @param ctx
    */
-  _redirect(ctx: WebContext) {
+  _redirect(ctx: IWebContext) {
     ctx.setHeader("cache-control", this.parameters.cacheControl);
     ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this.parameters.url));
   }
@@ -193,7 +194,7 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
    *
    * @param ctx
    */
-  _serve(ctx: WebContext) {
+  _serve(ctx: IWebContext) {
     let file = this._resolved;
     let cacheControl = this.parameters.cacheControl;
     // If resource is not a file

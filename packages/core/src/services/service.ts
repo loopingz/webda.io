@@ -269,6 +269,16 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
   }
 
   /**
+   * Get a service by name
+   * @param name
+   * @returns
+   * @deprecated Use useService, might reconsider
+   */
+  getService<T extends Service>(name: string): T {
+    return <T>useService(name);
+  }
+
+  /**
    * Add service name label
    * @param type
    * @param configuration

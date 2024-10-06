@@ -16,6 +16,8 @@ It has 2 main sections:
 }
 ```
 
+The configuration schema is generated in `.webda` based on your application and the services you have defined.
+
 ## Parameters
 
 Each service will be injected with its parameters.

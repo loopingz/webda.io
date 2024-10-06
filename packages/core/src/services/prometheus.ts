@@ -1,7 +1,9 @@
 import * as http from "http";
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from "prom-client";
-import type { WebContext } from "../utils/context";
-import { Service, ServiceParameters } from "./service";
+import { Service } from "./service";
+import { ServiceParameters } from "./iservices";
+import { useCoreEvents } from "../events/events";
+import { WebContext } from "../contexts/webcontext";
 
 interface PrometheusExtension {
   timer: (labels?: Partial<Record<string, string | number>> | undefined) => number;
@@ -186,7 +188,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
     }
     // Only register on events if we need to get metrics
     if (this.parameters.includeRequestMetrics) {
-      this.getWebda().on("Webda.Request", ({ context }) => {
+      useCoreEvents("Webda.Request", ({ context }) => {
         if (context.getHttpContext().getRelativeUri() === this.parameters.url) {
           return;
         }
@@ -195,7 +197,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
           timer: this.metrics.http_request_duration_milliseconds.startTimer()
         });
       });
-      this.getWebda().on("Webda.Result", ({ context }) => {
+      useCoreEvents("Webda.Result", ({ context }) => {
         if (context.getHttpContext().getRelativeUri() === this.parameters.url) {
           return;
         }

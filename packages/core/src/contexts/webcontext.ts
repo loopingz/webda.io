@@ -95,13 +95,6 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   }
 
   /**
-   * Get output headers
-   */
-  public getResponseHeaders(): any {
-    return this._outputHeaders;
-  }
-
-  /**
    * Remove everything that was about to be sent
    */
   public resetResponse() {

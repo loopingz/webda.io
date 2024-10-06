@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import { join } from "path";
-import type { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { randomUUID } from "crypto";
 import { type MessageReceipt, Queue, QueueParameters } from "./queueservice";
+import { ServiceParameters } from "../services/iservices";
 
 export class FileQueueParameters extends QueueParameters {
   /**

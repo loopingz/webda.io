@@ -3,6 +3,7 @@ import { Writable } from "node:stream";
 
 import { HttpContext } from "./httpcontext";
 import { NotEnumerable } from "@webda/tsc-esm";
+import def from "ajv/dist/vocabularies/discriminator";
 
 /**
  * Context is the object that will be passed to the services
@@ -88,9 +89,11 @@ export abstract class IOperationContext<Input = any, Parameters = any, Output = 
    * @returns
    * @deprecated Use getParameters
    */
-  parameter(name: string): any {
-    return this.getParameters()[name];
+  parameter(name: string, defaultValue?: any): any {
+    return this.getParameters()[name] ?? defaultValue;
   }
+
+  abstract clearInput(): void;
   /**
    * Get the parameters of the context
    */
@@ -105,6 +108,28 @@ export abstract class IOperationContext<Input = any, Parameters = any, Output = 
   abstract setSession(session: any): void;
 
   abstract getSession(): any;
+  /**
+   * Create a new session
+   *
+   * Logout the current user
+   */
+  abstract newSession(): void;
+
+  abstract getOutputStream(): Writable;
+
+  /**
+   * For compatibility
+   * @returns
+   * @deprecated Use getOutputStream
+   */
+  getStream(): Writable {
+    return this.getOutputStream();
+  }
+
+  /**
+   * Get current response headers
+   */
+  abstract getResponseHeaders: () => any;
 }
 
 /**
@@ -172,12 +197,40 @@ export function canUpdateContext(): boolean {
 
 /**
  * Represent a context from the web
+ * It also fit the express response object
  */
-export type IWebContext = {
+export type IWebContext = IOperationContext & {
   setRoute(arg0: any): unknown;
   setParameters: (params: object) => void;
+  /**
+   * Get the http context
+   * @returns
+   */
   getHttpContext: () => HttpContext;
+  /**
+   * Set a cookie in the browser
+   * @param name
+   * @param value
+   * @param params
+   * @returns
+   */
   cookie: (name: string, value: string, params: any) => void;
+  /**
+   * Get the status code for the response
+   */
+  statusCode: number;
+  /**
+   * Set a header in the response
+   */
+  setHeader: (name: string, value: string) => void;
+  /**
+   * Redirect the user to another page
+   */
+  redirect: (url: string) => void;
+  /**
+   * Send the header response to the user
+   */
+  writeHead: (statusCode: number, headers: any) => void;
 };
 
 /**

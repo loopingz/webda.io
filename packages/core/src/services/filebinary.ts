@@ -4,7 +4,6 @@ import { Readable } from "stream";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 import type { CoreModel } from "../models/coremodel";
 import * as WebdaError from "../errors";
-import { OperationContext, WebContext } from "../utils/context";
 import {
   BinaryFile,
   BinaryMap,
@@ -15,6 +14,8 @@ import {
 } from "./binary";
 import { CryptoService } from "./cryptoservice";
 import { Inject } from "./service";
+import { WebContext } from "../contexts/webcontext";
+import { OperationContext } from "../contexts/operationcontext";
 
 export class FileBinaryParameters extends CloudBinaryParameters {
   /**

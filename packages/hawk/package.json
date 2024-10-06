@@ -19,7 +19,8 @@
     "test": "c8 mocha",
     "test:debug": "mocha src/**/*.spec.ts src/*.spec.ts",
     "format": "prettier --check src/**/*",
-    "format:fix": "prettier --write src/**/*"
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
   },
   "dependencies": {
     "@webda/core": "^4.0.0-beta.1",
@@ -54,7 +55,8 @@
   "devDependencies": {
     "@types/node": "20.0.0",
     "@webda/shell": "^4.0.0-beta.1",
-    "tsx": "^4.17.0"
+    "tsx": "^4.17.0",
+    "skott": "^0.35.3"
   },
   "type": "module",
   "engines": {

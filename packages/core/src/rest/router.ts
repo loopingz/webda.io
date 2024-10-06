@@ -84,7 +84,7 @@ export class Router extends Service {
    * @param {String} url of the route can contains dynamic part like {uuid}
    * @param {Object} info the type of executor
    */
-  addRoute(url: string, info: RouteInfo): void {
+  addRouteToRouter(url: string, info: RouteInfo): void {
     const finalUrl = this.getFinalUrl(url);
     useLog("TRACE", `Add route ${info.methods.join(",")} ${finalUrl}`);
     info.openapi ??= {};

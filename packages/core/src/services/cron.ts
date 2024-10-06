@@ -1,8 +1,8 @@
 import { createHash } from "crypto";
 import { schedule } from "node-cron";
-import { useService } from "../hooks";
 import { Service } from "./service";
 import { CancelablePromise } from "../utils/waiter";
+import { useCore, useService } from "../core/hooks";
 
 /**
  * Cron item
@@ -110,7 +110,7 @@ class CronService extends Service {
       return;
     }
     this._scanned = true;
-    this.crons.push(...CronService.loadAnnotations(this._webda.getServices()));
+    this.crons.push(...CronService.loadAnnotations(useCore().getServices()));
   }
 
   getCrontab() {

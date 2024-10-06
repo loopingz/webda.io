@@ -4,8 +4,6 @@ import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
 import * as WebdaError from "../errors";
-import type { CoreModel } from "../models/coremodel";
-import type { MappingService, Store } from "../stores/store";
 import { Service } from "./service";
 import { NotEnumerable } from "@webda/tsc-esm";
 import { AbstractCoreModel } from "../models/imodel";
@@ -14,6 +12,8 @@ import { useCore } from "../core/hooks";
 import { ServiceParameters } from "./iservices";
 import { Counter } from "../metrics/metrics";
 import { IOperationContext } from "../contexts/icontext";
+import { IStore } from "../core/icore";
+import { MappingService } from "../stores/istore";
 
 /**
  * Represent basic EventBinary
@@ -24,14 +24,14 @@ export interface EventBinary {
 }
 
 export interface EventBinaryUploadSuccess extends EventBinary {
-  target: CoreModel;
+  target: AbstractCoreModel;
 }
 
 /**
  * Sent before metadata are updated to allow alteration of the modification
  */
 export interface EventBinaryMetadataUpdate extends EventBinaryUploadSuccess {
-  target: CoreModel;
+  target: AbstractCoreModel;
   metadata: BinaryMetadata;
 }
 
@@ -286,12 +286,12 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
  */
 export class Binary<T = any> extends BinaryMap<T> {
   @NotEnumerable
-  protected model: CoreModel;
+  protected model: AbstractCoreModel;
   @NotEnumerable
   protected attribute: string;
   @NotEnumerable
   protected empty: boolean;
-  constructor(attribute: string, model: CoreModel) {
+  constructor(attribute: string, model: AbstractCoreModel) {
     super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
     this.empty = model[attribute] === undefined;
     this.attribute = attribute;
@@ -493,7 +493,7 @@ export type BinaryEvents = {
 /**
  * Define a BinaryModel with infinite field for binary map
  */
-export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> = CoreModel & T;
+export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> = AbstractCoreModel & T;
 
 /**
  * This is an abstract service to represent a storage of files
@@ -727,7 +727,7 @@ export abstract class BinaryService<
    * @param name
    * @param property
    */
-  protected checkMap(object: CoreModel, property: string) {
+  protected checkMap(object: AbstractCoreModel, property: string) {
     if (this.handleBinary(object.__type, property) !== -1) {
       return;
     }
@@ -846,12 +846,12 @@ export abstract class BinaryService<
    * @param ctx
    * @returns
    */
-  protected verifyMapAndStore(ctx: IOperationContext): Store {
+  protected verifyMapAndStore(ctx: IOperationContext): IStore {
     // Check for model
     if (this.handleBinary(ctx.parameter("model"), ctx.parameter("property")) === -1) {
       throw new WebdaError.NotFound("Model not managed by this store");
     }
-    return <Store>useCore().getModelStore(useModel(ctx.parameter("model")));
+    return <IStore>useCore().getModelStore(useModel(ctx.parameter("model")));
   }
 
   /**

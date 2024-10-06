@@ -630,7 +630,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           }
         },
         resolve: async (_, args, context) => {
-          return await model.query(WebdaQL.unsanitize(args.query || ""), true, context);
+          return await model.query(WebdaQL.unsanitize(args.query || ""), true);
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
@@ -814,7 +814,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             .filter(node => node.kind === "Field")
             .map(n => (<FieldNode>n).name.value)
             .forEach(n => (fieldsMap[n] = true));
-          return new EventIterator(<EventEmitter>services[i], fieldsMap, id, {}).iterate();
+          return new EventIterator(services[i], fieldsMap, id, {}).iterate();
         }
       };
     }
@@ -887,7 +887,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     query: string,
     context: any
   ): Promise<AsyncIterator<any>> {
-    let result = await model.query(query, true, context);
+    let result = await model.query(query, true);
     const queryInfo = new WebdaQL.QueryValidator(query);
     const updatedCallback = async evt => {
       this.log("INFO", "Event from", evt.emitterId, evt.object_id);
@@ -907,14 +907,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // Deleted is different as we need to return null
       "Store.Deleted": async evt => {
         if (!result.results.find(e => evt.object_id === e.getUuid())) return;
-        result = await model.query(query, true, context);
+        result = await model.query(query, true);
         return result;
       },
       "Store.Saved": async evt => {
         // If object match the query and is not in the result and can be read by the user
         if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object.canAct(context, "get")) {
           // Should check with the order by of the query to see if we need to recompute
-          result = await model.query(query, true, context);
+          result = await model.query(query, true);
           return result;
         }
         return;
@@ -965,12 +965,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     }
-    return new EventIterator(
-      <EventEmitter>model.store(),
-      events,
-      identifier || model.getIdentifier(),
-      modelInstance
-    ).iterate();
+    return new EventIterator(model.store(), events, identifier || model.getIdentifier(), modelInstance).iterate();
   }
 
   /**

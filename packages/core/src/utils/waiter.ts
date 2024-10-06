@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { Core } from "../core/core";
-import { Logger } from "./logger";
+import { Logger } from "../loggers/ilogger";
 
 /**
  * Function that define the amount of time between calls

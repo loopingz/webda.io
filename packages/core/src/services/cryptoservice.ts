@@ -2,14 +2,17 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPa
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import * as util from "util";
-import { useRegistry, useService } from "../hooks";
 import { JSONUtils } from "../utils/serializers";
-import { type DeepPartial, Service, ServiceParameters } from "./service";
-import { Route } from "../rest/router";
-import type { OperationContext } from "../utils/context";
-import { Core } from "../core";
+
 import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice";
-import { useCore } from "../core/hooks";
+import { useCore, useService } from "../core/hooks";
+import { useLog } from "../loggers/hooks";
+import { Service } from "./service";
+import { DeepPartial } from "@webda/tsc-esm";
+import { ServiceParameters } from "./iservices";
+import { OperationContext } from "../contexts/operationcontext";
+import { Route } from "../rest/irest";
+import { RegistryEntry, RegistryModel, useRegistry } from "../models/registry";
 
 export class SecretString {
   constructor(
@@ -21,11 +24,7 @@ export class SecretString {
     if (value instanceof SecretString) {
       return value.getValue();
     }
-    if (Core.get()) {
-      Core.get()?.log("WARN", "A secret string is not encrypted", value);
-    } else {
-      console.error("WARN", "A secret string is not encrypted");
-    }
+    useLog("WARN", "A secret string is not encrypted", value);
 
     return value;
   }
@@ -41,7 +40,7 @@ export class SecretString {
   }
 }
 
-export interface KeysRegistry {
+export type KeysRegistry = {
   /**
    * Contains the instanceId of the last
    * service who rotated
@@ -59,7 +58,7 @@ export interface KeysRegistry {
    * Current key
    */
   current: string;
-}
+};
 
 /**
  * Encrypt/Decrypt string
@@ -475,14 +474,14 @@ CryptoService.registerEncrypter("local", {
   encrypt: async (data: string) => {
     // Initialization Vector
     const iv = randomBytes(16);
-    const key = createHash("sha256").update(Core.getMachineId()).digest();
+    const key = createHash("sha256").update(useCore().getMachineId()).digest();
     const cipher = createCipheriv("aes-256-ctr", key, iv);
     return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
   },
   decrypt: async (data: string) => {
     const input = Buffer.from(data, "base64");
     const iv = input.subarray(0, 16);
-    const key = createHash("sha256").update(Core.getMachineId()).digest();
+    const key = createHash("sha256").update(useCore().getMachineId()).digest();
     const decipher = createDecipheriv("aes-256-ctr", key, iv);
     return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
   }

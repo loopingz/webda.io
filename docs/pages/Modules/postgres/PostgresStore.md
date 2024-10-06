@@ -28,3 +28,11 @@ CREATE TABLE IF NOT EXISTS ${tableName}
     CONSTRAINT ${tableName}_pkey PRIMARY KEY (uuid)
 );
 ```
+
+## Tips
+
+To check how many types of objects are stored in a Store you can run
+
+```sql
+select count(data->>'__type'),data->>'__type' from registry group by data->>'__type';
+```

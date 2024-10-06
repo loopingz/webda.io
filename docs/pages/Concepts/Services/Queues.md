@@ -11,3 +11,5 @@ if you want to process them in parallel or serial
 - SQS
 - Memory
 - File
+- GCP PubSub
+- RabbitMQ

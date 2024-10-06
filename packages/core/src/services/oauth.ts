@@ -1,9 +1,15 @@
-import { type Core, Counter, EventWithContext, type RequestFilter } from "../core";
-import { useService } from "../hooks";
-import type { OperationContext, WebContext } from "../utils/context";
 import * as WebdaError from "../errors";
 import type { Authentication } from "./authentication";
-import { RegExpStringValidator, Service, ServiceParameters } from "./service";
+import { Service } from "./service";
+import { getUuid } from "../utils/uuid";
+import { RequestFilter } from "../rest/irest";
+import { WebContext } from "../contexts/webcontext";
+import { Counter } from "../metrics/metrics";
+import { RegExpStringValidator } from "../utils/regexp";
+import { ServiceParameters } from "./iservices";
+import { useService } from "../core/hooks";
+import { OperationContext } from "../contexts/operationcontext";
+import { EventWithContext } from "../events/events";
 
 export interface EventOAuthToken extends EventWithContext {
   /**
@@ -141,8 +147,8 @@ export abstract class OAuthService<
   /**
    * Ensure default parameter url
    */
-  constructor(webda: Core, name: string, params?: any) {
-    super(webda, name, params);
+  constructor(name: string, params?: any) {
+    super(name, params);
     this.parameters.url ??= this.getDefaultUrl();
   }
 
@@ -359,7 +365,7 @@ export abstract class OAuthService<
     const session = ctx.getSession<OAuthSession>();
     session.oauth ??= {};
     // Generate 2 random uuid: nonce and state
-    session.oauth.state = this.getWebda().getUuid("base64");
+    session.oauth.state = getUuid("base64");
     // Redirect to the calling uri
     session.oauth.redirect = redirect;
     ctx.redirect(this.generateAuthUrl(redirect_uri, session.oauth.state, ctx));

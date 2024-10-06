@@ -1,3 +1,4 @@
+import { AsyncEventEmitter } from "@webda/core";
 import { EventEmitter } from "events";
 
 /**
@@ -19,7 +20,7 @@ export class EventIterator {
   running: boolean;
 
   constructor(
-    protected eventEmitter: EventEmitter,
+    protected eventEmitter: EventEmitter | AsyncEventEmitter,
     events: { [key: string]: true | ((data: any) => any) } | string,
     protected prefix?: string,
     protected initValue?: any

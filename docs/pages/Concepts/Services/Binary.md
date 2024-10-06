@@ -1,28 +1,18 @@
 # Binary
 
-The storage of files is handle by those categories, we have two services FileStorage and S3Storage
+Services to handle binary files.
 
-The API exposed is
+Available implementations: S3Binary, FileBinary, GoogleStorageBinary
 
-```
-GET /binary/{store}/{uuid}/{property}/{index}
-PUT /binary/upload/{store}/{uuid}/{property}/{index}
-DELETE /binary/{store}/{uuid}/{property}/{index}/{hash}
-```
+These services are responsible for storing and retrieving binary files attached to CoreModel.
 
-You can reduce the exposition by adding an expose attribute as on Store
+Like Stores they define where your data is stored but should barely be used directly.
 
-As you can only add a binary attached to an object stored on the system, the url reflect this :
-
-- \{store} is the Store of the object you want attached to
-- \{uid} is the Object uuid
-- \{property} is the field of the Object
-- \{index} is the index of the Binary
-- \{hash} the hash of the file to delete to ensure, if someone insert another file you don't delete the wrong file by accident
+The storage is optimized to avoid storing the same file multiple times. And it also includes a challenge system to avoid uploading files that are already stored in the system. Allowing users to prove they have the file without uploading it by providing two hashes of the file.
 
 ## Map
 
-To prevent people for adding files everywhere you specify in which object and fields you can post a file.
+Binary services define who is responsible for what fields of your CoreModel. With a map, you can define which fields of which objects can store binaries.
 
 ```javascript title="webda.config.json"
 "map": {
@@ -31,22 +21,6 @@ To prevent people for adding files everywhere you specify in which object and fi
 ```
 
 The above configuration will allow a user to link a binary to a user on the field s3images.
-
-So with the previous URL that means to play with binaries for a User ( uuid: user_02 )
-
-```
-To add
-PUT /binary/upload/users/user_02/s3images/add
-
-To replace
-PUT /binary/upload/users/user_02/s3images/0
-
-To get
-GET /binary/users/user_02/s3images/0
-
-To delete
-DELETE /binary/users/user_02/s3images/0/1928434324...
-```
 
 ## S3Binary
 

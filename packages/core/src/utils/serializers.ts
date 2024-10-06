@@ -14,7 +14,7 @@ import { join } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
 import { createGunzip, gunzipSync, gzipSync } from "zlib";
-import { useLog } from "./loggerhook";
+import { useLog } from "../loggers/hooks";
 
 type WalkerOptionsType = {
   followSymlinks?: boolean;

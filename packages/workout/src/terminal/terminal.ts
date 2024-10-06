@@ -2,6 +2,8 @@ import chalk from "chalk";
 import { constants } from "os";
 import * as readline from "readline";
 import * as util from "util";
+
+import { ConsoleLogger } from "../loggers/console";
 import {
   LogFilter,
   WorkerInput,
@@ -10,8 +12,7 @@ import {
   WorkerMessage,
   WorkerOutput,
   WorkerProgress
-} from "../index";
-import { ConsoleLogger } from "../loggers/console";
+} from "../core";
 
 /*
 We could use terminal-kit to simplify
@@ -262,7 +263,8 @@ export class Terminal {
 
   stripColorString(str: string, limit: number = -1): string {
     let match;
-    const regexp = /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
+    const regexp =
+      /(?<before>[^\u001b]+)|(?<cmd>[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><])/gm;
     let originalString = "";
     let fullString = "";
     let noMore = false;

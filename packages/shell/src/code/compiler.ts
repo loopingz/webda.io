@@ -1306,8 +1306,8 @@ export class Compiler {
    * @param full to keep all required
    */
   generateConfigurationSchemas(
-    filename: string = ".webda-config-schema.json",
-    deploymentFilename: string = ".webda-deployment-schema.json",
+    filename: string = ".webda/config-schema.json",
+    deploymentFilename: string = ".webda/deployment-schema.json",
     full: boolean = false
   ) {
     // Ensure we have compiled already

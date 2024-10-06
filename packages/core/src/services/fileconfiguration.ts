@@ -2,6 +2,8 @@ import { existsSync, watchFile } from "fs";
 import * as WebdaError from "../errors";
 import { FileUtils } from "../utils/serializers";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
+import { useApplication } from "../application/hook";
+import { useCore } from "../core/hooks";
 
 /**
  * Allow for dynamic configuration from a file
@@ -18,7 +20,7 @@ export class FileConfigurationService<
     }
 
     // Load it from where it should be
-    this.parameters.source = this._webda.getAppPath(this.parameters.source);
+    this.parameters.source = useApplication().getAppPath(this.parameters.source);
     if (!existsSync(this.parameters.source)) {
       throw new WebdaError.CodeError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
@@ -26,7 +28,7 @@ export class FileConfigurationService<
     watchFile(this.parameters.source, this.checkUpdate.bind(this));
 
     // Add webda info
-    this.watch("$.services", (updates: any) => this._webda.reinit(updates));
+    this.watch("$.services", (updates: any) => useCore().reinit(updates));
 
     await this.checkUpdate();
     return this;
@@ -44,7 +46,7 @@ export class FileConfigurationService<
    * Read the file and store it
    */
   async initConfiguration(): Promise<{ [key: string]: any }> {
-    this.parameters.source = this._webda.getAppPath(this.parameters.source);
+    this.parameters.source = useApplication().getAppPath(this.parameters.source);
 
     /**
      * Auto-generate file if missing

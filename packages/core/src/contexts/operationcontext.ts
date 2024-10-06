@@ -30,6 +30,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   Parameters,
   Output
 > {
+  getResponseHeaders: () => any;
   /**
    * Session
    */
@@ -261,6 +262,10 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   public getSession<K = Session>(): K {
     return <K>(<unknown>this.session);
+  }
+
+  newSession(): void {
+    this.session = new Session();
   }
 
   /**

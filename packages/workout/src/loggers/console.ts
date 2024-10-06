@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { sprintf } from "sprintf-js";
 import * as util from "util";
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../index";
+import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 import { WorkerLogger } from "./index";
 
 interface WorkerLogMessage {

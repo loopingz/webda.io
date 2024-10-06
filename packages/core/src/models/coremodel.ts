@@ -17,7 +17,7 @@ import {
 import { runAsSystem, useContext } from "../contexts/execution";
 import { NotEnumerable, type Constructor, type FilterAttributes, type Methods } from "@webda/tsc-esm";
 import type { ModelAction, ModelActions, RawModel } from "./types";
-import { EventEmitterUtils } from "../events/asynceventemitter";
+import { AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitter";
 import { getUuid } from "../utils/uuid";
 import {
   AbstractCoreModel,
@@ -34,6 +34,7 @@ import { WorkerLogLevel } from "@webda/workout";
 import { getAttributeLevelProxy } from "./coremodelproxy";
 import { OperationDefinitionInfo } from "../core/icore";
 import { Service } from "../services/service";
+import { BinariesImpl, Binary } from "../services/binary";
 //import { BinariesImpl, Binary } from "../services/binary";
 
 /**
@@ -156,9 +157,9 @@ export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakM
  * @class
  * @WebdaModel
  */
-export class CoreModel<E extends CoreModelEvents = CoreModelEvents> extends AbstractCoreModel<E> {
+export class CoreModel extends AbstractCoreModel {
   @NotEnumerable
-  Events: E = undefined;
+  Events: CoreModelEvents<this> = undefined;
   /**
    * Store helper for this model
    */
@@ -1010,7 +1011,7 @@ export class CoreModel<E extends CoreModelEvents = CoreModelEvents> extends Abst
   }
 
   async deleteItemFromCollection<K extends keyof ModelAttributes<this>>(
-    this: CoreModel<CoreModelEvents>,
+    this: CoreModel,
     collection: FilterAttributes<this, Array<any>>,
     index: number,
     conditionField?: K,
@@ -1162,95 +1163,3 @@ export class CoreModel<E extends CoreModelEvents = CoreModelEvents> extends Abst
  * @category CoreModel
  */
 export type CoreModelAny<T = any> = CoreModel & T;
-
-/**
- * Specific type for registry
- */
-export class RegistryModel extends CoreModel {
-  /**
-   * Helper for upsert
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  static async put<T extends CoreModel, K = any>(this: CoreModelDefinition<T>, uuid: string, data: K) {
-    return await this.ref(uuid).upsert(<any>data);
-  }
-  /**
-   * Helper for upsert
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  static async get<T extends CoreModel, K = any>(this: CoreModelDefinition<T>, uuid: string, data?: K): Promise<T & K> {
-    return data ? <any>await this.ref(uuid).upsert(<any>data) : await this.ref(uuid).get();
-  }
-
-  static async delete<T extends CoreModel>(this: CoreModelDefinition<T>, uuid: string) {
-    return await this.ref(uuid).delete();
-  }
-}
-
-/**
- * Type helper for registry entry
- */
-
-//export type RegistryEntry<T = any> = RegistryModel & T;
-
-export class RegistryEntry {
-  /**
-   * Remove an attribute from the registry
-   * @param uuid
-   * @param attribute
-   * @returns
-   */
-  static async removeAttribute(uuid: string, attribute: string) {
-    return await RegistryModel.ref(uuid).removeAttribute(<any>attribute);
-  }
-  /**
-   * Helper for upsert
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  static async put<K = any>(uuid: string, data: K): Promise<K & RegistryModel> {
-    return <any>await RegistryModel.ref(uuid).upsert(<any>data);
-  }
-  /**
-   * Helper for upsert
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  static async get<K = any>(uuid: string, data?: K): Promise<K & RegistryModel> {
-    return data ? <any>await RegistryModel.ref(uuid).upsert(<any>data) : await RegistryModel.ref(uuid).get();
-  }
-
-  static async delete(uuid: string) {
-    return await RegistryModel.ref(uuid).delete();
-  }
-
-  static exists(uuid: string) {
-    return RegistryModel.ref(uuid).exists();
-  }
-
-  /**
-   * Perform a conditional patch
-   * @param uuid
-   * @param patch
-   * @param conditionField
-   * @param conditionValue
-   * @returns
-   */
-  static patch(uuid: string, patch: any, conditionField: string, conditionValue: any) {
-    return RegistryModel.ref(uuid).patch(patch, <any>conditionField, conditionValue);
-  }
-}
-
-/**
- * Use the registry
- * @returns
- */
-export function useRegistry() {
-  return RegistryModel;
-}

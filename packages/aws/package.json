@@ -11,7 +11,8 @@
     "lint:fix": "eslint --fix",
     "test": "c8 mocha",
     "format": "prettier --check src/**/*",
-    "format:fix": "prettier --write src/**/*"
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
   },
   "repository": {
     "type": "git",
@@ -86,7 +87,8 @@
     "aws-sdk-client-mock": "^4.0.0",
     "node-fetch": "^3.3.1",
     "sinon": "^19.0.2",
-    "tsx": "^4.17.0"
+    "tsx": "^4.17.0",
+    "skott": "^0.35.3"
   },
   "type": "module",
   "engines": {

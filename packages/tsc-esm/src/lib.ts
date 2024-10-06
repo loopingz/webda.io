@@ -37,6 +37,44 @@ export type FilterAttributes<T extends object, K> = {
 }[keyof T];
 
 /**
+ * Define a constructor
+ */
+export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
+
+/**
+ * Make a property hidden from json and schema
+ *
+ * This property will not be saved in the store
+ * Nor it will be exposed in the API
+ *
+ * @param target
+ * @param propertyKey
+ */
+export function NotEnumerable(target: any, propertyKey: string) {
+  Object.defineProperty(target, propertyKey, {
+    set(value) {
+      Object.defineProperty(this, propertyKey, {
+        value,
+        writable: true,
+        configurable: true
+      });
+    },
+    configurable: true
+  });
+}
+
+/**
+ * Create a new type with only optional
+ */
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+export type PartialModel<T> = {
+  [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel<T[P]> : T[P] | null;
+};
+
+/**
  * Filter type keys by type
  */
 export type FilterOutAttributes<T extends object, K> = {

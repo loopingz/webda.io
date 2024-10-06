@@ -33,31 +33,6 @@ import { useRouter } from "../rest/hooks";
 const { machineIdSync } = pkg;
 
 /**
- * Copy from https://github.com/ajv-validator/ajv/blob/master/lib/runtime/validation_error.ts
- * It is not exported by ajv
- */
-export class ValidationError extends Error {
-  readonly errors: Partial<ErrorObject>[];
-  readonly ajv: true;
-  readonly validation: true;
-
-  constructor(errors: Partial<ErrorObject>[]) {
-    super(`validation failed: ${errors.map(e => e.message).join("; ")}`);
-    this.errors = errors;
-    this.ajv = this.validation = true;
-  }
-}
-
-type NoSchemaResult = null;
-
-type SchemaValidResult = true;
-
-type SchemaInvalidResult = {
-  errors: ErrorObject[];
-  text: string;
-};
-
-/**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
  * @class Core
@@ -440,45 +415,6 @@ export class Core {
       await emitCoreEvent("Webda.Init.Services", this.services);
     })();
     return this._init;
-  }
-
-  /**
-   * Validate the object with schema
-   *
-   * @param schema path to use
-   * @param object to validate
-   */
-  validateSchema(
-    webdaObject: CoreModel | string,
-    object: any,
-    ignoreRequired?: boolean
-  ): NoSchemaResult | SchemaValidResult {
-    let name = typeof webdaObject === "string" ? webdaObject : this.application.getModelFromInstance(webdaObject);
-    let cacheName = name;
-    if (name?.endsWith("?")) {
-      name = name.substring(0, name.length - 1);
-      ignoreRequired = true;
-    }
-    if (ignoreRequired) {
-      cacheName += "_noRequired";
-    }
-    if (!this._ajvSchemas[cacheName]) {
-      let schema = this.application.getSchema(name);
-      if (!schema) {
-        return null;
-      }
-      if (ignoreRequired) {
-        schema = JSONUtils.duplicate(schema);
-        schema.required = [];
-      }
-      this.log("TRACE", "Add schema for", name);
-      this._ajv.addSchema(schema, cacheName);
-      this._ajvSchemas[cacheName] = true;
-    }
-    if (this._ajv.validate(cacheName, object)) {
-      return true;
-    }
-    throw new ValidationError(this._ajv.errors);
   }
 
   /**

@@ -30,11 +30,43 @@ export type Attributes<T extends object> = FilterOutAttributes<T, Function>;
 export type Methods<T extends object> = FilterAttributes<T, Function>;
 
 /**
+ * Get type of an array element
+ */
+export type ArrayElement<T> = T extends (infer U)[] ? U : never;
+
+/**
  * Filter type keys by type
+ * Return the result of a keyof
  */
 export type FilterAttributes<T extends object, K> = {
   [L in keyof T]: T[L] extends K ? L : never;
 }[keyof T];
+
+/**
+ * Keep only attributes of a type
+ */
+export type PickByType<T extends object, K> = {
+  [L in FilterAttributes<T, K>]: T[L];
+};
+
+/**
+ * Omit only attributes of a type
+ */
+export type OmitByType<T extends object, K> = {
+  [L in FilterOutAttributes<T, K>]: T[L];
+};
+
+/**
+ * Remove any function from the object recursively
+ */
+export type Pojo<T extends object> = OmitByTypeRecursive<T, Function>;
+
+/**
+ * Omit only attributes of a type
+ */
+export type OmitByTypeRecursive<T extends object, K> = {
+  [L in FilterOutAttributes<T, K>]: T[L] extends object ? OmitByTypeRecursive<T[L], K> : T[L];
+};
 
 /**
  * Define a constructor
@@ -80,3 +112,15 @@ export type PartialModel<T> = {
 export type FilterOutAttributes<T extends object, K> = {
   [L in keyof T]: T[L] extends K ? never : L;
 }[keyof T];
+
+type TestType = {
+  a: string;
+  b: number;
+  c: string;
+  d: {
+    e: string;
+    f: number;
+    h: () => void;
+  };
+  g: () => void;
+};

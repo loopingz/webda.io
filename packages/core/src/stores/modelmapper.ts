@@ -34,7 +34,7 @@ export class ModelMapper extends Service {
     const graph = app.getGraph();
     for (const i in graph) {
       if (!graph[i].maps) continue;
-      const targetModel = app.getModel(i);
+      const targetModel = app.getModelDefinition(i);
       for (const j in graph[i].maps) {
         const mapper = graph[i].maps[j];
         this.mappers[mapper.model] ??= [];
@@ -49,7 +49,7 @@ export class ModelMapper extends Service {
       }
     }
     for (const modelName in this.mappers) {
-      const model = app.getModel(modelName);
+      const model = app.getModelDefinition(modelName);
       model.on("Delete", async evt => {
         await this.handleEvent(modelName, evt, "Deleted");
       });

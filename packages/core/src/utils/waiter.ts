@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { Core } from "../core/core";
 import { Logger } from "../loggers/ilogger";
+import { registerInteruptableProcess, unregisterInteruptableProcess } from "../core/instancestorage";
 
 /**
  * Function that define the amount of time between calls
@@ -162,12 +163,12 @@ export class CancelablePromise<T = void> extends Promise<T> {
           await onCancel();
         }
         reject("Cancelled");
-        Core.unregisterInteruptableProcess(this);
+        unregisterInteruptableProcess(this);
       };
       callback(resolve, reject);
     });
     this.cancel = localReject;
-    Core.registerInteruptableProcess(this);
+    registerInteruptableProcess(this);
   }
 }
 
@@ -185,7 +186,7 @@ export class CancelableLoopPromise extends Promise<void> {
           await onCancel();
         }
         shouldRun = false;
-        Core.unregisterInteruptableProcess(this);
+        unregisterInteruptableProcess(this);
       };
       const loop = () => {
         if (shouldRun) {
@@ -195,7 +196,7 @@ export class CancelableLoopPromise extends Promise<void> {
       resolve(callback(localReject).then(loop));
     });
     this.cancel = localReject;
-    Core.registerInteruptableProcess(this);
+    registerInteruptableProcess(this);
   }
 
   static get [Symbol.species]() {

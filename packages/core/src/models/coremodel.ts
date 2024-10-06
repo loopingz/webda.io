@@ -15,9 +15,9 @@ import {
   createModelLinksMap
 } from "./relations";
 import { runAsSystem, useContext } from "../contexts/execution";
-import { NotEnumerable, type Constructor, type FilterAttributes, type Methods } from "@webda/tsc-esm";
+import { Attributes, NotEnumerable, type Constructor, type FilterAttributes } from "@webda/tsc-esm";
 import type { ModelAction, ModelActions, RawModel } from "./types";
-import { AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitter";
+import { EventEmitterUtils } from "../events/asynceventemitter";
 import { getUuid } from "../utils/uuid";
 import {
   AbstractCoreModel,
@@ -355,7 +355,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static ref<T extends CoreModel>(this: Constructor<T>, uid: string): ModelRefWithCreate<T> {
-    return new ModelRefWithCreate(uid, <CoreModelFullDefinition<T>>this);
+    return new ModelRefWithCreate<T>(uid, <CoreModelFullDefinition<T>>this);
   }
 
   /**
@@ -364,7 +364,7 @@ export class CoreModel extends AbstractCoreModel {
    * @param defaultValue if defined create an object with this value if needed
    */
   static async get<T extends CoreModel>(this: CoreModelDefinition<T>, uid: string, defaultValue?: any): Promise<T> {
-    return (await (<CoreModelFullDefinition<T>>this).Store.get(uid)) || (await this.create(defaultValue, false));
+    return <T>await (<CoreModelFullDefinition<T>>this).Store.get(uid) || (await this.create(defaultValue, false));
   }
 
   static resolve(): void {}
@@ -645,7 +645,7 @@ export class CoreModel extends AbstractCoreModel {
    * Create an object
    * @returns
    */
-  static async factory<T extends CoreModel>(this: CoreModelDefinition<T>, object: Partial<T>): Promise<Proxied<T>> {
+  static async factory<T extends CoreModel>(this: CoreModelDefinition<T>, object: RawModel<T>): Promise<Proxied<T>> {
     return this.create(object, false);
   }
 
@@ -729,7 +729,7 @@ export class CoreModel extends AbstractCoreModel {
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: RawModel<this>, relations: boolean = true): this {
+  load(raw: Partial<RawModel<this>>, relations: boolean = true): this {
     this.context = useContext();
     const filterAttribute = this.hasAttributePermissions("WRITE");
     // Object assign with filter
@@ -840,7 +840,7 @@ export class CoreModel extends AbstractCoreModel {
     itemWriteConditionField?: K,
     itemWriteCondition?: this[K]
   ): Promise<void> {
-    return this.__class.Store.delete(this.getUuid(), <string>itemWriteConditionField, itemWriteCondition);
+    return this.__class.Store.delete(this.getUuid(), <any>itemWriteConditionField, itemWriteCondition);
   }
 
   /**
@@ -850,7 +850,7 @@ export class CoreModel extends AbstractCoreModel {
    * @param conditionValue
    */
   async patch(obj: Partial<this>, conditionField?: keyof this | null, conditionValue?: any) {
-    await this.__class.Store.patch(this.getUuid(), obj, <string>conditionField, conditionValue);
+    await this.__class.Store.patch(this.getUuid(), obj, <any>conditionField, conditionValue);
     Object.assign(this, obj);
     // Clear dirty if exists - should only exists if using proxy
     Object.keys(obj).forEach(k => {
@@ -993,35 +993,34 @@ export class CoreModel extends AbstractCoreModel {
    * @param conditionField
    * @param conditionValue
    */
-  async upsertItemToCollection<K extends keyof ModelAttributes<this>>(
-    collection: FilterAttributes<this, Array<any>>,
+  async upsertItemToCollection<K extends FilterAttributes<this, Array<any>>>(
+    collection: K,
     item: any,
     index?: number,
-    conditionField?: K,
-    conditionValue?: this[K]
+    conditionField?: any,
+    conditionValue?: any
   ): Promise<void> {
     await this.__class.Store.upsertItemToCollection(
       this.getUuid(),
-      <string>collection,
+      <any>collection,
       item,
       index,
-      <string>conditionField,
+      <any>conditionField,
       conditionValue
     );
   }
 
-  async deleteItemFromCollection<K extends keyof ModelAttributes<this>>(
-    this: CoreModel,
-    collection: FilterAttributes<this, Array<any>>,
+  async deleteItemFromCollection<K extends FilterAttributes<this, Array<any>>>(
+    collection: K,
     index: number,
-    conditionField?: K,
-    conditionValue?: this[K]
+    conditionField?: any,
+    conditionValue?: any
   ): Promise<void> {
     await this.__class.Store.deleteItemFromCollection(
       this.getUuid(),
-      <string>collection,
+      <any>collection,
       index,
-      <string>conditionField,
+      <any>conditionField,
       conditionValue
     );
   }
@@ -1037,7 +1036,7 @@ export class CoreModel extends AbstractCoreModel {
     itemWriteConditionField?: L,
     itemWriteCondition?: this[L]
   ) {
-    await this.getRef().setAttribute(<any>property, value, itemWriteConditionField, itemWriteCondition);
+    await this.getRef().setAttribute(<any>property, value, <any>itemWriteConditionField, itemWriteCondition);
     this[property] = value;
     this.__dirty?.delete(<string>property);
   }
@@ -1048,8 +1047,8 @@ export class CoreModel extends AbstractCoreModel {
    * @param itemWriteConditionField to check
    * @param itemWriteCondition value to check
    */
-  async removeAttribute<K extends keyof ModelAttributes<this>>(
-    property: keyof ModelAttributes<this>,
+  async removeAttribute<K extends Attributes<this>>(
+    property: Attributes<this>,
     itemWriteConditionField?: K,
     itemWriteCondition?: this[K]
   ) {
@@ -1079,7 +1078,7 @@ export class CoreModel extends AbstractCoreModel {
    * Increment a attributes both in store and object
    * @param info
    */
-  async incrementAttributes<K extends keyof ModelAttributes<this>, L extends keyof FilterAttributes<this, number>>(
+  async incrementAttributes<K extends Attributes<this>, L extends FilterAttributes<this, number>>(
     info: ({ property: L; value: number } | L)[],
     itemWriteConditionField?: K,
     itemWriteCondition?: this[K]

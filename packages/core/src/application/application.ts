@@ -23,6 +23,7 @@ import {
 } from "./iapplication";
 import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
 import { Service } from "../services/service";
+import { CoreModel } from "../models/coremodel";
 
 export type Modda = Constructor<Service, [name: string, params: any]>;
 /**
@@ -85,7 +86,7 @@ export class Application {
   /**
    * Models type registry
    */
-  protected models: { [key: string /* LongId */]: CoreModelDefinition } = {};
+  protected models: { [key: string /* LongId */]: CoreModelDefinition<CoreModel> } = {};
 
   /**
    * Models graph
@@ -489,7 +490,7 @@ export class Application {
    * Get all models definitions
    */
   getModels(): {
-    [key: string]: CoreModelDefinition<AbstractCoreModel>;
+    [key: string]: CoreModelDefinition<CoreModel>;
   } {
     return this.models;
   }

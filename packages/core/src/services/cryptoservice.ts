@@ -455,12 +455,13 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       this.current = `init-${useCore().getInstanceId()}`;
       await useRegistry().put("keys", { current: this.current });
     }
-    if (await useRegistry().patch("keys", next, "current", this.current)) {
+    try {
+      await useRegistry().patch("keys", next, "current", this.current);
       this.keys ??= {};
       this.keys[id] = next[`key_${id}`];
       this.current = id;
       this.age = age;
-    } else {
+    } catch (err) {
       // Reload as something else has modified
       await this.load();
     }

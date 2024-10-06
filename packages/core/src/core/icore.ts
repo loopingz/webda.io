@@ -1,6 +1,6 @@
 import { QueryValidator } from "@webda/ql";
 import { ContextProvider } from "../contexts/icontext";
-import { AbstractCoreModel } from "../models/imodel";
+import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
 /**
  * Define an operation within webda app
  */
@@ -81,7 +81,7 @@ export interface ICore {
   getServices(): { [key: string]: IService };
   getMachineId(): import("crypto").BinaryLike;
   reinit(updates: any): void | Promise<void>;
-  getBinaryStore(model: AbstractCoreModel, attribute: string): IService;
+  getBinaryStore(model: AbstractCoreModel | CoreModelDefinition, attribute: string): IService;
   getLocales(): string[];
   getModelStore(name: string): IService;
   getService(name: string): IService;

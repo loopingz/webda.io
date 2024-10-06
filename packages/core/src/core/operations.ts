@@ -1,7 +1,11 @@
 import { QueryValidator } from "@webda/ql";
 import { OperationDefinition } from "./icore";
-
-export function callOperation(operationId: string, parameters: any) {}
+import { OperationContext } from "../contexts/operationcontext";
+import * as WebdaError from "../errors";
+import { ValidationError } from "../schemas/hooks";
+import { useInstanceStorage } from "./instancestorage";
+import { useModel } from "../application/hook";
+import { useService } from "./hooks";
 
 /**
  * Check if an operation can be executed with the current context
@@ -11,13 +15,17 @@ export function callOperation(operationId: string, parameters: any) {}
  * @throws OperationError if operation is unknown
  * @returns true if operation can be executed
  */
-function checkOperationPermission(context: OperationContext, operationId: string): boolean {
-  if (!this.operations[operationId]) {
+function checkOperationPermission(
+  context: OperationContext,
+  operationId: string,
+  operation?: OperationDefinition & { permissionQuery?: QueryValidator }
+): boolean {
+  if (!operation) {
     throw new WebdaError.NotFound(`${operationId} Unknown`);
   }
-  if (this.operations[operationId].permission) {
-    this.operations[operationId].permissionQuery ??= new QueryValidator(this.operations[operationId].permission);
-    return this.operations[operationId].permissionQuery.eval(context.getSession());
+  if (operation.permission) {
+    operation.permissionQuery ??= new QueryValidator(operation.permission);
+    return operation.permissionQuery.eval(context.getSession());
   }
   return true;
 }
@@ -28,13 +36,14 @@ function checkOperationPermission(context: OperationContext, operationId: string
  * @param operationId
  */
 async function checkOperation(context: OperationContext, operationId: string) {
-  if (!this.checkOperationPermission(context, operationId)) {
+  const operations = useInstanceStorage().operations;
+  if (!checkOperationPermission(context, operationId, operations[operationId])) {
     throw new WebdaError.Forbidden(`${operationId} PermissionDenied`);
   }
   try {
-    if (this.operations[operationId].input) {
+    if (operations[operationId].input) {
       const input = await context.getInput();
-      if (input === undefined || this.validateSchema(this.operations[operationId].input, input) !== true) {
+      if (input === undefined || this.validateSchema(operations[operationId].input, input) !== true) {
         throw new WebdaError.BadRequest(`${operationId} InvalidInput Empty input`);
       }
     }
@@ -45,8 +54,8 @@ async function checkOperation(context: OperationContext, operationId: string) {
     throw err;
   }
   try {
-    if (this.operations[operationId].parameters) {
-      this.validateSchema(this.operations[operationId].parameters, context.getParameters());
+    if (operations[operationId].parameters) {
+      this.validateSchema(operations[operationId].parameters, context.getParameters());
     }
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -59,20 +68,21 @@ async function checkOperation(context: OperationContext, operationId: string) {
 /**
  * Call an operation within the framework
  */
-async function callOperation(context: OperationContext, operationId: string): Promise<void> {
+export async function callOperation(context: OperationContext, operationId: string): Promise<void> {
+  const operations = useInstanceStorage().operations;
   this.log("DEBUG", "Call operation", operationId);
   try {
     context.setExtension("operation", operationId);
-    await this.checkOperation(context, operationId);
-    context.setExtension("operationContext", this.operations[operationId].context || {});
+    await checkOperation(context, operationId);
+    context.setExtension("operationContext", operations[operationId].context || {});
     await Promise.all([
       this.emit("Webda.BeforeOperation", { context, operationId }),
       this.emit(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
-    if (this.operations[operationId].service) {
-      await this.getService(this.operations[operationId].service)[this.operations[operationId].method](context);
-    } else if (this.operations[operationId].model) {
-      await this.application.getModel(this.operations[operationId].model)[this.operations[operationId].method](context);
+    if (operations[operationId].service) {
+      await this.getService(operations[operationId].service)[operations[operationId].method](context);
+    } else if (operations[operationId].model) {
+      await this.application.getModel(operations[operationId].model)[operations[operationId].method](context);
     } else {
       throw new Error(`${operationId} NoServiceOrModel`);
     }
@@ -95,11 +105,12 @@ async function callOperation(context: OperationContext, operationId: string): Pr
  * Get available operations
  * @returns
  */
-function listOperations(): { [key: string]: Omit<OperationDefinition, "service" | "method"> } {
+export function listOperations(): { [key: string]: Omit<OperationDefinition, "service" | "method"> } {
   const list = {};
-  Object.keys(this.operations).forEach(o => {
+  const operations = useInstanceStorage().operations;
+  Object.keys(operations).forEach(o => {
     list[o] = {
-      ...this.operations[o]
+      ...operations[o]
     };
     delete list[o].service;
     delete list[o].method;
@@ -112,36 +123,35 @@ function listOperations(): { [key: string]: Omit<OperationDefinition, "service" 
  * @param operationId
  * @param definition
  */
-function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id">) {
+export function registerOperation(operationId: string, definition: Omit<OperationDefinition, "id">) {
   // Check operation naming convention
   if (!operationId.match(/^([A-Z][A-Za-z0-9]*\.)*([A-Z][a-zA-Z0-9]*)$/)) {
     throw new Error(`OperationId ${operationId} must match ^([A-Z][A-Za-z0-9]*.)*([A-Z][a-zA-Z0-9]*)$`);
   }
 
   // Check if service and method exist
-  if (
-    definition.model !== undefined &&
-    (!this.application.getModel(definition.model) ||
-      typeof this.application.getModel(definition.model)[definition.method] !== "function")
-  ) {
-    throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
+  if (definition.model !== undefined) {
+    const model = useModel(definition.model);
+    if (!model || typeof model[definition.method] !== "function") {
+      throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
+    }
+  } else if (definition.service !== undefined) {
+    const service = useService(definition.service);
+    if (!service || typeof service[definition.method] !== "function") {
+      throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
+    }
+  } else {
+    throw new Error(`Operation ${operationId} must have a service or a model`);
   }
-  if (
-    definition.service !== undefined &&
-    (!this.getService(definition.service) ||
-      typeof this.getService(definition.service)[definition.method] !== "function")
-  ) {
-    throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
-  }
-
+  const operations = useInstanceStorage().operations;
   // Add the operation
   // We will want to cache operations for faster startup
-  this.operations[operationId] = { ...definition, id: operationId };
+  operations[operationId] = { ...definition, id: operationId };
   ["input", "output"]
-    .filter(key => this.operations[operationId][key])
+    .filter(key => operations[operationId][key])
     .forEach(key => {
-      if (!this.getApplication().hasSchema(this.operations[operationId][key])) {
-        delete this.operations[operationId][key];
+      if (!this.getApplication().hasSchema(operations[operationId][key])) {
+        delete operations[operationId][key];
       }
     });
 }

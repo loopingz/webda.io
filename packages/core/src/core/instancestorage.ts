@@ -19,6 +19,8 @@ type InstanceStorage = Partial<{
   caches: { [key: string]: any };
   // Used to store the router
   router: IRouter;
+  // Interuptable process
+  interruptables: Set<{ cancel: () => Promise<void> }>;
 }>;
 
 const storage = new AsyncLocalStorage<InstanceStorage>();
@@ -77,4 +79,12 @@ export function createHook<T extends string>(
       (<any>useInstanceStorage())[hookName] = value;
     }
   ];
+}
+
+export function registerInteruptableProcess(process: { cancel: () => Promise<void> }) {
+  useInstanceStorage().interruptables.add(process);
+}
+
+export function unregisterInteruptableProcess(process: { cancel: () => Promise<void> }) {
+  useInstanceStorage().interruptables.delete(process);
 }

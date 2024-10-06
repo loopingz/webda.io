@@ -121,6 +121,7 @@ export interface RequestFilter<T extends IWebContext = IWebContext> {
 }
 
 export interface IRouter {
+  exportOpenAPI(arg0: boolean): any;
   registerModelUrl(arg0: any, prefix: string): unknown;
   registerRequestFilter(filter: RequestFilter);
   registerCORSFilter(filter: RequestFilter);

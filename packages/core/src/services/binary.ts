@@ -757,7 +757,7 @@ export abstract class BinaryService<
         file
       );
     } else {
-      await object.__class.Store.patch(object_uid, { [property]: file });
+      await object.__class.Store.patch(object_uid, <any>{ [property]: file });
     }
     await this.emit("Binary.Create", {
       object: file,
@@ -793,8 +793,8 @@ export abstract class BinaryService<
         object.getUuid(),
         property,
         index,
-        info.hash,
-        "hash"
+        "hash",
+        info.hash
       );
     } else {
       object.__class.Store.removeAttribute(object.getUuid(), property);

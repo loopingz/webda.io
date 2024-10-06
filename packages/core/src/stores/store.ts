@@ -373,7 +373,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       for (const i in tree) {
         this._modelsHierarchy[i] ??= depth;
         this._modelsHierarchy[i] = Math.min(depth, this._modelsHierarchy[i]);
-        this._modelsHierarchy[app.completeNamespace(i)] = this._modelsHierarchy[i];
         recursive(app.getModelHierarchy(i).children, depth + 1);
       }
     };

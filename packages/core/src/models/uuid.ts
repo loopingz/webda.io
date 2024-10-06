@@ -13,8 +13,9 @@ export class UuidModel extends CoreModel {
   /**
    * Ensure a uuid is generated if not present
    */
-  load(raw: RawModel<this>, relations?: boolean): this {
+  load(raw: Partial<RawModel<this>>, relations?: boolean): this {
     raw["uuid"] ??= this.generateUid(raw);
+
     return super.load(raw, relations);
   }
 }

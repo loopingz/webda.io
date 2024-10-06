@@ -45,11 +45,6 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     this._user.set(uuid);
   }
 
-  load(raw: Partial<RawModel<this>>, relations?: boolean): this {
-    raw.uuid ??= this.generateUid();
-    return super.load(raw, relations);
-  }
-
   /**
    * Return the owner of the object
    *

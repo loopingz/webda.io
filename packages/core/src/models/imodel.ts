@@ -1,7 +1,7 @@
-import { Constructor, Methods, NotEnumerable } from "@webda/tsc-esm";
+import { ArrayElement, Attributes, Constructor, FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
 import { AsyncEventEmitter, AsyncEventUnknown } from "../events/asynceventemitter";
 import { Context } from "../contexts/icontext";
-import { StoreHelper } from "../stores/istore";
+import { CRUDHelper, CRUDModel, StoreHelper } from "../stores/istore";
 import { JSONSchema7 } from "json-schema";
 import { ModelGraph, ModelsTree } from "../application/iapplication";
 import { ModelAction, RawModel } from "./types";
@@ -25,10 +25,15 @@ export interface IUser extends AbstractCoreModel {
   getEmail(): string | undefined;
 }
 
+type AbstractCoreModelCRUD = CRUDModel<any>;
 /**
  * Define a object that act like a Webda Model
  */
-export abstract class AbstractCoreModel implements IAttributeLevelPermissionModel {
+export abstract class AbstractCoreModel implements IAttributeLevelPermissionModel, AbstractCoreModelCRUD {
+  /**
+   *
+   */
+  abstract checkAct(context: Context, action: string);
   isDeleted(): boolean {
     throw new Error("Method not implemented.");
   }
@@ -72,6 +77,53 @@ export abstract class AbstractCoreModel implements IAttributeLevelPermissionMode
   }
 
   /**
+   * Increment an attribute
+   * @param property
+   * @param value
+   * @param itemWriteConditionField
+   * @param itemWriteCondition
+   * @returns
+   */
+  incrementAttribute<K extends never, L extends Attributes<this>>(
+    property: K,
+    value?: number,
+    itemWriteConditionField?: L,
+    itemWriteCondition?: this[L]
+  ) {
+    return this.incrementAttributes([{ property, value }], <any>itemWriteConditionField, itemWriteCondition);
+  }
+  abstract delete<K extends keyof ModelAttributes<this>>(
+    itemWriteConditionField?: K,
+    itemWriteCondition?: this[K]
+  ): Promise<void>;
+  abstract incrementAttributes<K extends Attributes<this>, L extends FilterAttributes<this, number>>(
+    info: ({ property: L; value: number } | L)[],
+    itemWriteConditionField?: K,
+    itemWriteCondition?: this[K]
+  );
+  abstract patch(obj: Partial<this>, conditionField?: keyof this | null, conditionValue?: any): Promise<void>;
+  abstract save(full?: boolean | keyof this, ...fields: (keyof this)[]): Promise<this>;
+  abstract upsertItemToCollection<K extends FilterAttributes<this, Array<any>>>(
+    collection: K,
+    item: any,
+    index?: number,
+    conditionField?: any,
+    conditionValue?: any
+  ): Promise<void>;
+  abstract deleteItemFromCollection<K extends FilterAttributes<this, Array<any>>>(
+    collection: K,
+    index: number,
+    conditionField?: any,
+    conditionValue?: any
+  ): Promise<void>;
+  abstract setAttribute<K extends keyof ModelAttributes<this>, L extends keyof ModelAttributes<this>>(
+    property: K,
+    value: this[K],
+    itemWriteConditionField?: L,
+    itemWriteCondition?: this[L]
+  );
+
+  /**
    * isDirty check if the object has been modified
    */
   isDirty(): boolean {
@@ -87,7 +139,6 @@ export abstract class AbstractCoreModel implements IAttributeLevelPermissionMode
   abstract attributePermission(attribute: string | symbol, value: any, action: "READ" | "WRITE"): any;
   abstract getUuid(): string;
   abstract setUuid(uuid: string): this;
-  abstract save(): Promise<this>;
 }
 
 /**
@@ -141,15 +192,11 @@ export interface ExposeParameters {
   };
 }
 
-export interface IModelRefWithCreate<T extends AbstractCoreModel> {
-  patch(updates: any): unknown;
-  setAttribute(arg0: string, arg1: number): unknown;
-  exists(): unknown;
+/**
+ * ModelRef create
+ */
+export interface IModelRefWithCreate<T extends AbstractCoreModel> extends CRUDHelper<T> {
   get(): Promise<T>;
-  create(data: RawModel<T>): Promise<T>;
-  upsert(data: RawModel<T>): Promise<T>;
-  delete(): Promise<void>;
-  update(data: RawModel<T>): Promise<T>;
 }
 /**
  *
@@ -209,7 +256,7 @@ export type CoreModelDefinition<T extends AbstractCoreModel = AbstractCoreModel>
   /**
    * Reference to an object without doing a DB request yet
    */
-  ref: (uuid: string) => IModelRefWithCreate<T>;
+  ref: (uuid: string) => IModelRefWithCreate<any>;
   /**
    * Get an object
    */
@@ -252,12 +299,12 @@ export type CoreModelDefinition<T extends AbstractCoreModel = AbstractCoreModel>
 };
 
 export type CoreModelFullDefinition<T extends AbstractCoreModel> = CoreModelDefinition<T> & {
-  Store: StoreHelper;
+  Store: StoreHelper<T>;
   /**
    * Use Store
    * @deprecated
    */
-  store(): StoreHelper;
+  store(): StoreHelper<T>;
 };
 
 export type ModelAttributes<T extends AbstractCoreModel> = Omit<T, Methods<T> | "Events">;

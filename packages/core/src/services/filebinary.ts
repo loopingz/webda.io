@@ -249,7 +249,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const marker = `${object.__class.getIdentifier()}_${object.getUuid}_${attribute}`;
 
     // Get the target object to add the mapping
-    await this.uploadSuccess(<CoreModelWithBinary>object, attribute, info);
+    await this.uploadSuccess(<any>object, attribute, info);
 
     if (fs.existsSync(this._getPath(info.hash, marker))) {
       if (!fs.existsSync(this._getPath(info.hash, "data"))) {
@@ -363,9 +363,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   /**
    * @inheritdoc
    */
-  async delete(object: CoreModel, property: string, index?: number): Promise<void> {
+  async delete(object: CoreModelWithBinary, property: string, index?: number): Promise<void> {
     const hash = (index !== undefined ? object[property][index] : object[property]).hash;
-    await this.deleteSuccess(<CoreModelWithBinary>object, property, index);
+    await this.deleteSuccess(<any>object, property, index);
     await this._cleanUsage(hash, object.getUuid(), property);
   }
 
@@ -406,11 +406,11 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     this.checkMap(object, property);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${property}_${object.getUuid()}`));
-      await this.uploadSuccess(<CoreModelWithBinary>object, property, fileInfo);
+      await this.uploadSuccess(<any>object, property, fileInfo);
       return;
     }
     await this._store(file, object, property);
-    await this.uploadSuccess(<CoreModelWithBinary>object, property, fileInfo);
+    await this.uploadSuccess(<any>object, property, fileInfo);
   }
 
   /**

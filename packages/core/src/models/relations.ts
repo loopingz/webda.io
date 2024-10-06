@@ -1,4 +1,4 @@
-import { type Attributes, type FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
+import { ArrayElement, type Attributes, type FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
 import {
   AbstractCoreModel,
   CoreModelDefinition,
@@ -9,11 +9,14 @@ import {
 } from "./imodel";
 import { getAttributeLevelProxy } from "./coremodelproxy";
 import { RawModel } from "./types";
+import { CRUDHelper } from "../stores/istore";
 
 /**
  * Helper object that reference a AbstractCoreModel
  */
-export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel> {
+export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel>
+  implements Omit<CRUDHelper<T>, "create" | "upsert">
+{
   @NotEnumerable
   protected model: CoreModelFullDefinition<T>;
   @NotEnumerable
@@ -79,15 +82,15 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel> {
   /**
    * @see AbstractCoreModel.deleteItemFromCollection
    */
-  async deleteItemFromCollection<K extends keyof Omit<T, Methods<T> | "Events">>(
-    prop: FilterAttributes<T, any[]>,
+  async deleteItemFromCollection<K extends FilterAttributes<T, Array<any>>>(
+    prop: K,
     index: number,
-    itemWriteConditionField?: K,
-    itemWriteCondition?: T[K]
-  ): Promise<this> {
+    itemWriteConditionField?: any,
+    itemWriteCondition?: any
+  ): Promise<void> {
     const updateDate = await this.model.Store.deleteItemFromCollection(
       this.uuid,
-      <string>prop,
+      <any>prop,
       index,
       <any>itemWriteConditionField,
       itemWriteCondition
@@ -102,22 +105,21 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel> {
         }
       }
     }));
-    return this;
   }
 
   /**
    * @see AbstractCoreModel.upsertItemFromCollection
    */
-  async upsertItemToCollection<K extends keyof Omit<T, Methods<T> | "Events">>(
-    prop: FilterAttributes<T, any[]>,
+  async upsertItemToCollection<K extends FilterAttributes<T, Array<any>>>(
+    prop: K,
     item: any,
     index?: number,
-    itemWriteConditionField?: K,
-    itemWriteCondition?: T[K]
-  ): Promise<this> {
+    itemWriteConditionField?: any,
+    itemWriteCondition?: any
+  ): Promise<void> {
     const updateDate = await this.model.Store.upsertItemToCollection(
       this.uuid,
-      <string>prop,
+      <any>prop,
       item,
       index,
       <any>itemWriteConditionField,
@@ -134,7 +136,6 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel> {
         }
       }
     }));
-    return this;
   }
 
   /**
@@ -147,82 +148,78 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel> {
   /**
    * @see AbstractCoreModel.delete
    */
-  delete<K extends keyof Omit<T, Methods<T> | "Events">>(conditionField?: K, condition?: T[K]): Promise<void> {
-    return this.model.Store.delete(this.uuid, <string>conditionField, <any>condition);
+  delete<K extends Attributes<T>>(conditionField?: K, condition?: T[K]): Promise<void> {
+    return this.model.Store.delete(this.uuid, <any>conditionField, <any>condition);
   }
 
   /**
    * @see AbstractCoreModel.patch
    */
-  async patch<K extends keyof Omit<T, Methods<T> | "Events">>(
-    updates: Partial<T>,
-    conditionField?: K,
-    condition?: T[K]
-  ): Promise<boolean> {
+  async patch<K extends Attributes<T>>(updates: Partial<T>, conditionField?: K, condition?: T[K]): Promise<void> {
     await this.model.Store.patch(this.uuid, updates, <any>conditionField, condition);
-    return true;
   }
 
   /**
    * @see AbstractCoreModel.setAttribute
    */
-  async setAttribute<K extends keyof ModelAttributes<T>, L extends keyof ModelAttributes<T>>(
+  async setAttribute<K extends Attributes<T>, L extends Attributes<T>>(
     attribute: K,
     value: T[K],
     itemWriteConditionField?: L,
     itemWriteCondition?: T[L]
-  ): Promise<this> {
+  ): Promise<void> {
     await this.model.Store.patch(
       this.uuid,
-      { [attribute]: value },
-      <string>itemWriteConditionField,
+      <any>{ [attribute]: value },
+      <any>itemWriteConditionField,
       itemWriteCondition
     );
-    return this;
   }
 
   /**
    * @see AbstractCoreModel.removeAttribute
    */
-  async removeAttribute<K extends keyof ModelAttributes<T>>(
-    attribute: keyof ModelAttributes<T>,
+  async removeAttribute<K extends Attributes<T>>(
+    attribute: Attributes<T>,
     itemWriteConditionField?: K,
     itemWriteCondition?: T[K]
-  ): Promise<this> {
-    await this.model.Store.removeAttribute(
-      this.uuid,
-      <string>attribute,
-      <string>itemWriteConditionField,
-      itemWriteCondition
-    );
+  ): Promise<void> {
+    await this.model.Store.removeAttribute(this.uuid, <any>attribute, <any>itemWriteConditionField, itemWriteCondition);
     await this.model?.emit("PartialUpdate", <any>{
       object_id: this.uuid,
       partial_update: {
         deleteAttribute: <any>attribute
       }
     });
-    return this;
   }
 
   /**
    * @see AbstractCoreModel.incrementAttribute
    */
-  async incrementAttribute(attribute: FilterAttributes<T, number>, value: number = 1): Promise<this> {
+  async incrementAttribute(attribute: FilterAttributes<T, number>, value: number = 1): Promise<void> {
     return this.incrementAttributes([{ property: attribute, value }]);
   }
 
   /**
    * @see AbstractCoreModel.incrementAttributes
    */
-  async incrementAttributes<K extends keyof ModelAttributes<T>>(
-    info: {
-      property: FilterAttributes<T, number>;
-      value?: number;
-    }[],
+  async incrementAttributes<K extends Attributes<T>>(
+    info: (
+      | {
+          property: FilterAttributes<T, number>;
+          value?: number;
+        }
+      | FilterAttributes<T, number>
+    )[],
     itemWriteConditionField?: K,
     itemWriteCondition?: T[K]
-  ): Promise<this> {
-    const updateDate = await this.model.Store.incrementAttributes(this.uuid, <any>info);
+  ): Promise<void> {
+    const updateDate = await this.model.Store.incrementAttributes(
+      this.uuid,
+      <any>info,
+      <any>itemWriteConditionField,
+      itemWriteCondition
+    );
     await this.model.emit("PartialUpdate", <any>(<CoreModelEvents["PartialUpdate"]>{
       object_id: this.uuid,
       updateDate,
@@ -230,14 +227,16 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel> {
         increments: <{ property: string; value: number }[]>info
       }
     }));
-    return this;
   }
 }
 
 /**
  * ModelRef with create
  */
-export class ModelRefWithCreate<T extends AbstractCoreModel = AbstractCoreModel> extends ModelRef<T> {
+export class ModelRefWithCreate<T extends AbstractCoreModel = AbstractCoreModel>
+  extends ModelRef<T>
+  implements CRUDHelper<T>
+{
   /**
    * Allow to create a model
    * @param defaultValue

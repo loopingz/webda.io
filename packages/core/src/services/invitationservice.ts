@@ -540,8 +540,8 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
       // User is known
       if (invitation.ident) {
         if (this.parameters.autoAccept) {
-          model[this.parameters.attribute][invitation.ident.getUser()] = body.metadata;
-        } else if (!model[this.parameters.attribute][invitation.ident.getUser()]) {
+          model[this.parameters.attribute][invitation.ident.getUser().getUuid()] = body.metadata;
+        } else if (!model[this.parameters.attribute][invitation.ident.getUser().getUuid()]) {
           // Add to the user
           model[this.parameters.pendingAttribute][`user_${invitation.ident.getUser()}`] = body.metadata;
         }

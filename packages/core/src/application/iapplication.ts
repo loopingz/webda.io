@@ -4,8 +4,6 @@
  * They should not import other files not prefixed with i.
  */
 
-//import type { IService, ServiceConstructor } from "../core/icore";
-import { Constructor } from "@webda/tsc-esm";
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 
@@ -13,6 +11,9 @@ import type { OpenAPIV3 } from "openapi-types";
  * Application interface.
  */
 export interface IApplication {
+  getGraph(): ModelsGraph;
+  getSchema(name: any): unknown;
+  getModelHierarchy(i: string): { children: string[]; parent: string };
   getModelPlural(arg0: string): string;
   getAppPath(source: string): string;
   getRelations(arg0: object): ModelGraph;

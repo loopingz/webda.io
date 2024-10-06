@@ -7,11 +7,6 @@ import { AbstractMailer } from "./mailer";
 export class DebugMailer extends AbstractMailer {
   sent: any[] = [];
 
-  constructor(webda, name, params) {
-    super(webda, name, params);
-    this.sent = [];
-  }
-
   /**
    * Fakely send a message saving it to memory to test later on
    *

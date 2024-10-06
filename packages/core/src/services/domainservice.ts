@@ -16,6 +16,8 @@ import { useApplication } from "../application/hook";
 import { OperationDefinition } from "../core/icore";
 import { ModelGraphBinaryDefinition } from "../application/iapplication";
 import { useCore } from "../core/hooks";
+import { registerOperation } from "../core/operations";
+import { WebContext } from "../contexts/webcontext";
 
 export class DomainServiceParameters extends ServiceParameters {
   /**
@@ -444,7 +446,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
-          this.getWebda().registerOperation(id, {
+          registerOperation(id, {
             service: this.getName(),
             method: k === "Create" ? "modelCreate" : "modelUpdate",
             input: modelSchema,
@@ -472,11 +474,11 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
           if (k === "Get") {
             info.output = modelSchema;
           }
-          this.getWebda().registerOperation(id, info);
+          registerOperation(id, info);
         });
       if (!expose.restrict.query) {
         const id = `${plurial}.Query`;
-        this.getWebda().registerOperation(id, {
+        registerOperation(id, {
           service: this.getName(),
           method: "modelQuery",
           parameters: "searchRequest",
@@ -488,7 +490,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       // Add patch
       if (!expose.restrict.update) {
         const id = `${shortId}.Patch`;
-        this.getWebda().registerOperation(id, {
+        registerOperation(id, {
           service: this.getName(),
           method: "modelPatch",
           input: modelSchema + "?",
@@ -514,7 +516,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
           model,
           action: { ...actions[name], name }
         };
-        this.getWebda().registerOperation(id, info);
+        registerOperation(id, info);
       });
 
       this.addBinaryOperations(model, shortId);
@@ -534,12 +536,12 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
         },
         parameters: "uuidRequest"
       };
-      webda.registerOperation(`${name}.${attribute}.AttachChallenge`, {
+      registerOperation(`${name}.${attribute}.AttachChallenge`, {
         ...info,
         method: "binaryChallenge",
         input: "binaryChallengeRequest"
       });
-      webda.registerOperation(`${name}.${attribute}.Attach`, {
+      registerOperation(`${name}.${attribute}.Attach`, {
         ...info,
         context: {
           ...info.context,
@@ -548,12 +550,12 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
         method: "binaryPut",
         parameters: "binaryAttachParameters"
       });
-      webda.registerOperation(`${name}.${attribute}.Get`, {
+      registerOperation(`${name}.${attribute}.Get`, {
         ...info,
         method: "binaryGet",
         parameters: binary.cardinality === "ONE" ? "uuidRequest" : "binaryGetRequest"
       });
-      webda.registerOperation(`${name}.${attribute}.Delete`, {
+      registerOperation(`${name}.${attribute}.Delete`, {
         ...info,
         context: {
           ...info.context,
@@ -562,7 +564,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
         method: "binaryAction",
         parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
       });
-      webda.registerOperation(`${name}.${attribute}.SetMetadata`, {
+      registerOperation(`${name}.${attribute}.SetMetadata`, {
         ...info,
         context: {
           ...info.context,
@@ -571,7 +573,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
         method: "binaryAction",
         parameters: binary.cardinality === "ONE" ? "binaryHashRequest" : "binaryIndexHashRequest"
       });
-      webda.registerOperation(`${name}.${attribute}.GetUrl`, {
+      registerOperation(`${name}.${attribute}.GetUrl`, {
         ...info,
         context: {
           ...info.context,
@@ -675,7 +677,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     const url = await binaryStore.getRedirectUrlFromObject(file, context);
     // No url, we return the file
     if (url === null) {
-      if (returnUrl) {
+      if (returnUrl && context instanceof WebContext) {
         // Redirect to same url without /url
         context.write({
           Location: context

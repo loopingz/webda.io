@@ -1,16 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import {
-  Authentication,
-  CoreModel,
-  DebugMailer,
-  Ident,
-  PasswordRecoveryInfos,
-  Store,
-  WebContext,
-  runInContext,
-  WebdaError
-} from "..";
+import { Authentication, DebugMailer, PasswordRecoveryInfos, Store, WebContext, WebdaError } from "../index";
 import { WebdaTest } from "../test";
 import { AuthenticationParameters } from "./authentication";
 
@@ -19,8 +9,8 @@ let userId;
 @suite
 class AuthenticationTest extends WebdaTest {
   events: number = 0;
-  userStore: Store<CoreModel>;
-  identStore: Store<Ident>;
+  userStore: Store;
+  identStore: Store;
   mailer: DebugMailer;
   authentication: Authentication;
 

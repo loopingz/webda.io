@@ -1,5 +1,5 @@
 import { Counter, Gauge, Histogram } from "../core";
-import { Service, ServiceParameters } from "../services/service";
+import { Service, type ServiceParameters } from "../services/service";
 import { CancelablePromise } from "../utils/waiter";
 
 export default abstract class PubSubService<

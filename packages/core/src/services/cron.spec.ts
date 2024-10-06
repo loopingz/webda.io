@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Cron, CronDefinition, CronService, Service } from "..";
+import { Cron, CronDefinition, CronService, Service } from "../index";
 import { WebdaTest } from "../test";
 
 class MyService extends Service {

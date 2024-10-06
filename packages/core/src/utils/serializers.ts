@@ -14,7 +14,7 @@ import { join } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
 import { createGunzip, gunzipSync, gzipSync } from "zlib";
-import { Core } from "../core";
+import { useLog } from "./loggerhook";
 
 type WalkerOptionsType = {
   followSymlinks?: boolean;
@@ -203,7 +203,7 @@ export const FileUtils: StorageFinder & {
         }
         /* c8 ignore start */
       } catch (err) {
-        Core.get()?.log("ERROR", "FileUtils.find: Error while reading file", p, err);
+        useLog("ERROR", "FileUtils.find: Error while reading file", p, err);
       }
       /* c8 ignore stop */
     };

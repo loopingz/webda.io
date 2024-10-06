@@ -1,16 +1,15 @@
 import bcrypt from "bcryptjs";
 import { Counter, EventWithContext } from "../core";
 import * as WebdaError from "../errors";
-import { CoreModelDefinition } from "../models/coremodel";
-import { Ident } from "../models/ident";
-import { User } from "../models/user";
+import type { CoreModelDefinition } from "../models/coremodel";
+import type { Ident } from "../models/ident";
+import type { User } from "../models/user";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { Route } from "../rest/router";
-import { Store } from "../stores/store";
-import { OperationContext, WebContext } from "../utils/context";
-import { HttpContext, HttpMethodType } from "../utils/httpcontext";
-import { CryptoService } from "./cryptoservice";
-import { Mailer } from "./mailer";
+import type { OperationContext, WebContext } from "../utils/context";
+import { HttpContext, type HttpMethodType } from "../utils/httpcontext";
+import type { CryptoService } from "./cryptoservice";
+import type { Mailer } from "./mailer";
 import { runAsSystem, useService } from "../hooks";
 
 /**
@@ -498,7 +497,7 @@ class Authentication<
     if (user === undefined) {
       throw new WebdaError.NotFound("No user found");
     }
-    await this.emitSync("Authentication.GetMe", <EventAuthenticationGetMe>{
+    await this.emit("Authentication.GetMe", <EventAuthenticationGetMe>{
       context: ctx,
       user
     });
@@ -609,7 +608,7 @@ class Authentication<
       ident._lastUsed = new Date();
       ident.setType(provider);
       await ident.save();
-      ident.__new = true;
+      ident._new = true;
       await this.login(ctx, user, ident, provider);
     });
   }
@@ -635,7 +634,7 @@ class Authentication<
       });
     });
     this.metrics.registration.inc();
-    await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
+    await this.emit("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
       data: data,
       context: ctx,
@@ -727,7 +726,7 @@ class Authentication<
       null
     );
     this.metrics.recovered.inc();
-    await this.emitSync("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
+    await this.emit("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
       user,
       password,
       context: ctx
@@ -873,7 +872,7 @@ class Authentication<
    * Logout user
    */
   async logout(ctx: WebContext) {
-    await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
+    await this.emit("Authentication.Logout", <EventAuthenticationLogout>{
       context: ctx
     });
     await ctx.newSession();
@@ -904,7 +903,7 @@ class Authentication<
     event.context = ctx;
     ctx.getSession().login(event.userId, event.identId);
     this.metrics.login.inc({ provider });
-    return this.emitSync("Authentication.Login", event);
+    return this.emit("Authentication.Login", event);
   }
 
   getMailMan(): Mailer {
@@ -933,7 +932,7 @@ class Authentication<
       ctx.write(user);
     } else {
       this.metrics.loginFailed.inc();
-      await this.emitSync("Authentication.LoginFailed", <EventAuthenticationLoginFailed>{
+      await this.emit("Authentication.LoginFailed", <EventAuthenticationLoginFailed>{
         user,
         context: ctx
       });
@@ -1019,7 +1018,7 @@ class Authentication<
           )
         )
       );
-      await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
+      await this.emit("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,
         password: __password,
         context: ctx

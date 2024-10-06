@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Service } from "..";
+import { Service } from "./service";
 import { User } from "../models/user";
 import { WebdaSimpleTest } from "../test";
 import { MultiNotificationService, NotificationService } from "./notificationservice";

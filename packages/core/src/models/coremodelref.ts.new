@@ -1,0 +1,321 @@
+import * as WebdaQL from "@webda/ql";
+import { FilterAttributes, NotEnumerable } from "@webda/tsc-esm";
+import { Core } from "../core";
+import { ModelUpdateEvent } from "../events";
+import { Store } from "../stores/store";
+import { Context } from "../utils/context";
+import { Throttler } from "../utils/throttler";
+import { CoreModel, CoreModelDefinition } from "./coremodel";
+import { RawModel } from "./relations";
+
+/**
+ * Reference to a CoreModel without loading it
+ */
+export class ModelRef<T extends CoreModel> {
+  @NotEnumerable
+  protected store: Store<T>;
+  @NotEnumerable
+  protected model: CoreModelDefinition<T>;
+  @NotEnumerable
+  protected parent: CoreModel;
+
+  constructor(
+    protected uuid: string,
+    model: CoreModelDefinition<T>,
+    parent?: CoreModel
+  ) {
+    this.model = model;
+    this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
+    this.store = Core.get().getModelStore(model);
+  }
+
+  async get(): Promise<T> {
+    return await this.store.get(this.uuid);
+  }
+
+  set(id: string | T) {
+    this.uuid = id instanceof CoreModel ? id.getUuid() : id;
+    this.parent?.__dirty.add(Object.keys(this.parent).find(k => this.parent[k] === this));
+  }
+
+  toString(): string {
+    return this.uuid;
+  }
+
+  toJSON(): string {
+    return this.uuid;
+  }
+
+  getUuid(): string {
+    return this.uuid;
+  }
+
+  async deleteItemFromCollection(
+    prop: FilterAttributes<T, any[]>,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField?: string
+  ): Promise<this> {
+    const updateDate = await this.store.deleteItemFromCollection(
+      this.uuid,
+      prop,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField
+    );
+    await new ModelUpdateEvent(
+      {
+        object_id: this.uuid,
+        store: this.store,
+        updateDate,
+        partial_update: {
+          deleteItem: {
+            property: <string>prop,
+            index: index
+          }
+        }
+      },
+      this
+    ).emit(true);
+    return this;
+  }
+
+  async upsertItemToCollection(
+    prop: FilterAttributes<T, any[]>,
+    item: any,
+    index?: number,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<this> {
+    const updateDate = await this.store.upsertItemToCollection(
+      this.uuid,
+      prop,
+      item,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField
+    );
+    await new ModelUpdateEvent(
+      {
+        object_id: this.uuid,
+        store: this.store,
+        updateDate,
+        partial_update: {
+          addItem: {
+            value: item,
+            property: <string>prop,
+            index: index
+          }
+        }
+      },
+      this
+    ).emit();
+    return this;
+  }
+
+  /**
+   * Return if object exists
+   * @returns
+   */
+  exists(): Promise<boolean> {
+    return this.store.exists(this.uuid);
+  }
+
+  /**
+   * Delete the object
+   * @returns
+   */
+  delete(): Promise<void> {
+    return this.store.delete(this.uuid);
+  }
+  conditionalPatch(updates: Partial<T>, conditionField: any, condition: any): Promise<boolean> {
+    return this.store.conditionalPatch(this.uuid, updates, conditionField, condition);
+  }
+  patch(updates: Partial<T>): Promise<boolean> {
+    return this.store.conditionalPatch(this.uuid, updates, null, undefined);
+  }
+  async setAttribute(attribute: keyof T, value: any): Promise<this> {
+    await this.store.setAttribute(this.uuid, attribute, value);
+    return this;
+  }
+  async removeAttribute(
+    attribute: keyof T,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: keyof T
+  ): Promise<this> {
+    await this.store.removeAttribute(this.uuid, attribute, itemWriteCondition, itemWriteConditionField);
+    await new ModelUpdateEvent(
+      {
+        object_id: this.uuid,
+        store: this.store,
+        partial_update: {
+          deleteAttribute: <any>attribute
+        }
+      },
+      this
+    ).emit(true);
+    return this;
+  }
+  async incrementAttributes(
+    info: {
+      property: FilterAttributes<T, number>;
+      value: number;
+    }[]
+  ): Promise<this> {
+    const updateDate = await this.store.incrementAttributes(this.uuid, info);
+    await new ModelUpdateEvent(
+      {
+        object_id: this.uuid,
+        store: this.store,
+        partial_update: {
+          increments: <{ property: string; value: number }[]>info
+        }
+      },
+      this
+    ).emit(true);
+    return this;
+  }
+}
+
+/**
+ *
+ */
+export class CoreModelQuery {
+  @NotEnumerable
+  private type: string;
+  @NotEnumerable
+  private model: CoreModel;
+  @NotEnumerable
+  private attribute: string;
+  @NotEnumerable
+  private targetModel: CoreModelDefinition;
+
+  constructor(type: string, model: CoreModel, attribute: string) {
+    this.attribute = attribute;
+    this.type = type;
+    this.model = model;
+  }
+
+  /**
+   * Retrieve target model definition
+   * @returns
+   */
+  getTargetModel(): CoreModelDefinition {
+    this.targetModel ??= Core.get().getModel(this.type);
+    return this.targetModel;
+  }
+  /**
+   * Query the object
+   * @param query
+   * @returns
+   */
+  query(
+    query?: string,
+    context?: Context
+  ): Promise<{
+    results: CoreModel[];
+    continuationToken?: string;
+  }> {
+    return this.getTargetModel().query(this.completeQuery(query), true, context);
+  }
+
+  /**
+   * Complete the query with condition
+   * @param query
+   * @returns
+   */
+  protected completeQuery(query?: string): string {
+    return WebdaQL.PrependCondition(query, `${this.attribute} = '${this.model.getUuid()}'`);
+  }
+
+  /**
+   *
+   * @param callback
+   */
+  async forEach(callback: (model: any) => Promise<void>, query?: string, parallelism: number = 3) {
+    const throttler = new Throttler();
+    throttler.setConcurrency(parallelism);
+    for await (const model of this.iterate(query)) {
+      throttler.execute(() => callback(model));
+    }
+    return throttler.wait();
+  }
+
+  /**
+   * Iterate through all
+   * @returns
+   */
+  iterate(query?: string) {
+    return Core.get().getModelStore(this.getTargetModel()).iterate(this.completeQuery(query));
+  }
+
+  /**
+   * Get all the objects
+   * @returns
+   */
+  async getAll(): Promise<this[]> {
+    let res = [];
+    for await (const item of this.iterate(this.completeQuery())) {
+      res.push(item);
+    }
+    return res;
+  }
+}
+
+export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
+  /**
+   * Allow to create a model
+   * @param defaultValue
+   * @param context
+   * @param withSave
+   * @returns
+   */
+  async create(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
+    let model = new this.model().load(defaultValue, true).setUuid(this.uuid);
+    if (withSave) {
+      return this.model.create(model);
+    } else {
+      // Override the save method to create the object
+      let oldSave = model.save;
+      model.save = async () => {
+        model.save = oldSave;
+        return this.model.create(model);
+      };
+      return model;
+    }
+  }
+
+  /**
+   * Load a model from the known store
+   *
+   * @param this the class from which the static is called
+   * @param id of the object to load
+   * @param defaultValue if object not found return a default object
+   * @param context to set on the object
+   * @returns
+   */
+  async getOrCreate(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
+    return (await this.get()) || this.create(defaultValue, withSave);
+  }
+}
+
+export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
+  constructor(
+    public uuid: string,
+    model: CoreModelDefinition<T>,
+    data: any,
+    parent: CoreModel
+  ) {
+    super(uuid, model, parent);
+    Object.assign(this, data);
+  }
+
+  toJSON(): any {
+    return this;
+  }
+  getUuid(): string {
+    return this.uuid;
+  }
+}
+
+export type ModelRefCustomProperties<T extends CoreModel, K> = ModelRefCustom<T> & K;

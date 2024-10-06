@@ -1,6 +1,6 @@
 import { OwnerModel } from "./ownermodel";
-import { ModelLink } from "./relations";
-import { User } from "./user";
+import type { ModelLink } from "./relations";
+import type { User } from "./user";
 
 export class IdentTokens {
   refresh: string;
@@ -39,7 +39,7 @@ export class Ident extends OwnerModel {
   /**
    * If the ident is new
    */
-  __new: boolean;
+  _new: boolean;
   /**
    * If the ident is validated
    */

@@ -1,26 +1,17 @@
-import { JSONSchema7 } from "json-schema";
-import {
-  Application,
-  Binary,
-  BinaryFileInfo,
-  BinaryMap,
-  BinaryMetadata,
-  BinaryService,
-  Core,
-  CoreModel,
-  CoreModelDefinition,
-  DeepPartial,
-  JSONUtils,
-  ModelAction,
-  ModelGraphBinaryDefinition,
-  OperationContext,
-  OperationDefinition,
-  Service,
-  ServiceParameters,
-  runInContext,
-  WebdaError
-} from "../index";
+import type { DeepPartial } from "@webda/tsc-esm";
 import { TransformCase, TransformCaseType } from "../utils/case";
+import { Service, ServiceParameters } from "./service";
+import { Application } from "../application";
+import { ModelGraphBinaryDefinition } from "../interfaces";
+import type { CoreModelDefinition } from "../models/coremodel";
+import { JSONUtils } from "../utils/serializers";
+import { OperationContext } from "../utils/context";
+import { CoreModel } from "../models/coremodel";
+import { runAsSystem, runWithContext, useCore } from "../hooks";
+import type { ModelAction } from "../models/types";
+import type { OperationDefinition } from "../core";
+import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
+import * as WebdaError from "../errors";
 
 export class DomainServiceParameters extends ServiceParameters {
   /**
@@ -195,7 +186,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param params
    * @param name
    */
-  abstract loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters;
+  abstract loadParameters(params: DeepPartial<T>): DomainServiceParameters;
 
   /**
    * Return the model name for this service
@@ -230,9 +221,9 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     if (!model.Expose || (model.getIdentifier && !this.parameters.isIncluded(model.getIdentifier()))) {
       return;
     }
-    const shortId = model.getIdentifier(true);
+    const identifier = model.getIdentifier();
     // Overlap object are hidden by design
-    if (shortId.includes("/")) {
+    if (!this.app.isFinalModel(identifier)) {
       return;
     }
     const context = JSONUtils.duplicate(modelContext);
@@ -278,7 +269,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     const { uuid } = context.getParameters();
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
-      await this.emitSync("Store.WebNotFound", {
+      await this.emit("Store.WebNotFound", {
         context,
         uuid
       });
@@ -293,20 +284,25 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    */
   async modelCreate(context: OperationContext) {
     const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
-    await runInContext(context, async () => {
-      const object = model.factory(await context.getInput());
+    await runWithContext(context, async () => {
+      const object = await model.factory(await context.getInput());
       await object.checkAct(context, "create");
       // Enforce the UUID
       object.setUuid(object.generateUid());
       // Check for conflict
       // await object.validate(context, {});
+      console.log("exists?");
       if (await model.ref(object.getUuid()).exists()) {
         throw new WebdaError.Conflict("Object already exists");
       }
+      console.log("SAVE");
+      runAsSystem(() => console.log("CREATE WITH", object._new));
       await object.save();
+      console.log("SAVED");
       // Set the location header to only uuid for now
       context.setHeader("Location", object.getUuid());
       context.write(object);
+      console.log("WRITE");
     });
   }
 
@@ -330,12 +326,6 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async modelGet(context: OperationContext) {
     const object = await this.getModel(context);
     await object.checkAct(context, "get");
-    const evt = {
-      context,
-      object: object
-    };
-    //
-    await Promise.all([this.emitSync("Store.WebGet", evt), object.__class.emitSync("Store.WebGet", <any>evt)]);
     context.write(object);
   }
 
@@ -360,7 +350,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async modelQuery(context: OperationContext) {
     const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
     const { query } = context.getParameters();
-    await runInContext(context, async () => {
+    await runWithContext(context, async () => {
       try {
         context.write(await model.query(query, true));
       } catch (err) {
@@ -419,6 +409,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     }
 
     const app = this.getWebda().getApplication();
+    this.app = app;
 
     // Add default schemas - used for operation parameters
     for (const i in ModelsOperationsService.schemas) {
@@ -436,12 +427,13 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       if (!expose || !this.parameters.isIncluded(model.getIdentifier())) {
         continue;
       }
-      const shortId = model.getIdentifier(true);
+
       // Overlap object are hidden by design
-      if (shortId.includes("/")) {
+      if (!this.app.isFinalModel(model.getIdentifier())) {
         continue;
       }
-      const plurial = app.getModelPlural(model.getIdentifier(false));
+      const shortId = model.getIdentifier().split("/").pop();
+      const plurial = app.getModelPlural(model.getIdentifier());
       const modelSchema = modelKey;
 
       ["create", "update"]
@@ -528,7 +520,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
 
   addBinaryOperations(model: CoreModelDefinition, name: string) {
     (model.getRelations().binaries || []).forEach(binary => {
-      const webda = Core.get();
+      const webda = useCore();
       const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
       const info = {
         service: this.getName(),

@@ -130,7 +130,7 @@ class OAuthServiceTest extends WebdaInternalTest {
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
     const ctx = await this.newContext();
-    await this.webda.getService<Store<Ident>>("Idents").__clean();
+    await this.webda.getService<Store>("Idents").__clean();
     // Register with oauth
     await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
     // We should have two idents existing now

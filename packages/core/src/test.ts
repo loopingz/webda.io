@@ -4,9 +4,7 @@ import { existsSync, unlinkSync } from "fs";
 import * as path from "path";
 import { register } from "prom-client";
 import {
-  Constructor,
   Core,
-  CoreModel,
   CoreModelDefinition,
   DeepPartial,
   GlobalContext,
@@ -14,6 +12,7 @@ import {
   HttpMethodType,
   MemoryStore,
   OwnerModel,
+  RegistryModel,
   Service,
   Store,
   StoreFindResult,
@@ -28,10 +27,9 @@ import { FileUtils } from "./utils/serializers";
 import { Ident as WebdaIdent } from "./models/ident";
 
 // Separation on purpose to keep application import separated
-import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./application";
+import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./interfaces";
 import { UnpackedApplication } from "./unpackedapplication";
 import { Query } from "@webda/ql";
-import { Context } from "mocha";
 
 /**
  * @class
@@ -80,17 +78,14 @@ export class Task extends OwnerModel {
  * VoidStore is a store that does not implement any method
  * @WebdaIgnore
  */
-export class VoidStore<T extends CoreModel> extends Store<
-  T,
-  StoreParameters & { brokenConstructor?: boolean; brokenInit?: boolean }
-> {
-  find(_query: Query): Promise<StoreFindResult<T>> {
+export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boolean; brokenInit?: boolean }> {
+  find(_query: Query): Promise<StoreFindResult<any>> {
     throw new Error("Method not implemented.");
   }
   _exists(_uid: string): Promise<boolean> {
     throw new Error("Method not implemented.");
   }
-  getAll(_list?: string[]): Promise<T[]> {
+  getAll(_list?: string[]): Promise<any[]> {
     throw new Error("Method not implemented.");
   }
   protected _patch(
@@ -176,7 +171,7 @@ export class VoidStore<T extends CoreModel> extends Store<
     return Promise.resolve([]);
   }
 
-  async _save(object: T) {
+  async _create(_uid: string, object: any) {
     return object;
   }
 
@@ -184,12 +179,12 @@ export class VoidStore<T extends CoreModel> extends Store<
     return Promise.resolve();
   }
 
-  _update(object, _uid) {
+  _update(_uid, object) {
     return Promise.resolve(object);
   }
 
   async _get(_uid) {
-    return <T>{};
+    return {};
   }
 }
 
@@ -427,7 +422,7 @@ class WebdaTest {
     if (init) {
       await this.webda.init();
       // Prevent persistance for tests
-      (<MemoryStore>this.webda.getRegistry()).persist = async () => {};
+      (<MemoryStore>RegistryModel.store()).persist = async () => {};
     }
   }
 

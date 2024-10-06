@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
-import { Core, Logger } from "../index";
+import { Core } from "../core/core";
+import { Logger } from "./logger";
 
 /**
  * Function that define the amount of time between calls
@@ -13,6 +14,17 @@ export type WaitDelayer = (retries: number) => number;
  */
 export function WaitLinearDelay(pause: number): WaitDelayer {
   return () => pause;
+}
+
+/**
+ * Pause for time ms
+ *
+ * @param time ms
+ */
+export async function sleep(time): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(resolve, time);
+  });
 }
 
 /**

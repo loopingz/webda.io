@@ -1,17 +1,14 @@
-import {
-  EventAuthenticationRegister,
-  EventWithContext,
-  Ident,
-  OperationContext,
-  Store,
-  WebContext,
-  WebdaError
-} from "../index";
-import { CoreModel, CoreModelDefinition } from "../models/coremodel";
-import { User } from "../models/user";
-import { Authentication } from "./authentication";
-import { NotificationService } from "./notificationservice";
-import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
+import { EventWithContext } from "../core";
+import * as WebdaError from "../errors";
+import type { CoreModel } from "../models/coremodel";
+import type { CoreModelDefinition } from "../models/coremodel";
+import { Ident } from "../models/ident";
+import type { User } from "../models/user";
+import type { Store } from "../stores/store";
+import type { OperationContext, WebContext } from "../utils/context";
+import type { Authentication, EventAuthenticationRegister } from "./authentication";
+import type { NotificationService } from "./notificationservice";
+import { type DeepPartial, Inject, Service, ServiceParameters } from "./service";
 
 interface InvitationAnswerBody {
   accept: boolean;
@@ -196,7 +193,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
   notificationService: NotificationService;
 
   @Inject("params:invitationStore")
-  invitationStore: Store<CoreModel>;
+  invitationStore: Store;
   /**
    * CoreModel to manage invitation on
    */
@@ -568,7 +565,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
         );
       } else {
         promises.push(
-          this.invitationStore.save({
+          this.invitationStore.create(invitUuid, {
             uuid: invitUuid,
             [this.getInvitationAttribute(model.getUuid())]: invitInfo
           })

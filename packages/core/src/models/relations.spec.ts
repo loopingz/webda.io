@@ -10,7 +10,7 @@ import { Binaries, Binary, BinaryService, MemoryBinaryFile } from "../services/b
 import { ModelMapper } from "../stores/modelmapper";
 import { WebdaTest } from "../test";
 import { HttpContext } from "../utils/httpcontext";
-import { CoreModel, Emitters } from "./coremodel";
+import { CoreModel, CoreModelEvents, Emitters } from "./coremodel";
 import {
   ModelLink,
   ModelLinksArray,
@@ -22,6 +22,7 @@ import {
 } from "./relations";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import { CoreEvents } from "../core";
 
 interface StudentInterface extends CoreModel {
   email: string;
@@ -67,7 +68,8 @@ interface HardwareInterface extends CoreModel {
   name: string;
 }
 
-interface UserInterface extends CoreModel {
+type ProjectEvents = CoreModelEvents & { Test: any };
+interface UserInterface extends CoreModel<ProjectEvents> {
   contacts: ModelsMapped<ContactInterface, "owner", "firstName" | "lastName" | "age">;
 }
 
@@ -290,18 +292,18 @@ export class ModelDrivenTest extends WebdaTest {
   @test
   async listeners() {
     // In test context, the CoreModel is loaded from different models
-    const SubProject = this.webda.getModel("SubProject");
+    const SubProject = this.webda.getModel<UserInterface>("SubProject");
     const Project = this.webda.getModel<UserInterface>("Project");
     let evt = 0;
-    Project.on("Store.Action", () => {
+    Project.on("Test", () => {
       evt++;
     });
-    SubProject.emit("Store.Action", {
+    SubProject.emit("Test", {
       action: "test",
       store: null,
       context: null
     });
-    Project.emit("Store.Action", <any>{});
+    Project.emit("Test", <any>{});
     await this.nextTick(2);
     assert.strictEqual(evt, 2);
   }

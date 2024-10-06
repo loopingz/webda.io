@@ -4,7 +4,7 @@ import { mkdirSync, unlinkSync } from "fs";
 import pkg from "fs-extra";
 import * as path from "path";
 import { stub } from "sinon";
-import { KubernetesConfigurationService } from "..";
+import { KubernetesConfigurationService } from "../index";
 import { WebdaInternalTest } from "../test";
 import { getCommonJS } from "../utils/esm";
 const { emptyDirSync, ensureSymlinkSync, outputFileSync } = pkg;

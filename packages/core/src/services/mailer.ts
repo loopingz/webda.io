@@ -2,9 +2,11 @@ import Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import * as path from "path";
-import { Counter, Ident, User } from "../index";
 import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";
+import { Counter } from "../core";
+import type { User } from "../models/user";
+import type { Ident } from "../models/ident";
 
 interface IEmailTemplate {
   renderAll(file: string, options: any);

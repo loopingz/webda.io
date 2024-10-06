@@ -19,8 +19,8 @@ import {
   OperationContext,
   WebdaError,
   createModelLinksMap,
-  runInContext
-} from "..";
+  runWithContext
+} from "../index";
 import { WebdaSimpleTest, Task } from "../test";
 
 @Expose()
@@ -41,7 +41,6 @@ class TestMask extends CoreModel {
   }
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
-    if (key === "card") console.log("attributePermission", key, value, mode, context.getCurrentUserId());
     if (key === "card") {
       if (mode === "WRITE") {
         const mask = "---X-XXXX-XXXX-X---";
@@ -73,34 +72,48 @@ class SubTestMask extends TestMask {
   @Action({ name: "localAction" })
   localActionMethod(): void {}
 }
+
 @suite
 class CoreModelTest extends WebdaSimpleTest {
   @test
   async contextPermission() {
+    // Object within a system context
     const test = await TestMask.create({});
+
     test.card = "1234-1234-1234-1234";
     assert.strictEqual(test.card, "123X-XXXX-XXXX-X234");
-    const ctx = await this.newContext();
-    ctx.getSession().login("user", "none");
-    runInContext(
-      ctx,
-      () => {
-        assert.strictEqual(test.card, undefined);
-      },
-      [test]
-    );
-    ctx.getSession().login("admin", "none");
-    runInContext(
-      ctx,
-      () => {
-        assert.strictEqual(test.card, "123X-XXXX-XXXX-X234");
-      },
-      [test]
-    );
+    const userContext = await this.newContext();
+    let userObject;
+    userContext.getSession().login("user", "none");
+
+    // Context user with object attached
+    await runWithContext(userContext, async () => {
+      assert.strictEqual(test.card, undefined);
+      userObject = await TestMask.create({ card: "1234-1234-1234-1234" });
+      assert.strictEqual(userObject.card, undefined);
+    }, [test]);
+
+    // Context user but object is not attached
+    runWithContext(userContext, () => {
+      assert.strictEqual(test.card, "123X-XXXX-XXXX-X234");
+      assert.strictEqual(userObject.card, undefined);
+    });
+
+    // Context admin
+    const adminContext = await this.newContext();
+    adminContext.getSession().login("admin", "none");
+    runWithContext(adminContext, () => {
+      assert.strictEqual(test.card, "123X-XXXX-XXXX-X234");
+      assert.strictEqual(userObject.card, undefined);
+    }, [test]);
+    runWithContext(adminContext, () => {
+      assert.strictEqual(test.card, "123X-XXXX-XXXX-X234");
+      assert.strictEqual(userObject.card, "123X-XXXX-XXXX-X234");
+    }, [test, userObject]);
   }
 
   @test("Verify unsecure loaded") unsecureLoad() {
-    runInContext(new OperationContext(this.webda), () => {
+    runWithContext(new OperationContext(this.webda), () => {
       const object: any = new CoreModel();
       object.load({
         _test: "plop",
@@ -194,7 +207,7 @@ class CoreModelTest extends WebdaSimpleTest {
 
   @test("Verify JSON export") jsonExport() {
     const object = this.secureConstructor();
-    runInContext(new OperationContext(this.webda), () => {
+    runWithContext(new OperationContext(this.webda), () => {
       const exported = JSON.parse(JSON.stringify(object));
       assert.strictEqual(exported.__serverOnly, undefined);
       assert.strictEqual(exported._test, "plop");
@@ -206,7 +219,7 @@ class CoreModelTest extends WebdaSimpleTest {
   @test("Verify Context access within output to server") async withContext() {
     const ctx = await this.newContext();
     const task = new Task().load({ test: "plop", _gotContext: true });
-    await runInContext(ctx, () => {
+    await runWithContext(ctx, () => {
       ctx.write(task);
       const result = JSON.parse(<string>ctx.getResponseBody());
       assert.strictEqual(result._gotContext, true);
@@ -214,8 +227,8 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test async cov() {
-    let task = new Task();
-    assert.ok(CoreModel.instanceOf(task));
+    const task = new Task();
+    assert.ok(task instanceof CoreModel);
     await assert.rejects(
       () => new CoreModel().checkAct(undefined, "test"),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
@@ -280,7 +293,7 @@ class CoreModelTest extends WebdaSimpleTest {
     assert.strictEqual(task.counter, 1);
     assert.strictEqual(task.side, "plop");
     await TestMask.ref("unit1").removeAttribute("side");
-    await TestMask.ref("unit1").conditionalPatch({ counter: 2 }, null, undefined);
+    await TestMask.ref("unit1").patch({ counter: 2 }, null, undefined);
     await task.refresh();
     assert.strictEqual(task.counter, 2);
     assert.strictEqual(task.side, undefined);

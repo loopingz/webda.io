@@ -5,7 +5,7 @@ import { Store, CoreModel, Ident, User, WebdaError } from "../index";
 class RESTDomainServiceTest extends WebdaInternalSimpleTest {
   async httpCRUD(url: string = "/users") {
     let eventFired;
-    const userStore: Store<User> = User.store();
+    const userStore: Store = User.store();
     let executor;
     await userStore.__clean();
     const ctx = await this.newContext({});
@@ -95,16 +95,9 @@ class RESTDomainServiceTest extends WebdaInternalSimpleTest {
   }
 
   async modelActions(url = "/idents") {
-    const identStore: Store<CoreModel> = Ident.store();
+    const identStore: Store = Ident.store();
     assert.notStrictEqual(identStore.getModel(), undefined);
-    let eventFired = 0;
     let executor;
-    identStore.on("Store.Action", evt => {
-      eventFired++;
-    });
-    identStore.on("Store.Actioned", evt => {
-      eventFired++;
-    });
     const ctx = await this.newContext({
       type: "CRUD",
       uuid: "PLOP"
@@ -112,13 +105,12 @@ class RESTDomainServiceTest extends WebdaInternalSimpleTest {
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `${url}/coucou/plop`);
     assert.notStrictEqual(executor, undefined);
     await assert.rejects(executor.execute(ctx), WebdaError.NotFound);
-    await identStore.save({
+    await identStore.create("coucou", {
       uuid: "coucou"
     });
     await executor.execute(ctx);
     // Our fake action is pushing true to _plop
     assert.strictEqual(JSON.parse(ctx.getResponseBody())._plop, true);
-    assert.strictEqual(eventFired, 2);
 
     assert.notStrictEqual(this.getExecutor(ctx, "test.webda.io", "POST", `${url}/coucou/yop`), null);
     executor = this.getExecutor(ctx, "test.webda.io", "GET", `${url}/coucou/yop`);

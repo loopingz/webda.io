@@ -1,6 +1,6 @@
 import * as http from "http";
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from "prom-client";
-import { WebContext } from "../utils/context";
+import type { WebContext } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
 interface PrometheusExtension {

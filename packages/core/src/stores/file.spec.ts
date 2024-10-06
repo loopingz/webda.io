@@ -6,7 +6,7 @@ import * as sinon from "sinon";
 import { CoreModel, FileStore, ModelMapLoaderImplementation, Store } from "../index";
 import { User } from "../models/user";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";
-import { StoreTest } from "./store.spec";
+import { IdentTest, StoreTest, UserTest } from "./store.spec";
 const { removeSync } = pkg;
 
 /**
@@ -47,39 +47,38 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
 
   @test
   async cov() {
-    const identStore: FileStore<CoreModel & { test: number; plops: any[] }> = this.identStore;
-    const userStore: FileStore<CoreModel> = this.userStore;
-    const user: any = await userStore.save({});
-    let ident = await identStore.save({
+    const user = await UserTest.create({});
+    let ident = await IdentTest.create({
       _user: user.getUuid()
     });
-    identStore.getParameters().strict = true;
-    let res = await identStore.get(user.getUuid());
+    const identStore: FileStore = this.identStore;
+    IdentTest.store().getParameters().strict = true;
+    let res = await IdentTest.get(user.getUuid());
     assert.strictEqual(res, undefined);
     const stub = sinon.stub(identStore, "_get").callsFake(async () => user);
     try {
-      res = await identStore.get(user.getUuid());
+      res = await IdentTest.get(user.getUuid());
       assert.strictEqual(res, undefined);
       await assert.rejects(
         () =>
-          identStore.update({
-            uuid: user.getUuid(),
-            plop: true
+          IdentTest.ref(user.getUuid()).patch({
+            plop: 1
           }),
         StoreNotFoundError
       );
       await user.refresh();
-      assert.strictEqual(user.plop, undefined);
+      assert.strictEqual(user["plop"], undefined);
       user.idents ??= [];
       user.idents.push(new ModelMapLoaderImplementation(identStore._model, { uuid: ident.getUuid() }, user));
-      userStore["initModel"](user);
-      await identStore.delete(user.getUuid());
+      const user2 = await UserTest.create(user, false);
+      await IdentTest.ref(user2.getUuid()).delete();
     } finally {
       stub.restore();
     }
 
-    identStore.incrementAttribute("test", "test", 12);
-    await identStore.create({ uuid: "test_cache" });
+    const ref = IdentTest.ref("test");
+    ref.incrementAttribute("counter", 12);
+    await IdentTest["Store"].create("test_cache", {});
     await identStore.get("test_cache");
     assert.notStrictEqual(await identStore["_cacheStore"].get("test_cache"), undefined);
     identStore.emitStoreEvent("Store.PartialUpdated", {
@@ -89,7 +88,7 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
     });
     assert.strictEqual(await identStore["_cacheStore"].get("test"), undefined);
     // Shoud return directly
-    await identStore.incrementAttribute("test", "test", 0);
+    await ref.incrementAttribute("counter", 0);
     removeSync(identStore.getParameters().folder);
     // Should not fail
     await identStore.__clean();
@@ -97,8 +96,7 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
     identStore.computeParameters();
     existsSync(identStore.getParameters().folder);
 
-    ident = new identStore._model();
-    identStore.newModel(ident);
+    ident = <any>new this.identStore._model();
     assert.notStrictEqual(ident.getUuid(), undefined);
 
     // Test guard-rails (seems hardly reachable so might be useless)
@@ -115,20 +113,20 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
     identStore["checkCollectionUpdateCondition"](ident, "plops", undefined, 0, null);
 
     assert.rejects(
-      () => identStore["simulateUpsertItemToCollection"](undefined, <any>"__proto__", undefined, new Date()),
+      () => identStore["simulateUpsertItemToCollection"](undefined, undefined, <any>"__proto__", undefined, new Date()),
       /Cannot update __proto__: js\/prototype-polluting-assignment/
     );
   }
 
   @test
   async configuration() {
-    const identStore: FileStore<CoreModel> = this.identStore;
+    const identStore: FileStore = this.identStore;
     assert.strictEqual(
       identStore.canTriggerConfiguration("plop", () => {}),
       false
     );
     assert.strictEqual(await identStore.getConfiguration("plop"), undefined);
-    await identStore.save({ plop: 1, other: true, uuid: "plop" });
+    await IdentTest["Store"].create("plop", { plop: 1, other: true });
     assert.deepStrictEqual(await identStore.getConfiguration("plop"), {
       other: true,
       plop: 1
@@ -137,8 +135,8 @@ class FileStoreTest extends StoreTest<FileStore<any>> {
 
   @test
   async cacheMishit() {
-    const identStore: FileStore<CoreModel> = this.identStore;
-    const ident: CoreModel = await identStore.save({ uuid: "test" });
+    const identStore: FileStore = this.identStore;
+    const ident: CoreModel = await IdentTest["Store"].create("test", {});
     await identStore._cacheStore.__clean();
     // @ts-ignore
     await ident.patch({ retest: true });

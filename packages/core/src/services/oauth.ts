@@ -1,6 +1,8 @@
-import { Core, Counter } from "../core";
-import { EventWithContext, OperationContext, RequestFilter, useService, WebContext, WebdaError } from "../index";
-import { Authentication } from "./authentication";
+import { type Core, Counter, EventWithContext, type RequestFilter } from "../core";
+import { useService } from "../hooks";
+import type { OperationContext, WebContext } from "../utils/context";
+import * as WebdaError from "../errors";
+import type { Authentication } from "./authentication";
 import { RegExpStringValidator, Service, ServiceParameters } from "./service";
 
 export interface EventOAuthToken extends EventWithContext {
@@ -372,7 +374,7 @@ export abstract class OAuthService<
   private async _token(context: WebContext) {
     const res = await this.handleToken(context);
     await this.handleReturn(context, res.identId, res.profile);
-    await this.emitSync("OAuth.Callback", <EventOAuthToken>{
+    await this.emit("OAuth.Callback", <EventOAuthToken>{
       ...res,
       type: "token",
       provider: this.getName(),
@@ -390,7 +392,7 @@ export abstract class OAuthService<
   private async _callback(ctx: WebContext) {
     const res = await this.handleCallback(ctx);
     await this.handleReturn(ctx, res.identId, res.profile);
-    await this.emitSync("OAuth.Callback", {
+    await this.emit("OAuth.Callback", {
       ...res,
       type: "callback",
       provider: this.getName(),

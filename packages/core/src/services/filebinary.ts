@@ -1,7 +1,9 @@
 import * as fs from "fs";
 import { join } from "path";
 import { Readable } from "stream";
-import { CloudBinary, CloudBinaryParameters, CoreModel, WebdaError } from "../index";
+import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
+import type { CoreModel } from "../models/coremodel";
+import * as WebdaError from "../errors";
 import { OperationContext, WebContext } from "../utils/context";
 import {
   BinaryFile,

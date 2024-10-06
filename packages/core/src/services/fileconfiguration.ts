@@ -1,5 +1,5 @@
 import { existsSync, watchFile } from "fs";
-import { WebdaError } from "../index";
+import * as WebdaError from "../errors";
 import { FileUtils } from "../utils/serializers";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 

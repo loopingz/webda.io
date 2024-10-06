@@ -1,16 +1,24 @@
-import { OperationContext } from "../utils/context";
-import { UuidModel } from "./coremodel";
+import { UuidModel } from "./uuid";
 import { ModelLink } from "./relations";
 import { User } from "./user";
+import type { Constructor } from "@webda/tsc-esm";
+import { IOperationContext } from "../contexts/icontext";
+import { RawModel } from "./types";
+
+//  [K in Attributes<Omit<T, "Events">>]?: T[K] extends object ? RawModel<T[K]> : T[K];
+//};
 
 /**
- * @WebdaModel
+ * Abstract class to define an object with an owner
+ *
+ * The owner is the user that created the object
+ * The owner can be changed by the owner
  */
-export class OwnerModel extends UuidModel {
+export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
   /**
    * Default owner of the object
    */
-  _user: ModelLink<User>;
+  _user: ModelLink<T>;
   /**
    * Define if the object is publicly readable
    * @default false
@@ -23,21 +31,23 @@ export class OwnerModel extends UuidModel {
   uuid: string;
 
   /**
+   *
+   * @returns
+   */
+  abstract getOwnerModel(): Constructor<T>;
+
+  /**
    * Set object owner
    * @param uuid
    */
   setOwner(uuid: string): void {
-    this._user ??= new ModelLink<User>(uuid, <any>User, this);
+    this._user ??= new ModelLink<T>(uuid, <any>User, this);
     this._user.set(uuid);
   }
 
-  /**
-   * @override
-   */
-  validate(ctx: OperationContext<any, any>, updates: any, ignoreRequired?: boolean): Promise<boolean> {
-    updates._user ??= this._user?.toString();
-    updates.uuid ??= this.generateUid();
-    return super.validate(ctx, updates, ignoreRequired);
+  load(raw: Partial<RawModel<this>>, relations?: boolean): this {
+    raw.uuid ??= this.generateUid();
+    return super.load(raw, relations);
   }
 
   /**
@@ -46,12 +56,12 @@ export class OwnerModel extends UuidModel {
    * Only the owner can do update to the object
    * @returns
    */
-  getOwner(): ModelLink<User> {
+  getOwner(): ModelLink<T> {
     return this._user;
   }
 
   async canAct(
-    ctx: OperationContext,
+    ctx: IOperationContext,
     action:
       | "create"
       | "update"
@@ -83,7 +93,7 @@ export class OwnerModel extends UuidModel {
    * @param context
    * @returns
    */
-  static getPermissionQuery(context?: OperationContext): null | { partial: boolean; query: string } {
+  static getPermissionQuery(context?: IOperationContext): null | { partial: boolean; query: string } {
     if (!context) {
       return null;
     }
@@ -91,5 +101,14 @@ export class OwnerModel extends UuidModel {
       query: `_user = '${context.getCurrentUserId()}' OR public = TRUE`,
       partial: false
     };
+  }
+}
+
+/**
+ * @WebdaModel
+ */
+export class OwnerModel extends AbstractOwnerModel<User> {
+  getOwnerModel(): Constructor<User> {
+    return User;
   }
 }

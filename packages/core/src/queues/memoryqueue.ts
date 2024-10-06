@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { ServiceParameters } from "../services/service";
+import type { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
-import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
+import { type MessageReceipt, Queue, QueueParameters } from "./queueservice";
 
 interface QueueMap {
   [key: string]: any;

@@ -1,120 +1,29 @@
-import { JSONSchema7 } from "json-schema";
-import { OpenAPIV3 } from "openapi-types";
 import uriTemplates from "uri-templates";
-import { Core } from "../core";
-import { CoreModel, CoreModelDefinition } from "../models/coremodel";
-import { WebContext } from "../utils/context";
-import { HttpMethodType } from "../utils/httpcontext";
-
-type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
-
-// @Route to declare route on Bean
-export function Route(
-  route: string,
-  methods: HttpMethodType | HttpMethodType[] = ["GET"],
-  openapi: OpenAPIWebdaDefinition = {}
-) {
-  return (target: any, executor: string) => {
-    target.constructor.routes ??= {};
-    target.constructor.routes[route] ??= [];
-    target.constructor.routes[route].push({
-      methods: Array.isArray(methods) ? methods : [methods],
-      executor,
-      openapi
-    });
-  };
-}
-
-export interface OpenApiWebdaOperation extends RecursivePartial<OpenAPIV3.OperationObject> {
-  schemas?: {
-    input?: JSONSchema7 | string;
-    output?: JSONSchema7 | string;
-  };
-}
-/**
- * Define overridable OpenAPI description
- */
-export interface OpenAPIWebdaDefinition extends RecursivePartial<OpenAPIV3.PathItemObject> {
-  /**
-   * Do not output for this specific Route
-   *
-   * It can still be output with --include-hidden, as it is needed to declare
-   * the route in API Gateway or any other internal documentation
-   */
-  hidden?: boolean;
-  /**
-   * If defined will link to the model schema instead of a generic Object
-   */
-  model?: string;
-  /**
-   * Tags defined for all methods
-   */
-  tags?: string[];
-  post?: OpenApiWebdaOperation;
-  put?: OpenApiWebdaOperation;
-  patch?: OpenApiWebdaOperation;
-  get?: OpenApiWebdaOperation;
-}
-
-/**
- * Route Information default information
- */
-export interface RouteInfo {
-  model?: CoreModelDefinition;
-  /**
-   * HTTP Method to expose
-   */
-  methods: HttpMethodType[];
-  /**
-   * Executor name
-   */
-  executor: string;
-  /**
-   * Method name on the executor
-   */
-  _method?: string | Function;
-  /**
-   * OpenAPI definition
-   */
-  openapi?: OpenAPIWebdaDefinition;
-  /**
-   * URI Template parser
-   */
-  _uriTemplateParse?: { fromUri: (uri: string, options?: { strict: boolean }) => any; varNames: any };
-  /**
-   * Query parameters to extract
-   */
-  _queryParams?: { name: string; required: boolean }[];
-  /**
-   * Catch all parameter
-   */
-  _queryCatchAll?: string;
-  /**
-   * Hash
-   */
-  hash?: string;
-  /**
-   * Intend to override existing
-   */
-  override?: boolean;
-}
+import { HttpMethodType } from "../contexts/httpcontext";
+import type { RequestFilter, RouteInfo } from "./irest";
+import type { AbstractCoreModel } from "../models/imodel";
+import { useApplication, useModelId, useSchema } from "../application/hook";
+import { useLog } from "../loggers/hooks";
+import type { OpenAPIV3 } from "openapi-types";
+import { useConfiguration, useParameters } from "../core/instancestorage";
+import { useService } from "../core/hooks";
+import { deepmerge } from "deepmerge-ts/*";
+import { JSONSchema7 } from "json-schema";
+import { IWebContext } from "../contexts/icontext";
+import { emitCoreEvent } from "../events/events";
+import { Service } from "../services/service";
 
 /**
  * Manage Route resolution
  * @category CoreFeatures
  */
-export class Router {
+export class Router extends Service {
   protected routes: Map<string, RouteInfo[]> = new Map();
   protected initiated: boolean = false;
   protected pathMap: { url: string; config: RouteInfo }[];
-  protected webda: Core;
   protected models: Map<string, string> = new Map();
-
-  constructor(webda: Core) {
-    this.webda = webda;
-  }
+  private _requestFilters: RequestFilter[] = [];
+  private _requestCORSFilters: RequestFilter[] = [];
 
   /**
    * Registration of a model
@@ -130,9 +39,9 @@ export class Router {
    * @param model
    * @returns
    */
-  getModelUrl(model: string | CoreModel) {
+  getModelUrl(model: string | AbstractCoreModel) {
     if (typeof model !== "string") {
-      model = this.webda.getApplication().getModelName(model);
+      model = useModelId(model);
     }
     return this.models.get(model);
   }
@@ -150,7 +59,7 @@ export class Router {
     if (url.includes("?")) {
       url = url.substring(0, url.indexOf("?")) + "?" + url.substring(url.indexOf("?") + 1).replace(/\//g, "%2F");
     }
-    const prefix = this.webda.getGlobalParams().routePrefix || "";
+    const prefix = useParameters().routePrefix || "";
     if (prefix && url.startsWith(prefix)) {
       return url;
     }
@@ -177,7 +86,7 @@ export class Router {
    */
   addRoute(url: string, info: RouteInfo): void {
     const finalUrl = this.getFinalUrl(url);
-    this.webda.log("TRACE", `Add route ${info.methods.join(",")} ${finalUrl}`);
+    useLog("TRACE", `Add route ${info.methods.join(",")} ${finalUrl}`);
     info.openapi ??= {};
     if (this.routes[finalUrl]) {
       // If route is already added do not do anything
@@ -189,7 +98,7 @@ export class Router {
       info.methods.forEach(m => {
         if (methods.indexOf(m) >= 0) {
           if (!info.override) {
-            this.webda.log("WARN", `${m} ${finalUrl} overlap with another defined route`);
+            useLog("WARN", `${m} ${finalUrl} overlap with another defined route`);
           }
         }
       });
@@ -228,7 +137,7 @@ export class Router {
    */
   public remapRoutes() {
     // Might need to ensure each routes is prefixed
-    const prefix = this.webda.getGlobalParams().routePrefix || "";
+    const prefix = useParameters().routePrefix || "";
     if (prefix) {
       Object.keys(this.routes)
         .filter(k => !k.startsWith(prefix))
@@ -347,7 +256,7 @@ export class Router {
   /**
    * Get the route from a method / url
    */
-  public getRouteFromUrl(ctx: WebContext, method: HttpMethodType, url: string): any {
+  public getRouteFromUrl(ctx: IWebContext, method: HttpMethodType, url: string): any {
     const finalUrl = this.getFinalUrl(url);
     for (const i in this.pathMap) {
       const routeUrl = this.pathMap[i].url;
@@ -421,9 +330,10 @@ export class Router {
     const hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
     for (const i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
-        route.openapi = this.webda
-          .getApplication()
-          .replaceVariables(route.openapi || {}, this.webda.getService(route.executor).getOpenApiReplacements());
+        route.openapi = useApplication().replaceVariables(
+          route.openapi || {},
+          useService(route.executor).getOpenApiReplacements()
+        );
         if (route.openapi.hidden && skipHidden) {
           return;
         }
@@ -530,5 +440,164 @@ export class Router {
         });
       });
     }
+  }
+
+  /**
+   * Verify if a request can be done
+   *
+   * @param context Context of the request
+   */
+  protected async checkRequest(ctx: IWebContext): Promise<boolean> {
+    // Do not need to filter on OPTIONS as CORS is for that
+    if (ctx.getHttpContext().getMethod() === "OPTIONS" || this._requestFilters.length === 0) {
+      return true;
+    }
+    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "AUTH")))).some(v => v);
+  }
+
+  /**
+   * Verify if an origin is allowed to do request on the API
+   *
+   * @param context Context of the request
+   */
+  protected async checkCORSRequest(ctx: IWebContext): Promise<boolean> {
+    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "CORS")))).some(v => v);
+  }
+
+  /**
+   * Export OpenAPI
+   * @param skipHidden
+   * @returns
+   */
+  exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
+    const packageInfo = useApplication().getPackageDescription();
+    let contact: OpenAPIV3.ContactObject;
+    if (typeof packageInfo.author === "string") {
+      contact = {
+        name: packageInfo.author
+      };
+    } else if (packageInfo.author) {
+      contact = packageInfo.author;
+    }
+    let license: OpenAPIV3.LicenseObject;
+    if (typeof packageInfo.license === "string") {
+      license = {
+        name: packageInfo.license
+      };
+    } else if (packageInfo.license) {
+      license = packageInfo.license;
+    }
+    const openapi: OpenAPIV3.Document = deepmerge(
+      {
+        openapi: "3.0.3",
+        info: {
+          description: packageInfo.description,
+          version: packageInfo.version || "0.0.0",
+          title: packageInfo.title || "Webda-based application",
+          termsOfService: packageInfo.termsOfService,
+          contact,
+          license
+        },
+        components: {
+          schemas: {
+            Object: {
+              type: "object"
+            }
+          }
+        },
+        paths: {},
+        tags: []
+      },
+      useConfiguration().openapi || {}
+    );
+    const app = useApplication();
+    const models = app.getModels();
+    const schemas = app.getSchemas();
+    // Copy all input/output from actions
+    for (const i in schemas) {
+      if (!(i.endsWith(".input") || i.endsWith(".output"))) {
+        continue;
+      }
+      // @ts-ignore
+      openapi.components.schemas[i] ??= schemas[i];
+      // Not sure how to test following
+      /* c8 ignore next 5 */
+      for (const j in schemas[i].definitions) {
+        // @ts-ignore
+        openapi.components.schemas[j] ??= schemas[i].definitions[j];
+      }
+    }
+    for (const i in models) {
+      const model = models[i];
+      let desc: JSONSchema7 = {
+        type: "object"
+      };
+      const modelName = model.name || i.split("/").pop();
+      const schema = useSchema(i);
+      if (schema) {
+        for (const j in schema.definitions) {
+          // @ts-ignore
+          openapi.components.schemas[j] ??= schema.definitions[j];
+        }
+        delete schema.definitions;
+        desc = schema;
+      }
+      // Remove empty required as openapi does not like that
+      // Our compiler is not generating this anymore but it is additional protection
+      /* c8 ignore next 3 */
+      if (desc.required && desc.required.length === 0) {
+        delete desc.required;
+      }
+      // Remove $schema
+      delete desc.$schema;
+      // Rename all #/definitions/ by #/components/schemas/
+      openapi.components.schemas[modelName] = JSON.parse(
+        JSON.stringify(desc).replace(/#\/definitions\//g, "#/components/schemas/")
+      );
+    }
+    this.completeOpenAPI(openapi, skipHidden);
+    openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    const paths = {};
+    Object.keys(openapi.paths)
+      .sort()
+      .forEach(i => (paths[i] = openapi.paths[i]));
+    openapi.paths = paths;
+
+    return openapi;
+  }
+
+  /**
+   * Register a request filtering
+   *
+   * Will apply to all requests regardless of the devMode
+   * @param filter
+   */
+  registerRequestFilter(filter: RequestFilter) {
+    this._requestFilters.push(filter);
+  }
+
+  /**
+   * Register a CORS request filtering
+   *
+   * Does not apply in devMode
+   * @param filter
+   */
+  registerCORSFilter(filter: RequestFilter) {
+    this._requestCORSFilters.push(filter);
+  }
+  /**
+   * Add to context information and executor based on the http context
+   */
+  public updateContextWithRoute(ctx: IWebContext): boolean {
+    const http = ctx.getHttpContext();
+    // Check mapping
+    const route = this.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
+    if (route === undefined) {
+      return false;
+    }
+    ctx.setRoute({ ...route });
+    //ctx.setExecutor(this.getService(route.executor));
+    emitCoreEvent("Webda.UpdateContextRoute", { context: ctx });
+    return true;
   }
 }

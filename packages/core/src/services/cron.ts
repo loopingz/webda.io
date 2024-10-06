@@ -1,7 +1,8 @@
 import { createHash } from "crypto";
 import { schedule } from "node-cron";
-import { CancelablePromise, useService } from "../index";
+import { useService } from "../hooks";
 import { Service } from "./service";
+import { CancelablePromise } from "../utils/waiter";
 
 /**
  * Cron item

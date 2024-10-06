@@ -1,13 +1,12 @@
-import { OperationContext } from "../utils/context";
-import { CoreModel } from "./coremodel";
-import { Ident } from "./ident";
+import { Context } from "../contexts/icontext";
+import { CoreModel, type CoreModelEvents } from "./coremodel";
 
 /**
  * First basic model for User
  * @class
  * @WebdaModel
  */
-export class User extends CoreModel {
+export class User<E extends CoreModelEvents = CoreModelEvents> extends CoreModel<E> {
   /**
    * Password of the user if defined
    */
@@ -60,26 +59,51 @@ export class User extends CoreModel {
     return res;
   }
 
+  /**
+   * Get user groups
+   * @returns
+   */
   getGroups(): string[] {
     return [];
   }
 
+  /**
+   * Get roles
+   * @returns
+   */
   getRoles(): string[] {
     return [];
   }
 
+  /**
+   * Get display name
+   * @returns
+   */
   getDisplayName(): string {
     return this.displayName;
   }
 
+  /**
+   *
+   * @param timestamp
+   * @returns
+   */
   lastPasswordRecoveryBefore(timestamp: number): boolean {
     return this._lastPasswordRecovery < timestamp;
   }
 
-  getIdents(): Readonly<Pick<Ident, "_type" | "uuid" | "email">[]> {
+  /**
+   * Return the user idents
+   * @returns
+   */
+  getIdents(): Readonly<{ _type: string; uuid: string; email?: string }[]> {
     return [];
   }
 
+  /**
+   * Get the password
+   * @returns
+   */
   getPassword() {
     return this.__password;
   }
@@ -88,7 +112,7 @@ export class User extends CoreModel {
     this.__password = password;
   }
 
-  async canAct(ctx: OperationContext<any, any>, _action: string): Promise<string | boolean> {
+  async canAct(ctx: Context, _action: string): Promise<string | boolean> {
     if (!ctx.getCurrentUserId() || ctx.getCurrentUserId() !== this.getUuid()) {
       return "You can't act on this user";
     }
@@ -110,7 +134,7 @@ export class User extends CoreModel {
    * @param model
    * @returns
    */
-  static authorizeClientEvent(_event: string, context: OperationContext<any, any>, model?: CoreModel): boolean {
+  static authorizeClientEvent(_event: string, context: Context, model?: CoreModel): boolean {
     if (model && model.getUuid() === context.getCurrentUserId()) {
       return true;
     }

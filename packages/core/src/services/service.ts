@@ -1,21 +1,18 @@
-import { WorkerLogLevel } from "@webda/workout";
-import { deepmerge } from "deepmerge-ts";
-import * as events from "events";
-import {
-  Constructor,
-  Core,
-  Counter,
-  EventEmitterUtils,
-  Gauge,
-  Histogram,
-  Logger,
-  MetricConfiguration,
-  OperationContext,
-  useService
-} from "../index";
-import { OpenAPIWebdaDefinition, Route } from "../rest/router";
-import { HttpMethodType } from "../utils/httpcontext";
-import { EventService } from "./asyncevents";
+import type { WorkerLogLevel } from "@webda/workout";
+import { AsyncEventEmitterImpl, AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitter";
+
+import { Route } from "../rest/irest";
+import type { OpenAPIWebdaDefinition } from "../rest/irest";
+import type { HttpMethodType } from "../contexts/httpcontext";
+import type { Constructor, DeepPartial } from "@webda/tsc-esm";
+import type { Counter, Gauge, Histogram, MetricConfiguration } from "../metrics/metrics";
+
+import type { Logger } from "../loggers/ilogger";
+import type { OperationContext } from "../contexts/operationcontext";
+import { ServiceParameters } from "./iservices";
+import { useService } from "../core/hooks";
+import { IService } from "../core/icore";
+import { useLogger } from "../loggers/hooks";
 
 /**
  * Represent a Inject annotation
@@ -163,112 +160,6 @@ export function Operation(
 }
 
 /**
- * A utility class that takes a array of string or string transformed into regex that includes
- * a start line and end line
- */
-export class RegExpValidator {
-  protected validators: RegExp[];
-  constructor(info: string | string[]) {
-    info = Array.isArray(info) ? info : [info];
-    this.validators = info.map(i => RegExpValidator.getRegExp(i));
-  }
-
-  static getRegExp(reg: string): RegExp {
-    if (!reg.startsWith("^")) {
-      reg = "^" + reg;
-    }
-    if (!reg.endsWith("$")) {
-      reg += "$";
-    }
-    return new RegExp(reg);
-  }
-
-  validate(value: string) {
-    return this.validators.some(p => p.test(value));
-  }
-}
-/**
- * Standardized way to allow string/regex validation within configuration
- *
- * If url is prefixed with `regex:` it is considered a regex
- *
- * @example
- * ```typescript
- * class MyServiceParameters extends ServiceParameters {
- *    urls: string[];
- * }
- *
- * class MyService extends Service {
- *    loadParameters(params:any) {
- *      const parameters = new MyServiceParameters(params);
- *      this.urlsValidator = new RegExpStringValidator(parameters.urls);
- *      return parameters;
- *    }
- * }
- * ```
- */
-export class RegExpStringValidator extends RegExpValidator {
-  stringValidators: string[];
-  constructor(info: string | string[]) {
-    info = Array.isArray(info) ? info : [info];
-    super(info.filter(i => i.startsWith("regex:")).map(i => i.substring(6)));
-    this.stringValidators = info.filter(i => !i.startsWith("regex:"));
-  }
-
-  /**
-   * Add string validation
-   * @param value
-   * @returns
-   */
-  validate(value: string) {
-    return this.stringValidators.find(p => p === value) !== undefined || super.validate(value);
-  }
-}
-
-/**
- * Interface to specify the Service parameters
- */
-export class ServiceParameters {
-  /**
-   * Type of the service
-   */
-  type: string;
-  /**
-   * URL on which to serve the content
-   */
-  url?: string;
-  /**
-   * OpenAPI override
-   * @SchemaIgnore
-   */
-  openapi?: OpenAPIWebdaDefinition;
-
-  /**
-   * Copy all parameters into the object by default
-   *
-   * @param params from webda.config.json
-   */
-  constructor(params: any) {
-    Object.assign(this, params);
-  }
-}
-
-/**
- * Create a new type with only optional
- */
-export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
-};
-
-export type PartialModel<T> = {
-  [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel<T[P]> : T[P] | null;
-};
-
-export type Events = {
-  [key: string]: unknown;
-};
-
-/**
  * Use this object for representing a service in the application
  * A Service is a singleton in the application, that is init after all others services are created
  *
@@ -278,14 +169,10 @@ export type Events = {
  * @abstract
  * @class Service
  */
-abstract class Service<
-  T extends ServiceParameters = ServiceParameters,
-  E extends Events = Events
-> extends events.EventEmitter {
-  /**
-   * Webda Core object
-   */
-  protected _webda: Core;
+abstract class Service<T extends ServiceParameters = ServiceParameters, E extends AsyncEventUnknown = AsyncEventUnknown>
+  extends AsyncEventEmitterImpl<E>
+  implements IService
+{
   /**
    * Service name
    */
@@ -315,10 +202,9 @@ abstract class Service<
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(webda: Core, name: string, params: DeepPartial<T> = {}) {
+  constructor(name: string, params: DeepPartial<T> = {}) {
     super();
-    this.logger = webda ? webda.getLogger(this) : undefined;
-    this._webda = webda;
+    this.logger = useLogger(this);
     this._name = name;
     this.parameters = <T>this.loadParameters(params);
   }
@@ -342,13 +228,6 @@ abstract class Service<
    */
   getParameters(): T {
     return this.parameters;
-  }
-
-  /**
-   * Return WebdaCore
-   */
-  getWebda(): Core {
-    return this._webda;
   }
 
   /**
@@ -402,7 +281,11 @@ abstract class Service<
     configuration.labelNames ??= [];
     configuration.labelNames = [...configuration.labelNames, "service"];
     configuration.name = `${this.getName().toLowerCase()}_${configuration.name}`;
+    /*
+    TODO Fix this
     return this.getWebda().getMetric(type, configuration);
+    */
+    return undefined;
   }
 
   /**
@@ -474,6 +357,8 @@ abstract class Service<
     if (!finalUrl) {
       return;
     }
+    /**
+     * TODO Add route
     this._webda.addRoute(finalUrl, {
       // Create bounded function to keep the context
       _method: executer.bind(this),
@@ -482,6 +367,7 @@ abstract class Service<
       methods,
       override
     });
+    */
   }
 
   /**
@@ -518,6 +404,8 @@ abstract class Service<
       this.log("TRACE", "Adding operation", id, "for bean", this.getName());
       let name = this.getName();
       name = name.substring(0, 1).toUpperCase() + name.substring(1);
+      /*
+      TODO Fix this
       this._webda.registerOperation(j.includes(".") ? j : `${name}.${j}`, {
         ...operations[j],
         service: this.getName(),
@@ -525,18 +413,8 @@ abstract class Service<
         output: `${this.getName()}.${operations[j].method}.output`,
         id
       });
+      */
     }
-  }
-
-  /**
-   * Convert an object to JSON using the Webda json filter
-   *
-   * @class Service
-   * @param {Object} object - The object to export
-   * @return {String} The export of the strip object ( removed all attribute with _ )
-   */
-  toPublicJSON(object: unknown) {
-    return this._webda.toPublicJSON(object);
   }
 
   /**
@@ -571,38 +449,10 @@ abstract class Service<
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  emitSync<Key extends keyof E>(event: Key, data: E[Key]): Promise<any[]> {
-    return EventEmitterUtils.emitSync(this, event, data);
-  }
-
-  /**
-   * Override to allow capturing long listeners
-   * @override
-   */
-  emit<Key extends keyof E>(event: Key | symbol, data: E[Key]): boolean {
-    return EventEmitterUtils.emit(this, event, data);
-  }
-
-  /**
-   * Type the listener part
-   * @param event
-   * @param listener
-   * @param queue
-   * @returns
-   */
-  on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void): this {
-    super.on(<string>event, listener);
-    return this;
-  }
-
-  /**
-   * Listen to an event as on(...) would do except that it will be asynchronous
-   * @param event
-   * @param callback
-   * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
-   */
-  onAsync<Key extends keyof E>(event: Key, listener: (evt: E[Key]) => void, queue: string = undefined) {
-    this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
+  async emit<Key extends keyof E>(event: Key, data: E[Key]): Promise<void> {
+    await EventEmitterUtils.emit(this, event, data, (level: WorkerLogLevel, ...args: any[]) =>
+      this.log(level, ...args)
+    );
   }
 
   /**

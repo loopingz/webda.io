@@ -1,26 +1,11 @@
-import { useContext } from "../hooks";
-import { CoreModel } from "./coremodel";
+import { IAttributeLevelPermissionModel, Proxied } from "./imodel";
 
-/**
- * Proxied object
- */
-export type Proxied<T> = T & { isDirty: boolean; dirtyProperties: (string | symbol)[] };
-
-let contextUpdate: boolean = false;
-
-export function setContextUpdate(value: boolean) {
-  contextUpdate = value;
-}
-
-export function getContextUpdate(): boolean {
-  return contextUpdate;
-}
 /**
  * Proxy an object to keep its state
  * @param object
  * @returns
  */
-export function getProxy<T extends CoreModel>(object: T): Proxied<T> {
+export function getAttributeLevelProxy<T extends IAttributeLevelPermissionModel>(object: T): Proxied<T> {
   const dirty = new Set<string | symbol>();
   //let context = useContext();
   const subProxier = prop => {
@@ -49,38 +34,38 @@ export function getProxy<T extends CoreModel>(object: T): Proxied<T> {
       if (property === "context") {
         return true;
       }
-      object.attributePermission(property, undefined, "WRITE", object.context);
+      object.attributePermission(property, undefined, "WRITE");
       delete t[property];
       dirty.add(property);
       return true;
     },
     set: (target: T, p: string | symbol, value) => {
-      if (p === "isDirty") {
-        if (!value) {
-          dirty.clear();
-        }
-        return true;
-      } else if (p === "dirtyProperties") {
+      if (p === "__dirty") {
         return true;
       } else if (p === "context") {
+        target[<any>p] = value;
+        return true;
+      } else if (p === "__class") {
         target[p] = value;
         return true;
       }
-      value = object.attributePermission(p, value, "WRITE", object.context);
+      value = object.attributePermission(<any>p, value, "WRITE");
       dirty.add(p);
       target[p] = value;
       return true;
     },
     get: (target: T, p: string | symbol) => {
-      if (p === "isDirty") {
-        return dirty.size > 0;
-      } else if (p === "dirtyProperties") {
-        return [...dirty.values()];
+      if (p === "__dirty") {
+        return dirty;
       } else if (p === "context") {
         return target[p];
+      } else if (p === "__class") {
+        return target[p];
       }
-      const value = object.attributePermission(p, target[p], "READ", object.context);
-      if (Array.isArray(value) || value instanceof Object) {
+      const value = object.attributePermission(p, target[p], "READ");
+      if (value instanceof Date) {
+        return value;
+      } else if (Array.isArray(value) || value instanceof Object) {
         return new Proxy(value, subProxier(p));
       }
       return value;

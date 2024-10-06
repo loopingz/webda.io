@@ -7,7 +7,7 @@ import {
   OwnerModel,
   RESTDomainService,
   runAsSystem,
-  runInContext,
+  runWithContext,
   Session,
   User,
   WebContext,
@@ -19,6 +19,10 @@ import { TestApplication, WebdaInternalSimpleTest } from "../test";
 class TestTask extends OwnerModel {
   name: string;
   public: boolean;
+
+  getOwnerModel() {
+    return User;
+  }
 
   @Action({
     methods: ["GET"]
@@ -158,7 +162,7 @@ class OwnerModelTest extends WebdaInternalSimpleTest {
 
   @test("Query") async queryPermission() {
     await this.beforeEach();
-    await runInContext(this._ctx, async () => {
+    await runWithContext(this._ctx, async () => {
       this._session.login("fake_user2", "fake_ident");
       let res = await TestTask.query("", true);
       assert.deepStrictEqual(res.results.map(r => r.getUuid()).sort(), ["task_public", "task_user2"]);

@@ -1,5 +1,5 @@
-import { Ident } from "../index";
-import { ModelsMapped } from "./relations";
+import type { Ident } from "./ident";
+import type { ModelsMapped } from "./relations";
 import { User } from "./user";
 
 /**

@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { CoreModel } from "../models/coremodel";
-import { Store } from "../stores/store";
+import { Store, StoreHelper } from "../stores/store";
 import { WebdaInternalSimpleTest } from "../test";
 import { getCommonJS } from "../utils/esm";
 import { ConfigurationService } from "./configuration";
@@ -102,10 +102,13 @@ class ConfigurationServiceTest extends WebdaInternalSimpleTest {
         }
       }
     };
-    const store: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("ConfigurationStore");
+
+    const storeCollector: { Store: StoreHelper } = <any>{};
+    (<Store>this.webda.getService("ConfigurationStore"))["setCoreModelDefinitionHelper"](<any>storeCollector);
+    const store: StoreHelper = storeCollector.Store;
     await new Promise(async resolve => {
       this.webda.getService("ConfigurationService").on("Configuration.Applied", resolve);
-      await store.save(test);
+      await store.create("test", test);
     });
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");

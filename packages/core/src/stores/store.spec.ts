@@ -3,10 +3,11 @@ import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
 import { TestIdent } from "../test";
-import { AggregatorService, MapperService, OperationContext, Store } from "../index";
-import { CoreModel, CoreModelDefinition } from "../models/coremodel";
+import { Ident, OperationContext, Store, User } from "../index";
+import { CoreModel, CoreModelAny } from "../models/coremodel";
+import { CoreModelDefinition } from "../models/coremodeldefinition";
 import { WebdaSimpleTest } from "../test";
-import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
+import { StoreEvents, StoreHelper, StoreNotFoundError, UpdateConditionFailError } from "./store";
 
 /**
  * Fake model that refuse the half of the items
@@ -20,6 +21,50 @@ export class PermissionModel extends CoreModel {
     return true;
   }
 }
+
+/**
+ * Use a custom model for the test
+ */
+export class UserTest extends User {
+  uuid: string;
+  name: string;
+  counter: number;
+  idents: any[];
+}
+
+export class IdentTest extends Ident {
+  counter: number;
+  counter2: number;
+  counter3: number;
+  status: string;
+  bouzouf: string;
+  test: string;
+  details: {
+    plop: string;
+    clean: string;
+    yop: string;
+    blank: string;
+    bouzouf: string;
+  };
+  empty: any[];
+  cool: string;
+  lastUsed: Date;
+  arr: any[];
+  plop: number;
+  logs: any[];
+  saveUpdateCompat: boolean;
+  saveInnerMethod: boolean;
+}
+
+class TypeTest extends CoreModel {
+  type: "ATTR" | "COLLECTION";
+  counter: number;
+}
+
+TypeTest.ref("").setAttribute("type", "ATTR");
+const t = new TypeTest();
+t.setAttribute("counter", 12);
+
 abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
   abstract getIdentStore(): Promise<T>;
   abstract getUserStore(): Promise<T>;
@@ -31,6 +76,8 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     await super.before();
     this.userStore = await this.getUserStore();
     this.identStore = await this.getIdentStore();
+    this.userStore["setCoreModelDefinitionHelper"](UserTest);
+    this.userStore["setCoreModelDefinitionHelper"](IdentTest);
     // ensure service are registered
     this.registerService(this.userStore);
     this.registerService(this.identStore);
@@ -71,12 +118,23 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
   /**
    * Fill the Store with data to be queried
    */
-  async fillForQuery(): Promise<Store> {
-    const userStore = this.userStore;
-    this.webda.getApplication().getModel("Webda/User").prototype.canAct = async () => true;
-    userStore._model.prototype.canAct = async () => true;
-    await Promise.all(this.getQueryDocuments().map(d => userStore.save(d)));
-    return userStore;
+  async fillForQuery(): Promise<
+    CoreModelDefinition<
+      CoreModelAny<{
+        state: string;
+        team: {
+          id: number;
+        };
+        role: number;
+        order: number;
+      }>
+    >
+  > {
+    User.prototype.canAct = async () => true;
+    //this.webda.getApplication().getModel("Webda/User").prototype.canAct = async () => true;
+    //userStore._model.prototype.canAct = async () => true;
+    await Promise.all(this.getQueryDocuments().map(d => User.create(d)));
+    return <any>User;
   }
 
   @test
@@ -152,7 +210,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
   @test
   async queryOrder() {
     const userStore = await this.fillForQuery();
-    const model = await userStore.save({
+    const model = await userStore.create({
       order: 996,
       state: "CA",
       team: { id: 16 }
@@ -204,213 +262,12 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
   }
 
   @test
-  async mapper() {
-    // Create a mapper - keep the test here as it is a good test for stores
-    const identStore = this.identStore;
-    const userStore = this.userStore;
-    await this.addService(
-      MapperService,
-      <any>{
-        source: identStore.getName(),
-        targetAttribute: "idents",
-        target: userStore.getName(),
-        attribute: "_user",
-        fields: ["type", "_lastUpdate"],
-        cascade: true
-      },
-      "Mapper"
-    );
-    await this.addService(AggregatorService, <any>{
-      source: identStore.getName(),
-      key: "idents-index",
-      fields: ["type"]
-    });
-    let eventFired = 0;
-    const events: (keyof StoreEvents)[] = [
-      "Store.Save",
-      "Store.Saved",
-      "Store.Get",
-      "Store.Delete",
-      "Store.Deleted",
-      "Store.Update",
-      "Store.Updated",
-      "Store.Query",
-      "Store.Queried"
-    ];
-    for (const evt in events) {
-      identStore.on(events[evt], evt => {
-        eventFired++;
-      });
-    }
-    assert.strictEqual(await userStore.get(undefined), undefined);
-    let user1 = (
-      await userStore.save({
-        name: "test"
-      })
-    ).getUuid();
-    let user = await userStore.get(user1);
-    // Save a user and add an ident
-    assert.notStrictEqual(user, undefined);
-    user1 = user.getUuid();
-    const ident1 = await identStore.save({
-      type: "facebook",
-      _user: user.getUuid()
-    });
-    user = await userStore.get(user1);
-    // Verify the ident is on the user
-    assert.notStrictEqual(user, undefined);
-    assert.notStrictEqual(user.idents, undefined);
-    assert.strictEqual(user.idents.length, 1);
-    // Retrieve index to verify it is in it too
-    const index = await this.webda.getRegistry().get("idents-index");
-    // Do not force index test for store
-    if (index) {
-      assert.notStrictEqual(index[ident1.uuid], undefined);
-      assert.strictEqual(index[ident1.uuid].type, "facebook");
-    }
-    let lastUpdate = user.idents[0]._lastUpdate;
-    await this.sleep(10);
-    await identStore.incrementAttribute(ident1.uuid, "counter", 1);
-    await user.refresh();
-    assert.notStrictEqual(user.idents[0]._lastUpdate, 0);
-    this.assertLastUpdateNotEqual(
-      user.idents[0]._lastUpdate,
-      lastUpdate,
-      "lastUpdate on a map after incrementAttribute"
-    );
-    lastUpdate = user.idents[0]._lastUpdate;
-    await this.sleep(10);
-    await identStore.upsertItemToCollection(ident1.uuid, "actions", {
-      uuid: "action_1",
-      type: "plop",
-      date: new Date()
-    });
-    await user.refresh();
-    assert.notStrictEqual(user.idents[0]._lastUpdate.length, 0);
-    this.assertLastUpdateNotEqual(
-      user.idents[0]._lastUpdate,
-      lastUpdate,
-      "lastUpdate on a map after upsertItemToCollection"
-    );
-    lastUpdate = user.idents[0]._lastUpdate;
-    await this.sleep(10);
-    await identStore.deleteItemFromCollection(ident1.uuid, "actions", 0, "plop", "type");
-    await user.refresh();
-    assert.notStrictEqual(user.idents[0]._lastUpdate.length, 0);
-    this.assertLastUpdateNotEqual(
-      user.idents[0]._lastUpdate,
-      lastUpdate,
-      "lastUpdate on a map after deleteItemFromCollection"
-    );
-
-    const ident2 = await identStore.save({
-      type: "google",
-      _user: user.uuid
-    });
-    // Ensure Date is returned
-    assert.ok(ident2._creationDate instanceof Date);
-    assert.ok(ident2._lastUpdate instanceof Date);
-
-    // Add a second ident and check it is on the user aswell
-    user = await userStore.get(user1);
-    assert.strictEqual(user.idents.length, 2);
-
-    // Check index
-    if (index) {
-      await index.refresh();
-      assert.notStrictEqual(index[ident2.uuid], undefined);
-    }
-
-    ident2.type = "google2";
-    // Update ident2 to check mapper update
-    const res = await identStore.patch(
-      {
-        uuid: ident2.uuid,
-        type: "google2"
-      },
-      true,
-      null
-    );
-    assert.strictEqual(res.type, "google2");
-    assert.strictEqual(res._user.toString(), user1);
-
-    // Check index
-    if (index) {
-      await index.refresh();
-      assert.strictEqual(index[ident2.uuid].type, "google2");
-    }
-
-    user = await userStore.get(user1);
-    assert.strictEqual(user.idents.length, 2);
-    assert.strictEqual(user.idents[1].type, "google2");
-    await identStore.delete(ident1.uuid);
-    user = await userStore.get(user1);
-    assert.strictEqual(user.idents.length, 1);
-    assert.strictEqual(user.idents[0].type, "google2");
-    // Add a second user to play
-    user = await userStore.save({
-      name: "test2"
-    });
-    const user2 = user.uuid;
-    // Move ident2 from user1 to user2
-    await identStore.patch({
-      _user: user.uuid,
-      uuid: ident2.uuid
-    });
-    // Check user1 has no more ident
-    user = await userStore.get(user1);
-    assert.strictEqual(user.idents.length, 0);
-    // Check user2 has one ident
-    user = await userStore.get(user2);
-    assert.strictEqual(user.idents.length, 1);
-    assert.strictEqual(user.idents[0].type, "google2");
-    // Verify you cannot update a collection from patch
-    await userStore.patch(
-      {
-        idents: []
-      },
-      user2
-    );
-    user = await userStore.get(user2);
-    assert.strictEqual(user.idents.length, 1);
-    // Verify you cannot update a collection from update
-    await userStore.update(
-      {
-        idents: []
-      },
-      user2
-    );
-    user = await userStore.get(user2);
-    assert.strictEqual(user.idents.length, 1);
-    assert.strictEqual(user.idents[0].type, "google2");
-    // Verify delete cascade with empty collection
-    await userStore.delete(user1);
-    user = await userStore.get(user2);
-    assert.strictEqual(user.idents.length, 1);
-    assert.strictEqual(user.idents[0].type, "google2");
-    // Verify delete cascade
-    await userStore.delete(user2);
-    const ident = await identStore.get(ident2.uuid);
-    assert.strictEqual(ident, undefined);
-
-    // Check index
-    if (index) {
-      await index.refresh();
-      assert.strictEqual(index[ident2.uuid], undefined);
-      assert.strictEqual(index[ident1.uuid], undefined);
-    }
-
-    assert.strictEqual(eventFired, 8);
-  }
-
-  @test
   async collection() {
-    const identStore = this.identStore;
-    let ident;
-    ident = await identStore.save({
+    const Ident: CoreModelDefinition<CoreModelAny> = this.getModelClass();
+    let ident = await Ident.create(<any>{
       test: "plop"
     });
-    await identStore.upsertItemToCollection(ident.uuid, "actions", {
+    await ident.upsertItemToCollection(ident.uuid, "actions", {
       uuid: "action_1",
       type: "plop",
       date: new Date()
@@ -418,7 +275,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     await ident.refresh();
     assert.notStrictEqual(ident.actions, undefined);
     assert.strictEqual(ident.actions.length, 1);
-    await identStore.upsertItemToCollection(ident.uuid, "actions", {
+    await ident.upsertItemToCollection(ident.uuid, "actions", {
       uuid: "action_2",
       type: "plop",
       date: new Date()
@@ -426,7 +283,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     await ident.refresh();
     assert.notStrictEqual(ident.actions, undefined);
     assert.strictEqual(ident.actions.length, 2);
-    await identStore.upsertItemToCollection(
+    await ident.upsertItemToCollection(
       ident.uuid,
       "actions",
       {
@@ -444,7 +301,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     assert.strictEqual(ident.actions[0].uuid, "action_1");
     await assert.rejects(
       () =>
-        identStore.upsertItemToCollection(
+        ident.upsertItemToCollection(
           ident.uuid,
           "actions",
           {
@@ -459,7 +316,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
       err => true
     );
     await assert.rejects(
-      () => identStore.deleteItemFromCollection(ident.uuid, "actions", 0, "action_2"),
+      () => ident.deleteItemFromCollection(ident.uuid, "actions", 0, "action_2"),
       err => true
     );
     await ident.refresh();
@@ -467,7 +324,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     assert.strictEqual(ident.actions[0].type, "plop2");
     let lastUpdate = ident._lastUpdate;
     await this.sleep(10);
-    await identStore.upsertItemToCollection(
+    await ident.upsertItemToCollection(
       ident.uuid,
       "actions",
       {
@@ -483,8 +340,8 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     this.assertLastUpdateNotEqual(ident._lastUpdate, lastUpdate, "lastUpdate after upsertItemToColletion failed");
     lastUpdate = ident._lastUpdate;
     await this.sleep(10);
-    await identStore.deleteItemFromCollection(ident.uuid, "actions", 0, "plop", "type");
-    ident = await identStore.get(ident.uuid);
+    await ident.deleteItemFromCollection(ident.uuid, "actions", 0, "plop", "type");
+    ident = await ident.get(ident.uuid);
     this.assertLastUpdateNotEqual(ident._lastUpdate, lastUpdate, "lastUpdate after deleteItemToColletion failed");
     assert.notStrictEqual(ident.actions, undefined);
     assert.strictEqual(ident.actions.length, 1);
@@ -495,13 +352,13 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
   @test
   async getAll() {
     const userStore = this.userStore;
-    const user1 = await userStore.save({
+    const user1 = await UserTest.create({
       name: "test1"
     });
-    await userStore.save({
+    await UserTest.create({
       name: "test2"
     });
-    const user3 = await userStore.save({
+    const user3 = await UserTest.create({
       name: "test3"
     });
     let users = await userStore.getAll();
@@ -518,20 +375,14 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
   @test
   async crud() {
     const identStore = this.identStore;
+    const Ident = this.getModelClass();
     let eventFired = 0;
     const events: (keyof StoreEvents)[] = [
-      "Store.Save",
-      "Store.Saved",
-      "Store.Get",
-      "Store.Delete",
+      "Store.Created",
       "Store.Deleted",
-      "Store.Update",
       "Store.Updated",
-      "Store.PatchUpdate",
       "Store.PatchUpdated",
-      "Store.PartialUpdated",
-      "Store.Query",
-      "Store.Queried"
+      "Store.PartialUpdated"
     ];
     for (const evt in events) {
       identStore.on(events[evt], e => {
@@ -540,7 +391,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     }
     this.log("DEBUG", "Save ident");
     // Check CREATE - READ
-    let ident1 = await identStore.save({
+    let ident1 = await IdentTest.create({
       test: "plop",
       cool: "",
       lastUsed: new Date(),
@@ -555,7 +406,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     assert.notStrictEqual(ident1, undefined);
     eventFired = 0;
     this.log("DEBUG", "Get ident");
-    let getter = await identStore.get(ident1.uuid);
+    let getter = await IdentTest.ref(ident1.uuid).get();
     assert.strictEqual(eventFired, 1);
     eventFired = 0;
     assert.notStrictEqual(getter, undefined);
@@ -571,18 +422,17 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     getter.details.bouzouf = undefined;
     getter.empty = [];
     this.log("DEBUG", "Update ident");
-    await identStore.update(getter);
+    await getter.save();
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
-    getter = {};
-    getter.uuid = ident1.uuid;
-    getter.bouzouf = "test";
     this.log("DEBUG", "Patch ident");
-    await identStore.patch(getter);
+    await ident1.patch({
+      bouzouf: "test"
+    });
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
     this.log("DEBUG", "Get ident to check update");
-    const object = await identStore.get(ident1.uuid);
+    const object = await IdentTest.ref(ident1.uuid).get();
     this.log("DEBUG", "Retrieved object", object);
     assert.strictEqual(object.test, "plop2");
     assert.strictEqual(object.details.plop, "plop2");
@@ -591,35 +441,32 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     assert.strictEqual(getter.test, "plop2");
     await this.sleep(10);
     this.log("DEBUG", "Increment attribute");
-    await identStore.incrementAttribute(ident1.uuid, "counter", 1);
+    await IdentTest.ref(ident1.uuid).incrementAttribute("counter", 1);
     let ident = await identStore.get(ident1.uuid);
 
     // Verify lastUpdate is updated too
     this.assertLastUpdateNotEqual(ident._lastUpdate, ident1._lastUpdate, "lastUpdate after incrementAttribute failed");
     assert.strictEqual(ident.counter, 1);
-    await identStore.incrementAttribute(ident1.uuid, "counter", 3);
+    await IdentTest.ref(ident1.uuid).incrementAttribute("counter", 3);
     ident1 = await identStore.get(ident1.uuid);
     assert.strictEqual(ident1.counter, 4);
     await identStore.incrementAttributes(ident1.uuid, [
       { property: "counter", value: -6 },
       { property: "counter2", value: 10 }
     ]);
-    let res = await identStore.exists(ident1.uuid);
+    let res = await IdentTest.ref(ident1.uuid).exists();
     assert.strictEqual(res, true);
-    // We should be able to verify with the full model
-    await identStore.exists(ident1);
-    assert.strictEqual(res, true);
-    ident1 = await identStore.get(ident1.uuid);
+    ident1 = await IdentTest.ref(ident1.uuid).get();
     assert.strictEqual(ident1.counter, -2);
 
     // Check DELETE
     eventFired = 0;
-    await identStore.delete(ident1.uuid);
+    await ident1.delete();
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
-    ident = await identStore.get(ident1.uuid);
+    ident = await IdentTest.ref(ident1.uuid).get();
     assert.strictEqual(ident, undefined);
-    res = await identStore.exists(ident1.uuid);
+    res = await IdentTest.ref(ident1.uuid).exists();
     assert.strictEqual(res, false);
   }
   assertLastUpdateNotEqual(d1, d2, msg) {
@@ -628,69 +475,53 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
 
   @test
   async exists() {
-    const store = this.identStore;
-    const model = await store.save({});
-    assert.ok(await store.exists(model.getUuid()));
-    assert.ok(await store.exists(model));
-    assert.ok(!(await store.exists(randomUUID())));
+    const model = await IdentTest.create({});
+    assert.ok(await IdentTest.ref(model.getUuid()).exists());
+    assert.ok(!(await IdentTest.ref(randomUUID()).exists()));
   }
 
   @test
   async incrementAttribute() {
-    const store = this.identStore;
-    const model = await store.save({ counter: 0 });
-    await store.incrementAttribute(model.getUuid(), "counter", 3);
-    await store.incrementAttribute(model.getUuid(), "counter2", 2);
+    const model = await IdentTest.create({ counter: 0 });
+    await model.incrementAttribute("counter", 3);
+    await model.incrementAttribute("counter2", 2);
     await model.refresh();
     assert.strictEqual(model.counter, 3);
     assert.strictEqual(model.counter2, 2);
-    await assert.rejects(() => store.incrementAttribute(randomUUID(), "counter", 1), StoreNotFoundError);
+    await assert.rejects(() => IdentTest.ref(randomUUID()).incrementAttribute("counter", 1), StoreNotFoundError);
   }
 
   @test
   async removeAttribute() {
-    const store = this.identStore;
-    const model = await store.save({ counter: 0, counter2: 12, counter3: 13 });
-    await store.removeAttribute(model.getUuid(), "counter");
+    const uuid = "test";
+    const model = await IdentTest.create({ uuid, counter: 0, counter2: 12, counter3: 13 });
+    await model.removeAttribute("counter");
     await model.refresh();
     assert.strictEqual(model.counter, undefined);
-    await assert.rejects(() => store.removeAttribute(randomUUID(), "counter"), StoreNotFoundError);
-    await assert.rejects(
-      () => store.removeAttribute(model.getUuid(), "counter2", 10, "counter3"),
-      UpdateConditionFailError
-    );
+    await assert.rejects(() => IdentTest.ref(randomUUID()).removeAttribute("counter"), StoreNotFoundError);
+    await assert.rejects(() => model.removeAttribute("counter2", "counter3", 10), UpdateConditionFailError);
     await model.refresh();
     assert.strictEqual(model.counter2, 12);
   }
 
   @test
   async setAttribute() {
-    const store = this.identStore;
-    const model = await store.save({ counter: 0 });
-    await store.setAttribute(model.getUuid(), "counter", 3);
-    await store.setAttribute(model.getUuid(), "status", "TESTED");
+    const model = await IdentTest.create({ counter: 0 });
+    await model.setAttribute("counter", 3);
+    await model.setAttribute("status", "TESTED");
     await model.refresh();
     assert.strictEqual(model.counter, 3);
     assert.strictEqual(model.status, "TESTED");
-    await assert.rejects(() => store.setAttribute(randomUUID(), "counter", 4), StoreNotFoundError);
-    store.on("Store.PatchUpdate", async () => {
-      model._lastUpdate = new Date(100);
-      // @ts-ignore
-      await store._update(model, model.getUuid());
-    });
-    await assert.rejects(() => store.setAttribute(model.getUuid(), "counter", 4), UpdateConditionFailError);
-    store.removeAllListeners("Store.PatchUpdate");
-    store.on("Store.PatchUpdate", async () => {
-      // @ts-ignore
-      await store._delete(model.getUuid());
-      await this.sleep(1);
-    });
+    await assert.rejects(() => IdentTest.ref(randomUUID()).setAttribute("counter", 4), StoreNotFoundError);
+    await IdentTest["Store"].patch(model.getUuid(), { _lastUpdate: new Date(100) });
+    await assert.rejects(() => IdentTest.ref(model.getUuid()).setAttribute("counter", 4), UpdateConditionFailError);
+    await IdentTest["Store"].delete(model.getUuid());
     await assert.rejects(
-      () => store.setAttribute(model.getUuid(), "counter", 4),
+      () => model.setAttribute("counter", 4),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
     await assert.rejects(
-      () => store.setAttribute(randomUUID(), "counter", 4),
+      () => IdentTest.ref(randomUUID()).setAttribute("counter", 4),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
   }
@@ -698,53 +529,48 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
   @test
   async deleteAsync() {
     const store = this.identStore;
-    let model = await store.save({ counter: 1 });
+    let model = await IdentTest.create({ counter: 1 });
     // Delete with condition
-    await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
-    await store.delete(model.getUuid(), 1, "counter");
+    await assert.rejects(() => IdentTest.ref(model.getUuid()).delete("counter", 4), UpdateConditionFailError);
+    await model.delete("counter", 1);
     // Test without condition
-    model = await store.save({ counter: 2 });
-    await store.delete(model);
+    model = await IdentTest.create({ counter: 2 });
+    await model.delete();
 
     // Deleting a non-existing object should be ignored
-    await store.delete(randomUUID());
+    await IdentTest.ref(randomUUID()).delete();
   }
 
   @test
   async delete() {
     // UserStore is not supposed to be async
     const store = this.userStore;
-    let model = await store.save({ counter: 1 });
+    let model = await UserTest.create({ counter: 1 });
     // Delete with condition
     await assert.rejects(() => store.delete(model.getUuid(), 4, "counter"), UpdateConditionFailError);
 
-    await store.delete(model.getUuid(), 1, "counter");
+    await model.delete("counter", 1);
     // Test without condition
-    model = await store.save({ counter: 2 });
-    await store.delete(model);
+    model = await UserTest.create({ counter: 2 });
+    await model.delete();
 
     // Deleting a non-existing object should be ignored
     await store.delete(randomUUID());
   }
 
   async deleteConcurrent() {
-    const store = this.userStore;
-    const model = await store.save({ counter: 1 });
-    store.addListener("Store.Delete", async () => {
-      await store.incrementAttribute(model.getUuid(), "counter", 1);
-    });
-    await assert.rejects(() => store.delete(model.getUuid(), 1, "counter"), UpdateConditionFailError);
-    store.removeAllListeners();
-    await store.delete(model.getUuid(), 2, "counter");
+    const model = await UserTest.create({ counter: 1 });
+    await model.incrementAttribute("counter");
+    await assert.rejects(() => model.delete("counter", 1), UpdateConditionFailError);
+    await model.delete("counter", 2);
   }
 
   @test
   async conditionUpdate() {
-    const store = this.identStore;
-    const model = await store.save({ counter: 1 });
+    const model = await IdentTest.create({ counter: 1 });
+    const ref = model.getRef();
     assert.ok(
-      await store.conditionalPatch(
-        model.getUuid(),
+      await model.patch(
         {
           plop: 12,
           counter: 2
@@ -753,26 +579,23 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
         1
       )
     );
-    assert.strictEqual((await store.get(model.getUuid())).plop, 12);
-    assert.ok(
-      !(await store.conditionalPatch(
-        model.getUuid(),
-        {
-          plop: 13
-        },
-        "counter",
-        1
-      ))
+    assert.strictEqual((await ref.get()).plop, 12);
+    // Might want to check exception
+    await model.patch(
+      {
+        plop: 13
+      },
+      "counter",
+      1
     );
-    assert.strictEqual((await store.get(model.getUuid())).plop, 12);
+    assert.strictEqual((await ref.get()).plop, 12);
     // @ts-ignore
-    stub(store, "_patch").callsFake(() => {
+    stub(UserTest.store(), "_patch").callsFake(() => {
       throw new Error("Fake Error");
     });
     await assert.rejects(
       () =>
-        store.conditionalPatch(
-          model.getUuid(),
+        model.patch(
           {
             plop: 12,
             counter: 2
@@ -786,47 +609,35 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
 
   @test
   async update(delay: number = 1) {
-    const store = this.identStore;
-    const model = await store.save({ counter: 1 });
+    const model = await IdentTest.create({ counter: 1 });
     model.saveUpdateCompat = true;
 
-    await store.save(model);
+    await model.save();
     model.saveInnerMethod = true;
     await model.save();
-    const model2 = await store.get(model.getUuid());
-    store.on("Store.Update", async () => {
-      model2._lastUpdate = new Date(100);
-      // @ts-ignore
-      await store._update(model2, model2.getUuid());
-    });
-    model.plop = "yop";
+    await IdentTest.ref(model.getUuid()).setAttribute("_lastUpdate", new Date(100));
+    model.test = "yop";
     // Delete with condition
-    await assert.rejects(() => store.update(model), UpdateConditionFailError);
-    store.removeAllListeners("Store.Update");
-    store.on("Store.Update", async () => {
-      // @ts-ignore
-      await store._delete(model.getUuid());
-      await this.sleep(delay);
-    });
+    await assert.rejects(() => model.save(), UpdateConditionFailError);
+    await model.delete();
     await assert.rejects(
-      () => store.update(model),
+      () => model.save(),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
     await assert.rejects(
-      () => store.update({ uuid: randomUUID(), test: true }),
+      () => IdentTest.ref(randomUUID()).patch({ test: "plop" }),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
   }
 
   @test
   async upsertItem() {
-    const store = this.identStore;
     this.log("DEBUG", "Save empty logs array");
-    const model = await store.save({ logs: [] });
+    const model = await IdentTest.create({ logs: [] });
     const ps = [];
     this.log("DEBUG", "Upsert 10 lines");
     for (let i = 0; i < 10; i++) {
-      ps.push(store.upsertItemToCollection(model.getUuid(), "logs", `line${i}`));
+      ps.push(model.upsertItemToCollection("logs", `line${i}`));
     }
     await Promise.all(ps);
     await model.refresh();
@@ -834,27 +645,25 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     // Depending on the implementation it can be swallowed by the backend
     this.log("DEBUG", "Upsert on unknown doc");
     await assert.rejects(
-      () => store.upsertItemToCollection(randomUUID(), "logs", `line`),
+      () => IdentTest.ref(randomUUID()).upsertItemToCollection("logs", `line`),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
 
     this.log("DEBUG", "Delete on unknown doc");
     await assert.rejects(
-      () => store.deleteItemFromCollection(randomUUID(), "logs", 0, undefined, undefined),
+      () => IdentTest.ref(randomUUID()).deleteItemFromCollection("logs", 0, undefined, undefined),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
   }
 
   @test
-  async put() {
-    const store = this.identStore;
-    const uuid = store.getWebda().getUuid();
-    if (await store.exists(uuid)) {
-      await store.delete(uuid);
+  async upsert() {
+    const ref = IdentTest.ref(this.webda.getUuid());
+    if (await ref.exists()) {
+      await ref.delete();
     }
-    await store.put(uuid, { test: true });
-    // Verify put acts like a upsert
-    await store.put(uuid, { test: false });
+    await ref.upsert({ test: "true" });
+    await ref.upsert({ test: "false" });
   }
 }
 

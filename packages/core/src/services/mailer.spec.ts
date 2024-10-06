@@ -1,9 +1,7 @@
-
-
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { MailerParameters, UnpackedConfiguration, User, WebContext } from "..";
+import { MailerParameters, UnpackedConfiguration, User, WebContext } from "../index";
 import { WebdaInternalTest } from "../test";
 
 @suite

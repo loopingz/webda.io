@@ -1,44 +1,45 @@
 import { EventEmitter } from "events";
-import { JSONSchema7 } from "json-schema";
-import util from "util";
-import { ModelGraph, ModelsTree } from "../application";
-import { Core, EventEmitterUtils } from "../core";
+import { ModelGraph, ModelsTree } from "../application/iapplication";
 import * as WebdaError from "../errors";
-import { EventService } from "../services/asyncevents";
-import { BinariesImpl, Binary } from "../services/binary";
-import { Store, StoreEvents } from "../stores/store";
 import * as WebdaQL from "@webda/ql";
-import { Context, GlobalContext, OperationContext } from "../utils/context";
-import { HttpMethodType } from "../utils/httpcontext";
+import { Context } from "../contexts/icontext";
+import { OperationContext } from "../contexts/operationcontext";
+import type { HttpMethodType } from "../contexts/httpcontext";
 import { Throttler } from "../utils/throttler";
 import {
-  ModelActions,
   ModelLinksArray,
   ModelLinksSimpleArray,
   ModelMapLoaderImplementation,
-  RawModel,
+  ModelRef,
+  ModelRefWithCreate,
   createModelLinksMap
 } from "./relations";
-import { runAsSystem, useContext } from "../hooks";
-import type { FilterAttributes } from "@webda/tsc-esm";
-import { Proxied, getContextUpdate, getProxy } from "./coremodelproxy";
+import { runAsSystem, useContext } from "../contexts/execution";
+import { NotEnumerable, type Constructor, type FilterAttributes, type Methods } from "@webda/tsc-esm";
+import type { ModelAction, ModelActions, RawModel } from "./types";
+import { EventEmitterUtils } from "../events/asynceventemitter";
+import { getUuid } from "../utils/uuid";
+import {
+  AbstractCoreModel,
+  CoreModelDefinition,
+  CoreModelEvents,
+  CoreModelFullDefinition,
+  ModelAttributes,
+  Proxied
+} from "./imodel";
+import { useApplication, useModel, useModelId } from "../application/hook";
+import { StoreHelper } from "../stores/istore";
+import { useLog } from "../loggers/hooks";
+import { WorkerLogLevel } from "@webda/workout";
+import { getAttributeLevelProxy } from "./coremodelproxy";
+import { OperationDefinitionInfo } from "../core/icore";
+import { Service } from "../services/service";
+//import { BinariesImpl, Binary } from "../services/binary";
 
 /**
- * Expose the model through API or GraphQL if it exists
- * The model will be exposed using its class name + 's'
- * If you need to have a specific plural, use the annotation WebdaPlural
- *  to define the plural name
+ * This is implementation of ModelRelated
  *
- * @returns
- */
-export function Expose(params: Partial<ExposeParameters> = {}) {
-  return (target: CoreModelDefinition): void => {
-    params.restrict ??= {};
-    target.Expose = <ExposeParameters>params;
-  };
-}
-
-/**
+ *
  *
  */
 export class CoreModelQuery {
@@ -62,7 +63,7 @@ export class CoreModelQuery {
    * @returns
    */
   getTargetModel(): CoreModelDefinition {
-    this.targetModel ??= Core.get().getModel(this.type);
+    this.targetModel ??= useModel(this.type);
     return this.targetModel;
   }
   /**
@@ -74,7 +75,7 @@ export class CoreModelQuery {
     results: CoreModel[];
     continuationToken?: string;
   }> {
-    return this.getTargetModel().query(this.completeQuery(query), true);
+    return <any>this.getTargetModel().query(this.completeQuery(query), true);
   }
 
   /**
@@ -111,295 +112,10 @@ export class CoreModelQuery {
 }
 
 /**
- * Define an Action on a model
+ * Annotatated Actions
  *
- * It is basically a method designed to be called by the API or external
- * systems
+ * Used to store all actions annotated on a class
  */
-export interface ModelAction {
-  /**
-   * Method for the route
-   *
-   * By default ["PUT"]
-   */
-  methods?: HttpMethodType[];
-  /**
-   * Define if the action is global or per object
-   *
-   * The method that implement the action must be called
-   * `_${actionName}`
-   */
-  global?: boolean;
-  /**
-   * Additional openapi info
-   */
-  openapi?: any;
-  /**
-   * Method of the action
-   */
-  method?: string;
-}
-
-/**
- * Expose parameters for the model
- */
-export interface ExposeParameters {
-  /**
-   * If model have parent but you still want it to be exposed as root
-   * in domain-like service: DomainService, GraphQL
-   *
-   * It would create alias for the model in the root too
-   */
-  root?: boolean;
-  /**
-   * You can select to not expose some methods like create, update, delete, get, query
-   */
-  restrict: {
-    /**
-     * Create a new object
-     */
-    create?: boolean;
-    /**
-     * Update an existing object
-     *
-     * Includes PUT and PATCH
-     */
-    update?: boolean;
-    /**
-     * Query the object
-     */
-    query?: boolean;
-    /**
-     * Get a single object
-     */
-    get?: boolean;
-    /**
-     * Delete an object
-     */
-    delete?: boolean;
-    /**
-     * Do not create operations for the model
-     */
-    operation?: boolean;
-  };
-}
-
-export interface Reflection {
-  /**
-   * Get the model actions
-   */
-  getActions(): { [key: string]: ModelAction };
-  /**
-   * Get the model schema
-   */
-  getSchema(): JSONSchema7;
-
-  /**
-   * Get the model hierarchy
-   */
-  getHierarchy(): { ancestors: string[]; children: ModelsTree };
-  /**
-   * Get the model relations
-   */
-  getRelations(): ModelGraph;
-  /**
-   * Get Model identifier
-   */
-  getIdentifier(short?: boolean): string;
-}
-
-/**
- *
- */
-export interface CoreModelDefinition<T extends CoreModel = CoreModel> extends EventEmitter {
-  new (): T;
-  /**
-   * If the model have some Expose annotation
-   */
-  Expose?: ExposeParameters;
-  /**
-   * Create a CoreModel object loaded with the content of object
-   *
-   * It allows polymorphism from Store
-   *
-   * @param model to create by default
-   * @param object to load data from
-   */
-  factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>): Proxied<T>;
-  /**
-   * Get the model actions
-   */
-  getActions(): { [key: string]: ModelAction };
-  /**
-   * Get the model store
-   */
-  store(): Store<T>;
-  /**
-   * Get the model schema
-   */
-  getSchema(): JSONSchema7;
-
-  /**
-   * Get the model hierarchy
-   */
-  getHierarchy(): { ancestors: string[]; children: ModelsTree };
-  /**
-   * Get the model relations
-   */
-  getRelations(): ModelGraph;
-  /**
-   * Get Model identifier
-   */
-  getIdentifier(short?: boolean): string;
-
-  /**
-   * Complete uuid useful to implement uuid prefix or suffix
-   * @param uid
-   */
-  completeUid(uid: string): string;
-  /**
-   * Get the model uuid field if you do not want to use the uuid field
-   */
-  getUuidField(): string;
-  /**
-   * Permission query for the model
-   * @param context
-   */
-  getPermissionQuery(context: Context): null | { partial: boolean; query: string };
-  /**
-   * Reference to an object without doing a DB request yet
-   */
-  ref: typeof CoreModel.ref;
-  /**
-   * Get an object
-   */
-  get: typeof CoreModel.get;
-  /**
-   * Create a new model
-   * @param this
-   * @param data
-   */
-  create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<Proxied<T>>;
-  /**
-   * Query the model
-   * @param query
-   */
-  query(query?: string, includeSubclass?: boolean): Promise<{ results: T[]; continuationToken?: string }>;
-  /**
-   * Iterate through objects
-   * @param query
-   * @param includeSubclass
-   * @param context
-   */
-  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
-  /**
-   * Listen to events on the model
-   * @param event
-   * @param listener
-   * @param async
-   */
-  on<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    listener: (evt: StoreEvents[Key]) => any,
-    async?: boolean
-  ): this;
-  /**
-   * Listen to events on the model asynchronously
-   * @param event
-   * @param listener
-   */
-  onAsync<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    listener: (evt: StoreEvents[Key]) => any
-  ): this;
-  /**
-   * Emit an event for this class
-   * @param this
-   * @param event
-   * @param evt
-   */
-  emit<T extends CoreModel, Key extends keyof StoreEvents>(this: Constructor<T>, event: Key, evt: StoreEvents[Key]);
-  /**
-   * Emit an event for this class and wait for all listeners to finish
-   * @param this
-   * @param event
-   * @param evt
-   */
-  emitSync<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    evt: StoreEvents[Key]
-  ): Promise<void>;
-  /**
-   * Return the event on the model that can be listened to by an
-   * external authorized source
-   * @see authorizeClientEvent
-   */
-  getClientEvents(): ({ name: string; global?: boolean } | string)[];
-  /**
-   * Authorize a public event subscription
-   * @param event
-   * @param context
-   */
-  authorizeClientEvent(_event: string, _context: OperationContext, _model?: T): boolean;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  addListener(event: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  once(event: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  removeListener(event: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  off(eventName: string | symbol, listener: (...args: any[]) => void): this;
-  /**
-   * EventEmitter interface
-   * @param event
-   * @param listener
-   */
-  removeAllListeners(eventName?): this;
-}
-
-export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
-
-/**
- * Make a property hidden from json and schema
- *
- * This property will not be saved in the store
- * Nor it will be exposed in the API
- *
- * @param target
- * @param propertyKey
- */
-export function NotEnumerable(target: any, propertyKey: string) {
-  Object.defineProperty(target, propertyKey, {
-    set(value) {
-      Object.defineProperty(this, propertyKey, {
-        value,
-        writable: true,
-        configurable: true
-      });
-    },
-    configurable: true
-  });
-}
-
 const ActionsAnnotated: Map<any, ModelActions> = new Map();
 /**
  * Define an object method as an action
@@ -425,196 +141,9 @@ export function Action(options: { methods?: HttpMethodType[]; openapi?: any; nam
   };
 }
 
-export class ModelRef<T extends CoreModel> {
-  @NotEnumerable
-  protected store: Store<T>;
-  @NotEnumerable
-  protected model: CoreModelDefinition<T>;
-  @NotEnumerable
-  protected parent: CoreModel;
-
-  constructor(protected uuid: string, model: CoreModelDefinition<T>, parent?: CoreModel) {
-    this.model = model;
-    this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
-    this.store = Core.get().getModelStore(model);
-  }
-  async get(): Promise<T> {
-    return await this.store.get(this.uuid);
-  }
-  set(id: string | T) {
-    this.uuid = id instanceof CoreModel ? id.getUuid() : id;
-    this.parent?.__dirty.add(Object.keys(this.parent).find(k => this.parent[k] === this));
-  }
-  toString(): string {
-    return this.uuid;
-  }
-  toJSON(): string {
-    return this.uuid;
-  }
-  getUuid(): string {
-    return this.uuid;
-  }
-  async deleteItemFromCollection(
-    prop: FilterAttributes<T, any[]>,
-    index: number,
-    itemWriteCondition: any,
-    itemWriteConditionField?: string
-  ): Promise<this> {
-    const updateDate = await this.store.deleteItemFromCollection(
-      this.uuid,
-      prop,
-      index,
-      itemWriteCondition,
-      itemWriteConditionField
-    );
-    await this.model.emitSync("Store.PartialUpdated", {
-      object_id: this.uuid,
-      store: this.store,
-      updateDate,
-      partial_update: {
-        deleteItem: {
-          property: <string>prop,
-          index: index
-        }
-      }
-    });
-    return this;
-  }
-  async upsertItemToCollection(
-    prop: FilterAttributes<T, any[]>,
-    item: any,
-    index?: number,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
-  ): Promise<this> {
-    const updateDate = await this.store.upsertItemToCollection(
-      this.uuid,
-      prop,
-      item,
-      index,
-      itemWriteCondition,
-      itemWriteConditionField
-    );
-    await this.model.emitSync("Store.PartialUpdated", {
-      object_id: this.uuid,
-      store: this.store,
-      updateDate,
-      partial_update: {
-        addItem: {
-          value: item,
-          property: <string>prop,
-          index: index
-        }
-      }
-    });
-    return this;
-  }
-  exists(): Promise<boolean> {
-    return this.store.exists(this.uuid);
-  }
-  delete(): Promise<void> {
-    return this.store.delete(this.uuid);
-  }
-  conditionalPatch(updates: Partial<T>, conditionField: any, condition: any): Promise<boolean> {
-    return this.store.conditionalPatch(this.uuid, updates, conditionField, condition);
-  }
-  patch(updates: Partial<RawModel<T>>): Promise<boolean> {
-    return this.store.conditionalPatch(this.uuid, updates, null, undefined);
-  }
-  async setAttribute(attribute: keyof T, value: any): Promise<this> {
-    await this.store.setAttribute(this.uuid, attribute, value);
-    return this;
-  }
-  async removeAttribute(
-    attribute: keyof T,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: keyof T
-  ): Promise<this> {
-    await this.store.removeAttribute(this.uuid, attribute, itemWriteCondition, itemWriteConditionField);
-    await this.model?.emitSync("Store.PartialUpdated", {
-      object_id: this.uuid,
-      store: this.store,
-      partial_update: {
-        deleteAttribute: <any>attribute
-      }
-    });
-    return this;
-  }
-  async incrementAttributes(
-    info: {
-      property: FilterAttributes<T, number>;
-      value: number;
-    }[]
-  ): Promise<this> {
-    const updateDate = await this.store.incrementAttributes(this.uuid, info);
-    await this.model.emitSync("Store.PartialUpdated", {
-      object_id: this.uuid,
-      store: this.store,
-      updateDate,
-      partial_update: {
-        increments: <{ property: string; value: number }[]>info
-      }
-    });
-    return this;
-  }
-}
-
-export class ModelRefWithCreate<T extends CoreModel> extends ModelRef<T> {
-  /**
-   * Allow to create a model
-   * @param defaultValue
-   * @param context
-   * @param withSave
-   * @returns
-   */
-  async create(defaultValue: RawModel<T>, withSave: boolean = true): Promise<Proxied<T>> {
-    const result = new this.model().load(defaultValue, true).setUuid(this.uuid);
-    if (withSave) {
-      await result.save(true);
-    }
-    return getProxy(result);
-  }
-
-  /**
-   * Load a model from the known store
-   *
-   * @param this the class from which the static is called
-   * @param id of the object to load
-   * @param defaultValue if object not found return a default object
-   * @param context to set on the object
-   * @returns
-   */
-  async getOrCreate(defaultValue: RawModel<T>, withSave: boolean = true): Promise<T> {
-    return (await this.get()) || (await this.create(defaultValue, withSave));
-  }
-
-  async upsert(defaultValue: RawModel<T>): Promise<T> {
-    let result = await this.get();
-    if (await this.exists()) {
-      await this.patch(defaultValue);
-    } else {
-      result = await this.create(defaultValue);
-    }
-    return result;
-  }
-}
-
-export class ModelRefCustom<T extends CoreModel> extends ModelRef<T> {
-  constructor(public uuid: string, model: CoreModelDefinition<T>, data: any, parent: CoreModel) {
-    super(uuid, model, parent);
-    Object.assign(this, data);
-  }
-
-  toJSON(): any {
-    return this;
-  }
-  getUuid(): string {
-    return this.uuid;
-  }
-}
-
-export type ModelRefCustomProperties<T extends CoreModel, K> = ModelRefCustom<T> & K;
-
+/**
+ * EventEmitter per class
+ */
 export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakMap();
 
 /**
@@ -627,34 +156,13 @@ export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakM
  * @class
  * @WebdaModel
  */
-class CoreModel {
+export class CoreModel<E extends CoreModelEvents = CoreModelEvents> extends AbstractCoreModel<E> {
+  @NotEnumerable
+  Events: E = undefined;
   /**
-   * Class reference to the object
+   * Store helper for this model
    */
-  @NotEnumerable
-  __class: CoreModelDefinition<this>;
-  @NotEnumerable
-  private __context: Context[] = [useContext()];
-  /**
-   * Contain the context the object was loaded with
-   */
-  @NotEnumerable
-  set context(context: Context) {
-    if (!getContextUpdate()) {
-      throw new Error("Cannot update context, you have to use runInContext(() => {}, [myObject])");
-    }
-    if (context === undefined) {
-      if (this.__context.length <= 1) {
-        throw new Error("Cannot remove context");
-      }
-      this.__context.pop();
-    } else {
-      this.__context.push(context);
-    }
-  }
-  get context(): Context {
-    return this.__context[this.__context.length - 1];
-  }
+  protected static Store: StoreHelper = undefined;
 
   /**
    * Type name
@@ -664,9 +172,6 @@ class CoreModel {
    * Types name
    */
   __types: string[];
-
-  @NotEnumerable
-  __dirty: Set<string | symbol> = new Set();
 
   /**
    * Creation date
@@ -684,62 +189,32 @@ class CoreModel {
    */
   __deleted: boolean;
 
-  constructor() {
-    this.__class = <CoreModelDefinition<this>>(<any>new.target);
-  }
-
   /**
    * Listen to events on the model
    * @param event
    * @param listener
    * @param async
    */
-  static on<T extends CoreModel, Key extends keyof StoreEvents>(
+  static on<T extends CoreModel, Key extends keyof T["Events"]>(
     this: Constructor<T>,
     event: Key,
-    listener: (evt: StoreEvents[Key]) => any,
-    async: boolean = false
+    listener: (evt: T["Events"][Key]) => any
   ) {
     if (!Emitters.has(this)) {
       Emitters.set(this, new EventEmitter());
     }
-    // TODO Manage async
-    if (async) {
-      Core.get()
-        .getService<EventService>("AsyncEvents")
-        .bindAsyncListener(<CoreModelDefinition>(<unknown>this), event, listener);
-    } else {
-      Emitters.get(this).on(event, listener);
-    }
+    Emitters.get(this).on(<string>event, listener);
     return <any>this;
   }
 
   /**
-   * Emit an event for this class
-   * @param this
+   * On that specific instance
    * @param event
-   * @param evt
+   * @param listener
+   * @param async
+   * @returns
    */
-  static emit<T extends CoreModel, Key extends keyof StoreEvents>(
-    this: Constructor<T>,
-    event: Key,
-    evt: StoreEvents[Key]
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let clazz = this;
-    // @ts-ignore
-    while (clazz) {
-      // Emit for all parent class
-      if (Emitters.has(clazz)) {
-        EventEmitterUtils.emit(Emitters.get(clazz), event, evt);
-      }
-      // @ts-ignore
-      if (clazz === CoreModel) {
-        break;
-      }
-      clazz = Object.getPrototypeOf(clazz);
-    }
-  }
+  //on(event: string, listener: (evt: any) => any, async: boolean = false) {}
 
   /**
    * Emit an event for this class and wait for all listeners to finish
@@ -747,10 +222,10 @@ class CoreModel {
    * @param event
    * @param evt
    */
-  static async emitSync<T extends CoreModel, Key extends keyof StoreEvents>(
+  static async emit<T extends CoreModel, Key extends keyof T["Events"]>(
     this: Constructor<T>,
     event: Key,
-    evt: StoreEvents[Key]
+    evt: T["Events"][Key]
   ) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     let clazz = this;
@@ -759,7 +234,11 @@ class CoreModel {
     while (clazz) {
       // Emit for all parent class
       if (Emitters.has(clazz)) {
-        p.push(EventEmitterUtils.emitSync(Emitters.get(clazz), event, evt));
+        p.push(
+          EventEmitterUtils.emit(Emitters.get(clazz), event, evt, (level: WorkerLogLevel, ...args: any[]) =>
+            useLog(level, ...args)
+          )
+        );
       }
       // @ts-ignore
       if (clazz === CoreModel) {
@@ -771,22 +250,16 @@ class CoreModel {
   }
 
   /**
-   * Listen to events on the model asynchronously
-   * @param event
-   * @param listener
-   */
-  static onAsync<Key extends keyof StoreEvents>(event: Key, listener: (evt: StoreEvents[Key]) => any, queue?: string) {
-    return this.on(event, listener, true);
-  }
-
-  /**
    *
    * @param event
    * @param listener
    * @returns
    */
-  static addListener<Key extends keyof StoreEvents>(event: Key, listener: (...args: any[]) => void) {
-    return this.on(event, listener);
+  static addListener<T extends CoreModel, Key extends keyof T["Events"]>(
+    event: Key,
+    listener: (event: T["Events"][Key]) => void
+  ) {
+    return this.on(<any>event, listener);
   }
 
   static emitter(method, ...args) {
@@ -844,13 +317,6 @@ class CoreModel {
   static eventNames(...args) {
     return this.emitter("eventNames", ...args);
   }
-  /**
-   *
-   * @returns
-   */
-  static getRelations() {
-    return Core.get()?.getApplication().getRelations(this);
-  }
 
   /**
    * Do not declare any public events by default
@@ -871,18 +337,6 @@ class CoreModel {
   }
 
   /**
-   * Get Store for this model
-   * @param this
-   * @returns
-   */
-  static store<T extends CoreModel>(this: Constructor<T>): Store<T> {
-    if (!Core.get()) {
-      throw new Error("Webda not initialized");
-    }
-    return Core.get().getModelStore(this);
-  }
-
-  /**
    * Complete the uid with prefix if any
    *
    * Useful when object are stored with a prefix for full uuid
@@ -894,22 +348,13 @@ class CoreModel {
   }
 
   /**
-   * Return the known schema
-   * @returns
-   */
-  static getSchema() {
-    const app = Core.get()?.getApplication();
-    return app?.getSchema(app.getModelFromConstructor(this));
-  }
-
-  /**
    * Get a reference to a model
    * @param this
    * @param uid
    * @returns
    */
   static ref<T extends CoreModel>(this: Constructor<T>, uid: string): ModelRefWithCreate<T> {
-    return new ModelRefWithCreate(uid, <CoreModelDefinition<T>>this);
+    return new ModelRefWithCreate(uid, <CoreModelFullDefinition<T>>this);
   }
 
   /**
@@ -917,9 +362,11 @@ class CoreModel {
    *
    * @param defaultValue if defined create an object with this value if needed
    */
-  static get<T extends CoreModel>(this: Constructor<T>, uid: string, defaultValue?: any): Promise<T> {
-    return (<CoreModelDefinition<T>>this).store().get(uid);
+  static async get<T extends CoreModel>(this: CoreModelDefinition<T>, uid: string, defaultValue?: any): Promise<T> {
+    return (await (<CoreModelFullDefinition<T>>this).Store.get(uid)) || (await this.create(defaultValue, false));
   }
+
+  static resolve(): void {}
 
   /**
    * Get a reference to a model
@@ -927,22 +374,26 @@ class CoreModel {
    * @param uid
    * @returns
    */
-  static async create<T extends CoreModel>(this: Constructor<T>, data: RawModel<T>): Promise<Proxied<T>> {
-    return getProxy(await new this().load(data, true).save());
+  static async create<T extends CoreModel>(
+    this: Constructor<T>,
+    data: RawModel<T>,
+    save: boolean = true
+  ): Promise<Proxied<T>> {
+    const model = new this().load(data, true);
+    runAsSystem(() => (model._new = true));
+    if (save) {
+      return getAttributeLevelProxy(await model.save());
+    }
+    return getAttributeLevelProxy(model);
   }
 
   /**
-   * Get identifier for this model
-   * @returns
+   * The model is new and not saved yet
+   *
+   * It is set by the factory method and by the create method
    */
-  static getIdentifier(short: boolean = true): string {
-    const res = Core.get().getApplication().getModelName(this);
-    if (short) {
-      return Core.get().getApplication().getShortId(res);
-    } else {
-      return res;
-    }
-  }
+  @NotEnumerable
+  _new: boolean;
 
   /**
    * By default allow a field
@@ -950,19 +401,6 @@ class CoreModel {
    */
   isDeleted(): boolean {
     return this.__deleted;
-  }
-
-  /**
-   * Get the model hierarchy
-   *
-   * Ancestors will contain every model it inherits from
-   * Children will contain every model that inherits from this model in a tree structure
-   */
-  static getHierarchy(): {
-    ancestors: string[];
-    children: ModelsTree;
-  } {
-    return Core.get().getApplication().getModelHierarchy(this);
   }
 
   /**
@@ -1043,8 +481,7 @@ class CoreModel {
   protected static completeQuery(query: string, includeSubclass: boolean = true): string {
     if (!query.includes("__type")) {
       let condition;
-      const app = Core.get().getApplication();
-      const name = app.getShortId(app.getModelName(this));
+      const name = useModelId(this, true);
       if (includeSubclass) {
         condition = `__types CONTAINS "${name}"`;
       } else {
@@ -1101,14 +538,6 @@ class CoreModel {
   }
 
   /**
-   * Return true if needs a save
-   * @returns
-   */
-  isDirty(): boolean {
-    return this.__dirty.size > 0;
-  }
-
-  /**
    *
    * @returns the uuid of the object
    */
@@ -1158,6 +587,11 @@ class CoreModel {
     return null;
   }
 
+  /**
+   * Check if permission is granted and throw an exception if not
+   * @param context
+   * @param action
+   */
   async checkAct(
     context: OperationContext,
     action:
@@ -1210,19 +644,8 @@ class CoreModel {
    * Create an object
    * @returns
    */
-  static factory<T extends CoreModel>(this: Constructor<T>, object: Partial<T>): Proxied<T> {
-    return getProxy(object instanceof this ? object : new this().load(object, true));
-  }
-
-  /**
-   * Detect what looks like a CoreModel but can be from different version
-   * @param object
-   * @returns
-   *
-   * @deprecated Use instanceof, webda do not start with two versions of itself now
-   */
-  static instanceOf(object: any): boolean {
-    return object.__class && object.__class.factory && object.__class.instanceOf;
+  static async factory<T extends CoreModel>(this: CoreModelDefinition<T>, object: Partial<T>): Promise<Proxied<T>> {
+    return this.create(object, false);
   }
 
   /**
@@ -1232,7 +655,7 @@ class CoreModel {
    * @returns
    */
   getFullUuid() {
-    return `${this.__type.replace(/\//, "-")}$${this.getUuid()}`;
+    return `${this.__class.getIdentifier().replace(/\//, "-")}$${this.getUuid()}`;
   }
 
   /**
@@ -1242,13 +665,9 @@ class CoreModel {
    * @param partials
    * @returns
    */
-  static async fromFullUuid<T extends CoreModel = CoreModel>(
-    fullUuid: string,
-    core: Core = Core.get(),
-    partials?: any
-  ): Promise<T> {
+  static async fromFullUuid<T extends CoreModel = CoreModel>(fullUuid: string, partials?: any): Promise<T> {
     const [model, uuid] = fullUuid.split("$");
-    const modelObject = core.getApplication().getModel(model.replace("-", "/"));
+    const modelObject = <CoreModelFullDefinition<CoreModel>>useModel(model.replace("-", "/"));
     if (partials) {
       return <T>new modelObject().load(partials, true).setUuid(uuid);
     }
@@ -1267,8 +686,8 @@ class CoreModel {
    * @param context
    * @returns updated value
    */
-  attributePermission(key: string | symbol, value: any, mode: "READ" | "WRITE", context: Context): any {
-    if (typeof key === "symbol" || !context) {
+  attributePermission(key: string | symbol, value: any, mode: "READ" | "WRITE"): any {
+    if (typeof key === "symbol" || !this.context) {
       return value;
     }
     if (mode === "WRITE") {
@@ -1299,8 +718,8 @@ class CoreModel {
    * @param mode
    * @returns
    */
-  hasAttributePermissions(context: Context, _mode: "READ" | "WRITE"): boolean {
-    return !(context instanceof GlobalContext);
+  hasAttributePermissions(_mode: "READ" | "WRITE"): boolean {
+    return !this.context.isGlobalContext();
   }
 
   /**
@@ -1310,13 +729,13 @@ class CoreModel {
    * @param secure if false will ignore any _ variable
    */
   load(raw: RawModel<this>, relations: boolean = true): this {
-    const context = useContext();
-    const filterAttribute = this.hasAttributePermissions(context, "WRITE");
+    this.context = useContext();
+    const filterAttribute = this.hasAttributePermissions("WRITE");
     // Object assign with filter
     for (const prop in raw) {
       let val = raw[prop];
       if (filterAttribute) {
-        val = this.attributePermission(prop, raw[prop], "WRITE", context);
+        val = this.attributePermission(prop, raw[prop], "WRITE");
         if (val === undefined) {
           continue;
         }
@@ -1345,12 +764,9 @@ class CoreModel {
    * to add all the helpers
    */
   protected handleRelations() {
-    const rel =
-      Core.get()
-        ?.getApplication()
-        ?.getRelations(<any>this) || {};
+    const rel = useApplication()?.getRelations(<any>this) || {};
     for (const link of rel.links || []) {
-      const model = Core.get().getModel(link.model);
+      const model = <CoreModelFullDefinition<AbstractCoreModel>>useModel(link.model);
       if (link.type === "LINK") {
         this[link.attribute] ??= "";
         if (typeof this[link.attribute] === "string") {
@@ -1366,7 +782,7 @@ class CoreModel {
     }
     for (const link of rel.maps || []) {
       this[link.attribute] = (this[link.attribute] || []).map(
-        el => new ModelMapLoaderImplementation(Core.get().getModel(link.model), el, this)
+        el => new ModelMapLoaderImplementation(useModel(link.model), el, this)
       );
     }
     for (const query of rel.queries || []) {
@@ -1377,7 +793,7 @@ class CoreModel {
       if (typeof this[rel.parent.attribute] === "string") {
         this[rel.parent.attribute] = new ModelRef(
           this[rel.parent.attribute],
-          Core.get().getModel(rel.parent.model),
+          <CoreModelFullDefinition<CoreModel>>useModel(rel.parent.model),
           this
         );
       }
@@ -1398,7 +814,7 @@ class CoreModel {
    */
   async refresh(): Promise<this> {
     return runAsSystem(async () => {
-      const obj = await this.__class.store().get(this.getUuid());
+      const obj = await this.__class.Store.get(this.getUuid());
       if (obj) {
         Object.assign(this, obj);
         for (const i in this) {
@@ -1409,6 +825,7 @@ class CoreModel {
         }
         this.handleRelations();
       }
+      this.__dirty?.clear();
       return this;
     });
   }
@@ -1418,8 +835,11 @@ class CoreModel {
    *
    * @throws Error if the object is not coming from a store
    */
-  async delete(): Promise<void> {
-    return this.__class.store().delete(this);
+  async delete<K extends keyof ModelAttributes<this>>(
+    itemWriteConditionField?: K,
+    itemWriteCondition?: this[K]
+  ): Promise<void> {
+    return this.__class.Store.delete(this.getUuid(), <string>itemWriteConditionField, itemWriteCondition);
   }
 
   /**
@@ -1429,53 +849,100 @@ class CoreModel {
    * @param conditionValue
    */
   async patch(obj: Partial<this>, conditionField?: keyof this | null, conditionValue?: any) {
-    await this.__class
-      .store()
-      .patch({ [this.__class.getUuidField()]: this.getUuid(), ...obj }, true, conditionField, conditionValue);
+    await this.__class.Store.patch(this.getUuid(), obj, <string>conditionField, conditionValue);
     Object.assign(this, obj);
+    // Clear dirty if exists - should only exists if using proxy
+    Object.keys(obj).forEach(k => {
+      this.__dirty?.delete(k);
+    });
   }
 
   /**
+   * If the object is proxied through our CoreModelProxy
+   * @returns
+   */
+  isProxied(): boolean {
+    return this.__dirty !== undefined;
+  }
+
+  /**
+   * @deprecated You should override the save method
+   */
+  _onSave() {}
+
+  /**
+   * @deprecated You should override the save method
+   */
+  _onSaved() {}
+
+  /**
+   * @deprecated You should override the save/patch method
+   */
+  _onUpdate() {}
+
+  /**
+   * @deprecated You should override the save/patch method
+   */
+  _onUpdated() {}
+
+  /**
+   * @deprecated You should override the delete method
+   */
+  _onDelete() {}
+
+  /**
+   * @deprecated You should override the delete method
+   */
+  _onDeleted() {}
+  /**
    * Save this object
+   *
+   * @param full
+   *    - if `true` save all the object
+   *    - if `false` or `undefined` save only the dirty fields
+   *    - if a string save only the specified fields
+   * @params fields additional to save only used if full is a string
    *
    * @throws Error if the object is not coming from a store
    */
-  async save(full?: boolean | keyof this, ...args: (keyof this)[]): Promise<this> {
+  async save(full?: boolean | keyof this, ...fields: (keyof this)[]): Promise<this> {
     // If proxy is not used and not field specified call save
-    if ((!util.types.isProxy(this) && full === undefined) || full === true) {
-      if (!this._creationDate || !this._lastUpdate) {
-        await this.__class.store().create(this);
+    // When no proxy is used __dirty is undefined
+    if (full === true || this._new || !this.isProxied()) {
+      if (this._new) {
+        await this.__class.Store.create(this.getUuid(), this);
       } else {
-        await this.__class.store().update(this);
+        await this.__class.Store.update(this.getUuid(), this);
       }
       return this;
     }
-    const patch: any = {
-      [this.__class.getUuidField()]: this.getUuid()
-    };
+    const patch: any = {};
     if (typeof full === "string") {
-      [full, ...args].forEach(k => {
+      [full, ...fields].forEach(k => {
         patch[k] = this[k];
       });
     } else {
-      for (const entry of this.__dirty.entries()) {
+      for (const entry of this.__dirty) {
         patch[entry[0]] = this[entry[0]];
       }
     }
-    await this.__class.store().patch(patch);
-    this.__dirty.clear();
+    await this.__class.Store.patch(this.getUuid(), patch);
+    // Clear dirty if exists - should only exists if using proxy
+    this.__dirty?.clear();
     return this;
   }
 
   /**
-   * Validate objet modification
-   *
-   * @param ctx
-   * @param updates
+   * Properties managed by the CoreModelProxy
    */
-  async validate(ctx: OperationContext, updates: any, ignoreRequired: boolean = false): Promise<boolean> {
-    ctx.getWebda().validateSchema(this, updates, ignoreRequired);
-    return true;
+  @NotEnumerable
+  readonly __dirty: Set<string> = undefined;
+
+  /**
+   * Return if the object is dirty: unsaved modifications
+   */
+  isDirty(): boolean {
+    return this.__dirty.size > 0;
   }
 
   /**
@@ -1485,7 +952,7 @@ class CoreModel {
    * @returns
    */
   generateUid(_object: any = undefined): string {
-    return Core.get().getUuid();
+    return getUuid();
   }
 
   /**
@@ -1494,16 +961,19 @@ class CoreModel {
    * @returns Object to serialize
    */
   toJSON(): any {
-    const context = useContext();
-    const filterAttribute = this.hasAttributePermissions(context, "READ");
+    const filterAttribute = this.hasAttributePermissions("READ");
     const obj: any = {};
     for (const i in this) {
       let value = this[i];
       if (filterAttribute) {
-        value = this.attributePermission(i, value, "READ", context);
+        value = this.attributePermission(i, value, "READ");
       }
       if (value === undefined) continue;
-      if (value instanceof ModelRef) {
+      if (value instanceof Service) {
+        continue;
+      } else if (value instanceof CoreModelQuery) {
+        continue;
+      } else if (value instanceof ModelRef) {
         obj[i] = value.toString();
       } else if (value instanceof Binary) {
         obj[i] = value.toJSON();
@@ -1515,54 +985,44 @@ class CoreModel {
   }
 
   /**
-   * Called when object is about to be deleted
+   * Upsert item to a collection
+   * @param collection
+   * @param item
+   * @param index
+   * @param conditionField
+   * @param conditionValue
    */
-  async _onDelete() {
-    // Empty to be overriden
+  async upsertItemToCollection<K extends keyof ModelAttributes<this>>(
+    collection: FilterAttributes<this, Array<any>>,
+    item: any,
+    index?: number,
+    conditionField?: K,
+    conditionValue?: this[K]
+  ): Promise<void> {
+    await this.__class.Store.upsertItemToCollection(
+      this.getUuid(),
+      <string>collection,
+      item,
+      index,
+      <string>conditionField,
+      conditionValue
+    );
   }
 
-  /**
-   * Called when object has been deleted
-   */
-  async _onDeleted() {
-    // Empty to be overriden
-  }
-
-  /**
-   * Called when object is retrieved
-   */
-  async _onGet() {
-    // Empty to be overriden
-  }
-
-  /**
-   * Called when object is about to be saved
-   */
-  async _onSave() {
-    // Empty to be overriden
-  }
-
-  /**
-   * Called when object is saved
-   */
-  async _onSaved() {
-    // Empty to be overriden
-  }
-
-  /**
-   * Called when object is about to be updates
-   *
-   * @param updates to be send
-   */
-  async _onUpdate(_updates: any) {
-    // Empty to be overriden
-  }
-
-  /**
-   * Called when object is updated
-   */
-  async _onUpdated() {
-    // Empty to be overriden
+  async deleteItemFromCollection<K extends keyof ModelAttributes<this>>(
+    this: CoreModel<CoreModelEvents>,
+    collection: FilterAttributes<this, Array<any>>,
+    index: number,
+    conditionField?: K,
+    conditionValue?: this[K]
+  ): Promise<void> {
+    await this.__class.Store.deleteItemFromCollection(
+      this.getUuid(),
+      <string>collection,
+      index,
+      <string>conditionField,
+      conditionValue
+    );
   }
 
   /**
@@ -1570,18 +1030,31 @@ class CoreModel {
    * @param property
    * @param value
    */
-  async setAttribute(property: keyof this, value: any) {
-    await this.getRef().setAttribute(property, value);
+  async setAttribute<K extends keyof ModelAttributes<this>, L extends keyof ModelAttributes<this>>(
+    property: K,
+    value: this[K],
+    itemWriteConditionField?: L,
+    itemWriteCondition?: this[L]
+  ) {
+    await this.getRef().setAttribute(<any>property, value, itemWriteConditionField, itemWriteCondition);
     this[property] = value;
+    this.__dirty?.delete(<string>property);
   }
 
   /**
    * Remove attribute from both the object and db
-   * @param property
+   * @param property to remove
+   * @param itemWriteConditionField to check
+   * @param itemWriteCondition value to check
    */
-  async removeAttribute(property: keyof this) {
-    await this.getRef().removeAttribute(property);
+  async removeAttribute<K extends keyof ModelAttributes<this>>(
+    property: keyof ModelAttributes<this>,
+    itemWriteConditionField?: K,
+    itemWriteCondition?: this[K]
+  ) {
+    await this.getRef().removeAttribute(property, itemWriteConditionField, itemWriteCondition);
     delete this[property];
+    this.__dirty?.delete(<string>property);
   }
 
   /**
@@ -1589,7 +1062,7 @@ class CoreModel {
    * @param property
    * @param value
    */
-  async incrementAttribute(property: FilterAttributes<this, number>, value: number) {
+  async incrementAttribute(property: FilterAttributes<this, number>, value?: number) {
     return this.incrementAttributes([<any>{ property, value }]);
   }
 
@@ -1605,31 +1078,179 @@ class CoreModel {
    * Increment a attributes both in store and object
    * @param info
    */
-  async incrementAttributes(info: { property: string; value: number }[]) {
-    await this.getRef().incrementAttributes(<any>info);
-    for (const inc of info) {
+  async incrementAttributes<K extends keyof ModelAttributes<this>, L extends keyof FilterAttributes<this, number>>(
+    info: ({ property: L; value: number } | L)[],
+    itemWriteConditionField?: K,
+    itemWriteCondition?: this[K]
+  ) {
+    const args: { property: L; value: number }[] = <any>(
+      info.map(i => (typeof i === "string" ? { property: i, value: 1 } : i))
+    );
+    await this.getRef().incrementAttributes(<any>args, itemWriteConditionField, itemWriteCondition);
+    // Update local object
+    for (const inc of args) {
+      // @ts-ignore
       this[inc.property] ??= 0;
+      // @ts-ignore
       this[inc.property] += inc.value;
+      // Remove dirty flag for this property
+      this.__dirty?.delete(<string>inc.property);
+    }
+  }
+
+  /**
+   * Register model operations
+   * @param this
+   * @param registerOperation
+   * @returns
+   */
+  static registerOperations<T extends CoreModel>(
+    this: CoreModelDefinition<T>,
+    registerOperation: (id: string, info: OperationDefinitionInfo) => void
+  ) {
+    const actions = this.getActions();
+    const modelKey = this.getIdentifier();
+    const shortId = useModelId(modelKey, false);
+    if (!shortId) {
+      // No shortId means the model is not exposed, it is superseeded by something else
+      return;
+    }
+    Object.keys(actions).forEach(name => {
+      const id = `${shortId}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
+      const info: any = {
+        model: this.getIdentifier(),
+        method: `modelAction`,
+        id
+      };
+      info.input = `${modelKey}.${name}.input`;
+      info.output = `${modelKey}.${name}.output`;
+      info.parameters = actions[name].global ? undefined : "uuidRequest";
+      info.context = {
+        model: this,
+        action: { ...actions[name], name }
+      };
+      registerOperation(id, info);
+    });
+  }
+
+  /**
+   * Action on a model
+   * @param context
+   */
+  protected async operationAction(context: OperationContext) {
+    const { model, action } = context.getExtension<{
+      model: CoreModelDefinition<CoreModel>;
+      action: ModelAction & { name: string };
+    }>("operationContext");
+    if (!action.global) {
+      const object = await model.ref(context.getParameters().uuid).get();
+      if (!object || object.isDeleted()) {
+        throw new WebdaError.NotFound("Object not found");
+      }
+      await object.checkAct(context, action.name);
+      const output = await object[action.name](context);
+      context.write(output);
+    } else {
+      model[action.name](context);
     }
   }
 }
 
 /**
- * CoreModel with a uuid
+ * A CoreModel that can be any object
+ *
+ * @category CoreModel
  */
-class UuidModel extends CoreModel {
-  /**
-   * @Generated
-   */
-  uuid: string;
+export type CoreModelAny<T = any> = CoreModel & T;
 
+/**
+ * Specific type for registry
+ */
+export class RegistryModel extends CoreModel {
   /**
-   * @override
+   * Helper for upsert
+   * @param uuid
+   * @param data
+   * @returns
    */
-  validate(ctx: OperationContext<any, any>, updates: any, ignoreRequired?: boolean): Promise<boolean> {
-    updates.uuid ??= this.generateUid();
-    return super.validate(ctx, updates, ignoreRequired);
+  static async put<T extends CoreModel, K = any>(this: CoreModelDefinition<T>, uuid: string, data: K) {
+    return await this.ref(uuid).upsert(<any>data);
+  }
+  /**
+   * Helper for upsert
+   * @param uuid
+   * @param data
+   * @returns
+   */
+  static async get<T extends CoreModel, K = any>(this: CoreModelDefinition<T>, uuid: string, data?: K): Promise<T & K> {
+    return data ? <any>await this.ref(uuid).upsert(<any>data) : await this.ref(uuid).get();
+  }
+
+  static async delete<T extends CoreModel>(this: CoreModelDefinition<T>, uuid: string) {
+    return await this.ref(uuid).delete();
   }
 }
 
-export { CoreModel, UuidModel };
+/**
+ * Type helper for registry entry
+ */
+
+//export type RegistryEntry<T = any> = RegistryModel & T;
+
+export class RegistryEntry {
+  /**
+   * Remove an attribute from the registry
+   * @param uuid
+   * @param attribute
+   * @returns
+   */
+  static async removeAttribute(uuid: string, attribute: string) {
+    return await RegistryModel.ref(uuid).removeAttribute(<any>attribute);
+  }
+  /**
+   * Helper for upsert
+   * @param uuid
+   * @param data
+   * @returns
+   */
+  static async put<K = any>(uuid: string, data: K): Promise<K & RegistryModel> {
+    return <any>await RegistryModel.ref(uuid).upsert(<any>data);
+  }
+  /**
+   * Helper for upsert
+   * @param uuid
+   * @param data
+   * @returns
+   */
+  static async get<K = any>(uuid: string, data?: K): Promise<K & RegistryModel> {
+    return data ? <any>await RegistryModel.ref(uuid).upsert(<any>data) : await RegistryModel.ref(uuid).get();
+  }
+
+  static async delete(uuid: string) {
+    return await RegistryModel.ref(uuid).delete();
+  }
+
+  static exists(uuid: string) {
+    return RegistryModel.ref(uuid).exists();
+  }
+
+  /**
+   * Perform a conditional patch
+   * @param uuid
+   * @param patch
+   * @param conditionField
+   * @param conditionValue
+   * @returns
+   */
+  static patch(uuid: string, patch: any, conditionField: string, conditionValue: any) {
+    return RegistryModel.ref(uuid).patch(patch, <any>conditionField, conditionValue);
+  }
+}
+
+/**
+ * Use the registry
+ * @returns
+ */
+export function useRegistry() {
+  return RegistryModel;
+}

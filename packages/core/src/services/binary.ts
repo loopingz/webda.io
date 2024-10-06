@@ -3,11 +3,17 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
-import { Core, Counter, WebdaError } from "../index";
-import { CoreModel, NotEnumerable } from "../models/coremodel";
-import { EventStoreDeleted, MappingService, Store } from "../stores/store";
-import { OperationContext } from "../utils/context";
-import { Service, ServiceParameters } from "./service";
+import * as WebdaError from "../errors";
+import type { CoreModel } from "../models/coremodel";
+import type { MappingService, Store } from "../stores/store";
+import { Service } from "./service";
+import { NotEnumerable } from "@webda/tsc-esm";
+import { AbstractCoreModel } from "../models/imodel";
+import { useApplication, useModel } from "../application/hook";
+import { useCore } from "../core/hooks";
+import { ServiceParameters } from "./iservices";
+import { Counter } from "../metrics/metrics";
+import { IOperationContext } from "../contexts/icontext";
 
 /**
  * Represent basic EventBinary
@@ -286,7 +292,7 @@ export class Binary<T = any> extends BinaryMap<T> {
   @NotEnumerable
   protected empty: boolean;
   constructor(attribute: string, model: CoreModel) {
-    super(Core.get().getBinaryStore(model, attribute), model[attribute] || {});
+    super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
     this.empty = model[attribute] === undefined;
     this.attribute = attribute;
     this.model = model;
@@ -377,18 +383,18 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
   __service: BinaryService;
 
   @NotEnumerable
-  protected model: CoreModel;
+  protected model: AbstractCoreModel;
 
   @NotEnumerable
   protected attribute: string;
 
-  assign(model: CoreModel, attribute: string): this {
+  assign(model: AbstractCoreModel, attribute: string): this {
     this.model = model;
     this.attribute = attribute;
     for (const binary of model[attribute] || []) {
       this.push(binary);
     }
-    this.__service = Core.get().getBinaryStore(model, attribute);
+    this.__service = <BinaryService>useCore().getBinaryStore(model, attribute);
     return this;
   }
 
@@ -557,7 +563,7 @@ export abstract class BinaryService<
    */
   async getRedirectUrlFromObject(
     binaryMap: BinaryMap,
-    _context: OperationContext,
+    _context: IOperationContext,
     _expires: number = 30
   ): Promise<null | string> {
     return null;
@@ -619,7 +625,12 @@ export abstract class BinaryService<
    * @emits 'binaryCreate'
    */
 
-  abstract store(object: CoreModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void>;
+  abstract store(
+    object: AbstractCoreModel,
+    property: string,
+    file: BinaryFile,
+    metadata?: BinaryMetadata
+  ): Promise<void>;
 
   /**
    * The store can retrieve how many time a binary has been used
@@ -634,7 +645,7 @@ export abstract class BinaryService<
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(object: CoreModel, property: string, index?: number): Promise<void>;
+  abstract delete(object: AbstractCoreModel, property: string, index?: number): Promise<void>;
 
   /**
    * Get a binary
@@ -643,7 +654,7 @@ export abstract class BinaryService<
    * @emits 'binaryGet'
    */
   async get(info: BinaryMap): Promise<Readable> {
-    await this.emitSync("Binary.Get", {
+    await this.emit("Binary.Get", {
       object: info,
       service: this
     });
@@ -658,7 +669,7 @@ export abstract class BinaryService<
    * @param {String} filepath to save the binary to
    */
   async downloadTo(info: BinaryMap, filename): Promise<void> {
-    await this.emitSync("Binary.Get", {
+    await this.emit("Binary.Get", {
       object: info,
       service: this
     });
@@ -675,7 +686,7 @@ export abstract class BinaryService<
           // Stubing the fs module in ESM seems complicated for now
           /* c8 ignore next 3 */
         } catch (err) {
-          this._webda.log("ERROR", err);
+          this.log("ERROR", err);
         }
         return reject(src);
       });
@@ -732,21 +743,23 @@ export abstract class BinaryService<
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
       return;
     }
-    await this.emitSync("Binary.UploadSuccess", {
+    await this.emit("Binary.UploadSuccess", {
       object: file,
       service: this,
       target: object
     });
-    const relations = this.getWebda().getApplication().getRelations(object);
+    const relations = useApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     if (cardinality === "MANY") {
-      await (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class
-        .store()
-        .upsertItemToCollection(object_uid, property, file);
+      await (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class.Store.upsertItemToCollection(
+        object_uid,
+        property,
+        file
+      );
     } else {
-      await object.__class.store().setAttribute(object_uid, property, file);
+      await object.__class.Store.patch(object_uid, { [property]: file });
     }
-    await this.emitSync("Binary.Create", {
+    await this.emit("Binary.Create", {
       object: file,
       service: this,
       target: object
@@ -772,17 +785,21 @@ export abstract class BinaryService<
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
     const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
-    const relations = this.getWebda().getApplication().getRelations(object);
+    const relations = useApplication().getRelations(object);
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
     if (cardinality === "MANY") {
-      update = (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class
-        .store()
-        .deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
+      update = (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class.Store.deleteItemFromCollection(
+        object.getUuid(),
+        property,
+        index,
+        info.hash,
+        "hash"
+      );
     } else {
-      object.__class.store().removeAttribute(object.getUuid(), property);
+      object.__class.Store.removeAttribute(object.getUuid(), property);
     }
-    await this.emitSync("Binary.Delete", {
+    await this.emit("Binary.Delete", {
       object: info,
       service: this
     });
@@ -795,7 +812,7 @@ export abstract class BinaryService<
    * @param req
    * @returns
    */
-  async getFile(req: OperationContext): Promise<BinaryFile> {
+  async getFile(req: IOperationContext): Promise<BinaryFile> {
     const { size } = req.getParameters();
     let { mimetype, name } = req.getParameters();
     if (size > this.parameters.maxFileSize) {
@@ -829,12 +846,12 @@ export abstract class BinaryService<
    * @param ctx
    * @returns
    */
-  protected verifyMapAndStore(ctx: OperationContext): Store<CoreModel> {
+  protected verifyMapAndStore(ctx: IOperationContext): Store {
     // Check for model
     if (this.handleBinary(ctx.parameter("model"), ctx.parameter("property")) === -1) {
       throw new WebdaError.NotFound("Model not managed by this store");
     }
-    return this.getWebda().getModelStore(this.getWebda().getModel(ctx.parameter("model")));
+    return <Store>useCore().getModelStore(useModel(ctx.parameter("model")));
   }
 
   /**

@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WebdaError } from "../index";
+import * as WebdaError from "../errors";
 import { FileUtils } from "../utils/serializers";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 

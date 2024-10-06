@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { register } from "prom-client";
-import { CancelablePromise, Queue } from "..";
+import { CancelablePromise, Queue } from "../index";
 import { MemoryQueue } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";
 

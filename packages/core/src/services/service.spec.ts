@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Core, Inject, Operation, Service, WebdaError } from "..";
+import { Core, Inject, Operation, Service, WebdaError } from "../index";
 import { TestApplication, WebdaInternalTest } from "../test";
 import { OperationContext } from "../utils/context";
 import { RegExpStringValidator, ServiceParameters } from "./service";
@@ -273,7 +273,7 @@ class ServiceTest extends WebdaInternalTest {
       await new Promise(resolve => setTimeout(resolve, 140));
       throw new Error("My error");
     });
-    await service.emitSync("test", undefined);
+    await service.emit("test", undefined);
     assert.strictEqual(logs.length, 2);
     assert.deepStrictEqual(
       logs.map(l => `${l[0]}_${l[1]}`),

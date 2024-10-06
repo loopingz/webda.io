@@ -2,9 +2,14 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPa
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import * as util from "util";
-import { Core, OperationContext, RegistryEntry, Route, Store } from "../index";
+import { useRegistry, useService } from "../hooks";
 import { JSONUtils } from "../utils/serializers";
-import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
+import { type DeepPartial, Service, ServiceParameters } from "./service";
+import { Route } from "../rest/router";
+import type { OperationContext } from "../utils/context";
+import { Core } from "../core";
+import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice";
+import { useCore } from "../core/hooks";
 
 export class SecretString {
   constructor(
@@ -75,155 +80,6 @@ export interface StringEncrypter {
 }
 
 /**
- * JWT Options
- */
-export interface JWTOptions {
-  /**
-   * Secret to use with JWT
-   */
-  secretOrPublicKey?: string | Buffer | { key: string; passphrase: string };
-  /**
-   * Algorithm for JWT token
-   *
-   * @see https://www.npmjs.com/package/jsonwebtoken
-   * @default "HS256"
-   */
-  algorithm?:
-    | "HS256"
-    | "HS384"
-    | "HS512"
-    | "RS256"
-    | "RS384"
-    | "RS512"
-    | "PS256"
-    | "PS384"
-    | "PS512"
-    | "ES256"
-    | "ES384"
-    | "ES512";
-
-  /**
-   * expressed in seconds or a string describing a time span zeit/ms.
-   *
-   * Eg: 60, "2 days", "10h", "7d". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default ("120" is equal to "120ms").
-   */
-  expiresIn?: number | string;
-  /**
-   * Audience for the jwt
-   */
-  audience?: string;
-  /**
-   * Issuer of the token
-   */
-  issuer?: string;
-  /**
-   * Subject for JWT
-   */
-  subject?: string;
-  keyid?: any;
-}
-
-export class CryptoServiceParameters extends ServiceParameters {
-  /**
-   * Number of hours a key should be used for encryption
-   *
-   * if auto-rotate is not set this
-   */
-  keyActiveLifespan: number;
-  /**
-   * Number of hours allowed to decrypt data encrypted with this key
-   */
-  keyLifespan: number;
-  /**
-   * Try to rotate keys when they expire in days
-   */
-  autoRotate?: number;
-  /**
-   * Create first set of key if does not exist
-   */
-  autoCreate?: boolean;
-  /**
-   * To expose JWKS
-   *
-   * @see https://datatracker.ietf.org/doc/html/rfc7517
-   */
-  url?: string;
-
-  /**
-   * Type of asymetric key
-   *
-   * https://nodejs.org/api/crypto.html#cryptogeneratekeypairsynctype-options
-   * https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_crypto_generatekeypairsync_type_options
-   */
-  asymetricType: "rsa" | "dsa" | "ec" | "ed25519" | "ed448" | "x25519" | "x448" | "dh";
-  /**
-   * Options for asymetric generation
-   */
-  asymetricOptions?: {
-    /**
-     * @default 2048
-     */
-    modulusLength?: number;
-    /**
-     * Only if asymetricType "ec"
-     */
-    namedCurve?: string;
-    publicKeyEncoding?: {
-      /**
-       * @default spki
-       */
-      type?: "spki" | "pkcs1";
-      format?: "pem";
-    };
-    privateKeyEncoding?: {
-      /**
-       * https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_keyobject_export_options
-       * @default pkcs8
-       */
-      type?: "pkcs1" | "pkcs8" | "sec1";
-      format?: "pem";
-      cipher?: string;
-      passphrase?: string;
-    };
-  };
-  /**
-   * @default 256
-   */
-  symetricKeyLength?: number;
-  /**
-   * @default "aes-256-ctr"
-   */
-  symetricCipher?: string;
-  /**
-   * Default JWT options
-   */
-  jwt?: JWTOptions;
-
-  constructor(params: any) {
-    super(params);
-    this.symetricKeyLength ??= 256;
-    this.symetricCipher ??= "aes-256-ctr";
-    this.asymetricType ??= "rsa";
-    this.asymetricOptions ??= {};
-    this.asymetricOptions.modulusLength ??= 2048;
-    this.asymetricOptions.privateKeyEncoding ??= {};
-    this.asymetricOptions.privateKeyEncoding.format ??= "pem";
-    this.asymetricOptions.privateKeyEncoding.type ??= "pkcs8";
-    this.asymetricOptions.publicKeyEncoding ??= {};
-    this.asymetricOptions.publicKeyEncoding.format ??= "pem";
-    this.asymetricOptions.publicKeyEncoding.type ??= "spki";
-    this.jwt ??= {};
-    this.jwt.algorithm ??= "HS256";
-  }
-}
-
-interface KeysDefinition {
-  publicKey: string;
-  privateKey: string;
-  symetric: string;
-}
-
-/**
  * @WebdaModda
  */
 export class CryptoService<T extends CryptoServiceParameters = CryptoServiceParameters>
@@ -262,9 +118,6 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       e: string;
     };
   } = {};
-
-  @Inject("Registry")
-  registry: Store<RegistryEntry>;
 
   /**
    * @override
@@ -320,7 +173,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Load keys from registry
    */
   async load(): Promise<boolean> {
-    const load = <KeysRegistry>(<unknown>await this.registry.get("keys"));
+    const load = await useRegistry().get<KeysRegistry>("keys");
     if (!load) {
       return false;
     }
@@ -593,17 +446,17 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     const { age, id } = this.getNextId();
     const next: KeysRegistry = {
       current: id,
-      rotationInstance: this.getWebda().getInstanceId()
+      rotationInstance: useCore().getInstanceId()
     };
     next[`key_${id}`] = {
       ...this.generateAsymetricKeys(),
       symetric: this.generateSymetricKey()
     };
-    if (!(await this.registry.exists("keys"))) {
-      this.current = `init-${this.getWebda().getInstanceId()}`;
-      await this.registry.put("keys", { current: this.current });
+    if (!(await useRegistry().exists("keys"))) {
+      this.current = `init-${useCore().getInstanceId()}`;
+      await useRegistry().put("keys", { current: this.current });
     }
-    if (await this.registry.conditionalPatch("keys", next, "current", this.current)) {
+    if (await useRegistry().patch("keys", next, "current", this.current)) {
       this.keys ??= {};
       this.keys[id] = next[`key_${id}`];
       this.current = id;
@@ -636,3 +489,14 @@ CryptoService.registerEncrypter("local", {
 });
 
 export default CryptoService;
+
+/**
+ * Return the CryptoService
+ *
+ * As it is a service, it can be used with the useService hook
+ *
+ * @returns
+ */
+export function useCrypto() {
+  return useService<CryptoService>("CryptoService");
+}

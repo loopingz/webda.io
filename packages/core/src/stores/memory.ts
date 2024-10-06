@@ -3,7 +3,6 @@ import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
-import { CoreModel } from "../models/coremodel";
 import { GunzipConditional } from "../utils/serializers";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 import * as WebdaQL from "@webda/ql";
@@ -136,10 +135,7 @@ class LDJSONMemoryStreamReader extends Writable {
  * @category CoreServices
  * @WebdaModda
  */
-class MemoryStore<
-  T extends CoreModel = CoreModel,
-  K extends MemoryStoreParameters = MemoryStoreParameters
-> extends Store<T, K> {
+class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> extends Store<K> {
   /**
    * Inmemory storage
    */
@@ -294,17 +290,29 @@ class MemoryStore<
   /**
    * @override
    */
-  async find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
+  async find(query: WebdaQL.Query): Promise<StoreFindResult<any>> {
     return this.simulateFind(query, Object.keys(this.storage));
   }
 
   /**
    * @override
    */
-  async _save(object: T): Promise<T> {
-    const uid = object.getUuid();
-    this.storage[uid] = this.toStoredJSON(object, true);
-    return this._getSync(uid);
+  async _create(uuid: string, object: any): Promise<any> {
+    if (this.storage[uuid]) {
+      throw new Error("Already exists");
+    }
+    return this.persistModel(uuid, object);
+  }
+
+  /**
+   * Persist the object in memory
+   * @param uuid
+   * @param object
+   * @returns
+   */
+  protected async persistModel(uuid: string, object: any) {
+    this.storage[uuid] = JSON.stringify(object);
+    return object;
   }
 
   /**
@@ -317,9 +325,9 @@ class MemoryStore<
   /**
    * @override
    */
-  async _patch(object: any, uuid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
+  async _patch(object: any, uuid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     const obj = await this._get(uuid, true);
-    this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
+    this.checkUpdateCondition(obj, writeConditionField, writeCondition);
     for (const prop in object) {
       obj[prop] = object[prop];
     }
@@ -330,10 +338,10 @@ class MemoryStore<
   /**
    * @override
    */
-  async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<T> {
+  async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     const obj = await this._get(uid, true);
-    this.checkUpdateCondition(obj, <keyof T>writeConditionField, writeCondition);
-    return this._save(object);
+    this.checkUpdateCondition(obj, writeConditionField, writeCondition);
+    return this.persistModel(uid, object);
   }
 
   /**
@@ -360,10 +368,10 @@ class MemoryStore<
    * @param uid
    * @returns
    */
-  _getSync(uid: string, raiseIfNotFound: boolean = false): T {
+  _getSync(uid: string, raiseIfNotFound: boolean = false): any {
     if (this.storage[uid]) {
       try {
-        return this.initModel(JSON.parse(this.storage[uid]));
+        return JSON.parse(this.storage[uid]);
       } catch (err) {
         return null;
       }
@@ -378,9 +386,9 @@ class MemoryStore<
    */
   async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
     const res = await this._get(uuid, true);
-    this.checkUpdateCondition(res, <keyof T>writeConditionField, writeCondition);
+    this.checkUpdateCondition(res, writeConditionField, writeCondition);
     delete res[attribute];
-    this._save(res);
+    this.persistModel(uuid, res);
   }
 
   /**
@@ -388,6 +396,7 @@ class MemoryStore<
    */
   async _get(uid, raiseIfNotFound: boolean = false) {
     if (!this.storage[uid]) {
+      console.log(this.storage);
       if (raiseIfNotFound) {
         throw new StoreNotFoundError(uid, this.getName());
       }
@@ -415,7 +424,7 @@ class MemoryStore<
       res[prop] += value;
     });
     res._lastUpdate = updateDate;
-    return this._save(res);
+    return this.persistModel(uid, res);
   }
 
   /**
@@ -431,6 +440,7 @@ class MemoryStore<
     updateDate: Date
   ) {
     return this.simulateUpsertItemToCollection(
+      uid,
       this._getSync(uid, true),
       <any>prop,
       item,
@@ -451,7 +461,7 @@ class MemoryStore<
     }
     res[prop].splice(index, 1);
     res._lastUpdate = updateDate;
-    return this._save(res);
+    return this.persistModel(uid, res);
   }
 }
 

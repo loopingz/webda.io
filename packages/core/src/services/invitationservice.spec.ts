@@ -12,7 +12,6 @@ import { OperationContext } from "../utils/context";
 import { Authentication } from "./authentication";
 import { InvitationService, InvitationParameters } from "./invitationservice";
 import { Mailer } from "./mailer";
-import { FileUtils } from "../utils/serializers";
 
 class MyCompany extends AclModel {
   name: string;
@@ -28,9 +27,9 @@ class MyCompany extends AclModel {
 class InvitationTest extends WebdaInternalTest {
   service: InvitationService;
 
-  store: Store<AclModel>;
+  store: Store;
 
-  invitations: Store<CoreModel>;
+  invitations: Store;
 
   authentication: Authentication;
 
@@ -97,7 +96,7 @@ class InvitationTest extends WebdaInternalTest {
   async before() {
     await super.before();
 
-    this.store = this.webda.getService<Store<AclModel>>("Companies");
+    this.store = this.webda.getService<Store>("Companies");
     this.store._model = <any>MyCompany;
 
     this.service = await this.addService(
@@ -114,7 +113,7 @@ class InvitationTest extends WebdaInternalTest {
       },
       "invit"
     );
-    this.invitations = this.webda.getService<Store<CoreModel>>("Invitations");
+    this.invitations = this.webda.getService<Store>("Invitations");
     this.authentication = this.webda.getService<Authentication>("Authentication");
     this.mailer = this.webda.getService<Mailer>("DebugMailer");
   }

@@ -1,4 +1,4 @@
-import { JSONSchema6 } from "json-schema";
+import type { JSONSchema7 } from "json-schema";
 
 export interface DeployerResources {
   name?: string;
@@ -14,7 +14,7 @@ export class AbstractDeployer<T extends DeployerResources = DeployerResources> {
    *
    * Using this method should only be exception
    */
-  static getSchema(): JSONSchema6 {
+  static getSchema(): JSONSchema7 {
     return undefined;
   }
 }

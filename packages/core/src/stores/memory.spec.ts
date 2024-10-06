@@ -2,12 +2,12 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
-import { CoreModel, Ident, MemoryStore, runInContext, Store, User } from "../index";
+import { CoreModel, Ident, MemoryStore, runAsSystem, runWithContext, Store, User } from "../index";
 import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import * as WebdaQL from "@webda/ql";
-import { consumeAsyncIterator, WebdaTest } from "../test";
+import { consumeAsyncIterator, WebdaInternalTest, WebdaTest } from "../test";
 
 /**
  * Fake User for migration test
@@ -42,7 +42,8 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
 
   @test
   async queryAdditional() {
-    const userStore = await this.fillForQuery();
+    const User = await this.fillForQuery();
+    const userStore = User.store();
     // Verify permission issue and half pagination
     userStore.setModel(PermissionModel);
     userStore.getParameters().forceModel = true;
@@ -63,7 +64,7 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
     // Verify pagination system
     let res, offset;
     let total = 0;
-    await runInContext(context, async () => {
+    await runWithContext(context, async () => {
       do {
         res = await userStore.query(`state = 'CA' LIMIT 10 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
         offset = res.continuationToken;
@@ -125,7 +126,7 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
     };
     // Should silently ignore not encrypted file
     await identStore.init();
-    await identStore.put("test", {});
+    await identStore.create("test", {});
     await identStore.persist();
     identStore.storage = {};
     // Check basic load of persistence
@@ -195,13 +196,13 @@ class AdditionalMemoryTest extends WebdaTest {
 
   @test
   async multiModel() {
-    const identStore: MemoryStore<CoreModel> = await this.addService(
+    const identStore: MemoryStore = await this.addService(
       MemoryStore,
       { model: "Webda/Ident", strict: false },
       "Idents"
     );
-    await identStore.save(new User().setUuid("user"));
-    await identStore.save(new Ident().load({ uuid: "ident" }, true));
+    await identStore.create("user", new User().setUuid("user"));
+    await identStore.create("ident", new Ident().load({ uuid: "ident" }, true));
     assert.ok((await identStore.get("user")) instanceof User);
     assert.ok((await identStore.get("ident")) instanceof Ident);
     identStore.getParameters().defaultModel = true;
@@ -219,7 +220,7 @@ class AdditionalMemoryTest extends WebdaTest {
     this.webda.getApplication().addModel("WebdaDemo/User", DemoUser);
     const usersStore: MemoryStore<any> = await this.addService(MemoryStore, { model: "Webda/User" });
     for (let i = 0; i < 1200; i++) {
-      await usersStore.save({ uuid: `id_${i}`, id: i });
+      await usersStore.create(`id_${i}`, { id: i });
       if (i % 10 === 0) {
         usersStore.storage[`id_${i}`] = usersStore.storage[`id_${i}`].replace(/Webda\/User/, "webda/user2");
       } else if (i % 2 === 0) {
@@ -239,12 +240,12 @@ class AdditionalMemoryTest extends WebdaTest {
         assert.strictEqual(user.__type, "Webda/User");
       }
     });
-    await usersStore.recomputeTypeShortId();
+    await usersStore.recomputeTypeLongId();
     (await usersStore.getAll()).forEach(user => {
       if (user.id % 10 === 0) {
-        assert.strictEqual(user.__type, "User");
+        assert.strictEqual(user.__type, "WebdaDemo/User");
       } else if (user.id % 2 === 0) {
-        assert.strictEqual(user.__type, "User");
+        assert.strictEqual(user.__type, "WebdaDemo/User");
       } else {
         assert.strictEqual(user.__type, "Webda/User");
       }

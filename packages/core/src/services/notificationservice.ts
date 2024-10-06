@@ -1,6 +1,6 @@
 import { useService } from "../hooks";
-import { Ident } from "../models/ident";
-import { User } from "../models/user";
+import type { Ident } from "../models/ident";
+import type { User } from "../models/user";
 import { Service, ServiceParameters } from "./service";
 
 /**

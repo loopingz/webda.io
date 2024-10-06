@@ -5,7 +5,7 @@ import {
   Core,
   HttpContext,
   runAsSystem,
-  runInContext,
+  runWithContext,
   Session,
   SimpleUser,
   User,
@@ -52,7 +52,7 @@ class AclModelTest {
   }
 
   @test async multipermissions() {
-    await runInContext(this._ctx, async () => {
+    await runWithContext(this._ctx, async () => {
       await assert.rejects(() => this.model.checkAct(this._ctx, "action"));
       this.model.__acl["gip-123"] = "get,action";
       assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
@@ -176,7 +176,7 @@ class AclModelTest {
   }
 
   @test async onSave() {
-    runInContext(this._ctx, async () => {
+    runWithContext(this._ctx, async () => {
       await this.model._onSave();
       assert.deepStrictEqual(this.model.__acl, { "user-uid": "all" });
       assert.strictEqual(this.model._creator, "user-uid");

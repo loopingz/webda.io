@@ -1,6 +1,6 @@
-import { CoreModel, CoreModelDefinition, ModelRef } from "../models/coremodel";
+import type { CoreModel, CoreModelEvents, ModelRef } from "../models/coremodel";
+import type { CoreModelDefinition } from "../models/coremodel";
 import { Service } from "../services/service";
-import { EventStorePartialUpdated, EventStorePatchUpdated } from "./store";
 
 export interface Mapper {
   modelAttribute: string;
@@ -48,20 +48,17 @@ export class ModelMapper extends Service {
     }
     for (const modelName in this.mappers) {
       const model = app.getModel(modelName);
-      model.on("Store.Deleted", async evt => {
-        return this.handleEvent(modelName, evt, "Store.Deleted");
+      model.on("Delete", async evt => {
+        await this.handleEvent(modelName, evt, "Deleted");
       });
-      model.on("Store.Saved", async evt => {
-        return this.handleEvent(modelName, evt, "Store.Saved");
+      model.on("Create", async evt => {
+        await this.handleEvent(modelName, evt, "Created");
       });
-      model.on("Store.Updated", async evt => {
-        return this.handleEvent(modelName, evt, "Store.Updated");
+      model.on("Update", async evt => {
+        await this.handleEvent(modelName, evt, "Updated");
       });
-      model.on("Store.PatchUpdated", async evt => {
-        return this.handlePartialEvent(modelName, evt, "Store.PatchUpdated");
-      });
-      model.on("Store.PartialUpdated", async evt => {
-        return this.handlePartialEvent(modelName, evt, "Store.PartialUpdated");
+      model.on("PartialUpdate", async evt => {
+        await this.handlePartialEvent(modelName, evt);
       });
     }
     return this;
@@ -95,7 +92,7 @@ export class ModelMapper extends Service {
   async handleEvent(
     modelName: string,
     evt: any,
-    type: "Store.Saved" | "Store.Deleted" | "Store.Updated" | "Store.PatchUpdated" | "Store.PartialUpdated"
+    type: "Created" | "Deleted" | "Updated" | "PatchUpdated" | "PartialUpdated"
   ) {
     const p = [];
     for (const mapper of this.mappers[modelName]) {
@@ -103,11 +100,11 @@ export class ModelMapper extends Service {
       const toAdds = [];
       const toRemoves = [];
       const toUpdates = [];
-      if (type === "Store.Saved") {
+      if (type === "Created") {
         toAdds.push(...this.getUuidsFromMapper(evt.object, mapper));
-      } else if (type === "Store.Deleted") {
+      } else if (type === "Deleted") {
         toRemoves.push(...this.getUuidsFromMapper(evt.object, mapper));
-      } else if (type === "Store.Updated") {
+      } else if (type === "Updated") {
         const oldUuids = this.getUuidsFromMapper(evt.previous, mapper);
         const newUuids = this.getUuidsFromMapper(evt.object, mapper);
         oldUuids.forEach(u => {
@@ -168,33 +165,28 @@ export class ModelMapper extends Service {
    * @param type
    * @returns
    */
-  async handlePartialEvent(
-    modelName: string,
-    evt: any,
-    type: "Store.Saved" | "Store.Deleted" | "Store.Updated" | "Store.PatchUpdated" | "Store.PartialUpdated"
-  ) {
-    let uuid = evt.object?.getUuid();
+  async handlePartialEvent(modelName: string, evt: CoreModelEvents["PartialUpdate"]) {
+    let uuid = evt.object_id;
     // Only use in Store.PartialUpdated
     const attributes = [];
-    if (type === "Store.PartialUpdated") {
-      const partial: EventStorePartialUpdated = evt;
-      if (partial.partial_update.increments) {
-        attributes.push(...partial.partial_update.increments.map(p => p.property));
-      }
-      if (partial.partial_update.deleteAttribute) {
-        attributes.push(partial.partial_update.deleteAttribute);
-      }
-      uuid = partial.object_id;
-    } else if (type === "Store.PatchUpdated") {
-      attributes.push(...Object.keys((<EventStorePatchUpdated>evt).object));
+    if (evt.partial_update.increments) {
+      attributes.push(...evt.partial_update.increments.map(p => p.property));
     }
+    if (evt.partial_update.deleteAttribute) {
+      attributes.push(evt.partial_update.deleteAttribute);
+    }
+    if (evt.partial_update.patch) {
+      attributes.push(...Object.keys(evt.partial_update.patch));
+    }
+    uuid = evt.object_id;
+
     for (const mapper of this.mappers[modelName]) {
       this.log("TRACE", "Should update a mapper based on Store.PartialUpdated", evt);
-      const partial: EventStorePartialUpdated = evt;
       // Search if one property is mapped then redirect to Store.Updated
       if (mapper.attributes.find(p => attributes.find(i => i === p))) {
-        const object = await partial.store.get(uuid);
-        return await this.handleEvent(modelName, { object, previous: object }, "Store.Updated");
+        const Model = this._webda.getApplication().getModel(modelName);
+        const instance = await Model.ref(uuid).get();
+        return await this.handleEvent(modelName, { object: instance, previous: instance }, "Updated");
       }
     }
   }

@@ -5,6 +5,7 @@ import * as sinon from "sinon";
 import { WebdaInternalTest } from "../test";
 import { JSONUtils } from "../utils/serializers";
 import { CryptoService, SecretString } from "./cryptoservice";
+import { useRegistry } from "../hooks";
 
 /**
  *
@@ -44,7 +45,7 @@ class CryptoServiceTest extends WebdaInternalTest {
   @test
   async failedRotation() {
     // Check failed rotate
-    await this.webda.getRegistry().patch({ uuid: "keys", current: "123" });
+    await useRegistry().put("keys", { current: "123" });
     await this.webda.getCrypto().rotate();
   }
 
@@ -99,7 +100,7 @@ class CryptoServiceTest extends WebdaInternalTest {
 
     assert.strictEqual((await this.webda.getCrypto().decrypt(encrypted)).test, "plop");
     // Remove again but remove it from the registry now
-    await this.webda.getRegistry().removeAttribute("keys", `key_${crypto.current}`);
+    await useRegistry().removeAttribute("keys", `key_${crypto.current}`);
     delete crypto.keys[crypto.current];
     crypto.current = oldKey;
     crypto.age = parseInt(oldKey, 36);

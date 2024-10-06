@@ -1,8 +1,11 @@
-import { CoreModelDefinition, ModelAction } from "../models/coremodel";
+import { QueryValidator } from "@webda/ql";
+import type { CoreModelDefinition } from "../models/coremodel";
+import { ModelAction } from "../models/types";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
 import { DeepPartial } from "../services/service";
 import { WebContext } from "../utils/context";
 import { OpenAPIWebdaDefinition } from "./router";
+import * as WebdaError from "../errors";
 
 /**
  * Swagger static html
@@ -127,8 +130,8 @@ export class RESTDomainService<
       (context.prefix || (this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + "/")) +
       this.transformName(name);
     context.prefix = prefix + `/{pid.${depth}}/`;
-    const shortId = model.getIdentifier(true);
-    const plurial = app.getModelPlural(model.getIdentifier(false));
+    const shortId = model.getIdentifier().split("/").pop();
+    const plurial = app.getModelPlural(model.getIdentifier());
 
     // Register the model url
     this.getWebda().getRouter().registerModelUrl(app.getModelName(model), prefix);
@@ -203,23 +206,26 @@ export class RESTDomainService<
         `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
         [this.parameters.queryMethod],
         async (context: WebContext) => {
-          let query = "";
+          let queryString = "";
           const parentId = `pid.${depth - 1}`;
           if (context.getHttpContext().getMethod() === "PUT") {
-            query = (await context.getInput()).q ?? "";
+            queryString = (await context.getInput()).q ?? "";
             context.clearInput();
           } else {
-            query = context.parameter("q", "");
+            queryString = context.parameter("q", "");
           }
+          let query: QueryValidator;
+          try {
+            query = new QueryValidator(queryString);
+          } catch (err) {
+            throw new WebdaError.BadRequest(`Invalid query ${queryString}`);
+          }
+
           // Inject parent attribute
           if (injectAttribute) {
-            if (query.trim() === "") {
-              query = `${injectAttribute} = '${context.parameter(parentId)}'`;
-            } else {
-              query = `${injectAttribute} = '${context.parameter(parentId)}' AND (${query})`;
-            }
+            query.merge(`${injectAttribute} = '${context.parameter(parentId)}'`);
           }
-          context.getParameters().query = query;
+          context.getParameters().query = query.toString();
           return this._webda.callOperation(context, `${plurial}.Query`);
         },
         openapi
@@ -407,7 +413,7 @@ export class RESTDomainService<
           ...(action.openapi?.[method.toLowerCase()] ?? {})
         };
       });
-      if (app.hasSchema(`${model.getIdentifier(false)}.${actionName}.input`)) {
+      if (app.hasSchema(`${model.getIdentifier()}.${actionName}.input`)) {
         Object.keys(openapi)
           .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
           .forEach(k => {
@@ -415,14 +421,14 @@ export class RESTDomainService<
               content: {
                 "application/json": {
                   schema: {
-                    $ref: `#/components/schemas/${model.getIdentifier(false)}.${actionName}.input`
+                    $ref: `#/components/schemas/${model.getIdentifier()}.${actionName}.input`
                   }
                 }
               }
             };
           });
       }
-      if (app.hasSchema(`${model.getIdentifier(false)}.${actionName}.output`)) {
+      if (app.hasSchema(`${model.getIdentifier()}.${actionName}.output`)) {
         Object.keys(openapi)
           .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
           .forEach(k => {
@@ -431,7 +437,7 @@ export class RESTDomainService<
             openapi[k].responses["200"].content = {
               "application/json": {
                 schema: {
-                  $ref: `#/components/schemas/${model.getIdentifier(false)}.${actionName}.output`
+                  $ref: `#/components/schemas/${model.getIdentifier()}.${actionName}.output`
                 }
               }
             };

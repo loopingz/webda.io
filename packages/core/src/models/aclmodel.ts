@@ -1,5 +1,9 @@
-import { Context, useContext, OperationContext, User, WebContext, WebdaError } from "../index";
 import { Action, CoreModel } from "./coremodel";
+import type { Context, IWebContext, IOperationContext } from "../contexts/icontext";
+import { User } from "./user";
+import * as WebdaError from "../errors";
+import { useCurrentUser, useCurrentUserId } from "../contexts/execution";
+import { OperationContext } from "../contexts/operationcontext";
 
 export type Acl = { [key: string]: string };
 
@@ -27,7 +31,7 @@ export class AclModel extends CoreModel {
    */
   async _onSave() {
     await super._onSave();
-    this._creator = useContext().getCurrentUserId();
+    this._creator = useCurrentUserId();
     if (Object.keys(this.__acl).length === 0 && this._creator) {
       this.__acl[this._creator] = "all";
     }
@@ -116,11 +120,11 @@ export class AclModel extends CoreModel {
       }
     }
   })
-  async acl(ctx: WebContext) {
+  async acl(ctx: IWebContext & OperationContext<null | Acl>) {
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this._httpPutAcls(ctx);
     } else if (ctx.getHttpContext().getMethod() === "GET") {
-      return this._httpGetAcls(ctx);
+      return this._httpGetAcls();
     }
   }
 
@@ -128,7 +132,7 @@ export class AclModel extends CoreModel {
    * GET
    * @param ctx
    */
-  async _httpGetAcls(ctx: OperationContext) {
+  async _httpGetAcls() {
     return {
       raw: this.__acl,
       resolved: await Promise.all(
@@ -156,11 +160,11 @@ export class AclModel extends CoreModel {
   /**
    *
    */
-  async _httpPutAcls(ctx: OperationContext) {
+  async _httpPutAcls(ctx: IOperationContext) {
     const acl = await ctx.getInput();
     // This looks like a bad request
     if (acl.raw) {
-      throw new WebdaError.BadRequest("ACL should have raw field");
+      throw new WebdaError.BadRequest("ACL should not have raw field");
     }
     this.__acl = acl;
     await this.save();
@@ -188,7 +192,7 @@ export class AclModel extends CoreModel {
    */
   async getPermissions(user?: User): Promise<string[]> {
     if (!user) {
-      user = await useContext().getCurrentUser();
+      user = await useCurrentUser();
     }
     if (!user) {
       return [];

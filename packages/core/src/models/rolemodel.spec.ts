@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Core, HttpContext, RoleModel, Session, SimpleUser, WebContext, WebdaError } from "../index";
+import { Core, HttpContext, RoleModel, Session, SimpleUser, useCore, WebContext, WebdaError } from "../index";
 import { TestApplication } from "../test";
 
 class RolePolicyModel extends RoleModel {
@@ -44,7 +44,7 @@ class RolePolicyTest {
     await app.load();
     this._webda = new Core(app);
     await this._webda.init();
-    this._ctx = await this._webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
+    this._ctx = await useCore().newContext({ httpContext: new HttpContext("test.webda.io", "GET", "/") });
     this._session = await this._ctx.newSession();
     this._session.login("none", "none");
     // @ts-ignore

@@ -1,5 +1,4 @@
 import { EventEmitter } from "events";
-import { ModelGraph, ModelsTree } from "../application/iapplication";
 import * as WebdaError from "../errors";
 import * as WebdaQL from "@webda/ql";
 import { Context } from "../contexts/icontext";
@@ -163,7 +162,7 @@ export class CoreModel extends AbstractCoreModel {
   /**
    * Store helper for this model
    */
-  protected static Store: StoreHelper = undefined;
+  protected static Store: StoreHelper & { name: string } = undefined;
 
   /**
    * Type name
@@ -285,6 +284,10 @@ export class CoreModel extends AbstractCoreModel {
 
   static removeAllListeners(...args) {
     return this.emitter("removeAllListeners", ...args);
+  }
+
+  static store() {
+    return useModel(this.Store.name);
   }
 
   static setMaxListeners(...args) {

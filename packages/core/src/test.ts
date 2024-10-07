@@ -3,33 +3,33 @@ import { execSync } from "child_process";
 import { existsSync, unlinkSync } from "fs";
 import * as path from "path";
 import { register } from "prom-client";
-import {
-  Core,
-  CoreModelDefinition,
-  DeepPartial,
-  GlobalContext,
-  HttpContext,
-  HttpMethodType,
-  MemoryStore,
-  OwnerModel,
-  RegistryModel,
-  Service,
-  Store,
-  StoreFindResult,
-  StoreParameters,
-  useContext,
-  UuidModel,
-  WebContext
-} from "./index";
+
 import { PrometheusService } from "./services/prometheus";
-import { ConsoleLoggerService } from "./utils/logger";
+import { ConsoleLoggerService } from "./loggers/console";
 import { FileUtils } from "./utils/serializers";
 import { Ident as WebdaIdent } from "./models/ident";
 
 // Separation on purpose to keep application import separated
-import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./interfaces";
-import { UnpackedApplication } from "./unpackedapplication";
+import { UnpackedApplication } from "./application/unpackedapplication";
 import { Query } from "@webda/ql";
+import { OwnerModel } from "./models/ownermodel";
+import { Store, StoreFindResult, StoreParameters } from "./stores/store";
+import { Service } from "./services/service";
+import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./application/iapplication";
+import { Core } from "./core/core";
+import { DebugMailer } from "./services/debugmailer";
+import { MemoryStore } from "./stores/memory";
+import { RegistryModel } from "./models/registry";
+import { WebContext } from "./contexts/webcontext";
+import { HttpContext, HttpMethodType } from "./contexts/httpcontext";
+import { useContext } from "./contexts/execution";
+import { sleep } from "./utils/waiter";
+import { UuidModel } from "./models/uuid";
+import { DeepPartial } from "@webda/tsc-esm";
+import { CoreModelDefinition } from "./models/imodel";
+import { useModel } from "./application/hook";
+import { useRouter } from "./rest/hooks";
+import { useCore } from "./core/hooks";
 
 /**
  * @class
@@ -132,8 +132,8 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
-  constructor(webda, name, params) {
-    super(webda, name, params);
+  constructor(name, params) {
+    super(name, params);
     if (this.parameters.brokenConstructor) throw Error();
   }
 
@@ -193,21 +193,6 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
  * @WebdaIgnore
  */
 export class FakeService extends Service {}
-
-/**
- * DebugMailer is a mailer that store all sent mails
- */
-export class DebugMailer extends Service {
-  sent: any[];
-  constructor(webda, name, params) {
-    super(webda, name, params);
-    this.sent = [];
-  }
-
-  send(options, _callback) {
-    this.sent.push(options);
-  }
-}
 
 /**
  * @class
@@ -456,9 +441,13 @@ class WebdaTest {
    * @returns
    */
   async newContext<T extends WebContext>(body: any = {}): Promise<T> {
-    const res = await this.webda.newWebContext<T>(new HttpContext("test.webda.io", "GET", "/"));
+    const res = await this.newWebContext<T>(new HttpContext("test.webda.io", "GET", "/"));
     res.getHttpContext().setBody(body);
     return res;
+  }
+
+  async newWebContext<T extends WebContext>(httpContext: HttpContext): Promise<T> {
+    return useCore().newContext<T>({ httpContext });
   }
 
   /**
@@ -489,7 +478,7 @@ class WebdaTest {
     } else {
       ctx.setHttpContext(httpContext);
     }
-    if (this.webda.updateContextWithRoute(ctx)) {
+    if (useRouter().updateContextWithRoute(ctx)) {
       return ctx;
     }
   }
@@ -523,7 +512,7 @@ class WebdaTest {
       params.context.resetResponse();
     } else {
       params.context = useContext();
-      if (params.context instanceof GlobalContext) {
+      if (params.context.isGlobalContext()) {
         params.context = undefined;
       }
     }
@@ -564,27 +553,31 @@ class WebdaTest {
    * @param time ms
    */
   async sleep(time): Promise<void> {
-    return Core.sleep(time);
+    return sleep(time);
   }
 
   /**
    * Create a graph of objets from sample-app to be able to test graph
    */
   async createGraphObjects() {
-    const Teacher = this.webda.getModel<UuidModel & { name: string; senior: boolean; uuid: string }>("Teacher");
-    const Course = this.webda.getModel<
-      UuidModel & { name: string; classroom: string; teacher: string; students: any[] }
-    >("Course");
-    const Classroom = this.webda.getModel<UuidModel & { name: string; courses: any; hardwares: any }>("Classroom");
-    const Student = this.webda.getModel<
-      UuidModel & { order: number; email: string; firstName: string; lastName: string }
-    >("Student");
-    const Hardware = this.webda.getModel<UuidModel & { name: string; classroom: string }>("Hardware");
-    const ComputerScreen = this.webda.getModel<
-      UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }
-    >("ComputerScreen");
-    const Company = this.webda.getModel<UuidModel & { name: string; uuid: string }>("Company");
-    const User = this.webda.getModel<UuidModel & { name: string; _company: string }>("User");
+    const Teacher = <CoreModelDefinition<UuidModel & { name: string; senior: boolean; uuid: string }>>(
+      useModel("Teacher")
+    );
+    const Course = <
+      CoreModelDefinition<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>
+    >useModel("Course");
+    const Classroom = <CoreModelDefinition<UuidModel & { name: string; courses: any; hardwares: any }>>(
+      useModel("Classroom")
+    );
+    const Student = <
+      CoreModelDefinition<UuidModel & { order: number; email: string; firstName: string; lastName: string }>
+    >useModel("Student");
+    const Hardware = <CoreModelDefinition<UuidModel & { name: string; classroom: string }>>useModel("Hardware");
+    const ComputerScreen = <
+      CoreModelDefinition<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>
+    >useModel("ComputerScreen");
+    const Company = <CoreModelDefinition<UuidModel & { name: string; uuid: string }>>useModel("Company");
+    const User = <CoreModelDefinition<UuidModel & { name: string; _company: string }>>useModel("User");
 
     // 2 Companies
     const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];

@@ -11,6 +11,8 @@ import {
   CachedModule,
   Configuration,
   GitInformation,
+  IApplication,
+  IModel,
   ModelGraph,
   ModelsGraph,
   ModelsTree,
@@ -39,7 +41,7 @@ export type Modda = Constructor<Service, [name: string, params: any]>;
  *
  * @category CoreFeatures
  */
-export class Application {
+export class Application implements IApplication {
   /**
    * Get Application root path
    */
@@ -160,6 +162,18 @@ export class Application {
     this.configurationFile = file;
     this.appPath = path.resolve(path.dirname(file));
   }
+  getImplementations<T extends object>(object: T): { [key: string]: T; } {
+    throw new Error("Method not implemented.");
+  }
+  getModelDefinition(name: string) {
+    throw new Error("Method not implemented.");
+  }
+  getModelId(object: any, full?: boolean): string | undefined {
+    throw new Error("Method not implemented.");
+  }
+  getServiceDefinition(name: string) {
+    throw new Error("Method not implemented.");
+  }
 
   /**
    * Import all required modules
@@ -257,8 +271,10 @@ export class Application {
   /**
    * Get model graph
    */
-  getRelations(model: string | Constructor<AbstractCoreModel> | AbstractCoreModel) {
-    const name = typeof model === "string" ? this.completeNamespace(model) : this.getModelName(model);
+  getRelations(model: string | Constructor<IModel> | IModel): ModelGraph {
+    // We cheat with the type here to avoid typing everything as an IModel
+    // IModel and AbstractCoreModel won't be exported in the final module
+    const name = typeof model === "string" ? this.completeNamespace(model) : this.getModelName(<any>model);
     // Get relations should not be case-sensitive until v4
     const key = Object.keys(this.graph).find(k => k?.toLowerCase() === name?.toLowerCase());
     return this.getGraph()[key] || {};
@@ -522,7 +538,7 @@ export class Application {
    * Return the model name for a object
    * @param object
    */
-  getModelFromInstance(object: AbstractCoreModel): string | undefined {
+  getModelFromInstance(object: CoreModel): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === object.constructor);
   }
 
@@ -530,7 +546,7 @@ export class Application {
    * Return the model name for a object
    * @param object
    */
-  getModelFromConstructor(model: Constructor<AbstractCoreModel>): string | undefined {
+  getModelFromConstructor<T extends CoreModel>(model: CoreModelDefinition<T>): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === model);
   }
 
@@ -540,7 +556,7 @@ export class Application {
    * @param model
    * @returns longId for a model
    */
-  getModelName(model: AbstractCoreModel | Constructor<AbstractCoreModel>): string | undefined {
+  getModelName<T extends CoreModel = CoreModel>(model: CoreModelDefinition<T> | T): string | undefined {
     if (model instanceof AbstractCoreModel) {
       return this.getModelFromInstance(model);
     }
@@ -551,7 +567,7 @@ export class Application {
    * Get the model hierarchy
    * @param model
    */
-  getModelHierarchy(model: AbstractCoreModel | Constructor<AbstractCoreModel> | string): {
+  getModelHierarchy(model: CoreModel | CoreModelDefinition<CoreModel> | string): {
     ancestors: string[];
     children: ModelsTree;
   } {
@@ -584,7 +600,7 @@ export class Application {
    * @param model
    * @returns
    */
-  getModelTypes(model: AbstractCoreModel) {
+  getModelTypes(model: CoreModel) {
     const hierarchy = this.getModelHierarchy(model);
     return [model.__type, ...hierarchy.ancestors].filter(i => i !== "Webda/CoreModel");
   }

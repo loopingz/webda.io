@@ -1,6 +1,9 @@
 import { QueryValidator } from "@webda/ql";
-import { ContextProvider } from "../contexts/icontext";
+import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
+import { Constructor } from "@webda/tsc-esm";
+import { IService } from "../application/iapplication";
+export { IService };
 /**
  * Define an operation within webda app
  */
@@ -77,13 +80,27 @@ export interface OperationDefinitionInfo extends OperationDefinition {
  * Useful interface to get the instance id
  */
 export interface ICore {
+  /**
+   * Get a context based on the info
+   * @param info
+   * @returns
+   */
+  newContext<T extends Context>(info: ContextProviderInfo, noInit?: boolean): Promise<Context>;
+  /**
+   * Return if Webda is in debug mode
+   */
   isDebug(): boolean;
   getServices(): { [key: string]: IService };
   getMachineId(): import("crypto").BinaryLike;
   reinit(updates: any): void | Promise<void>;
-  getBinaryStore(model: AbstractCoreModel | CoreModelDefinition, attribute: string): IService;
+  getBinaryStore(model: AbstractCoreModel | CoreModelDefinition | string, attribute: string): IService;
   getLocales(): string[];
-  getModelStore(name: string): IService;
+  /**
+   * Get the store assigned to this model
+   * @param model
+   * @returns
+   */
+  getModelStore<T extends AbstractCoreModel>(item: Constructor<T> | T | string): IService;
   getService(name: string): IService;
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);
@@ -94,55 +111,6 @@ export interface ICore {
  */
 export interface ServiceConstructor<T extends IService> {
   new (name: string, params: any): T;
-}
-
-/**
- * Represent a Webda service
- */
-export interface IService {
-  /**
-   * Exception that occured during the creation of the service
-   */
-  _createException?: string;
-  /**
-   * Exception that occured during the initialization of the service
-   */
-  _initException?: string;
-  /**
-   * Time of initialization
-   */
-  _initTime?: number;
-  /**
-   * Initialize the service
-   * @returns
-   */
-  init: () => Promise<this>;
-  /**
-   * Reinit the service
-   * @param params
-   * @returns
-   */
-  reinit: (params: any) => Promise<this>;
-  /**
-   * All services should be able to resolve themselves
-   * @returns
-   */
-  resolve: () => this;
-  /**
-   * Get the name of the service
-   * @returns
-   */
-  getName: () => string;
-  /**
-   * Stop the service
-   * @returns
-   */
-  stop: () => Promise<void>;
-  /**
-   *
-   * @returns
-   */
-  getOpenApiReplacements: () => { [key: string]: string };
 }
 
 /**

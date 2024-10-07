@@ -4,27 +4,89 @@
  * They should not import other files not prefixed with i.
  */
 
+import { Constructor } from "@webda/tsc-esm";
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface IModel {
+  Events: any;
+}
+
+/**
+ * Represent a Webda service
+ */
+export interface IService {
+  /**
+   * Exception that occured during the creation of the service
+   */
+  _createException?: string;
+  /**
+   * Exception that occured during the initialization of the service
+   */
+  _initException?: string;
+  /**
+   * Time of initialization
+   */
+  _initTime?: number;
+  /**
+   * Initialize the service
+   * @returns
+   */
+  init: () => Promise<this>;
+  /**
+   * Reinit the service
+   * @param params
+   * @returns
+   */
+  reinit: (params: any) => Promise<this>;
+  /**
+   * All services should be able to resolve themselves
+   * @returns
+   */
+  resolve: () => this;
+  /**
+   * Get the name of the service
+   * @returns
+   */
+  getName: () => string;
+  /**
+   * Stop the service
+   * @returns
+   */
+  stop: () => Promise<void>;
+  /**
+   *
+   * @returns
+   */
+  getOpenApiReplacements: () => { [key: string]: string };
+}
 /**
  * Application interface.
  */
 export interface IApplication {
   getGraph(): ModelsGraph;
   getSchema(name: any): unknown;
-  getModelHierarchy(i: string): { children: string[]; parent: string };
+  getModelHierarchy(i: string): { children: ModelsTree; ancestors: string[] };
   getModelPlural(arg0: string): string;
   getAppPath(source: string): string;
-  getRelations(arg0: object): ModelGraph;
+  getRelations(objectOrName: IModel | Constructor<IModel> | string): ModelGraph;
   getSchemas(): { [key: string]: JSONSchema7 };
   getModels(): { [key: string]: any };
   getImplementations<T extends object>(object: T): { [key: string]: T };
   getPackageDescription(): PackageDescriptor;
   replaceVariables(arg0: any, arg1: any): any;
-  name: string;
-  version: string;
-  description: string;
+
+  /**
+   * Get the model hierarchy
+   * @param model
+   */
+  getModelHierarchy<T extends object>(
+    model: T | string
+  ): {
+    ancestors: string[];
+    children: ModelsTree;
+  };
 
   /**
    * Get an application model

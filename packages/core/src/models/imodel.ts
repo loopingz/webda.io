@@ -1,9 +1,9 @@
-import { ArrayElement, Attributes, Constructor, FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
+import { Attributes, Constructor, FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
 import { AsyncEventEmitter, AsyncEventUnknown } from "../events/asynceventemitter";
 import { Context } from "../contexts/icontext";
 import { CRUDHelper, CRUDModel, StoreHelper } from "../stores/istore";
 import { JSONSchema7 } from "json-schema";
-import { ModelGraph, ModelsTree } from "../application/iapplication";
+import { ModelGraph, ModelsTree, IModel } from "../application/iapplication";
 import { ModelAction, RawModel } from "./types";
 import { IContextAware, canUpdateContext } from "../contexts/icontext";
 import { useContext } from "../contexts/execution";
@@ -29,7 +29,7 @@ type AbstractCoreModelCRUD = CRUDModel<any>;
 /**
  * Define a object that act like a Webda Model
  */
-export abstract class AbstractCoreModel implements IAttributeLevelPermissionModel, AbstractCoreModelCRUD {
+export abstract class AbstractCoreModel implements IAttributeLevelPermissionModel, AbstractCoreModelCRUD, IModel {
   /**
    *
    */
@@ -198,114 +198,6 @@ export interface ExposeParameters {
 export interface IModelRefWithCreate<T extends AbstractCoreModel> extends CRUDHelper<T> {
   get(): Promise<T>;
 }
-/**
- *
- */
-export type CoreModelDefinition<T extends AbstractCoreModel = AbstractCoreModel> = AsyncEventEmitter<T["Events"]> & {
-  new (): T;
-  /**
-   * If the model have some Expose annotation
-   */
-  Expose?: ExposeParameters;
-  /**
-   * Create a CoreModel object loaded with the content of object
-   *
-   * It allows polymorphism from Store
-   *
-   * By default it will act as a create method without saving
-   * @param model to create by default
-   * @param object to load data from
-   */
-  factory<T>(this: Constructor<T>, object: Partial<T>): Promise<Proxied<T>>;
-  /**
-   * Get the model actions
-   */
-  getActions(): { [key: string]: ModelAction };
-  /**
-   * Get the model schema
-   */
-  getSchema(): JSONSchema7;
-
-  /**
-   * Get the model hierarchy
-   */
-  getHierarchy(): { ancestors: string[]; children: ModelsTree };
-  /**
-   * Get the model relations
-   */
-  getRelations(): ModelGraph;
-  /**
-   * Get Model identifier
-   */
-  getIdentifier(): string;
-
-  /**
-   * Complete uuid useful to implement uuid prefix or suffix
-   * @param uid
-   */
-  completeUid(uid: string): string;
-  /**
-   * Get the model uuid field if you do not want to use the uuid field
-   */
-  getUuidField(): string;
-  /**
-   * Permission query for the model
-   * @param context
-   */
-  getPermissionQuery(context: Context): null | { partial: boolean; query: string };
-  /**
-   * Reference to an object without doing a DB request yet
-   */
-  ref: (uuid: string) => IModelRefWithCreate<any>;
-  /**
-   * Get an object
-   */
-  get: (uuid: string) => Promise<any>;
-  /**
-   * Create a new model
-   * @param this
-   * @param data
-   * @param save if the object should be saved
-   */
-  create<T extends object>(this: Constructor<T>, data: RawModel<T>, save?: boolean): Promise<Proxied<T>>;
-  /**
-   * Query the model
-   * @param query
-   */
-  query(query?: string, includeSubclass?: boolean): Promise<{ results: T[]; continuationToken?: string }>;
-  /**
-   * Iterate through objects
-   * @param query
-   * @param includeSubclass
-   * @param context
-   */
-  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
-  /**
-   * Return the event on the model that can be listened to by an
-   * external authorized source
-   * @see authorizeClientEvent
-   */
-  getClientEvents(): ({ name: string; global?: boolean } | string)[];
-  /**
-   * Authorize a public event subscription
-   * @param event
-   * @param context
-   */
-  authorizeClientEvent(_event: string, _context: Context, _model?: T): boolean;
-  /**
-   * Resolve and init the model
-   */
-  resolve(): void;
-};
-
-export type CoreModelFullDefinition<T extends AbstractCoreModel> = CoreModelDefinition<T> & {
-  Store: StoreHelper<T>;
-  /**
-   * Use Store
-   * @deprecated
-   */
-  store(): StoreHelper<T>;
-};
 
 export type ModelAttributes<T extends AbstractCoreModel> = Omit<T, Methods<T> | "Events">;
 

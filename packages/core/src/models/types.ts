@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { HttpMethodType } from "../contexts/httpcontext";
 import type { ModelGraph, ModelsTree } from "../application/iapplication";
-import type { FilterOutAttributes, Pojo } from "@webda/tsc-esm";
+import type { FilterOutAttributes } from "@webda/tsc-esm";
 
 /**
  * Define an Action on a model
@@ -76,7 +76,6 @@ export type OmitByTypeRecursive<T extends object, K> = {
  *
  * This is used to represent a model without methods and stripping out the helper methods
  */
-export type RawModel<T extends object> = OmitByTypeRecursive<
-  Omit<T, "__dirty" | "Events" | "__type" | "__types" | "_new" | "context">,
-  Function
+export type RawModel<T extends object> = Partial<
+  OmitByTypeRecursive<Omit<T, "__dirty" | "Events" | "__type" | "__types" | "_new" | "context">, Function>
 >;

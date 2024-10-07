@@ -8,7 +8,7 @@ import { Application } from "../application/application";
 import { Configuration } from "../application/iapplication";
 import { BinaryService } from "../services/binary";
 import { CoreModel } from "../models/coremodel";
-import { CoreModelDefinition } from "../models/imodel";
+import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
 import type { Constructor } from "@webda/tsc-esm";
 import { Router } from "../rest/router";
 import { CryptoService } from "../services/cryptoservice";
@@ -22,12 +22,12 @@ import { useLogContext } from "../loggers/hooks";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
 import { getUuid } from "../utils/uuid";
-import { IService, OperationDefinitionInfo } from "./icore";
+import { ICore, IService, OperationDefinitionInfo } from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { OriginFilter, WebsiteOriginFilter } from "../rest/originfilter";
 import { useParameters } from "./instancestorage";
 import { Modda } from "../application/application";
-import { useApplication } from "../application/hook";
+import { useApplication, useModel } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
 const { machineIdSync } = pkg;
@@ -38,7 +38,7 @@ const { machineIdSync } = pkg;
  * @class Core
  * @category CoreFeatures
  */
-export class Core {
+export class Core implements ICore {
   /**
    * Webda Services
    * @hidden
@@ -205,10 +205,18 @@ export class Core {
    * @param model
    * @returns
    */
-  getModelStore<T extends CoreModel>(modelOrConstructor: Constructor<T> | T): Store {
-    const model = <CoreModelDefinition>(
-      (<any>(modelOrConstructor instanceof CoreModel ? modelOrConstructor.__class : modelOrConstructor))
-    );
+  getModelStore<T extends AbstractCoreModel>(modelOrConstructor: Constructor<T> | T | string): Store {
+    let model: CoreModelDefinition;
+    if (typeof modelOrConstructor === "string") {
+      model = useModel(modelOrConstructor);
+    } else {
+      model = <CoreModelDefinition>(
+        (<any>(modelOrConstructor instanceof CoreModel ? modelOrConstructor.__class : modelOrConstructor))
+      );
+    }
+    if (!model) {
+      throw new WebdaError.CodeError("MODEL_NOT_FOUND", "Model not found");
+    }
     if (this._modelStoresCache.has(model)) {
       return <Store>this._modelStoresCache.get(model);
     }
@@ -243,7 +251,10 @@ export class Core {
    * @param attribute
    * @returns
    */
-  getBinaryStore<T extends CoreModel>(modelOrConstructor: Constructor<T> | T, attribute: string): BinaryService {
+  getBinaryStore<T extends AbstractCoreModel>(
+    modelOrConstructor: CoreModelDefinition<T> | T | string,
+    attribute: string
+  ): BinaryService {
     const binaries: { [key: string]: BinaryService } = useApplication().getImplementations(<any>BinaryService);
     const model = this.application.getModelName(modelOrConstructor);
     let actualScore: number = -1;

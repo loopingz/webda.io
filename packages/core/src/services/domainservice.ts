@@ -9,7 +9,7 @@ import { CoreModel } from "../models/coremodel";
 import { runAsSystem, runWithContext } from "../contexts/execution";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { ServiceParameters } from "./iservices";
 import { useApplication } from "../application/hook";
 import { OperationDefinition } from "../core/icore";

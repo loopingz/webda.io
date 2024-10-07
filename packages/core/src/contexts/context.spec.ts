@@ -1,34 +1,28 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test, WebdaTest } from "../test/core";
 import * as assert from "assert";
 import { Readable } from "stream";
-import { Core } from "../core";
-import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
-import { WebdaTest } from "../test";
-import { UnpackedConfiguration } from "../interfaces";
 import { WebContext } from "./webcontext";
 import { OperationContext } from "./operationcontext";
 import { HttpContext } from "./httpcontext";
-import { Session } from "../utils/session";
+import { Session } from "../session/session";
+import { UnpackedConfiguration } from "../application/iapplication";
+import { SimpleOperationContext } from "./simplecontext";
 
 export class WebContextMock extends WebContext {
-  constructor(webda: Core, httpContext: HttpContext, stream?: any) {
-    super(webda, httpContext, stream);
+  constructor(httpContext: HttpContext, stream?: any) {
+    super(httpContext, stream);
   }
 }
 
-export class OperationContextMock extends OperationContext {
-  public constructor(webda: Core) {
-    super(webda);
-  }
-}
+export class OperationContextMock extends OperationContext {}
 
 @suite
 class ContextTest extends WebdaTest {
   ctx: WebContext;
-  async before() {
-    await super.before();
-    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/"));
+
+  async beforeEach() {
+    this.ctx = new WebContextMock(new HttpContext("test.webda.io", "GET", "/"));
   }
 
   getTestConfiguration(): UnpackedConfiguration {
@@ -42,36 +36,8 @@ class ContextTest extends WebdaTest {
   }
 
   @test
-  async urlObject() {
-    let urlObject = new URL("https://test.webda.io/mypath/is/long?search=1&test=2");
-    let ctx = new HttpContext("test.webda.io", "GET", "/mypath/is/long?search=1&test=2", "https", 443);
-    assert.strictEqual(ctx.getHost(), urlObject.host);
-    assert.strictEqual(ctx.getHostName(), urlObject.hostname);
-    assert.strictEqual(ctx.getPathName(), urlObject.pathname);
-    assert.strictEqual(ctx.getHref(), urlObject.href);
-    assert.strictEqual(ctx.getProtocol(), urlObject.protocol);
-    assert.strictEqual(ctx.getPort(), urlObject.port);
-    assert.strictEqual(ctx.getPortNumber(), 443);
-    assert.strictEqual(ctx.getSearch(), urlObject.search);
-    assert.strictEqual(ctx.getOrigin(), urlObject.origin);
-    urlObject = new URL("http://test.webda.io:8800/mypath");
-    ctx = new HttpContext("test.webda.io", "GET", "/mypath", "http", 8800);
-    assert.strictEqual(ctx.getHost(), urlObject.host);
-    assert.strictEqual(ctx.getHostName(), urlObject.hostname);
-    assert.strictEqual(ctx.getPathName(), urlObject.pathname);
-    assert.strictEqual(ctx.getHref(), urlObject.href);
-    assert.strictEqual(ctx.getProtocol(), urlObject.protocol);
-    assert.strictEqual(ctx.getPort(), urlObject.port);
-    assert.strictEqual(ctx.getPortNumber(), 8800);
-    assert.strictEqual(ctx.getSearch(), urlObject.search);
-    assert.strictEqual(ctx.getOrigin(), urlObject.origin);
-    // Hash is not sent to server so no need in HttpContext (@see https://developer.mozilla.org/en-US/docs/Web/API/URL/hash)
-    // Username and password would endup in a header no in the url
-  }
-
-  @test
   async sanitize() {
-    const context = await this.newContext();
+    const context = await this.ctx;
     let input = "";
     context.getRawInputAsString = async () => {
       return input;
@@ -93,9 +59,7 @@ class ContextTest extends WebdaTest {
     // Get the last lines
     this.ctx.logIn();
     this.ctx.getRoute();
-    assert.notStrictEqual(this.ctx.getService("Registry"), undefined);
-    assert.notStrictEqual(this.ctx.getService<Service>("Registry"), undefined);
-    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContextMock(new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setParameters({ id: "plop" });
     assert.strictEqual(this.ctx.getParameters().id, "plop");
     assert.strictEqual(this.ctx.getHttpContext().getPortNumber(), 80);
@@ -158,7 +122,7 @@ class ContextTest extends WebdaTest {
 
   @test
   simpleOperationContext() {
-    const ctx = new SimpleOperationContext(this.webda);
+    const ctx = new SimpleOperationContext();
     const session = new Session();
     ctx.setSession(session);
     assert.strictEqual(session, ctx.getSession());
@@ -249,11 +213,11 @@ class ContextTest extends WebdaTest {
 
   @test
   expressCompatibility() {
-    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContextMock(new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.status(403), this.ctx);
     assert.strictEqual(this.ctx.statusCode, 403);
-    this.ctx = new WebContextMock(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx = new WebContextMock(new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     assert.strictEqual(this.ctx.statusCode, 204);
     assert.strictEqual(this.ctx.json({ plop: "test" }), this.ctx);
     assert.strictEqual(this.ctx.getResponseBody(), '{"plop":"test"}');
@@ -270,7 +234,6 @@ class ContextTest extends WebdaTest {
   @test
   generic() {
     this.ctx.init();
-    assert.notStrictEqual(this.ctx.getWebda(), undefined);
     // @ts-ignore
     this.ctx.session = undefined;
     assert.strictEqual(this.ctx.getCurrentUserId(), undefined);

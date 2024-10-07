@@ -81,6 +81,10 @@ export interface OperationDefinitionInfo extends OperationDefinition {
  */
 export interface ICore {
   /**
+   * Stop the core gracefully
+   */
+  stop(): Promise<void>;
+  /**
    * Get a context based on the info
    * @param info
    * @returns

@@ -11,19 +11,19 @@ import { AbstractCoreModel } from "../models/imodel";
 import type { Constructor } from "@webda/tsc-esm";
 import { Router } from "../rest/router";
 import { CryptoService } from "../services/cryptoservice";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
 import { Logger } from "../loggers/ilogger";
 import type { ConfigurationService } from "../services/configuration";
-import { useLogContext } from "../loggers/hooks";
+import { setLogContext } from "../loggers/hooks";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
 import { getUuid } from "../utils/uuid";
 import { ICore, IService, OperationDefinitionInfo } from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { OriginFilter, WebsiteOriginFilter } from "../rest/originfilter";
-import { useParameters } from "./instancestorage";
+import { useInstanceStorage, useParameters } from "./instancestorage";
 import { Modda } from "../application/application";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
@@ -150,6 +150,7 @@ export class Core implements ICore {
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
   constructor(application?: Application) {
+    useInstanceStorage().core = this;
     /**
      * SIGINT handler
      */
@@ -165,7 +166,7 @@ export class Core implements ICore {
     });
     this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
-    useLogContext(this.logger, this.workerOutput);
+    setLogContext(this.logger, this.workerOutput);
     this.application = application || new UnpackedApplication(".");
     this._initTime = new Date().getTime();
     // Schema validations
@@ -603,15 +604,18 @@ export class Core implements ICore {
    */
   async stop() {
     const services = this.getServices();
-    await Promise.all(
-      Object.keys(services).map(async s => {
+    await Promise.all([
+      // Stop all interuptables
+      ...[...useInstanceStorage().interruptables.values()].map(i => i.cancel()),
+      // Stop all services
+      ...Object.keys(services).map(async s => {
         try {
           await services[s].stop();
         } catch (err) {
           this.log("ERROR", `Cannot stop service ${s}`, err);
         }
       })
-    );
+    ]);
   }
 
   /**
@@ -621,7 +625,7 @@ export class Core implements ICore {
     // For all final models, call resolve so they can declare their operations
     Object.values(this.application.getModels())
       .filter(model => {
-        this.application.isFinalModel(model.getIdentifier());
+        return model && this.application.isFinalModel(model.getIdentifier());
       })
       .forEach(model => {
         model.resolve();

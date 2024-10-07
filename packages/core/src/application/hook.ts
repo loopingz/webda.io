@@ -1,9 +1,23 @@
 import { createCoreHook } from "../core/instancestorage";
-import { deepmerge } from "deepmerge-ts";
 
-const [useApplication, setApplication] = createCoreHook("application");
+/**
+ * Hook to get the current application
+ */
+const [_useApplication, _setApplication] = createCoreHook("application");
 
+/**
+ * Get the current application
+ */
+const useApplication = _useApplication;
+/**
+ * Set the current application
+ *
+ * @param application
+ */
+const setApplication = _setApplication;
 export { useApplication, setApplication };
+
+// Subhooks - using the application to shortcut to a specific
 
 /**
  * Useful if you want to allow model override

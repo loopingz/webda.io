@@ -16,10 +16,10 @@ let workerOutput: WorkerOutput;
  */
 export function useLog(level: WorkerLogLevel, ...args) {
   // We should play with the async storage
-  console.log(level, ...args);
+  output.log(level, ...args);
 }
 
-export function useLogContext(object: { log: (level, ...args) => void }, worker: WorkerOutput) {
+export function setLogContext(object: { log: (level, ...args) => void }, worker: WorkerOutput) {
   output = object;
   workerOutput = worker;
 }

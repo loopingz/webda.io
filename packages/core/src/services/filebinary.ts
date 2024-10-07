@@ -3,7 +3,7 @@ import { join } from "path";
 import { Readable } from "stream";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 import type { CoreModel } from "../models/coremodel";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import {
   BinaryFile,
   BinaryMap,

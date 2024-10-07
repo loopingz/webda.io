@@ -1,6 +1,6 @@
 import { Counter, Histogram } from "../metrics/metrics";
 import type { ConfigurationProvider } from "../services/configuration";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { Throttler } from "../utils/throttler";
 
 import type { CoreModel } from "../models/coremodel";

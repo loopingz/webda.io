@@ -1,7 +1,7 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { Logger } from "./logger";
+import { Logger } from "../loggers/ilogger";
 import {
   CancelableLoopPromise,
   CancelablePromise,
@@ -32,7 +32,7 @@ class WaiterTest {
 
   @test
   async testWaitFor() {
-    const logger = new Logger(undefined, undefined);
+    const logger = new Logger(<any>undefined, "");
     const consoleSpy = sinon.stub(logger, "log");
     sinon.stub(logger, "logProgressStart");
     sinon.stub(logger, "logProgressUpdate");
@@ -55,6 +55,7 @@ class WaiterTest {
             resolve({ myobject: "test" });
             return true;
           }
+          return false;
         },
         3,
         "title",
@@ -69,11 +70,12 @@ class WaiterTest {
       const time = Date.now();
       consoleSpy.resetHistory();
       await WaitFor(
-        async (resolve, reject) => {
+        async resolve => {
           if (consoleSpy.callCount === 3) {
             resolve({ myobject: "test" });
             return true;
           }
+          return false;
         },
         3,
         "title",

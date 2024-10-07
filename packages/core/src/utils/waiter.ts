@@ -1,5 +1,4 @@
 import { randomUUID } from "crypto";
-import { Core } from "../core/core";
 import { Logger } from "../loggers/ilogger";
 import { registerInteruptableProcess, unregisterInteruptableProcess } from "../core/instancestorage";
 

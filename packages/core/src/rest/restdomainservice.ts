@@ -2,7 +2,7 @@ import { QueryValidator } from "@webda/ql";
 import type { CoreModelDefinition, ModelAction } from "../application/iapplication";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
 import { OpenAPIWebdaDefinition } from "./irest";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { useRouter } from "./hooks";
 import { useApplication } from "../application/hook";
 import { DeepPartial } from "@webda/tsc-esm";

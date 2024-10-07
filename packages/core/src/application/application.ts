@@ -2,7 +2,7 @@ import { type WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import * as fs from "fs";
 import type { JSONSchema7 } from "json-schema";
 import * as path from "path";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { getCommonJS } from "../utils/esm";
 import { FileUtils } from "../utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);
@@ -27,6 +27,7 @@ import {
 import { AbstractCoreModel } from "../models/imodel";
 import { Service } from "../services/service";
 import { CoreModel } from "../models/coremodel";
+import { useInstanceStorage } from "../core/instancestorage";
 
 export type Modda = Constructor<Service, [name: string, params: any]>;
 /**
@@ -141,6 +142,7 @@ export class Application implements IApplication {
    * @param {Logger} logger
    */
   constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
+    useInstanceStorage().application = this;
     this.logger = logger || new WorkerOutput();
     this.initTime = Date.now();
     if (typeof file !== "string") {

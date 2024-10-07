@@ -1,4 +1,4 @@
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import type { Authentication } from "./authentication";
 import { Service } from "./service";
 import { getUuid } from "../utils/uuid";

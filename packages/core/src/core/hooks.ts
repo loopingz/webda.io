@@ -1,6 +1,8 @@
 import { IStore, IService } from "./icore";
 import { createCoreHook } from "./instancestorage";
-import { machineIdSync } from "node-machine-id";
+import pkg from "node-machine-id";
+//import { machineIdSync } from "node-machine-id";
+const { machineIdSync } = pkg;
 
 const [useCore, setCore] = createCoreHook("core");
 

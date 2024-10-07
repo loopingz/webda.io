@@ -1,5 +1,5 @@
 import { EventWithContext } from "../events/events";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import type { CoreModel } from "../models/coremodel";
 import type { CoreModelDefinition } from "../application/iapplication";
 import { Ident } from "../models/ident";

@@ -1,11 +1,12 @@
 import { QueryValidator } from "@webda/ql";
 import { OperationDefinition } from "./icore";
 import { OperationContext } from "../contexts/operationcontext";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { ValidationError } from "../schemas/hooks";
 import { useInstanceStorage } from "./instancestorage";
 import { useModel } from "../application/hook";
 import { useService } from "./hooks";
+import { emitCoreEvent } from "../events/events";
 
 /**
  * Check if an operation can be executed with the current context
@@ -76,8 +77,8 @@ export async function callOperation(context: OperationContext, operationId: stri
     await checkOperation(context, operationId);
     context.setExtension("operationContext", operations[operationId].context || {});
     await Promise.all([
-      this.emit("Webda.BeforeOperation", { context, operationId }),
-      this.emit(`${operationId}.Before`, <any>context.getExtension("event") || {})
+      emitCoreEvent("Webda.BeforeOperation", { context, operationId }),
+      emitCoreEvent(`${operationId}.Before`, <any>context.getExtension("event") || {})
     ]);
     if (operations[operationId].service) {
       await this.getService(operations[operationId].service)[operations[operationId].method](context);
@@ -87,13 +88,13 @@ export async function callOperation(context: OperationContext, operationId: stri
       throw new Error(`${operationId} NoServiceOrModel`);
     }
     await Promise.all([
-      this.emit("Webda.OperationSuccess", { context, operationId }),
-      this.emit(operationId, <any>context.getExtension("event") || {})
+      emitCoreEvent("Webda.OperationSuccess", { context, operationId }),
+      emitCoreEvent(operationId, <any>context.getExtension("event") || {})
     ]);
   } catch (err) {
     await Promise.all([
-      this.emit("Webda.OperationFailure", { context, operationId, error: err }),
-      this.emit(`${operationId}.Failure`, <any>context.getExtension("event") || {})
+      emitCoreEvent("Webda.OperationFailure", { context, operationId, error: err }),
+      emitCoreEvent(`${operationId}.Failure`, <any>context.getExtension("event") || {})
     ]);
     throw err;
   } finally {

@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import * as WebdaQL from "@webda/ql";
 import { Context } from "../contexts/icontext";
 import { OperationContext } from "../contexts/operationcontext";

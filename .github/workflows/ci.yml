@@ -124,6 +124,15 @@ jobs:
       - name: Lint
         run: yarn run lint
 
+      - name: Check with mocha
+        run: yarn run test:mocha
+
+      - name: Check with jest
+        run: yarn run test:jest
+
+      - name: Check with bun
+        run: yarn run test:bun
+
       - name: CodeCov
         uses: codecov/codecov-action@v2
         with:

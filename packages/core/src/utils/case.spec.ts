@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import assert from "assert";
 import { TransformCase, TransformCaseType } from "./case";
 

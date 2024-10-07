@@ -1,7 +1,7 @@
 import { Action, CoreModel } from "./coremodel";
 import type { Context, IWebContext, IOperationContext } from "../contexts/icontext";
 import { User } from "./user";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { useCurrentUser, useCurrentUserId } from "../contexts/execution";
 import { OperationContext } from "../contexts/operationcontext";
 

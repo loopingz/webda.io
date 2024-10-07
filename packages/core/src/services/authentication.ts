@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Counter } from "../metrics/metrics";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import type { IUser } from "../models/imodel";
 import type { Ident } from "../models/ident";
 import type { User } from "../models/user";

@@ -1,6 +1,6 @@
 import { CoreModel } from "./coremodel";
 import type { IOperationContext } from "../contexts/icontext";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 
 abstract class RoleModel extends CoreModel {
   abstract getRolesMap(): { [key: string]: string };

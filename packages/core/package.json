@@ -24,7 +24,11 @@
     "test": "NODE_OPTIONS='--import ./hooks-register.mjs' c8 -r lcov --check-coverage --lines 100 mocha",
     "test:coverage": "NODE_OPTIONS='--import ./hooks-register.mjs' c8 mocha",
     "test:fast": "mocha",
-    "test:debug": "mocha --no-timeouts"
+    "test:debug": "mocha --no-timeouts",
+    "test:mocha": "mocha src/test/core.spec.ts",
+    "test:jest": "jest src/test/core.spec.ts",
+    "test:bun": "bun test src/test/core.spec.ts",
+    "test:vitest": "vitest"
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
@@ -72,6 +76,7 @@
     "c8": "^10.1.2",
     "eslint": "^9.10.0",
     "fs-extra": "^11.0.0",
+    "jest": "^29.7.0",
     "mocha": "^10.0.0",
     "prettier": "^3.0.0",
     "sinon": "^19.0.2",
@@ -79,6 +84,7 @@
     "source-map-support": "^0.5.19",
     "tsx": "^4.17.0",
     "typescript": "^5.6.2",
+    "vitest": "^2.1.2",
     "ws": "^8.13.0"
   },
   "files": [

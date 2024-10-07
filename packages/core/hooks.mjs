@@ -6,8 +6,6 @@ export async function initialize() {
 }
 
 export async function resolve(specifier, context, nextResolve) {
-  console.log("RESOLVE", context.parentURL?.toString(), specifier);
-  return nextResolve(specifier, context);
   if (context.parentURL?.toString().startsWith(dirname) && specifier.endsWith(".js")) {
     let url = context.parentURL.toString();
     url = url.substring(0, url.lastIndexOf("/") + 1).replace(/\/lib\//, "/src/") + specifier.replace(/\.js$/, ".ts");
@@ -17,14 +15,12 @@ export async function resolve(specifier, context, nextResolve) {
     };
   }
   if (specifier.includes("packages/core/src/") && specifier.endsWith(".js")) {
-    console.log("RESOLVE", specifier);
     return {
       url: "file://" + specifier.replace(/\.js$/, ".ts"),
       shortCircuit: true
     };
   }
   if (specifier === "@webda/core") {
-    console.log("RESOLVE", specifier);
     return {
       url: new URL("src/index.ts", dirname).toString(),
       shortCircuit: true
@@ -34,8 +30,6 @@ export async function resolve(specifier, context, nextResolve) {
 }
 
 export async function load(url, context, nextLoad) {
-  console.log("LOAD", url);
-  return nextLoad(url, context);
   // Take a resolved URL and return the source code to be evaluated.
   if (url.includes("node_modules/@webda/core/lib/")) {
     let newFile =

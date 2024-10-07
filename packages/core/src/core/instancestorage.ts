@@ -19,14 +19,18 @@ type InstanceStorage = Partial<{
   caches: { [key: string]: any };
   // Used to store the router
   router: IRouter;
-  // Interuptable process
+  // Interruptable process
   interruptables: Set<{ cancel: () => Promise<void> }>;
 }>;
 
 const storage = new AsyncLocalStorage<InstanceStorage>();
 
 export function useInstanceStorage(): InstanceStorage {
-  return storage.getStore();
+  const store = storage.getStore();
+  if (!store) {
+    throw new Error("Webda launched outside of a Webda context");
+  }
+  return store;
 }
 
 export function useConfiguration(): Configuration {
@@ -44,7 +48,20 @@ export function useParameters(name?: string): Configuration["parameters"] {
 }
 
 export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn) {
-  return storage.run(instanceStorage, fn);
+  return storage.run(
+    {
+      application: undefined,
+      operations: {},
+      configuration: undefined,
+      core: undefined,
+      contextProviders: [],
+      caches: {},
+      router: undefined,
+      interruptables: new Set(),
+      ...instanceStorage
+    },
+    fn
+  );
 }
 
 /**
@@ -54,9 +71,9 @@ export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn
  */
 export function createCoreHook<K extends keyof InstanceStorage>(
   hookName: K
-): [() => InstanceStorage[K], (value: InstanceStorage[K]) => void] {
+): [<T extends InstanceStorage[K]>() => T, (value: InstanceStorage[K]) => void] {
   return [
-    () => useInstanceStorage()[hookName],
+    () => <any>useInstanceStorage()[hookName],
     (value: InstanceStorage[K]) => {
       useInstanceStorage()[hookName] = value;
     }

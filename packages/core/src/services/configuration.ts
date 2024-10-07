@@ -1,5 +1,5 @@
 import jsonpath from "jsonpath";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
 import { ServiceParameters } from "./iservices";
 import { useCore, useService } from "../core/hooks";

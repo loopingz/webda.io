@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import type { IWebContext } from "../contexts/icontext";
 import { Service } from "./service";
 import { ServiceParameters } from "./iservices";

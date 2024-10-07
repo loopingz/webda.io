@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
 import { NotEnumerable } from "@webda/tsc-esm";
 import { AbstractCoreModel } from "../models/imodel";

@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext";
-import { CoreModelDefinition } from "../models/imodel";
+import { CoreModelDefinition } from "../application/iapplication";
 import { DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext";
 
@@ -121,7 +121,10 @@ export interface RequestFilter<T extends IWebContext = IWebContext> {
 }
 
 export interface IRouter {
-  updateContextWithRoute(ctx: IWebContext): void;
+  /**
+   * Add to context information and executor based on the http context
+   */
+  updateContextWithRoute(ctx: IWebContext): boolean;
   exportOpenAPI(arg0: boolean): any;
   registerModelUrl(arg0: any, prefix: string): unknown;
   registerRequestFilter(filter: RequestFilter);

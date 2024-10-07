@@ -3,10 +3,6 @@ import { ModelLink } from "./relations";
 import { User } from "./user";
 import type { Constructor } from "@webda/tsc-esm";
 import { IOperationContext } from "../contexts/icontext";
-import { RawModel } from "./types";
-
-//  [K in Attributes<Omit<T, "Events">>]?: T[K] extends object ? RawModel<T[K]> : T[K];
-//};
 
 /**
  * Abstract class to define an object with an owner

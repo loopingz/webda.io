@@ -4,14 +4,212 @@
  * They should not import other files not prefixed with i.
  */
 
-import { Constructor } from "@webda/tsc-esm";
+import type { Constructor, OmitByTypeRecursive } from "@webda/tsc-esm";
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
+import { AsyncEventEmitter } from "../events/asynceventemitter";
+import { Context } from "../contexts/icontext";
+import { CRUDHelper, StoreHelper } from "../stores/istore";
+import { HttpMethodType } from "../contexts/httpcontext";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface IModel {
   Events: any;
 }
+
+/**
+ * Proxied object
+ *
+ * TODO: Check if this is real useful
+ */
+export type Proxied<T> = T;
+
+/**
+ * Expose parameters for the model
+ */
+export interface ExposeParameters {
+  /**
+   * If model have parent but you still want it to be exposed as root
+   * in domain-like service: DomainService, GraphQL
+   *
+   * It would create alias for the model in the root too
+   */
+  root?: boolean;
+  /**
+   * You can select to not expose some methods like create, update, delete, get, query
+   */
+  restrict: {
+    /**
+     * Create a new object
+     */
+    create?: boolean;
+    /**
+     * Update an existing object
+     *
+     * Includes PUT and PATCH
+     */
+    update?: boolean;
+    /**
+     * Query the object
+     */
+    query?: boolean;
+    /**
+     * Get a single object
+     */
+    get?: boolean;
+    /**
+     * Delete an object
+     */
+    delete?: boolean;
+    /**
+     * Do not create operations for the model
+     */
+    operation?: boolean;
+  };
+}
+
+/**
+ * ModelRef create
+ */
+export interface IModelRefWithCreate<T extends IModel> extends CRUDHelper<T> {
+  get(): Promise<T>;
+}
+
+/**
+ * Expose CoreModel reflective methods
+ */
+export interface Reflection {
+  /**
+   * Get the model actions
+   */
+  getActions(): { [key: string]: ModelAction };
+  /**
+   * Get the model schema
+   */
+  getSchema(): JSONSchema7;
+
+  /**
+   * Get the model hierarchy
+   */
+  getHierarchy(): { ancestors: string[]; children: ModelsTree };
+  /**
+   * Get the model relations
+   */
+  getRelations(): ModelGraph;
+  /**
+   * Get Model identifier
+   */
+  getIdentifier(short?: boolean): string;
+}
+
+/**
+ *
+ */
+export type CoreModelDefinition<T extends IModel = IModel> = AsyncEventEmitter<T["Events"]> & {
+  new (): T;
+  /**
+   * If the model have some Expose annotation
+   */
+  Expose?: ExposeParameters;
+  /**
+   * Create a CoreModel object loaded with the content of object
+   *
+   * It allows polymorphism from Store
+   *
+   * By default it will act as a create method without saving
+   * @param model to create by default
+   * @param object to load data from
+   */
+  factory<T>(this: Constructor<T>, object: Partial<T>): Promise<Proxied<T>>;
+  /**
+   * Get the model actions
+   */
+  getActions(): { [key: string]: ModelAction };
+  /**
+   * Get the model schema
+   */
+  getSchema(): JSONSchema7;
+
+  /**
+   * Get the model hierarchy
+   */
+  getHierarchy(): { ancestors: string[]; children: ModelsTree };
+  /**
+   * Get the model relations
+   */
+  getRelations(): ModelGraph;
+  /**
+   * Get Model identifier
+   */
+  getIdentifier(): string;
+
+  /**
+   * Complete uuid useful to implement uuid prefix or suffix
+   * @param uid
+   */
+  completeUid(uid: string): string;
+  /**
+   * Get the model uuid field if you do not want to use the uuid field
+   */
+  getUuidField(): string;
+  /**
+   * Permission query for the model
+   * @param context
+   */
+  getPermissionQuery(context: Context): null | { partial: boolean; query: string };
+  /**
+   * Reference to an object without doing a DB request yet
+   */
+  ref: (uuid: string) => IModelRefWithCreate<any>;
+  /**
+   * Get an object
+   */
+  get: (uuid: string) => Promise<any>;
+  /**
+   * Create a new model
+   * @param this
+   * @param data
+   * @param save if the object should be saved
+   */
+  create<T extends object>(this: Constructor<T>, data: RawModel<T>, save?: boolean): Promise<Proxied<T>>;
+  /**
+   * Query the model
+   * @param query
+   */
+  query(query?: string, includeSubclass?: boolean): Promise<{ results: T[]; continuationToken?: string }>;
+  /**
+   * Iterate through objects
+   * @param query
+   * @param includeSubclass
+   * @param context
+   */
+  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
+  /**
+   * Return the event on the model that can be listened to by an
+   * external authorized source
+   * @see authorizeClientEvent
+   */
+  getClientEvents(): ({ name: string; global?: boolean } | string)[];
+  /**
+   * Authorize a public event subscription
+   * @param event
+   * @param context
+   */
+  authorizeClientEvent(_event: string, _context: Context, _model?: T): boolean;
+  /**
+   * Resolve and init the model
+   */
+  resolve(): void;
+};
+
+export type CoreModelFullDefinition<T extends IModel> = CoreModelDefinition<T> & {
+  Store: StoreHelper<T> & { name: string };
+  /**
+   * Use Store
+   * @deprecated
+   */
+  store<T = any>(): T;
+};
 
 /**
  * Represent a Webda service
@@ -678,3 +876,49 @@ export interface GitInformation {
    */
   version: string;
 }
+
+/**
+ * Define an Action on a model
+ *
+ * It is basically a method designed to be called by the API or external
+ * systems
+ */
+export interface ModelAction {
+  /**
+   * Method for the route
+   *
+   * By default ["PUT"]
+   */
+  methods?: HttpMethodType[];
+  /**
+   * Define if the action is global or per object
+   *
+   * The method that implement the action must be called
+   * `_${actionName}`
+   */
+  global?: boolean;
+  /**
+   * Additional openapi info
+   */
+  openapi?: any;
+  /**
+   * Method of the action
+   */
+  method?: string;
+}
+
+/**
+ * Define an export of actions from Model
+ */
+export type ModelActions = {
+  [key: string]: ModelAction;
+};
+
+/**
+ * Raw model without methods
+ *
+ * This is used to represent a model without methods and stripping out the helper methods
+ */
+export type RawModel<T extends object> = Partial<
+  OmitByTypeRecursive<Omit<T, "__dirty" | "Events" | "__type" | "__types" | "_new" | "context">, Function>
+>;

@@ -15,7 +15,13 @@ import { Query } from "@webda/ql";
 import { OwnerModel } from "./models/ownermodel";
 import { Store, StoreFindResult, StoreParameters } from "./stores/store";
 import { Service } from "./services/service";
-import { CachedModule, ModelGraph, SectionEnum, UnpackedConfiguration } from "./application/iapplication";
+import {
+  CachedModule,
+  ModelGraph,
+  SectionEnum,
+  UnpackedConfiguration,
+  CoreModelDefinition
+} from "./application/iapplication";
 import { Core } from "./core/core";
 import { DebugMailer } from "./services/debugmailer";
 import { MemoryStore } from "./stores/memory";
@@ -26,7 +32,6 @@ import { useContext } from "./contexts/execution";
 import { sleep } from "./utils/waiter";
 import { UuidModel } from "./models/uuid";
 import { DeepPartial } from "@webda/tsc-esm";
-import { CoreModelDefinition } from "./models/imodel";
 import { useModel } from "./application/hook";
 import { useRouter } from "./rest/hooks";
 import { useCore } from "./core/hooks";
@@ -447,7 +452,7 @@ class WebdaTest {
   }
 
   async newWebContext<T extends WebContext>(httpContext: HttpContext): Promise<T> {
-    return useCore().newContext<T>({ httpContext });
+    return <T>(<unknown>useCore().newContext<T>({ httpContext }));
   }
 
   /**

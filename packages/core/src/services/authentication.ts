@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Counter } from "../metrics/metrics";
 import * as WebdaError from "../errors";
-import type { CoreModelDefinition, IUser } from "../models/imodel";
+import type { IUser } from "../models/imodel";
 import type { Ident } from "../models/ident";
 import type { User } from "../models/user";
 import { Inject, Service } from "../services/service";
@@ -16,6 +16,7 @@ import { ServiceParameters } from "./iservices";
 import { useModel } from "../application/hook";
 import { useService } from "../core/hooks";
 import { WebContext } from "../contexts/webcontext";
+import { CoreModelDefinition } from "../application/iapplication";
 
 /**
  * Emitted when the /me route is called

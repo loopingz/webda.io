@@ -1,5 +1,5 @@
 import { CoreModel } from "./coremodel";
-import { RawModel } from "./types";
+import { RawModel } from "../application/iapplication";
 
 /**
  * CoreModel with a uuid

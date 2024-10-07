@@ -1,11 +1,10 @@
 import { Counter, Histogram } from "../metrics/metrics";
 import type { ConfigurationProvider } from "../services/configuration";
-import type { RawModel } from "../models/types";
 import * as WebdaError from "../errors";
 import { Throttler } from "../utils/throttler";
 
 import type { CoreModel } from "../models/coremodel";
-import type { CoreModelDefinition } from "../models/imodel";
+import type { RawModel, CoreModelDefinition } from "../application/iapplication";
 import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
 import { runAsSystem, useContext } from "../contexts/execution";

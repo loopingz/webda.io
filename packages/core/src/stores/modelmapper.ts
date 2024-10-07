@@ -1,6 +1,7 @@
 import { useApplication, useModel } from "../application/hook";
 import type { CoreModel } from "../models/coremodel";
-import type { CoreModelDefinition, CoreModelEvents } from "../models/imodel";
+import type { CoreModelEvents } from "../models/imodel";
+import { CoreModelDefinition } from "../application/iapplication";
 import { ModelRef } from "../models/relations";
 import { Service } from "../services/service";
 

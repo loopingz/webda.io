@@ -3,7 +3,6 @@ import { Writable } from "node:stream";
 
 import { HttpContext } from "./httpcontext";
 import { NotEnumerable } from "@webda/tsc-esm";
-import def from "ajv/dist/vocabularies/discriminator";
 
 /**
  * Context is the object that will be passed to the services
@@ -60,6 +59,8 @@ export abstract class Context {
   }
   /**
    * Return the user
+   *
+   * This method is not typed to avoid circular dependencies
    * @returns
    */
   abstract getCurrentUser(): Promise<any | undefined>;

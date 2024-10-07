@@ -9,6 +9,7 @@ const { __dirname } = getCommonJS(import.meta.url);
 import type { Constructor } from "@webda/tsc-esm";
 import {
   CachedModule,
+  CoreModelDefinition,
   Configuration,
   GitInformation,
   IApplication,
@@ -23,7 +24,7 @@ import {
   UnpackedConfiguration,
   WebdaPackageDescriptor
 } from "./iapplication";
-import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
+import { AbstractCoreModel } from "../models/imodel";
 import { Service } from "../services/service";
 import { CoreModel } from "../models/coremodel";
 
@@ -162,7 +163,7 @@ export class Application implements IApplication {
     this.configurationFile = file;
     this.appPath = path.resolve(path.dirname(file));
   }
-  getImplementations<T extends object>(object: T): { [key: string]: T; } {
+  getImplementations<T extends object>(object: T): { [key: string]: T } {
     throw new Error("Method not implemented.");
   }
   getModelDefinition(name: string) {

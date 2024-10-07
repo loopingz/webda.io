@@ -1,19 +1,10 @@
-import { Attributes, Constructor, FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
-import { AsyncEventEmitter, AsyncEventUnknown } from "../events/asynceventemitter";
+import { Attributes, FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
+import { AsyncEventUnknown } from "../events/asynceventemitter";
 import { Context } from "../contexts/icontext";
-import { CRUDHelper, CRUDModel, StoreHelper } from "../stores/istore";
-import { JSONSchema7 } from "json-schema";
-import { ModelGraph, ModelsTree, IModel } from "../application/iapplication";
-import { ModelAction, RawModel } from "./types";
+import { CRUDModel } from "../stores/istore";
+import { CoreModelFullDefinition, IModel } from "../application/iapplication";
 import { IContextAware, canUpdateContext } from "../contexts/icontext";
 import { useContext } from "../contexts/execution";
-
-/**
- * Proxied object
- *
- * TODO: Check if this is real useful
- */
-export type Proxied<T> = T;
 
 /**
  * Reference to a user model
@@ -146,57 +137,6 @@ export abstract class AbstractCoreModel implements IAttributeLevelPermissionMode
  */
 export interface IAttributeLevelPermissionModel extends IContextAware {
   attributePermission(attribute: string | symbol, value: any, action: "READ" | "WRITE"): any;
-}
-
-/**
- * Expose parameters for the model
- */
-export interface ExposeParameters {
-  /**
-   * If model have parent but you still want it to be exposed as root
-   * in domain-like service: DomainService, GraphQL
-   *
-   * It would create alias for the model in the root too
-   */
-  root?: boolean;
-  /**
-   * You can select to not expose some methods like create, update, delete, get, query
-   */
-  restrict: {
-    /**
-     * Create a new object
-     */
-    create?: boolean;
-    /**
-     * Update an existing object
-     *
-     * Includes PUT and PATCH
-     */
-    update?: boolean;
-    /**
-     * Query the object
-     */
-    query?: boolean;
-    /**
-     * Get a single object
-     */
-    get?: boolean;
-    /**
-     * Delete an object
-     */
-    delete?: boolean;
-    /**
-     * Do not create operations for the model
-     */
-    operation?: boolean;
-  };
-}
-
-/**
- * ModelRef create
- */
-export interface IModelRefWithCreate<T extends AbstractCoreModel> extends CRUDHelper<T> {
-  get(): Promise<T>;
 }
 
 export type ModelAttributes<T extends AbstractCoreModel> = Omit<T, Methods<T> | "Events">;

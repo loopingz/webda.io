@@ -2,12 +2,11 @@ import type { DeepPartial } from "@webda/tsc-esm";
 import { TransformCase, TransformCaseType } from "../utils/case";
 import { Service } from "./service";
 import { Application } from "../application/application";
-import type { CoreModelDefinition } from "../models/imodel";
+import type { CoreModelDefinition, ModelAction } from "../application/iapplication";
 import { JSONUtils } from "../utils/serializers";
 import { OperationContext } from "../contexts/operationcontext";
 import { CoreModel } from "../models/coremodel";
 import { runAsSystem, runWithContext } from "../contexts/execution";
-import type { ModelAction } from "../models/types";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
 import * as WebdaError from "../errors";

@@ -1,4 +1,5 @@
-import { IAttributeLevelPermissionModel, Proxied } from "./imodel";
+import { Proxied } from "../application/iapplication";
+import { IAttributeLevelPermissionModel } from "./imodel";
 
 /**
  * Proxy an object to keep its state

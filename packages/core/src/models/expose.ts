@@ -1,4 +1,4 @@
-import type { CoreModelDefinition, ExposeParameters } from "./imodel";
+import type { CoreModelDefinition, ExposeParameters } from "../application/iapplication";
 
 /**
  * Expose the model through API or GraphQL if it exists

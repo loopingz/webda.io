@@ -5,7 +5,7 @@ import * as util from "util";
 import { JSONUtils } from "../utils/serializers";
 
 import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice";
-import { useCore, useService } from "../core/hooks";
+import { getMachineId, useCore, useService } from "../core/hooks";
 import { useLog } from "../loggers/hooks";
 import { Service } from "./service";
 import { DeepPartial } from "@webda/tsc-esm";
@@ -475,14 +475,14 @@ CryptoService.registerEncrypter("local", {
   encrypt: async (data: string) => {
     // Initialization Vector
     const iv = randomBytes(16);
-    const key = createHash("sha256").update(useCore().getMachineId()).digest();
+    const key = createHash("sha256").update(getMachineId()).digest();
     const cipher = createCipheriv("aes-256-ctr", key, iv);
     return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
   },
   decrypt: async (data: string) => {
     const input = Buffer.from(data, "base64");
     const iv = input.subarray(0, 16);
-    const key = createHash("sha256").update(useCore().getMachineId()).digest();
+    const key = createHash("sha256").update(getMachineId()).digest();
     const decipher = createDecipheriv("aes-256-ctr", key, iv);
     return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
   }

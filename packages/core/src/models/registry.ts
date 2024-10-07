@@ -1,5 +1,5 @@
 import { CoreModel } from "./coremodel";
-import { CoreModelDefinition } from "./imodel";
+import { CoreModelDefinition } from "../application/iapplication";
 
 /**
  * Specific type for registry

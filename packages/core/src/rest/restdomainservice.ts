@@ -1,6 +1,5 @@
 import { QueryValidator } from "@webda/ql";
-import type { CoreModelDefinition } from "../models/imodel";
-import { ModelAction } from "../models/types";
+import type { CoreModelDefinition, ModelAction } from "../application/iapplication";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
 import { OpenAPIWebdaDefinition } from "./irest";
 import * as WebdaError from "../errors";

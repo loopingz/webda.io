@@ -1,5 +1,6 @@
-import { IStore, IService, OperationDefinitionInfo } from "./icore";
-import { createCoreHook, useInstanceStorage } from "./instancestorage";
+import { IStore, IService } from "./icore";
+import { createCoreHook } from "./instancestorage";
+import { machineIdSync } from "node-machine-id";
 
 const [useCore, setCore] = createCoreHook("core");
 
@@ -11,4 +12,18 @@ export function useService<T extends IService>(name: string): T {
 
 export function useModelStore(name: string): IStore {
   return useCore().getModelStore(name);
+}
+
+/**
+ * Get a machine id
+ * @returns
+ */
+export function getMachineId() {
+  try {
+    return process.env["WEBDA_MACHINE_ID"] || machineIdSync();
+    /* c8 ignore next 4 */
+  } catch (err) {
+    // Useful in k8s pod
+    return process.env["HOSTNAME"];
+  }
 }

@@ -1,7 +1,7 @@
 import { EventWithContext } from "../events/events";
 import * as WebdaError from "../errors";
 import type { CoreModel } from "../models/coremodel";
-import type { CoreModelDefinition } from "../models/imodel";
+import type { CoreModelDefinition } from "../application/iapplication";
 import { Ident } from "../models/ident";
 import type { User } from "../models/user";
 import type { Store } from "../stores/store";

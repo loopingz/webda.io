@@ -1,6 +1,6 @@
 import uriTemplates from "uri-templates";
 import { HttpMethodType } from "../contexts/httpcontext";
-import type { RequestFilter, RouteInfo } from "./irest";
+import type { IRouter, RequestFilter, RouteInfo } from "./irest";
 import type { AbstractCoreModel } from "../models/imodel";
 import { useApplication, useModelId, useSchema } from "../application/hook";
 import { useLog } from "../loggers/hooks";
@@ -17,7 +17,7 @@ import { Service } from "../services/service";
  * Manage Route resolution
  * @category CoreFeatures
  */
-export class Router extends Service {
+export class Router extends Service implements IRouter {
   protected routes: Map<string, RouteInfo[]> = new Map();
   protected initiated: boolean = false;
   protected pathMap: { url: string; config: RouteInfo }[];

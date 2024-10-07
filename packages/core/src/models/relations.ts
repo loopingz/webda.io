@@ -1,14 +1,8 @@
-import { ArrayElement, type Attributes, type FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
-import {
-  AbstractCoreModel,
-  CoreModelDefinition,
-  CoreModelEvents,
-  CoreModelFullDefinition,
-  ModelAttributes,
-  Proxied
-} from "./imodel";
+import { type Attributes, type FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
+import { AbstractCoreModel, CoreModelEvents } from "./imodel";
+import { CoreModelDefinition, CoreModelFullDefinition, Proxied, RawModel } from "../application/iapplication";
+
 import { getAttributeLevelProxy } from "./coremodelproxy";
-import { RawModel } from "./types";
 import { CRUDHelper } from "../stores/istore";
 
 /**

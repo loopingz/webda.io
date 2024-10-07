@@ -1,18 +1,16 @@
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import Ajv, { ErrorObject } from "ajv";
+import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
-import pkg from "node-machine-id";
 import { Application } from "../application/application";
-import { Configuration } from "../application/iapplication";
+import { Configuration, CoreModelDefinition } from "../application/iapplication";
 import { BinaryService } from "../services/binary";
 import { CoreModel } from "../models/coremodel";
-import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
+import { AbstractCoreModel } from "../models/imodel";
 import type { Constructor } from "@webda/tsc-esm";
 import { Router } from "../rest/router";
 import { CryptoService } from "../services/cryptoservice";
-import { JSONUtils } from "../utils/serializers";
 import * as WebdaError from "../errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
@@ -27,10 +25,10 @@ import { emitCoreEvent } from "../events/events";
 import { OriginFilter, WebsiteOriginFilter } from "../rest/originfilter";
 import { useParameters } from "./instancestorage";
 import { Modda } from "../application/application";
-import { useApplication, useModel } from "../application/hook";
+import { useApplication, useModel, useModelId } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
-const { machineIdSync } = pkg;
+import { getMachineId } from "./hooks";
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -256,7 +254,7 @@ export class Core implements ICore {
     attribute: string
   ): BinaryService {
     const binaries: { [key: string]: BinaryService } = useApplication().getImplementations(<any>BinaryService);
-    const model = this.application.getModelName(modelOrConstructor);
+    const model = typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor, true);
     let actualScore: number = -1;
     let actualService: BinaryService;
     const setCache = store => {
@@ -616,16 +614,6 @@ export class Core implements ICore {
     );
   }
 
-  static getMachineId() {
-    try {
-      return process.env["WEBDA_MACHINE_ID"] || machineIdSync();
-      /* c8 ignore next 4 */
-    } catch (err) {
-      // Useful in k8s pod
-      return process.env["HOSTNAME"];
-    }
-  }
-
   /**
    * Init services and Beans along with Routes
    */
@@ -644,7 +632,7 @@ export class Core implements ICore {
       type: "Webda/MemoryStore",
       persistence: {
         path: ".registry",
-        key: Core.getMachineId()
+        key: getMachineId()
       }
     };
     this.createService(this.configuration.services, "Registry");

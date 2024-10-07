@@ -1,8 +1,8 @@
 import { QueryValidator } from "@webda/ql";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
-import { AbstractCoreModel, CoreModelDefinition } from "../models/imodel";
+import { AbstractCoreModel } from "../models/imodel";
 import { Constructor } from "@webda/tsc-esm";
-import { IService } from "../application/iapplication";
+import { IService, CoreModelDefinition } from "../application/iapplication";
 export { IService };
 /**
  * Define an operation within webda app
@@ -91,7 +91,6 @@ export interface ICore {
    */
   isDebug(): boolean;
   getServices(): { [key: string]: IService };
-  getMachineId(): import("crypto").BinaryLike;
   reinit(updates: any): void | Promise<void>;
   getBinaryStore(model: AbstractCoreModel | CoreModelDefinition | string, attribute: string): IService;
   getLocales(): string[];

@@ -240,7 +240,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     const queries = this.app.getRelations(model).queries || [];
     // Get the children now
     (this.app.getRelations(model).children || []).forEach(name => {
-      const childModel = this.app.getModel(name);
+      const childModel = this.app.getModelDefinition(name);
       const parentAttribute = this.app.getRelations(childModel)?.parent?.attribute;
       const segment =
         queries.find(q => q.model === name && q.targetAttribute === parentAttribute)?.attribute ||
@@ -257,7 +257,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     this.app = <Application>(<any>useApplication());
     // Add all routes per model
     this.app.getRootExposedModels().forEach(name => {
-      const model = this.app.getModel(name);
+      const model = this.app.getModelDefinition(name);
       this.walkModel(model, this.app.getModelPlural(name));
     });
 

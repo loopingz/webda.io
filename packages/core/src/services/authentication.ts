@@ -14,7 +14,7 @@ import { runAsSystem } from "../contexts/execution";
 import { EventWithContext } from "../events/events";
 import { ServiceParameters } from "./iservices";
 import { useModel } from "../application/hook";
-import { useService } from "../core/hooks";
+import { useCore, useService } from "../core/hooks";
 import { WebContext } from "../contexts/webcontext";
 import { CoreModelDefinition } from "../application/iapplication";
 
@@ -131,7 +131,7 @@ export class AuthenticationParameters extends ServiceParameters {
   /**
    * @default "/auth"
    */
-  url?: string;
+  declare url?: string;
   /**
    * Enable the email authentication
    */
@@ -264,7 +264,7 @@ class Authentication<
    */
   providers: Set<string> = new Set<string>();
 
-  metrics: {
+  declare metrics: {
     login: Counter;
     logout: Counter;
     loginFailed?: Counter;
@@ -1057,6 +1057,19 @@ class Authentication<
 
   async generateEmailValidationToken(user: string, email: string): Promise<string> {
     return this.cryptoService.hmac(email + "_" + user);
+  }
+
+  /**
+   * Create a new User with the link ident
+   * @param ident
+   */
+  async createUserWithIdent(provider: string, identId: string, profile: any = {}) {
+    if (await this.identModel.ref(`${identId}_${provider}`).exists()) {
+      throw new Error("Ident is already known");
+    }
+    const ctx = <WebContext>await useCore().newContext({ http: new HttpContext("fake", "GET", "/") });
+    // Pretend we logged in with the ident
+    await this.onIdentLogin(ctx, provider, identId, profile);
   }
 }
 

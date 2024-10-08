@@ -1,4 +1,5 @@
-import { CoreModel, Expose, ModelRelated, ModelsMapped, NotEnumerable, OperationContext } from "@webda/core";
+import { CoreModel, Expose, ModelRelated, ModelsMapped, OperationContext } from "@webda/core";
+import { NotEnumerable } from "@webda/tsc-esm";
 import { Project } from "./project";
 import { User } from "./user";
 

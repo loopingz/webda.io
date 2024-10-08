@@ -13,14 +13,6 @@ export class FileStoreParameters extends StoreParameters {
    * Parameter sent to JSON.stringify when storing the json
    */
   beautify?: string | number;
-  /**
-   * Disable memory cache
-   *
-   * Useful if several process update storage files
-   *
-   * @default false
-   */
-  noCache?: boolean;
 }
 
 /**

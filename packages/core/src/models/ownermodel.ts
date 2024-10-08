@@ -20,11 +20,6 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    * @default false
    */
   public?: boolean;
-  /**
-   * UUID of the object
-   * @readonly
-   */
-  uuid: string;
 
   /**
    *

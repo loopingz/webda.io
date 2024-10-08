@@ -527,7 +527,7 @@ export abstract class BinaryService<
 {
   _lowercaseMaps: any;
 
-  metrics: {
+  declare metrics: {
     upload: Counter;
     download: Counter;
     delete: Counter;
@@ -838,7 +838,7 @@ export abstract class BinaryService<
    * @returns
    */
   protected getOperationName(): string {
-    return this._name.toLowerCase() === "binary" ? "" : this._name;
+    return this.name.toLowerCase() === "binary" ? "" : this.name;
   }
 
   /**

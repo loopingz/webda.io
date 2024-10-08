@@ -1,13 +1,14 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import * as assert from "assert";
-import { Authentication, DebugMailer, PasswordRecoveryInfos, Store, WebContext, WebdaError } from "../index";
-import { WebdaTest } from "../test";
+import { Authentication, PasswordRecoveryInfos, Store, WebContext, WebdaError } from "../index";
+import { WebdaApplicationTest } from "../test/test";
 import { AuthenticationParameters } from "./authentication";
+import { DebugMailer } from "./debugmailer";
 
 const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^& ]+)(&user=([^ &]+))?/;
 let userId;
 @suite
-class AuthenticationTest extends WebdaTest {
+class AuthenticationTest extends WebdaApplicationTest {
   events: number = 0;
   userStore: Store;
   identStore: Store;
@@ -15,15 +16,17 @@ class AuthenticationTest extends WebdaTest {
   authentication: Authentication;
 
   getUserStore(): Store<any> {
-    return this.authentication.getUserModel().store();
+    // @ts-ignore
+    return this.authentication.getUserModel().Store;
   }
 
   getIdentStore(): Store<any> {
-    return this.authentication.getIdentModel().store();
+    // @ts-ignore
+    return this.authentication.getIdentModel().Store;
   }
 
-  async before() {
-    await super.before();
+  async beforeEach() {
+    await super.beforeEach();
     this.authentication = <Authentication>this.getService("Authentication");
     this.userStore = this.getUserStore();
     this.identStore = this.getIdentStore();
@@ -60,7 +63,7 @@ class AuthenticationTest extends WebdaTest {
       }
     );
     await ctx.newSession();
-    ctx.getExecutor().getParameters().email.postValidation = true;
+    this.authentication.getParameters().email.postValidation = true;
     await executor.execute(ctx);
   }
 
@@ -90,7 +93,7 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(params.url, "/aaa");
     this.authentication.getParameters().email = undefined;
     assert.strictEqual(this.authentication.getUrl("./emails", ["POST"]), undefined);
-    const auth = new Authentication(this.webda, "auth", {
+    const auth = new Authentication("auth", {
       email: { mailer: "plop" }
     });
     assert.throws(() => auth.resolve(), /email authentication requires a Mailer service/);
@@ -144,7 +147,7 @@ class AuthenticationTest extends WebdaTest {
     let ident = await this.identStore.get("test@webda.io_email");
     assert.strictEqual(ident, undefined);
     // Not registered as postValidation is not set
-    ctx.getExecutor().getParameters().email.postValidation = true;
+    this.authentication.getParameters().email.postValidation = true;
     // With postValidation on the user will be create on first request
     await this.registerTest2(ctx);
     assert.strictEqual(this.events, 2); // Register + Login
@@ -160,7 +163,7 @@ class AuthenticationTest extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/auth");
     await executor.execute(ctx);
     // Now validate first user
-    ctx.getExecutor().getParameters().email.postValidation = false;
+    this.authentication.getParameters().email.postValidation = false;
     assert.strictEqual(ctx.getSession().userId, undefined);
     let match = this.mailer.sent[0].replacements.url.match(validationUrl);
     assert.notStrictEqual(match, undefined);
@@ -215,8 +218,8 @@ class AuthenticationTest extends WebdaTest {
       password: "testtest",
       register: true
     });
-    ctx.getExecutor().getParameters().email.postValidation = true;
-    ctx.getExecutor().getParameters().email.skipEmailValidation = true;
+    this.authentication.getParameters().email.postValidation = true;
+    this.authentication.getParameters().email.skipEmailValidation = true;
     await executor.execute(ctx);
     // No new email has been sent
     assert.strictEqual(this.mailer.sent.length, 3);
@@ -253,7 +256,7 @@ class AuthenticationTest extends WebdaTest {
       }
     );
     // Activate post validation
-    ctx.getExecutor().getParameters().email.postValidation = true;
+    this.authentication.getParameters().email.postValidation = true;
     await assert.rejects(
       () => executor.execute(ctx),
       (err: WebdaError.HttpError) => err.getResponseCode() === 400
@@ -272,7 +275,7 @@ class AuthenticationTest extends WebdaTest {
       register: true,
       plop: "yep"
     });
-    ctx.getExecutor().getParameters().email.postValidation = true;
+    this.authentication.getParameters().email.postValidation = true;
     await executor.execute(ctx);
     // Get me on known user
     await this.http("/auth/me", ctx);

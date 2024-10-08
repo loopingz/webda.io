@@ -1,4 +1,4 @@
-import { suite, test, WebdaTest } from "../test/core";
+import { suite, test } from "../test/core";
 import * as assert from "assert";
 import { Readable } from "stream";
 import * as WebdaQL from "@webda/ql";
@@ -8,6 +8,7 @@ import { HttpContext } from "./httpcontext";
 import { Session } from "../session/session";
 import { UnpackedConfiguration } from "../application/iapplication";
 import { SimpleOperationContext } from "./simplecontext";
+import { WebdaApplicationTest, WebdaTest } from "../test/test";
 
 export class WebContextMock extends WebContext {
   constructor(httpContext: HttpContext, stream?: any) {
@@ -18,7 +19,13 @@ export class WebContextMock extends WebContext {
 export class OperationContextMock extends OperationContext {}
 
 @suite
-class ContextTest extends WebdaTest {
+class ContextAppTest extends WebdaApplicationTest {
+  @test
+  async copyContext() {
+    const context = await this.newContext();
+    await SimpleOperationContext.fromContext(context);
+  }
+
   ctx: WebContext;
 
   async beforeEach() {
@@ -27,7 +34,7 @@ class ContextTest extends WebdaTest {
 
   getTestConfiguration(): UnpackedConfiguration {
     return {
-      version: 3,
+      version: 4,
       parameters: {
         locales: ["es-ES", "en", "fr-FR"],
         ignoreBeans: true
@@ -49,15 +56,8 @@ class ContextTest extends WebdaTest {
   }
 
   @test
-  async copyContext() {
-    const context = await this.newContext();
-    await SimpleOperationContext.fromContext(context);
-  }
-
-  @test
   async cov() {
     // Get the last lines
-    this.ctx.logIn();
     this.ctx.getRoute();
     this.ctx = new WebContextMock(new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setParameters({ id: "plop" });
@@ -74,23 +74,7 @@ class ContextTest extends WebdaTest {
     this.ctx.addAsyncRequest((async () => {})());
     assert.strictEqual(this.ctx._promises.length, 1);
 
-    this.ctx.log("INFO", "Test");
-
     assert.rejects(() => this.ctx.execute(), /Not Implemented/);
-    let called = false;
-    this.ctx._executor = {
-      // @ts-ignore
-      plop: () => {
-        called = true;
-      }
-    };
-
-    this.ctx._route = {
-      // @ts-ignore
-      _method: this.ctx._executor.plop
-    };
-    await this.ctx.execute();
-    assert.ok(called);
 
     // @ts-ignore
     this.ctx._ended = true;
@@ -105,12 +89,13 @@ class ContextTest extends WebdaTest {
     this.ctx._ended = false;
     // @ts-ignore
     this.ctx.statusCode = 204;
-    this.ctx.getStream().write("plop");
+    const stream = await this.ctx.getOutputStream();
+    stream.write("plop");
     await this.ctx.end();
     assert.strictEqual(this.ctx.statusCode, 200);
     // @ts-ignore
     this.ctx._body = undefined;
-    this.ctx.getStream().write("ppop", () => {});
+    stream.write("ppop", () => {});
 
     assert.strictEqual(this.ctx.hasFlushedHeaders(), false);
     this.ctx.setFlushedHeaders();
@@ -138,7 +123,7 @@ class ContextTest extends WebdaTest {
       stream.on("close", resolve);
       stream.on("error", reject);
     });
-    stream.pipe(this.ctx.getStream());
+    stream.pipe(await this.ctx.getOutputStream());
     await prom;
     assert.throws(() => this.ctx.setHeader("x-plop", "2"), /Headers have been sent already/);
     await this.ctx.end();
@@ -232,12 +217,11 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(this.ctx.statusCode, 302);
   }
   @test
-  generic() {
+  async generic() {
     this.ctx.init();
     // @ts-ignore
     this.ctx.session = undefined;
     assert.strictEqual(this.ctx.getCurrentUserId(), undefined);
-    assert.notStrictEqual(this.ctx.getStream(), undefined);
     this.ctx._cookie = undefined;
     this.ctx.cookie("test", "plop");
     this.ctx.cookie("test2", "plop2");
@@ -274,6 +258,7 @@ class ContextTest extends WebdaTest {
     this.ctx.getSession();
     // @ts-ignore
     Object.observe = undefined;
+    assert.notStrictEqual(await this.ctx.getOutputStream(), undefined);
   }
 
   @test
@@ -304,20 +289,20 @@ class ContextTest extends WebdaTest {
 
   @test
   async operationContext() {
-    let ctx = new OperationContextMock(this.webda);
+    let ctx = new OperationContextMock();
     assert.strictEqual(ctx.getCurrentUserId(), undefined);
     assert.strictEqual(await ctx.getRawInputAsString(), "");
     assert.strictEqual((await ctx.getRawInput()).toString(), "");
     assert.strictEqual(ctx.getRawStream(), undefined);
     ctx.createStream();
-    ctx.getOutputStream().write("plop");
-    assert.strictEqual(ctx.getOutput(), "plop");
     ctx.writeHead(200, { test: "plip" });
     ctx.setHeader("test", "plip");
+    (await ctx.getOutputStream()).write("plop");
+    assert.strictEqual(ctx.getOutput(), "plop");
 
     // cov
     const http = new HttpContext("test.webda.io", "GET", "/");
-    ctx = new WebContextMock(this.webda, http);
+    ctx = new WebContextMock(http);
     await ctx.getRawInput();
     ctx.getRawStream();
   }

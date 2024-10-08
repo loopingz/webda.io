@@ -7,12 +7,12 @@ import { SimpleUser } from "./simpleuser";
  */
 export class MyIdent extends Ident {
   toto: string;
-  _user: ModelLink<MySimpleUser>;
+  declare _user: ModelLink<MySimpleUser>;
 }
 
 /**
  * @WebdaIgnore
  */
 export class MySimpleUser extends SimpleUser {
-  _idents: ModelMapLoader<MyIdent, "_type" | "uuid" | "email">[];
+  declare _idents: ModelMapLoader<MyIdent, "_type" | "uuid" | "email">[];
 }

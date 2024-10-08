@@ -176,7 +176,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
   /**
    * Service name
    */
-  protected _name: string;
+  protected name: string;
   /**
    * Hold the parameters for your service
    *
@@ -204,8 +204,8 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
    */
   constructor(name: string, params: DeepPartial<T> = {}) {
     super();
+    this.name = name;
     this.logger = useLogger(this);
-    this._name = name;
     this.parameters = <T>this.loadParameters(params);
   }
 
@@ -241,7 +241,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
    * Return service representation
    */
   toString() {
-    return this.parameters.type + "[" + this._name + "]";
+    return this.parameters.type + "[" + this.name + "]";
   }
 
   /**
@@ -432,7 +432,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
    * @returns
    */
   toJSON() {
-    return this._name;
+    return this.name;
   }
 
   /**
@@ -469,7 +469,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
    * Get service name
    */
   getName(): string {
-    return this._name;
+    return this.name;
   }
 
   /**
@@ -499,7 +499,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
    */
   log(level: WorkerLogLevel, ...args: any[]) {
     // Add the service name to avoid confusion
-    this.logger.log(level, `[${this._name}]`, ...args);
+    this.logger.log(level, `[${this.name}]`, ...args);
   }
 }
 

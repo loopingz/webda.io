@@ -1,10 +1,11 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import { WorkerOutput } from "@webda/workout";
-import { WebdaSimpleTest } from "../test";
-import { FileLoggerService, Logger } from "./logger";
+import { WebdaTest } from "../test/test";
+import { Logger } from "./ilogger";
+import { FileLoggerService } from "./file";
 
 @suite
-class LoggerTest extends WebdaSimpleTest {
+class LoggerTest extends WebdaTest {
   @test
   testLogger() {
     const output: any = {
@@ -31,7 +32,7 @@ class LoggerTest extends WebdaSimpleTest {
   @test
   async fileLogger() {
     this.cleanFiles.push("test.log");
-    const logger = new FileLoggerService(this.webda, "flogger", {
+    const logger = new FileLoggerService("flogger", {
       file: "test.log"
     });
   }

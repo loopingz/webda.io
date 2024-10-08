@@ -84,7 +84,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @override
    */
   async getRawInput(limit: number = 1024 * 1024 * 10, timeout: number = 60000) {
-    return this.getHttpContext().getRawBody(limit, timeout);
+    return (await this.getHttpContext().getRawBody(limit, timeout)) || Buffer.from("");
   }
 
   /**
@@ -120,23 +120,6 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   }
 
   /**
-   * Set a header value
-   *
-   * @param {String} header name
-   * @param {String} value
-   */
-  public setHeader(header, value) {
-    if (this.headersFlushed) {
-      throw new Error("Headers have been sent already");
-    }
-    if (value) {
-      this._outputHeaders[header] = value;
-    } else if (this._outputHeaders[header]) {
-      delete this._outputHeaders[header];
-    }
-  }
-
-  /**
    * Write the http return code and some headers
    * Those headers are not flushed yet so can still be overwritten
    *
@@ -144,11 +127,9 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @param {Object} headers to add to the response
    */
   writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
-    this._outputHeaders = { ...this._outputHeaders, ...headers };
-    // Ensure undefined values are removed
-    Object.keys(this._outputHeaders)
-      .filter(h => this._outputHeaders[h] === undefined)
-      .forEach(h => delete this._outputHeaders[h]);
+    Object.entries(headers || {}).forEach(([key, value]) => {
+      this.setHeader(key, value);
+    });
     if (statusCode !== undefined) {
       this.statusCode = statusCode;
     }
@@ -236,7 +217,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
       if (this.getExtension("http")) {
         await useService<SessionManager>("SessionManager").save(this, this.session);
       }
-      await Promise.all(this._promises);
+      await super.end();
       if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {
         this._body = (<WritableStreamBuffer>this._stream).getContents().toString();
         this.statusCode = this.statusCode < 300 ? 200 : this.statusCode;
@@ -297,30 +278,6 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
       connection: undefined,
       ...stream
     });
-  }
-
-  /**
-   * Get the HTTP stream to output raw data
-   * @returns {*}
-   */
-  getStream() {
-    return this.getOutputStream();
-  }
-
-  /**
-   * Pipeline streams into the output stream
-   *
-   * @see https://nodejs.org/api/stream.html#streampipelinestreams-options
-   */
-  pipeline(stream1: NodeJS.ReadableStream, ...streams: Array<NodeJS.ReadWriteStream | PipelineOptions>): Promise<void> {
-    const isPipelineOptions = (arg: NodeJS.ReadWriteStream | PipelineOptions): arg is PipelineOptions =>
-      (arg as NodeJS.ReadWriteStream).writable === undefined;
-    const item = streams.pop();
-    if (isPipelineOptions(item)) {
-      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), this.getOutputStream()], item);
-    } else {
-      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), this.getOutputStream()]);
-    }
   }
 
   /**

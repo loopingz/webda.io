@@ -2,33 +2,32 @@
   "beans": {},
   "deployers": {},
   "moddas": {
-    "Webda/Aggregator": "lib/stores/aggregator:AggregatorService",
-    "Webda/AsyncEvents": "lib/services/asyncevents:EventService",
     "Webda/Authentication": "lib/services/authentication:Authentication",
     "Webda/Binary": "lib/services/binary:BinaryService",
     "Webda/ConfigurationService": "lib/services/configuration:ConfigurationService",
-    "Webda/ConsoleLogger": "lib/utils/logger:ConsoleLoggerService",
-    "Webda/CookieSessionManager": "lib/utils/session:CookieSessionManager",
+    "Webda/ConsoleLogger": "lib/loggers/console:ConsoleLoggerService",
+    "Webda/CookieSessionManager": "lib/session/manager:CookieSessionManager",
     "Webda/CronService": "lib/services/cron:CronService",
     "Webda/CryptoService": "lib/services/cryptoservice:CryptoService",
     "Webda/DebugMailer": "lib/services/debugmailer:DebugMailer",
     "Webda/FileBinary": "lib/services/filebinary:FileBinary",
     "Webda/FileConfiguration": "lib/services/fileconfiguration:FileConfigurationService",
-    "Webda/FileLogger": "lib/utils/logger:FileLoggerService",
+    "Webda/FileLogger": "lib/loggers/file:FileLoggerService",
     "Webda/FileQueue": "lib/queues/filequeue:FileQueue",
     "Webda/FileStore": "lib/stores/file:FileStore",
     "Webda/InvitationService": "lib/services/invitationservice:InvitationService",
     "Webda/KubernetesConfigurationService": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
     "Webda/Mailer": "lib/services/mailer:Mailer",
     "Webda/Mapper": "lib/stores/mapper:MapperService",
-    "Webda/MemoryLogger": "lib/utils/logger:MemoryLoggerService",
+    "Webda/MemoryLogger": "lib/loggers/memory:MemoryLoggerService",
     "Webda/MemoryQueue": "lib/queues/memoryqueue:MemoryQueue",
     "Webda/MemoryStore": "lib/stores/memory:MemoryStore",
     "Webda/ModelsOperationsService": "lib/services/domainservice:ModelsOperationsService",
     "Webda/MultiNotificationService": "lib/services/notificationservice:default",
     "Webda/PrometheusService": "lib/services/prometheus:PrometheusService",
     "Webda/RESTDomainService": "lib/rest/restdomainservice:RESTDomainService",
-    "Webda/ResourceService": "lib/services/resource:ResourceService"
+    "Webda/ResourceService": "lib/services/resource:ResourceService",
+    "Webda/Router": "lib/rest/router:Router"
   },
   "models": {
     "graph": {
@@ -60,11 +59,7 @@
             "cascadeDelete": false,
             "model": "Webda/Ident",
             "targetLink": "_user",
-            "targetAttributes": [
-              "_type",
-              "uuid",
-              "email"
-            ]
+            "targetAttributes": ["_type", "uuid", "email"]
           }
         ]
       },
@@ -291,17 +286,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "async",
-        "attribute",
-        "cascade",
-        "fields",
-        "key",
-        "source",
-        "target",
-        "targetAttribute",
-        "type"
-      ],
+      "required": ["async", "attribute", "cascade", "fields", "key", "source", "target", "targetAttribute", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AggregatorService"
     },
@@ -332,9 +317,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EventService"
     },
@@ -386,12 +369,7 @@
               "default": 3
             }
           },
-          "required": [
-            "postValidation",
-            "skipEmailValidation",
-            "delay",
-            "failedLoginBeforeDelay"
-          ],
+          "required": ["postValidation", "skipEmailValidation", "delay", "failedLoginBeforeDelay"],
           "description": "Enable the email authentication"
         },
         "password": {
@@ -429,14 +407,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "failureRedirect",
-        "password",
-        "registerRedirect",
-        "salt",
-        "successRedirect",
-        "type"
-      ],
+      "required": ["failureRedirect", "password", "registerRedirect", "salt", "successRedirect", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Authentication"
     },
@@ -471,10 +442,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "models",
-        "type"
-      ],
+      "required": ["models", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BinaryService"
     },
@@ -509,11 +477,7 @@
           "description": "Original name"
         }
       },
-      "required": [
-        "mimetype",
-        "name",
-        "size"
-      ],
+      "required": ["mimetype", "name", "size"],
       "description": "Represent a file to store",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BinaryFile"
@@ -545,11 +509,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "default",
-        "source",
-        "type"
-      ],
+      "required": ["default", "source", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ConfigurationService"
     },
@@ -576,21 +536,12 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "logLevel",
-        "type"
-      ],
+      "required": ["logLevel", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WorkerLogLevel": {
           "type": "string",
-          "enum": [
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE"
-          ],
+          "enum": ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
@@ -634,13 +585,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "BYTES_PER_ELEMENT",
-                    "buffer",
-                    "byteLength",
-                    "byteOffset",
-                    "length"
-                  ]
+                  "required": ["BYTES_PER_ELEMENT", "buffer", "byteLength", "byteOffset", "length"]
                 },
                 {
                   "type": "object",
@@ -652,10 +597,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "key",
-                    "passphrase"
-                  ]
+                  "required": ["key", "passphrase"]
                 }
               ],
               "description": "Secret to use with JWT"
@@ -680,10 +622,7 @@
               "default": "HS256"
             },
             "expiresIn": {
-              "type": [
-                "number",
-                "string"
-              ],
+              "type": ["number", "string"],
               "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\")."
             },
             "audience": {
@@ -707,18 +646,12 @@
           "properties": {
             "sameSite": {
               "type": "string",
-              "enum": [
-                "none",
-                "strict",
-                "lax"
-              ],
+              "enum": ["none", "strict", "lax"],
               "default": "lax"
             },
             "domain": {
               "type": "boolean",
-              "enum": [
-                true
-              ],
+              "enum": [true],
               "description": "if true domain will be set to the request hostname if undefined no domain will be output (browser will use the current domain and only this one) if a string is provided it will be used as the domain\n\nWhen provided a domain is setting the cookie to be available to all subdomains"
             },
             "maxAge": {
@@ -750,9 +683,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "ArrayBufferLike": {
@@ -764,9 +695,7 @@
                   "type": "number"
                 }
               },
-              "required": [
-                "byteLength"
-              ]
+              "required": ["byteLength"]
             },
             {}
           ]
@@ -810,9 +739,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CronService"
@@ -846,16 +773,7 @@
         },
         "asymetricType": {
           "type": "string",
-          "enum": [
-            "rsa",
-            "dsa",
-            "ec",
-            "ed25519",
-            "ed448",
-            "x25519",
-            "x448",
-            "dh"
-          ],
+          "enum": ["rsa", "dsa", "ec", "ed25519", "ed448", "x25519", "x448", "dh"],
           "description": "Type of asymetric key\n\nhttps://nodejs.org/api/crypto.html#cryptogeneratekeypairsynctype-options https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_crypto_generatekeypairsync_type_options"
         },
         "asymetricOptions": {
@@ -874,10 +792,7 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "spki",
-                    "pkcs1"
-                  ],
+                  "enum": ["spki", "pkcs1"],
                   "default": "spki"
                 },
                 "format": {
@@ -891,11 +806,7 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "pkcs1",
-                    "pkcs8",
-                    "sec1"
-                  ],
+                  "enum": ["pkcs1", "pkcs8", "sec1"],
                   "description": "https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_keyobject_export_options",
                   "default": "pkcs8"
                 },
@@ -949,13 +860,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "BYTES_PER_ELEMENT",
-                    "buffer",
-                    "byteLength",
-                    "byteOffset",
-                    "length"
-                  ]
+                  "required": ["BYTES_PER_ELEMENT", "buffer", "byteLength", "byteOffset", "length"]
                 },
                 {
                   "type": "object",
@@ -967,10 +872,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "key",
-                    "passphrase"
-                  ]
+                  "required": ["key", "passphrase"]
                 }
               ],
               "description": "Secret to use with JWT"
@@ -995,10 +897,7 @@
               "default": "HS256"
             },
             "expiresIn": {
-              "type": [
-                "number",
-                "string"
-              ],
+              "type": ["number", "string"],
               "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\")."
             },
             "audience": {
@@ -1022,12 +921,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "asymetricType",
-        "keyActiveLifespan",
-        "keyLifespan",
-        "type"
-      ],
+      "required": ["asymetricType", "keyActiveLifespan", "keyLifespan", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "ArrayBufferLike": {
@@ -1039,9 +933,7 @@
                   "type": "number"
                 }
               },
-              "required": [
-                "byteLength"
-              ]
+              "required": ["byteLength"]
             },
             {}
           ]
@@ -1065,9 +957,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DebugMailer"
@@ -1115,11 +1005,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "folder",
-        "models",
-        "type"
-      ],
+      "required": ["folder", "models", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileBinary"
     },
@@ -1150,11 +1036,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "default",
-        "source",
-        "type"
-      ],
+      "required": ["default", "source", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileConfigurationService"
     },
@@ -1187,22 +1069,12 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "file",
-        "logLevel",
-        "type"
-      ],
+      "required": ["file", "logLevel", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WorkerLogLevel": {
           "type": "string",
-          "enum": [
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE"
-          ],
+          "enum": ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
@@ -1231,10 +1103,7 @@
               "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
             }
           },
-          "required": [
-            "interval",
-            "type"
-          ],
+          "required": ["interval", "type"],
           "description": "Delayer between two failed attempts to process messages"
         },
         "workerParallelism": {
@@ -1261,11 +1130,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "folder",
-        "maxConsumers",
-        "type"
-      ],
+      "required": ["folder", "maxConsumers", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileQueue"
     },
@@ -1330,10 +1195,7 @@
           "description": "Local path where to store all `json` files"
         },
         "beautify": {
-          "type": [
-            "string",
-            "number"
-          ],
+          "type": ["string", "number"],
           "description": "Parameter sent to JSON.stringify when storing the json"
         },
         "openapi": {
@@ -1341,11 +1203,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "folder",
-        "slowQueryThreshold",
-        "type"
-      ],
+      "required": ["folder", "slowQueryThreshold", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileStore"
     },
@@ -1417,10 +1275,7 @@
           "description": "Provider id"
         }
       },
-      "required": [
-        "uid",
-        "uuid"
-      ],
+      "required": ["uid", "uuid"],
       "description": "First basic model for Ident",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ident"
@@ -1532,11 +1387,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "default",
-        "source",
-        "type"
-      ],
+      "required": ["default", "source", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "KubernetesConfigurationService"
     },
@@ -1578,11 +1429,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "SES",
-        "sender",
-        "type"
-      ],
+      "required": ["SES", "sender", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Mailer"
     },
@@ -1634,16 +1481,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "async",
-        "attribute",
-        "cascade",
-        "fields",
-        "source",
-        "target",
-        "targetAttribute",
-        "type"
-      ],
+      "required": ["async", "attribute", "cascade", "fields", "source", "target", "targetAttribute", "type"],
       "description": "Mapper configuration",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MapperService"
@@ -1671,21 +1509,12 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "logLevel",
-        "type"
-      ],
+      "required": ["logLevel", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WorkerLogLevel": {
           "type": "string",
-          "enum": [
-            "ERROR",
-            "WARN",
-            "INFO",
-            "DEBUG",
-            "TRACE"
-          ],
+          "enum": ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
@@ -1714,10 +1543,7 @@
               "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
             }
           },
-          "required": [
-            "interval",
-            "type"
-          ],
+          "required": ["interval", "type"],
           "description": "Delayer between two failed attempts to process messages"
         },
         "workerParallelism": {
@@ -1740,10 +1566,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "maxConsumers",
-        "type"
-      ],
+      "required": ["maxConsumers", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MemoryQueue"
     },
@@ -1828,9 +1651,7 @@
               "default": 9
             }
           },
-          "required": [
-            "path"
-          ],
+          "required": ["path"],
           "description": "Persist the data in a file"
         },
         "openapi": {
@@ -1838,10 +1659,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "slowQueryThreshold",
-        "type"
-      ],
+      "required": ["slowQueryThreshold", "type"],
       "description": "Memory store",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MemoryStore"
@@ -1869,10 +1687,7 @@
         },
         "queryMethod": {
           "type": "string",
-          "enum": [
-            "PUT",
-            "GET"
-          ],
+          "enum": ["PUT", "GET"],
           "description": "Method used for query objects",
           "default": "PUT"
         },
@@ -1882,32 +1697,19 @@
             "type": "string"
           },
           "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
-          "default": [
-            "*"
-          ]
+          "default": ["*"]
         },
         "openapi": {
           "type": "object",
           "additionalProperties": true
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "TransformCaseType": {
           "type": "string",
-          "enum": [
-            "none",
-            "camelCase",
-            "ENV_VAR",
-            "snake_case",
-            "PascalCase",
-            "kebab-case",
-            "UPPERCASE",
-            "lowercase"
-          ],
+          "enum": ["none", "camelCase", "ENV_VAR", "snake_case", "PascalCase", "kebab-case", "UPPERCASE", "lowercase"],
           "description": "Transform the name of the model to be used in the URL"
         }
       },
@@ -1941,10 +1743,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "senders",
-        "type"
-      ],
+      "required": ["senders", "type"],
       "description": "Parameters for multi notification service",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MultiNotificationService"
@@ -1978,9 +1777,7 @@
           "default": false
         }
       },
-      "required": [
-        "uuid"
-      ],
+      "required": ["uuid"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OwnerModel"
     },
@@ -2034,11 +1831,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "includeNodeMetrics",
-        "includeRequestMetrics",
-        "type"
-      ],
+      "required": ["includeNodeMetrics", "includeRequestMetrics", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PrometheusService"
     },
@@ -2094,9 +1887,7 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "description": "ResourceService parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ResourceService"
@@ -2124,10 +1915,7 @@
         },
         "queryMethod": {
           "type": "string",
-          "enum": [
-            "PUT",
-            "GET"
-          ],
+          "enum": ["PUT", "GET"],
           "description": "Method used for query objects",
           "default": "PUT"
         },
@@ -2137,9 +1925,7 @@
             "type": "string"
           },
           "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
-          "default": [
-            "*"
-          ]
+          "default": ["*"]
         },
         "exposeOpenAPI": {
           "type": "boolean",
@@ -2156,25 +1942,12 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "exposeOpenAPI",
-        "swaggerVersion",
-        "type"
-      ],
+      "required": ["exposeOpenAPI", "swaggerVersion", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "TransformCaseType": {
           "type": "string",
-          "enum": [
-            "none",
-            "camelCase",
-            "ENV_VAR",
-            "snake_case",
-            "PascalCase",
-            "kebab-case",
-            "UPPERCASE",
-            "lowercase"
-          ],
+          "enum": ["none", "camelCase", "ENV_VAR", "snake_case", "PascalCase", "kebab-case", "UPPERCASE", "lowercase"],
           "description": "Transform the name of the model to be used in the URL"
         }
       },
@@ -2261,17 +2034,13 @@
                 "type": "string"
               }
             },
-            "required": [
-              "uuid"
-            ],
+            "required": ["uuid"],
             "additionalProperties": false
           },
           "readOnly": true
         }
       },
-      "required": [
-        "displayName"
-      ],
+      "required": ["displayName"],
       "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no models",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SimpleUser"
@@ -2314,9 +2083,7 @@
           "description": "Contain main user email if exists"
         }
       },
-      "required": [
-        "displayName"
-      ],
+      "required": ["displayName"],
       "description": "First basic model for User",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User"

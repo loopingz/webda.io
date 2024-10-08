@@ -20,15 +20,16 @@ import { setLogContext } from "../loggers/hooks";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
 import { getUuid } from "../utils/uuid";
-import { ICore, IService, OperationDefinitionInfo } from "./icore";
+import { ICore, IService, OperationDefinitionInfo, ServiceConstructor } from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { OriginFilter, WebsiteOriginFilter } from "../rest/originfilter";
-import { useInstanceStorage, useParameters } from "./instancestorage";
+import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
 import { Modda } from "../application/application";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
 import { getMachineId } from "./hooks";
+import { RegistryModel } from "../models/registry";
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -155,13 +156,8 @@ export class Core implements ICore {
      * SIGINT handler
      */
     process.on("SIGINT", async () => {
-      /*
-      TODO Reenable when we have a way to cancel properly
-      if (Core.get()?.interuptables.length > 0) {
-        console.log("Received SIGINT. Cancelling all interuptables.");
-        await Promise.all(Core.get().interuptables.map(i => i.cancel()));
-      }
-      */
+      console.log("Received SIGINT. Cancelling all interuptables.");
+      await this.stop();
       process.exit(0);
     });
     this.workerOutput = application.getWorkerOutput();
@@ -176,7 +172,7 @@ export class Core implements ICore {
     this._ajvSchemas = {};
 
     // Load the configuration and migrate
-    this.configuration = this.application.getCurrentConfiguration();
+    this.configuration = useConfiguration();
 
     // Init default values for configuration
     this.configuration.parameters ??= {};
@@ -189,14 +185,6 @@ export class Core implements ICore {
       this.configuration.parameters.metrics.prefix ??= "";
     }
     this.configuration.services ??= {};
-    // Add CSRF origins filtering
-    if (this.configuration.parameters.csrfOrigins) {
-      useRouter().registerCORSFilter(new OriginFilter(this.configuration.parameters.csrfOrigins));
-    }
-    // Add CSRF website filtering
-    if (this.configuration.parameters.website) {
-      useRouter().registerCORSFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
-    }
   }
 
   /**
@@ -224,10 +212,7 @@ export class Core implements ICore {
     };
     const stores: { [key: string]: Store } = useApplication().getImplementations(<any>Store);
     let actualScore: number;
-    const test = useParameters("plop").test;
 
-    const defaultStore = useParameters().defaultStore;
-    console.log(test, defaultStore);
     let actualStore: Store = this.getService(useParameters().defaultStore || "Registry");
     for (const store in stores) {
       const score = stores[store].handleModel(model);
@@ -343,10 +328,10 @@ export class Core implements ICore {
       this.services[service]._initTime = Date.now();
       await this.services[service].init();
     } catch (err) {
-      this.services[service]._initException = err.message;
-      this.failedServices[service] = { _initException: err };
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
+      this.services[service]._initException = err.message;
+      this.failedServices[service] = { _initException: err };
     }
   }
 
@@ -356,11 +341,10 @@ export class Core implements ICore {
    * It will resolve Services init method and autolink
    */
   async init() {
-    if (this._init) {
-      return this._init;
-    }
-
-    if (this.configuration.parameters.configurationService) {
+    if (
+      this.configuration.parameters.configurationService &&
+      this.configuration.services[this.configuration.parameters.configurationService]
+    ) {
       try {
         this.log("INFO", `Using ConfigurationService '${this.configuration.parameters.configurationService}'`);
         // Create the configuration service
@@ -406,6 +390,7 @@ export class Core implements ICore {
 
     this.log("TRACE", "Create Webda init promise");
     this._init = (async () => {
+      await this.initService("Router");
       await this.initService("Registry");
       await this.initService("CryptoService");
 
@@ -526,7 +511,7 @@ export class Core implements ICore {
     if (type === undefined) {
       type = service;
     }
-    let serviceConstructor = undefined;
+    let serviceConstructor: ServiceConstructor<IService> = undefined;
     try {
       serviceConstructor = this.application.getModda(type);
     } catch (ex) {
@@ -537,7 +522,7 @@ export class Core implements ICore {
 
     try {
       this.log("TRACE", "Constructing service", service);
-      this.services[service] = new serviceConstructor(this, service, useParameters(service));
+      this.services[service] = new serviceConstructor(service, useParameters(service));
     } catch (err) {
       this.log("ERROR", "Cannot create service", service, err);
       // @ts-ignore
@@ -625,29 +610,18 @@ export class Core implements ICore {
     // For all final models, call resolve so they can declare their operations
     Object.values(this.application.getModels())
       .filter(model => {
-        return model && this.application.isFinalModel(model.getIdentifier());
+        return model && this.application.isFinalModel(useModelId(model));
       })
       .forEach(model => {
         model.resolve();
       });
     // Init the registry
-    const autoRegistry = this.configuration.services["Registry"] === undefined;
-    this.configuration.services["Registry"] ??= {
-      type: "Webda/MemoryStore",
-      persistence: {
-        path: ".registry",
-        key: getMachineId()
-      }
-    };
+
     this.createService(this.configuration.services, "Registry");
     this.getService<Store>("Registry").resolve();
+    this.application.addModel("Webda/Registry", RegistryModel);
+    RegistryModel["Store"] = <any>this.getService<Store>("Registry");
 
-    // Init the key service
-    this.configuration.services["CryptoService"] ??= {
-      type: "Webda/CryptoService",
-      autoRotate: autoRegistry ? 30 : undefined,
-      autoCreate: true
-    };
     this.createService(this.configuration.services, "CryptoService");
     this.cryptoService = this.getService<CryptoService>("CryptoService").resolve();
 

@@ -10,9 +10,10 @@ import {
   WaitFor,
   WaitLinearDelay
 } from "./waiter";
+import { WebdaTest } from "../test/test";
 
 @suite
-class WaiterTest {
+class WaiterTest extends WebdaTest {
   @test
   async cancellablePromise() {
     let promise = new CancelablePromise();

@@ -16,6 +16,8 @@ import { Service } from "../services/service";
 /**
  * Manage Route resolution
  * @category CoreFeatures
+ *
+ * @WebdaModda
  */
 export class Router extends Service implements IRouter {
   protected routes: Map<string, RouteInfo[]> = new Map();

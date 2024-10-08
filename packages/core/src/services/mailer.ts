@@ -116,7 +116,7 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   extends Service<T>
   implements MailerService
 {
-  metrics: {
+  declare metrics: {
     sent: Counter;
     errors: Counter;
   };

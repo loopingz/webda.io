@@ -30,15 +30,10 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   Parameters,
   Output
 > {
-  getResponseHeaders: () => any;
   /**
    * Session
    */
   protected session: Session;
-  /**
-   * Allow extensions
-   */
-  protected extensions: { [key: string]: any };
   /**
    * Contain the sanitized request body if computed
    */
@@ -54,11 +49,6 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   private user: IUser;
 
-  /**
-   * Contain all registered promises to this context
-   */
-  @NotEnumerable
-  _promises: Promise<any>[];
   parameters: Parameters;
 
   /**
@@ -120,22 +110,6 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   public setParameters(params: Parameters) {
     this.parameters = params;
-  }
-
-  /**
-   * For easier compatibility with WebContext
-   * On OperationContext this call is simply ignored
-   */
-  setHeader(_name: string, _value: string) {
-    // Do nothing
-  }
-
-  /**
-   * For easier compatibility with WebContext
-   * On OperationContext this call is simply ignored
-   */
-  writeHead(_code: number, _headers: any) {
-    // Do nothing
   }
 
   /**
@@ -252,7 +226,8 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * Get the HTTP stream to output raw data
    * @returns {*}
    */
-  getOutputStream() {
+  async getOutputStream() {
+    await this.flushHeaders();
     return this._stream;
   }
 

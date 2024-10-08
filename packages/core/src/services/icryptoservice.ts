@@ -24,7 +24,7 @@ export class CryptoServiceParameters extends ServiceParameters {
    *
    * @see https://datatracker.ietf.org/doc/html/rfc7517
    */
-  url?: string;
+  declare url?: string;
 
   /**
    * Type of asymetric key

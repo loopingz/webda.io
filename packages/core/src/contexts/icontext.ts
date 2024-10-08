@@ -1,8 +1,9 @@
 // This file should not be exported in the library as it should only be used by CoreModel
-import { Writable } from "node:stream";
+import { PipelineOptions, Writable } from "node:stream";
 
 import { HttpContext } from "./httpcontext";
 import { NotEnumerable } from "@webda/tsc-esm";
+import { pipeline } from "node:stream/promises";
 
 /**
  * Context is the object that will be passed to the services
@@ -12,11 +13,20 @@ export abstract class Context {
    * Allow extensions
    */
   protected extensions: { [key: string]: any };
+
+  /**
+   * Store response headers
+   */
+  private responseHeaders = {};
   /**
    * Contain all registered promises to this context
    */
   @NotEnumerable
   _promises: Promise<any>[];
+  /**
+   * If the headers were flushed
+   */
+  protected flushed: boolean = false;
 
   isGlobalContext(): boolean {
     return false;
@@ -56,6 +66,7 @@ export abstract class Context {
    */
   async end() {
     await Promise.all(this._promises);
+    await this.flushHeaders();
   }
   /**
    * Return the user
@@ -72,6 +83,65 @@ export abstract class Context {
   async init(): Promise<this> {
     return this;
   }
+  /**
+   * Set a header in the response
+   */
+  setHeader(name: string, value: string | number | string[]) {
+    if (this.flushed) {
+      throw new Error("Headers have been sent already");
+    }
+    this.responseHeaders[name] = value;
+  }
+
+  /**
+   * For easier compatibility with WebContext
+   * On OperationContext this call is simply ignored
+   */
+  writeHead(_code: number, headers: { [key: string]: string | number | string[] }) {
+    // Do nothing
+    Object.entries(headers).forEach(([key, value]) => {
+      this.setHeader(key, value);
+    });
+  }
+
+  /**
+   * Get current response headers
+   */
+  getResponseHeaders(): any {
+    return this.responseHeaders;
+  }
+
+  /**
+   * Send the headers to the client
+   */
+  async flushHeaders() {
+    if (this.flushed) {
+      return;
+    }
+    this.responseHeaders = {};
+    this.flushed = true;
+  }
+
+  /**
+   * Pipeline streams into the output stream
+   *
+   * @see https://nodejs.org/api/stream.html#streampipelinestreams-options
+   */
+  async pipeline(
+    stream1: NodeJS.ReadableStream,
+    ...streams: Array<NodeJS.ReadWriteStream | PipelineOptions>
+  ): Promise<void> {
+    const isPipelineOptions = (arg: NodeJS.ReadWriteStream | PipelineOptions): arg is PipelineOptions =>
+      (arg as NodeJS.ReadWriteStream).writable === undefined;
+    const item = streams.pop();
+    if (isPipelineOptions(item)) {
+      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()], item);
+    } else {
+      return pipeline([stream1, ...(<Array<NodeJS.ReadWriteStream>>streams), await this.getOutputStream()]);
+    }
+  }
+
+  abstract getOutputStream(): Promise<Writable>;
 }
 
 export abstract class IOperationContext<Input = any, Parameters = any, Output = any> extends Context {
@@ -115,22 +185,6 @@ export abstract class IOperationContext<Input = any, Parameters = any, Output = 
    * Logout the current user
    */
   abstract newSession(): void;
-
-  abstract getOutputStream(): Writable;
-
-  /**
-   * For compatibility
-   * @returns
-   * @deprecated Use getOutputStream
-   */
-  getStream(): Writable {
-    return this.getOutputStream();
-  }
-
-  /**
-   * Get current response headers
-   */
-  abstract getResponseHeaders: () => any;
 }
 
 /**
@@ -220,10 +274,7 @@ export type IWebContext = IOperationContext & {
    * Get the status code for the response
    */
   statusCode: number;
-  /**
-   * Set a header in the response
-   */
-  setHeader: (name: string, value: string) => void;
+
   /**
    * Redirect the user to another page
    */

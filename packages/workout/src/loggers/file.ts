@@ -1,7 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
-import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
+import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 import { WorkerLogger } from "./index";
+import { ConsoleLogger } from "./console";
 
 /**
  * Record all messages in file

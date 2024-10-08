@@ -14,15 +14,6 @@ export class RegistryModel extends CoreModel {
   static async put<T extends CoreModel, K = any>(this: CoreModelDefinition<T>, uuid: string, data: K) {
     return await this.ref(uuid).upsert(<any>data);
   }
-  /**
-   * Helper for upsert
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  static async get<K = any>(uuid: string, data?: K): Promise<RegistryModel & K> {
-    return data ? <any>await this.ref(uuid).upsert(<any>data) : await this.ref(uuid).get();
-  }
 
   static async delete<T extends CoreModel>(this: CoreModelDefinition<T>, uuid: string) {
     return await this.ref(uuid).delete();
@@ -51,17 +42,18 @@ export class RegistryEntry {
    * @param data
    * @returns
    */
-  static async put<K = any>(uuid: string, data: K): Promise<K & RegistryModel> {
-    return <any>await RegistryModel.ref(uuid).upsert(<any>data);
+  static async get<K = any>(uuid: string, data?: K): Promise<RegistryModel & K> {
+    return data ? <any>await RegistryModel.ref(uuid).upsert(<any>data) : await RegistryModel.ref(uuid).get();
   }
+
   /**
    * Helper for upsert
    * @param uuid
    * @param data
    * @returns
    */
-  static async get<K = any>(uuid: string, data?: K): Promise<K & RegistryModel> {
-    return data ? <any>await RegistryModel.ref(uuid).upsert(<any>data) : await RegistryModel.ref(uuid).get();
+  static async put<K = any>(uuid: string, data: K): Promise<K & RegistryModel> {
+    return <any>await RegistryModel.ref(uuid).upsert(<any>data);
   }
 
   static async delete(uuid: string) {

@@ -333,7 +333,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * ' UNION SELECT name, tbl_name as email, "" as col1, "" as col2, "" as col3, "" as col4, "" as col5, "" as col6, "" as col7, "" as col8 FROM sqlite_master --
    * {"email":"' UNION SELECT name as profileImage, tbl_name as email, '' AS column3 FROM sqlite_master --","password":"we"}
    */
-  metrics: {
+  declare metrics: {
     cache_invalidations: Counter;
     operations_total: Counter;
     slow_queries_total: Counter;
@@ -356,30 +356,31 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     const app = useApplication();
     const p = this.parameters;
     this._model = useModel(p.model);
-    this._modelType = this._model.getIdentifier();
+    this._modelType = this._model.Metadata.Identifier;
     this._uuidField = this._model.getUuidField();
     if (!this.parameters.noCache) {
-      this._cacheStore = <Store>new (app.getServiceDefinition("Webda/MemoryStore"))(`_${this.getName()}_cache`, <
-        StoreParameters
-      >{
+      this._cacheStore = <Store>new (app.getModda("Webda/MemoryStore"))(`_${this.getName()}_cache`, <StoreParameters>{
         model: this.parameters.model
       });
       this._cacheStore.computeParameters();
       this._cacheStore.initMetrics();
       this.cacheStorePatchException();
     }
-    const recursive = (tree, depth) => {
-      for (const i in tree) {
-        this._modelsHierarchy[i] ??= depth;
-        this._modelsHierarchy[i] = Math.min(depth, this._modelsHierarchy[i]);
-        recursive(app.getModelHierarchy(i).children, depth + 1);
+    const recursive = (tree: CoreModelDefinition[], depth) => {
+      for (const model of tree) {
+        this._modelsHierarchy[model.Metadata.Identifier] ??= depth;
+        this._modelsHierarchy[model.Metadata.Identifier] = Math.min(
+          depth,
+          this._modelsHierarchy[model.Metadata.Identifier]
+        );
+        recursive(model.Metadata.Subclasses, depth + 1);
       }
     };
     // Compute the hierarchy
-    this._modelsHierarchy[this._model.getIdentifier()] = 0;
+    this._modelsHierarchy[this._model.Metadata.Identifier] = 0;
     // Strict Store only store their model
     if (!this.parameters.strict) {
-      recursive(this._model.getHierarchy().children, 1);
+      recursive(this._model.Metadata.Subclasses, 1);
     }
     // Add additional models
     if (this.parameters.additionalModels.length) {
@@ -389,8 +390,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       } else {
         for (const modelType of this.parameters.additionalModels) {
           const model = useModel(modelType);
-          this._modelsHierarchy[model.getIdentifier()] = 0;
-          recursive(model.getHierarchy().children, 1);
+          this._modelsHierarchy[model.Metadata.Identifier] = 0;
+          recursive(model.Metadata.Subclasses, 1);
         }
       }
     }
@@ -508,7 +509,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         return original
           .bind(this._cacheStore, ...args)()
           .catch(err => {
-            this.log("TRACE", `Ignoring cache exception ${this._name}: ${err.message}`);
+            this.log("TRACE", `Ignoring cache exception ${this.name}: ${err.message}`);
           });
       };
     };

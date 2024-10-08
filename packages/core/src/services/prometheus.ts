@@ -22,7 +22,7 @@ export class PrometheusParameters extends ServiceParameters {
   /**
    * @default /metrics
    */
-  url?: string;
+  declare url?: string;
   /**
    * Include NodeJS engine metrics
    *
@@ -78,7 +78,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
    */
   private static nodeMetricsRegistered = false;
 
-  metrics: {
+  declare metrics: {
     http_request_total: Counter;
     http_request_in_flight: Gauge;
     http_request_duration_milliseconds: Histogram;

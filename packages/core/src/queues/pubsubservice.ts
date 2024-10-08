@@ -10,7 +10,7 @@ export default abstract class PubSubService<
   /**
    * @override
    */
-  protected metrics: {
+  protected declare metrics: {
     errors: Counter;
     processing_duration: Histogram;
     messages_sent: Counter;

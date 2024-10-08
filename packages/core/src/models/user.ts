@@ -12,7 +12,7 @@ export type UserEvents<T> = CoreModelEvents<T> & {
  * @WebdaModel
  */
 export class User extends CoreModel {
-  Events: UserEvents<this>;
+  declare Events: UserEvents<this>;
   /**
    * Password of the user if defined
    */

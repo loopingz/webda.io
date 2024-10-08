@@ -168,15 +168,6 @@ export class Application implements IApplication {
   getImplementations<T extends object>(object: T): { [key: string]: T } {
     throw new Error("Method not implemented.");
   }
-  getModelDefinition(name: string) {
-    throw new Error("Method not implemented.");
-  }
-  getModelId(object: any, full?: boolean): string | undefined {
-    throw new Error("Method not implemented.");
-  }
-  getServiceDefinition(name: string) {
-    throw new Error("Method not implemented.");
-  }
 
   /**
    * Import all required modules
@@ -194,7 +185,26 @@ export class Application implements IApplication {
       }
     };
     addParent("Webda/CoreModel", this.baseConfiguration.cachedModules.models.tree);
+    this.setModelsMetadata();
     return this;
+  }
+
+  setModelsMetadata() {
+    for (const model in this.models) {
+      const info = this.getModelHierarchy(model);
+      const metadata = {
+        ...(this.models[model]["Metadata"] || {}),
+        Identifier: model,
+        Ancestors: info.ancestors.map(a => this.models[a]).filter(m => m),
+        Subclasses: Object.keys(info.children)
+          .map(c => this.models[c])
+          .filter(m => m),
+        Relations: this.getRelations(model),
+        Schema: this.getSchema(model)
+      };
+      // @ts-ignore
+      this.models[model]["Metadata"] = Object.freeze(metadata);
+    }
   }
 
   /**
@@ -215,8 +225,8 @@ export class Application implements IApplication {
       this.baseConfiguration ??= FileUtils.load(file);
       this.baseConfiguration.parameters ??= {};
       this.baseConfiguration.parameters.defaultStore ??= "Registry";
-      if (this.baseConfiguration.version !== 3) {
-        this.log("ERROR", "Your configuration file should use version 3, see https://docs.webda.io/");
+      if (this.baseConfiguration.version !== 4) {
+        this.log("ERROR", "Your configuration file should use version 4, see https://docs.webda.io/");
       }
     } catch (err) {
       throw new WebdaError.CodeError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
@@ -277,7 +287,7 @@ export class Application implements IApplication {
   getRelations(model: string | Constructor<IModel> | IModel): ModelGraph {
     // We cheat with the type here to avoid typing everything as an IModel
     // IModel and AbstractCoreModel won't be exported in the final module
-    const name = typeof model === "string" ? this.completeNamespace(model) : this.getModelName(<any>model);
+    const name = typeof model === "string" ? this.completeNamespace(model) : this.getModelId(<any>model);
     // Get relations should not be case-sensitive until v4
     const key = Object.keys(this.graph).find(k => k?.toLowerCase() === name?.toLowerCase());
     return this.getGraph()[key] || {};
@@ -446,7 +456,7 @@ export class Application implements IApplication {
     if (this["models"][this.completeNamespace(name)] !== undefined) {
       return true;
     }
-    return this.graph[model].children.length === 0;
+    return this.graph[model].children?.length === 0;
   }
 
   /**
@@ -501,7 +511,7 @@ export class Application implements IApplication {
    *
    * @param name model to retrieve
    */
-  getModel<T extends AbstractCoreModel = AbstractCoreModel>(name: string): CoreModelDefinition<T> {
+  getModelDefinition<T extends AbstractCoreModel = AbstractCoreModel>(name: string): CoreModelDefinition<T> {
     return this.getWebdaObject("models", name);
   }
 
@@ -528,7 +538,7 @@ export class Application implements IApplication {
    * @returns
    */
   getRootExposedModels(): string[] {
-    const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Expose));
+    const results = new Set<string>(this.getRootModels().filter(k => this.getModelDefinition(k).Expose));
     for (const model in this.models) {
       if (this.models[model].Expose?.root) {
         results.add(model);
@@ -559,7 +569,7 @@ export class Application implements IApplication {
    * @param model
    * @returns longId for a model
    */
-  getModelName<T extends CoreModel = CoreModel>(model: CoreModelDefinition<T> | T): string | undefined {
+  getModelId<T extends CoreModel = CoreModel>(model: CoreModelDefinition<T> | T, full?: boolean): string | undefined {
     if (model instanceof AbstractCoreModel) {
       return this.getModelFromInstance(model);
     }
@@ -575,7 +585,7 @@ export class Application implements IApplication {
     children: ModelsTree;
   } {
     if (typeof model !== "string") {
-      model = this.getModelName(model);
+      model = this.getModelId(model);
     } else {
       model = this.completeNamespace(model);
     }
@@ -625,13 +635,17 @@ export class Application implements IApplication {
   addModel(name: string, model: any, dynamic: boolean = true): this {
     name = this.completeNamespace(name);
     this.log("TRACE", "Registering model", name);
+    if (!model) {
+      this.log("ERROR", "Model is undefined", name);
+      return this;
+    }
     this.models[name] = model;
     if (dynamic && model) {
       const superClass = Object.getPrototypeOf(model);
       Object.values(this.getModels())
         .filter(m => m === superClass)
         .forEach(m => {
-          this.flatHierarchy[name] = this.getModelName(m);
+          this.flatHierarchy[name] = this.getModelId(m);
           this.getModelHierarchy(this.flatHierarchy[name]).children[name] = {};
         });
       this.graph[name] ??= {};
@@ -817,7 +831,7 @@ export class Application implements IApplication {
       this.log("TRACE", "Load file", info);
       // eslint-disable-next-line prefer-const
       let [importFilename, importName = "default"] = info.split(":");
-      if (!importFilename.endsWith(".js")) {
+      if (!importFilename.endsWith(".js") && !importFilename.endsWith(".ts")) {
         importFilename += ".js";
       }
       const importedFile = await import(importFilename);

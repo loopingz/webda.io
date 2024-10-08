@@ -76,36 +76,68 @@ export interface IModelRefWithCreate<T extends IModel> extends CRUDHelper<T> {
 }
 
 /**
- * Expose CoreModel reflective methods
+ * Expose CoreModel reflective properties
+ *
+ * These properties are detected at compilation by @webda/shell
+ * and injected by the application on load
  */
 export interface Reflection {
   /**
-   * Get the model actions
+   * Model identifier
    */
-  getActions(): { [key: string]: ModelAction };
+  Identifier: string;
   /**
-   * Get the model schema
+   * ShortName is set, if the model is final
+   *
+   * A Webda/User will have a ShortName of User, if no override exists
+   * If you define your MyNamespace/User, the ShortName will be undefined for Webda/User
+   * and User for MyNamespace/User
    */
-  getSchema(): JSONSchema7;
-
+  ShortName?: string;
   /**
-   * Get the model hierarchy
+   * Ancestors of the model
+   *
+   * This is basically the prototype chain of the model
    */
-  getHierarchy(): { ancestors: string[]; children: ModelsTree };
+  Ancestors: CoreModelDefinition[];
   /**
-   * Get the model relations
+   * Subclasses of the model
    */
-  getRelations(): ModelGraph;
+  Subclasses: CoreModelDefinition[];
   /**
-   * Get Model identifier
+   * Relations for the model
+   *
+   * This is the relation graph for the model
+   * It includes Parent, Children, Links, Queries and Maps
+   *
+   * It is different from the ancestors and subclasses that are the class hierarchy
    */
-  getIdentifier(short?: boolean): string;
+  Relations: ModelGraph;
+  /**
+   * Schema for the model
+   */
+  Schema?: JSONSchema7;
+  /**
+   * Define the plural of the model
+   * We recommand using singular for the model class name
+   * @default model name + s
+   */
+  Plural?: string;
 }
+
+export type SerializedReflection = {
+  [K in keyof Reflection]: Reflection[K] extends Array<CoreModelDefinition<any>> ? string[] : Reflection[K];
+};
 
 /**
  *
  */
 export type CoreModelDefinition<T extends IModel = IModel> = AsyncEventEmitter<T["Events"]> & {
+  /**
+   * Accessing metadata for a model is pretty common
+   * so we cache it in the model
+   */
+  readonly Metadata: Reflection;
   new (): T;
   /**
    * If the model have some Expose annotation
@@ -263,6 +295,7 @@ export interface IService {
  * Application interface.
  */
 export interface IApplication {
+  getCurrentConfiguration(): Configuration;
   getGraph(): ModelsGraph;
   getSchema(name: any): unknown;
   getModelHierarchy(i: string): { children: ModelsTree; ancestors: string[] };
@@ -299,9 +332,9 @@ export interface IApplication {
   getModelId(object: any, full?: boolean): string | undefined;
 
   /**
-   * Get a service by name
+   * Get a service definition by name
    */
-  getServiceDefinition(name: string): any;
+  getModda(name: string): Constructor<IService, [string, any]> | undefined;
 }
 
 export enum SectionEnum {
@@ -398,6 +431,10 @@ export type ModelGraphBinaryDefinition = {
  */
 export type ModelGraph = {
   /**
+   * Model names of the parent of the parent, etc...
+   */
+  ancestors?: string[];
+  /**
    * If the model has a parent
    */
   parent?: Omit<ModelRelation, "type">;
@@ -471,7 +508,6 @@ export type ModelGraph = {
  * Defined relationship for all models
  */
 export type ModelsGraph = {
-  // key is shared with models
   [key: string]: ModelGraph;
 };
 
@@ -711,7 +747,31 @@ export type StaticWebsite = {
   catchAll?: boolean;
 };
 export type UnpackedConfiguration = {
-  version: 3;
+  version: 4;
+  /**
+   * Configuration of core
+   */
+  core?: {
+    /**
+     * Ignore beans
+     *
+     * If set to true, all beans are ignored
+     * If set to an array, only the beans in the array are ignored
+     *
+     * @default false
+     */
+    ignoreBeans?: boolean | string[];
+    /**
+     * Define the default store
+     */
+    defaultStore?: string;
+    /**
+     * Read from the configuration service before init
+     *
+     * @default "ConfigurationService"
+     */
+    configurationService?: string;
+  };
   /**
    * Services configuration
    */
@@ -745,6 +805,8 @@ export type UnpackedConfiguration = {
     static?: StaticWebsite;
     /**
      * Read from the configuration service before init
+     *
+     * @default "ConfigurationService"
      */
     configurationService?: string;
     /**
@@ -806,6 +868,8 @@ export type UnpackedConfiguration = {
   };
   /**
    * OpenAPI override
+   *
+   * Should move to Router
    */
   openapi?: Partial<OpenAPIV3.Document>;
   /**

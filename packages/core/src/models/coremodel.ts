@@ -158,15 +158,13 @@ export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakM
 export class CoreModel extends AbstractCoreModel {
   @NotEnumerable
   Events: CoreModelEvents<this> = undefined;
+  @NotEnumerable
+  static Identifier: string = undefined;
   /**
    * Store helper for this model
    */
   protected static Store: StoreHelper & { name: string } = undefined;
 
-  /**
-   * Type name
-   */
-  __type: string;
   /**
    * Types name
    */
@@ -215,6 +213,13 @@ export class CoreModel extends AbstractCoreModel {
    */
   //on(event: string, listener: (evt: any) => any, async: boolean = false) {}
 
+  /**
+   * Return the model id
+   * @returns
+   */
+  static getIdentifier(full?: boolean) {
+    return useModelId(this.constructor, full);
+  }
   /**
    * Emit an event for this class and wait for all listeners to finish
    * @param this

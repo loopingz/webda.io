@@ -44,7 +44,7 @@ export class OAuthServiceParameters extends ServiceParameters {
    *
    * @SchemaOptional
    */
-  url: string;
+  declare url: string;
   /**
    * Scope to request on OAuth flow
    *
@@ -139,7 +139,7 @@ export abstract class OAuthService<
   /**
    * @override
    */
-  metrics: {
+  declare metrics: {
     login: Counter;
   };
   authorized_uris: RegExpStringValidator;

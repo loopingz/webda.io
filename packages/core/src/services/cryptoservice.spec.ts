@@ -1,36 +1,37 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import * as assert from "assert";
 import jwt from "jsonwebtoken";
 import * as sinon from "sinon";
-import { WebdaInternalTest } from "../test";
+
 import { JSONUtils } from "../utils/serializers";
-import { CryptoService, SecretString } from "./cryptoservice";
-import { useRegistry } from "../hooks";
+import { CryptoService, SecretString, useCrypto } from "./cryptoservice";
+import { WebdaApplicationTest } from "../test/test";
+import { useRegistry } from "../models/registry";
 
 /**
  *
  */
 @suite
-class CryptoServiceTest extends WebdaInternalTest {
+class CryptoServiceTest extends WebdaApplicationTest {
   @test
   async hmac() {
-    const hmac = await this.webda.getCrypto().hmac({ test: "plop" });
-    const hmacString = await this.webda.getCrypto().hmac(JSONUtils.stringify({ test: "plop" }));
+    const hmac = await useCrypto().hmac({ test: "plop" });
+    const hmacString = await useCrypto().hmac(JSONUtils.stringify({ test: "plop" }));
     assert.strictEqual(hmac, hmacString);
-    await this.webda.getCrypto().hmacVerify({ test: "plop" }, hmac);
-    await this.webda.getCrypto().hmacVerify(JSONUtils.stringify({ test: "plop" }), hmac);
+    await useCrypto().hmacVerify({ test: "plop" }, hmac);
+    await useCrypto().hmacVerify(JSONUtils.stringify({ test: "plop" }), hmac);
   }
 
   @test
   async encryption() {
-    const encrypted = await this.webda.getCrypto().encrypt({ test: "plop" });
-    const decrypted = await this.webda.getCrypto().decrypt(encrypted);
+    const encrypted = await useCrypto().encrypt({ test: "plop" });
+    const decrypted = await useCrypto().decrypt(encrypted);
     assert.strictEqual(decrypted.test, "plop");
   }
 
   @test
   async rotate() {
-    const crypto = this.webda.getCrypto();
+    const crypto = useCrypto();
     const encrypted = await crypto.encrypt({ test: "plop" });
     const oldKey = crypto.current;
     const hmac = await crypto.hmac({ test: "plop" });
@@ -46,7 +47,7 @@ class CryptoServiceTest extends WebdaInternalTest {
   async failedRotation() {
     // Check failed rotate
     await useRegistry().put("keys", { current: "123" });
-    await this.webda.getCrypto().rotate();
+    await useCrypto().rotate();
   }
 
   /**
@@ -64,7 +65,7 @@ class CryptoServiceTest extends WebdaInternalTest {
 
   @test
   async jwks() {
-    const crypto = this.webda.getCrypto();
+    const crypto = useCrypto();
     crypto.getParameters().url = "/jwk";
     await crypto.resolve().init();
     const ctx = await this.newContext();
@@ -80,7 +81,7 @@ class CryptoServiceTest extends WebdaInternalTest {
 
   @test
   async unknownKeys() {
-    const crypto = this.webda.getCrypto();
+    const crypto = useCrypto();
 
     // Custom made JWT
     let jwtToken = jwt.sign("TEST", "test");
@@ -93,24 +94,24 @@ class CryptoServiceTest extends WebdaInternalTest {
     const oldKey = crypto.current;
     sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
     await crypto.rotate();
-    const encrypted = await this.webda.getCrypto().encrypt({ test: "plop" });
+    const encrypted = await useCrypto().encrypt({ test: "plop" });
     delete crypto.keys[crypto.current];
     crypto.current = oldKey;
     crypto.age = parseInt(oldKey, 36); // It should be reloaded
 
-    assert.strictEqual((await this.webda.getCrypto().decrypt(encrypted)).test, "plop");
+    assert.strictEqual((await useCrypto().decrypt(encrypted)).test, "plop");
     // Remove again but remove it from the registry now
     await useRegistry().removeAttribute("keys", `key_${crypto.current}`);
     delete crypto.keys[crypto.current];
     crypto.current = oldKey;
     crypto.age = parseInt(oldKey, 36);
-    await assert.rejects(() => this.webda.getCrypto().decrypt(encrypted), /err/);
+    await assert.rejects(() => useCrypto().decrypt(encrypted), /err/);
   }
 
   @test
   async jwt() {
     // Test asymetric JWT
-    const crypto = this.webda.getCrypto();
+    const crypto = useCrypto();
     let token = await crypto.jwtSign("plop", { algorithm: "PS256" });
     assert.strictEqual(await crypto.jwtVerify(token), "plop");
     token = await crypto.jwtSign("plop");
@@ -121,8 +122,8 @@ class CryptoServiceTest extends WebdaInternalTest {
 
   @test
   async cov() {
-    this.webda.getCrypto().keys = undefined;
-    await assert.rejects(() => this.webda.getCrypto().getCurrentKeys(), /not initialized/);
+    useCrypto().keys = undefined;
+    await assert.rejects(() => useCrypto().getCurrentKeys(), /not initialized/);
   }
 }
 

@@ -33,14 +33,6 @@ export class Ident extends OwnerModel {
    */
   _lastUsed: Date;
   /**
-   * User linked to this ident
-   */
-  _user: ModelLink<User>;
-  /**
-   * If the ident is new
-   */
-  _new: boolean;
-  /**
    * If the ident is validated
    */
   _failedLogin: number;

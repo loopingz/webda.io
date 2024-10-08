@@ -12,7 +12,7 @@ import { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "./iservices";
 import { OperationContext } from "../contexts/operationcontext";
 import { Route } from "../rest/irest";
-import { RegistryEntry, RegistryModel, useRegistry } from "../models/registry";
+import { useRegistry } from "../models/registry";
 
 export class SecretString {
   constructor(

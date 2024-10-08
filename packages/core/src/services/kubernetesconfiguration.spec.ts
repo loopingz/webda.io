@@ -1,16 +1,16 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import * as assert from "assert";
 import { mkdirSync, unlinkSync } from "fs";
 import pkg from "fs-extra";
 import * as path from "path";
 import { stub } from "sinon";
-import { KubernetesConfigurationService } from "../index";
-import { WebdaInternalTest } from "../test";
+import { KubernetesConfigurationService, useConfiguration } from "../index";
+import { WebdaApplicationTest } from "../test/test";
 import { getCommonJS } from "../utils/esm";
 const { emptyDirSync, ensureSymlinkSync, outputFileSync } = pkg;
 const { __dirname } = getCommonJS(import.meta.url);
 
-class AbstractKubernetesConfigurationServiceTest extends WebdaInternalTest {
+class AbstractKubernetesConfigurationServiceTest extends WebdaApplicationTest {
   folder: string = __dirname + "/../../test/kube";
   dataFolder: string;
   content = {
@@ -84,14 +84,14 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaInternalTest {
     };
   }
 
-  async before(create: boolean = false) {
+  async beforeEach(create: boolean = false) {
     mkdirSync(this.folder, { recursive: true });
     emptyDirSync(this.folder);
     // Empty the kube directory
     if (create) {
       this.createConfigMap();
     }
-    await super.before();
+    await super.beforeEach();
   }
 
   /**
@@ -127,14 +127,14 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
   /**
    * @override
    */
-  async before() {
+  async beforeEach() {
     // Create a default configmap like it should be on a starting pod
-    await super.before(true);
+    await super.beforeEach(true);
   }
 
   @test
   async cov() {
-    const serv = new KubernetesConfigurationService(this.webda, "t", {});
+    const serv = new KubernetesConfigurationService("t", {});
     serv.getParameters().source = undefined;
     assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
     serv.getParameters().source = "/notexisting";
@@ -146,11 +146,11 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
 
   @test
   async updatedConfigMap() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop1");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text2, "Plop6");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Plop1");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text2, "Plop6");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise(resolve => {
-      this.webda.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
+      this.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
       this.updateConfigMap({
         ...this.content,
         "webda.json": JSON.stringify({
@@ -166,10 +166,10 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         })
       });
     });
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop2");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Plop2");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise(resolve => {
-      this.webda.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
+      this.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
       this.updateConfigMap({
         ...this.content,
         "webda.json": JSON.stringify({
@@ -185,8 +185,8 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         })
       });
     });
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop3");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Plop3");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }
 
@@ -194,7 +194,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
 class EmptyKubernetesConfigurationServiceTest extends AbstractKubernetesConfigurationServiceTest {
   @test
   async unmountedConfigMap() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop0");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Plop0");
+    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }

@@ -23,3 +23,5 @@ docs.json
 .DS_Store
 .nx
 .webda
+coverage
+packages/core/data

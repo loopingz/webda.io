@@ -1,7 +1,7 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import * as assert from "assert";
 import { Cron, CronDefinition, CronService, Service } from "../index";
-import { WebdaTest } from "../test";
+import { WebdaApplicationTest } from "../test/test";
 
 class MyService extends Service {
   @Cron("0/15 * * * *", "plop")
@@ -13,16 +13,12 @@ class MyService extends Service {
   test2(myArg: string) {}
 }
 @suite
-class CronServiceTest extends WebdaTest {
-  protected async buildWebda(): Promise<void> {
-    await super.buildWebda();
-    this.webda.getBeans = () => {};
-  }
+class CronServiceTest extends WebdaApplicationTest {
   @test
   annotations() {
-    this.registerService(new MyService(this.webda, "myService", {}));
+    this.registerService(new MyService("myService", {}));
     const def = new CronDefinition("0/15 * * * *", [], "myService", "test", "plop");
-    const service = new CronService(this.webda, "cron", {});
+    const service = new CronService("cron", {});
     service.schedule("* * * * *", () => {}, "mine");
     assert.deepStrictEqual(service.getCrontab()[1], def);
     // for cov

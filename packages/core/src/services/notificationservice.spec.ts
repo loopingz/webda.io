@@ -1,8 +1,8 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "../test/core";
 import * as assert from "assert";
 import { Service } from "./service";
 import { User } from "../models/user";
-import { WebdaSimpleTest } from "../test";
+import { WebdaApplicationTest } from "../test/test";
 import { MultiNotificationService, NotificationService } from "./notificationservice";
 
 class FakeNotification extends Service implements NotificationService {
@@ -23,7 +23,7 @@ class FakeNotification extends Service implements NotificationService {
 }
 
 @suite
-class NotificationServiceTest extends WebdaSimpleTest {
+class NotificationServiceTest extends WebdaApplicationTest {
   service: MultiNotificationService;
   fakeA: FakeNotification;
   fakeB: FakeNotification;
@@ -37,13 +37,13 @@ class NotificationServiceTest extends WebdaSimpleTest {
     };
   }
 
-  async before() {
-    await super.before();
-    this.service = new MultiNotificationService(this.webda, "notif", {
+  async beforeEach() {
+    await super.beforeEach();
+    this.service = new MultiNotificationService("notif", {
       senders: ["notifA", "notifB"]
     });
-    this.fakeA = new FakeNotification(this.webda, "notifA", {});
-    this.fakeB = new FakeNotification(this.webda, "notifB", {});
+    this.fakeA = new FakeNotification("notifA", {});
+    this.fakeB = new FakeNotification("notifB", {});
     this.registerService(this.fakeA);
     this.registerService(this.fakeB);
     this.registerService(this.service);

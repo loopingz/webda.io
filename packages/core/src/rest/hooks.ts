@@ -1,5 +1,11 @@
-import { createCoreHook } from "../core/instancestorage";
+import { useService } from "../core/hooks";
+import { Router } from "./router";
 
-const [useRouter, setRouter] = createCoreHook("router");
-
-export { useRouter, setRouter };
+/**
+ * Return the Router service
+ *
+ * @returns
+ */
+export function useRouter(): Router {
+  return useService("Router");
+}

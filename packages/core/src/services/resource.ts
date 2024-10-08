@@ -15,7 +15,7 @@ export class ResourceServiceParameters extends ServiceParameters {
    *
    * @default "resources"
    */
-  url?: string;
+  declare url?: string;
   /**
    * Folder to server
    *
@@ -235,12 +235,8 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
       "content-length": fs.lstatSync(file).size,
       "cache-control": cacheControl
     });
-    const stream = fs.createReadStream(file);
-    return new Promise((resolve, reject) => {
-      stream.on("error", reject);
-      stream.on("end", resolve);
-      stream.pipe(ctx.getStream());
-    });
+    // We could cache in memory some of the file to avoid I/O
+    return ctx.pipeline(fs.createReadStream(file));
   }
 }
 

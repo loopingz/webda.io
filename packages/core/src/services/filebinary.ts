@@ -149,8 +149,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     });
     const map = await this.get({ hash } as BinaryMap);
     // Fake a binary map for this case
-    return new Promise<void>((resolve, reject) => {
-      const stream = ctx.getStream();
+    return new Promise<void>(async (resolve, reject) => {
+      const stream = await ctx.getOutputStream();
       stream.on("error", reject).on("finish", resolve);
       map.pipe(stream);
     });

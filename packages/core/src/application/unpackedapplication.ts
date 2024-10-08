@@ -12,6 +12,7 @@ import {
   type UnpackedConfiguration
 } from "./iapplication";
 import { FileUtils } from "../utils/serializers";
+import { getMachineId } from "../core/hooks";
 
 /**
  * Empty git information
@@ -38,7 +39,8 @@ export class UnpackedApplication extends Application {
       typeof file === "string"
         ? file
         : {
-            version: 3,
+            version: 4,
+            core: {},
             services: {},
             parameters: {},
             ...file
@@ -60,9 +62,9 @@ export class UnpackedApplication extends Application {
    */
   loadConfiguration(file: string): void {
     if (!file && this.baseConfiguration) {
-      this.baseConfiguration = this.completeConfiguration({ version: 3, ...this.baseConfiguration });
+      this.baseConfiguration = this.completeConfiguration({ version: 4, ...this.baseConfiguration });
     } else if (!fs.existsSync(file)) {
-      this.baseConfiguration = this.completeConfiguration({ version: 3 });
+      this.baseConfiguration = this.completeConfiguration({ version: 4 });
     } else {
       this.baseConfiguration = this.completeConfiguration(FileUtils.load(file));
     }
@@ -110,7 +112,43 @@ export class UnpackedApplication extends Application {
       };
       this.mergeModules(configuration);
     }
+    this.ensureDefaultConfiguration(configuration);
+    // Ensure default values
     return configuration;
+  }
+
+  /**
+   * Ensure default parameters are set on our application
+   * Creating the default services if they do not exist
+   * @param configuration
+   */
+  ensureDefaultConfiguration(configuration: Configuration) {
+    configuration.services ??= {};
+    configuration.parameters ??= {};
+    configuration.parameters.metrics ??= {};
+    if (configuration.parameters.metrics) {
+      configuration.parameters.metrics.labels ??= {};
+      configuration.parameters.metrics.config ??= {};
+      configuration.parameters.metrics.prefix ??= "";
+    }
+    configuration.parameters.configurationService ??= "Configuration";
+    configuration.parameters.defaultStore ??= "Registry";
+    configuration.services["Router"] ??= {
+      type: "Webda/Router"
+    };
+    configuration.services["Registry"] ??= {
+      type: "Webda/MemoryStore",
+      persistence: {
+        path: ".registry",
+        key: getMachineId()
+      }
+    };
+    const autoRegistry = configuration.services["Registry"] === undefined;
+    configuration.services["CryptoService"] ??= {
+      type: "Webda/CryptoService",
+      autoRotate: autoRegistry ? 30 : undefined,
+      autoCreate: true
+    };
   }
 
   /**
@@ -125,6 +163,28 @@ export class UnpackedApplication extends Application {
       tags: [],
       version: ""
     };
+  }
+
+  upgradeConfigToV4() {
+    /*
+    // Move to router
+  
+    trustedProxies
+    csrfOrigins
+    website
+    static
+    apiUrl
+    requestLimit
+    requestTimeout
+    defaultHeaders
+
+    // Move to Core
+    configurationService
+    defaultStore
+    ignoreBeans
+
+    // metrics??
+    */
   }
 
   /**

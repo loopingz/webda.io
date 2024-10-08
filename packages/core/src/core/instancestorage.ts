@@ -9,8 +9,6 @@ type InstanceStorage = Partial<{
   application: IApplication;
   // Used to store the operations
   operations: { [key: string]: OperationDefinitionInfo };
-  // Used to store the configuration
-  configuration: Configuration;
   // Used to store the core
   core: ICore;
   // Used to store the context providers
@@ -34,12 +32,15 @@ export function useInstanceStorage(): InstanceStorage {
 }
 
 export function useConfiguration(): Configuration {
-  return useInstanceStorage().configuration;
+  return useInstanceStorage().application.getCurrentConfiguration();
 }
 
 export function useParameters(name?: string): Configuration["parameters"] {
   // TODO: Implement deepmerge
   const configuration = useConfiguration();
+  if (configuration === undefined) {
+    throw new Error("Application not initialized: cannot useParameters");
+  }
   const params = {
     ...configuration.parameters,
     ...(name ? configuration.services[name] || {} : {})
@@ -52,7 +53,6 @@ export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn
     {
       application: undefined,
       operations: {},
-      configuration: undefined,
       core: undefined,
       contextProviders: [],
       caches: {},

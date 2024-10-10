@@ -4,6 +4,7 @@ import { CoreModelDefinition, CoreModelFullDefinition, Proxied, RawModel } from 
 
 import { getAttributeLevelProxy } from "./coremodelproxy";
 import { CRUDHelper } from "../stores/istore";
+import { useLog } from "../loggers/hooks";
 
 /**
  * Helper object that reference a AbstractCoreModel
@@ -150,6 +151,7 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel>
    * @see AbstractCoreModel.patch
    */
   async patch<K extends Attributes<T>>(updates: Partial<T>, conditionField?: K, condition?: T[K]): Promise<void> {
+    useLog("INFO", "PATCH", this.uuid, updates, conditionField, condition);
     await this.model.Store.patch(this.uuid, updates, <any>conditionField, condition);
   }
 

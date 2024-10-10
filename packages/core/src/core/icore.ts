@@ -3,7 +3,7 @@ import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icont
 import { AbstractCoreModel } from "../models/imodel";
 import { Constructor } from "@webda/tsc-esm";
 import { IService, CoreModelDefinition } from "../application/iapplication";
-export { IService };
+export type { IService };
 /**
  * Define an operation within webda app
  */

@@ -319,7 +319,8 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     const object = await this.getModel(context);
     const input = await context.getInput();
     await object.checkAct(context, "update");
-    object.load(input);
+    // By pass load for now
+    object["load"](input);
     await object.save(true);
     context.write(object);
   }

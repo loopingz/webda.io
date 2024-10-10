@@ -12,6 +12,7 @@ import { ServiceParameters } from "../services/iservices";
 import { MappingService } from "./istore";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { useRegistry } from "../models/registry";
+import { useLog } from "../loggers/hooks";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
@@ -187,15 +188,15 @@ export interface StoreInterface {
     collection: string,
     item: any,
     index?: number,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
+    itemWriteConditionField?: string,
+    itemWriteCondition?: any
   ): Promise<void>;
   deleteItemFromCollection(
     uuid: string,
     collection: string,
     index: number,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
+    itemWriteConditionField?: string,
+    itemWriteCondition?: any
   ): Promise<void>;
   find(query: string): Promise<StoreFindResult<any>>;
   query(query: string): Promise<StoreFindResult<any>>;
@@ -591,8 +592,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     prop: string,
     item: any,
     index: number = undefined,
-    itemWriteCondition: any = undefined,
-    itemWriteConditionField: string = this._uuidField
+    itemWriteConditionField: string = this._uuidField,
+    itemWriteCondition: any = undefined
   ) {
     const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionUpsert" });
@@ -601,8 +602,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       <string>prop,
       item,
       index,
-      itemWriteCondition,
       itemWriteConditionField,
+      itemWriteCondition,
       updateDate
     );
     await this.emitStoreEvent("Store.PartialUpdated", {
@@ -634,8 +635,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     uid: string,
     prop: string,
     index: number,
-    itemWriteCondition: any,
-    itemWriteConditionField: string = this._uuidField
+    itemWriteConditionField: string = this._uuidField,
+    itemWriteCondition?: any
   ) {
     const updateDate = new Date();
     this.metrics.operations_total.inc({ operation: "collectionDelete" });
@@ -643,8 +644,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       uid,
       <string>prop,
       index,
-      itemWriteCondition,
       itemWriteConditionField,
+      itemWriteCondition,
       updateDate
     );
     await this.emitStoreEvent("Store.PartialUpdated", {
@@ -834,6 +835,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         await this._cacheStore?._removeAttribute(
           partialEvent.object_id,
           partialEvent.partial_update.deleteAttribute,
+          "_lastUpdate",
           partialEvent.updateDate
         );
       } else if (partialEvent.partial_update.addItem) {
@@ -924,11 +926,11 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @param condition
    * @param uid
    */
-  protected checkUpdateCondition(model: any, conditionField?: string, condition?: any, uid?: string) {
+  protected checkUpdateCondition(uid: string, model: any, conditionField?: string, condition?: any) {
     if (conditionField) {
       // Add toString to manage Date object
-      if (model[conditionField].toString() !== condition.toString()) {
-        throw new UpdateConditionFailError(uid ? uid : model.getUuid(), <string>conditionField, condition);
+      if (model[conditionField]?.toString() !== condition?.toString()) {
+        throw new UpdateConditionFailError(uid, <string>conditionField, condition);
       }
     }
   }
@@ -1074,7 +1076,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     const update = object;
     const evt = {
       object: loaded,
-      object_id: loaded.getUuid(),
+      object_id: uuid,
       store: this,
       update
     };
@@ -1086,7 +1088,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     }
     if (partial) {
       this.metrics.operations_total.inc({ operation: "partialUpdate" });
-      await this._patch(object, uuid, conditionValue, <string>conditionField);
+      useLog("INFO", "PATCH - Store", uuid, object, conditionField, conditionValue);
+      await this._patch(object, uuid, <string>conditionField, conditionValue);
       res = object;
     } else {
       // Copy back the mappers
@@ -1103,7 +1106,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     };
     const evtUpdated = {
       object: saved,
-      object_id: saved.getUuid(),
+      object_id: uuid,
       store: this,
       update,
       previous: loaded
@@ -1143,10 +1146,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   toStoredJSON(obj: CoreModel, stringify = false): any | string {
     return runAsSystem(() => {
       if (stringify) {
-        console.log("TO JSON", obj.toJSON());
-        return JSON.stringify(obj.toJSON());
+        return JSON.stringify(obj);
       }
-      return obj.toJSON();
+      return { ...obj };
     });
   }
 
@@ -1240,9 +1242,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @returns
    * @deprecated
    */
-  async removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
+  async removeAttribute(uuid: string, attribute: string, itemWriteConditionField?: string, itemWriteCondition?: any) {
     this.metrics.operations_total.inc({ operation: "attributeDelete" });
-    await this._removeAttribute(uuid, <string>attribute, itemWriteCondition, <string>itemWriteConditionField);
+    await this._removeAttribute(uuid, <string>attribute, <string>itemWriteConditionField, itemWriteCondition);
     await this.emitStoreEvent("Store.PartialUpdated", {
       object_id: uuid,
       partial_update: {
@@ -1286,27 +1288,21 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     // Check condition as we have the object
     if (writeCondition) {
       if (to_delete[writeConditionField] !== writeCondition) {
-        throw new UpdateConditionFailError(to_delete.getUuid(), <string>writeConditionField, writeCondition);
+        throw new UpdateConditionFailError(uid, <string>writeConditionField, writeCondition);
       }
     }
-    const evt = {
-      object: to_delete,
-      object_id: to_delete.getUuid(),
-      store: this
-    };
-
     this.metrics.operations_total.inc({ operation: "delete" });
     // Delete from the DB for real
-    await this._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField);
+    await this._delete(uid, writeCondition, <string>writeConditionField);
     // Send post event
     const evtDeleted = {
       object: to_delete,
-      object_id: to_delete.getUuid(),
+      object_id: uid,
       store: this
     };
     await Promise.all([
       this.emitStoreEvent("Store.Deleted", evtDeleted),
-      this._cacheStore?._delete(to_delete.getUuid(), writeCondition, <string>writeConditionField)
+      this._cacheStore?._delete(uid, writeCondition, <string>writeConditionField)
     ]);
   }
 
@@ -1498,22 +1494,22 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   protected abstract _update(
     uid: string,
     object: any,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
+    itemWriteConditionField?: string,
+    itemWriteCondition?: any
   ): Promise<any>;
 
   protected abstract _patch(
     uid: string,
     object: any,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
+    itemWriteConditionField?: string,
+    itemWriteCondition?: any
   ): Promise<any>;
 
   protected abstract _removeAttribute(
     uuid: string,
     attribute: string,
-    itemWriteCondition?: any,
-    itemWriteConditionField?: string
+    itemWriteConditionField?: string,
+    itemWriteCondition?: any
   ): Promise<void>;
 
   /**
@@ -1540,8 +1536,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     prop: string,
     item: any,
     index: number,
-    itemWriteCondition: any,
     itemWriteConditionField: string,
+    itemWriteCondition: any,
     updateDate: Date
   ): Promise<any>;
 
@@ -1549,8 +1545,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     uid: string,
     prop: string,
     index: number,
-    itemWriteCondition: any,
     itemWriteConditionField: string,
+    itemWriteCondition: any,
     updateDate: Date
   ): Promise<any>;
 }

@@ -14,7 +14,7 @@ type InstanceStorage = Partial<{
   // Used to store the context providers
   contextProviders: ContextProvider[];
   // Used to store caches
-  caches: { [key: string]: any };
+  caches?: any;
   // Used to store the router
   router: IRouter;
   // Interruptable process
@@ -55,7 +55,6 @@ export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn
       operations: {},
       core: undefined,
       contextProviders: [],
-      caches: {},
       router: undefined,
       interruptables: new Set(),
       ...instanceStorage

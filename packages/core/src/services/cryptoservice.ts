@@ -132,7 +132,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     await super.init();
     CryptoService.encrypters["self"] = this;
     // Load keys
-    if (!(await this.load()) && this.parameters.autoCreate) {
+    if (this.parameters.autoCreate && !(await this.load())) {
       await this.rotate();
     }
     return this;
@@ -173,7 +173,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   async load(): Promise<boolean> {
     const load = await useRegistry().get<KeysRegistry>("keys");
-    if (!load) {
+    if (!load || !load.current) {
       return false;
     }
     this.keys = {};
@@ -462,8 +462,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       this.current = id;
       this.age = age;
     } catch (err) {
+      useLog("TRACE", "Failed to rotate keys", err);
       // Reload as something else has modified
       await this.load();
+      await this.getCurrentKeys();
     }
   }
 }

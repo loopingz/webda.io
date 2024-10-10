@@ -286,4 +286,4 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 }
 
-export { Mailer, TemplatesMap, IEmailTemplate };
+export { Mailer, type TemplatesMap, type IEmailTemplate };

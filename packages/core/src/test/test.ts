@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { register } from "prom-client";
 
 import { PrometheusService } from "../services/prometheus";
-import { ConsoleLoggerService } from "../loggers/console";
 import { FileUtils } from "../utils/serializers";
 
 // Separation on purpose to keep application import separated
@@ -28,7 +27,7 @@ import { useLog } from "../loggers/hooks";
 import { CallbackOptionallyAsync } from "./abstract";
 import sanitizeFilename from "sanitize-filename";
 import { dirname } from "node:path";
-
+import { workerOutput } from "./core";
 /**
  * Define a test suite
  */
@@ -68,48 +67,23 @@ export class WebdaTest {
     await runWithInstanceStorage(
       {
         ...this.localCache
-        //caches: JSON.parse(this.localCache.caches)
       },
       async () => {
+        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
         const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
-        WebdaTest.logger.log("INFO", "Test", this.localCache);
-        WebdaTest.logger.log("INFO", "Test instance", useInstanceStorage());
+        const start = Date.now();
         try {
-          await callback();
+          await callback.bind(this)();
         } catch (err) {
-          WebdaTest.exportMemoryLogger(this, callback.name, memoryLogger);
+          exportLog = true;
           throw err;
         } finally {
+          if (exportLog) {
+            WebdaTest.exportMemoryLogger(this, callback.name, memoryLogger, start);
+          }
           this.localCache = useInstanceStorage();
           memoryLogger.close();
         }
-      }
-    );
-  }
-
-  /**
-   * INTERNAL: Called by the test framework before each tests
-   * Do not delete
-   *
-   * @ignore
-   */
-  private async before(...args) {
-    await runWithInstanceStorage(
-      {
-        ...WebdaTest.globalCache
-      },
-      async () => {
-        const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
-        WebdaTest.logger.log("INFO", "BeforeEach", WebdaTest.globalCache);
-        try {
-          await this.beforeEach();
-        } catch (err) {
-          WebdaTest.exportMemoryLogger(this, "beforeEach", memoryLogger);
-          throw err;
-        }
-        memoryLogger.close();
-        this.localCache = useInstanceStorage();
-        //this.localCache.caches = JSON.stringify(this.localCache.caches);
       }
     );
   }
@@ -122,7 +96,13 @@ export class WebdaTest {
    * @param clean
    * @returns
    */
-  static exportMemoryLogger(object, method: string, memory?: MemoryLogger): string {
+  static exportMemoryLogger(object, method: string, memory: MemoryLogger, start: number): string {
+    let duration: number | string = Date.now() - start;
+    if (duration > 1000) {
+      duration = Math.round(duration / 10) / 100 + "s";
+    } else {
+      duration = duration + "ms";
+    }
     const file = `.webda/tests/${sanitizeFilename(object["__webda_suite_name"])}/${method}.log`;
     mkdirSync(dirname(file), { recursive: true });
     if (existsSync(file)) {
@@ -130,11 +110,13 @@ export class WebdaTest {
     }
     writeFileSync(
       file,
-      memory
-        .getLogs()
-        .filter(l => l.type === "log")
-        .map(msg => ConsoleLogger.format(msg, ConsoleLogger.defaultFormat))
-        .join("\n")
+      [
+        `Test ${object["__webda_suite_name"]}.${method} took ${duration}`,
+        ...memory
+          .getLogs()
+          .filter(l => l.type === "log")
+          .map(msg => ConsoleLogger.format(msg, ConsoleLogger.defaultFormat))
+      ].join("\n")
     );
     return file;
   }
@@ -153,28 +135,68 @@ export class WebdaTest {
   }
 
   /**
+   * INTERNAL: Called by the test framework before each tests
+   * Do not delete
+   *
+   * @ignore
+   */
+  private async before(...args) {
+    workerOutput.log("INFO", "internal:before");
+    await runWithInstanceStorage(
+      {
+        ...WebdaTest.globalCache,
+        caches: JSON.parse(WebdaTest.globalCache.caches ?? "{}")
+      },
+      async () => {
+        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
+        const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
+        const start = Date.now();
+        WebdaTest.logger.log("INFO", "BeforeEach", WebdaTest.globalCache);
+        try {
+          await this.beforeEach();
+        } catch (err) {
+          exportLog = true;
+          throw err;
+        }
+        if (exportLog) {
+          WebdaTest.exportMemoryLogger(this, "beforeEach", memoryLogger, start);
+        }
+        memoryLogger.close();
+        this.localCache = useInstanceStorage();
+      }
+    );
+    workerOutput.log("INFO", "internal:before:end");
+  }
+
+  /**
    * INTERNAL: Called by the test framework before all tests
    * Do not delete
    *
    * @ignore
    */
   private static async before<T extends WebdaTest>(this) {
+    workerOutput.log("INFO", "internal:beforeStatic");
     WebdaTest.logger ??= new WorkerOutput();
     this.cleanLogs();
-    const fileLogger = new FileLogger(WebdaTest.logger, "ERROR", "./test.log");
+
     await runWithInstanceStorage({}, async () => {
-      WebdaTest.logger.log("ERROR", "BeforeAll", Date.now());
       const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
+      const start = Date.now();
+      let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
       try {
         await this.beforeAll();
       } catch (err) {
-        this.exportMemoryLogger(this, "beforeAll", memoryLogger);
+        exportLog = true;
         throw err;
+      } finally {
+        if (exportLog) {
+          this.exportMemoryLogger(this, "beforeAll", memoryLogger, start);
+        }
+        memoryLogger.close();
       }
-      memoryLogger.close();
       WebdaTest.globalCache = useInstanceStorage();
+      WebdaTest.globalCache.caches = JSON.stringify(WebdaTest.globalCache.caches);
     });
-    WebdaTest.logger.log("ERROR", "BeforeAll finished", Date.now());
   }
 
   /**
@@ -184,20 +206,26 @@ export class WebdaTest {
    * @ignore
    */
   private async after() {
+    workerOutput.log("INFO", "internal:after");
     await runWithInstanceStorage(
       {
         ...this.localCache
-        //caches: JSON.parse(this.localCache.caches)
       },
       async () => {
         const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
+        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
+        const start = Date.now();
         try {
           await this.afterEach();
         } catch (err) {
-          WebdaTest.exportMemoryLogger(this, "afterEach", memoryLogger);
+          exportLog = true;
           throw err;
+        } finally {
+          if (exportLog) {
+            WebdaTest.exportMemoryLogger(this, "afterEach", memoryLogger, start);
+          }
+          memoryLogger.close();
         }
-        memoryLogger.close();
         try {
           this.cleanFiles.filter(existsSync).forEach(unlinkSync);
         } catch (err) {
@@ -215,17 +243,25 @@ export class WebdaTest {
    * @ignore
    */
   private static async after() {
+    workerOutput.log("INFO", "internal:afterStatic");
     await runWithInstanceStorage(
       {
-        ...this.globalCache
+        ...this.globalCache,
+        caches: JSON.parse(this.globalCache.caches ?? "{}")
       },
       async () => {
         const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
+        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
+        const start = Date.now();
         try {
           await this.afterAll();
         } catch (err) {
-          this.exportMemoryLogger(this, "afterAll", memoryLogger);
+          exportLog = true;
           throw err;
+        } finally {
+          if (exportLog) {
+            this.exportMemoryLogger(this, "afterAll", memoryLogger, start);
+          }
         }
         memoryLogger.close();
       }

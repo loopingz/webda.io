@@ -16,11 +16,11 @@
     "build:watch": "webda build --watch",
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && yarn run lint:fix",
-    "pretest": "npm run build",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+    "pretest": "yarn build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:c8": "NODE_OPTIONS='--import ./hooks-register.mjs' c8 -r lcov --check-coverage --lines 100 mocha",
@@ -29,6 +29,7 @@
     "test:mocha": "mocha src/test/core.spec.ts",
     "test:jest": "jest src/test/core.spec.ts",
     "test:bun": "bun test src/test/core.spec.ts",
+    "test:test": "rm -f tester.log && vitest run src/application/unapplication.spec.ts && more tester.log",
     "test:vitest": "vitest"
   },
   "dependencies": {

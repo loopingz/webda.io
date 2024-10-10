@@ -10,7 +10,7 @@ import { CoreModel } from "../models/coremodel";
 import { AbstractCoreModel } from "../models/imodel";
 import type { Constructor } from "@webda/tsc-esm";
 import { Router } from "../rest/router";
-import { CryptoService } from "../services/cryptoservice";
+import { CryptoService, useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
@@ -29,7 +29,7 @@ import { useApplication, useModel, useModelId } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
 import { getMachineId } from "./hooks";
-import { RegistryModel } from "../models/registry";
+import { RegistryModel, useRegistry } from "../models/registry";
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -107,10 +107,6 @@ export class Core implements ICore {
    * Store the instance id
    */
   private instanceId: string;
-  /**
-   * Manage encryption within the application
-   */
-  protected cryptoService: CryptoService;
   /**
    * Contains all operations defined by services
    */
@@ -348,7 +344,7 @@ export class Core implements ICore {
       try {
         this.log("INFO", `Using ConfigurationService '${this.configuration.parameters.configurationService}'`);
         // Create the configuration service
-        this.createService(this.configuration.services, this.configuration.parameters.configurationService);
+        this.createService(this.configuration.parameters.configurationService);
         const cfg = await this.getService<ConfigurationService>(
           this.configuration.parameters.configurationService
         ).initConfiguration();
@@ -392,8 +388,15 @@ export class Core implements ICore {
     this._init = (async () => {
       await this.initService("Router");
       await this.initService("Registry");
+      // By pass the store checks
+      CoreModel["Store"] = <any>this.services["Registry"];
+      RegistryModel["Store"] = <any>this.services["Registry"];
+
       await this.initService("CryptoService");
 
+      if (useCrypto()._initException || useRouter()._initException || this.services["Registry"]._initException) {
+        throw new Error("Cannot init Webda core services (Router, Registry, CryptoService)");
+      }
       // Init services
       let service;
       const inits = [];
@@ -506,30 +509,37 @@ export class Core implements ICore {
     this.logger.log(level, ...args);
   }
 
-  protected createService(services: any, service: string) {
-    let type = services[service]?.type;
-    if (type === undefined) {
-      type = service;
-    }
+  /**
+   * Create a specific service
+   * @param service
+   * @returns
+   */
+  protected createService(service: string) {
+    const params = useParameters(service);
     let serviceConstructor: ServiceConstructor<IService> = undefined;
     try {
-      serviceConstructor = this.application.getModda(type);
+      serviceConstructor = this.application.getModda(params.type);
     } catch (ex) {
-      this.log("ERROR", `Create service ${service}(${type}) failed ${ex.message}`);
+      this.log("ERROR", `Create service ${service}(${params.type}) failed ${ex.message}`);
       this.log("TRACE", ex.stack);
       return;
     }
 
     try {
       this.log("TRACE", "Constructing service", service);
-      this.services[service] = new serviceConstructor(service, useParameters(service));
+      this.services[service] = new serviceConstructor(service, params);
     } catch (err) {
       this.log("ERROR", "Cannot create service", service, err);
       // @ts-ignore
       this.failedServices[service] = { _createException: err };
     }
+    return this.services[service];
   }
 
+  /**
+   * Get application beans
+   * @returns
+   */
   getBeans() {
     // @ts-ignore
     return process.webdaBeans || {};
@@ -564,14 +574,11 @@ export class Core implements ICore {
     }
 
     // Construct services
-    for (const service in services) {
-      if (excludes.indexOf(service) >= 0) {
-        continue;
-      }
-      this.createService(services, service);
-    }
+    Object.keys(services)
+      .filter(s => !excludes.includes(s))
+      .forEach(s => this.createService(s));
 
-    // Call resolve on all services
+    // Call resolve on all services as all services now exist
     Object.keys(this.services)
       .filter(s => !excludes.includes(s))
       .forEach(s => {
@@ -617,18 +624,19 @@ export class Core implements ICore {
       });
     // Init the registry
 
-    this.createService(this.configuration.services, "Registry");
-    this.getService<Store>("Registry").resolve();
+    let service = this.createService("Registry");
+    if (!service) {
+      throw new Error("Cannot create Registry service");
+    }
     this.application.addModel("Webda/Registry", RegistryModel);
     RegistryModel["Store"] = <any>this.getService<Store>("Registry");
+    service.resolve();
 
-    this.createService(this.configuration.services, "CryptoService");
-    this.cryptoService = this.getService<CryptoService>("CryptoService").resolve();
-
-    // Session Manager
-    this.configuration.services["SessionManager"] ??= {
-      type: "Webda/CookieSessionManager"
-    };
+    service = this.createService("CryptoService");
+    if (!service) {
+      throw new Error("Cannot create Cryptographic service");
+    }
+    service.resolve();
 
     if (this.configuration.services !== undefined) {
       const excludes = ["Registry", "CryptoService"];

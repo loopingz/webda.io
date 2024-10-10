@@ -47,6 +47,7 @@ class MemoryStoreParameters extends StoreParameters {
 
   constructor(params: any, service: MemoryStore) {
     super(params, service);
+    Object.assign(this, params);
     if (this.persistence) {
       this.persistence.delay ??= 1000;
       this.persistence.cipher ??= "aes-256-ctr";
@@ -325,9 +326,9 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
   /**
    * @override
    */
-  async _patch(object: any, uuid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
+  async _patch(object: any, uuid: string, writeConditionField?: any, writeCondition?: string): Promise<any> {
     const obj = await this._get(uuid, true);
-    this.checkUpdateCondition(obj, writeConditionField, writeCondition);
+    this.checkUpdateCondition(uuid, obj, writeConditionField, writeCondition);
     for (const prop in object) {
       obj[prop] = object[prop];
     }
@@ -340,7 +341,7 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
    */
   async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     const obj = await this._get(uid, true);
-    this.checkUpdateCondition(obj, writeConditionField, writeCondition);
+    this.checkUpdateCondition(uid, obj, writeConditionField, writeCondition);
     return this.persistModel(uid, object);
   }
 
@@ -396,7 +397,6 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
    */
   async _get(uid, raiseIfNotFound: boolean = false) {
     if (!this.storage[uid]) {
-      console.log(this.storage);
       if (raiseIfNotFound) {
         throw new StoreNotFoundError(uid, this.getName());
       }
@@ -465,4 +465,4 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
   }
 }
 
-export { MemoryStore, MemoryStore as Plop, StorageMap };
+export { MemoryStore, MemoryStore as Plop, type StorageMap };

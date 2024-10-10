@@ -1,4 +1,10 @@
 /* eslint-disable */
+
+import { unlinkSync } from "node:fs";
+import { workerOutput } from "./core";
+try {
+  unlinkSync("./tester.log");
+} catch (err) {}
 /**
  * The abstract class ClassTestUI ...
  *
@@ -76,50 +82,28 @@ export abstract class ClassTestUI {
     return instance;
   }
 
-  protected getWrappedFunction<T extends Function>(constructor: any, fn: T, ...args: any[]): CallbackOptionallyAsync {
-    const ThisTestUI = this;
-    if (this.isAsync(fn)) {
-      return wrap(function (done) {
-        constructor["__webda_context"] = ThisTestUI;
-        // @ts-ignore
-        return fn.bind(constructor, ...args, done);
-      }, fn);
-    } else {
-      return wrap(function () {
-        constructor["__webda_context"] = ThisTestUI;
-        // @ts-ignore
-        return fn.bind(constructor, ...args);
-      }, fn);
-    }
-  }
-
-  protected isAsync(method: Function): boolean {
-    const isParameterised = method["__webda_parametersSymbol"] !== undefined;
-    const length = method.length;
-    return (isParameterised && length > 1) || (!isParameterised && length > 0);
-  }
-
   protected suiteCallbackFromClass<T extends TestInstance>(constructor: TestClass<T>): () => void {
     return () => {
       const ThisTestUI = this;
       // Regiter the static before method of the class to be called before-all tests.
       if (constructor.before) {
-        this.runner.beforeAll(
-          this.getWrappedFunction(constructor, constructor.before),
-          this.getSettings(constructor.before)
-        );
+        this.runner.beforeAll(function () {
+          workerOutput.log("INFO", "Running beforeAll", constructor.name);
+          return constructor.before();
+        }, this.getSettings(constructor.before));
       }
 
       let instance;
       const prototype = constructor.prototype;
       // Register the instance before method to be called before-each test method.
       this.runner.beforeEach(
-        function () {
+        async function () {
+          workerOutput.log("INFO", "Running beforeEach", constructor.name);
           constructor.prototype["__webda_context"] = ThisTestUI;
           instance = ThisTestUI.createInstance(constructor);
           constructor.prototype["__webda_context"] = undefined;
           if (prototype.before) {
-            ThisTestUI.getWrappedFunction(instance, prototype.before)();
+            await instance.before();
           }
         },
         prototype.before ? this.getSettings(prototype.before) : {}
@@ -146,21 +130,18 @@ export abstract class ClassTestUI {
         this.runner.test(
           method["__webda_name"],
           function () {
-            if (instance["testWrapper"]) {
-              return ThisTestUI.getWrappedFunction(instance, instance["testWrapper"])(method);
-            } else {
-              return ThisTestUI.getWrappedFunction(instance, method)();
-            }
+            method.bind(instance);
+            return instance["testWrapper"] ? instance["testWrapper"](method) : method();
           },
           { ...this.getSettings(method), instance }
         );
       }
 
       this.runner.afterEach(
-        function teardownInstance() {
+        async function teardownInstance() {
           // Register the instance after method to be called after-each test method.
           if (prototype.after) {
-            ThisTestUI.getWrappedFunction(instance, prototype.after)();
+            await instance.after();
           }
           instance = null;
         },
@@ -169,10 +150,9 @@ export abstract class ClassTestUI {
 
       // Register the static after method of the class to be called after-all tests.
       if (constructor.after) {
-        this.runner.afterAll(
-          this.getWrappedFunction(constructor, constructor.after),
-          this.getSettings(constructor.after)
-        );
+        this.runner.afterAll(async function () {
+          await constructor.after();
+        }, this.getSettings(constructor.after));
       }
     };
   }

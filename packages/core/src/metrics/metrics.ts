@@ -8,6 +8,7 @@ import {
   HistogramConfiguration,
   register
 } from "prom-client";
+import { useParameters } from "../core/instancestorage";
 
 /**
  * Generic type for metric
@@ -40,7 +41,7 @@ export function useMetric<T = Gauge | Counter | Histogram>(
   type: Constructor<T, [MetricConfiguration<T>]>,
   configuration: MetricConfiguration<T>
 ): T {
-  const metrics = this.getGlobalParams().metrics;
+  const metrics = useParameters().metrics;
   if (metrics === false) {
     // Return a mock
     return <T>{

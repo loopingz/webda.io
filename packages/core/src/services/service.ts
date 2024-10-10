@@ -5,7 +5,7 @@ import { Route } from "../rest/irest";
 import type { OpenAPIWebdaDefinition } from "../rest/irest";
 import type { HttpMethodType } from "../contexts/httpcontext";
 import type { Constructor, DeepPartial } from "@webda/tsc-esm";
-import type { Counter, Gauge, Histogram, MetricConfiguration } from "../metrics/metrics";
+import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfiguration } from "../metrics/metrics";
 
 import type { Logger } from "../loggers/ilogger";
 import type { OperationContext } from "../contexts/operationcontext";
@@ -207,6 +207,10 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
     this.name = name;
     this.logger = useLogger(this);
     this.parameters = <T>this.loadParameters(params);
+    // Setting default values if not provided
+    Object.entries(params).forEach(([key, value]) => {
+      this.parameters[key] ??= value;
+    });
   }
 
   /**
@@ -291,11 +295,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
     configuration.labelNames ??= [];
     configuration.labelNames = [...configuration.labelNames, "service"];
     configuration.name = `${this.getName().toLowerCase()}_${configuration.name}`;
-    /*
-    TODO Fix this
-    return this.getWebda().getMetric(type, configuration);
-    */
-    return undefined;
+    return useMetric(type, configuration);
   }
 
   /**

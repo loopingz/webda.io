@@ -1,28 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["es2019", "DOM"],
-    "module": "ESNext",
+    "target": "ES2022",
+    "module": "ES2022",
     "outDir": "./lib",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
+    "isolatedModules": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "useDefineForClassFields": true
   },
   "include": ["src/**/*"],
-  "exclude": ["**/node_modules"],
-  "ts-node": {
-    "transpileOnly": true,
-    "preferTsExts": true,
-    "compilerOptions": {
-      "experimentalDecorators": true,
-      "declarationMap": true
-    },
-    "include": ["src/**/*.spec.ts"],
-    "exclude": ["src/models/**/*"]
-  }
+  "exclude": ["**/node_modules"]
 }

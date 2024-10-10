@@ -2,6 +2,7 @@ import { useInstanceStorage } from "../core/instancestorage";
 import { test, suite } from "./core";
 import * as assert from "assert";
 import { WebdaTest } from "./test";
+import { sleep } from "../utils/waiter";
 
 /**
  * This class ensure that the InstanceStorage is correctly reset between tests
@@ -12,6 +13,7 @@ import { WebdaTest } from "./test";
  */
 class WebdaTesterTest extends WebdaTest {
   async beforeEach() {
+    await super.beforeEach();
     useInstanceStorage().caches!.count++;
     assert.strictEqual(useInstanceStorage().caches?.count, 2);
   }
@@ -20,15 +22,18 @@ class WebdaTesterTest extends WebdaTest {
    * Execute before all tests
    */
   static async beforeAll() {
+    await super.beforeAll();
     useInstanceStorage().caches!.count ??= 1;
   }
 
   async afterEach() {
+    await super.afterEach();
     useInstanceStorage().caches!.count++;
     assert.strictEqual(useInstanceStorage().caches?.count, 4);
   }
 
   static async afterAll() {
+    await super.afterAll();
     assert.strictEqual(useInstanceStorage().caches?.count, 1);
   }
 }

@@ -13,6 +13,12 @@ export class FileStoreParameters extends StoreParameters {
    * Parameter sent to JSON.stringify when storing the json
    */
   beautify?: string | number;
+
+  constructor(params, store) {
+    super(params, store);
+    this.folder = params.folder;
+    this.beautify = params.beautify;
+  }
 }
 
 /**
@@ -133,7 +139,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
    */
   async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
     const res = await this._get(uuid, true);
-    this.checkUpdateCondition(res, writeConditionField, writeCondition);
+    this.checkUpdateCondition(uuid, res, writeConditionField, writeCondition);
     delete res[attribute];
     await this.persist(uuid, res);
   }
@@ -171,7 +177,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
    */
   async _patch(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     const stored = await this._get(uid, true);
-    this.checkUpdateCondition(stored, writeConditionField, writeCondition);
+    this.checkUpdateCondition(uid, stored, writeConditionField, writeCondition);
     for (const prop in object) {
       stored[prop] = object[prop];
     }
@@ -183,7 +189,7 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
    */
   async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
     const stored = await this._get(uid, true);
-    this.checkUpdateCondition(stored, writeConditionField, writeCondition);
+    this.checkUpdateCondition(uid, stored, writeConditionField, writeCondition);
     return this.persist(uid, object);
   }
 

@@ -277,4 +277,5 @@ class ConfigurationService<
   }
 }
 
-export { ConfigurationProvider, ConfigurationService };
+export { ConfigurationService };
+export type { ConfigurationProvider };

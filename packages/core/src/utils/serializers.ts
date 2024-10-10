@@ -20,6 +20,7 @@ type WalkerOptionsType = {
   followSymlinks?: boolean;
   resolveSymlink?: boolean;
   includeDir?: boolean;
+  skipHidden?: boolean;
   maxDepth?: number;
 };
 type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor?: (filepath: string) => void };
@@ -162,7 +163,7 @@ export const FileUtils: StorageFinder & {
     options: WalkerOptionsType = { maxDepth: 100 },
     depth: number = 0
   ) => {
-    const files = readdirSync(path);
+    const files = !options.skipHidden ? readdirSync(path) : readdirSync(path).filter(f => !f.startsWith("."));
     const fileItemCallback = async p => {
       try {
         const stat = lstatSync(p);

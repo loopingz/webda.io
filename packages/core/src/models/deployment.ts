@@ -22,4 +22,4 @@ export default interface Deployment {
   name?: string;
 }
 
-export { Deployment };
+export type { Deployment };

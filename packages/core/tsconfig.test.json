@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
+    "target": "ES2022",
+    "module": "ES2022",
     "strict": false,
     "downlevelIteration": true,
     "experimentalDecorators": true,
@@ -14,8 +14,9 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "checkJs": false,
-    "moduleResolution": "NodeNext",
-    "lib": ["ESNext"]
+    "moduleResolution": "Node16",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022"]
   },
   "include": ["src/**/*"],
   "exclude": ["**/node_modules", "src/**/*.spec.ts", "**/*.d.ts"]

@@ -634,12 +634,8 @@ class Authentication<
     */
 
   async registerUser(ctx: WebContext, data: any, identId: string, user: User = new this.userModel()): Promise<User> {
-    runAsSystem(() => {
-      user.load({
-        email: data.email,
-        locale: ctx.getLocale()
-      });
-    });
+    user.email = data.email;
+    user.locale = ctx.getLocale();
     this.metrics.registration.inc();
     await this.emit("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
@@ -1011,17 +1007,17 @@ class Authentication<
       delete body.password;
       delete body.register;
       delete body.token;
-      const user = await runAsSystem(() =>
+      const user = await runAsSystem(async () =>
         this.registerUser(
           ctx,
           {},
           uuid,
-          new this.userModel().load(
+          await this.userModel.create(
             {
               ...body,
               __password
             },
-            true
+            false
           )
         )
       );

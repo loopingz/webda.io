@@ -18,7 +18,6 @@
     "Webda/InvitationService": "lib/services/invitationservice:InvitationService",
     "Webda/KubernetesConfigurationService": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
     "Webda/Mailer": "lib/services/mailer:Mailer",
-    "Webda/Mapper": "lib/stores/mapper:MapperService",
     "Webda/MemoryLogger": "lib/loggers/memory:MemoryLoggerService",
     "Webda/MemoryQueue": "lib/queues/memoryqueue:MemoryQueue",
     "Webda/MemoryStore": "lib/stores/memory:MemoryStore",
@@ -87,7 +86,7 @@
       "Webda/RoleModel": "lib/models/rolemodel:RoleModel",
       "Webda/SimpleUser": "lib/models/simpleuser:SimpleUser",
       "Webda/User": "lib/models/user:User",
-      "Webda/UuidModel": "lib/models/coremodel:UuidModel"
+      "Webda/UuidModel": "lib/models/uuid:UuidModel"
     },
     "reflections": {
       "Webda/AclModel": {

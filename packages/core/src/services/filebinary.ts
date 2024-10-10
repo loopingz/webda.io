@@ -30,7 +30,7 @@ export class FileBinaryParameters extends CloudBinaryParameters {
 
   constructor(params: any, service: BinaryService) {
     super(params, service);
-    if (!this.folder.endsWith("/")) {
+    if (!this.folder.  endsWith("/")) {
       this.folder += "/";
     }
     this.maxSize ??= 10 * 1024 * 1024;

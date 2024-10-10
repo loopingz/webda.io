@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import * as WebdaError from "../errors/errors";
 import * as WebdaQL from "@webda/ql";
-import { Context } from "../contexts/icontext";
+import { Context, setContextUpdate } from "../contexts/icontext";
 import { OperationContext } from "../contexts/operationcontext";
 import type { HttpMethodType } from "../contexts/httpcontext";
 import { Throttler } from "../utils/throttler";
@@ -736,8 +736,10 @@ export class CoreModel extends AbstractCoreModel {
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: Partial<RawModel<this>>, relations: boolean = true): this {
+  protected load(raw: Partial<RawModel<this>>, relations: boolean = true): this {
+    setContextUpdate(true);
     this.context = useContext();
+    setContextUpdate(false);
     const filterAttribute = this.hasAttributePermissions("WRITE");
     // Object assign with filter
     for (const prop in raw) {

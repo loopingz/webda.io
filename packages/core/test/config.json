@@ -55,15 +55,6 @@
     "DefinedMailer": {
       "type": "WebdaTest/Mailer"
     },
-    "IdentsMapper": {
-      "type": "Webda/Mapper",
-      "source": "Idents",
-      "targetAttribute": "idents",
-      "target": "Users",
-      "attribute": "_user",
-      "fields": "type,_lastUpdate,counter",
-      "cascade": true
-    },
     "Idents": {
       "model": "WebdaTest/Ident",
       "type": "MemoryStore"

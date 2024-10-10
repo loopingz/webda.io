@@ -10,6 +10,14 @@ import { pipeline } from "node:stream/promises";
  */
 export abstract class Context {
   /**
+   * Get the session linked to the context if exists
+   */
+  abstract getSession(): any;
+  /**
+   * Get the caches linked to the context
+   */
+  caches: any;
+  /**
    * Allow extensions
    */
   protected extensions: { [key: string]: any };
@@ -178,7 +186,6 @@ export abstract class IOperationContext<Input = any, Parameters = any, Output = 
 
   abstract setSession(session: any): void;
 
-  abstract getSession(): any;
   /**
    * Create a new session
    *

@@ -1,3 +1,4 @@
+import { FileLogger, WorkerOutput } from "@webda/workout";
 import {
   TestRunner,
   ClassTestUI,
@@ -8,6 +9,8 @@ import {
   TestSettings
 } from "./abstract";
 
+export const workerOutput = new WorkerOutput();
+export const fileLogger = new FileLogger(workerOutput, "TRACE", "./tester.log");
 /**
  * Return a definition of the test framework
  */
@@ -81,87 +84,86 @@ export function detectFramework(): TestFramework {
 
 const framework = detectFramework();
 
+let executers;
+
+if (framework.type !== "jest") {
+  //@ts-ignore
+  executers = await framework.executers;
+  // Jest does not support the global await
+  // https://github.com/kulshekhar/ts-jest/blob/main/e2e/esm-features/__tests__/esm-features.spec.ts
+} else {
+  // If jest add the executers to the global
+  global.beforeAll(() => framework.executers);
+}
+
 class WebdaRunner implements TestRunner {
   constructor(protected framework: TestFramework) {}
   suite(name: string, callback: SuiteCallback, settings?: SuiteSettings): void {
-    this.framework.executers.then(({ describe }) => {
-      switch (settings && settings.execution) {
-        case "only":
+    const { describe } = executers;
+    switch (settings && settings.execution) {
+      case "only":
+        // @ts-ignore
+        describe.only(name, callback);
+        break;
+      case "pending":
+        if (["vitest"].includes(framework.type)) {
           // @ts-ignore
-          describe.only(name, callback);
+          describe.todo(name);
           break;
-        case "pending":
-          if (["vitest"].includes(framework.type)) {
-            // @ts-ignore
-            describe.todo(name);
-            break;
-          }
-        case "skip":
-          // @ts-ignore
-          describe.skip(name, callback);
-          break;
+        }
+      case "skip":
+        // @ts-ignore
+        describe.skip(name, callback);
+        break;
 
-        default:
-          describe(name, callback);
-      }
-    });
+      default:
+        describe(name, callback);
+    }
   }
 
   test(name: string, callback: CallbackOptionallyAsync, settings?: TestSettings): void {
-    this.framework.executers.then(({ test }) => {
-      switch (settings && settings.execution) {
-        case "only":
+    const { test } = executers;
+    switch (settings && settings.execution) {
+      case "only":
+        // @ts-ignore
+        test.only(name, callback, settings && settings.timeout);
+        break;
+      case "pending":
+        if (["vitest"].includes(framework.type)) {
           // @ts-ignore
-          test.only(name, callback, settings && settings.timeout);
+          test.todo(name);
           break;
-        case "pending":
-          if (["vitest"].includes(framework.type)) {
-            // @ts-ignore
-            test.todo(name);
-            break;
-          }
-        case "skip":
-          // @ts-ignore
-          test.skip(name, callback, settings);
-          break;
-        default:
-          test(name, callback, settings);
-      }
-    });
+        }
+      case "skip":
+        // @ts-ignore
+        test.skip(name, callback, settings);
+        break;
+      default:
+        test(name, callback, settings);
+    }
   }
   beforeAll(callback: CallbackOptionallyAsync, settings?: LifecycleSettings): void {
-    this.framework.executers.then(({ beforeAll }) => {
-      beforeAll(callback, settings);
-    });
+    const { beforeAll } = executers;
+    beforeAll(callback, settings);
   }
   beforeEach(callback: CallbackOptionallyAsync, settings?: LifecycleSettings): void {
-    this.framework.executers.then(({ beforeEach }) => {
-      beforeEach(callback, settings);
-    });
+    const { beforeEach } = executers;
+    beforeEach(callback, settings);
   }
   afterEach(callback: CallbackOptionallyAsync, settings?: LifecycleSettings & any): void {
-    this.framework.executers.then(({ afterEach }) => {
-      afterEach(callback, settings);
-    });
+    const { afterEach } = executers;
+    afterEach(callback, settings);
   }
   afterAll(callback: CallbackOptionallyAsync, settings?: LifecycleSettings): void {
-    this.framework.executers.then(({ afterAll }) => {
-      afterAll(callback, settings);
-    });
+    const { afterAll } = executers;
+    afterAll(callback, settings);
   }
 }
 class WebdaTestUI extends ClassTestUI {
   public constructor(runner: TestRunner) {
     super(runner);
   }
-}
-
-if (framework.type === "vitest") {
-  //@ts-ignore
-  await framework.executers;
-  // Jest does not support the global await
-  // https://github.com/kulshekhar/ts-jest/blob/main/e2e/esm-features/__tests__/esm-features.spec.ts
-}
+} 
 
 const webdaDecorators = new WebdaTestUI(new WebdaRunner(framework));
 export const { suite, test, slow, timeout, retries, pending, only, skip, params } = webdaDecorators;

@@ -13,6 +13,9 @@ import {
 } from "./iapplication";
 import { FileUtils } from "../utils/serializers";
 import { getMachineId } from "../core/hooks";
+import { realpathSync } from "fs";
+import { join } from "path";
+import { ProcessCache } from "../cache/cache";
 
 /**
  * Empty git information
@@ -71,6 +74,34 @@ export class UnpackedApplication extends Application {
   }
 
   /**
+   * Find modules on load
+   * @returns
+   */
+  async load() {
+    const configuration = this.getConfiguration();
+    // If cachedModules is defined we do not recompute
+    if (!configuration.cachedModules) {
+      configuration.cachedModules = {
+        project: this.loadProjectInformation(),
+        beans: {},
+        deployers: {},
+        models: {
+          list: {},
+          graph: {},
+          tree: {},
+          plurals: {},
+          reflections: {}
+        },
+        schemas: {},
+        moddas: {}
+      };
+      this.log("DEBUG", "Merging modules into configuration");
+      await this.mergeModules(configuration);
+    }
+    return await super.load();
+  }
+
+  /**
    * Add Moddas, Models and Deployers definitions
    * It also add the project metadata
    *
@@ -94,24 +125,6 @@ export class UnpackedApplication extends Application {
       configuration = deepmerge(includeConfiguration, configuration);
     }
     configuration.imports = effectiveImports;
-    // If cachedModules is defined we do not recompute
-    if (!configuration.cachedModules) {
-      configuration.cachedModules = {
-        project: this.loadProjectInformation(),
-        beans: {},
-        deployers: {},
-        models: {
-          list: {},
-          graph: {},
-          tree: {},
-          plurals: {},
-          reflections: {}
-        },
-        schemas: {},
-        moddas: {}
-      };
-      this.mergeModules(configuration);
-    }
     this.ensureDefaultConfiguration(configuration);
     // Ensure default values
     return configuration;
@@ -133,9 +146,13 @@ export class UnpackedApplication extends Application {
     }
     configuration.parameters.configurationService ??= "Configuration";
     configuration.parameters.defaultStore ??= "Registry";
+    const autoRegistry = configuration.services["Registry"] === undefined;
+
     configuration.services["Router"] ??= {
       type: "Webda/Router"
     };
+
+    // Registry by default
     configuration.services["Registry"] ??= {
       type: "Webda/MemoryStore",
       persistence: {
@@ -143,12 +160,32 @@ export class UnpackedApplication extends Application {
         key: getMachineId()
       }
     };
-    const autoRegistry = configuration.services["Registry"] === undefined;
+
+    // CryptoService by default
     configuration.services["CryptoService"] ??= {
       type: "Webda/CryptoService",
       autoRotate: autoRegistry ? 30 : undefined,
       autoCreate: true
     };
+
+    // By default use CookieSessionManager
+    configuration.services["SessionManager"] ??= {
+      type: "Webda/CookieSessionManager"
+    };
+
+    // Ensure type is set to default
+    for (const serviceName in configuration.services) {
+      if (configuration.services[serviceName].type !== undefined) {
+        continue;
+      }
+      if (this.moddas[this.completeNamespace(serviceName)]) {
+        configuration.services[serviceName].type = this.completeNamespace(serviceName);
+        continue;
+      }
+      if (!serviceName.includes("/") && this.moddas[`Webda/${serviceName}`]) {
+        configuration.services[serviceName].type = `Webda/${serviceName}`;
+      }
+    }
   }
 
   /**
@@ -238,31 +275,110 @@ export class UnpackedApplication extends Application {
   }
 
   /**
-   * Store the current module
+   * Search the node_modules structure for webda.module.json files
+   *
+   * @param path
    * @returns
    */
-  getModulesCache() {
-    // @ts-ignore
-    const cacheModules = process.webdaModules || {};
-    // @ts-ignore
-    process.webdaModules ??= cacheModules;
-    return cacheModules;
+  @ProcessCache
+  static async findModulesFiles(path: string): Promise<string[]> {
+    if (!path.endsWith("node_modules")) {
+      return [];
+    }
+    const files = new Set<string>();
+    const checkFolder = async (filepath: string) => {
+      if (fs.existsSync(join(filepath, "webda.module.json"))) {
+        files.add(join(filepath, "webda.module.json"));
+      }
+      if (fs.existsSync(join(filepath, "node_modules"))) {
+        (await this.findModulesFiles(join(filepath, "node_modules"))).forEach(f => files.add(f));
+      }
+    };
+    const recursiveSearch = async (dirpath: string, depth: number = 0) => {
+      await Promise.all(
+        (await fs.promises.readdir(dirpath, { withFileTypes: true })).map(async file => {
+          if (file.name.startsWith(".")) {
+            return;
+          }
+          const filepath = join(dirpath, file.name);
+          if (file.isDirectory() && file.name.startsWith("@") && depth === 0) {
+            // One recursion
+            await recursiveSearch(filepath, depth + 1);
+          } else if (file.isDirectory()) {
+            await checkFolder(filepath);
+          } else if (file.isSymbolicLink()) {
+            // We want to follow symbolic links w/o increasing depth
+            let realPath;
+            try {
+              // realpathSync will throw if the symlink is broken
+              realPath = await fs.promises.realpath(filepath);
+            } catch (err) {
+              return;
+            }
+            await checkFolder(realPath);
+          }
+        })
+      );
+    };
+    await recursiveSearch(path, 0);
+    return [...files];
   }
 
+  /**
+   * Search the node_modules structure for webda.module.json files
+   *
+   * @param path
+   * @returns
+   */
+  static findModulesFilesSync(path: string): string[] {
+    if (!path.endsWith("node_modules")) {
+      return [];
+    }
+    const files = new Set<string>();
+    const checkFolder = (filepath: string) => {
+      if (fs.existsSync(join(filepath, "webda.module.json"))) {
+        files.add(join(filepath, "webda.module.json"));
+      }
+      if (fs.existsSync(join(filepath, "node_modules"))) {
+        this.findModulesFilesSync(join(filepath, "node_modules")).forEach(f => files.add(f));
+      }
+    };
+    const recursiveSearch = (dirpath: string, depth: number = 0) => {
+      fs.readdirSync(dirpath, { withFileTypes: true }).forEach(file => {
+        if (file.name.startsWith(".")) {
+          return;
+        }
+        const filepath = join(dirpath, file.name);
+        if (file.isDirectory() && file.name.startsWith("@") && depth === 0) {
+          // One recursion
+          recursiveSearch(filepath, depth + 1);
+        } else if (file.isDirectory()) {
+          checkFolder(filepath);
+        } else if (file.isSymbolicLink()) {
+          // We want to follow symbolic links w/o increasing depth
+          let realPath;
+          try {
+            // realpathSync will throw if the symlink is broken
+            realPath = realpathSync(filepath);
+          } catch (err) {
+            return;
+          }
+          checkFolder(realPath);
+        }
+      });
+    };
+    recursiveSearch(path, 0);
+    return [...files];
+  }
   /**
    * Load all imported modules and current module
    * It will compile module
    * Generate the current module file
    * Load any imported webda.module.json
    */
-  findModules(module: CachedModule): string[] {
+  async findModules(module: CachedModule): Promise<string[]> {
     const appPath = this.getAppPath();
 
-    const cacheModules = this.getModulesCache();
-    // Cache modules to speed up tests
-    if (cacheModules[appPath]) {
-      return cacheModules[appPath];
-    }
     // Modules should be cached on deploy
     const files = [];
     const currentModule = this.getAppPath("webda.module.json");
@@ -270,32 +386,20 @@ export class UnpackedApplication extends Application {
       files.push(currentModule);
     }
 
-    const findModuleFiles = (nodeModules: string): void => {
-      if (!fs.existsSync(nodeModules)) {
-        return;
-      }
-      FileUtils.walkSync(
-        nodeModules,
-        filepath => {
-          // We filter out the cache of nx
-          // If it is inside a node_modules/. we consider it should not be checked
-          if (filepath.endsWith("webda.module.json") && !filepath.includes("node_modules/.")) {
-            files.push(filepath);
-          }
-        },
-        { followSymlinks: true }
-      );
-    };
-
-    findModuleFiles(this.getAppPath("node_modules"));
+    this.log("TRACE", "Searching for modules in", this.getAppPath("node_modules"));
+    files.push(...(await UnpackedApplication.findModulesFiles(this.getAppPath("node_modules"))));
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
-      findModuleFiles(path.join(module.project.webda.workspaces.path, "node_modules"));
+      this.log("TRACE", "Searching for modules in", path.join(module.project.webda.workspaces.path, "node_modules"));
+      files.push(
+        ...(await UnpackedApplication.findModulesFiles(path.join(module.project.webda.workspaces.path, "node_modules")))
+      );
     }
 
     // Ensure we are not adding many times the same modules
-    cacheModules[appPath] = Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(f => this.filterModule(f));
-    return cacheModules[appPath];
+    const moduleInfo = Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(f => this.filterModule(f));
+    this.log("TRACE", "Found modules", moduleInfo, "for", appPath);
+    return moduleInfo;
   }
 
   /**
@@ -344,10 +448,10 @@ export class UnpackedApplication extends Application {
    *
    * @param module
    */
-  mergeModules(configuration: Configuration) {
+  async mergeModules(configuration: Configuration) {
     const module: CachedModule = configuration.cachedModules;
     const appModule = this.getAppPath("webda.module.json");
-    const files = this.findModules(module);
+    const files = await this.findModules(module);
     const value = files
       .map(f => {
         const currentModule = this.loadWebdaModule(f);
@@ -375,5 +479,6 @@ export class UnpackedApplication extends Application {
     module.models.plurals = value.models.plurals;
     // Copying schemas
     module.schemas = value.schemas;
+    return module;
   }
 }

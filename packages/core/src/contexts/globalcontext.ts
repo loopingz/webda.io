@@ -32,4 +32,12 @@ export class GlobalContext extends Context {
   getCurrentUser(): Promise<undefined> {
     return undefined;
   }
+
+  /**
+   * Provide an empty session object
+   * @returns
+   */
+  getSession() {
+    return {};
+  }
 }

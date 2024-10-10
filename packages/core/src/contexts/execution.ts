@@ -60,9 +60,9 @@ export function runWithContext<T>(context: Context, run: () => T, attach: IConte
   const res = storage.run({ context, previousContext }, run);
   // Manage both promise and normal
   if (res instanceof Promise) {
-    res.then(() => this.attachModels(attach, undefined));
+    res.then(() => attachModels(attach, undefined));
   } else {
-    this.attachModels(attach, undefined);
+    attachModels(attach, undefined);
   }
   return res;
 }

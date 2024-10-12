@@ -1,0 +1,43 @@
+{
+  "name": "@webda/utils",
+  "version": "4.0.0-beta.1",
+  "description": "Utils function for NodeJS projects",
+  "keywords": [],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc-esm",
+    "build:watch": "tsc-esm --watch",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "pretest": "tsc-esm",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "@webda/workout": "^4.0.0-beta.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@webda/tsc-esm": "^4.0.0-beta.1",
+    "vitest": "^2.1.2"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

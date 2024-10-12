@@ -1,7 +1,7 @@
 {
-  "name": "@webda/utils",
+  "name": "@webda/test",
   "version": "4.0.0-beta.1",
-  "description": "Utils function for NodeJS projects",
+  "description": "Test for NodeJS projects",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",

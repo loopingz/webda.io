@@ -1,0 +1,56 @@
+{
+  "name": "@webda/compiler",
+  "version": "4.0.0-beta.1",
+  "description": "Expose API with Lambda",
+  "keywords": [
+    "aws",
+    "lamda",
+    "api gateway"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc-esm",
+    "build:watch": "tsc-esm --watch",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "pretest": "yarn build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "dependencies": {
+    "@types/json-schema": "^7.0.8",
+    "@webda/workout": "^4.0.0-beta.1",
+    "accept-language": "^3.0.18",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.0.0",
+    "@webda/tsc-esm": "^4.0.0-beta.1",
+    "vitest": "^2.1.2"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "nx": {
+    "implicitDependencies": [
+      "@webda/tsc-esm",
+      "@webda/workout"
+    ]
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

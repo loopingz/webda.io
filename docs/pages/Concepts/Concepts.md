@@ -14,7 +14,7 @@ Then Services exists to implement generic features:
 - Store your models: Store, DynamoDB, MongoDB, Postgresql, Firebase, Memory, File
 - Store your binaries: BinaryService, FileBinary, S3Binary, GCPStorage
 - Expose your models: RESTDomainService, GraphQLService
-- Authenticatate: AuthenticationService, OAuthService
+- Authenticate: AuthenticationService, OAuthService
 - Secure: Hawk, built-in sanitizer
 
 You usually have needs for a few additional services that are unrelated to business models like integration with third parties.

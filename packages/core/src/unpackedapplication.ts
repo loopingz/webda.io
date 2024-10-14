@@ -12,6 +12,7 @@ import {
   UnpackedConfiguration
 } from "./application";
 import { FileUtils } from "./utils/serializers";
+import { join } from "path";
 
 /**
  * Empty git information
@@ -219,6 +220,53 @@ export class UnpackedApplication extends Application {
   }
 
   /**
+   * Search the node_modules structure for webda.module.json files
+   *
+   * @param path
+   * @returns
+   */
+  static findModulesFiles(path: string): string[] {
+    if (!path.endsWith("node_modules") || !fs.existsSync(path)) {
+      return [];
+    }
+    const files = new Set<string>();
+    const checkFolder = (filepath: string) => {
+      if (fs.existsSync(join(filepath, "webda.module.json"))) {
+        files.add(join(filepath, "webda.module.json"));
+      }
+      if (fs.existsSync(join(filepath, "node_modules"))) {
+        this.findModulesFiles(join(filepath, "node_modules")).forEach(f => files.add(f));
+      }
+    };
+    const recursiveSearch = (dirpath: string, depth: number = 0) => {
+      fs.readdirSync(dirpath, { withFileTypes: true }).forEach(file => {
+        if (file.name.startsWith(".")) {
+          return;
+        }
+        const filepath = join(dirpath, file.name);
+        if (file.isDirectory() && file.name.startsWith("@") && depth === 0) {
+          // One recursion
+          recursiveSearch(filepath, depth + 1);
+        } else if (file.isDirectory()) {
+          checkFolder(filepath);
+        } else if (file.isSymbolicLink()) {
+          // We want to follow symbolic links w/o increasing depth
+          let realPath;
+          try {
+            // realpathSync will throw if the symlink is broken
+            realPath = fs.realpathSync(filepath);
+          } catch (err) {
+            return;
+          }
+          checkFolder(realPath);
+        }
+      });
+    };
+    recursiveSearch(path, 0);
+    return [...files];
+  }
+
+  /**
    * Load all imported modules and current module
    * It will compile module
    * Generate the current module file
@@ -239,27 +287,12 @@ export class UnpackedApplication extends Application {
       files.push(currentModule);
     }
 
-    const findModuleFiles = (nodeModules: string): void => {
-      if (!fs.existsSync(nodeModules)) {
-        return;
-      }
-      FileUtils.walkSync(
-        nodeModules,
-        filepath => {
-          // We filter out the cache of nx
-          // If it is inside a node_modules/. we consider it should not be checked
-          if (filepath.endsWith("webda.module.json") && !filepath.includes("node_modules/.")) {
-            files.push(filepath);
-          }
-        },
-        { followSymlinks: true }
-      );
-    };
-
-    findModuleFiles(this.getAppPath("node_modules"));
+    UnpackedApplication.findModulesFiles(this.getAppPath("node_modules")).forEach(f => files.push(f));
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
-      findModuleFiles(path.join(module.project.webda.workspaces.path, "node_modules"));
+      UnpackedApplication.findModulesFiles(path.join(module.project.webda.workspaces.path, "node_modules")).forEach(f =>
+        files.push(f)
+      );
     }
 
     // Ensure we are not adding many times the same modules

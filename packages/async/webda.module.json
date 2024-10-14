@@ -380,7 +380,7 @@
               "properties": {
                 "writable": {
                   "type": "boolean",
-                  "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored or ended."
+                  "description": "Is `true` if it is safe to call `writable.write()`, which means the stream has not been destroyed, errored, or ended."
                 },
                 "writableEnded": {
                   "type": "boolean",
@@ -412,7 +412,7 @@
                 },
                 "closed": {
                   "type": "boolean",
-                  "description": "Is true after 'close' has been emitted."
+                  "description": "Is `true` after `'close'` has been emitted."
                 },
                 "errored": {
                   "anyOf": [
@@ -442,7 +442,7 @@
                 },
                 "writableNeedDrain": {
                   "type": "boolean",
-                  "description": "Is `true` if the stream's buffer has been full and stream will emit 'drain'."
+                  "description": "Is `true` if the stream's buffer has been full and stream will emit `'drain'`."
                 }
               },
               "required": [
@@ -756,7 +756,7 @@
                     },
                     "hostname": {
                       "type": "string",
-                      "description": "Gets and sets the host name portion of the URL. The key difference between`url.host` and `url.hostname` is that `url.hostname` does _not_ include the port.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.hostname); // Prints example.org\n\n// Setting the hostname does not change the port myURL.hostname = 'example.com:82'; console.log(myURL.href); // Prints https://example.com:81/foo\n\n// Use myURL.host to change the hostname and port myURL.host = 'example.org:82'; console.log(myURL.href); // Prints https://example.org:82/foo ```\n\nInvalid host name values assigned to the `hostname` property are ignored."
+                      "description": "Gets and sets the host name portion of the URL. The key difference between`url.host` and `url.hostname` is that `url.hostname` does _not_ include the port.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.hostname); // Prints example.org\n\n// Setting the hostname does not change the port myURL.hostname = 'example.com'; console.log(myURL.href); // Prints https://example.com:81/foo\n\n// Use myURL.host to change the hostname and port myURL.host = 'example.org:82'; console.log(myURL.href); // Prints https://example.org:82/foo ```\n\nInvalid host name values assigned to the `hostname` property are ignored."
                     },
                     "href": {
                       "type": "string",
@@ -768,7 +768,7 @@
                     },
                     "password": {
                       "type": "string",
-                      "description": "Gets and sets the password portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.password); // Prints xyz\n\nmyURL.password = '123'; console.log(myURL.href); // Prints https://abc:123@example.com ```\n\nInvalid URL characters included in the value assigned to the `password` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+                      "description": "Gets and sets the password portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.password); // Prints xyz\n\nmyURL.password = '123'; console.log(myURL.href); // Prints https://abc:123@example.com/ ```\n\nInvalid URL characters included in the value assigned to the `password` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
                     },
                     "pathname": {
                       "type": "string",
@@ -797,7 +797,7 @@
                       "required": [
                         "size"
                       ],
-                      "description": "Gets the `URLSearchParams` object representing the query parameters of the URL. This property is read-only but the `URLSearchParams` object it provides can be used to mutate the URL instance; to replace the entirety of query parameters of the URL, use the  {@link  search }  setter. See `URLSearchParams` documentation for details.\n\nUse care when using `.searchParams` to modify the `URL` because, per the WHATWG specification, the `URLSearchParams` object uses different rules to determine which characters to percent-encode. For instance, the `URL` object will not percent encode the ASCII tilde (`~`) character, while `URLSearchParams` will always encode it:\n\n```js const myUrl = new URL('https://example.org/abc?foo=~bar');\n\nconsole.log(myUrl.search);  // prints ?foo=~bar\n\n// Modify the URL via searchParams... myUrl.searchParams.sort();\n\nconsole.log(myUrl.search);  // prints ?foo=%7Ebar ```"
+                      "description": "Gets the `URLSearchParams` object representing the query parameters of the URL. This property is read-only but the `URLSearchParams` object it provides can be used to mutate the URL instance; to replace the entirety of query parameters of the URL, use the  {@link  search }  setter. See `URLSearchParams` documentation for details.\n\nUse care when using `.searchParams` to modify the `URL` because, per the WHATWG specification, the `URLSearchParams` object uses different rules to determine which characters to percent-encode. For instance, the `URL` object will not percent encode the ASCII tilde (`~`) character, while `URLSearchParams` will always encode it:\n\n```js const myURL = new URL('https://example.org/abc?foo=~bar');\n\nconsole.log(myURL.search);  // prints ?foo=~bar\n\n// Modify the URL via searchParams... myURL.searchParams.sort();\n\nconsole.log(myURL.search);  // prints ?foo=%7Ebar ```"
                     },
                     "username": {
                       "type": "string",
@@ -839,9 +839,7 @@
               "type": "string"
             },
             "stdio": {
-              "$ref": "#/definitions/StdioOptions",
-              "description": "Can be set to 'pipe', 'inherit', 'overlapped', or 'ignore', or an array of these strings. If passed as an array, the first element is used for `stdin`, the second for `stdout`, and the third for `stderr`. A fourth element can be used to specify the `stdio` behavior beyond the standard streams. See  {@link  ChildProcess.stdio }  for more information.",
-              "default": "pipe"
+              "$ref": "#/definitions/StdioOptions"
             },
             "shell": {
               "type": [

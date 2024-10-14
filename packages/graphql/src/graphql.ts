@@ -469,7 +469,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     }
-    if ((await modelInstance.canAct(context, "get")) !== true) {
+    if ((await modelInstance?.canAct(context, "get")) !== true) {
       throw new GraphQLError("Permission denied", {
         extensions: {
           code: "PERMISSION_DENIED"
@@ -560,7 +560,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           resolve: async (_, args, context) => {
             const object = new model().load(args[name]);
             this.log("INFO", "Create", object, context.getCurrentUserId());
-            if ((await object.canAct(context, "create")) !== true) {
+            if ((await object?.canAct(context, "create")) !== true) {
               throw new GraphQLError("Permission denied", {
                 extensions: {
                   code: "PERMISSION_DENIED"
@@ -912,7 +912,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       },
       "Store.Saved": async evt => {
         // If object match the query and is not in the result and can be read by the user
-        if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object.canAct(context, "get")) {
+        if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object?.canAct(context, "get")) {
           // Should check with the order by of the query to see if we need to recompute
           result = await model.query(query, true, context);
           return result;

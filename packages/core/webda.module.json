@@ -2384,6 +2384,16 @@
           "description": "Cache control header to set",
           "default": "public, max-age=31536000"
         },
+        "indexCacheControl": {
+          "type": "string",
+          "description": "Cache control for index file SPA usually do not cache the index file",
+          "default": "no-cache, no-store, must-revalidate"
+        },
+        "allowHiddenFiles": {
+          "type": "boolean",
+          "description": "Serve also . prefixed files . files usually have some secrets and should not be served",
+          "default": false
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true

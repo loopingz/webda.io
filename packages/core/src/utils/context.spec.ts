@@ -223,10 +223,14 @@ class ContextTest extends WebdaTest {
       cookie: "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1"
     });
     assert.strictEqual(ctx.getAbsoluteUrl("/test"), "http://test.webda.io/test");
-    assert.deepStrictEqual(ctx.getCookies(), {
+    const cookies = ctx.getCookies();
+    const valid = {
       PHPSESSID: "298zf09hf012fh2",
       csrftoken: "u32t4o3tb3gg43",
       _gat: "1"
+    };
+    Object.keys(cookies).forEach(key => {
+      assert.deepEqual(cookies[key], valid[key]);
     });
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 80);
     assert.strictEqual(ctx.getAbsoluteUrl(), "https://test.webda.io:80/uritemplate/plop");

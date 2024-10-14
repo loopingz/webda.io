@@ -1,4 +1,4 @@
-import { CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
+import { type SerializeOptions, serialize as cookieSerialize } from "cookie";
 import { JWTOptions } from "../services/cryptoservice";
 import { WebContext } from "./context";
 import { HttpContext } from "./httpcontext";
@@ -12,7 +12,7 @@ const SPLIT = 4096;
 /**
  * Cookie Options
  */
-export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
+export class CookieOptions implements Omit<SerializeOptions, "domain"> {
   /**
    * @default lax
    */
@@ -164,7 +164,7 @@ export class SecureCookie {
     name ??= "webda";
     let cookieName = name;
     let limit;
-    const mapLength = cookieSerialize(name, "", <CookieSerializeOptions>params).length;
+    const mapLength = cookieSerialize(name, "", <SerializeOptions>params).length;
     for (let i = 0; i < value.length; ) {
       limit = SPLIT - mapLength;
       if (j > 1) {

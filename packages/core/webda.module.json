@@ -893,6 +893,47 @@
         "cookie": {
           "type": "object",
           "properties": {
+            "encode": {
+              "description": "Specifies a function that will be used to encode a [cookie-value](https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1). Since value of a cookie has a limited character set (and must be a simple string), this function can be used to encode a value into a string suited for a cookie's value, and should mirror `decode` when parsing.",
+              "default": "encodeURIComponent"
+            },
+            "maxAge": {
+              "type": "number",
+              "description": "Specifies the `number` (in seconds) to be the value for the [`Max-Age` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.2).\n\nThe [cookie storage model specification](https://tools.ietf.org/html/rfc6265#section-5.3) states that if both `expires` and `maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this, so if both are set, they should point to the same date and time.",
+              "minimum": 1,
+              "default": "86400 * 7"
+            },
+            "expires": {
+              "type": "string",
+              "description": "Specifies the `Date` object to be the value for the [`Expires` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.1). When no expiration is set clients consider this a \"non-persistent cookie\" and delete it the current session is over.\n\nThe [cookie storage model specification](https://tools.ietf.org/html/rfc6265#section-5.3) states that if both `expires` and `maxAge` are set, then `maxAge` takes precedence, but it is possible not all clients by obey this, so if both are set, they should point to the same date and time."
+            },
+            "path": {
+              "type": "string",
+              "description": "Specifies the value for the [`Path` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.4). When no path is set, the path is considered the [\"default path\"](https://tools.ietf.org/html/rfc6265#section-5.1.4).",
+              "default": "/"
+            },
+            "httpOnly": {
+              "type": "boolean",
+              "description": "Enables the [`HttpOnly` `Set-Cookie` attribute](https://tools.ietf.org/html/rfc6265#section-5.2.6). When enabled, clients will not allow client-side JavaScript to see the cookie in `document.cookie`.",
+              "default": true
+            },
+            "secure": {
+              "type": "boolean",
+              "description": "If not set will be true if https request and false otherwise If defined it will be set to the value"
+            },
+            "partitioned": {
+              "type": "boolean",
+              "description": "Enables the [`Partitioned` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-cutler-httpbis-partitioned-cookies/). When enabled, clients will only send the cookie back when the current domain _and_ top-level domain matches.\n\nThis is an attribute that has not yet been fully standardized, and may change in the future. This also means clients may ignore this attribute until they understand it. More information about can be found in [the proposal](https://github.com/privacycg/CHIPS)."
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Specifies the value for the [`Priority` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-west-cookie-priority-00#section-4.1).\n\n- `'low'` will set the `Priority` attribute to `Low`.\n- `'medium'` will set the `Priority` attribute to `Medium`, the default priority when not set.\n- `'high'` will set the `Priority` attribute to `High`.\n\nMore information about priority levels can be found in [the specification](https://tools.ietf.org/html/draft-west-cookie-priority-00#section-4.1)."
+            },
             "sameSite": {
               "type": "string",
               "enum": [
@@ -900,6 +941,7 @@
                 "strict",
                 "lax"
               ],
+              "description": "Specifies the value for the [`SameSite` `Set-Cookie` attribute](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).\n\n- `true` will set the `SameSite` attribute to `Strict` for strict same site enforcement.\n- `'lax'` will set the `SameSite` attribute to `Lax` for lax same site enforcement.\n- `'none'` will set the `SameSite` attribute to `None` for an explicit cross-site cookie.\n- `'strict'` will set the `SameSite` attribute to `Strict` for strict same site enforcement.\n\nMore information about enforcement levels can be found in [the specification](https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-09#section-5.4.7).",
               "default": "lax"
             },
             "domain": {
@@ -908,23 +950,6 @@
                 true
               ],
               "description": "if true domain will be set to the request hostname if undefined no domain will be output (browser will use the current domain and only this one) if a string is provided it will be used as the domain\n\nWhen provided a domain is setting the cookie to be available to all subdomains"
-            },
-            "maxAge": {
-              "type": "number",
-              "minimum": 1,
-              "default": "86400 * 7"
-            },
-            "path": {
-              "type": "string",
-              "default": "/"
-            },
-            "httpOnly": {
-              "type": "boolean",
-              "default": true
-            },
-            "secure": {
-              "type": "boolean",
-              "description": "If not set will be true if https request and false otherwise If defined it will be set to the value"
             },
             "name": {
               "type": "string",

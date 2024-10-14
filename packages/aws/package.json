@@ -55,7 +55,7 @@
     "@webda/workout": "^3.2.0",
     "bluebird": "^3.7.2",
     "commitlint": "^19.2.1",
-    "cookie": "^0.6.0",
+    "cookie": "^1.0.1",
     "glob": "^10.0.0",
     "iam-policy-optimizer": "^1.2.0",
     "lerna": "^8.0.0",

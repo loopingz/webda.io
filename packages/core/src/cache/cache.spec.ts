@@ -1,8 +1,8 @@
-import { suite, test } from "../test/core";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { InstanceCache, ProcessCache, SessionCache, ContextCache } from "./cache";
 import { runWithInstanceStorage } from "../core/instancestorage";
-import { runWithContext, useContext } from "../contexts/execution";
+import { runWithContext } from "../contexts/execution";
 
 let callCount = 0;
 function processKey() {

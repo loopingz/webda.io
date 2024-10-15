@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { JSONUtils } from "../utils/serializers";
+import { JSONUtils } from "@webda/utils";
 import { type MessageReceipt, Queue, QueueParameters } from "./queueservice";
-import { ServiceParameters } from "../services/iservices";
+import { ServiceParameters } from "../interfaces";
 
 interface QueueMap {
   [key: string]: any;

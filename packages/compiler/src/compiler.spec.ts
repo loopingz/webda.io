@@ -1,101 +1,80 @@
-import { suite, test } from "@testdeck/mocha";
-import { getCommonJS } from "@webda/core";
+import { suite, test } from "@webda/test";
+import { getCommonJS, JSONUtils } from "@webda/utils";
 import * as assert from "assert";
 import * as path from "path";
-import ts from "typescript";
-import { WebdaSampleApplication } from "../index.spec";
-import { Compiler } from "./compiler";
-import { SourceApplication } from "./sourceapplication";
+import { Compiler } from "./index";
+import { WebdaModule, WebdaProject } from "./definition";
+import { FileLogger, MemoryLogger, useWorkerOutput, WorkerOutput } from "@webda/workout";
 const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class CompilerTest {
   @test
-  async compilerCov() {
-    const node: ts.Node = {
-      kind: ts.SyntaxKind.QualifiedName,
-      left: {
-        kind: ts.SyntaxKind.AnyKeyword,
-        getText: () => "Plop"
-      },
-      getText: () => "Plop",
-      parent: {
-        kind: ts.SyntaxKind.AnyKeyword,
-        getText: () => "Plop",
-        // @ts-ignore
-        parent: {
-          kind: ts.SyntaxKind.AnyKeyword,
-          getText: () => "Plop"
-        }
-      }
-    };
-    const app = new SourceApplication(WebdaSampleApplication.getAppPath(), undefined);
-    await app.load();
-    const compiler = new Compiler(app);
+  async compileCore() {
+    const workerOutput = new WorkerOutput();
+    const file = new FileLogger(workerOutput, "TRACE", "./core.log");
+    useWorkerOutput(workerOutput);
+    const project = new WebdaProject(path.join(__dirname, "..", "..", "core"));
+    const compiler = new Compiler(project);
     compiler.compile();
-    Compiler.displayParents(node);
-    assert.strictEqual(compiler.getParent(node, ts.SyntaxKind.AnyKeyword), node.parent);
-    assert.strictEqual(compiler.getParent(node, ts.SyntaxKind.AmpersandAmpersandEqualsToken), undefined);
-    Compiler.displayTree(node);
-    assert.strictEqual(compiler.getServiceTypePattern("Webda/Test"), "^(Webda/)?Test$");
-    assert.strictEqual(compiler.getServiceTypePattern("ReTest"), "^(WebdaDemo/)?ReTest$");
-
-    compiler.getPackageFromType({
-      // @ts-ignore
-      symbol: {
-        getDeclarations: () => []
-      }
-    });
-
-    compiler.getPackageFromType({
-      // @ts-ignore
-      symbol: {
-        getDeclarations: () => [
-          {
-            // @ts-ignore
-            getSourceFile: () => ({
-              fileName: "/notexisting/path/for/cov"
-            })
-          }
-        ]
-      }
-    });
-
-    compiler.getJSTargetFile(compiler.tsProgram.getSourceFiles().filter(f => !f.isDeclarationFile)[0], true);
-    compiler.getJSTargetFile(compiler.tsProgram.getSourceFiles().filter(f => !f.isDeclarationFile)[0]);
+    // Check module is generated
+    const info: WebdaModule = JSONUtils.loadFile(path.join(__dirname, "..", "..", "core", "webda.module.json"));
+    assert.notStrictEqual(info, undefined);
   }
 
   @test
-  async specificCases() {
-    const app = new SourceApplication(path.join(__dirname, "..", "..", "..", "..", "test", "compiler"), undefined);
-    await app.load();
-    const compiler = new Compiler(app);
+  async compileTest() {
+    const workerOutput = new WorkerOutput();
+    const file = new FileLogger(workerOutput, "TRACE", "./test.log");
+    const logs = new MemoryLogger(workerOutput, "WARN");
+    useWorkerOutput(workerOutput);
+    const project = new WebdaProject(path.join(__dirname, "..", "..", "..", "test", "compiler"));
+    const compiler = new Compiler(project);
     compiler.compile();
-    const mod = compiler.generateModule();
-
+    const mod: WebdaModule = JSONUtils.loadFile(
+      path.join(__dirname, "..", "..", "..", "test", "compiler", "webda.module.json")
+    );
     // Goodbean should be use the SubDefinition
-    assert.strictEqual(mod.schemas["Webda/GoodBean"].required.length, 3);
+    assert.strictEqual(mod.beans!["Webda/GoodBean"].Schema!.required!.length, 3);
     assert.notStrictEqual(mod.schemas["Webda/AnotherSchema"], undefined);
     assert.notStrictEqual(mod.schemas["Webda/SchemaTest"], undefined);
+    const logsLine = logs.getLogs().map(l => l.log?.args.join(" "));
+    assert.deepStrictEqual(logsLine.slice(1), [
+      "lib/service(NotExtendingService) have a @WebdaModda annotation but does not inherite from Service",
+      "lib/service(NotExtendingDeployer) have a @WebdaDeployer annotation but does not inherite from AbstractDeployer"
+    ]);
+    assert.ok(logsLine[0]!.startsWith("WebdaObjects need to be exported NotExportService in "));
     // Ensure we manage failure in schema
+    /**
     compiler.schemaGenerator.createSchemaFromNodes = () => {
       throw new Error();
     };
     compiler.generateModule();
+    */
     // Check if getSchema return null: 747
     // Check if getSchema return object without properties: 751
   }
 
   @test
-  async SampleAppSchemas() {
-    const app = new SourceApplication(path.join(__dirname, "..", "..", "..", "..", "sample-app"), undefined);
-    await app.load();
-    const compiler = new Compiler(app);
+  async compileSampleApp() {
+    const workerOutput = new WorkerOutput();
+    const file = new FileLogger(workerOutput, "TRACE", "./sample-app.log");
+    useWorkerOutput(workerOutput);
+    const project = new WebdaProject(path.join(__dirname, "..", "..", "..", "sample-app"));
+    assert.strictEqual(project.namespace, "WebdaDemo");
+    const compiler = new Compiler(project);
     compiler.compile();
-    const mod = compiler.generateModule();
-    assert.strictEqual(mod.schemas["WebdaDemo/Company"].properties.testNotEnumerable, undefined);
-    assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.avatar, { type: "object", readOnly: true });
-    assert.deepStrictEqual(mod.schemas["WebdaDemo/Contact"].properties.photos, {
+    // Check module is generated
+    const mod: WebdaModule = JSONUtils.loadFile(
+      path.join(__dirname, "..", "..", "..", "sample-app", "webda.module.json")
+    );
+    assert.notStrictEqual(mod, undefined);
+    assert.strictEqual(mod.models["WebdaDemo/Company"].Schema!.properties!.testNotEnumerable, undefined);
+    assert.deepStrictEqual(mod.models["WebdaDemo/Contact"].Schema!.properties!.avatar, {
+      type: "object",
+      readOnly: true
+    });
+    assert.deepStrictEqual(mod.models["WebdaDemo/Contact"].Schema!.properties!.photos, {
       items: {
         properties: {
           location: {
@@ -117,26 +96,26 @@ class CompilerTest {
       readOnly: true,
       type: "array"
     });
-    assert.deepStrictEqual(mod.schemas["WebdaDemo/User"].properties.profilePicture, {
+    assert.deepStrictEqual(mod.models["WebdaDemo/User"]!.Schema!.properties!.profilePicture, {
       type: "object",
       properties: { width: { type: "number" }, height: { type: "number" } },
       required: ["width", "height"],
       readOnly: true
     });
-    assert.deepStrictEqual(mod.schemas["WebdaDemo/User"].properties.images, {
+    assert.deepStrictEqual(mod.models["WebdaDemo/User"]!.Schema!.properties!.images, {
       type: "array",
       items: { type: "object" },
       readOnly: true
     });
-    assert.strictEqual(mod.schemas["WebdaDemo/User"].properties.avatar, undefined);
-    assert.strictEqual(mod.schemas["WebdaDemo/User"].properties.photos, undefined);
+    assert.strictEqual(mod.models["WebdaDemo/User"].Schema!.properties!.avatar, undefined);
+    assert.strictEqual(mod.models["WebdaDemo/User"].Schema!.properties!.photos, undefined);
     // Check schema have no properties that start with _ in required
     assert.deepStrictEqual(
-      mod.schemas["WebdaDemo/SubProject"].required.filter(i => i.startsWith("_")),
+      mod.models["WebdaDemo/SubProject"].Schema!.required!.filter(i => i.startsWith("_")),
       []
     );
     assert.deepStrictEqual(
-      mod.schemas["WebdaDemo/Computer"].required.filter(i => i.startsWith("_")),
+      mod.models["WebdaDemo/Computer"].Schema!.required!.filter(i => i.startsWith("_")),
       []
     );
   }

@@ -5,8 +5,8 @@ import { Store } from "../stores/store";
 
 import { CookieOptions, SecureCookie } from "./cookie";
 import { Context, isWebContext } from "../contexts/icontext";
-import { getUuid } from "../utils/uuid";
-import { ServiceParameters } from "../services/iservices";
+import { getUuid } from "@webda/utils";
+import { ServiceParameters } from "../interfaces";
 import { Session } from "./session";
 import { DeepPartial } from "@webda/tsc-esm";
 
@@ -38,8 +38,8 @@ export class CookieSessionParameters extends ServiceParameters {
   cookie?: CookieOptions;
 
   constructor(params: any) {
-    super(params);
-    this.cookie ??= new CookieOptions(params.cookie || {});
+    super();
+    this.cookie = new CookieOptions(params.cookie || {});
   }
 }
 

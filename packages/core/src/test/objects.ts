@@ -4,11 +4,18 @@ import { Store, StoreFindResult, StoreParameters } from "../stores/store";
 import { Service } from "../services/service";
 import { Ident as WebdaIdent } from "../models/ident";
 import { UnpackedApplication } from "../application/unpackedapplication";
-import { CachedModule, SectionEnum, UnpackedConfiguration } from "../application/iapplication";
+import { CachedModule, SectionEnum, UnpackedConfiguration } from "../internal/iapplication";
 import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
-import { FileUtils } from "../utils/serializers";
+import { FileUtils } from "@webda/utils";
+import { CoreModelEvents } from "../models/imodel";
+
+export type TaskEvents<T> = CoreModelEvents<T> & {
+  Done: { task: T };
+  Started: { task: T };
+  Errored: { task: T };
+};
 
 /**
  * An additional test model
@@ -16,6 +23,8 @@ import { FileUtils } from "../utils/serializers";
  * @WebdaIgnore
  */
 export class Task extends OwnerModel {
+  declare Events: TaskEvents<this>;
+
   _autoListener: number;
   plop: any;
   plop2: any;

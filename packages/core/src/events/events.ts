@@ -1,8 +1,7 @@
-import { Configuration } from "../application/iapplication";
+import { AbstractService, Configuration } from "../internal/iapplication";
 import { Context, ContextProviderInfo } from "../contexts/icontext";
 import { IWebContext } from "../contexts/icontext";
 import { OperationContext } from "../contexts/operationcontext";
-import { IService } from "../core/icore";
 
 export type CoreEvents = {
   /**
@@ -20,11 +19,11 @@ export type CoreEvents = {
   /**
    * Emitted when Services have been initialized
    */
-  "Webda.Init.Services": { [key: string]: IService };
+  "Webda.Init.Services": { [key: string]: AbstractService };
   /**
    * Emitted when Services have been created
    */
-  "Webda.Create.Services": { [key: string]: IService };
+  "Webda.Create.Services": { [key: string]: AbstractService };
   /**
    * Emitted when Core is initialized
    */

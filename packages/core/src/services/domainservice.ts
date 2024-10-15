@@ -1,19 +1,19 @@
 import type { DeepPartial } from "@webda/tsc-esm";
-import { TransformCase, TransformCaseType } from "../utils/case";
+import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service";
 import { Application } from "../application/application";
-import type { CoreModelDefinition, ModelAction } from "../application/iapplication";
-import { JSONUtils } from "../utils/serializers";
+import type { ModelDefinition, ModelAction } from "../internal/iapplication";
+import { JSONUtils } from "@webda/utils";
 import { OperationContext } from "../contexts/operationcontext";
 import { CoreModel } from "../models/coremodel";
 import { runAsSystem, runWithContext } from "../contexts/execution";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
 import * as WebdaError from "../errors/errors";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { useApplication } from "../application/hook";
 import { OperationDefinition } from "../core/icore";
-import { ModelGraphBinaryDefinition } from "../application/iapplication";
+import { ModelGraphBinaryDefinition } from "../internal/iapplication";
 import { useCore } from "../core/hooks";
 import { registerOperation } from "../core/operations";
 import { WebContext } from "../contexts/webcontext";
@@ -53,7 +53,8 @@ export class DomainServiceParameters extends ServiceParameters {
   private excludedModels: string[];
 
   constructor(params: DeepPartial<DomainServiceParameters>) {
-    super(params);
+    super();
+    Object.assign(this, params);
     // Init default here
     this.operations ??= true;
     this.nameTransfomer ??= "camelCase";
@@ -85,6 +86,9 @@ export class DomainServiceParameters extends ServiceParameters {
   }
 }
 
+export type DomainServiceEvents = {
+  "Store.WebNotFound": { context: OperationContext; uuid: string };
+};
 /**
  * Domain Service expose all the models as Route and Operations
  *
@@ -95,7 +99,10 @@ export class DomainServiceParameters extends ServiceParameters {
  * Other relations (ModelLinks, ModelParent) should only display their information but not be exposed
  * ModelRelated should be ignored
  */
-export abstract class DomainService<T extends DomainServiceParameters = DomainServiceParameters> extends Service<T> {
+export abstract class DomainService<
+  T extends DomainServiceParameters = DomainServiceParameters,
+  E extends DomainServiceEvents = DomainServiceEvents
+> extends Service<T, E> {
   app: Application;
   static schemas = {
     uuidRequest: {
@@ -211,7 +218,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    * @returns
    */
-  abstract handleModel(model: CoreModelDefinition, name: string, context: any): boolean;
+  abstract handleModel(model: ModelDefinition, name: string, context: any): boolean;
 
   /**
    * Explore the models
@@ -221,7 +228,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param modelContext
    * @returns
    */
-  walkModel(model: CoreModelDefinition, name: string, depth: number = 0, modelContext: any = {}) {
+  walkModel(model: ModelDefinition, name: string, depth: number = 0, modelContext: any = {}) {
     // If not expose or not in the list of models
     if (!model.Expose || (model.getIdentifier && !this.parameters.isIncluded(model.getIdentifier()))) {
       return;
@@ -237,14 +244,16 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       return;
     }
 
-    const queries = this.app.getRelations(model).queries || [];
+    const relations = model.Metadata.Relations;
+
+    const queries = relations.queries || [];
     // Get the children now
-    (this.app.getRelations(model).children || []).forEach(name => {
-      const childModel = this.app.getModelDefinition(name);
-      const parentAttribute = this.app.getRelations(childModel)?.parent?.attribute;
+    (relations.children || []).forEach(name => {
+      const childModel = this.app.getModel(name);
+      const parentAttribute = childModel?.Metadata?.Relations?.parent?.attribute;
       const segment =
         queries.find(q => q.model === name && q.targetAttribute === parentAttribute)?.attribute ||
-        this.app.getModelPlural(name);
+        this.app.getModel(name).Metadata.Plural;
       this.walkModel(childModel, segment, depth + 1, context);
     });
   }
@@ -257,8 +266,8 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     this.app = <Application>(<any>useApplication());
     // Add all routes per model
     this.app.getRootExposedModels().forEach(name => {
-      const model = this.app.getModelDefinition(name);
-      this.walkModel(model, this.app.getModelPlural(name));
+      const model = this.app.getModel(name);
+      this.walkModel(model, model.Metadata.Plural);
     });
 
     return this;
@@ -270,7 +279,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param uuid
    */
   private async getModel(context: OperationContext): Promise<CoreModel> {
-    const { model } = context.getExtension<{ model: CoreModelDefinition<CoreModel> }>("operationContext");
+    const { model } = context.getExtension<{ model: ModelDefinition<CoreModel> }>("operationContext");
     const { uuid } = context.getParameters();
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
@@ -288,7 +297,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async modelCreate(context: OperationContext) {
-    const { model } = context.getExtension<{ model: CoreModelDefinition<CoreModel> }>("operationContext");
+    const { model } = context.getExtension<{ model: ModelDefinition<CoreModel> }>("operationContext");
     await runWithContext(context, async () => {
       const object = await model.factory(await context.getInput());
       await object.checkAct(context, "create");
@@ -354,7 +363,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    * @param context
    */
   async modelQuery(context: OperationContext) {
-    const { model } = context.getExtension<{ model: CoreModelDefinition }>("operationContext");
+    const { model } = context.getExtension<{ model: ModelDefinition }>("operationContext");
     const { query } = context.getParameters();
     await runWithContext(context, async () => {
       try {
@@ -387,7 +396,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
    */
   async modelAction(context: OperationContext) {
     const { model, action } = context.getExtension<{
-      model: CoreModelDefinition<CoreModel>;
+      model: ModelDefinition<CoreModel>;
       action: ModelAction & { name: string };
     }>("operationContext");
     if (!action.global) {
@@ -437,8 +446,8 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
       if (!this.app.isFinalModel(model.getIdentifier())) {
         continue;
       }
-      const shortId = model.getIdentifier().split("/").pop();
-      const plurial = app.getModelPlural(model.getIdentifier());
+      const shortId = model.Metadata.ShortName;
+      const plurial = model.Metadata.Plural;
       const modelSchema = modelKey;
 
       ["create", "update"]
@@ -523,7 +532,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     }
   }
 
-  addBinaryOperations(model: CoreModelDefinition<CoreModel>, name: string) {
+  addBinaryOperations(model: ModelDefinition<CoreModel>, name: string) {
     (model.getRelations().binaries || []).forEach(binary => {
       const webda = useCore();
       const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
@@ -593,7 +602,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
     const body = await context.getInput();
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: CoreModelDefinition<CoreModel>;
+      model: ModelDefinition<CoreModel>;
       binary: any;
     }>("operationContext");
     // First verify if map exist
@@ -634,7 +643,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async binaryPut(context: OperationContext) {
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: CoreModelDefinition;
+      model: ModelDefinition;
       binary: any;
     }>("operationContext");
     // First verify if map exist
@@ -658,7 +667,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async binaryGet(context: OperationContext) {
     const { model, returnUrl, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: CoreModelDefinition<CoreModel>;
+      model: ModelDefinition<CoreModel>;
       binary: ModelGraphBinaryDefinition;
       returnUrl: boolean;
     }>("operationContext");
@@ -712,7 +721,7 @@ export abstract class DomainService<T extends DomainServiceParameters = DomainSe
   async binaryAction(context: OperationContext) {
     const { model, binaryStore, binary, action } = context.getExtension<{
       binaryStore: BinaryService;
-      model: CoreModelDefinition<CoreModel>;
+      model: ModelDefinition<CoreModel>;
       binary: ModelGraphBinaryDefinition;
       action: "delete" | "metadata" | "create";
     }>("operationContext");
@@ -765,7 +774,7 @@ export class ModelsOperationsService<T extends DomainServiceParameters> extends 
   /**
    * Do nothing here
    */
-  handleModel(model: CoreModelDefinition, name: string, context: any): boolean {
+  handleModel(model: ModelDefinition, name: string, context: any): boolean {
     return true;
   }
 }

@@ -1,4 +1,4 @@
-import ts from "typescript";
+import * as ts from "typescript";
 
 /**
  * Load all JSDoc tags for a node

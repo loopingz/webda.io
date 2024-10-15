@@ -3,33 +3,28 @@ import * as fs from "fs";
 import type { JSONSchema7 } from "json-schema";
 import * as path from "path";
 import * as WebdaError from "../errors/errors";
-import { getCommonJS } from "../utils/esm";
-import { FileUtils } from "../utils/serializers";
+import { FileUtils, getCommonJS } from "@webda/utils";
 const { __dirname } = getCommonJS(import.meta.url);
-import type { Constructor } from "@webda/tsc-esm";
 import {
   CachedModule,
-  CoreModelDefinition,
+  ModelDefinition,
   Configuration,
   GitInformation,
   IApplication,
-  IModel,
-  ModelGraph,
-  ModelsGraph,
-  ModelsTree,
   Module,
   PackageDescriptor,
   Section,
-  SectionEnum,
   UnpackedConfiguration,
-  WebdaPackageDescriptor
-} from "./iapplication";
-import { AbstractCoreModel } from "../models/imodel";
-import { Service } from "../services/service";
+  WebdaPackageDescriptor,
+  Reflection,
+  AbstractCoreModel,
+  AbstractService,
+  Modda
+} from "../internal/iapplication";
 import { CoreModel } from "../models/coremodel";
 import { useInstanceStorage } from "../core/instancestorage";
+import { setLogContext } from "../loggers/hooks";
 
-export type Modda = Constructor<Service, [name: string, params: any]>;
 /**
  * Map a Webda Application
  *
@@ -62,14 +57,8 @@ export class Application implements IApplication {
    */
   protected appModule: Module = {
     moddas: {},
-    models: {
-      list: {},
-      graph: {},
-      tree: {},
-      plurals: {},
-      reflections: {}
-    },
-    deployers: {}
+    models: {},
+    schemas: {}
   };
 
   /**
@@ -90,17 +79,12 @@ export class Application implements IApplication {
   /**
    * Models type registry
    */
-  protected models: { [key: string /* LongId */]: CoreModelDefinition<CoreModel> } = {};
+  protected models: { [key: string /* LongId */]: ModelDefinition<CoreModel> } = {};
 
   /**
-   * Models graph
+   * Models metadata
    */
-  protected graph: ModelsGraph = {};
-
-  /**
-   * Models specific plurals
-   */
-  protected plurals: { [key: string]: string } = {};
+  protected modelsMetadata: { [key: string]: Reflection } = {};
 
   /**
    * Class Logger
@@ -118,11 +102,6 @@ export class Application implements IApplication {
   protected initTime: number;
 
   /**
-   * Direct parent of a model
-   */
-  protected flatHierarchy: { [key: string]: string } = {};
-
-  /**
    * Configuration file
    */
   readonly configurationFile: string;
@@ -132,11 +111,6 @@ export class Application implements IApplication {
   deploymentFile: string;
 
   /**
-   * Current application
-   */
-  protected static active: Application;
-
-  /**
    *
    * @param {string} fileOrFolder to load Webda Application from
    * @param {Logger} logger
@@ -144,9 +118,11 @@ export class Application implements IApplication {
   constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
     useInstanceStorage().application = this;
     this.logger = logger || new WorkerOutput();
+    setLogContext(this.logger);
     this.initTime = Date.now();
+    // If configuration is a programmatic object (usually for tests)
     if (typeof file !== "string") {
-      this.baseConfiguration = file;
+      this.baseConfiguration = { parameters: {}, ...file };
       this.appPath = process.cwd();
       return;
     }
@@ -156,6 +132,7 @@ export class Application implements IApplication {
         `Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting ${file}`
       );
     }
+    // Check if file is a file or folder
     if (fs.lstatSync(file).isDirectory()) {
       file = path.join(file, "webda.config.jsonc");
       if (!fs.existsSync(file)) {
@@ -164,9 +141,6 @@ export class Application implements IApplication {
     }
     this.configurationFile = file;
     this.appPath = path.resolve(path.dirname(file));
-  }
-  getImplementations<T extends object>(object: T): { [key: string]: T } {
-    throw new Error("Method not implemented.");
   }
 
   /**
@@ -177,20 +151,16 @@ export class Application implements IApplication {
       this.loadConfiguration(this.configurationFile);
     }
     await this.loadModule(this.baseConfiguration.cachedModules);
-    // Flat the model tree
-    const addParent = (parent: string, tree: ModelGraph) => {
-      for (const key in tree) {
-        this.flatHierarchy[key] = parent;
-        addParent(key, tree[key]);
-      }
-    };
-    addParent("Webda/CoreModel", this.baseConfiguration.cachedModules.models.tree);
     this.setModelsMetadata();
     return this;
   }
 
+  /**
+   * Set the models metadata on each known model
+   */
   setModelsMetadata() {
     for (const model in this.models) {
+      /*
       const info = this.getModelHierarchy(model);
       const metadata = {
         ...(this.models[model]["Metadata"] || {}),
@@ -202,8 +172,15 @@ export class Application implements IApplication {
         Relations: this.getRelations(model),
         Schema: this.getSchema(model)
       };
+      */
       // @ts-ignore
-      this.models[model]["Metadata"] = Object.freeze(metadata);
+      this.models[model]["Metadata"] = Object.freeze({
+        Identifier: model,
+        Ancestors: [],
+        Subclasses: [],
+        Relations: {},
+        Schema: {}
+      });
     }
   }
 
@@ -234,26 +211,6 @@ export class Application implements IApplication {
   }
 
   /**
-   *
-   * @param proto Prototype to send
-   */
-  getFullNameFromPrototype(proto): string {
-    for (const section in SectionEnum) {
-      for (const i in this[SectionEnum[section]]) {
-        if (this[SectionEnum[section]][i] && this[SectionEnum[section]][i].prototype === proto) {
-          return i;
-        }
-      }
-    }
-    // Manage CoreModel too
-    for (const i in this.models) {
-      if (this.models[i].prototype === proto) {
-        return i;
-      }
-    }
-  }
-
-  /**
    * Get a schema from a type
    *
    * Schema should be precomputed in the default app
@@ -279,26 +236,6 @@ export class Application implements IApplication {
    */
   hasSchema(type: string): boolean {
     return this.baseConfiguration.cachedModules.schemas[type] !== undefined;
-  }
-
-  /**
-   * Get model graph
-   */
-  getRelations(model: string | Constructor<IModel> | IModel): ModelGraph {
-    // We cheat with the type here to avoid typing everything as an IModel
-    // IModel and AbstractCoreModel won't be exported in the final module
-    const name = typeof model === "string" ? this.completeNamespace(model) : this.getModelId(<any>model);
-    // Get relations should not be case-sensitive until v4
-    const key = Object.keys(this.graph).find(k => k?.toLowerCase() === name?.toLowerCase());
-    return this.getGraph()[key] || {};
-  }
-
-  /**
-   * Get the all graph
-   * @returns
-   */
-  getGraph() {
-    return this.graph;
   }
 
   /**
@@ -338,9 +275,7 @@ export class Application implements IApplication {
    * @param args anything to display same as console.log
    */
   log(level: WorkerLogLevel, ...args) {
-    if (this.logger) {
-      this.logger.log(level, ...args);
-    }
+    this.logger?.log(level, ...args);
   }
 
   /**
@@ -371,7 +306,7 @@ export class Application implements IApplication {
    * @param name
    * @param service
    */
-  addService(name: string, service: Modda): this {
+  addModda(name: string, service: Modda): this {
     this.log("TRACE", "Registering service", name);
     this.moddas[name] = service;
     return this;
@@ -390,19 +325,6 @@ export class Application implements IApplication {
   }
 
   /**
-   * Get plural of an Id
-   * @param name
-   * @returns
-   */
-  getModelPlural(name: string): string {
-    if (this.plurals[name]) {
-      return this.plurals[name];
-    }
-    const value = name.split("/").pop();
-    return value.endsWith("s") ? value : value + "s";
-  }
-
-  /**
    *
    * @param section
    * @param name
@@ -418,30 +340,6 @@ export class Application implements IApplication {
   }
 
   /**
-   *
-   * @param name
-   * @returns
-   */
-  getShortId(name: string): string | undefined {
-    // Current namespace should always be considered short
-    if (name.startsWith(this.getNamespace() + "/")) {
-      return name.substring(this.getNamespace().length + 1);
-    }
-    const shortName = name.split("/").pop();
-    let found = false;
-    const recursive = (tree: ModelsTree) => {
-      for (const key in tree) {
-        if (key.endsWith(`/${shortName}`)) {
-          found = true;
-          return;
-        }
-        recursive(tree[key].children);
-      }
-    };
-    recursive(this.getModelHierarchy(name)?.children);
-    return found ? undefined : shortName;
-  }
-  /**
    * Define if the model is the last one in the hierarchy
    *
    * TODO Define clearly
@@ -456,7 +354,8 @@ export class Application implements IApplication {
     if (this["models"][this.completeNamespace(name)] !== undefined) {
       return true;
     }
-    return this.graph[model].children?.length === 0;
+    //return this.graph[model].children?.length === 0;
+    return false;
   }
 
   /**
@@ -500,18 +399,11 @@ export class Application implements IApplication {
   }
 
   /**
-   * Return all beans of the application
-   */
-  getBeans(): { [key: string]: string } {
-    return this.baseConfiguration.cachedModules.beans;
-  }
-
-  /**
    * Retrieve the model implementation
    *
    * @param name model to retrieve
    */
-  getModelDefinition<T extends AbstractCoreModel = AbstractCoreModel>(name: string): CoreModelDefinition<T> {
+  getModel<T extends AbstractCoreModel = AbstractCoreModel>(name: string): ModelDefinition<T> {
     return this.getWebdaObject("models", name);
   }
 
@@ -519,7 +411,7 @@ export class Application implements IApplication {
    * Get all models definitions
    */
   getModels(): {
-    [key: string]: CoreModelDefinition<CoreModel>;
+    [key: string]: ModelDefinition<CoreModel>;
   } {
     return this.models;
   }
@@ -529,7 +421,7 @@ export class Application implements IApplication {
    * @returns
    */
   getRootModels(): string[] {
-    return Object.keys(this.graph).filter(key => !this.graph[key].parent && this.models[key]?.Expose);
+    return [];
   }
 
   /**
@@ -538,7 +430,7 @@ export class Application implements IApplication {
    * @returns
    */
   getRootExposedModels(): string[] {
-    const results = new Set<string>(this.getRootModels().filter(k => this.getModelDefinition(k).Expose));
+    const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Expose));
     for (const model in this.models) {
       if (this.models[model].Expose?.root) {
         results.add(model);
@@ -559,7 +451,7 @@ export class Application implements IApplication {
    * Return the model name for a object
    * @param object
    */
-  getModelFromConstructor<T extends CoreModel>(model: CoreModelDefinition<T>): string | undefined {
+  getModelFromConstructor<T extends CoreModel>(model: ModelDefinition<T>): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === model);
   }
 
@@ -569,53 +461,11 @@ export class Application implements IApplication {
    * @param model
    * @returns longId for a model
    */
-  getModelId<T extends CoreModel = CoreModel>(model: CoreModelDefinition<T> | T, full?: boolean): string | undefined {
+  getModelId<T extends CoreModel = CoreModel>(model: ModelDefinition<T> | T): string | undefined {
     if (model instanceof AbstractCoreModel) {
       return this.getModelFromInstance(model);
     }
     return this.getModelFromConstructor(model);
-  }
-
-  /**
-   * Get the model hierarchy
-   * @param model
-   */
-  getModelHierarchy(model: CoreModel | CoreModelDefinition<CoreModel> | string): {
-    ancestors: string[];
-    children: ModelsTree;
-  } {
-    if (typeof model !== "string") {
-      model = this.getModelId(model);
-    } else {
-      model = this.completeNamespace(model);
-    }
-    if (model === "Webda/CoreModel") {
-      return { ancestors: [], children: this.baseConfiguration?.cachedModules?.models?.tree };
-    }
-
-    const ancestors: string[] = [];
-    let modelInfo = model;
-    while ((this.flatHierarchy[modelInfo] || "Webda/CoreModel") !== "Webda/CoreModel") {
-      modelInfo = this.flatHierarchy[modelInfo];
-      ancestors.unshift(modelInfo);
-    }
-    let tree = this.baseConfiguration?.cachedModules?.models?.tree || {};
-    ancestors.forEach(ancestor => {
-      tree = tree[ancestor] || {};
-    });
-    ancestors.unshift("Webda/CoreModel");
-    ancestors.reverse();
-    return { ancestors: ancestors, children: tree[model] || {} };
-  }
-
-  /**
-   * Get all model types with the hierarchy
-   * @param model
-   * @returns
-   */
-  getModelTypes(model: CoreModel) {
-    const hierarchy = this.getModelHierarchy(model);
-    return [model.__type, ...hierarchy.ancestors].filter(i => i !== "Webda/CoreModel");
   }
 
   /**
@@ -640,28 +490,16 @@ export class Application implements IApplication {
       return this;
     }
     this.models[name] = model;
-    if (dynamic && model) {
+    if (dynamic) {
       const superClass = Object.getPrototypeOf(model);
-      Object.values(this.getModels())
-        .filter(m => m === superClass)
-        .forEach(m => {
-          this.flatHierarchy[name] = this.getModelId(m);
-          this.getModelHierarchy(this.flatHierarchy[name]).children[name] = {};
-        });
-      this.graph[name] ??= {};
+      model.Metadata = this.modelsMetadata[name] = Object.freeze({
+        Identifier: name,
+        Ancestors: [],
+        Subclasses: [],
+        Relations: {},
+        Schema: {}
+      });
     }
-    return this;
-  }
-
-  /**
-   * Add a new deployer
-   *
-   * @param name
-   * @param model
-   */
-  addDeployer(name: string, model: any): this {
-    this.log("TRACE", "Registering deployer", name);
-    this.deployers[name] = model;
     return this;
   }
 
@@ -823,7 +661,7 @@ export class Application implements IApplication {
    *
    * @param info
    */
-  async importFile(info: string, withExport: boolean = true): Promise<any> {
+  protected async importFile(info: string, withExport: boolean = true): Promise<any> {
     if (info.startsWith(".")) {
       info = this.getAppPath(info);
     }
@@ -859,36 +697,40 @@ export class Application implements IApplication {
   }
 
   /**
+   * Get implementations of a class
+   * @param object
+   * @returns
+   */
+  getImplementations<T extends AbstractService>(object: T): { [key: string]: Modda<T> } {
+    const res: any = {};
+    for (const key in this.moddas) {
+      if (object instanceof this.moddas[key]) {
+        res[key] = this.moddas[key];
+      }
+    }
+    return res;
+  }
+
+  /**
    * Load the module,
    *
    * @protected
    * @ignore Useless for documentation
    */
   async loadModule(module: Module, parent: string = this.appPath) {
-    const info: Omit<CachedModule, "project"> = { beans: {}, ...module };
+    if (!module) {
+      return;
+    }
+    const info: Omit<CachedModule, "project"> = module;
     const sectionLoader = async (section: Section) => {
       for (const key in info[section]) {
-        this[section][key] ??= await this.importFile(path.join(parent, info[section][key]));
+        this[section][key] ??= await this.importFile(path.join(parent, info[section][key].Import));
       }
     };
-    // Merging graph from different modules
-    Object.keys(module.models.graph || {}).forEach(k => {
-      this.graph[k] = module.models.graph[k];
-    });
     // TODO Merging tree from different modules
     await Promise.all([
       sectionLoader("moddas"),
-      sectionLoader("deployers"),
-      // Load models
-      (async () => {
-        // Copy plurals
-        for (const key in info.models.plurals || {}) {
-          this.plurals[key] = info.models.plurals[key];
-        }
-        for (const key in info.models.list) {
-          this.addModel(key, await this.importFile(path.join(parent, info.models.list[key])), false);
-        }
-      })(),
+      sectionLoader("models"),
       ...Object.keys(info.beans)
         .filter(f => {
           if (this.baseConfiguration?.parameters?.ignoreBeans === true) {
@@ -904,7 +746,7 @@ export class Application implements IApplication {
         })
         .map(f => {
           this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
-          return this.importFile(path.join(parent, info.beans[f]), false).catch(this.log.bind(this, "WARN"));
+          return this.importFile(path.join(parent, info.beans[f].Import), false).catch(this.log.bind(this, "WARN"));
         })
     ]);
   }

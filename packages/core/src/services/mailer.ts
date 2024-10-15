@@ -7,7 +7,7 @@ import { Service } from "./service";
 import { Counter } from "../metrics/metrics";
 import type { User } from "../models/user";
 import type { Ident } from "../models/ident";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 
 interface IEmailTemplate {
   renderAll(file: string, options: any);
@@ -99,7 +99,7 @@ export class MailerParameters extends ServiceParameters {
   SES: any;
 
   constructor(params: any) {
-    super(params);
+    super();
     this.templates ??= "./templates";
     if (!this.templates.endsWith("/")) {
       this.templates += "/";

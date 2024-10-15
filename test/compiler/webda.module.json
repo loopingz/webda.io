@@ -1,29 +1,185 @@
 {
-  "moddas": {
-    "webda/laterexportservice": "lib/service:LaterExportService"
-  },
-  "beans": {},
-  "models": {},
-  "deployers": {},
-  "schemas": {
-    "webda/laterexportservice": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "$ref": "#/definitions/webda.laterexportservice",
-      "definitions": {
-        "ServiceParameters": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "description": "Type of the service"
-            }
+  "beans": {
+    "Webda/GoodBean": {
+      "Import": "lib/service:GoodBean",
+      "Schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of the service"
           },
-          "required": [
-            "type"
-          ],
-          "description": "Interface to specify the Service parameters"
-        }
+          "subdefinition": {
+            "type": "object",
+            "properties": {
+              "toto": {
+                "type": "string"
+              },
+              "num": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "toto",
+              "num"
+            ],
+            "description": "Check for the subdefinition within bean"
+          },
+          "subdefinition2": {
+            "type": "object",
+            "properties": {
+              "toto": {
+                "type": "string"
+              },
+              "num": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "toto",
+              "num"
+            ],
+            "description": "Check for the subdefinition within bean"
+          }
+        },
+        "required": [
+          "subdefinition",
+          "subdefinition2",
+          "type"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "GoodBean"
       }
+    }
+  },
+  "deployers": {},
+  "moddas": {
+    "Webda/LaterExportService": {
+      "Import": "lib/service:LaterExportService",
+      "Schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of the service"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "description": "Interface to specify the Service parameters",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "LaterExportService"
+      }
+    }
+  },
+  "models": {},
+  "schemas": {
+    "Webda/AnotherSchema": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "description": "Contact firstname"
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Contact lastname"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "PERSONAL",
+            "PROFESSIONAL"
+          ],
+          "description": "Contact type"
+        },
+        "age": {
+          "type": "number",
+          "description": "Contact age",
+          "minimum": 0
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "firstName",
+        "lastName",
+        "type",
+        "age"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchemaTest2"
+    },
+    "Webda/BinaryFile": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string",
+          "description": "Will be computed by the service\n\nhash of the content"
+        },
+        "challenge": {
+          "type": "string",
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+        },
+        "size": {
+          "type": "number",
+          "description": "Size of the binary"
+        },
+        "name": {
+          "type": "string",
+          "description": "Current name"
+        },
+        "mimetype": {
+          "type": "string",
+          "description": "Mimetype of the binary"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "originalname": {
+          "type": "string",
+          "description": "Original name"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "description": "Represent a file to store",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BinaryFile"
+    },
+    "Webda/SchemaTest": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "description": "Contact firstname"
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Contact lastname"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "PERSONAL",
+            "PROFESSIONAL"
+          ],
+          "description": "Contact type"
+        }
+      },
+      "required": [
+        "firstName",
+        "lastName",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SchemaTest"
     }
   }
 }

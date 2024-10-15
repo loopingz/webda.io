@@ -1,4 +1,4 @@
-import { JSONUtils } from "../utils/serializers";
+import { JSONUtils } from "@webda/utils";
 import { Session } from "../session/session";
 import { OperationContext } from "./operationcontext";
 

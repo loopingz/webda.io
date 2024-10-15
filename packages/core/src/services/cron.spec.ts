@@ -1,4 +1,4 @@
-import { suite, test } from "../test/core";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Cron, CronDefinition, CronService, Service } from "../index";
 import { WebdaApplicationTest } from "../test/test";

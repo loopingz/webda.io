@@ -1,13 +1,13 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
-import { TestIdent } from "../test";
-import { Ident, OperationContext, Store, User } from "../index";
+import { TestIdent } from "../test/objects";
+import { getUuid, Ident, OperationContext, Store, User } from "../index";
 import { CoreModel, CoreModelAny } from "../models/coremodel";
-import { CoreModelDefinition } from "../models/coremodeldefinition";
-import { WebdaSimpleTest } from "../test";
-import { StoreEvents, StoreHelper, StoreNotFoundError, UpdateConditionFailError } from "./store";
+import { ModelDefinition } from "../application/iapplication";
+import { WebdaApplicationTest } from "../test/test";
+import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 
 /**
  * Fake model that refuse the half of the items
@@ -65,19 +65,19 @@ TypeTest.ref("").setAttribute("type", "ATTR");
 const t = new TypeTest();
 t.setAttribute("counter", 12);
 
-abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
+abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
   abstract getIdentStore(): Promise<T>;
   abstract getUserStore(): Promise<T>;
 
   protected userStore: T;
   protected identStore: T;
 
-  async before() {
-    await super.before();
+  async beforeEach() {
+    await super.beforeEach();
     this.userStore = await this.getUserStore();
     this.identStore = await this.getIdentStore();
-    this.userStore["setCoreModelDefinitionHelper"](UserTest);
-    this.userStore["setCoreModelDefinitionHelper"](IdentTest);
+    this.userStore["setModelDefinitionHelper"](UserTest);
+    this.userStore["setModelDefinitionHelper"](IdentTest);
     // ensure service are registered
     this.registerService(this.userStore);
     this.registerService(this.identStore);
@@ -92,7 +92,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     };
   }
 
-  getModelClass(): CoreModelDefinition {
+  getModelClass(): ModelDefinition {
     return TestIdent;
   }
 
@@ -119,7 +119,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
    * Fill the Store with data to be queried
    */
   async fillForQuery(): Promise<
-    CoreModelDefinition<
+    ModelDefinition<
       CoreModelAny<{
         state: string;
         team: {
@@ -134,7 +134,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     //this.webda.getApplication().getModel("Webda/User").prototype.canAct = async () => true;
     //userStore._model.prototype.canAct = async () => true;
     await Promise.all(this.getQueryDocuments().map(d => User.create(d)));
-    return <any>User;
+    return User;
   }
 
   @test
@@ -263,7 +263,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
 
   @test
   async collection() {
-    const Ident: CoreModelDefinition<CoreModelAny> = this.getModelClass();
+    const Ident: ModelDefinition<CoreModelAny> = this.getModelClass();
     let ident = await Ident.create(<any>{
       test: "plop"
     });
@@ -391,7 +391,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
     }
     this.log("DEBUG", "Save ident");
     // Check CREATE - READ
-    let ident1 = await IdentTest.create({
+    let ident1 = await IdentTest.create(<any>{
       test: "plop",
       cool: "",
       lastUsed: new Date(),
@@ -658,7 +658,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaSimpleTest {
 
   @test
   async upsert() {
-    const ref = IdentTest.ref(this.webda.getUuid());
+    const ref = IdentTest.ref(getUuid());
     if (await ref.exists()) {
       await ref.delete();
     }

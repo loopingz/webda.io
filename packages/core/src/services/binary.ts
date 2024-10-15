@@ -6,10 +6,10 @@ import { Readable } from "stream";
 import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
 import { NotEnumerable } from "@webda/tsc-esm";
-import { AbstractCoreModel } from "../models/imodel";
-import { useApplication, useModel } from "../application/hook";
+import { AbstractCoreModel } from "../internal/iapplication";
+import { useModel } from "../application/hook";
 import { useCore } from "../core/hooks";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { Counter } from "../metrics/metrics";
 import { IOperationContext } from "../contexts/icontext";
 import { IStore } from "../core/icore";
@@ -469,7 +469,7 @@ export class BinaryParameters extends ServiceParameters {
   maxFileSize?: number;
 
   constructor(params: any, _service: Service) {
-    super(params);
+    super();
     // Store all models in it by default
     this.models ??= {
       "*": ["*"]
@@ -748,7 +748,7 @@ export abstract class BinaryService<
       service: this,
       target: object
     });
-    const relations = useApplication().getRelations(object);
+    const relations = object.__class.Metadata.Relations;
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     if (cardinality === "MANY") {
       await (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class.Store.upsertItemToCollection(
@@ -785,7 +785,7 @@ export abstract class BinaryService<
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
     const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
-    const relations = useApplication().getRelations(object);
+    const relations = object.__class.Metadata.Relations;
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
     if (cardinality === "MANY") {

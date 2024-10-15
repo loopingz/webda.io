@@ -1,4 +1,4 @@
-import { suite, test, only } from "@testdeck/mocha";
+import { suite, test, only } from "../test/core";
 import * as assert from "assert";
 import * as fs from "fs";
 import { unlinkSync } from "fs";
@@ -10,8 +10,8 @@ import { QueueTest } from "./queue.spec";
 class FileQueueTest extends QueueTest {
   queue: FileQueue;
 
-  async before() {
-    await super.before();
+  async beforeEach() {
+    await super.beforeEach();
     this.queue = await this.addService(FileQueue, {
       expire: 1,
       folder: "./test/data/queue"
@@ -56,7 +56,7 @@ class FileQueueTest extends QueueTest {
     await queue.deleteMessage(msg2[0].ReceiptHandle);
 
     // Check if default parameter is correctly set
-    queue = new FileQueue(this.webda, "q", {});
+    queue = new FileQueue("q", {});
     assert.strictEqual(queue.getParameters().expire, 30000);
   }
 

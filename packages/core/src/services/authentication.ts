@@ -12,11 +12,11 @@ import type { CryptoService } from "./cryptoservice";
 import type { Mailer } from "./mailer";
 import { runAsSystem } from "../contexts/execution";
 import { EventWithContext } from "../events/events";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { useModel } from "../application/hook";
 import { useCore, useService } from "../core/hooks";
 import { WebContext } from "../contexts/webcontext";
-import { CoreModelDefinition } from "../application/iapplication";
+import { ModelDefinition } from "../internal/iapplication";
 
 /**
  * Emitted when the /me route is called
@@ -190,7 +190,8 @@ export class AuthenticationParameters extends ServiceParameters {
   registerRedirect: string;
 
   constructor(params: any) {
-    super(params);
+    super();
+    Object.assign(this, params);
     this.identModel ??= "Webda/Ident";
     this.userModel ??= "Webda/User";
     this.url ??= "/auth";
@@ -245,11 +246,11 @@ class Authentication<
   /**
    * Ident model to use
    */
-  protected identModel: CoreModelDefinition<Ident>;
+  protected identModel: ModelDefinition<Ident>;
   /**
    * User model to use
    */
-  protected userModel: CoreModelDefinition<User>;
+  protected userModel: ModelDefinition<User>;
   /**
    * Used for hmac
    */

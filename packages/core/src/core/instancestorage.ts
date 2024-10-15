@@ -1,10 +1,11 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { IApplication, Configuration } from "../application/iapplication";
+import { IApplication, Configuration } from "../internal/iapplication";
 import { OperationDefinitionInfo, ICore } from "./icore";
 import { ContextProvider } from "../contexts/icontext";
 import { IRouter } from "../rest/irest";
+import { useLog } from "@webda/workout";
 
-type InstanceStorage = Partial<{
+export type InstanceStorage = Partial<{
   // Used to store the application
   application: IApplication;
   // Used to store the operations
@@ -26,6 +27,7 @@ const storage = new AsyncLocalStorage<InstanceStorage>();
 export function useInstanceStorage(): InstanceStorage {
   const store = storage.getStore();
   if (!store) {
+    useLog("ERROR", "Webda launched outside of a Webda context", storage.getStore());
     throw new Error("Webda launched outside of a Webda context");
   }
   return store;

@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { WebdaInternalTest } from "../test";
 import { DebugMailer } from "./debugmailer";

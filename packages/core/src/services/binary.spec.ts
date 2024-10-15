@@ -1,4 +1,4 @@
-import { test } from "@testdeck/mocha";
+import { test } from "../test/core";
 import * as assert from "assert";
 import * as fs from "fs";
 import { User, WebContext } from "../index";
@@ -69,9 +69,9 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
     return process.cwd() + "/test/Dockerfile.txt";
   }
 
-  async before(init: boolean = true) {
+  async beforeEach(init: boolean = true) {
     this.cleanFiles.push("./downloadTo.tmp");
-    await super.before(init);
+    await super.beforeEach(init);
     this.binary = await this.getBinary();
     assert.notStrictEqual(this.binary, undefined);
     await this.binary.__clean();

@@ -1,7 +1,6 @@
 import { WorkerOutput } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as fs from "fs";
-import * as path from "path";
 import { Application } from "./application";
 import {
   type CachedModule,
@@ -10,11 +9,10 @@ import {
   type ProjectInformation,
   SectionEnum,
   type UnpackedConfiguration
-} from "./iapplication";
-import { FileUtils } from "../utils/serializers";
+} from "../internal/iapplication";
+import { FileUtils } from "@webda/utils";
 import { getMachineId } from "../core/hooks";
-import { realpathSync } from "fs";
-import { join } from "path";
+import { join, resolve, relative, dirname } from "path";
 import { ProcessCache } from "../cache/cache";
 
 /**
@@ -43,7 +41,7 @@ export class UnpackedApplication extends Application {
         ? file
         : {
             version: 4,
-            core: {},
+            application: {},
             services: {},
             parameters: {},
             ...file
@@ -67,7 +65,7 @@ export class UnpackedApplication extends Application {
     if (!file && this.baseConfiguration) {
       this.baseConfiguration = this.completeConfiguration({ version: 4, ...this.baseConfiguration });
     } else if (!fs.existsSync(file)) {
-      this.baseConfiguration = this.completeConfiguration({ version: 4 });
+      this.baseConfiguration = this.completeConfiguration({ version: 4, parameters: {} });
     } else {
       this.baseConfiguration = this.completeConfiguration(FileUtils.load(file));
     }
@@ -78,6 +76,7 @@ export class UnpackedApplication extends Application {
    * @returns
    */
   async load() {
+    await super.load();
     const configuration = this.getConfiguration();
     // If cachedModules is defined we do not recompute
     if (!configuration.cachedModules) {
@@ -85,20 +84,14 @@ export class UnpackedApplication extends Application {
         project: this.loadProjectInformation(),
         beans: {},
         deployers: {},
-        models: {
-          list: {},
-          graph: {},
-          tree: {},
-          plurals: {},
-          reflections: {}
-        },
+        models: {},
         schemas: {},
         moddas: {}
       };
       this.log("DEBUG", "Merging modules into configuration");
       await this.mergeModules(configuration);
     }
-    return await super.load();
+    return this;
   }
 
   /**
@@ -239,15 +232,15 @@ export class UnpackedApplication extends Application {
       git: EmptyGitInformation,
       webda: {}
     };
-    let packageJson = path.join(this.appPath, "package.json");
+    let packageJson = join(this.appPath, "package.json");
     if (fs.existsSync(packageJson)) {
       info.package = FileUtils.load(packageJson);
     }
     info.git = this.getGitInformation(info.package?.name, info.package?.version);
     info.webda = info.package.webda || {};
-    let parent = path.join(this.appPath, "..");
+    let parent = join(this.appPath, "..");
     do {
-      packageJson = path.join(parent, "package.json");
+      packageJson = join(parent, "package.json");
       if (fs.existsSync(packageJson)) {
         const currentInfo = FileUtils.load(packageJson);
         if (currentInfo.workspaces) {
@@ -255,20 +248,20 @@ export class UnpackedApplication extends Application {
           // Replace any relative path by absolute one
           for (const i in currentInfo.webda) {
             if (currentInfo.webda[i].startsWith("./")) {
-              currentInfo.webda[i] = path.join(path.resolve(parent), currentInfo.webda[i].substr(2));
+              currentInfo.webda[i] = join(resolve(parent), currentInfo.webda[i].substr(2));
             }
           }
           info.webda = deepmerge(currentInfo.webda || {}, info.webda);
           info.webda.workspaces = {
             packages: currentInfo.workspaces,
             parent: currentInfo,
-            path: path.resolve(parent)
+            path: resolve(parent)
           };
           break;
         }
       }
-      parent = path.resolve(path.join(parent, ".."));
-    } while (parent !== path.resolve(path.join(parent, "..")));
+      parent = resolve(join(parent, ".."));
+    } while (parent !== resolve(join(parent, "..")));
     // Check modules
 
     return info;
@@ -325,52 +318,6 @@ export class UnpackedApplication extends Application {
   }
 
   /**
-   * Search the node_modules structure for webda.module.json files
-   *
-   * @param path
-   * @returns
-   */
-  static findModulesFilesSync(path: string): string[] {
-    if (!path.endsWith("node_modules")) {
-      return [];
-    }
-    const files = new Set<string>();
-    const checkFolder = (filepath: string) => {
-      if (fs.existsSync(join(filepath, "webda.module.json"))) {
-        files.add(join(filepath, "webda.module.json"));
-      }
-      if (fs.existsSync(join(filepath, "node_modules"))) {
-        this.findModulesFilesSync(join(filepath, "node_modules")).forEach(f => files.add(f));
-      }
-    };
-    const recursiveSearch = (dirpath: string, depth: number = 0) => {
-      fs.readdirSync(dirpath, { withFileTypes: true }).forEach(file => {
-        if (file.name.startsWith(".")) {
-          return;
-        }
-        const filepath = join(dirpath, file.name);
-        if (file.isDirectory() && file.name.startsWith("@") && depth === 0) {
-          // One recursion
-          recursiveSearch(filepath, depth + 1);
-        } else if (file.isDirectory()) {
-          checkFolder(filepath);
-        } else if (file.isSymbolicLink()) {
-          // We want to follow symbolic links w/o increasing depth
-          let realPath;
-          try {
-            // realpathSync will throw if the symlink is broken
-            realPath = realpathSync(filepath);
-          } catch (err) {
-            return;
-          }
-          checkFolder(realPath);
-        }
-      });
-    };
-    recursiveSearch(path, 0);
-    return [...files];
-  }
-  /**
    * Load all imported modules and current module
    * It will compile module
    * Generate the current module file
@@ -390,9 +337,9 @@ export class UnpackedApplication extends Application {
     files.push(...(await UnpackedApplication.findModulesFiles(this.getAppPath("node_modules"))));
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
-      this.log("TRACE", "Searching for modules in", path.join(module.project.webda.workspaces.path, "node_modules"));
+      this.log("TRACE", "Searching for modules in", join(module.project.webda.workspaces.path, "node_modules"));
       files.push(
-        ...(await UnpackedApplication.findModulesFiles(path.join(module.project.webda.workspaces.path, "node_modules")))
+        ...(await UnpackedApplication.findModulesFiles(join(module.project.webda.workspaces.path, "node_modules")))
       );
     }
 
@@ -418,6 +365,17 @@ export class UnpackedApplication extends Application {
    */
   loadWebdaModule(moduleFile: string): CachedModule {
     const module = FileUtils.load(moduleFile);
+    if (!module.$schema?.endsWith("/webda.module.v4.json")) {
+      this.log("WARN", `Module '${moduleFile}' is not a v4 format, skipping module`);
+      return {
+        models: {},
+        schemas: {},
+        beans: {},
+        deployers: {},
+        moddas: {},
+        project: undefined
+      };
+    }
     Object.keys(SectionEnum)
       .filter(k => Number.isNaN(+k))
       .forEach(p => {
@@ -427,19 +385,12 @@ export class UnpackedApplication extends Application {
           return;
         }
         for (const key in module[SectionEnum[p]]) {
-          module[SectionEnum[p]][key] = path.join(
-            path.relative(this.getAppPath(), path.dirname(moduleFile)),
-            module[SectionEnum[p]][key]
+          module[SectionEnum[p]][key].Import = join(
+            relative(this.getAppPath(), dirname(moduleFile)),
+            module[SectionEnum[p]][key].Import
           );
         }
       });
-
-    for (const key in module.models.list) {
-      module.models.list[key] = path.join(
-        path.relative(this.getAppPath(), path.dirname(moduleFile)),
-        module.models.list[key]
-      );
-    }
     return module;
   }
 
@@ -472,13 +423,10 @@ export class UnpackedApplication extends Application {
       .forEach(p => {
         module[SectionEnum[p]] = value[SectionEnum[p]];
       });
-    // Copying models
-    module.models.list = value.models.list;
-    module.models.graph = value.models.graph;
-    module.models.tree = value.models.tree;
-    module.models.plurals = value.models.plurals;
     // Copying schemas
     module.schemas = value.schemas;
+    this.log("DEBUG", "Merged modules", module);
+    await this.loadModule(module);
     return module;
   }
 }

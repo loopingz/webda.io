@@ -1,4 +1,4 @@
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 
 export class CryptoServiceParameters extends ServiceParameters {
   /**
@@ -77,7 +77,8 @@ export class CryptoServiceParameters extends ServiceParameters {
   jwt?: JWTOptions;
 
   constructor(params: any) {
-    super(params);
+    super();
+    Object.assign(this, params);
     this.symetricKeyLength ??= 256;
     this.symetricCipher ??= "aes-256-ctr";
     this.asymetricType ??= "rsa";

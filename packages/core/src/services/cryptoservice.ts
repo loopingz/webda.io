@@ -2,14 +2,14 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, generateKeyPa
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import * as util from "util";
-import { JSONUtils } from "../utils/serializers";
+import { JSONUtils } from "@webda/utils";
 
 import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice";
 import { getMachineId, useCore, useService } from "../core/hooks";
 import { useLog } from "../loggers/hooks";
 import { Service } from "./service";
 import { DeepPartial } from "@webda/tsc-esm";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { OperationContext } from "../contexts/operationcontext";
 import { Route } from "../rest/irest";
 import { useRegistry } from "../models/registry";

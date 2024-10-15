@@ -6,6 +6,7 @@ import {
   SectionEnum,
   Service,
   ServiceConstructor,
+  useApplication,
   WebContext
 } from "@webda/core";
 import * as path from "path";
@@ -27,20 +28,14 @@ export default class ConfigurationService extends Service implements RequestFilt
 
   resolve(): this {
     super.resolve();
-    this._webda.registerCORSFilter(this);
-    this._webda.registerRequestFilter(this);
+    //this._webda.registerCORSFilter(this);
+    //this._webda.registerRequestFilter(this);
     this.addRoute("/configuration", ["GET", "PUT"], this.crudConfiguration);
     this.addRoute("/application", ["GET"], this.getApplication);
     this.addRoute("/npm", ["POST"], this.npmSearch);
     this.addRoute("/npm/search", ["POST"], this.npmSearch);
     this.addRoute("/webda", ["GET"], this.getWebdaVersions);
     this.addRoute("/openapi", ["GET"], this.crudConfiguration);
-    return this;
-  }
-
-  async init(): Promise<this> {
-    await super.init();
-    this.webdaApplication = (<WebdaConfiguration>this._webda).getWebdaApplication();
     return this;
   }
 
@@ -59,7 +54,7 @@ export default class ConfigurationService extends Service implements RequestFilt
    */
   async getWebdaVersions(ctx: WebContext) {
     ctx.write({
-      Core: this._webda.getApplication(),
+      Core: useApplication(),
       Shell: this.webdaApplication.getPackageDescription().version
     });
   }
@@ -84,23 +79,16 @@ export class ConfigApplication extends Application {
     return super.getModel(model);
   }
 
-  getModda(name: string): ServiceConstructor<Service> {
-    if (name.toLowerCase() === "webdaconfiguration/api") {
-      return ConfigurationService;
-    }
-    return super.getModda(name);
-  }
-
   constructor(application: Application) {
     super(application.getAppPath());
     Object.values(SectionEnum).forEach(section => {
-      this[section] = application[section];
+      //this[section] = application[section];
     });
   }
 
   getConfiguration(_deploymentName: string = undefined): Configuration {
     return {
-      version: 3,
+      version: 4,
       parameters: {},
       services: {
         api: {

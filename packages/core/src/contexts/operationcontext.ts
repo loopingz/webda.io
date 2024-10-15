@@ -4,7 +4,7 @@ import { WritableStreamBuffer } from "stream-buffers";
 import { Session } from "../session/session";
 import { NotEnumerable } from "@webda/tsc-esm";
 import sanitize from "sanitize-html";
-import { JSONUtils } from "../utils/serializers";
+import { JSONUtils } from "@webda/utils";
 import { useLog } from "../loggers/hooks";
 import { runAsSystem } from "./execution";
 import { useParameters } from "../core/instancestorage";

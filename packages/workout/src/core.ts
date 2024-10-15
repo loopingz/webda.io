@@ -11,6 +11,30 @@ export interface Logger {
   logProgressUpdate: (current: number, uid: string, title: string) => void;
 }
 
+let moduleOutput;
+
+/**
+ * Return or set the WorkerOutput
+ * @param output
+ * @returns
+ */
+export function useWorkerOutput(output?: WorkerOutput) {
+  if (output) {
+    moduleOutput = output;
+  }
+  moduleOutput ??= new WorkerOutput();
+  return moduleOutput;
+}
+
+/**
+ * Log a message
+ * @returns
+ */
+export function useLog(...args: Parameters<Logger["log"]>) {
+  moduleOutput ??= new WorkerOutput();
+  return moduleOutput.log(...args);
+}
+
 /**
  * Represents a progress indicator
  */

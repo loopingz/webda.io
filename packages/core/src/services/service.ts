@@ -9,9 +9,9 @@ import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfigu
 
 import type { Logger } from "../loggers/ilogger";
 import type { OperationContext } from "../contexts/operationcontext";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { useService } from "../core/hooks";
-import { IService } from "../core/icore";
+import { AbstractService } from "../core/icore";
 import { useLogger } from "../loggers/hooks";
 
 /**
@@ -169,23 +169,26 @@ export function Operation(
  * @abstract
  * @class Service
  */
-abstract class Service<T extends ServiceParameters = ServiceParameters, E extends AsyncEventUnknown = AsyncEventUnknown>
-  extends AsyncEventEmitterImpl<E>
-  implements IService
-{
+abstract class Service<
+  T extends ServiceParameters = ServiceParameters,
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  E extends AsyncEventUnknown = {}
+> extends AbstractService<T, E> {
+  protected state: "initial" | "resolved" | "errored" | "initializing" | "running" | "stopping" | "stopped" = "initial";
+
+  public readonly stateInfo: {
+    method: "resolve" | "init" | "stop";
+    duration: number;
+    exception?: any;
+  }[] = [];
+
   /**
-   * Service name
+   * Get the current state
    */
-  protected name: string;
-  /**
-   * Hold the parameters for your service
-   *
-   * It will be bring from the `webda.config.json`
-   */
-  protected parameters: T;
-  _createException: string;
-  _initTime: number;
-  _initException: any = undefined;
+  getState() {
+    return this.state;
+  }
+
   /**
    * Logger with class context
    */
@@ -202,22 +205,16 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(name: string, params: DeepPartial<T> = {}) {
-    super();
-    this.name = name;
+  constructor(name: string, params: T) {
+    super(name, params);
     this.logger = useLogger(this);
-    this.parameters = <T>this.loadParameters(params);
-    // Setting default values if not provided
-    Object.entries(params).forEach(([key, value]) => {
-      this.parameters[key] ??= value;
-    });
   }
 
   /**
    * Load the parameters for a service
    */
   loadParameters(params: DeepPartial<T>): ServiceParameters {
-    return new ServiceParameters(params);
+    return new ServiceParameters();
   }
 
   /**
@@ -324,18 +321,19 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
    * @returns absolute url or undefined if need to skip the Route
    */
   getUrl(url: string, _methods: HttpMethodType[]) {
+    const { url: ServiceUrl } = <T & { url: string }>this.parameters;
     // If url is absolute
     if (url.startsWith("/")) {
       return url;
     }
-    if (!this.parameters.url) {
+    if (!ServiceUrl) {
       return undefined;
     }
     if (url.startsWith(".")) {
-      if (this.parameters.url.endsWith("/") && url.startsWith("./")) {
-        return this.parameters.url + url.substring(2);
+      if (ServiceUrl.endsWith("/") && url.startsWith("./")) {
+        return ServiceUrl + url.substring(2);
       }
-      return this.parameters.url + url.substring(1);
+      return ServiceUrl + url.substring(1);
     }
     return url;
   }
@@ -444,16 +442,6 @@ abstract class Service<T extends ServiceParameters = ServiceParameters, E extend
   async init(): Promise<this> {
     // Can be overriden by subclasses if needed
     return this;
-  }
-
-  /**
-   *
-   * @param config new parameters for the service
-   */
-  async reinit(config: DeepPartial<T>): Promise<this> {
-    this.parameters = <T>this.loadParameters(config);
-    this.computeParameters();
-    return this.init();
   }
 
   /**

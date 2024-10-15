@@ -4,7 +4,7 @@ import * as path from "path";
 import * as WebdaError from "../errors/errors";
 import type { IWebContext } from "../contexts/icontext";
 import { Service } from "./service";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 
 /**
  * ResourceService parameters
@@ -62,7 +62,8 @@ export class ResourceServiceParameters extends ServiceParameters {
   allowHiddenFiles?: boolean;
 
   constructor(params: any) {
-    super(params);
+    super();
+    Object.assign(this, params);
     this.url ??= "resources";
     this.cacheControl ??= "public, max-age=31536000";
     this.indexCacheControl ??= "no-cache, no-store, must-revalidate";

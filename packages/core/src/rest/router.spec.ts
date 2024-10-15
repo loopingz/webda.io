@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { RouteInfo } from "./router";
 import { TestApplication, WebdaTest } from "../test";

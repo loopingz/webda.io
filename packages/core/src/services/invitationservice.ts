@@ -1,14 +1,14 @@
 import { EventWithContext } from "../events/events";
 import * as WebdaError from "../errors/errors";
 import type { CoreModel } from "../models/coremodel";
-import type { CoreModelDefinition } from "../application/iapplication";
+import type { ModelDefinition } from "../internal/iapplication";
 import { Ident } from "../models/ident";
 import type { User } from "../models/user";
 import type { Store } from "../stores/store";
 import type { Authentication, EventAuthenticationRegister } from "./authentication";
 import type { NotificationService } from "./notificationservice";
 import { Inject, Service } from "./service";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { DeepPartial } from "@webda/tsc-esm";
 import { useApplication, useModel } from "../application/hook";
 import { WebContext } from "../contexts/webcontext";
@@ -149,7 +149,7 @@ export class InvitationParameters extends ServiceParameters {
   /**
    * Define if several invitation can be accepted or just one
    */
-  multiple: boolean;
+  multiple: boolean = true;
   /**
    * Do not require a validation by the invitee
    */
@@ -158,9 +158,14 @@ export class InvitationParameters extends ServiceParameters {
    * Email template to send to the user
    */
   notification?: string;
+  /**
+   *
+   */
+  url?: string;
 
   constructor(params: any) {
-    super(params);
+    super();
+    Object.assign(this, params);
     this.authenticationService ??= "Authentication";
     if (typeof this.mapFields === "string") {
       this.mapFields = (<string>this.mapFields).split(",");
@@ -180,6 +185,11 @@ export class InvitationParameters extends ServiceParameters {
   }
 }
 
+export type InvitationServiceEvents = {
+  "Invitation.Accepted": EventInvitationAnswered;
+  "Invitation.Removed": EventInvitationRemoved;
+  "Invitation.Sent": EventInvitationSent;
+};
 /**
  * Allow to use invitation on AclModel
  *
@@ -188,7 +198,10 @@ export class InvitationParameters extends ServiceParameters {
  *
  * @WebdaModda
  */
-export class InvitationService<T extends InvitationParameters = InvitationParameters> extends Service<T> {
+export class InvitationService<
+  T extends InvitationParameters = InvitationParameters,
+  E extends InvitationServiceEvents = InvitationServiceEvents
+> extends Service<T, E> {
   @Inject("params:authenticationService")
   authenticationService: Authentication;
 
@@ -201,7 +214,7 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
   /**
    * CoreModel to manage invitation on
    */
-  model: CoreModelDefinition<User>;
+  model: ModelDefinition<User>;
 
   /**
    * @inheritdoc
@@ -221,10 +234,10 @@ export class InvitationService<T extends InvitationParameters = InvitationParame
     );
     const app = useApplication();
     this.model = useModel(this.parameters.model);
-    const url = this.getParameters().url || `/${app.getModelPlural(this.parameters.model)}`;
+    const url = this.getParameters().url || `/${this.model.Metadata.Plural}`;
     // Register routes
     this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite, {
-      tags: [app.getModelPlural(this.model.getIdentifier())],
+      tags: [this.model.Metadata.Plural],
       summary: "Invite users to this object",
       get: {
         summary: "Retrieve all pending invitations",

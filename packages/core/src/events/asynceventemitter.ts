@@ -9,6 +9,7 @@ export type AsyncEventUnknown = { [key: string]: unknown };
  * Similar to EventEmitter but emit returns a Promise
  * so you can decide to wait for the event to be processed or not
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface AsyncEventEmitter<E extends AsyncEventUnknown = AsyncEventUnknown> {
   /**
    * EventEmitter interface

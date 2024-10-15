@@ -1,7 +1,7 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { Ident } from "../models/ident";

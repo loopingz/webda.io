@@ -1,4 +1,4 @@
-import { suite, test } from "../test/core";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { mkdirSync, unlinkSync } from "fs";
 import pkg from "fs-extra";

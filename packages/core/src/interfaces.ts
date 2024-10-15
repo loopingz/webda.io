@@ -1,4 +1,24 @@
-import { WorkerLogLevel } from "@webda/workout";
-import type { JSONSchema7 } from "json-schema";
-import type { OpenAPIV3 } from "openapi-types";
-import { HttpContext } from "./contexts/httpcontext";
+/**
+ * Interface to specify the Service parameters
+ */
+export class ServiceParameters {
+  /**
+   * Type of the service
+   */
+  type: string;
+
+  /**
+   * Copy all parameters into the object by default
+   *
+   * @param params from webda.config.json
+   */
+  constructor() {}
+
+  load(params) {
+    Object.assign(this, params);
+    this.default();
+    return this;
+  }
+
+  default() {}
+}

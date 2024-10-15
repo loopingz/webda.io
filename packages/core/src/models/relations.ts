@@ -1,6 +1,6 @@
 import { type Attributes, type FilterAttributes, Methods, NotEnumerable } from "@webda/tsc-esm";
-import { AbstractCoreModel, CoreModelEvents } from "./imodel";
-import { CoreModelDefinition, CoreModelFullDefinition, Proxied, RawModel } from "../application/iapplication";
+import { CoreModelEvents } from "./imodel";
+import { ModelDefinition, AbstractCoreModel, Proxied, RawModel } from "../internal/iapplication";
 
 import { getAttributeLevelProxy } from "./coremodelproxy";
 import { CRUDHelper } from "../stores/istore";
@@ -13,7 +13,7 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel>
   implements Omit<CRUDHelper<T>, "create" | "upsert">
 {
   @NotEnumerable
-  protected model: CoreModelFullDefinition<T>;
+  protected model: ModelDefinition<T>;
   @NotEnumerable
   protected parent: AbstractCoreModel;
 
@@ -25,10 +25,10 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel>
    */
   constructor(
     protected uuid: string,
-    model: CoreModelDefinition<T>,
+    model: ModelDefinition<T>,
     parent?: AbstractCoreModel
   ) {
-    this.model = <CoreModelFullDefinition<T>>model;
+    this.model = model;
     this.uuid = uuid === "" ? undefined : model.completeUid(uuid);
     this.parent = parent;
   }
@@ -46,7 +46,7 @@ export class ModelRef<T extends AbstractCoreModel = AbstractCoreModel>
    * @param id
    */
   set(id: string | T) {
-    this.uuid = id instanceof AbstractCoreModel ? id.getUuid() : id;
+    this.uuid = id instanceof Object ? id.getUuid() : id;
     this.parent?.__dirty.add(<any>Object.keys(this.parent).find(k => this.parent[k] === this));
   }
 
@@ -283,7 +283,7 @@ export class ModelRefWithCreate<T extends AbstractCoreModel = AbstractCoreModel>
 export class ModelRefCustom<T extends AbstractCoreModel> extends ModelRef<T> {
   constructor(
     public uuid: string,
-    model: CoreModelDefinition<T>,
+    model: ModelDefinition<T>,
     data: any,
     parent: AbstractCoreModel
   ) {
@@ -354,7 +354,7 @@ export class ModelLink<T extends AbstractCoreModel> implements ModelLinker {
 
   constructor(
     protected uuid: string,
-    protected model: CoreModelDefinition<T>,
+    protected model: ModelDefinition<T>,
     parent?: AbstractCoreModel
   ) {
     this.parent = parent;
@@ -422,7 +422,7 @@ export class ModelLinksSimpleArray<T extends AbstractCoreModel> extends Array<Mo
   private parent: AbstractCoreModel;
 
   constructor(
-    protected model: CoreModelDefinition<T>,
+    protected model: ModelDefinition<T>,
     content: any[] = [],
     parent?: AbstractCoreModel
   ) {
@@ -477,7 +477,7 @@ export class ModelLinksArray<T extends AbstractCoreModel, K>
   @NotEnumerable
   parent: AbstractCoreModel;
   constructor(
-    protected model: CoreModelDefinition<T>,
+    protected model: ModelDefinition<T>,
     content: any[] = [],
     parent?: AbstractCoreModel
   ) {
@@ -541,7 +541,7 @@ export type ModelLinksMap<T extends AbstractCoreModel, K> = Readonly<{
   ModelLinker;
 
 export function createModelLinksMap<T extends AbstractCoreModel = AbstractCoreModel>(
-  model: CoreModelDefinition<T>,
+  model: ModelDefinition<T>,
   data: any = {},
   parent?: AbstractCoreModel
 ) {
@@ -609,7 +609,7 @@ export type ModelsMapped<
  */
 export class ModelMapLoaderImplementation<T extends AbstractCoreModel, K = any> {
   @NotEnumerable
-  protected _model: CoreModelDefinition<T>;
+  protected _model: ModelDefinition<T>;
   @NotEnumerable
   protected _parent: AbstractCoreModel;
   /**
@@ -617,7 +617,7 @@ export class ModelMapLoaderImplementation<T extends AbstractCoreModel, K = any> 
    */
   public uuid: string;
 
-  constructor(model: CoreModelDefinition<T>, data: { uuid: string } & K, parent: AbstractCoreModel) {
+  constructor(model: ModelDefinition<T>, data: { uuid: string } & K, parent: AbstractCoreModel) {
     Object.assign(this, data);
     this._model = model;
     this._parent = parent;

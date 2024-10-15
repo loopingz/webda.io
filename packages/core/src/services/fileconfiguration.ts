@@ -1,6 +1,6 @@
 import { existsSync, watchFile } from "fs";
 import * as WebdaError from "../errors/errors";
-import { FileUtils } from "../utils/serializers";
+import { FileUtils } from "@webda/utils";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 import { useApplication } from "../application/hook";
 import { useCore } from "../core/hooks";

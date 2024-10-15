@@ -1,15 +1,15 @@
 import { useService } from "../core/hooks";
-import { IService } from "../core/icore";
+import { AbstractService } from "../core/icore";
 import type { Ident } from "../models/ident";
 import type { User } from "../models/user";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { Service } from "./service";
 
 /**
  * Define a service that can notify a user based on his info
  * It can use email or SMS or any other media
  */
-export interface NotificationService extends IService {
+export interface NotificationService extends AbstractService {
   /**
    * Check if this type of notification is available
    */
@@ -49,8 +49,8 @@ export class MultiNotificationParameters extends ServiceParameters {
    * @override
    */
   constructor(params: any) {
-    super(params);
-    this.senders ??= [];
+    super();
+    this.senders = params.sender || [];
   }
 }
 

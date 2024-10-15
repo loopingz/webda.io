@@ -3,7 +3,7 @@ import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
-import { GunzipConditional } from "../utils/serializers";
+import { GunzipConditional } from "@webda/utils";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 import * as WebdaQL from "@webda/ql";
 interface StorageMap {

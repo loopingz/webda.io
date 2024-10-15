@@ -1,7 +1,7 @@
 import jsonpath from "jsonpath";
 import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
-import { ServiceParameters } from "./iservices";
+import { ServiceParameters } from "../interfaces";
 import { useCore, useService } from "../core/hooks";
 import { useParameters } from "../core/instancestorage";
 
@@ -30,7 +30,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Check configuration every {checkInterval} seconds
    */
-  checkInterval?: number;
+  checkInterval: number = 3600;
   /**
    * Format sourceServiceName:sourceId
    */
@@ -38,12 +38,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Default configuration to use
    */
-  default: any;
-  constructor(params: any) {
-    super(params);
-    this.checkInterval ??= 3600;
-    this.default ??= {};
-  }
+  default: any = {};
 }
 
 export type ConfigurationEvents = {
@@ -93,16 +88,6 @@ class ConfigurationService<
    * Current configuration
    */
   protected configuration: any;
-
-  /**
-   * Load parameters
-   *
-   * @param params
-   * @ignore
-   */
-  loadParameters(params: any): ServiceParameters {
-    return new ConfigurationServiceParameters(params);
-  }
 
   /**
    * @inheritdoc

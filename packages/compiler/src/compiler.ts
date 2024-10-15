@@ -24,9 +24,9 @@ export class Compiler {
   watchProgram: ts.WatchOfConfigFile<ts.EmitAndSemanticDiagnosticsBuilderProgram>;
   /**
    *
-   * @param app
+   * @param project
    */
-  constructor(public app: WebdaProject) {}
+  constructor(public project: WebdaProject) {}
 
   /**
    * This is our main entry point
@@ -39,7 +39,7 @@ export class Compiler {
     let result = true;
     // https://convincedcoder.com/2019/01/19/Processing-TypeScript-using-TypeScript/
 
-    this.app.log("INFO", "Compiling...");
+    this.project.log("INFO", "Compiling...");
     let compilationStart = Date.now();
     this.createProgramFromApp();
 
@@ -57,13 +57,13 @@ export class Compiler {
         .split("\n")
         .filter(l => l.trim() !== "")
         .forEach(line => {
-          this.app.log("WARN", line);
+          this.project.log("WARN", line);
         });
       result = false;
     }
     compilationStart = Date.now() - compilationStart;
     const moduleGenerationStart = Date.now();
-    this.app.log("INFO", "Analyzing...");
+    this.project.log("INFO", "Analyzing...");
     // Generate schemas
     generateModule(this);
     useLog(
@@ -80,7 +80,7 @@ export class Compiler {
    */
   watch(callback: (diagnostic: ts.Diagnostic | string) => void, watchOptions: ts.WatchOptions = {}) {
     // Load tsconfig
-    this.loadTsconfig(this.app);
+    this.loadTsconfig(this.project);
 
     const formatHost: ts.FormatDiagnosticsHost = {
       // This method is not easily reachable and is straightforward
@@ -105,7 +105,7 @@ export class Compiler {
     const generateLocalModule = async () => {
       moduleGenerationStart = Date.now();
       callback("MODULE_GENERATION");
-      this.loadTsconfig(this.app);
+      this.loadTsconfig(this.project);
       this.tsProgram = this.watchProgram.getProgram().getProgram();
 
       generateModule(this);
@@ -152,7 +152,7 @@ export class Compiler {
       callback(diagnostic);
     };
     const host = ts.createWatchCompilerHost(
-      this.app.getAppPath("tsconfig.json"),
+      this.project.getAppPath("tsconfig.json"),
       {},
       { ...ts.sys, writeFile: writer },
       ts.createEmitAndSemanticDiagnosticsBuilderProgram,
@@ -195,7 +195,7 @@ export class Compiler {
    * @param app
    * @returns
    */
-  createProgramFromApp(app: WebdaProject = this.app): void {
+  createProgramFromApp(app: WebdaProject = this.project): void {
     this.loadTsconfig(app);
     this.tsProgram = ts.createProgram({
       rootNames: this.configParseResult.fileNames,

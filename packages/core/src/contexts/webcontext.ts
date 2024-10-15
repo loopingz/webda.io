@@ -281,13 +281,6 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   }
 
   /**
-   * Execute the target route
-   */
-  async execute() {
-    return runWithContext(this, () => this._route._method(this));
-  }
-
-  /**
    * Get the request locale if found
    */
   getLocale() {
@@ -298,19 +291,6 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
       return acceptLanguage.get(header);
     }
     return locales[0];
-  }
-
-  /**
-   * @ignore
-   * Used by Webda framework to set the current route
-   */
-  setRoute(route) {
-    this._route = route;
-    this.parameters = { ...route.params, ...this.parameters };
-  }
-
-  getRoute() {
-    return this._route;
   }
 
   /**

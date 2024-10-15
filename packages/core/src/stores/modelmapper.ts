@@ -1,20 +1,20 @@
 import { useApplication, useModel } from "../application/hook";
 import type { CoreModel } from "../models/coremodel";
 import type { CoreModelEvents } from "../models/imodel";
-import { CoreModelDefinition } from "../application/iapplication";
+import { ModelDefinition } from "../internal/iapplication";
 import { ModelRef } from "../models/relations";
 import { Service } from "../services/service";
 
 export interface Mapper {
   modelAttribute: string;
-  model: CoreModelDefinition<CoreModel>;
+  model: ModelDefinition<CoreModel>;
   attributes: string[];
   attribute: string;
 }
 
 interface ModelMapperInfo {
   modelAttribute: string;
-  model: CoreModelDefinition<CoreModel>;
+  model: ModelDefinition<CoreModel>;
   attributes: string[];
   attribute: string;
   type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
@@ -32,12 +32,13 @@ export class ModelMapper extends Service {
   resolve() {
     super.resolve();
     const app = useApplication();
-    const graph = app.getGraph();
+    const graph: ModelDefinition<CoreModel>[] = Object.values(app.getModels()).filter(
+      (p: ModelDefinition) => p.Metadata.Relations.maps
+    );
     for (const i in graph) {
-      if (!graph[i].maps) continue;
-      const targetModel = app.getModelDefinition(i);
-      for (const j in graph[i].maps) {
-        const mapper = graph[i].maps[j];
+      const targetModel = graph[i];
+      for (const j in graph[i].Metadata.Relations.maps) {
+        const mapper = graph[i].Metadata.Relations.maps[j];
         this.mappers[mapper.model] ??= [];
         // Search for links
         this.mappers[mapper.model].push({
@@ -50,7 +51,7 @@ export class ModelMapper extends Service {
       }
     }
     for (const modelName in this.mappers) {
-      const model = app.getModelDefinition(modelName);
+      const model = app.getModel(modelName);
       model.on("Delete", async evt => {
         await this.handleEvent(modelName, evt, "Deleted");
       });

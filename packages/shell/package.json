@@ -19,9 +19,8 @@
     "webda.module.json"
   ],
   "scripts": {
-    "build": "tsc-esm && chmod +x lib/bin/webda.js",
-    "build:module": "webda build && cd ../core && webda build",
-    "build:watch": "webda build --watch",
+    "build": "webdac",
+    "build:watch": "webdac --watch",
     "pretest": "npm run build",
     "test": "c8 mocha --timeout=120000",
     "test:debug": "mocha --no-timeouts",
@@ -37,9 +36,9 @@
   "dependencies": {
     "@kubernetes/client-node": "^0.22.0",
     "@phenomnomnominal/tsquery": "^6.1.2",
+    "@webda/compiler": "^4.0.0-beta.1",
     "@webda/core": "^4.0.0-beta.1",
     "@webda/kubernetes": "^4.0.0-beta.1",
-    "@webda/tsc-esm": "^4.0.0-beta.1",
     "@webda/workout": "^4.0.0-beta.1",
     "archiver": "^7.0.1",
     "chalk": "^5.0.1",

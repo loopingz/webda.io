@@ -1,22 +1,22 @@
-import { suite, test } from "../test/core";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import * as sinon from "sinon";
 import {
   callOperation,
-  Core,
   Inject,
   listOperations,
   Operation,
   registerOperation,
   Service,
   ServiceParameters,
+  setLogContext,
+  setWorkerOutput,
   useWorkerOutput,
   WebdaError
 } from "../index";
 import { WebdaApplicationTest } from "../test/test";
 import { TestApplication } from "../test/objects";
 import { OperationContext } from "../contexts/operationcontext";
-import { MemoryLogger } from "@webda/workout";
+import { MemoryLogger, WorkerOutput } from "@webda/workout";
 
 class FakeServiceParameters extends ServiceParameters {
   bean: string;
@@ -123,7 +123,7 @@ class ServiceTest extends WebdaApplicationTest {
     const service = await this.registerService(new FakeService("plop", { bean: "Authentication" }));
     service.initOperations();
     // @ts-ignore
-    const schemaRegistry = this.webda.getApplication().baseConfiguration.cachedModules.schemas;
+    const schemaRegistry = useApplication().baseConfiguration.cachedModules.schemas;
     schemaRegistry["plop.myoperation.input"] = {
       properties: {
         output: {
@@ -196,7 +196,7 @@ class ServiceTest extends WebdaApplicationTest {
     const origin = global.it;
     // @ts-ignore
     global.it = undefined;
-    assert.rejects(() => service.__clean(), /Only for test purpose/);
+    await assert.rejects(() => service.__clean(), /Only for test purpose/);
     // @ts-ignore
     global.it = origin;
     await service.__clean();
@@ -235,8 +235,11 @@ class ServiceTest extends WebdaApplicationTest {
    */
   @test
   async longListener() {
+    const workerOutput = new WorkerOutput();
+    setWorkerOutput(workerOutput);
     const service = new FakeService("plop", {});
-    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    const memoryLogger = new MemoryLogger(workerOutput);
+    setLogContext(workerOutput);
     service.on("test", async () => {
       await new Promise(resolve => setTimeout(resolve, 140));
       throw new Error("My error");

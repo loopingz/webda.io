@@ -1,9 +1,9 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";
 import { stub } from "sinon";
-import { Core, OriginFilter, RequestFilter, WebsiteOriginFilter } from "./core";
+import { Core } from "./core";
 import {
   Authentication,
   Bean,
@@ -15,16 +15,16 @@ import {
   OperationContext,
   Route,
   Service,
-  UnpackedConfiguration,
   User,
   useRegistry,
   WebContext,
+  WebdaApplicationTest,
   WebdaError
 } from "../index";
 import { TestApplication, WebdaInternalSimpleTest, WebdaInternalTest } from "../test";
-import { getCommonJS } from "./utils/esm";
-import { HttpContext } from "./utils/httpcontext";
-import { FileUtils, JSONUtils } from "./utils/serializers";
+import { getCommonJS } from "../utils/esm";
+import { HttpContext } from "../contexts/httpcontext";
+import { FileUtils, JSONUtils } from "../utils/serializers";
 const { __dirname } = getCommonJS(import.meta.url);
 
 class BadService {
@@ -78,7 +78,7 @@ class ImplicitBean extends Service {
 }
 
 @suite
-class ModelDomainTest extends WebdaInternalTest {
+class ModelDomainTest extends WebdaApplicationTest {
   public async tweakApp(app: TestApplication): Promise<void> {
     app.addModel("WebdaTest/ClassA", ClassA);
     app.addModel("WebdaTest/ClassB", ClassB);

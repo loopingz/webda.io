@@ -1,7 +1,7 @@
 import { useModel } from "../application/hook";
-import { CoreModelDefinition, UnpackedConfiguration } from "../application/iapplication";
+import { ModelDefinition, UnpackedConfiguration } from "../internal/iapplication";
 import { UuidModel } from "../models/uuid";
-import { FileUtils } from "../utils/serializers";
+import { FileUtils } from "@webda/utils";
 import { TestApplication } from "./objects";
 import { WebdaApplicationTest } from "./test";
 
@@ -26,24 +26,22 @@ export class WebdaInternalTest extends WebdaApplicationTest {
    * Create a graph of objets from sample-app to be able to test graph
    */
   async createGraphObjects() {
-    const Teacher = <CoreModelDefinition<UuidModel & { name: string; senior: boolean; uuid: string }>>(
-      useModel("Teacher")
+    const Teacher = <ModelDefinition<UuidModel & { name: string; senior: boolean; uuid: string }>>useModel("Teacher");
+    const Course = <ModelDefinition<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>>(
+      useModel("Course")
     );
-    const Course = <
-      CoreModelDefinition<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>
-    >useModel("Course");
-    const Classroom = <CoreModelDefinition<UuidModel & { name: string; courses: any; hardwares: any }>>(
+    const Classroom = <ModelDefinition<UuidModel & { name: string; courses: any; hardwares: any }>>(
       useModel("Classroom")
     );
     const Student = <
-      CoreModelDefinition<UuidModel & { order: number; email: string; firstName: string; lastName: string }>
+      ModelDefinition<UuidModel & { order: number; email: string; firstName: string; lastName: string }>
     >useModel("Student");
-    const Hardware = <CoreModelDefinition<UuidModel & { name: string; classroom: string }>>useModel("Hardware");
+    const Hardware = <ModelDefinition<UuidModel & { name: string; classroom: string }>>useModel("Hardware");
     const ComputerScreen = <
-      CoreModelDefinition<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>
+      ModelDefinition<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>
     >useModel("ComputerScreen");
-    const Company = <CoreModelDefinition<UuidModel & { name: string; uuid: string }>>useModel("Company");
-    const User = <CoreModelDefinition<UuidModel & { name: string; _company: string }>>useModel("User");
+    const Company = <ModelDefinition<UuidModel & { name: string; uuid: string }>>useModel("Company");
+    const User = <ModelDefinition<UuidModel & { name: string; _company: string }>>useModel("User");
 
     // 2 Companies
     const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];

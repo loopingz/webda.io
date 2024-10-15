@@ -1,8 +1,8 @@
 import * as assert from "assert";
-import { WebdaInternalSimpleTest } from "../test";
-import { Store, CoreModel, Ident, User, WebdaError } from "../index";
+import { WebdaApplicationTest } from "../test/test";
+import { Store, Ident, User, WebdaError } from "../index";
 
-class RESTDomainServiceTest extends WebdaInternalSimpleTest {
+class RESTDomainServiceTest extends WebdaApplicationTest {
   async httpCRUD(url: string = "/users") {
     let eventFired;
     const userStore: Store = User.store();

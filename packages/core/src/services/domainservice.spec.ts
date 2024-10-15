@@ -1,7 +1,7 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as crypto from "crypto";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { WebdaTest } from "../test";
 import { DomainServiceParameters, ModelsOperationsService } from "./domainservice";
 import { RESTDomainService } from "../rest/restdomainservice";
@@ -404,7 +404,6 @@ class DomainServiceTest extends WebdaTest {
   async test() {
     const rest = await this.registerService(new RESTDomainService(this.webda, "DomainService")).resolve().init();
 
-    console.log("POST /companies");
     const ctx = await this.newContext();
     await runWithContext(ctx, async () => {
       // Play with the rest api now
@@ -416,7 +415,6 @@ class DomainServiceTest extends WebdaTest {
           name: "Test 1"
         }
       });
-      console.log("POST /companies 2");
       const company2 = await this.http({
         method: "POST",
         url: "/companies",

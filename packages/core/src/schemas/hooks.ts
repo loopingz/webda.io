@@ -1,6 +1,6 @@
 import { ErrorObject } from "ajv";
-import { AbstractCoreModel } from "../models/imodel";
-import { JSONUtils } from "../utils/serializers";
+import { AbstractCoreModel } from "../internal/iapplication";
+import { JSONUtils } from "@webda/utils";
 import { useApplication, useModelId } from "../application/hook";
 
 type NoSchemaResult = null;

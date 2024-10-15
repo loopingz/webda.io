@@ -1,7 +1,7 @@
 import { Counter, Gauge, Histogram } from "../metrics/metrics";
-import { ServiceParameters } from "../services/iservices";
+import { ServiceParameters } from "../interfaces";
 import { Service } from "../services/service";
-import { CancelablePromise } from "../utils/waiter";
+import { CancelablePromise } from "@webda/utils";
 
 export default abstract class PubSubService<
   T = any,

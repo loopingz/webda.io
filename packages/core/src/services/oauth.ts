@@ -1,12 +1,12 @@
 import * as WebdaError from "../errors/errors";
 import type { Authentication } from "./authentication";
 import { Service } from "./service";
-import { getUuid } from "../utils/uuid";
+import { getUuid } from "@webda/utils";
 import { RequestFilter } from "../rest/irest";
 import { WebContext } from "../contexts/webcontext";
 import { Counter } from "../metrics/metrics";
-import { RegExpStringValidator } from "../utils/regexp";
-import { ServiceParameters } from "./iservices";
+import { RegExpStringValidator } from "@webda/utils";
+import { ServiceParameters } from "../interfaces";
 import { useService } from "../core/hooks";
 import { OperationContext } from "../contexts/operationcontext";
 import { EventWithContext } from "../events/events";
@@ -87,7 +87,7 @@ export class OAuthServiceParameters extends ServiceParameters {
   authenticationService: string;
 
   constructor(params: any) {
-    super(params);
+    super();
     this.scope ??= ["email"];
     this.exposeScope ??= false;
     this.authenticationService ??= "Authentication";
@@ -206,7 +206,7 @@ export abstract class OAuthService<
    */
   resolve(): this {
     super.resolve();
-    this._authenticationService = useService(this.parameters.authenticationService);
+    this._authenticationService = useService<Authentication>(this.parameters.authenticationService);
     return this;
   }
 

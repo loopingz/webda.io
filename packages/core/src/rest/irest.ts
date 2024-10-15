@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext";
-import { CoreModelDefinition } from "../application/iapplication";
+import { ModelDefinition } from "../internal/iapplication";
 import { DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext";
 
@@ -67,7 +67,7 @@ export interface OpenApiWebdaOperation extends DeepPartial<OpenAPIV3.OperationOb
  * Route Information default information
  */
 export interface RouteInfo {
-  model?: CoreModelDefinition;
+  model?: ModelDefinition;
   /**
    * HTTP Method to expose
    */
@@ -124,9 +124,9 @@ export interface IRouter {
   /**
    * Add to context information and executor based on the http context
    */
-  updateContextWithRoute(ctx: IWebContext): boolean;
   exportOpenAPI(arg0: boolean): any;
   registerModelUrl(arg0: any, prefix: string): unknown;
   registerRequestFilter(filter: RequestFilter);
   registerCORSFilter(filter: RequestFilter);
+  execute(context: IWebContext): Promise<void>;
 }

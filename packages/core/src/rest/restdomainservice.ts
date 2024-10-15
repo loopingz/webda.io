@@ -1,5 +1,5 @@
 import { QueryValidator } from "@webda/ql";
-import type { CoreModelDefinition, ModelAction } from "../application/iapplication";
+import type { ModelDefinition, ModelAction } from "../internal/iapplication";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
 import { OpenAPIWebdaDefinition } from "./irest";
 import * as WebdaError from "../errors/errors";
@@ -63,7 +63,7 @@ export class RESTDomainServiceParameters extends DomainServiceParameters {
    *
    * @default true if debug false otherwise
    */
-  exposeOpenAPI: boolean;
+  exposeOpenAPI: boolean = true;
   /**
    * Swagger version to use
    *
@@ -73,17 +73,11 @@ export class RESTDomainServiceParameters extends DomainServiceParameters {
    *
    * @default "3.19.5"
    */
-  swaggerVersion: string;
-
+  swaggerVersion: string = "3.19.5";
   /**
-   * Set default url to /
-   * @param params
+   * When to query
    */
-  constructor(params: any) {
-    super(params);
-    this.url ??= "/";
-    this.swaggerVersion ??= "3.19.5";
-  }
+  url: string = "/";
 }
 
 /**
@@ -124,7 +118,7 @@ export class RESTDomainService<
    * @param context
    * @returns
    */
-  handleModel(model: CoreModelDefinition, name: string, context: any): boolean {
+  handleModel(model: ModelDefinition, name: string, context: any): boolean {
     const depth = context.depth || 0;
     const relations = model.getRelations();
     const injectAttribute = relations?.parent?.attribute;
@@ -135,7 +129,7 @@ export class RESTDomainService<
       this.transformName(name);
     context.prefix = prefix + `/{pid.${depth}}/`;
     const shortId = model.getIdentifier().split("/").pop();
-    const plurial = app.getModelPlural(model.getIdentifier());
+    const plurial = model.Metadata.Plural;
 
     // Register the model url
     useRouter().registerModelUrl(app.getModelId(model), prefix);

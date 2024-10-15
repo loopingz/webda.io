@@ -23,7 +23,7 @@ import {
   SubTypeFormatter,
   UnionType
 } from "ts-json-schema-generator";
-import ts from "typescript";
+import * as ts from "typescript";
 
 /**
  * Copy from  https://github.com/vega/ts-json-schema-generator/blob/next/src/Utils/modifiers.ts
@@ -127,6 +127,19 @@ export function hash(a: unknown): string | number {
 export class ConstructorNodeParser implements SubNodeParser {
   public supportsNode(node: ts.ConstructorTypeNode): boolean {
     return node.kind === ts.SyntaxKind.ConstructorType;
+  }
+
+  public createType(_node: ts.TypeQueryNode, _context: Context, _reference?: ReferenceType): BaseType | undefined {
+    return undefined;
+  }
+}
+
+/**
+ * Temporary fix
+ */
+export class ThisNodeParser implements SubNodeParser {
+  public supportsNode(node: ts.ThisTypeNode): boolean {
+    return node.kind === ts.SyntaxKind.ThisType;
   }
 
   public createType(_node: ts.TypeQueryNode, _context: Context, _reference?: ReferenceType): BaseType | undefined {
@@ -345,6 +358,7 @@ export function createSchemaGenerator(program: ts.Program, typeChecker: ts.TypeC
   const extraTags = new Set(["Modda", "Model"]);
   const parser = createParser(program, config, (chainNodeParser: ChainNodeParser) => {
     chainNodeParser.addNodeParser(new ConstructorNodeParser());
+    chainNodeParser.addNodeParser(new ThisNodeParser());
     chainNodeParser.addNodeParser(
       new CircularReferenceNodeParser(
         new AnnotatedNodeParser(

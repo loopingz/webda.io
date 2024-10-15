@@ -4,7 +4,7 @@ import * as WebdaQL from "@webda/ql";
 import { Context, setContextUpdate } from "../contexts/icontext";
 import { OperationContext } from "../contexts/operationcontext";
 import type { HttpMethodType } from "../contexts/httpcontext";
-import { Throttler } from "../utils/throttler";
+import { Throttler, getUuid } from "@webda/utils";
 import {
   ModelLinksArray,
   ModelLinksSimpleArray,
@@ -16,9 +16,8 @@ import {
 import { runAsSystem, useContext } from "../contexts/execution";
 import { Attributes, NotEnumerable, type Constructor, type FilterAttributes } from "@webda/tsc-esm";
 import { EventEmitterUtils } from "../events/asynceventemitter";
-import { getUuid } from "../utils/uuid";
-import { AbstractCoreModel, CoreModelEvents, ModelAttributes } from "./imodel";
-import { useApplication, useModel, useModelId } from "../application/hook";
+import { CoreModelEvents } from "./imodel";
+import { useModel, useModelId } from "../application/hook";
 import { StoreHelper } from "../stores/istore";
 import { useLog } from "../loggers/hooks";
 import { WorkerLogLevel } from "@webda/workout";
@@ -27,13 +26,17 @@ import { OperationDefinitionInfo } from "../core/icore";
 import { Service } from "../services/service";
 import { BinariesImpl, Binary } from "../services/binary";
 import {
-  CoreModelDefinition,
-  CoreModelFullDefinition,
+  ModelDefinition,
   ModelAction,
   ModelActions,
+  ModelAttributes,
   Proxied,
-  RawModel
-} from "../application/iapplication";
+  RawModel,
+  Reflection,
+  AbstractCoreModel
+} from "../internal/iapplication";
+import { StaticInterface } from "@webda/tsc-esm";
+import { canUpdateContext } from "../contexts/icontext";
 
 /**
  * This is implementation of ModelRelated
@@ -49,7 +52,7 @@ export class CoreModelQuery {
   @NotEnumerable
   private attribute: string;
   @NotEnumerable
-  private targetModel: CoreModelDefinition;
+  private targetModel: ModelDefinition;
 
   constructor(type: string, model: CoreModel, attribute: string) {
     this.attribute = attribute;
@@ -61,7 +64,7 @@ export class CoreModelQuery {
    * Retrieve target model definition
    * @returns
    */
-  getTargetModel(): CoreModelDefinition {
+  getTargetModel(): ModelDefinition {
     this.targetModel ??= useModel(this.type);
     return this.targetModel;
   }
@@ -155,15 +158,19 @@ export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakM
  * @class
  * @WebdaModel
  */
+@StaticInterface<ModelDefinition<CoreModel>>()
 export class CoreModel extends AbstractCoreModel {
   @NotEnumerable
   Events: CoreModelEvents<this> = undefined;
   @NotEnumerable
-  static Identifier: string = undefined;
+  static Metadata: Reflection = undefined;
+  @NotEnumerable
+  declare __class: ModelDefinition<this> & { Store: typeof CoreModel.Store };
+
   /**
    * Store helper for this model
    */
-  protected static Store: StoreHelper & { name: string } = undefined;
+  static Store: StoreHelper<CoreModel> & { name: string } = undefined;
 
   /**
    * Types name
@@ -220,6 +227,45 @@ export class CoreModel extends AbstractCoreModel {
   static getIdentifier(full?: boolean) {
     return useModelId(this.constructor, full);
   }
+
+  /**
+   * Get schema for this model
+   * @returns
+   */
+  static getSchema() {
+    return this.Metadata.Schema;
+  }
+
+  /**
+   * Get relations
+   * @returns
+   */
+  static getRelations() {
+    return this.Metadata.Relations;
+  }
+
+  /**
+   * Get hierarchy
+   * @returns
+   */
+  static getHierarchy() {
+    const children = {};
+    const recursiveChildren = (data, model) => {
+      data[model.Metadata.Identifier] = {};
+      model.Metadata.Subclasses?.forEach(m => recursiveChildren(data[model.Metadata.Identifier], m));
+    };
+    this.Metadata.Subclasses?.forEach(m => {
+      children[m.Metadata.Identifier] = {};
+      recursiveChildren(children[m.Metadata.Identifier], m);
+    });
+    return {
+      ancestors: this.Metadata.Ancestors?.map(m => m.Metadata.Identifier),
+      children
+    };
+  }
+
+  // Model eventing
+
   /**
    * Emit an event for this class and wait for all listeners to finish
    * @param this
@@ -253,19 +299,6 @@ export class CoreModel extends AbstractCoreModel {
     await Promise.all(p);
   }
 
-  /**
-   *
-   * @param event
-   * @param listener
-   * @returns
-   */
-  static addListener<T extends CoreModel, Key extends keyof T["Events"]>(
-    event: Key,
-    listener: (event: T["Events"][Key]) => void
-  ) {
-    return this.on(<any>event, listener);
-  }
-
   static emitter(method, ...args) {
     if (!Emitters.has(this)) {
       Emitters.set(this, new EventEmitter());
@@ -274,8 +307,8 @@ export class CoreModel extends AbstractCoreModel {
     return Emitters.get(this)[method](...args);
   }
 
-  static removeListener(...args) {
-    return this.emitter("removeListener", ...args);
+  static removeAllListeners(...args) {
+    return this.emitter("removeAllListeners", ...args);
   }
 
   static off(...args) {
@@ -284,46 +317,6 @@ export class CoreModel extends AbstractCoreModel {
 
   static once(...args) {
     return this.emitter("once", ...args);
-  }
-
-  static removeAllListeners(...args) {
-    return this.emitter("removeAllListeners", ...args);
-  }
-
-  static store() {
-    return useModel(this.Store.name);
-  }
-
-  static setMaxListeners(...args) {
-    return this.emitter("setMaxListeners", ...args);
-  }
-
-  static getMaxListeners(...args) {
-    return this.emitter("getMaxListeners", ...args);
-  }
-
-  static listeners(...args) {
-    return this.emitter("listeners", ...args);
-  }
-
-  static rawListeners(...args) {
-    return this.emitter("rawListeners", ...args);
-  }
-
-  static listenerCount(...args) {
-    return this.emitter("listenerCount", ...args);
-  }
-
-  static prependListener(...args) {
-    return this.emitter("prependListener", ...args);
-  }
-
-  static prependOnceListener(...args) {
-    return this.emitter("prependOnceListener", ...args);
-  }
-
-  static eventNames(...args) {
-    return this.emitter("eventNames", ...args);
   }
 
   /**
@@ -344,6 +337,8 @@ export class CoreModel extends AbstractCoreModel {
     return false;
   }
 
+  // End of model eventing
+
   /**
    * Complete the uid with prefix if any
    *
@@ -362,7 +357,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static ref<T extends CoreModel>(this: Constructor<T>, uid: string): ModelRefWithCreate<T> {
-    return new ModelRefWithCreate<T>(uid, <CoreModelFullDefinition<T>>this);
+    return new ModelRefWithCreate<T>(uid, <ModelDefinition<T>>this);
   }
 
   /**
@@ -370,8 +365,12 @@ export class CoreModel extends AbstractCoreModel {
    *
    * @param defaultValue if defined create an object with this value if needed
    */
-  static async get<T extends CoreModel>(this: CoreModelDefinition<T>, uid: string, defaultValue?: any): Promise<T> {
-    return <T>await (<CoreModelFullDefinition<T>>this).Store.get(uid) || (await this.create(defaultValue, false));
+  static async get<T extends CoreModel>(
+    this: ModelDefinition<T> & { Store: typeof CoreModel.Store },
+    uid: string,
+    defaultValue?: any
+  ): Promise<T> {
+    return <T>await this.Store.get(uid) || (await this.create(defaultValue, false));
   }
 
   static resolve(): void {}
@@ -652,7 +651,10 @@ export class CoreModel extends AbstractCoreModel {
    * Create an object
    * @returns
    */
-  static async factory<T extends CoreModel>(this: CoreModelDefinition<T>, object: RawModel<T>): Promise<Proxied<T>> {
+  static async factory<T extends AbstractCoreModel>(
+    this: ModelDefinition<T>,
+    object: RawModel<T>
+  ): Promise<Proxied<T>> {
     return this.create(object, false);
   }
 
@@ -667,6 +669,20 @@ export class CoreModel extends AbstractCoreModel {
   }
 
   /**
+   * Return the store for this model
+   */
+  store<T = any>(): T {
+    return <T>this.__class.Store;
+  }
+  /**
+   * Return the store for this model
+   * @returns
+   */
+  static store<T = any>(): T {
+    return <T>this.Store;
+  }
+
+  /**
    * Get an object from the full uuid
    * @param core
    * @param fullUuid
@@ -675,7 +691,7 @@ export class CoreModel extends AbstractCoreModel {
    */
   static async fromFullUuid<T extends CoreModel = CoreModel>(fullUuid: string, partials?: any): Promise<T> {
     const [model, uuid] = fullUuid.split("$");
-    const modelObject = <CoreModelFullDefinition<CoreModel>>useModel(model.replace("-", "/"));
+    const modelObject = <ModelDefinition<CoreModel>>useModel(model.replace("-", "/"));
     if (partials) {
       return <T>new modelObject().load(partials, true).setUuid(uuid);
     }
@@ -774,9 +790,9 @@ export class CoreModel extends AbstractCoreModel {
    * to add all the helpers
    */
   protected handleRelations() {
-    const rel = useApplication()?.getRelations(<any>this) || {};
+    const rel = this.__class.Metadata.Relations;
     for (const link of rel.links || []) {
-      const model = <CoreModelFullDefinition<AbstractCoreModel>>useModel(link.model);
+      const model = <ModelDefinition<AbstractCoreModel>>useModel(link.model);
       if (link.type === "LINK") {
         this[link.attribute] ??= "";
         if (typeof this[link.attribute] === "string") {
@@ -803,7 +819,7 @@ export class CoreModel extends AbstractCoreModel {
       if (typeof this[rel.parent.attribute] === "string") {
         this[rel.parent.attribute] = new ModelRef(
           this[rel.parent.attribute],
-          <CoreModelFullDefinition<CoreModel>>useModel(rel.parent.model),
+          <ModelDefinition<CoreModel>>useModel(rel.parent.model),
           this
         );
       }
@@ -1114,7 +1130,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static registerOperations<T extends CoreModel>(
-    this: CoreModelDefinition<T>,
+    this: ModelDefinition<T>,
     registerOperation: (id: string, info: OperationDefinitionInfo) => void
   ) {
     const actions = this.getActions();
@@ -1148,7 +1164,7 @@ export class CoreModel extends AbstractCoreModel {
    */
   protected async operationAction(context: OperationContext) {
     const { model, action } = context.getExtension<{
-      model: CoreModelDefinition<CoreModel>;
+      model: ModelDefinition<CoreModel>;
       action: ModelAction & { name: string };
     }>("operationContext");
     if (!action.global) {

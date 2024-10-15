@@ -1,11 +1,11 @@
 import * as assert from "assert";
-import { suite, test } from "../test/core";
-import { WebdaTest } from "../test/test";
+import { suite, test } from "@webda/test";
 import { UnpackedApplication } from "./unpackedapplication";
+import { WebdaApplicationTest } from "../test/test";
 import { resolve } from "path";
 
 @suite
-class UnpackedApplicationTest extends WebdaTest {
+class UnpackedApplicationTest extends WebdaApplicationTest {
   @test
   cachedModule() {
     new UnpackedApplication("./test/config-cached.json");

@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { JSONUtils } from "../utils/serializers";
+import { JSONUtils } from "@webda/utils";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
 import * as WebdaQL from "@webda/ql";
 

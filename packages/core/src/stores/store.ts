@@ -1,14 +1,14 @@
 import { Counter, Histogram } from "../metrics/metrics";
 import type { ConfigurationProvider } from "../services/configuration";
 import * as WebdaError from "../errors/errors";
-import { Throttler } from "../utils/throttler";
+import { Throttler } from "@webda/utils";
 
 import type { CoreModel } from "../models/coremodel";
-import type { RawModel, CoreModelDefinition } from "../application/iapplication";
+import type { RawModel, ModelDefinition } from "../internal/iapplication";
+import { ServiceParameters } from "../interfaces";
 import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
 import { runAsSystem, useContext } from "../contexts/execution";
-import { ServiceParameters } from "../services/iservices";
 import { MappingService } from "./istore";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { useRegistry } from "../models/registry";
@@ -261,7 +261,8 @@ export class StoreParameters extends ServiceParameters {
   noCache?: boolean;
 
   constructor(params: any, service: Service<any>) {
-    super(params);
+    super();
+    Object.assign(this, params);
     this.model ??= "Webda/CoreModel";
     this.strict ??= false;
     this.defaultModel ??= true;
@@ -316,7 +317,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   /**
    * Contains the current model
    */
-  _model: CoreModelDefinition;
+  _model: ModelDefinition;
   /**
    * Store teh manager hierarchy with their depth
    */
@@ -367,7 +368,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       this._cacheStore.initMetrics();
       this.cacheStorePatchException();
     }
-    const recursive = (tree: CoreModelDefinition[], depth) => {
+    const recursive = (tree: ModelDefinition[], depth) => {
       for (const model of tree) {
         this._modelsHierarchy[model.Metadata.Identifier] ??= depth;
         this._modelsHierarchy[model.Metadata.Identifier] = Math.min(
@@ -445,7 +446,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * Return Store current model
    * @returns
    */
-  getModel(): CoreModelDefinition {
+  getModel(): ModelDefinition {
     return this._model;
   }
 
@@ -455,7 +456,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @return distance from the managed class -1 means not managed, 0 manage exactly this model, >0 manage an ancestor model
    *
    */
-  handleModel(model: CoreModelDefinition | CoreModel): number {
+  handleModel(model: ModelDefinition | CoreModel): number {
     const name = useModelId(model, true);
     return this._modelsHierarchy[name] ?? -1;
   }
@@ -495,7 +496,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * OVerwrite the model
    * Used mainly in test
    */
-  setModel(model: CoreModelDefinition) {
+  setModel(model: ModelDefinition) {
     this._model = model;
     this._cacheStore?.setModel(model);
     this.parameters.strict = false;
@@ -792,9 +793,10 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * Set a core model definition
    * @param model
    */
-  protected setCoreModelDefinitionHelper(model: CoreModelDefinition) {
+  protected setModelDefinitionHelper(model: ModelDefinition) {
     // We are cheating and bypassing the protected method
     model["Store"] = {
+      name: this.getName(),
       get: this._get.bind(this),
       create: this._create.bind(this),
       update: this._update.bind(this),
@@ -1125,7 +1127,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     this.parameters.strict = false;
     await this.migration("typesLongId", async item => {
       if (item.__type !== undefined && !item.__type.includes("/")) {
-        const model = app.getModelDefinition(item.__type);
+        const model = app.getModel(item.__type);
         const name = app.getModelId(model, true);
         if (name !== item.__type) {
           this.log("INFO", "Migrating type " + item.__type + " to " + name);

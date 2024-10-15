@@ -1,11 +1,11 @@
-import { ServiceParameters } from "../services/iservices";
+import { ServiceParameters } from "../interfaces";
 import {
   CancelableLoopPromise,
   CancelablePromise,
   WaitDelayer,
   WaitDelayerDefinition,
   WaitDelayerFactories
-} from "../utils/waiter";
+} from "@webda/utils";
 import { PubSubService } from "./pubsubservice";
 
 /**
@@ -48,9 +48,9 @@ export class QueueParameters extends ServiceParameters {
    * @inheritdoc
    */
   constructor(params: any) {
-    super(params);
-    this.workerParallelism ??= true;
-    this.maxConsumers ??= 10;
+    super();
+    this.workerParallelism = params.workerParallelism ?? true;
+    this.maxConsumers = params.maxConsumers ?? 10;
   }
 }
 

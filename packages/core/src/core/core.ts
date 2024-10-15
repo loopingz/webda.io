@@ -4,33 +4,28 @@ import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
 import { Application } from "../application/application";
-import { Configuration, CoreModelDefinition } from "../application/iapplication";
+import { Configuration, ModelDefinition, AbstractCoreModel } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
 import { CoreModel } from "../models/coremodel";
-import { AbstractCoreModel } from "../models/imodel";
 import type { Constructor } from "@webda/tsc-esm";
-import { Router } from "../rest/router";
-import { CryptoService, useCrypto } from "../services/cryptoservice";
+import { Router, RouterParameters } from "../rest/router";
+import { useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
 import { Logger } from "../loggers/ilogger";
 import type { ConfigurationService } from "../services/configuration";
-import { setLogContext } from "../loggers/hooks";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
-import { getUuid } from "../utils/uuid";
-import { ICore, IService, OperationDefinitionInfo, ServiceConstructor } from "./icore";
+import { getUuid } from "@webda/utils";
+import { ICore, AbstractService, OperationDefinitionInfo, ServiceConstructor } from "./icore";
 import { emitCoreEvent } from "../events/events";
-import { OriginFilter, WebsiteOriginFilter } from "../rest/originfilter";
 import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
-import { Modda } from "../application/application";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
-import { getMachineId } from "./hooks";
 import { RegistryModel, useRegistry } from "../models/registry";
-
+import { Modda } from "../internal/iapplication";
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
@@ -42,7 +37,7 @@ export class Core implements ICore {
    * Webda Services
    * @hidden
    */
-  protected services: { [key: string]: IService } = {};
+  protected services: { [key: string]: AbstractService } = {};
   /**
    * Application that generates this Core
    */
@@ -50,7 +45,7 @@ export class Core implements ICore {
   /**
    * Router that will route http request in
    */
-  protected router: Router = new Router("RESTService", {});
+  protected router: Router = new Router("RESTService", new RouterParameters().load({}));
   /**
    * If Core is already initiated
    */
@@ -114,7 +109,7 @@ export class Core implements ICore {
   /**
    * Cache for model to store resolution
    */
-  private _modelStoresCache: Map<CoreModelDefinition, Store> = new Map<CoreModelDefinition, Store>();
+  private _modelStoresCache: Map<ModelDefinition, Store> = new Map<ModelDefinition, Store>();
   /**
    * Cache for model to store resolution
    */
@@ -158,7 +153,6 @@ export class Core implements ICore {
     });
     this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
-    setLogContext(this.logger, this.workerOutput);
     this.application = application || new UnpackedApplication(".");
     this._initTime = new Date().getTime();
     // Schema validations
@@ -189,11 +183,11 @@ export class Core implements ICore {
    * @returns
    */
   getModelStore<T extends AbstractCoreModel>(modelOrConstructor: Constructor<T> | T | string): Store {
-    let model: CoreModelDefinition;
+    let model: ModelDefinition;
     if (typeof modelOrConstructor === "string") {
       model = useModel(modelOrConstructor);
     } else {
-      model = <CoreModelDefinition>(
+      model = <ModelDefinition>(
         (<any>(modelOrConstructor instanceof CoreModel ? modelOrConstructor.__class : modelOrConstructor))
       );
     }
@@ -206,7 +200,8 @@ export class Core implements ICore {
     const setCache = store => {
       this._modelStoresCache.set(model, store);
     };
-    const stores: { [key: string]: Store } = useApplication().getImplementations(<any>Store);
+    // @ts-ignore
+    const stores: { [key: string]: Store } = useApplication().getImplementations(Store);
     let actualScore: number;
 
     let actualStore: Store = this.getService(useParameters().defaultStore || "Registry");
@@ -232,10 +227,10 @@ export class Core implements ICore {
    * @returns
    */
   getBinaryStore<T extends AbstractCoreModel>(
-    modelOrConstructor: CoreModelDefinition<T> | T | string,
+    modelOrConstructor: ModelDefinition<T> | T | string,
     attribute: string
-  ): BinaryService {
-    const binaries: { [key: string]: BinaryService } = useApplication().getImplementations(<any>BinaryService);
+  ): AbstractService {
+    const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);
     const model = typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor, true);
     let actualScore: number = -1;
     let actualService: BinaryService;
@@ -321,12 +316,12 @@ export class Core implements ICore {
   protected async initService(service: string) {
     try {
       this.log("TRACE", "Initializing service", service);
-      this.services[service]._initTime = Date.now();
+      (<any>this.services[service])._initTime = Date.now();
       await this.services[service].init();
     } catch (err) {
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
-      this.services[service]._initException = err.message;
+      (<any>this.services[service])._initException = err.message;
       this.failedServices[service] = { _initException: err };
     }
   }
@@ -394,7 +389,11 @@ export class Core implements ICore {
 
       await this.initService("CryptoService");
 
-      if (useCrypto()._initException || useRouter()._initException || this.services["Registry"]._initException) {
+      if (
+        useCrypto().getState() === "running" ||
+        useRouter().getState() === "running" ||
+        (<any>this.services["Registry"]).getState() === "running"
+      ) {
         throw new Error("Cannot init Webda core services (Router, Registry, CryptoService)");
       }
       // Init services
@@ -403,8 +402,8 @@ export class Core implements ICore {
       for (service in this.services) {
         if (
           this.services[service].init !== undefined &&
-          !this.services[service]._createException &&
-          !this.services[service]._initTime
+          !(<any>this.services[service])._createException &&
+          !(<any>this.services[service])._initTime
         ) {
           inits.push(this.initService(service));
         }
@@ -442,7 +441,7 @@ export class Core implements ICore {
    *
    * @param {String} name The service name to retrieve
    */
-  getService<T extends IService>(name: string = ""): T {
+  getService<T = AbstractService>(name: string = ""): T {
     return <T>this.services[name];
   }
 
@@ -450,7 +449,7 @@ export class Core implements ICore {
    * Return a map of defined services
    * @returns {{}}
    */
-  getServices(): { [key: string]: IService } {
+  getServices(): { [key: string]: AbstractService } {
     return this.services;
   }
   /**
@@ -468,7 +467,7 @@ export class Core implements ICore {
     try {
       this.log("TRACE", "Re-Initializing service", service);
       const serviceBean = this.services[service];
-      await serviceBean.reinit(useParameters(serviceBean.getName()));
+      await serviceBean.parameters.load(useParameters(serviceBean.getName()));
     } catch (err) {
       this.log("ERROR", "Re-Init service " + service + " failed", err);
       this.log("TRACE", err.stack);
@@ -516,7 +515,7 @@ export class Core implements ICore {
    */
   protected createService(service: string) {
     const params = useParameters(service);
-    let serviceConstructor: ServiceConstructor<IService> = undefined;
+    let serviceConstructor: ServiceConstructor<AbstractService> = undefined;
     try {
       serviceConstructor = this.application.getModda(params.type);
     } catch (ex) {
@@ -570,7 +569,7 @@ export class Core implements ICore {
       // Force type to Bean
       services[name].type = `Beans/${name}`;
       // Register the type
-      this.application.addService(`Beans/${name}`, beans[i]);
+      this.application.addModda(`Beans/${name}`, beans[i]);
     }
 
     // Construct services

@@ -1,7 +1,8 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Core, HttpContext, RoleModel, Session, SimpleUser, useCore, WebContext, WebdaError } from "../index";
-import { TestApplication } from "../test";
+import { WebdaApplicationTest } from "../test/test";
+import { TestApplication } from "../test/objects";
 
 class RolePolicyModel extends RoleModel {
   getRolesMap() {
@@ -44,8 +45,8 @@ class RolePolicyTest {
     await app.load();
     this._webda = new Core(app);
     await this._webda.init();
-    this._ctx = await useCore().newContext({ httpContext: new HttpContext("test.webda.io", "GET", "/") });
-    this._session = await this._ctx.newSession();
+    this._ctx = <WebContext>await useCore().newContext({ httpContext: new HttpContext("test.webda.io", "GET", "/") });
+    this._session = await this._ctx.getSession();
     this._session.login("none", "none");
     // @ts-ignore
     this._ctx.getCurrentUser = async () => {

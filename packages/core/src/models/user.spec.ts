@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { User } from "./user";
 import { SimpleUser } from "./simpleuser";
@@ -57,9 +57,9 @@ class UserTest {
       email: undefined
     });
     // @ts-ignore
-    user.load({ _idents: [{}, { email: "testIdent@test.com" }] }, true);
+    user["load"]({ _idents: [{}, { email: "testIdent@test.com" }] }, true);
     assert.strictEqual(user.getEmail(), "testIdent@test.com");
-    user.load({ email: "test@test.com", displayName: "Top" });
+    user["load"]({ email: "test@test.com", displayName: "Top" });
     assert.strictEqual(user.getEmail(), "test@test.com");
     assert.strictEqual(user.getDisplayName(), "Top");
     assert.deepStrictEqual(user.toPublicEntry(), {

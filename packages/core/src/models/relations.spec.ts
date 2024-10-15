@@ -4,13 +4,12 @@
  * It use the Contact model as a reference
  */
 
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Binaries, Binary, BinaryService, MemoryBinaryFile } from "../services/binary";
 import { ModelMapper } from "../stores/modelmapper";
-import { WebdaTest } from "../test";
-import { HttpContext } from "../utils/httpcontext";
-import { CoreModel, CoreModelEvents, Emitters } from "./coremodel";
+import { WebdaTest } from "../test/test";
+import { CoreModel, Emitters } from "./coremodel";
 import {
   ModelLink,
   ModelLinksArray,
@@ -22,7 +21,9 @@ import {
 } from "./relations";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import { CoreEvents } from "../core";
+import { CoreModelEvents } from "./imodel";
+import { useCore } from "../core/hooks";
+import { useModel } from "../application/hook";
 
 interface StudentInterface extends CoreModel {
   email: string;
@@ -69,7 +70,8 @@ interface HardwareInterface extends CoreModel {
 }
 
 type ProjectEvents = CoreModelEvents & { Test: any };
-interface UserInterface extends CoreModel<ProjectEvents> {
+interface UserInterface extends CoreModel {
+  Events: ProjectEvents;
   contacts: ModelsMapped<ContactInterface, "owner", "firstName" | "lastName" | "age">;
 }
 
@@ -86,9 +88,9 @@ interface ContactInterface extends CoreModel {
 }
 @suite
 export class ModelDrivenTest extends WebdaTest {
-  after() {
+  afterEach() {
     // Ensure we remove all listeners
-    Object.values(this.webda.getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
+    Object.values(useCore().getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
   }
 
   getTestConfiguration() {
@@ -98,11 +100,11 @@ export class ModelDrivenTest extends WebdaTest {
   @test
   async test() {
     // Init mapper
-    const mapper = new ModelMapper(this.webda, "test", {}).resolve();
+    const mapper = new ModelMapper("test", {}).resolve();
     await mapper.init();
 
-    const Contact = this.webda.getModel<ContactInterface>("Contact");
-    const User = this.webda.getModel<UserInterface>("User");
+    const Contact = useModel<ContactInterface>("Contact");
+    const User = useModel<UserInterface>("User");
 
     // Create a User
     const user = await User.ref("user1").getOrCreate(<any>{ uuid: "user1" }, true);

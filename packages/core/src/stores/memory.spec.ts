@@ -1,8 +1,20 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
-import { CoreModel, Ident, MemoryStore, runAsSystem, runWithContext, Store, User } from "../index";
+import {
+  Application,
+  CoreModel,
+  ModelDefinition,
+  Ident,
+  MemoryStore,
+  runAsSystem,
+  runWithContext,
+  Store,
+  useApplication,
+  useModel,
+  User
+} from "../index";
 import { FileUtils } from "../utils/serializers";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
@@ -143,11 +155,11 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
 class AdditionalMemoryTest extends WebdaTest {
   @test
   async multiModelQuery() {
-    const Teacher = this.webda.getModel<CoreModel & { name: string }>("Teacher");
-    const Project = this.webda.getModel<CoreModel & { name: string }>("Project");
-    const SubProject = this.webda.getModel<CoreModel & { name: string }>("SubProject");
-    const AnotherSubProject = this.webda.getModel<CoreModel & { name: string }>("AnotherSubProject");
-    const SubSubProject = this.webda.getModel<CoreModel & { name: string }>("SubSubProject");
+    const Teacher = useModel<ModelDefinition & { name: string }>("Teacher");
+    const Project = useModel<ModelDefinition & { name: string }>("Project");
+    const SubProject = useModel<ModelDefinition & { name: string }>("SubProject");
+    const AnotherSubProject = useModel<ModelDefinition & { name: string }>("AnotherSubProject");
+    const SubSubProject = useModel<ModelDefinition & { name: string }>("SubSubProject");
 
     await Promise.all(
       [Teacher, Project, SubProject, AnotherSubProject, SubSubProject].map(model => {
@@ -170,28 +182,28 @@ class AdditionalMemoryTest extends WebdaTest {
 
   @test
   async additionalModels() {
-    const subProject = this.webda.getModel("WebdaDemo/SubProject");
-    const project = this.webda.getModel("WebdaDemo/Project");
-    let store = new MemoryStore(this.webda, "additionalModel", { model: "WebdaDemo/SubProject" }).resolve();
+    const subProject = useModel("WebdaDemo/SubProject");
+    const project = useModel("WebdaDemo/Project");
+    let store = new MemoryStore("additionalModel", { model: "WebdaDemo/SubProject" }).resolve();
     assert.strictEqual(store.handleModel(project), -1);
     assert.strictEqual(store.handleModel(subProject), 0);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
-    store = new MemoryStore(this.webda, "additionalModel", {
+    assert.strictEqual(store.handleModel(useModel("WebdaDemo/AnotherSubProject")), -1);
+    store = new MemoryStore("additionalModel", {
       model: "WebdaDemo/SubProject",
       additionalModels: ["WebdaDemo/Project"]
     }).resolve();
     assert.strictEqual(store.handleModel(project), 0);
     assert.strictEqual(store.handleModel(subProject), 0);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), 1);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/SubSubProject")), 2);
-    store = new MemoryStore(this.webda, "additionalModel", {
+    assert.strictEqual(store.handleModel(useModel("WebdaDemo/AnotherSubProject")), 1);
+    assert.strictEqual(store.handleModel(useModel("WebdaDemo/SubSubProject")), 2);
+    store = new MemoryStore("additionalModel", {
       model: "WebdaDemo/SubProject",
       additionalModels: ["WebdaDemo/Project"],
       strict: true
     }).resolve();
     assert.strictEqual(store.handleModel(project), -1);
     assert.strictEqual(store.handleModel(subProject), 0);
-    assert.strictEqual(store.handleModel(this.webda.getModel("WebdaDemo/AnotherSubProject")), -1);
+    assert.strictEqual(store.handleModel(useModel("WebdaDemo/AnotherSubProject")), -1);
   }
 
   @test
@@ -216,8 +228,8 @@ class AdditionalMemoryTest extends WebdaTest {
 
   @test
   async migration() {
-    this.webda.getApplication().addModel("Webda/User", User);
-    this.webda.getApplication().addModel("WebdaDemo/User", DemoUser);
+    (<Application>useApplication()).addModel("Webda/User", User);
+    (<Application>useApplication()).addModel("WebdaDemo/User", DemoUser);
     const usersStore: MemoryStore<any> = await this.addService(MemoryStore, { model: "Webda/User" });
     for (let i = 0; i < 1200; i++) {
       await usersStore.create(`id_${i}`, { id: i });

@@ -10,6 +10,9 @@
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",
   "main": "lib/index.js",
+  "bin": {
+    "webdac": "./lib/shell.js"
+  },
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc-esm",
@@ -19,6 +22,7 @@
     "format:fix": "prettier --write src/**/*",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+    "schema": "ts-json-schema-generator --path src/definition.ts -f ./tsconfig.json --type 'WebdaModule' -o ./webda.module.schema.json",
     "pretest": "yarn build",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,11 +32,15 @@
     "@types/json-schema": "^7.0.8",
     "@webda/workout": "^4.0.0-beta.1",
     "accept-language": "^3.0.18",
+    "ts-json-schema-generator": "^2.3.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@types/node": "20.0.0",
     "@webda/tsc-esm": "^4.0.0-beta.1",
+    "eslint": "^9.12.0",
+    "prettier": "^3.3.3",
+    "skott": "^0.35.3",
     "vitest": "^2.1.2"
   },
   "files": [
@@ -41,12 +49,6 @@
   "homepage": "https://webda.io",
   "publishConfig": {
     "access": "public"
-  },
-  "nx": {
-    "implicitDependencies": [
-      "@webda/tsc-esm",
-      "@webda/workout"
-    ]
   },
   "type": "module",
   "engines": {

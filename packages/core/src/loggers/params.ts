@@ -1,5 +1,6 @@
 import { WorkerLogLevel } from "@webda/workout";
-import { ServiceParameters } from "../services/iservices";
+import { ServiceParameters } from "../interfaces";
+import { useLog } from "./hooks";
 
 export class LoggerServiceParameters extends ServiceParameters {
   /**
@@ -11,9 +12,13 @@ export class LoggerServiceParameters extends ServiceParameters {
    * @inheritdoc
    */
   constructor(params: any) {
-    super(params);
-    // Use the environment variable or fallback to INFO
-    this.logLevel ??= <any>process.env["LOG_LEVEL"] || "INFO";
+    super();
+    this.logLevel = (params.logLevel || process.env["LOG_LEVEL"] || "INFO").toUpperCase() as WorkerLogLevel;
+    const levels: WorkerLogLevel[] = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"];
+    if (!levels.includes(this.logLevel)) {
+      useLog("WARN", "Invalid log level", this.logLevel, "fallback to INFO");
+      this.logLevel = "INFO";
+    }
   }
 }
 

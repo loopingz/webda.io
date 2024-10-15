@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { register } from "prom-client";
 import { CancelablePromise, Queue } from "../index";
@@ -16,8 +16,8 @@ class Title {
 class MemoryQueueTest extends QueueTest {
   queue: MemoryQueue;
 
-  async before() {
-    await super.before();
+  async beforeEach() {
+    await super.beforeEach();
     this.queue = await this.addService(MemoryQueue, {
       expire: 1,
       maxConsumers: 1
@@ -97,7 +97,7 @@ class MemoryQueueTest extends QueueTest {
     MemoryQueueTest.failedIterations = [];
     await new Promise(resolve => {
       MemoryQueueTest.resolve = resolve;
-      const queue: Queue = new MemoryQueue(this.webda, "q", {
+      const queue: Queue = new MemoryQueue("q", {
         workerParallelism: false
       });
       queue.initMetrics();
@@ -134,7 +134,7 @@ class MemoryQueueTest extends QueueTest {
     let op = 0;
     const run = async (parallel: boolean) => {
       await new Promise(resolve => {
-        const queue: Queue = new MemoryQueue(this.webda, "q", {
+        const queue: Queue = new MemoryQueue("q", {
           workerParallelism: parallel
         });
         queue.initMetrics();

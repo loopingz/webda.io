@@ -1,4 +1,4 @@
-import { suite, test } from "../test/core";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Readable } from "stream";
 import * as WebdaQL from "@webda/ql";
@@ -8,7 +8,7 @@ import { HttpContext } from "./httpcontext";
 import { Session } from "../session/session";
 import { UnpackedConfiguration } from "../application/iapplication";
 import { SimpleOperationContext } from "./simplecontext";
-import { WebdaApplicationTest, WebdaTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/test";
 
 export class WebContextMock extends WebContext {
   constructor(httpContext: HttpContext, stream?: any) {
@@ -58,11 +58,10 @@ class ContextAppTest extends WebdaApplicationTest {
   @test
   async cov() {
     // Get the last lines
-    this.ctx.getRoute();
     this.ctx = new WebContextMock(new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setParameters({ id: "plop" });
     assert.strictEqual(this.ctx.getParameters().id, "plop");
-    assert.strictEqual(this.ctx.getHttpContext().getPortNumber(), 80);
+    assert.strictEqual(this.ctx.getHttpContext()!.getPortNumber(), 80);
     this.ctx.setExtension("mine", "plop");
     assert.strictEqual(this.ctx.getExtension("mine"), "plop");
     // @ts-ignore
@@ -74,15 +73,13 @@ class ContextAppTest extends WebdaApplicationTest {
     this.ctx.addAsyncRequest((async () => {})());
     assert.strictEqual(this.ctx._promises.length, 1);
 
-    assert.rejects(() => this.ctx.execute(), /Not Implemented/);
-
     // @ts-ignore
     this.ctx._ended = true;
     await this.ctx.end();
 
-    this.ctx.getHttpContext().setBody(undefined);
+    this.ctx.getHttpContext()!.setBody(undefined);
     assert.strictEqual(await this.ctx.getRequestBody(), undefined);
-    this.ctx.getHttpContext().setBody("");
+    this.ctx.getHttpContext()!.setBody("");
     assert.strictEqual(await this.ctx.getRequestBody(), undefined);
 
     // @ts-ignore

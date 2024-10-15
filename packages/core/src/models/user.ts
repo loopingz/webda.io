@@ -1,3 +1,4 @@
+import { NotEnumerable } from "@webda/tsc-esm";
 import { Context } from "../contexts/icontext";
 import { CoreModel } from "./coremodel";
 import { CoreModelEvents } from "./imodel";
@@ -12,6 +13,7 @@ export type UserEvents<T> = CoreModelEvents<T> & {
  * @WebdaModel
  */
 export class User extends CoreModel {
+  @NotEnumerable
   declare Events: UserEvents<this>;
   /**
    * Password of the user if defined

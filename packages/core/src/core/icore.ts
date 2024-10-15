@@ -1,9 +1,8 @@
 import { QueryValidator } from "@webda/ql";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
-import { AbstractCoreModel } from "../models/imodel";
 import { Constructor } from "@webda/tsc-esm";
-import { IService, CoreModelDefinition } from "../application/iapplication";
-export type { IService };
+import { AbstractService, ModelDefinition, AbstractCoreModel } from "../internal/iapplication";
+export { AbstractService };
 /**
  * Define an operation within webda app
  */
@@ -94,17 +93,17 @@ export interface ICore {
    * Return if Webda is in debug mode
    */
   isDebug(): boolean;
-  getServices(): { [key: string]: IService };
+  getServices(): { [key: string]: AbstractService };
   reinit(updates: any): void | Promise<void>;
-  getBinaryStore(model: AbstractCoreModel | CoreModelDefinition | string, attribute: string): IService;
+  getBinaryStore(model: AbstractCoreModel | ModelDefinition | string, attribute: string): AbstractService;
   getLocales(): string[];
   /**
    * Get the store assigned to this model
    * @param model
    * @returns
    */
-  getModelStore<T extends AbstractCoreModel>(item: Constructor<T> | T | string): IService;
-  getService(name: string): IService;
+  getModelStore<T extends AbstractCoreModel>(item: Constructor<T> | T | string): AbstractService;
+  getService(name: string): AbstractService;
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);
 }
@@ -112,15 +111,15 @@ export interface ICore {
 /**
  * Helper to define a ServiceContrustor
  */
-export interface ServiceConstructor<T extends IService> {
+export interface ServiceConstructor<T extends AbstractService> {
   new (name: string, params: any): T;
 }
 
 /**
  * Represent a Binary Store
  */
-export interface IBinaryStore extends IService {}
+export interface IBinaryStore extends AbstractService {}
 /**
  * Represent a Store
  */
-export interface IStore extends IService {}
+export interface IStore extends AbstractService {}

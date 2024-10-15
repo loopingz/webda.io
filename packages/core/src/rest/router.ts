@@ -1,7 +1,7 @@
 import uriTemplates from "uri-templates";
 import { HttpMethodType } from "../contexts/httpcontext";
 import type { IRouter, RequestFilter, RouteInfo } from "./irest";
-import type { AbstractCoreModel } from "../models/imodel";
+import { AbstractService, type AbstractCoreModel } from "../internal/iapplication";
 import { useApplication, useModelId, useSchema } from "../application/hook";
 import { useLog } from "../loggers/hooks";
 import type { OpenAPIV3 } from "openapi-types";
@@ -10,8 +10,17 @@ import { useService } from "../core/hooks";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { IWebContext } from "../contexts/icontext";
-import { emitCoreEvent } from "../events/events";
 import { Service } from "../services/service";
+import { WebContext } from "../contexts/webcontext";
+import { ServiceParameters } from "../interfaces";
+import { DeepPartial } from "@webda/tsc-esm";
+
+export class RouterParameters extends ServiceParameters {
+  /**
+   * Display a WARNING if a route is overriden
+   */
+  overrideWarning?: boolean;
+}
 
 /**
  * Manage Route resolution
@@ -19,12 +28,23 @@ import { Service } from "../services/service";
  *
  * @WebdaModda
  */
-export class Router extends Service implements IRouter {
+export class Router<T extends RouterParameters = RouterParameters> extends Service<T> implements IRouter {
+  /**
+   * Routes
+   */
   protected routes: Map<string, RouteInfo[]> = new Map();
-  protected initiated: boolean = false;
+  /**
+   *
+   */
   protected pathMap: { url: string; config: RouteInfo }[];
   protected models: Map<string, string> = new Map();
+  /**
+   * Request filters to apply
+   */
   private _requestFilters: RequestFilter[] = [];
+  /**
+   * Request filters to apply for CORS
+   */
   private _requestCORSFilters: RequestFilter[] = [];
 
   /**
@@ -96,21 +116,23 @@ export class Router extends Service implements IRouter {
         return;
       }
       // Check and add warning if same method is used
-      const methods = this.routes[finalUrl].map((r: RouteInfo) => r.methods).flat();
-      info.methods.forEach(m => {
-        if (methods.indexOf(m) >= 0) {
-          if (!info.override) {
-            useLog("WARN", `${m} ${finalUrl} overlap with another defined route`);
+      if (this.parameters.overrideWarning) {
+        const methods = this.routes[finalUrl].map((r: RouteInfo) => r.methods).flat();
+        info.methods.forEach(m => {
+          if (methods.indexOf(m) >= 0) {
+            if (!info.override) {
+              useLog("WARN", `${m} ${finalUrl} overlap with another defined route`);
+            }
           }
-        }
-      });
+        });
+      }
       // Last added need to be overriding
       this.routes[finalUrl].unshift(info);
     } else {
       this.routes[finalUrl] = [info];
     }
 
-    if (this.initiated) {
+    if (this.state === "running") {
       this.remapRoutes();
     }
   }
@@ -163,7 +185,6 @@ export class Router extends Service implements IRouter {
       });
     }
     this.pathMap.sort(this.comparePath);
-    this.initiated = true;
   }
 
   protected comparePath(a, b): number {
@@ -258,8 +279,9 @@ export class Router extends Service implements IRouter {
   /**
    * Get the route from a method / url
    */
-  public getRouteFromUrl(ctx: IWebContext, method: HttpMethodType, url: string): any {
+  public getRouteFromUrl(ctx: IWebContext, method: HttpMethodType, url: string) {
     const finalUrl = this.getFinalUrl(url);
+    // Search for the route
     for (const i in this.pathMap) {
       const routeUrl = this.pathMap[i].url;
       const map = this.pathMap[i].config;
@@ -269,10 +291,12 @@ export class Router extends Service implements IRouter {
         continue;
       }
 
+      // If url is strictly equal
       if (routeUrl === finalUrl) {
         return map;
       }
 
+      // If the url
       if (map._uriTemplateParse === undefined) {
         continue;
       }
@@ -444,6 +468,10 @@ export class Router extends Service implements IRouter {
     }
   }
 
+  async execute(ctx: WebContext<any, any, any>) {
+    const info = this.getRouteFromUrl(ctx, ctx.getHttpContext().getMethod(), ctx.getHttpContext().getUrl());
+  }
+
   /**
    * Verify if a request can be done
    *
@@ -586,20 +614,5 @@ export class Router extends Service implements IRouter {
    */
   registerCORSFilter(filter: RequestFilter) {
     this._requestCORSFilters.push(filter);
-  }
-  /**
-   * Add to context information and executor based on the http context
-   */
-  public updateContextWithRoute(ctx: IWebContext): boolean {
-    const http = ctx.getHttpContext();
-    // Check mapping
-    const route = this.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
-    if (route === undefined) {
-      return false;
-    }
-    ctx.setRoute({ ...route });
-    //ctx.setExecutor(this.getService(route.executor));
-    emitCoreEvent("Webda.UpdateContextRoute", { context: ctx });
-    return true;
   }
 }

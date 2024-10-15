@@ -1,4 +1,4 @@
-import { suite, test } from "../test/core";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Service } from "./service";
 import { User } from "../models/user";

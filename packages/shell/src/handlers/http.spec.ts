@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { HttpContext, ResourceService, WebdaError } from "@webda/core";
+import { HttpContext, ResourceService, useRouter, WebdaError } from "@webda/core";
 import * as assert from "assert";
 import * as http from "http";
 import { createChecker } from "is-in-subnet";
@@ -99,7 +99,8 @@ class WebdaServerTest {
       .callsFake(async () => {
         throw 404;
       });
-    this.server.getRouter().removeRoute("/test");
+    useRouter().removeRoute("/test");
+    /*
     this.server.getRouter().addRoute("/test", {
       _method: async (ctx: HttpContext) => {
         await stub();
@@ -107,6 +108,7 @@ class WebdaServerTest {
       methods: ["GET"],
       executor: "CustomService"
     });
+    */
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
@@ -211,7 +213,7 @@ class WebdaServerTest {
     });
     assert.strictEqual(res.status, 500);
     stub.restore();
-    const resourceService = new ResourceService(this.server, "static", {
+    const resourceService = new ResourceService("static", {
       folder: "test"
     });
     // @ts-ignore

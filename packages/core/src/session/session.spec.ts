@@ -1,9 +1,10 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { MemoryStore } from "../stores/memory";
-import { WebdaSimpleTest } from "../test";
-import { OperationContext } from "./context";
-import { CookieSessionManager, UnknownSession } from "./session";
+import { WebdaSimpleTest } from "../test/test";
+import { OperationContext } from "../contexts/operationcontext";
+import { UnknownSession } from "./session";
+import { CookieSessionManager } from "./manager";
 
 @suite
 class SessionTest {

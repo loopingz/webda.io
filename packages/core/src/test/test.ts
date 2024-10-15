@@ -1,272 +1,84 @@
-import { ConsoleLogger, FileLogger, MemoryLogger, WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import { ConsoleLogger, FileLogger, MemoryLogger, useWorkerOutput, WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { register } from "prom-client";
 
 import { PrometheusService } from "../services/prometheus";
-import { FileUtils } from "../utils/serializers";
+import { FileUtils } from "@webda/utils";
 
 // Separation on purpose to keep application import separated
 import { Service } from "../services/service";
-import { ModelGraph, UnpackedConfiguration, CoreModelDefinition } from "../application/iapplication";
+import { UnpackedConfiguration, ModelDefinition } from "../internal/iapplication";
 import { Core } from "../core/core";
 import { DebugMailer } from "../services/debugmailer";
 import { MemoryStore } from "../stores/memory";
 import { RegistryModel } from "../models/registry";
 import { WebContext } from "../contexts/webcontext";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext";
-import { useContext } from "../contexts/execution";
-import { sleep } from "../utils/waiter";
+import { runWithContext, useContext } from "../contexts/execution";
+import { sleep } from "@webda/utils";
 import { DeepPartial } from "@webda/tsc-esm";
 import { useApplication } from "../application/hook";
 import { useRouter } from "../rest/hooks";
 import { useCore, useService } from "../core/hooks";
 import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects";
-import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage";
+import { InstanceStorage, runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage";
 import { Application } from "../application/application";
 import { useLog } from "../loggers/hooks";
-import { CallbackOptionallyAsync } from "./abstract";
-import sanitizeFilename from "sanitize-filename";
-import { dirname } from "node:path";
-import { workerOutput } from "./core";
-/**
- * Define a test suite
- */
-export class WebdaTest {
-  static logger: WorkerOutput;
-  localCache: any = {};
-  static globalCache: any = {};
-  static suiteLogger: FileLogger;
-  cleanFiles: string[] = [];
+import { CallbackOptionallyAsync, WebdaTest } from "@webda/test";
 
-  /**
-   * Execute before each test
-   */
-  async beforeEach() {}
+export class WebdaAsyncStorageTest extends WebdaTest {
+  static globalContext: InstanceStorage = {
+    caches: {}
+  };
+  localContext;
 
-  /**
-   * Execute before all tests
-   */
-  static async beforeAll() {}
-
-  /**
-   * Execute after each test
-   */
-  async afterEach() {}
-
-  /**
-   * Execute after all tests
-   */
-  static async afterAll() {}
-
-  /**
-   * Run the test with the instance storage
-   * @param callback
-   * @returns
-   */
-  protected async testWrapper(callback: CallbackOptionallyAsync) {
-    await runWithInstanceStorage(
-      {
-        ...this.localCache
-      },
-      async () => {
-        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
-        const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
-        const start = Date.now();
-        try {
+  static wrap = (
+    type: "beforeEach" | "beforeAll" | "test" | "afterEach" | "afterAll",
+    callback: CallbackOptionallyAsync,
+    instance?: WebdaAsyncStorageTest
+  ) => {
+    useLog("INFO", "wrap", type);
+    if (type === "beforeAll") {
+      useLog("INFO", "beforeAll runWithInstanceStorage", new Date());
+      return <Promise<void>>runWithInstanceStorage({}, async () => {
+        useLog("INFO", "beforeAll call callback", useInstanceStorage(), new Date(), callback);
+        await callback();
+        useLog("INFO", "beforeAll callback finished", new Date());
+        this.globalContext = useInstanceStorage();
+        this.globalContext.caches = JSON.stringify(this.globalContext.caches);
+      });
+    } else if (type === "beforeEach") {
+      return <Promise<void>>runWithInstanceStorage(
+        {
+          ...this.globalContext,
+          caches: JSON.parse(this.globalContext.caches)
+        },
+        async () => {
+          await callback.bind(instance)();
+          instance.localContext = useInstanceStorage();
+        }
+      );
+    } else if (type === "afterEach") {
+      return <Promise<void>>runWithInstanceStorage(instance.localContext, async () => {
+        await callback.bind(instance)();
+      });
+    } else if (type === "afterAll") {
+      return <Promise<void>>runWithInstanceStorage(
+        {
+          ...this.globalContext,
+          caches: JSON.parse(this.globalContext.caches)
+        },
+        async () => {
           await callback.bind(this)();
-        } catch (err) {
-          exportLog = true;
-          throw err;
-        } finally {
-          if (exportLog) {
-            WebdaTest.exportMemoryLogger(this, callback.name, memoryLogger, start);
-          }
-          this.localCache = useInstanceStorage();
-          memoryLogger.close();
         }
-      }
-    );
-  }
-
-  /**
-   * Get log file for the test
-   *
-   * @param object
-   * @param method
-   * @param clean
-   * @returns
-   */
-  static exportMemoryLogger(object, method: string, memory: MemoryLogger, start: number): string {
-    let duration: number | string = Date.now() - start;
-    if (duration > 1000) {
-      duration = Math.round(duration / 10) / 100 + "s";
-    } else {
-      duration = duration + "ms";
+      );
+    } else if (type === "test") {
+      return <Promise<void>>runWithInstanceStorage(instance.localContext, async () => {
+        await callback.bind(instance)();
+        instance.localContext = useInstanceStorage();
+      });
     }
-    const file = `.webda/tests/${sanitizeFilename(object["__webda_suite_name"])}/${method}.log`;
-    mkdirSync(dirname(file), { recursive: true });
-    if (existsSync(file)) {
-      unlinkSync(file);
-    }
-    writeFileSync(
-      file,
-      [
-        `Test ${object["__webda_suite_name"]}.${method} took ${duration}`,
-        ...memory
-          .getLogs()
-          .filter(l => l.type === "log")
-          .map(msg => ConsoleLogger.format(msg, ConsoleLogger.defaultFormat))
-      ].join("\n")
-    );
-    return file;
-  }
-
-  /**
-   * Clean all logs for this suite
-   */
-  static cleanLogs() {
-    const folder = `.webda/tests/${sanitizeFilename(this["__webda_suite_name"])}`;
-    if (!existsSync(folder)) {
-      return;
-    }
-    FileUtils.walkSync(folder, unlinkSync, {
-      includeDir: false
-    });
-  }
-
-  /**
-   * INTERNAL: Called by the test framework before each tests
-   * Do not delete
-   *
-   * @ignore
-   */
-  private async before(...args) {
-    workerOutput.log("INFO", "internal:before");
-    await runWithInstanceStorage(
-      {
-        ...WebdaTest.globalCache,
-        caches: JSON.parse(WebdaTest.globalCache.caches ?? "{}")
-      },
-      async () => {
-        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
-        const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
-        const start = Date.now();
-        WebdaTest.logger.log("INFO", "BeforeEach", WebdaTest.globalCache);
-        try {
-          await this.beforeEach();
-        } catch (err) {
-          exportLog = true;
-          throw err;
-        }
-        if (exportLog) {
-          WebdaTest.exportMemoryLogger(this, "beforeEach", memoryLogger, start);
-        }
-        memoryLogger.close();
-        this.localCache = useInstanceStorage();
-      }
-    );
-    workerOutput.log("INFO", "internal:before:end");
-  }
-
-  /**
-   * INTERNAL: Called by the test framework before all tests
-   * Do not delete
-   *
-   * @ignore
-   */
-  private static async before<T extends WebdaTest>(this) {
-    workerOutput.log("INFO", "internal:beforeStatic");
-    WebdaTest.logger ??= new WorkerOutput();
-    this.cleanLogs();
-
-    await runWithInstanceStorage({}, async () => {
-      const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
-      const start = Date.now();
-      let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
-      try {
-        await this.beforeAll();
-      } catch (err) {
-        exportLog = true;
-        throw err;
-      } finally {
-        if (exportLog) {
-          this.exportMemoryLogger(this, "beforeAll", memoryLogger, start);
-        }
-        memoryLogger.close();
-      }
-      WebdaTest.globalCache = useInstanceStorage();
-      WebdaTest.globalCache.caches = JSON.stringify(WebdaTest.globalCache.caches);
-    });
-  }
-
-  /**
-   * INTERNAL: Called by the test framework after each tests
-   * Do not delete
-   *
-   * @ignore
-   */
-  private async after() {
-    workerOutput.log("INFO", "internal:after");
-    await runWithInstanceStorage(
-      {
-        ...this.localCache
-      },
-      async () => {
-        const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
-        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
-        const start = Date.now();
-        try {
-          await this.afterEach();
-        } catch (err) {
-          exportLog = true;
-          throw err;
-        } finally {
-          if (exportLog) {
-            WebdaTest.exportMemoryLogger(this, "afterEach", memoryLogger, start);
-          }
-          memoryLogger.close();
-        }
-        try {
-          this.cleanFiles.filter(existsSync).forEach(unlinkSync);
-        } catch (err) {
-          // Swallow the error
-        }
-        this.cleanFiles = [];
-      }
-    );
-  }
-
-  /**
-   * INTERNAL: Called by the test framework after all tests
-   * Do not delete
-   *
-   * @ignore
-   */
-  private static async after() {
-    workerOutput.log("INFO", "internal:afterStatic");
-    await runWithInstanceStorage(
-      {
-        ...this.globalCache,
-        caches: JSON.parse(this.globalCache.caches ?? "{}")
-      },
-      async () => {
-        const memoryLogger = new MemoryLogger(WebdaTest.logger, "TRACE");
-        let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
-        const start = Date.now();
-        try {
-          await this.afterAll();
-        } catch (err) {
-          exportLog = true;
-          throw err;
-        } finally {
-          if (exportLog) {
-            this.exportMemoryLogger(this, "afterAll", memoryLogger, start);
-          }
-        }
-        memoryLogger.close();
-      }
-    );
-  }
+  };
 }
 
 /**
@@ -274,7 +86,7 @@ export class WebdaTest {
  *
  * @category CoreFeatures
  */
-export class WebdaApplicationTest extends WebdaTest {
+export class WebdaApplicationTest extends WebdaAsyncStorageTest {
   addConsoleLogger: boolean = true;
   /**
    * Files to clean after test
@@ -295,29 +107,35 @@ export class WebdaApplicationTest extends WebdaTest {
    * @param app
    */
   static async tweakApp(app: TestApplication) {
-    app.addService("WebdaTest/VoidStore", VoidStore);
-    app.addService("WebdaTest/FakeService", FakeService);
-    app.addService("WebdaTest/Mailer", DebugMailer);
+    app.addModda("WebdaTest/VoidStore", VoidStore);
+    app.addModda("WebdaTest/FakeService", FakeService);
+    app.addModda("WebdaTest/Mailer", DebugMailer);
     app.addModel("WebdaTest/Task", Task);
     app.addModel("WebdaTest/Ident", TestIdent);
-    app.getGraph()["WebdaTest/Ident"] = {
-      links: [
-        {
-          attribute: "_user",
-          model: "Webda/User",
-          type: "LINK"
-        }
-      ]
+    // @ts-ignore
+    TestIdent.Metadata ??= {
+      Relations: {}
     };
-    app.getGraph()["WebdaTest/Task"] = {
-      links: [
-        {
-          attribute: "_user",
-          model: "Webda/User",
-          type: "LINK"
-        }
-      ]
+    // @ts-ignore
+    TestIdent.Metadata.Relations.links = [
+      {
+        attribute: "_user",
+        model: "Webda/User",
+        type: "LINK"
+      }
+    ];
+    // @ts-ignore
+    Task.Metadata ??= {
+      Relations: {}
     };
+    // @ts-ignore
+    Task.Metadata.Relations.links = [
+      {
+        attribute: "_user",
+        model: "Webda/User",
+        type: "LINK"
+      }
+    ];
   }
 
   /**
@@ -325,7 +143,7 @@ export class WebdaApplicationTest extends WebdaTest {
    * @returns
    */
   static getApplication() {
-    return new TestApplication(this.getTestConfiguration(), this.logger);
+    return new TestApplication(this.getTestConfiguration(), useWorkerOutput());
   }
 
   /**
@@ -347,6 +165,7 @@ export class WebdaApplicationTest extends WebdaTest {
    * @param init wait for the full init
    */
   static async beforeAll(init: boolean = true) {
+    useLog("INFO", "beforeAll - buildWebda", new Date());
     // Reset any prometheus
     // @ts-ignore
     PrometheusService.nodeMetricsRegistered = false;
@@ -358,7 +177,7 @@ export class WebdaApplicationTest extends WebdaTest {
     if (init) {
       await core.init();
       // Prevent persistance for tests
-      (<MemoryStore>RegistryModel.store()).persist = async () => {};
+      (<MemoryStore>(<any>RegistryModel.store())).persist = async () => {};
     }
   }
 
@@ -416,6 +235,8 @@ export class WebdaApplicationTest extends WebdaTest {
    * @param body
    * @param headers
    * @returns
+   *
+   * @deprecated use http instead
    */
   getExecutor(
     ctx: WebContext = undefined,
@@ -434,9 +255,13 @@ export class WebdaApplicationTest extends WebdaTest {
     } else {
       ctx.setHttpContext(httpContext);
     }
-    if (useRouter().updateContextWithRoute(ctx)) {
-      return ctx;
-    }
+    return {
+      execute: () => {
+        return runWithContext(ctx, async () => {
+          useRouter().execute(ctx);
+        });
+      }
+    };
   }
 
   /**
@@ -516,6 +341,7 @@ export class WebdaApplicationTest extends WebdaTest {
   /**
    * Wait for the next tick(s)
    * @param ticks if you want to wait for more than one tick
+   * @deprecated use nextTick instead
    */
   async nextTick(ticks: number = 1): Promise<void> {
     while (ticks-- > 0) {
@@ -527,6 +353,8 @@ export class WebdaApplicationTest extends WebdaTest {
    * Get service from Webda
    * @param service name
    * @returns
+   *
+   * @deprecated useService instead
    */
   getService<T extends Service>(service: string): T {
     return useService<T>(service);
@@ -561,12 +389,7 @@ export class WebdaApplicationTest extends WebdaTest {
    * @param model
    * @param klass
    */
-  registerModel<T extends CoreModelDefinition>(
-    model: T,
-    name: string = model.constructor.name,
-    graph: ModelGraph = {}
-  ) {
+  registerModel<T extends ModelDefinition>(model: T, name: string = model.constructor.name) {
     useApplication<Application>().addModel(name, model);
-    useApplication().getGraph()[name] = graph;
   }
 }

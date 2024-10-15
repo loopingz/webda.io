@@ -1,4 +1,4 @@
-import ts from "typescript";
+import * as ts from "typescript";
 import { Compiler } from "./compiler";
 import { useLog } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
@@ -8,8 +8,7 @@ import { FileUtils, JSONUtils } from "@webda/utils";
 import { tsquery } from "@phenomnomnominal/tsquery";
 import { dirname, join, relative } from "path";
 import { SchemaGenerator } from "ts-json-schema-generator";
-import { ModelGraphBinaryDefinition, ModelMetadata, ModelRelation, Module } from "./definition";
-import { create } from "node:domain";
+import { ModelGraphBinaryDefinition, ModelMetadata, ModelRelation, WebdaModule } from "./definition";
 import { createSchemaGenerator } from "./schemaparser";
 
 type ReplaceModelWith<T, L> = T extends object
@@ -246,7 +245,7 @@ export class ModuleGenerator {
           const type = this.typeChecker.getTypeAtLocation(node);
           // Manage schemas
           if (tags["WebdaSchema"]) {
-            const name = this.compiler.app.completeNamespace(
+            const name = this.compiler.project.completeNamespace(
               tags["WebdaSchema"] || (<ts.ClassDeclaration>node).name?.escapedText.toString()
             );
             result.schemas.add(name, node, (<ts.ClassDeclaration>node).name?.escapedText.toString(), false, "schemas");
@@ -333,7 +332,7 @@ export class ModuleGenerator {
             tags,
             lib: false,
             jsFile: `${importTarget}:${exportName}`,
-            name: this.compiler.app.completeNamespace(
+            name: this.compiler.project.completeNamespace(
               tags[`Webda${section.substring(0, 1).toUpperCase()}${section.substring(1, section.length - 1)}`] ||
                 classNode.name.escapedText
             )
@@ -365,7 +364,7 @@ export class ModuleGenerator {
     if (absolutePath) {
       return filePath;
     }
-    return relative(this.compiler.app.getAppPath(), filePath);
+    return relative(this.compiler.project.getAppPath(), filePath);
   }
 
   /**
@@ -373,8 +372,8 @@ export class ModuleGenerator {
    * And the hierarchy tree
    * @param models
    */
-  processModels(models: WebdaSearchResults): Module["models"] {
-    const modelsMetadata: Module["models"] = {};
+  processModels(models: WebdaSearchResults): WebdaModule["models"] {
+    const modelsMetadata: WebdaModule["models"] = {};
     const symbolMap = new Map<number, string>();
     const list = {};
     Object.values(models).forEach(({ name, type, tags, lib, jsFile }) => {
@@ -683,7 +682,8 @@ export class ModuleGenerator {
       Import: a.jsFile,
       Schema: {}
     });
-    const mod: Module = {
+    const mod: WebdaModule = {
+      $schema: "https://webda.io/schemas/webda.module.v4.json",
       beans: JSONUtils.sortObject(objects.beans, jsOnly),
       deployers: JSONUtils.sortObject(objects.deployers, jsOnly),
       moddas: JSONUtils.sortObject(objects.moddas, jsOnly),
@@ -703,7 +703,7 @@ export class ModuleGenerator {
         }
       }
     });
-    FileUtils.save(mod, this.compiler.app.getAppPath("webda.module.json"));
+    FileUtils.save(mod, this.compiler.project.getAppPath("webda.module.json"));
     return mod;
   }
 }
@@ -791,7 +791,7 @@ class WebdaSchemaResults {
     info?: ts.Node | string,
     title?: string,
     addOpenApi: boolean = false,
-    section: keyof Module = "schemas"
+    section: "schemas" | "models" | "beans" | "deployers" | "moddas" = "schemas"
   ) {
     if (typeof info === "object") {
       this.store[name] = {

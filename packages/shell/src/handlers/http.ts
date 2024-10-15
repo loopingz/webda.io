@@ -1,7 +1,10 @@
 import {
+  emitCoreEvent,
   HttpContext,
   HttpMethodType,
   ResourceService,
+  runWithContext,
+  useConfiguration,
   WaitFor,
   WaitLinearDelay,
   WebContext,
@@ -191,13 +194,13 @@ export class WebdaServer extends Webda {
         context.writeHead(200);
         return;
       }
-      await this.emitSync("Webda.Request", { context: context });
+      await emitCoreEvent("Webda.Request", { context: context });
 
       context.setHeader("Access-Control-Allow-Credentials", "true");
       emitResult = true;
       this.log("DEBUG", "Execute", context.getHttpContext().getMethod(), context.getHttpContext().getUrl());
       await context.execute();
-      await this.emitSync("Webda.Result", { context: context });
+      await emitCoreEvent("Webda.Result", { context: context });
     } catch (err) {
       err = typeof err === "number" ? new WebdaError.HttpError("Wrapped", err) : err;
       if (err instanceof WebdaError.HttpError) {
@@ -212,7 +215,7 @@ export class WebdaServer extends Webda {
       }
       // If we have a context, we can send the error
       if (emitResult) {
-        await this.emitSync("Webda.Result", { context: context });
+        await emitCoreEvent("Webda.Result", { context: context });
       }
       if (context.statusCode >= 500) {
         this.log("ERROR", err);
@@ -225,12 +228,12 @@ export class WebdaServer extends Webda {
   /**
    * @override
    */
-  flushHeaders(ctx: WebContext) {
+  async flushHeaders(ctx: WebContext) {
     if (ctx.hasFlushedHeaders()) {
       return;
     }
     ctx.setFlushedHeaders(true);
-    const res = <http.ServerResponse>ctx.getStream();
+    const res = <http.ServerResponse>await ctx.getOutputStream();
     const headers = ctx.getResponseHeaders();
     const cookies = ctx.getResponseCookies();
     try {
@@ -263,16 +266,17 @@ export class WebdaServer extends Webda {
       return this._init;
     }
     await super.init();
-    this.getGlobalParams().trustedProxies ??= "127.0.0.1";
-    if (typeof this.getGlobalParams().trustedProxies === "string") {
-      this.getGlobalParams().trustedProxies = this.getGlobalParams().trustedProxies.split(",");
+    const params = useConfiguration().parameters;
+    params.trustedProxies ??= "127.0.0.1";
+    if (typeof params.trustedProxies === "string") {
+      params.trustedProxies = params.trustedProxies.split(",");
     }
     this.subnetChecker = createChecker(
-      this.getGlobalParams().trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n.trim()}/32` : n.trim()))
+      params.trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n.trim()}/32` : n.trim()))
     );
-    if (this.getGlobalParams().website && this.getGlobalParams().website.path && !this.resourceService) {
-      this.resourceService = await new ResourceService(this, "websiteResource", {
-        folder: this.getAppPath(this.getGlobalParams().website.path)
+    if (params.static && params.static.path && !this.resourceService) {
+      this.resourceService = await new ResourceService("websiteResource", {
+        folder: this.getAppPath(params.static.path)
       })
         .resolve()
         .init();
@@ -304,7 +308,7 @@ export class WebdaServer extends Webda {
             return;
           }
           // Handle the request
-          await this.runWithContext(ctx, async () => {
+          await runWithContext(ctx, async () => {
             await this.handleRequest(req, ctx).finally(() => {
               res.end();
             });

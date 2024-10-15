@@ -126,38 +126,44 @@ export interface ModelMetadata {
   Ancestors: string[];
 }
 
+export type ServiceMetadata = {
+  /**
+   * File to import
+   */
+  Import: string;
+  /**
+   * Schema defining the service
+   */
+  Schema: JSONSchema7;
+};
+
 /**
  * A Webda module is a NPM package
  *
  * It contains one or more Modda to provide features
  */
-export interface Module {
+export interface WebdaModule {
+  /**
+   * Schema version
+   */
+  $schema?: string;
   /**
    * Services provided by the module
    */
   moddas?: {
-    [key: string]: {
-      Import: string;
-      Schema: JSONSchema7;
-    };
+    [key: string]: ServiceMetadata;
   };
   /**
    * Beans
    */
   beans?: {
-    [key: string]: {
-      Import: string;
-      Schema: JSONSchema7;
-    };
+    [key: string]: ServiceMetadata;
   };
   /**
    * Deployers provided by this module
    */
   deployers?: {
-    [key: string]: {
-      Import: string;
-      Schema: JSONSchema7;
-    };
+    [key: string]: ServiceMetadata;
   };
 
   /**
@@ -459,7 +465,7 @@ export class WebdaProject {
     }
     this.packageDescription = JSON.parse(readFileSync(join(folder, "package.json")).toString());
     this.namespace = this.packageDescription.webda?.namespace;
-    if (this.packageDescription.name.startsWith("@")) {
+    if (!this.namespace && this.packageDescription.name.startsWith("@")) {
       this.namespace = this.packageDescription.name.split("/")[0].substring(1);
       this.namespace = this.namespace.charAt(0).toUpperCase() + this.namespace.slice(1);
     }

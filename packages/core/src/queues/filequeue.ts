@@ -1,9 +1,9 @@
 import * as fs from "fs";
 import { join } from "path";
-import { JSONUtils } from "../utils/serializers";
+import { JSONUtils } from "@webda/utils";
 import { randomUUID } from "crypto";
 import { type MessageReceipt, Queue, QueueParameters } from "./queueservice";
-import { ServiceParameters } from "../services/iservices";
+import { ServiceParameters } from "../interfaces";
 
 export class FileQueueParameters extends QueueParameters {
   /**

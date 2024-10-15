@@ -302,7 +302,7 @@ export class WebdaTest {
     const memoryLogger = new MemoryLogger(useWorkerOutput(), "TRACE");
     const start = Date.now();
     try {
-      await this.wrap("beforeEach", this.beforeEach);
+      await this.wrap.bind(this)("beforeEach", this.beforeEach);
     } catch (err) {
       exportLog = true;
       useLog("ERROR", err);
@@ -328,7 +328,9 @@ export class WebdaTest {
     const start = Date.now();
     let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
     try {
-      await this.wrap("beforeAll", this.beforeAll);
+      useLog("INFO", "BeforeAll Starting tests for", this["__webda_suite_name"]);
+      await this.wrap("beforeAll", this.beforeAll.bind(this));
+      useLog("INFO", "POST-WRAP BeforeAll Starting tests for", this["__webda_suite_name"]);
     } catch (err) {
       exportLog = true;
       useLog("ERROR", err);
@@ -352,7 +354,7 @@ export class WebdaTest {
     let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
     const start = Date.now();
     try {
-      await this.wrap("afterEach", this.afterEach);
+      await this.wrap.bind(this)("afterEach", this.afterEach);
     } catch (err) {
       exportLog = true;
       useLog("ERROR", err);
@@ -382,7 +384,7 @@ export class WebdaTest {
     let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
     const start = Date.now();
     try {
-      await this.wrap("afterAll", this.afterAll);
+      await this.wrap.bind(this)("afterAll", this.afterAll);
     } catch (err) {
       exportLog = true;
       useLog("ERROR", err);

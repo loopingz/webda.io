@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "events";
 import * as fs from "fs";
@@ -7,7 +7,7 @@ import pkg from "fs-extra";
 import sinon from "sinon";
 import { Readable } from "stream";
 import { Core } from "../core";
-import * as WebdaError from "../errors";
+import * as WebdaError from "../errors/errors";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { FileUtils } from "../utils/serializers";

@@ -262,7 +262,6 @@ export function canUpdateContext(): boolean {
  * It also fit the express response object
  */
 export type IWebContext = IOperationContext & {
-  setRoute(arg0: any): unknown;
   setParameters: (params: object) => void;
   /**
    * Get the http context

@@ -9,7 +9,7 @@ flowchart BT
     CustomUser --> User
 
 
-    subgraph MyStore    
+    subgraph MyStore
         User
         CustomUser
     end
@@ -17,9 +17,10 @@ flowchart BT
 <!-- /WEBDA:StorageDiagram -->
 */
 
-import { Constructor, Core, CoreEvents, ModelAction, ModelsTree, Service } from "@webda/core";
+import { Core, CoreEvents, ModelAction, ModelsTree, Service } from "@webda/core";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { JSONSchema7 } from "json-schema";
+import { Constructor } from "@webda/tsc-esm";
 
 /**
  * Abstract diagram with the common replacement methods

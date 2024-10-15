@@ -1,5 +1,5 @@
 import { IWebContext } from "../contexts/icontext";
-import { RegExpValidator } from "../utils/regexp";
+import { RegExpValidator } from "@webda/utils";
 import { RequestFilter } from "./irest";
 
 /**

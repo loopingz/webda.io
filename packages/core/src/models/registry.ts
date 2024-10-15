@@ -1,5 +1,5 @@
 import { CoreModel } from "./coremodel";
-import { CoreModelDefinition } from "../application/iapplication";
+import { ModelDefinition } from "../internal/iapplication";
 
 /**
  * Specific type for registry
@@ -11,11 +11,11 @@ export class RegistryModel extends CoreModel {
    * @param data
    * @returns
    */
-  static async put<T extends CoreModel, K = any>(this: CoreModelDefinition<T>, uuid: string, data: K) {
+  static async put<T extends CoreModel, K = any>(this: ModelDefinition<T>, uuid: string, data: K) {
     return await this.ref(uuid).upsert(<any>data);
   }
 
-  static async delete<T extends CoreModel>(this: CoreModelDefinition<T>, uuid: string) {
+  static async delete<T extends CoreModel>(this: ModelDefinition<T>, uuid: string) {
     return await this.ref(uuid).delete();
   }
 }

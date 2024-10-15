@@ -1,4 +1,4 @@
-import type { CoreModelDefinition, ExposeParameters } from "../application/iapplication";
+import type { ModelDefinition, ExposeParameters } from "../internal/iapplication";
 
 /**
  * Expose the model through API or GraphQL if it exists
@@ -8,8 +8,8 @@ import type { CoreModelDefinition, ExposeParameters } from "../application/iappl
  *
  * @returns
  */
-export function Expose(params: Partial<ExposeParameters> = {}) {
-  return (target: CoreModelDefinition): void => {
+export function Expose(params: Partial<ExposeParameters>) {
+  return (target: ModelDefinition): void => {
     params.restrict ??= {};
     target.Expose = <ExposeParameters>params;
   };

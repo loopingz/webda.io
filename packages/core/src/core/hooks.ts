@@ -1,4 +1,5 @@
-import { IStore, IService } from "./icore";
+import { IStore } from "./icore";
+import { AbstractService } from "../internal/iapplication";
 import { createCoreHook } from "./instancestorage";
 import pkg from "node-machine-id";
 //import { machineIdSync } from "node-machine-id";
@@ -8,7 +9,7 @@ const [useCore, setCore] = createCoreHook("core");
 
 export { useCore, setCore };
 
-export function useService<T extends IService>(name: string): T {
+export function useService<T = AbstractService>(name: string): T {
   return <T>useCore().getService(name);
 }
 

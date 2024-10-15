@@ -4,6 +4,7 @@ import { dirname } from "path";
 export function writer(fileName: string, text: string) {
   mkdirSync(dirname(fileName), { recursive: true });
   // Add the ".js" -> if module
+  // Issue with .mjs
   writeFileSync(
     fileName,
     text
@@ -113,14 +114,13 @@ export type FilterOutAttributes<T extends object, K> = {
   [L in keyof T]: T[L] extends K ? never : L;
 }[keyof T];
 
-type TestType = {
-  a: string;
-  b: number;
-  c: string;
-  d: {
-    e: string;
-    f: number;
-    h: () => void;
+/**
+ * Ensure a class implements a static interface
+ * @returns
+ */
+export function StaticInterface<T>() {
+  return <U extends T>(constructor: U) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    constructor;
   };
-  g: () => void;
-};
+}

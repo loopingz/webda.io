@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import { schedule } from "node-cron";
 import { Service } from "./service";
-import { CancelablePromise } from "../utils/waiter";
+import { CancelablePromise } from "@webda/utils";
 import { useCore, useService } from "../core/hooks";
 
 /**

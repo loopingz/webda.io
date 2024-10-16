@@ -1,6 +1,6 @@
 {
   "name": "@webda/postgres",
-  "version": "3.4.3",
+  "version": "3.4.4",
   "description": "Implements Postgres on webda",
   "keywords": [
     "postgres",
@@ -19,7 +19,7 @@
     "test": "c8 mocha"
   },
   "dependencies": {
-    "@webda/core": "^3.16.0",
+    "@webda/core": "^3.16.3",
     "pg": "^8.7.1"
   },
   "files": [
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@types/node": "18.11.13",
-    "@webda/shell": "^3.11.0"
+    "@webda/shell": "^3.11.1"
   },
   "type": "module",
   "engines": {

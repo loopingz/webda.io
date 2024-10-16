@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.2...cloudevents-v4.0.0-beta.3) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+
+### Features
+
+* add option to register filter type ([8fb4670](https://github.com/loopingz/webda.io/commit/8fb46708b0f3b3c74c28f87a30f24f6949419eaf))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/tsc-esm bumped from 4.0.0-beta.1 to 4.0.0-beta.2
+
 ## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/cloudevents-v4.0.0-beta.1...cloudevents-v4.0.0-beta.2) (2024-08-14)
 
 

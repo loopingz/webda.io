@@ -186,6 +186,36 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/aws-v4.0.0-beta.1...aws-v4.0.0-beta.2) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Bug Fixes
+
+* **route53:** Do not run changeResourceRecordsSets if no changes ([b7c6efd](https://github.com/loopingz/webda.io/commit/b7c6efd583bd9ed84adc98d032d92e60e5551024))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/async bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/ql bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/workout bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+  * devDependencies
+    * @webda/shell bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/aws-v3.4.2...aws-v4.0.0-beta.1) (2024-08-14)
 
 

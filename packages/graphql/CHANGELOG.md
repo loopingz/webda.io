@@ -134,6 +134,35 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.1...graphql-v4.0.0-beta.2) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Bug Fixes
+
+* optimize webda.module.json search ([e6db411](https://github.com/loopingz/webda.io/commit/e6db4111174d7e7428e1b1315f71d9027f4f6893))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/ql bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/runtime bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+  * devDependencies
+    * @webda/shell bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/graphql-v3.8.6...graphql-v4.0.0-beta.1) (2024-08-14)
 
 

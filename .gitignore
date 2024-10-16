@@ -24,3 +24,4 @@ docs.json
 pnpm-lock.yaml
 .nx
 .webda
+coverage

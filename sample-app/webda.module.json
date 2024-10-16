@@ -696,7 +696,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -711,7 +711,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+        "Partial<interface-829200435-246-294-829200435-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -1307,7 +1307,7 @@
           "description": "URL on which to serve the content"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-178760925-2901-3385-178760925-0-9590976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-2901-3385-1131383939-0-9590976353190%3E"
         },
         "openapi": {
           "type": "object",
@@ -1320,7 +1320,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-178760925-2901-3385-178760925-0-9590976353190>": {
+        "Partial<class-1131383939-2901-3385-1131383939-0-9590976353190>": {
           "type": "object",
           "properties": {
             "type": {
@@ -1351,7 +1351,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -1372,7 +1372,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+        "Partial<interface-829200435-246-294-829200435-0-1238>": {
           "type": "object",
           "properties": {
             "test": {
@@ -1574,7 +1574,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-246-294-829200435-0-1238%3E",
           "description": "The Partial will generate a new $ref"
         },
         "openapi": {
@@ -1589,7 +1589,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+        "Partial<interface-829200435-246-294-829200435-0-1238>": {
           "type": "object",
           "properties": {
             "test": {

@@ -1243,6 +1243,34 @@
               ],
               "description": "Subscription state"
             },
+            "analyticsHubSubscriptionInfo": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "listing": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "AnalyticsHubSubscriptionInfo listing"
+                    },
+                    "subscription": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "AnalyticsHubSubscriptionInfo subscription"
+                    }
+                  },
+                  "description": "Properties of an AnalyticsHubSubscriptionInfo."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription analyticsHubSubscriptionInfo"
+            },
             "messageRetentionDuration": {
               "anyOf": [
                 {

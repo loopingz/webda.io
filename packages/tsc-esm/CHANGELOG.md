@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/tsc-esm-v4.0.0-beta.1...tsc-esm-v4.0.0-beta.2) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+
+### Features
+
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.3.0...tsc-esm-v4.0.0-beta.1) (2024-08-14)
 
 

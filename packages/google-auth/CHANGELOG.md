@@ -184,6 +184,26 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/google-auth-v4.0.0-beta.1...google-auth-v4.0.0-beta.2) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+
+### Features
+
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+  * devDependencies
+    * @webda/shell bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/google-auth-v3.1.16...google-auth-v4.0.0-beta.1) (2024-08-14)
 
 

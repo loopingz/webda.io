@@ -24,6 +24,24 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.1...workout-v4.0.0-beta.2) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+
+### Features
+
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/tsc-esm bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/workout-v3.2.0...workout-v4.0.0-beta.1) (2024-08-14)
 
 

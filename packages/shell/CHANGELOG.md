@@ -61,6 +61,30 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
     * @webda/core bumped from ^3.13.2 to ^3.14.0
     * @webda/kubernetes bumped from ^3.3.3 to ^3.3.4
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/shell-v4.0.0-beta.1...shell-v4.0.0-beta.2) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* add shell events ([145728e](https://github.com/loopingz/webda.io/commit/145728ef990a933e226f3b5dcb3d20604f4182b3))
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/kubernetes bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/tsc-esm bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/workout bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/shell-v3.11.0...shell-v4.0.0-beta.1) (2024-08-14)
 
 

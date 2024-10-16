@@ -3,6 +3,40 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.1...core-v4.0.0-beta.2) (2024-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+* remove expose for Store
+
+### Features
+
+* add rest domain service ([bfc72e6](https://github.com/loopingz/webda.io/commit/bfc72e64728c3f1e1348322156f1b04835d6db37))
+* remove expose for Store ([c8a36b1](https://github.com/loopingz/webda.io/commit/c8a36b19c81b830e9c03195388b402e53f987e6e))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+* **rest:** add 201 - Created http code for creation ([#680](https://github.com/loopingz/webda.io/issues/680)) ([5db4dda](https://github.com/loopingz/webda.io/commit/5db4ddab838a25dc49bddd1705357187e2049a6c))
+* test allow dynamic configuration in TestApplication ([3af8187](https://github.com/loopingz/webda.io/commit/3af8187ba6179e19c9db261f81075a86d09e0cc9))
+
+
+### Bug Fixes
+
+* MemoryQueue wait if no message available ([57d4bd8](https://github.com/loopingz/webda.io/commit/57d4bd834a8dcaa6f33f052c5e315079a58ffcce))
+* optimize webda.module.json search ([e6db411](https://github.com/loopingz/webda.io/commit/e6db4111174d7e7428e1b1315f71d9027f4f6893))
+* **ResourceService:** ensure we do not serve . files ([#678](https://github.com/loopingz/webda.io/issues/678)) ([8abbcda](https://github.com/loopingz/webda.io/commit/8abbcdae988f0ca3d6ecc1f70b4c6dee7f17002a))
+* **rest:** restdomainservice parent query injector ([#683](https://github.com/loopingz/webda.io/issues/683)) ([7c8bf9b](https://github.com/loopingz/webda.io/commit/7c8bf9bb5b2dab0be890e9d5f1044f007eb6c76d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/ql bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+    * @webda/workout bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+  * devDependencies
+    * @webda/tsc-esm bumped from ^4.0.0-beta.1 to ^4.0.0-beta.2
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/core-v3.16.0...core-v4.0.0-beta.1) (2024-08-14)
 
 

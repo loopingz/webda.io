@@ -25,3 +25,4 @@ docs.json
 .webda
 coverage
 packages/core/data
+*.log

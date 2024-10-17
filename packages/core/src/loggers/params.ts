@@ -11,9 +11,8 @@ export class LoggerServiceParameters extends ServiceParameters {
   /**
    * @inheritdoc
    */
-  constructor(params: any) {
-    super();
-    this.logLevel = (params.logLevel || process.env["LOG_LEVEL"] || "INFO").toUpperCase() as WorkerLogLevel;
+  default() {
+    this.logLevel ??= (process.env["LOG_LEVEL"] || "INFO").toUpperCase() as WorkerLogLevel;
     const levels: WorkerLogLevel[] = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"];
     if (!levels.includes(this.logLevel)) {
       useLog("WARN", "Invalid log level", this.logLevel, "fallback to INFO");

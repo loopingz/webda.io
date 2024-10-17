@@ -1,5 +1,6 @@
 import { KeyManagementServiceClient } from "@google-cloud/kms";
-import { CryptoService, DeepPartial, Service, ServiceParameters } from "@webda/core";
+import { CryptoService, Service, ServiceParameters } from "@webda/core";
+import { DeepPartial } from "@webda/tsc-esm";
 
 /**
  * Encrypter for GCP KMS
@@ -56,8 +57,8 @@ export class KMSServiceParameters extends ServiceParameters {
    * @default WEBDA_GCP_KMS_KEY env variable
    */
   defaultKey?: string;
-  constructor(params: any) {
-    super(params);
+  default() {
+    super.default();
     this.defaultKey ??= process.env.WEBDA_GCP_KMS_KEY;
   }
 }
@@ -73,8 +74,8 @@ export class GCPKMSService<T extends KMSServiceParameters> extends Service<T> {
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<ServiceParameters>): ServiceParameters {
-    return new KMSServiceParameters(params);
+  loadParameters(params: DeepPartial<T>): T {
+    return <T>new KMSServiceParameters().load(params);
   }
 
   /**

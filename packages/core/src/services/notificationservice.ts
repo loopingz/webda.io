@@ -69,8 +69,8 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
   /**
    * @override
    */
-  loadParameters(params: any): MultiNotificationParameters {
-    return new MultiNotificationParameters(params);
+  loadParameters(params: any): T {
+    return <T>new MultiNotificationParameters(params);
   }
 
   /**

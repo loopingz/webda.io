@@ -23,6 +23,6 @@ export class MemoryLoggerService<
    * @inheritdoc
    */
   loadParameters(params: any) {
-    return new MemoryLoggerServiceParameters(params);
+    return <T>new MemoryLoggerServiceParameters().load(params);
   }
 }

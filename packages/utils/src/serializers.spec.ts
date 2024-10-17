@@ -5,6 +5,7 @@ import {
   createWriteStream,
   existsSync,
   readFileSync,
+  readlinkSync,
   symlinkSync,
   unlinkSync,
   writeFileSync
@@ -23,6 +24,7 @@ import {
   YAMLUtils
 } from "./serializers";
 import { Readable } from "node:stream";
+import { getCommonJS } from "../lib";
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../test/jsonutils/";
 const PACKAGE_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../";
@@ -30,6 +32,7 @@ const PACKAGE_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../";
 class UtilsTest {
   @test("LoadJSON File")
   fileJson() {
+    const { __dirname } = getCommonJS(import.meta.url);
     assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), {
       test: "ok"
     });
@@ -40,8 +43,8 @@ class UtilsTest {
       test: "ok"
     });
     assert.throws(() => JSONUtils.loadFile("/none"), /File '\/none' does not exist/);
-    assert.throws(() => JSONUtils.loadFile("./vitest.config.ts"), /SyntaxError/);
-    assert.throws(() => FileUtils.load("./vitest.config.ts"), /Unknown format/);
+    assert.throws(() => JSONUtils.loadFile(__dirname + "/../vitest.config.ts"), /SyntaxError/);
+    assert.throws(() => FileUtils.load(__dirname + "/../vitest.config.ts"), /Unknown format/);
   }
 
   @test("LoadYAML File")
@@ -256,26 +259,32 @@ plop: test
   @test
   async walker() {
     try {
-      let res = [];
-      if (!existsSync("./test/link")) {
-        symlinkSync("../../core/templates", "test/link");
-      }
-      if (!existsSync("./test/linkFile")) {
-        symlinkSync("./jsonutils/mdocs.yaml", "test/linkFile");
+      let res: string[] = [];
+      const { __dirname } = getCommonJS(import.meta.url);
+      try {
+        readlinkSync(__dirname + "/../test/link");
+      } catch (err) {
+        symlinkSync(__dirname + "/../../core/templates", __dirname + "/../test/link");
       }
       try {
-        if (!existsSync("./test/badlink")) {
-          symlinkSync("../non-existing", "test/badlink");
-        }
-      } catch (err) {}
-      await FileUtils.walk("test", f => res.push(f));
+        readlinkSync(__dirname + "/../test/linkFile");
+      } catch (err) {
+        symlinkSync(__dirname + "/../jsonutils/mdocs.yaml", "test/linkFile");
+      }
+      try {
+        readlinkSync(__dirname + "/../test/badlink");
+      } catch (err) {
+        symlinkSync(__dirname + "/../../non-existing", "test/badlink");
+      }
+      await FileUtils.walk(__dirname + "/../test", f => res.push(f));
+      res = res.map(c => c.replace(path.resolve(__dirname + "/../") + "/", ""));
       assert.ok(
         ["test/jsonutils/mdocs.yaml", "test/jsonutils/test.yml", "test/jsonutils/test.json"]
           .map(c => res.includes(c))
           .reduce((v, c) => v && c, true)
       );
       res = [];
-      FileUtils.walkSync("test", f => res.push(f), {
+      FileUtils.walkSync(__dirname + "/../test", f => res.push(f), {
         includeDir: true,
         followSymlinks: true
       });
@@ -287,8 +296,9 @@ plop: test
 
   @test
   async finder() {
-    const res = await FileUtils.find("test", { filterPattern: /mdocs/ });
-    assert.ok(res.includes("test/jsonutils/mdocs.yaml"));
+    const { __dirname } = getCommonJS(import.meta.url);
+    const res = await FileUtils.find(__dirname + "/../test", { filterPattern: /mdocs/ });
+    assert.ok(res.findIndex(c => c.includes("test/jsonutils/mdocs.yaml")) > -1);
   }
 
   @test

@@ -13,6 +13,7 @@ import { MappingService } from "./istore";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { useRegistry } from "../models/registry";
 import { useLog } from "../loggers/hooks";
+import { useInstanceStorage } from "../core/instancestorage";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
@@ -260,9 +261,17 @@ export class StoreParameters extends ServiceParameters {
    */
   noCache?: boolean;
 
-  constructor(params: any, service: Service<any>) {
-    super();
-    Object.assign(this, params);
+  load(params: any) {
+    // REFACTOR >= 5
+    if (params.expose) {
+      throw new Error("Expose is not supported anymore, use DomainService instead");
+    }
+    // END_REFACTOR
+    return super.load(params);
+  }
+
+  default() {
+    super.default();
     this.model ??= "Webda/CoreModel";
     this.strict ??= false;
     this.defaultModel ??= true;
@@ -270,11 +279,6 @@ export class StoreParameters extends ServiceParameters {
     this.slowQueryThreshold ??= 30000;
     this.modelAliases ??= {};
     this.additionalModels ??= [];
-    // REFACTOR >= 5
-    if (params.expose) {
-      throw new Error("Expose is not supported anymore, use DomainService instead");
-    }
-    // END_REFACTOR
   }
 }
 
@@ -344,11 +348,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   };
 
   /**
-   * Load the parameters for a service
-   */
-  abstract loadParameters(params: any): StoreParameters;
-
-  /**
    * Retrieve the Model
    *
    * @throws Error if model is not found
@@ -356,8 +355,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   computeParameters(): void {
     super.computeParameters();
     const app = useApplication();
-    const p = this.parameters;
-    this._model = useModel(p.model);
+    this._model = useModel(this.parameters.model);
+    useLog("TRACE", "METADATA", this._model.Metadata);
     this._modelType = this._model.Metadata.Identifier;
     this._uuidField = this._model.getUuidField();
     if (!this.parameters.noCache) {

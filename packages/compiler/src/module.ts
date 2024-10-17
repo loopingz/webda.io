@@ -388,6 +388,7 @@ export class ModuleGenerator {
         Import: jsFile,
         Relations: {},
         Ancestors: [],
+        Subclasses: [],
         Schema: {}
       };
 
@@ -530,37 +531,25 @@ export class ModuleGenerator {
       });
     });
 
-    const ancestorsMap = {};
-    const tree = {};
     // Construct the hierarchy tree
     Object.values(models)
       .filter(p => !p.lib)
       .forEach(({ type, name, jsFile }) => {
         list[name] = jsFile;
-        let root = tree;
         const ancestors = this.getClassTree(type)
           .map((t: any) => symbolMap.get(t.id))
-          .filter(t => t !== undefined && t !== "Webda/CoreModel");
-        ancestorsMap[name] = ancestors[1];
+          .filter(t => t !== undefined && t !== "Webda/CoreModel" && t !== name);
         ancestors.reverse();
-        ancestors.forEach((ancestorName: string) => {
-          root[ancestorName] ??= {};
-          root = root[ancestorName];
-        });
+        modelsMetadata[name].Ancestors = ancestors;
+        ancestors.reverse();
       });
 
     // Compute children now
-    /*
-    Object.keys(graph)
-      .filter(k => graph[k].parent && graph[<string>graph[k].parent.model])
-      .forEach(k => {
-        const parent = graph[<string>graph[k].parent.model];
-        parent.children ??= [];
-        if (!ancestorsMap[k] || !graph[ancestorsMap[k]]?.parent) {
-          parent.children.push(k);
-        }
+    Object.keys(modelsMetadata)
+      .filter(i => modelsMetadata[i].Ancestors.length)
+      .forEach(i => {
+        modelsMetadata[modelsMetadata[i].Ancestors[0]].Subclasses.push(i);
       });
-      */
     return JSONUtils.sortObject(modelsMetadata);
   }
 
@@ -700,6 +689,7 @@ export class ModuleGenerator {
           mod[section][name] = schema;
         } else {
           mod[section][name].Schema = schema;
+          mod["schemas"][name] = schema;
         }
       }
     });

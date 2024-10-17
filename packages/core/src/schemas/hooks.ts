@@ -1,7 +1,8 @@
-import { ErrorObject } from "ajv";
+import Ajv, { ErrorObject } from "ajv";
 import { AbstractCoreModel } from "../internal/iapplication";
 import { JSONUtils } from "@webda/utils";
 import { useApplication, useModelId } from "../application/hook";
+import { useCore } from "../core/hooks";
 
 type NoSchemaResult = null;
 
@@ -34,32 +35,7 @@ export function validateSchema(
   object: any,
   ignoreRequired?: boolean
 ): NoSchemaResult | SchemaValidResult {
-  let name = typeof webdaObject === "string" ? webdaObject : useModelId(webdaObject);
-  let cacheName = name;
-  if (name?.endsWith("?")) {
-    name = name.substring(0, name.length - 1);
-    ignoreRequired = true;
-  }
-  if (ignoreRequired) {
-    cacheName += "_noRequired";
-  }
-  if (!this._ajvSchemas[cacheName]) {
-    let schema = this.application.getSchema(name);
-    if (!schema) {
-      return null;
-    }
-    if (ignoreRequired) {
-      schema = JSONUtils.duplicate(schema);
-      schema.required = [];
-    }
-    this.log("TRACE", "Add schema for", name);
-    this._ajv.addSchema(schema, cacheName);
-    this._ajvSchemas[cacheName] = true;
-  }
-  if (this._ajv.validate(cacheName, object)) {
-    return true;
-  }
-  throw new ValidationError(this._ajv.errors);
+  return useCore().validateSchema(webdaObject, object, ignoreRequired);
 }
 
 export function hasSchema(webdaObject: AbstractCoreModel | string): boolean {

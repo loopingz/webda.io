@@ -105,7 +105,7 @@ export interface ModelMetadata {
   /**
    * Schema defining the model
    */
-  Schema: JSONSchema7;
+  Schema?: JSONSchema7;
   /**
    * If model have a short name
    */
@@ -122,8 +122,18 @@ export interface ModelMetadata {
   Relations: ModelGraph;
   /**
    * Ancestors of the model
+   *
+   * Ordered from the closest to the farest
+   * CoreModel is ignored
+   *
+   * class Test extends Parent extends GrandParent extends CoreModel
+   * ["Parent", "GrandParent"]
    */
   Ancestors: string[];
+  /**
+   * Direct Subclasses of the model
+   */
+  Subclasses: string[];
 }
 
 export type ServiceMetadata = {
@@ -134,7 +144,7 @@ export type ServiceMetadata = {
   /**
    * Schema defining the service
    */
-  Schema: JSONSchema7;
+  Schema?: JSONSchema7;
 };
 
 /**
@@ -470,6 +480,14 @@ export class WebdaProject {
       this.namespace = this.namespace.charAt(0).toUpperCase() + this.namespace.slice(1);
     }
     this.namespace ??= "Webda";
+  }
+
+  on(event: string, listener: (...args: any[]) => void) {
+    this.output.on(event, listener);
+  }
+
+  emit(event: string, ...args: any[]) {
+    this.output.emit(event, ...args);
   }
 
   getAppPath(path?: string) {

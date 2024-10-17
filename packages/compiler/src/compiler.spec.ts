@@ -20,6 +20,11 @@ class CompilerTest {
     // Check module is generated
     const info: WebdaModule = JSONUtils.loadFile(path.join(__dirname, "..", "..", "core", "webda.module.json"));
     assert.notStrictEqual(info, undefined);
+    // UuidModel extends CoreModel so it should not have any Ancestors as we ignore CoreModel
+    assert.ok(info.models["Webda/UuidModel"].Ancestors.length === 0);
+    assert.ok(info.models["Webda/UuidModel"].Subclasses.length > 0);
+    assert.deepStrictEqual(info.models["Webda/AbstractOwnerModel"].Ancestors, ["Webda/UuidModel"]);
+    assert.deepStrictEqual(info.models["Webda/AbstractOwnerModel"].Subclasses, ["Webda/OwnerModel"]);
   }
 
   @test
@@ -57,9 +62,6 @@ class CompilerTest {
 
   @test
   async compileSampleApp() {
-    const workerOutput = new WorkerOutput();
-    const file = new FileLogger(workerOutput, "TRACE", "./sample-app.log");
-    useWorkerOutput(workerOutput);
     const project = new WebdaProject(path.join(__dirname, "..", "..", "..", "sample-app"));
     assert.strictEqual(project.namespace, "WebdaDemo");
     const compiler = new Compiler(project);

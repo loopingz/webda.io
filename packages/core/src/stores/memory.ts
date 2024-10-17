@@ -45,9 +45,8 @@ class MemoryStoreParameters extends StoreParameters {
     compressionLevel?: number;
   };
 
-  constructor(params: any, service: MemoryStore) {
-    super(params, service);
-    Object.assign(this, params);
+  default() {
+    super.default();
     if (this.persistence) {
       this.persistence.delay ??= 1000;
       this.persistence.cipher ??= "aes-256-ctr";
@@ -227,8 +226,8 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
   /**
    * @override
    */
-  loadParameters(params: any): MemoryStoreParameters {
-    return new MemoryStoreParameters(params, this);
+  loadParameters(params: any): K {
+    return <K>new MemoryStoreParameters().load(params);
   }
 
   /**

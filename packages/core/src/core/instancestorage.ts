@@ -22,13 +22,14 @@ export type InstanceStorage = Partial<{
   interruptables: Set<{ cancel: () => Promise<void> }>;
 }>;
 
-const storage = new AsyncLocalStorage<InstanceStorage>();
+// Test are transpiling and creating several instances of 'instancestorage.ts'
+process["webdaInstanceStorage"] ??= new AsyncLocalStorage<InstanceStorage>();
+const storage = process["webdaInstanceStorage"];
 
 export function useInstanceStorage(): InstanceStorage {
   const store = storage.getStore();
   if (!store) {
-    useLog("ERROR", "Webda launched outside of a Webda context", storage.getStore());
-    throw new Error("Webda launched outside of a Webda context");
+    throw new Error("Webda launched outside of a InstanceStorage context");
   }
   return store;
 }

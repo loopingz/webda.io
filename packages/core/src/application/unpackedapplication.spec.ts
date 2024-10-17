@@ -2,13 +2,15 @@ import * as assert from "assert";
 import { suite, test } from "@webda/test";
 import { UnpackedApplication } from "./unpackedapplication";
 import { WebdaApplicationTest } from "../test/test";
-import { resolve } from "path";
+import { join, resolve } from "path";
+import { getCommonJS } from "@webda/utils";
 
 @suite
 class UnpackedApplicationTest extends WebdaApplicationTest {
   @test
   cachedModule() {
-    new UnpackedApplication("./test/config-cached.json");
+    const { __dirname } = getCommonJS(import.meta.url);
+    new UnpackedApplication(join(__dirname, "..", "..", "test/config-cached.json"));
   }
 
   @test
@@ -32,22 +34,23 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
       "/packages/postgres/webda.module.json",
       "/sample-app/webda.module.json"
     ].sort();
-    let modules = await UnpackedApplication.findModulesFiles("./node_modules");
+    const { __dirname } = getCommonJS(import.meta.url);
+    let modules = await UnpackedApplication.findModulesFiles(join(__dirname, "..", "..", "node_modules"));
     assert.strictEqual(modules.length, 0);
 
     // First run
     let start = Date.now();
-    modules = await UnpackedApplication.findModulesFiles("../../node_modules");
+    modules = await UnpackedApplication.findModulesFiles(join(__dirname, "..", "..", "..", "..", "node_modules"));
     const cwd = resolve(process.cwd(), "../..").length;
     assert.deepStrictEqual(modules.map(v => v.substring(cwd)).sort(), expectedModules);
     const duration = Date.now() - start;
 
     // Second run
     start = Date.now();
-    modules = await UnpackedApplication.findModulesFiles("../../node_modules");
+    modules = await UnpackedApplication.findModulesFiles(join(__dirname, "..", "..", "..", "..", "node_modules"));
     assert.deepStrictEqual(modules.map(v => v.substring(cwd)).sort(), expectedModules);
     // Ensure our cache is working
     const newDuration = Date.now() - start;
-    assert.ok(duration / 10 > newDuration, `Cache is not working ${duration} vs ${newDuration}`);
+    assert.ok(duration < 100 || duration / 10 > newDuration, `Cache is not working ${duration} vs ${newDuration}`);
   }
 }

@@ -47,10 +47,10 @@ export class QueueParameters extends ServiceParameters {
   /**
    * @inheritdoc
    */
-  constructor(params: any) {
-    super();
-    this.workerParallelism = params.workerParallelism ?? true;
-    this.maxConsumers = params.maxConsumers ?? 10;
+  default() {
+    super.default();
+    this.workerParallelism ??= true;
+    this.maxConsumers ??= 10;
   }
 }
 

@@ -11,7 +11,7 @@ import {
   Configuration,
   GitInformation,
   IApplication,
-  Module,
+  WebdaModule,
   PackageDescriptor,
   Section,
   UnpackedConfiguration,
@@ -55,7 +55,7 @@ export class Application implements IApplication {
   /**
    * Contains definitions of current application
    */
-  protected appModule: Module = {
+  protected appModule: WebdaModule = {
     moddas: {},
     models: {},
     schemas: {}
@@ -147,9 +147,7 @@ export class Application implements IApplication {
    * Import all required modules
    */
   async load(): Promise<this> {
-    if (this.configurationFile) {
-      this.loadConfiguration(this.configurationFile);
-    }
+    await this.loadConfiguration(this.configurationFile);
     await this.loadModule(this.baseConfiguration.cachedModules);
     this.setModelsMetadata();
     return this;
@@ -160,27 +158,21 @@ export class Application implements IApplication {
    */
   setModelsMetadata() {
     for (const model in this.models) {
-      /*
-      const info = this.getModelHierarchy(model);
+      if (!this.models[model]) {
+        this.log("ERROR", `Model ${model} is not defined`);
+        continue;
+      }
+      const info = this.baseConfiguration.cachedModules.models[model];
       const metadata = {
-        ...(this.models[model]["Metadata"] || {}),
         Identifier: model,
-        Ancestors: info.ancestors.map(a => this.models[a]).filter(m => m),
-        Subclasses: Object.keys(info.children)
-          .map(c => this.models[c])
-          .filter(m => m),
-        Relations: this.getRelations(model),
+        Ancestors: info.Ancestors.map(a => this.models[a]).filter(m => m),
+        Subclasses: info.Subclasses.map(c => this.models[c]).filter(m => m),
+        Relations: info.Relations,
         Schema: this.getSchema(model)
       };
-      */
       // @ts-ignore
-      this.models[model]["Metadata"] = Object.freeze({
-        Identifier: model,
-        Ancestors: [],
-        Subclasses: [],
-        Relations: {},
-        Schema: {}
-      });
+      this.models[model].Metadata = Object.freeze(metadata);
+      this.log("TRACE", `Set metadata for ${model}`, metadata);
     }
   }
 
@@ -190,7 +182,7 @@ export class Application implements IApplication {
    * @param file
    * @returns
    */
-  loadConfiguration(file: string): void {
+  async loadConfiguration(file: string): Promise<void> {
     // Check if file is a file or folder
     if (file && !fs.existsSync(file)) {
       throw new WebdaError.CodeError(
@@ -199,7 +191,7 @@ export class Application implements IApplication {
       );
     }
     try {
-      this.baseConfiguration ??= FileUtils.load(file);
+      this.baseConfiguration ??= file ? FileUtils.load(file) : {};
       this.baseConfiguration.parameters ??= {};
       this.baseConfiguration.parameters.defaultStore ??= "Registry";
       if (this.baseConfiguration.version !== 4) {
@@ -717,7 +709,7 @@ export class Application implements IApplication {
    * @protected
    * @ignore Useless for documentation
    */
-  async loadModule(module: Module, parent: string = this.appPath) {
+  async loadModule(module: WebdaModule, parent: string = this.appPath) {
     if (!module) {
       return;
     }
@@ -731,7 +723,7 @@ export class Application implements IApplication {
     await Promise.all([
       sectionLoader("moddas"),
       sectionLoader("models"),
-      ...Object.keys(info.beans)
+      ...Object.keys(info.beans || {})
         .filter(f => {
           if (this.baseConfiguration?.parameters?.ignoreBeans === true) {
             return false;

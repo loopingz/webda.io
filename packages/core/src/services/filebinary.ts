@@ -32,8 +32,8 @@ export class FileBinaryParameters extends CloudBinaryParameters {
    */
   url?: string;
 
-  constructor(params: any, service: BinaryService) {
-    super(params, service);
+  default() {
+    super.default();
     if (!this.folder.endsWith("/")) {
       this.folder += "/";
     }
@@ -70,8 +70,8 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    *
    * @param params
    */
-  loadParameters(params: any): CloudBinaryParameters {
-    return new FileBinaryParameters(params, this);
+  loadParameters(params: any): T {
+    return <T>new FileBinaryParameters().load(params);
   }
 
   /**

@@ -121,8 +121,8 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<T>): ServiceParameters {
-    return new CryptoServiceParameters(params);
+  loadParameters(params: DeepPartial<T>): T {
+    return <T>new CryptoServiceParameters().load(params);
   }
 
   /**

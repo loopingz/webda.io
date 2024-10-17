@@ -1520,7 +1520,12 @@
           }
         ]
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "Webda/UuidModel"
+      ],
+      "Subclasses": [
+        "Webda/OwnerModel"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1587,6 +1592,7 @@
       "Import": "lib/models/aclmodel:AclModel",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1644,6 +1650,7 @@
       "Import": "lib/models/coremodel:CoreModel",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1702,7 +1709,12 @@
           }
         ]
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "Webda/OwnerModel",
+        "Webda/AbstractOwnerModel",
+        "Webda/UuidModel"
+      ],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1815,7 +1827,13 @@
           }
         ]
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "Webda/AbstractOwnerModel",
+        "Webda/UuidModel"
+      ],
+      "Subclasses": [
+        "Webda/Ident"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1881,6 +1899,7 @@
       "Import": "lib/models/registry:RegistryModel",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1933,6 +1952,7 @@
       "Import": "lib/models/rolemodel:RoleModel",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1997,7 +2017,10 @@
           }
         ]
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "Webda/User"
+      ],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2105,6 +2128,9 @@
       "Import": "lib/models/user:User",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [
+        "Webda/SimpleUser"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2180,6 +2206,9 @@
       "Import": "lib/models/uuid:UuidModel",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [
+        "Webda/AbstractOwnerModel"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2234,6 +2263,2066 @@
     }
   },
   "schemas": {
+    "Webda/AbstractOwnerModel": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object The owner can be changed by the owner",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "AbstractOwnerModel"
+    },
+    "Webda/AclModel": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "description": "Object that contains ACL to define its own permissions",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "AclModel"
+    },
+    "Webda/CoreModel": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "description": "Basic Object in Webda\n\nIt is used to define a data stored Any variable starting with _ can only be set by the server Any variable starting with __ won't be exported outside of the server",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "CoreModel"
+    },
+    "Webda/Ident": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        },
+        "_type": {
+          "type": "string",
+          "description": "Type of the ident",
+          "readOnly": true
+        },
+        "uid": {
+          "type": "string",
+          "description": "Uid on the provider"
+        },
+        "_lastUsed": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last time the ident was used",
+          "readOnly": true
+        },
+        "_failedLogin": {
+          "type": "number",
+          "description": "If the ident is validated",
+          "readOnly": true
+        },
+        "_lastValidationEmail": {
+          "type": "number",
+          "description": "If EmailIdent",
+          "readOnly": true
+        },
+        "_validation": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the ident was validated",
+          "readOnly": true
+        },
+        "email": {
+          "type": "string",
+          "description": "Email for this ident if it exist"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider id"
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "uid"
+      ],
+      "description": "First basic model for Ident",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "Ident"
+    },
+    "Webda/OwnerModel": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "public": {
+          "type": "boolean",
+          "description": "Define if the object is publicly readable",
+          "default": false
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "OwnerModel"
+    },
+    "Webda/RegistryModel": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "description": "Specific type for registry",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "RegistryModel"
+    },
+    "Webda/RoleModel": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "RoleModel"
+    },
+    "Webda/SimpleUser": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        },
+        "_groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Groups for a user",
+          "readOnly": true
+        },
+        "_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Roles of the user",
+          "readOnly": true
+        },
+        "_idents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "displayName"
+      ],
+      "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no models",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "SimpleUser"
+    },
+    "Webda/User": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "displayName"
+      ],
+      "description": "First basic model for User",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "User"
+    },
+    "Webda/UuidModel": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/AsyncEventUnknown"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "description": "CoreModel with a uuid",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "AsyncEventUnknown": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "AsyncEventUnknown is a type that represents an object with string keys and unknown values"
+        }
+      },
+      "title": "UuidModel"
+    },
+    "Webda/Authentication": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "identModel": {
+          "type": "string",
+          "description": "Idents store for authentication identifiers",
+          "default": "Webda/Ident"
+        },
+        "userModel": {
+          "type": "string",
+          "description": "User store for authentication users",
+          "default": "Webda/User"
+        },
+        "url": {
+          "type": "string",
+          "default": "/auth"
+        },
+        "email": {
+          "type": "object",
+          "properties": {
+            "mailer": {
+              "type": "string",
+              "description": "Mailer service name"
+            },
+            "postValidation": {
+              "type": "boolean",
+              "description": "Allow user to create their account without validating their email first"
+            },
+            "skipEmailValidation": {
+              "type": "boolean",
+              "description": "Do not even validate the email at all"
+            },
+            "delay": {
+              "type": "number",
+              "description": "Minimal delay between two password recovery or validation email",
+              "default": "3600000 * 4"
+            },
+            "failedLoginBeforeDelay": {
+              "type": "number",
+              "description": "When a delay is added between two attempt to authenticate",
+              "default": 3
+            }
+          },
+          "required": [
+            "postValidation",
+            "skipEmailValidation",
+            "delay",
+            "failedLoginBeforeDelay"
+          ],
+          "description": "Enable the email authentication"
+        },
+        "password": {
+          "type": "object",
+          "properties": {
+            "verifier": {
+              "type": "string",
+              "description": "Password verifier Service name"
+            },
+            "regexp": {
+              "type": "string",
+              "description": "Regexp that password must check",
+              "default": "{8,}"
+            }
+          }
+        },
+        "salt": {
+          "type": "string",
+          "description": "Number of salt iteration for bcrypt.hashSync"
+        },
+        "failureRedirect": {
+          "type": "string",
+          "description": "Redirect to this page when email validation failed"
+        },
+        "successRedirect": {
+          "type": "string",
+          "description": "Redirect to this page when email validation succeed"
+        },
+        "registerRedirect": {
+          "type": "string",
+          "description": "Redirect to this page once email is validate to finish the registration process"
+        }
+      },
+      "required": [
+        "failureRedirect",
+        "password",
+        "registerRedirect",
+        "salt",
+        "successRedirect",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Authentication"
+    },
+    "Webda/Binary": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
+        },
+        "maxFileSize": {
+          "type": "number",
+          "description": "Define the maximum filesize to accept as direct upload",
+          "default": "10*1024*1024"
+        }
+      },
+      "required": [
+        "models",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BinaryService"
+    },
+    "Webda/ConfigurationService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "checkInterval": {
+          "type": "number",
+          "description": "Check configuration every {checkInterval} seconds"
+        },
+        "source": {
+          "type": "string",
+          "description": "Format sourceServiceName:sourceId"
+        },
+        "default": {
+          "description": "Default configuration to use"
+        }
+      },
+      "required": [
+        "checkInterval",
+        "default",
+        "source",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ConfigurationService"
+    },
+    "Webda/CookieSessionManager": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "jwt": {
+          "type": "object",
+          "properties": {
+            "secretOrPublicKey": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "BYTES_PER_ELEMENT": {
+                      "type": "number"
+                    },
+                    "buffer": {
+                      "$ref": "#/definitions/ArrayBufferLike"
+                    },
+                    "byteLength": {
+                      "type": "number"
+                    },
+                    "byteOffset": {
+                      "type": "number"
+                    },
+                    "length": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "BYTES_PER_ELEMENT",
+                    "buffer",
+                    "byteLength",
+                    "byteOffset",
+                    "length"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "passphrase": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "passphrase"
+                  ]
+                }
+              ],
+              "description": "Secret to use with JWT"
+            },
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "HS256",
+                "HS384",
+                "HS512",
+                "RS256",
+                "RS384",
+                "RS512",
+                "PS256",
+                "PS384",
+                "PS512",
+                "ES256",
+                "ES384",
+                "ES512"
+              ],
+              "description": "Algorithm for JWT token",
+              "default": "HS256"
+            },
+            "expiresIn": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\")."
+            },
+            "audience": {
+              "type": "string",
+              "description": "Audience for the jwt"
+            },
+            "issuer": {
+              "type": "string",
+              "description": "Issuer of the token"
+            },
+            "subject": {
+              "type": "string",
+              "description": "Subject for JWT"
+            },
+            "keyid": {}
+          },
+          "description": "Options for issue JWT token"
+        },
+        "cookie": {
+          "type": "object",
+          "properties": {
+            "sameSite": {
+              "type": "string",
+              "enum": [
+                "none",
+                "strict",
+                "lax"
+              ],
+              "default": "lax"
+            },
+            "domain": {
+              "type": "boolean",
+              "enum": [
+                true
+              ],
+              "description": "if true domain will be set to the request hostname if undefined no domain will be output (browser will use the current domain and only this one) if a string is provided it will be used as the domain\n\nWhen provided a domain is setting the cookie to be available to all subdomains"
+            },
+            "maxAge": {
+              "type": "number",
+              "minimum": 1,
+              "default": "86400 * 7"
+            },
+            "path": {
+              "type": "string",
+              "default": "/"
+            },
+            "httpOnly": {
+              "type": "boolean",
+              "default": true
+            },
+            "secure": {
+              "type": "boolean",
+              "description": "If not set will be true if https request and false otherwise If defined it will be set to the value"
+            },
+            "name": {
+              "type": "string",
+              "description": "Name of the cookie"
+            }
+          },
+          "description": "Cookie configuration for session"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ArrayBufferLike": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "byteLength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "byteLength"
+              ]
+            },
+            {}
+          ]
+        }
+      },
+      "title": "CookieSessionManager"
+    },
+    "Webda/CronService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CronService"
+    },
+    "Webda/CryptoService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "keyActiveLifespan": {
+          "type": "number",
+          "description": "Number of hours a key should be used for encryption\n\nif auto-rotate is not set this"
+        },
+        "keyLifespan": {
+          "type": "number",
+          "description": "Number of hours allowed to decrypt data encrypted with this key"
+        },
+        "autoRotate": {
+          "type": "number",
+          "description": "Try to rotate keys when they expire in days"
+        },
+        "autoCreate": {
+          "type": "boolean",
+          "description": "Create first set of key if does not exist"
+        },
+        "url": {
+          "type": "string",
+          "description": "To expose JWKS"
+        },
+        "asymetricType": {
+          "type": "string",
+          "enum": [
+            "rsa",
+            "dsa",
+            "ec",
+            "ed25519",
+            "ed448",
+            "x25519",
+            "x448",
+            "dh"
+          ],
+          "description": "Type of asymetric key\n\nhttps://nodejs.org/api/crypto.html#cryptogeneratekeypairsynctype-options https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_crypto_generatekeypairsync_type_options"
+        },
+        "asymetricOptions": {
+          "type": "object",
+          "properties": {
+            "modulusLength": {
+              "type": "number",
+              "default": 2048
+            },
+            "namedCurve": {
+              "type": "string",
+              "description": "Only if asymetricType \"ec\""
+            },
+            "publicKeyEncoding": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "spki",
+                    "pkcs1"
+                  ],
+                  "default": "spki"
+                },
+                "format": {
+                  "type": "string",
+                  "const": "pem"
+                }
+              }
+            },
+            "privateKeyEncoding": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "pkcs1",
+                    "pkcs8",
+                    "sec1"
+                  ],
+                  "description": "https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_keyobject_export_options",
+                  "default": "pkcs8"
+                },
+                "format": {
+                  "type": "string",
+                  "const": "pem"
+                },
+                "cipher": {
+                  "type": "string"
+                },
+                "passphrase": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "description": "Options for asymetric generation"
+        },
+        "symetricKeyLength": {
+          "type": "number",
+          "default": 256
+        },
+        "symetricCipher": {
+          "type": "string",
+          "default": "aes-256-ctr"
+        },
+        "jwt": {
+          "type": "object",
+          "properties": {
+            "secretOrPublicKey": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "BYTES_PER_ELEMENT": {
+                      "type": "number"
+                    },
+                    "buffer": {
+                      "$ref": "#/definitions/ArrayBufferLike"
+                    },
+                    "byteLength": {
+                      "type": "number"
+                    },
+                    "byteOffset": {
+                      "type": "number"
+                    },
+                    "length": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "BYTES_PER_ELEMENT",
+                    "buffer",
+                    "byteLength",
+                    "byteOffset",
+                    "length"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "passphrase": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "passphrase"
+                  ]
+                }
+              ],
+              "description": "Secret to use with JWT"
+            },
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "HS256",
+                "HS384",
+                "HS512",
+                "RS256",
+                "RS384",
+                "RS512",
+                "PS256",
+                "PS384",
+                "PS512",
+                "ES256",
+                "ES384",
+                "ES512"
+              ],
+              "description": "Algorithm for JWT token",
+              "default": "HS256"
+            },
+            "expiresIn": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\")."
+            },
+            "audience": {
+              "type": "string",
+              "description": "Audience for the jwt"
+            },
+            "issuer": {
+              "type": "string",
+              "description": "Issuer of the token"
+            },
+            "subject": {
+              "type": "string",
+              "description": "Subject for JWT"
+            },
+            "keyid": {}
+          },
+          "description": "Default JWT options"
+        }
+      },
+      "required": [
+        "asymetricType",
+        "keyActiveLifespan",
+        "keyLifespan",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ArrayBufferLike": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "byteLength": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "byteLength"
+              ]
+            },
+            {}
+          ]
+        }
+      },
+      "title": "CryptoService"
+    },
+    "Webda/DebugMailer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DebugMailer"
+    },
+    "Webda/FileBinary": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
+        },
+        "maxFileSize": {
+          "type": "number",
+          "description": "Define the maximum filesize to accept as direct upload",
+          "default": "10*1024*1024"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "folder": {
+          "type": "string",
+          "description": "Define the folder to store objects in"
+        },
+        "maxSize": {
+          "type": "number",
+          "description": "Maximum size to handle",
+          "default": "10Mb"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to use for direct download"
+        }
+      },
+      "required": [
+        "folder",
+        "models",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FileBinary"
+    },
+    "Webda/FileConfiguration": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "checkInterval": {
+          "type": "number",
+          "description": "Check configuration every {checkInterval} seconds"
+        },
+        "source": {
+          "type": "string",
+          "description": "Format sourceServiceName:sourceId"
+        },
+        "default": {
+          "description": "Default configuration to use"
+        }
+      },
+      "required": [
+        "checkInterval",
+        "default",
+        "source",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FileConfigurationService"
+    },
+    "Webda/FileLogger": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "logLevel": {
+          "$ref": "#/definitions/WorkerLogLevel",
+          "description": "Specify the log level of this service"
+        },
+        "format": {
+          "type": "string",
+          "description": "Format of the logs"
+        },
+        "file": {
+          "type": "string",
+          "description": "File to log into"
+        },
+        "sizeLimit": {
+          "type": "number",
+          "description": "Limit of the file"
+        }
+      },
+      "required": [
+        "file",
+        "logLevel",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WorkerLogLevel": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
+          "description": "LogLevel as intersection to compare with integer values"
+        }
+      },
+      "title": "FileLoggerService"
+    },
+    "Webda/FileQueue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "workerDelayer": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "expire": {
+          "type": "number",
+          "description": "Number of seconds before droping message",
+          "default": 30
+        },
+        "folder": {
+          "type": "string",
+          "description": "Where to store the queue"
+        }
+      },
+      "required": [
+        "folder",
+        "maxConsumers",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FileQueue"
+    },
+    "Webda/FileStore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "additionalModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional models\n\nAllow this store to manage other models",
+          "default": []
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
+          "default": false
+        },
+        "defaultModel": {
+          "type": "boolean",
+          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
+          "default": true
+        },
+        "forceModel": {
+          "type": "boolean",
+          "description": "If set, Store will ignore the __type",
+          "default": false
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
+        },
+        "modelAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model Aliases to allow easier rename of Model"
+        },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
+        },
+        "folder": {
+          "type": "string",
+          "description": "Local path where to store all `json` files"
+        },
+        "beautify": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Parameter sent to JSON.stringify when storing the json"
+        }
+      },
+      "required": [
+        "folder",
+        "slowQueryThreshold",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FileStore"
+    },
+    "Webda/InvitationService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "authenticationService": {
+          "type": "string",
+          "description": "Name of the bean to use for Authentication",
+          "default": "Authentication"
+        },
+        "notificationService": {
+          "type": "string",
+          "description": "Notification service",
+          "default": "Mailer"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model to use"
+        },
+        "invitationStore": {
+          "type": "string",
+          "description": "Used to store pending invitation"
+        },
+        "mapFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields to duplicate"
+        },
+        "mapAttribute": {
+          "type": "string",
+          "description": "Attribute to use for the mapping"
+        },
+        "attribute": {
+          "type": "string",
+          "description": "Attribute where to store once the invitation is accepted\n\nIf attribute is __acls, the multiple will be ignored and the storage will be compatible with AclModel\n\nWhere to store within the model User"
+        },
+        "pendingAttribute": {
+          "type": "string",
+          "description": "Attribute where to store once the invitation is created and pending\n\nWhere to store within the model Ident and User"
+        },
+        "multiple": {
+          "type": "boolean",
+          "description": "Define if several invitation can be accepted or just one"
+        },
+        "autoAccept": {
+          "type": "boolean",
+          "description": "Do not require a validation by the invitee"
+        },
+        "notification": {
+          "type": "string",
+          "description": "Email template to send to the user"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribute",
+        "authenticationService",
+        "autoAccept",
+        "invitationStore",
+        "mapAttribute",
+        "mapFields",
+        "model",
+        "multiple",
+        "pendingAttribute",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InvitationService"
+    },
+    "Webda/KubernetesConfigurationService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "checkInterval": {
+          "type": "number",
+          "description": "Check configuration every {checkInterval} seconds"
+        },
+        "source": {
+          "type": "string",
+          "description": "Format sourceServiceName:sourceId"
+        },
+        "default": {
+          "description": "Default configuration to use"
+        }
+      },
+      "required": [
+        "checkInterval",
+        "default",
+        "source",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KubernetesConfigurationService"
+    },
+    "Webda/Mailer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "templates": {
+          "type": "string",
+          "description": "Specify which foldeer contains templates",
+          "default": "templates"
+        },
+        "templatesEngine": {
+          "type": "string",
+          "description": "Template engine to usee",
+          "default": "mustache"
+        },
+        "sender": {
+          "type": "string",
+          "description": "Define the default sender"
+        },
+        "emailTemplateOptions": {},
+        "transport": {
+          "type": "string",
+          "description": "Define the type of transport to use"
+        },
+        "SES": {
+          "description": "SES AWS Bean if transport === \"ses\""
+        }
+      },
+      "required": [
+        "SES",
+        "sender",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Mailer"
+    },
+    "Webda/MemoryLogger": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "logLevel": {
+          "$ref": "#/definitions/WorkerLogLevel",
+          "description": "Specify the log level of this service"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Max size of the logs in memory"
+        }
+      },
+      "required": [
+        "logLevel",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WorkerLogLevel": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
+          "description": "LogLevel as intersection to compare with integer values"
+        }
+      },
+      "title": "MemoryLoggerService"
+    },
+    "Webda/MemoryQueue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "workerDelayer": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "expire": {
+          "type": "number",
+          "description": "Number of seconds before droping message",
+          "default": 30
+        }
+      },
+      "required": [
+        "maxConsumers",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MemoryQueue"
+    },
+    "Webda/MemoryStore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "additionalModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional models\n\nAllow this store to manage other models",
+          "default": []
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
+          "default": false
+        },
+        "defaultModel": {
+          "type": "boolean",
+          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
+          "default": true
+        },
+        "forceModel": {
+          "type": "boolean",
+          "description": "If set, Store will ignore the __type",
+          "default": false
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
+        },
+        "modelAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model Aliases to allow easier rename of Model"
+        },
+        "noCache": {
+          "type": "boolean",
+          "description": "Disable default memory cache"
+        },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "File path to save to"
+            },
+            "key": {
+              "type": "string",
+              "description": "Encryption key for AES encryption"
+            },
+            "delay": {
+              "type": "number",
+              "description": "By default only save once every 1s if modified",
+              "default": 1000
+            },
+            "cipher": {
+              "type": "string",
+              "description": "cipher to use"
+            },
+            "compressionLevel": {
+              "type": "number",
+              "description": "Compression level to use",
+              "default": 9
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "description": "Persist the data in a file"
+        }
+      },
+      "required": [
+        "slowQueryThreshold",
+        "type"
+      ],
+      "description": "Memory store",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MemoryStore"
+    },
+    "Webda/ModelsOperationsService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "operations": {
+          "type": "boolean",
+          "description": "Expose objects as operations too",
+          "default": true
+        },
+        "nameTransfomer": {
+          "$ref": "#/definitions/TransformCaseType",
+          "description": "Transform the name of the model to be used in the URL",
+          "default": "camelCase"
+        },
+        "queryMethod": {
+          "type": "string",
+          "enum": [
+            "PUT",
+            "GET"
+          ],
+          "description": "Method used for query objects",
+          "default": "PUT"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
+          "default": [
+            "*"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "TransformCaseType": {
+          "type": "string",
+          "enum": [
+            "none",
+            "camelCase",
+            "ENV_VAR",
+            "snake_case",
+            "PascalCase",
+            "kebab-case",
+            "UPPERCASE",
+            "lowercase"
+          ],
+          "description": "Transform the name of the model to be used in the URL"
+        }
+      },
+      "title": "ModelsOperationsService"
+    },
+    "Webda/MultiNotificationService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "senders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Notification service that will send The order of the array is important if multiple is false When multiple is `false` the first available NotificationService will be used, otherwise every available NotificationService will be used"
+        },
+        "multiple": {
+          "type": "boolean",
+          "description": "Define if it sends one or several notification per user",
+          "default": false
+        }
+      },
+      "required": [
+        "senders",
+        "type"
+      ],
+      "description": "Parameters for multi notification service",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MultiNotificationService"
+    },
+    "Webda/PrometheusService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "portNumber": {
+          "type": "number",
+          "description": "If defined will launch another http server to serve the scaper"
+        },
+        "bind": {
+          "type": "string",
+          "description": "If defined along with portNumber used to bind specific address for dedicated http server"
+        },
+        "url": {
+          "type": "string",
+          "default": "/metrics"
+        },
+        "includeNodeMetrics": {
+          "type": "boolean",
+          "description": "Include NodeJS engine metrics",
+          "default": true
+        },
+        "includeRequestMetrics": {
+          "type": "boolean",
+          "description": "Include request served by Webda\n\nIt should generate common http_* metrics",
+          "default": true
+        },
+        "partitionHistogram": {
+          "type": "boolean",
+          "description": "Do not partition histogram with requests labels"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Labels to add"
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix to add to metrics"
+        }
+      },
+      "required": [
+        "includeNodeMetrics",
+        "includeRequestMetrics",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PrometheusService"
+    },
+    "Webda/ResourceService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content",
+          "default": "resources"
+        },
+        "folder": {
+          "type": "string",
+          "description": "Folder to server",
+          "default": "\".\" + url"
+        },
+        "rootRedirect": {
+          "type": "boolean",
+          "description": "Add the / root to redirect to /{url}",
+          "default": false
+        },
+        "index": {
+          "type": "string",
+          "description": "Index file",
+          "default": "index.html"
+        },
+        "indexFallback": {
+          "type": "boolean",
+          "description": "Return the index file for any unfound resource Useful for single page application",
+          "default": true
+        },
+        "cacheControl": {
+          "type": "string",
+          "description": "Cache control header to set",
+          "default": "public, max-age=31536000"
+        },
+        "indexCacheControl": {
+          "type": "string",
+          "description": "Cache control for index file SPA usually do not cache the index file",
+          "default": "no-cache, no-store, must-revalidate"
+        },
+        "allowHiddenFiles": {
+          "type": "boolean",
+          "description": "Serve also . prefixed files . files usually have some secrets and should not be served",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "ResourceService parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ResourceService"
+    },
+    "Webda/RESTDomainService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "operations": {
+          "type": "boolean",
+          "description": "Expose objects as operations too",
+          "default": true
+        },
+        "nameTransfomer": {
+          "$ref": "#/definitions/TransformCaseType",
+          "description": "Transform the name of the model to be used in the URL",
+          "default": "camelCase"
+        },
+        "queryMethod": {
+          "type": "string",
+          "enum": [
+            "PUT",
+            "GET"
+          ],
+          "description": "Method used for query objects",
+          "default": "PUT"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
+          "default": [
+            "*"
+          ]
+        },
+        "exposeOpenAPI": {
+          "type": "boolean",
+          "description": "Expose the OpenAPI",
+          "default": "true if debug false otherwise"
+        },
+        "swaggerVersion": {
+          "type": "string",
+          "description": "Swagger version to use\n\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js",
+          "default": "3.19.5"
+        },
+        "url": {
+          "type": "string",
+          "description": "When to query"
+        }
+      },
+      "required": [
+        "exposeOpenAPI",
+        "swaggerVersion",
+        "type",
+        "url"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "TransformCaseType": {
+          "type": "string",
+          "enum": [
+            "none",
+            "camelCase",
+            "ENV_VAR",
+            "snake_case",
+            "PascalCase",
+            "kebab-case",
+            "UPPERCASE",
+            "lowercase"
+          ],
+          "description": "Transform the name of the model to be used in the URL"
+        }
+      },
+      "title": "RESTDomainService"
+    },
+    "Webda/Router": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "overrideWarning": {
+          "type": "boolean",
+          "description": "Display a WARNING if a route is overriden"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Router"
+    },
     "Webda/BinaryFile": {
       "type": "object",
       "properties": {

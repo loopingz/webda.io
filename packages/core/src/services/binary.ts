@@ -468,8 +468,8 @@ export class BinaryParameters extends ServiceParameters {
    */
   maxFileSize?: number;
 
-  constructor(params: any, _service: Service) {
-    super();
+  default() {
+    super.default();
     // Store all models in it by default
     this.models ??= {
       "*": ["*"]

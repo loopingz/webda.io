@@ -166,14 +166,14 @@ export abstract class OAuthService<
    *
    * @param params
    */
-  loadParameters(params: any): ServiceParameters {
+  loadParameters(params: any): T {
     const result = new OAuthServiceParameters(params);
     if (result.authorized_uris === undefined) {
       this.log("WARN", "Not defining authorized_uris is a security risk");
     } else {
       this.authorized_uris = new RegExpStringValidator(result.authorized_uris);
     }
-    return result;
+    return <T>result;
   }
 
   /**

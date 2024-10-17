@@ -1,4 +1,4 @@
-import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import { WorkerLogLevel, WorkerOutput, useLog } from "@webda/workout";
 import { Logger } from "./ilogger";
 import { AbstractService } from "../core/icore";
 import { AbstractCoreModel } from "../internal/iapplication";
@@ -9,15 +9,8 @@ import { useModelId } from "../application/hook";
  */
 let output: { log: (level, ...args) => void } = console;
 let workerOutput: WorkerOutput;
-/**
- * Use the log function
- * @param level
- * @param args
- */
-export function useLog(level: WorkerLogLevel, ...args) {
-  // We should play with the async storage
-  output.log(level, ...args);
-}
+
+export { useLog };
 
 export function setLogContext(object: { log: (level, ...args) => void }) {
   output = object;

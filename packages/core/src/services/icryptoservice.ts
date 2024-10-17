@@ -76,9 +76,7 @@ export class CryptoServiceParameters extends ServiceParameters {
    */
   jwt?: JWTOptions;
 
-  constructor(params: any) {
-    super();
-    Object.assign(this, params);
+  default() {
     this.symetricKeyLength ??= 256;
     this.symetricCipher ??= "aes-256-ctr";
     this.asymetricType ??= "rsa";

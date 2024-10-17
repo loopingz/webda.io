@@ -1,0 +1,59 @@
+{
+  "name": "@webda/cache",
+  "version": "4.0.0-beta.1",
+  "description": "Discovery and Subscriptions for CloudEvents",
+  "keywords": [
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/cache.js",
+  "typings": "lib/cache.d.ts",
+  "scripts": {
+    "build": "tsc-esm",
+    "build:watch": "tsc-esm --watch",
+    "pretest": "npm run build",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:debug": "vitest debug",
+    "test:coverage": "vitest --coverage",
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "skott": "^0.35.3",
+    "vitest": "^2.1.2"
+  },
+  "files": [
+    "lib"
+  ],
+  "c8": {
+    "report-dir": "./reports",
+    "reporter": [
+      "html",
+      "lcov",
+      "json",
+      "text"
+    ],
+    "exclude": [
+      "src/test.ts",
+      "**/*.spec.ts",
+      "test/**/*",
+      "*/stores/webdaql/WebdaQL*"
+    ],
+    "excludeNodeModules": true
+  },
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

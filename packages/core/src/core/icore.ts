@@ -106,8 +106,21 @@ export interface ICore {
   getService(name: string): AbstractService;
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);
+  validateSchema(
+    webdaObject: AbstractCoreModel | string,
+    object: any,
+    ignoreRequired?: boolean
+  ): NoSchemaResult | SchemaValidResult;
 }
 
+/**
+ * No schema was found
+ */
+export type NoSchemaResult = null;
+/**
+ * Object is valid against the schema
+ */
+export type SchemaValidResult = true;
 /**
  * Helper to define a ServiceContrustor
  */

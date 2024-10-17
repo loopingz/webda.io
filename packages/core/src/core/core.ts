@@ -1,5 +1,5 @@
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import Ajv from "ajv";
+import Ajv, { ValidationError } from "ajv";
 import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
@@ -17,15 +17,23 @@ import { Logger } from "../loggers/ilogger";
 import type { ConfigurationService } from "../services/configuration";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
-import { getUuid } from "@webda/utils";
-import { ICore, AbstractService, OperationDefinitionInfo, ServiceConstructor } from "./icore";
+import { getUuid, JSONUtils } from "@webda/utils";
+import {
+  ICore,
+  AbstractService,
+  OperationDefinitionInfo,
+  ServiceConstructor,
+  SchemaValidResult,
+  NoSchemaResult
+} from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
-import { RegistryModel, useRegistry } from "../models/registry";
+import { RegistryModel } from "../models/registry";
 import { Modda } from "../internal/iapplication";
+
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
@@ -64,6 +72,7 @@ export class Core implements ICore {
    * @hidden
    */
   protected configuration: Configuration;
+
   /**
    * JSON Schema validator instance
    */
@@ -674,5 +683,41 @@ export class Core implements ICore {
   registerContextProvider(provider: ContextProvider) {
     this.contextProviders ??= [];
     this.contextProviders.unshift(provider);
+  }
+
+  /**
+   * @override
+   */
+  validateSchema(
+    webdaObject: AbstractCoreModel | string,
+    object: any,
+    ignoreRequired?: boolean
+  ): NoSchemaResult | SchemaValidResult {
+    let name = typeof webdaObject === "string" ? webdaObject : useModelId(webdaObject);
+    let cacheName = name;
+    if (name?.endsWith("?")) {
+      name = name.substring(0, name.length - 1);
+      ignoreRequired = true;
+    }
+    if (ignoreRequired) {
+      cacheName += "_noRequired";
+    }
+    if (!this._ajvSchemas[cacheName]) {
+      let schema = this.application.getSchema(name);
+      if (!schema) {
+        return null;
+      }
+      if (ignoreRequired) {
+        schema = JSONUtils.duplicate(schema);
+        schema.required = [];
+      }
+      this.log("TRACE", "Add schema for", name);
+      this._ajv.addSchema(schema, cacheName);
+      this._ajvSchemas[cacheName] = true;
+    }
+    if (this._ajv.validate(cacheName, object)) {
+      return true;
+    }
+    throw new ValidationError(this._ajv.errors);
   }
 }

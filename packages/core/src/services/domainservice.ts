@@ -52,9 +52,8 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   private excludedModels: string[];
 
-  constructor(params: DeepPartial<DomainServiceParameters>) {
-    super();
-    Object.assign(this, params);
+  default(): void {
+    super.default();
     // Init default here
     this.operations ??= true;
     this.nameTransfomer ??= "camelCase";
@@ -198,7 +197,7 @@ export abstract class DomainService<
    * @param params
    * @param name
    */
-  abstract loadParameters(params: DeepPartial<T>): DomainServiceParameters;
+  abstract loadParameters(params: DeepPartial<T>): T;
 
   /**
    * Return the model name for this service
@@ -767,8 +766,8 @@ export class ModelsOperationsService<T extends DomainServiceParameters> extends 
   /**
    * Default domain
    */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
-    return new DomainServiceParameters(params);
+  loadParameters(params: DeepPartial<DomainServiceParameters>): T {
+    return <T>new DomainServiceParameters().load(params);
   }
 
   /**

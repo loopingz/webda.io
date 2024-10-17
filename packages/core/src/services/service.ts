@@ -211,17 +211,14 @@ abstract class Service<
   }
 
   /**
-   * Load the parameters for a service
-   */
-  loadParameters(params: DeepPartial<T>): ServiceParameters {
-    return new ServiceParameters();
-  }
-
-  /**
    * Used to compute or derivate input parameter to attribute
    */
   computeParameters(): void {
     // Can be overriden by subclasses if needed
+  }
+
+  loadParameters(params: DeepPartial<T>): T {
+    return <T>new ServiceParameters().load(params);
   }
 
   /**

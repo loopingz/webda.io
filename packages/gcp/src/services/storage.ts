@@ -5,16 +5,15 @@ import {
   BinaryParameters,
   CloudBinary,
   CoreModel,
-  DeepPartial,
   OperationContext,
-  StorageFinder,
-  Throttler,
   WebContext
 } from "@webda/core";
+import { StorageFinder, Throttler } from "@webda/utils";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream, Writable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { DeepPartial } from "@webda/tsc-esm";
 
 export type StorageObject = {
   key: string;
@@ -58,9 +57,8 @@ export class StorageParameters extends BinaryParameters {
    */
   endpoint?: string;
 
-  constructor(params: any, service: Storage) {
-    super(params, service);
-    this.prefix = "";
+  default() {
+    this.prefix ??= "";
   }
 }
 
@@ -181,8 +179,8 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    *
    * @param params
    */
-  loadParameters(params: DeepPartial<T>): StorageParameters {
-    return new StorageParameters(params, this);
+  loadParameters(params: DeepPartial<T>): T {
+    return <T>new StorageParameters().load(params);
   }
 
   /**
@@ -293,7 +291,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
         challenge: file.challenge
       });
     }
-    await this.putMarker(file.hash, `${property}_${object.getUuid()}`, object.getStore().getName());
+    await this.putMarker(file.hash, `${property}_${object.getUuid()}`, object.store().getName());
     await this.uploadSuccess(<any>object, property, file);
   }
 
@@ -303,7 +301,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   async deleteObject({ bucket, key }: StorageObject): Promise<void> {
     await this.getStorageBucket(bucket).file(key).delete();
-    this._webda.log("DEBUG", `gs://${bucket}/${key} deleted`);
+    this.log("DEBUG", `gs://${bucket}/${key} deleted`);
   }
 
   /**
@@ -313,7 +311,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   async moveObject(source: StorageObject, destination: StorageObject): Promise<void> {
     const newFile = this.getStorageBucket(destination.bucket).file(destination.key);
-    this._webda.log(
+    this.log(
       "DEBUG",
       `moveObject gs://${source.bucket}/${source.key} => gs://${destination.bucket}/${destination.key}`
     );
@@ -380,7 +378,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
       expires: Date.now() + expires * 1000
     };
     const [url] = await this.getStorageBucket(bucket).file(key).getSignedUrl(options);
-    this._webda.log("TRACE", `The signed url for ${bucket}/${key} is ${url}.`);
+    this.log("TRACE", `The signed url for ${bucket}/${key} is ${url}.`);
     return url;
   }
 

@@ -1,0 +1,17 @@
+# Use to update webda.module.json on release-please branches
+on:
+  push:
+    branches:
+      - release-please/*
+
+permissions:
+  contents: write
+  pull-requests: write
+
+name: update-webda-module
+jobs:
+  ensure-module:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          yarn && yarn build

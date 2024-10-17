@@ -137,7 +137,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   }
 
   loadParameters(params) {
-    return new StoreParameters(params, this);
+    return new StoreParameters().load(params);
   }
 
   _template() {}
@@ -280,24 +280,18 @@ export class TestApplication extends UnpackedApplication {
    */
   loadWebdaModule(moduleFile: string): CachedModule {
     // Test are using ts-node so local source should be loaded from .ts with ts-node aswell
-    if (process.cwd() === path.dirname(moduleFile)) {
+    if (process.cwd() === path.dirname(moduleFile) + "/") {
       const module = FileUtils.load(moduleFile);
       Object.keys(SectionEnum)
         .filter(k => Number.isNaN(+k))
         .forEach(p => {
           for (const key in module[SectionEnum[p]]) {
-            module[SectionEnum[p]][key] = path.join(
+            module[SectionEnum[p]][key].Import = path.join(
               path.relative(this.getAppPath(), path.dirname(moduleFile)),
-              module[SectionEnum[p]][key].replace(/^lib\//, "src/").replace(":", ".ts:")
+              module[SectionEnum[p]][key].Import.replace(/^lib\//, "src/").replace(":", ".ts:")
             );
           }
         });
-      for (const key in module.models.list) {
-        module.models.list[key] = path.join(
-          path.relative(this.getAppPath(), path.dirname(moduleFile)),
-          module.models.list[key].replace(/^lib\//, "src/").replace(":", ".ts:")
-        );
-      }
       return module;
     }
     return super.loadWebdaModule(moduleFile);

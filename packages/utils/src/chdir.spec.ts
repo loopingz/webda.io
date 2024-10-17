@@ -1,14 +1,16 @@
 import { suite, test } from "@webda/test";
 import { readdirSync } from "fs";
-import { deepStrictEqual, strictEqual, notStrictEqual, rejects, ok } from "assert";
+import { deepStrictEqual, rejects, ok } from "assert";
 import { runWithCurrentDirectory } from "./chdir";
+import { getCommonJS } from "../lib";
 
 @suite
 class ChdirTest {
   @test
   testChdir() {
+    const { __dirname } = getCommonJS(import.meta.url);
     // Test the chdir function
-    runWithCurrentDirectory("./src", () => {
+    runWithCurrentDirectory(__dirname + "/../src", () => {
       deepStrictEqual(readdirSync("."), [
         "case.spec.ts",
         "case.ts",
@@ -29,7 +31,7 @@ class ChdirTest {
         "waiter.ts"
       ]);
     });
-    ok(readdirSync(".").includes("src"));
+    ok(readdirSync(__dirname + "/../").includes("src"));
   }
 
   @test

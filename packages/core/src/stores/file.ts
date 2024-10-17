@@ -13,12 +13,6 @@ export class FileStoreParameters extends StoreParameters {
    * Parameter sent to JSON.stringify when storing the json
    */
   beautify?: string | number;
-
-  constructor(params, store) {
-    super(params, store);
-    this.folder = params.folder;
-    this.beautify = params.beautify;
-  }
 }
 
 /**
@@ -40,8 +34,8 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters> exte
   /**
    * Load the parameters for a service
    */
-  loadParameters(params: any): FileStoreParameters {
-    return new FileStoreParameters(params, this);
+  loadParameters(params: any): K {
+    return <K>new FileStoreParameters().load(params);
   }
 
   /**

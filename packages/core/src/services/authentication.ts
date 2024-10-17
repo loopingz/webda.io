@@ -189,9 +189,8 @@ export class AuthenticationParameters extends ServiceParameters {
    */
   registerRedirect: string;
 
-  constructor(params: any) {
-    super();
-    Object.assign(this, params);
+  default() {
+    super.default();
     this.identModel ??= "Webda/Ident";
     this.userModel ??= "Webda/User";
     this.url ??= "/auth";
@@ -277,8 +276,8 @@ class Authentication<
   /**
    * Load the parameters for a service
    */
-  loadParameters(params: any): AuthenticationParameters {
-    return new AuthenticationParameters(params);
+  loadParameters(params: any): T {
+    return <T>new AuthenticationParameters().load(params);
   }
 
   /**

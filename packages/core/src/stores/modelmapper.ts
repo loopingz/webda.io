@@ -4,6 +4,8 @@ import type { CoreModelEvents } from "../models/imodel";
 import { ModelDefinition } from "../internal/iapplication";
 import { ModelRef } from "../models/relations";
 import { Service } from "../services/service";
+import { DeepPartial } from "@webda/tsc-esm";
+import { ServiceParameters } from "../interfaces";
 
 export interface Mapper {
   modelAttribute: string;
@@ -86,6 +88,14 @@ export class ModelMapper extends Service {
     return targetUuids.filter(p => p);
   }
 
+  /**
+   *
+   * @param params
+   * @returns
+   */
+  loadParameters(params: DeepPartial<ServiceParameters>): ServiceParameters {
+    return new ServiceParameters().load(params);
+  }
   /**
    * Handle event
    * @param modelName

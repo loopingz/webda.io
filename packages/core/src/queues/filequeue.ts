@@ -17,8 +17,7 @@ export class FileQueueParameters extends QueueParameters {
    */
   folder: string;
 
-  constructor(params: any) {
-    super(params);
+  default() {
     this.expire = this.expire ?? 30;
     this.expire *= 1000;
   }
@@ -33,8 +32,8 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
   /**
    * @inheritdoc
    */
-  loadParameters(params: any): ServiceParameters {
-    return new FileQueueParameters(params);
+  loadParameters(params: any): K {
+    return <K>new FileQueueParameters().load(params);
   }
 
   /**

@@ -1,5 +1,5 @@
-import { ConsoleLogger, FileLogger, MemoryLogger, useWorkerOutput, WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
+import { useWorkerOutput, WorkerLogLevel } from "@webda/workout";
+import { existsSync, unlinkSync } from "fs";
 import { register } from "prom-client";
 
 import { PrometheusService } from "../services/prometheus";
@@ -23,7 +23,7 @@ import { useCore, useService } from "../core/hooks";
 import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects";
 import { InstanceStorage, runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage";
 import { Application } from "../application/application";
-import { useLog } from "../loggers/hooks";
+import { useLog } from "@webda/workout";
 import { CallbackOptionallyAsync, WebdaTest } from "@webda/test";
 
 export class WebdaAsyncStorageTest extends WebdaTest {
@@ -37,15 +37,12 @@ export class WebdaAsyncStorageTest extends WebdaTest {
     callback: CallbackOptionallyAsync,
     instance?: WebdaAsyncStorageTest
   ) => {
-    useLog("INFO", "wrap", type);
     if (type === "beforeAll") {
-      useLog("INFO", "beforeAll runWithInstanceStorage", new Date());
       return <Promise<void>>runWithInstanceStorage({}, async () => {
-        useLog("INFO", "beforeAll call callback", useInstanceStorage(), new Date(), callback);
+        // @ts-ignore
         await callback();
-        useLog("INFO", "beforeAll callback finished", new Date());
         this.globalContext = useInstanceStorage();
-        this.globalContext.caches = JSON.stringify(this.globalContext.caches);
+        this.globalContext.caches = JSON.stringify(this.globalContext.caches || {});
       });
     } else if (type === "beforeEach") {
       return <Promise<void>>runWithInstanceStorage(
@@ -165,14 +162,12 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @param init wait for the full init
    */
   static async beforeAll(init: boolean = true) {
-    useLog("INFO", "beforeAll - buildWebda", new Date());
     // Reset any prometheus
     // @ts-ignore
     PrometheusService.nodeMetricsRegistered = false;
     // @ts-ignore
     PrometheusService.requestMetricsRegistered = false;
     register.clear();
-
     const core = await this.buildWebda();
     if (init) {
       await core.init();

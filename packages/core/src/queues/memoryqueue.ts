@@ -15,9 +15,9 @@ export class MemoryQueueParameters extends QueueParameters {
    */
   expire?: number;
 
-  constructor(params: any) {
-    super(params);
-    this.expire = this.expire ?? 30;
+  default() {
+    super.default();
+    this.expire ??= 30;
     this.expire *= 1000;
   }
 }
@@ -40,8 +40,8 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
    * @param params
    * @ignore
    */
-  loadParameters(params: any): ServiceParameters {
-    return new MemoryQueueParameters(params);
+  loadParameters(params: any): K {
+    return <K>new MemoryQueueParameters().load(params);
   }
 
   /**

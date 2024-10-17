@@ -1,5 +1,7 @@
 import { Message, PubSub, Subscription } from "@google-cloud/pubsub";
-import { CancelablePromise, DeepPartial, MessageReceipt, Queue, QueueParameters } from "@webda/core";
+import { MessageReceipt, Queue, QueueParameters } from "@webda/core";
+import { DeepPartial } from "@webda/tsc-esm";
+import { CancelablePromise } from "@webda/utils";
 
 /**
  * GCPQueue Parameters
@@ -27,8 +29,7 @@ export class GCPQueueParameters extends QueueParameters {
    */
   mode: "consumer" | "receiver";
 
-  constructor(params: DeepPartial<GCPQueueParameters>) {
-    super(params);
+  default() {
     this.mode ??= "consumer";
   }
 }
@@ -61,8 +62,8 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<K>): GCPQueueParameters {
-    return new GCPQueueParameters(params);
+  loadParameters(params: DeepPartial<K>): K {
+    return <K>new GCPQueueParameters().load(params);
   }
 
   /**

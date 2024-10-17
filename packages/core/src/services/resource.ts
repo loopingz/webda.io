@@ -105,8 +105,8 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   /**
    * Load the parameters for a service
    */
-  loadParameters(params: any): ResourceServiceParameters {
-    return new ResourceServiceParameters(params);
+  loadParameters(params: any): T {
+    return <T>new ResourceServiceParameters(params);
   }
 
   /**

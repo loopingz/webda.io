@@ -61,7 +61,7 @@ export class UnpackedApplication extends Application {
    * @param file
    * @returns
    */
-  loadConfiguration(file: string): void {
+  async loadConfiguration(file: string): Promise<void> {
     if (!file && this.baseConfiguration) {
       this.baseConfiguration = this.completeConfiguration({ version: 4, ...this.baseConfiguration });
     } else if (!fs.existsSync(file)) {
@@ -69,18 +69,9 @@ export class UnpackedApplication extends Application {
     } else {
       this.baseConfiguration = this.completeConfiguration(FileUtils.load(file));
     }
-  }
-
-  /**
-   * Find modules on load
-   * @returns
-   */
-  async load() {
-    await super.load();
-    const configuration = this.getConfiguration();
     // If cachedModules is defined we do not recompute
-    if (!configuration.cachedModules) {
-      configuration.cachedModules = {
+    if (!this.baseConfiguration.cachedModules) {
+      this.baseConfiguration.cachedModules = {
         project: this.loadProjectInformation(),
         beans: {},
         deployers: {},
@@ -89,9 +80,8 @@ export class UnpackedApplication extends Application {
         moddas: {}
       };
       this.log("DEBUG", "Merging modules into configuration");
-      await this.mergeModules(configuration);
+      await this.mergeModules(this.baseConfiguration);
     }
-    return this;
   }
 
   /**
@@ -275,7 +265,7 @@ export class UnpackedApplication extends Application {
    */
   @ProcessCache
   static async findModulesFiles(path: string): Promise<string[]> {
-    if (!path.endsWith("node_modules")) {
+    if (!path.endsWith("node_modules") || !fs.existsSync(path)) {
       return [];
     }
     const files = new Set<string>();

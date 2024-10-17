@@ -107,8 +107,8 @@ export class RESTDomainService<
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): DomainServiceParameters {
-    return new RESTDomainServiceParameters(params);
+  loadParameters(params: DeepPartial<DomainServiceParameters>): T {
+    return <T>new RESTDomainServiceParameters().load(params);
   }
 
   /**

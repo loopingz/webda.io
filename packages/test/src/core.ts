@@ -328,9 +328,7 @@ export class WebdaTest {
     const start = Date.now();
     let exportLog = process.env.WEBDA_TEST_LOGS !== undefined;
     try {
-      useLog("INFO", "BeforeAll Starting tests for", this["__webda_suite_name"]);
       await this.wrap("beforeAll", this.beforeAll.bind(this));
-      useLog("INFO", "POST-WRAP BeforeAll Starting tests for", this["__webda_suite_name"]);
     } catch (err) {
       exportLog = true;
       useLog("ERROR", err);

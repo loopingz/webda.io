@@ -36,13 +36,13 @@ export class Compiler {
     if (this.compiled && !force) {
       return true;
     }
+    this.project.emit("compiling");
     let result = true;
     // https://convincedcoder.com/2019/01/19/Processing-TypeScript-using-TypeScript/
 
     this.project.log("INFO", "Compiling...");
     let compilationStart = Date.now();
     this.createProgramFromApp();
-
     // Emit all code
     const { diagnostics } = this.tsProgram.emit(undefined, writer);
     const allDiagnostics = ts.getPreEmitDiagnostics(this.tsProgram).concat(diagnostics, this.configParseResult.errors);
@@ -61,8 +61,13 @@ export class Compiler {
         });
       result = false;
     }
+    if (!result) {
+      this.project.emit("compilationError");
+      return;
+    }
     compilationStart = Date.now() - compilationStart;
     const moduleGenerationStart = Date.now();
+    this.project.emit("analyzing");
     this.project.log("INFO", "Analyzing...");
     // Generate schemas
     generateModule(this);
@@ -71,6 +76,7 @@ export class Compiler {
       `Took: Compilation - ${compilationStart}ms | Module generation - ${Date.now() - moduleGenerationStart}ms`
     );
     this.compiled = result;
+    this.project.emit("done");
     return result;
   }
 
@@ -104,6 +110,7 @@ export class Compiler {
     let moduleGenerationStart;
     const generateLocalModule = async () => {
       moduleGenerationStart = Date.now();
+
       callback("MODULE_GENERATION");
       this.loadTsconfig(this.project);
       this.tsProgram = this.watchProgram.getProgram().getProgram();
@@ -112,6 +119,7 @@ export class Compiler {
       //this.createSchemaGenerator(this.tsProgram);
       //await this.app.generateModule();
       callback("MODULE_GENERATED");
+      this.project.emit("done");
       //logger.logTitle("Compilation done");
       useLog(
         "INFO",
@@ -124,10 +132,11 @@ export class Compiler {
         if (diagnostic.code === 6032 || diagnostic.code === 6031) {
           useLog("INFO", diagnostic.messageText);
           compilationStart = Date.now();
+          this.project.emit("compiling");
         } else {
           const took = Date.now() - compilationStart;
           if ((<string>diagnostic.messageText).match(/Found [1-9]\d* error/)) {
-            useLog("ERROR", diagnostic.messageText, ` - ${took}ms`);
+            this.project.emit("error");
             /* c8 ignore start */
           } else if (!diagnostic.messageText.toString().startsWith("Found 0 errors")) {
             useLog("INFO", diagnostic.messageText, ` - ${took}ms`);
@@ -138,6 +147,7 @@ export class Compiler {
             this.compiled = true;
             compilationStart = Date.now() - compilationStart;
             useLog("INFO", "Analyzing...");
+            this.project.emit("analyzing");
             if (this.watchProgram) {
               generateLocalModule();
             }

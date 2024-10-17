@@ -163,9 +163,7 @@ export class InvitationParameters extends ServiceParameters {
    */
   url?: string;
 
-  constructor(params: any) {
-    super();
-    Object.assign(this, params);
+  default() {
     this.authenticationService ??= "Authentication";
     if (typeof this.mapFields === "string") {
       this.mapFields = (<string>this.mapFields).split(",");
@@ -220,7 +218,7 @@ export class InvitationService<
    * @inheritdoc
    */
   loadParameters(params: DeepPartial<T>) {
-    return new InvitationParameters(params);
+    return <T>new InvitationParameters().load(params);
   }
 
   /**
@@ -232,7 +230,6 @@ export class InvitationService<
     this.authenticationService.on("Authentication.Register", (evt: EventAuthenticationRegister) =>
       this.registrationListener(evt)
     );
-    const app = useApplication();
     this.model = useModel(this.parameters.model);
     const url = this.getParameters().url || `/${this.model.Metadata.Plural}`;
     // Register routes

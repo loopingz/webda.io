@@ -8,8 +8,16 @@ import type { ModelDefinition, ExposeParameters } from "../internal/iapplication
  *
  * @returns
  */
-export function Expose(params: Partial<ExposeParameters>) {
+export function Expose(...args: [Partial<ExposeParameters>?] | [any, string, PropertyDescriptor]): any {
+  if (args.length === 3) {
+    const [target, propertyKey, descriptor] = args;
+    target.Expose = <ExposeParameters>{
+      restrict: {}
+    };
+    return descriptor;
+  }
   return (target: ModelDefinition): void => {
+    const params = args[0];
     params.restrict ??= {};
     target.Expose = <ExposeParameters>params;
   };

@@ -37,6 +37,6 @@ export class FileLoggerService<
    * @inheritdoc
    */
   loadParameters(params: any) {
-    return new FileLoggerServiceParameters(params);
+    return <T>new FileLoggerServiceParameters().load(params);
   }
 }

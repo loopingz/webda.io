@@ -98,8 +98,7 @@ export class MailerParameters extends ServiceParameters {
    */
   SES: any;
 
-  constructor(params: any) {
-    super();
+  default() {
     this.templates ??= "./templates";
     if (!this.templates.endsWith("/")) {
       this.templates += "/";
@@ -200,8 +199,8 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    * @param params
    * @ignore
    */
-  loadParameters(params: any): ServiceParameters {
-    return new MailerParameters(params);
+  loadParameters(params: any): T {
+    return <T>new MailerParameters().load(params);
   }
 
   /**

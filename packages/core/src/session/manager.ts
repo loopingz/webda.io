@@ -37,9 +37,9 @@ export class CookieSessionParameters extends ServiceParameters {
    */
   cookie?: CookieOptions;
 
-  constructor(params: any) {
-    super();
-    this.cookie = new CookieOptions(params.cookie || {});
+  default() {
+    super.default();
+    this.cookie = new CookieOptions(this.cookie || {});
   }
 }
 
@@ -63,8 +63,8 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<T>): ServiceParameters {
-    return new CookieSessionParameters(params);
+  loadParameters(params: DeepPartial<T>): T {
+    return <T>new CookieSessionParameters().load(params);
   }
 
   /**

@@ -95,8 +95,11 @@ class SampleApplicationTest extends WebdaApplicationTest {
 
   @test
   getAppPath() {
-    assert.strictEqual(this.sampleApp.getAppPath(), path.join(__dirname, "..", "..", "..", "sample-app"));
-    assert.strictEqual(this.sampleApp.getAppPath("lib"), path.join(__dirname, "..", "..", "..", "sample-app", "lib"));
+    assert.strictEqual(this.sampleApp.getAppPath(), path.join(__dirname, "..", "..", "..", "..", "sample-app"));
+    assert.strictEqual(
+      this.sampleApp.getAppPath("lib"),
+      path.join(__dirname, "..", "..", "..", "..", "sample-app", "lib")
+    );
   }
 
   @test
@@ -153,7 +156,6 @@ class ApplicationTest extends WebdaInternalTest {
     app.getDeployers();
 
     app.getModules();
-    app.getBeans();
 
     // Alternative of files
     // @ts-ignore
@@ -192,10 +194,9 @@ class ApplicationTest extends WebdaInternalTest {
     );
     assert.throws(() => app.replaceVariables("hello " + "${test}".repeat(12), {}), /Too many variables/);
 
-    assert.strictEqual(app.getModelFromInstance(new CoreModel()), "Webda/CoreModel");
-    assert.strictEqual(app.getModelFromInstance(new User()), "Webda/User");
     assert.strictEqual(app.getModelId(<any>CoreModel), "Webda/CoreModel");
     assert.strictEqual(app.getModelId(new CoreModel()), "Webda/CoreModel");
+    assert.strictEqual(app.getModelId(new User()), "Webda/User");
 
     app.registerSchema("testor", {});
     assert.deepStrictEqual(app.getSchema("testor"), {});
@@ -214,27 +215,33 @@ class ApplicationTest extends WebdaInternalTest {
     await app.loadModule(
       {
         moddas: {
-          Test: "moddas/fakeservice.js",
-          ReTest: "./notFound.js"
+          Test: {
+            Import: "moddas/fakeservice.js"
+          },
+          ReTest: {
+            Import: "./notFound.js"
+          }
         },
         models: {
-          list: {
-            ReTest: "notFound.js"
-          },
-          graph: {
-            "webdademo/test": {}
-          },
-          tree: {},
-          plurals: {},
-          reflections: {}
+          "WebdaDemo/ReTest": {
+            Import: "./notFound.js",
+            Ancestors: [],
+            Subclasses: [],
+            Relations: {},
+            Schema: {},
+            Plural: "ReTests"
+          }
         },
+        schemas: {},
         deployers: {
-          ReTest: "notFound.js"
+          ReTest: {
+            Import: "notFound.js"
+          }
         }
       },
       ""
     );
-    await app.loadModule({ models: { list: {}, graph: {}, tree: {}, plurals: {}, reflections: {} } }, "");
+    await app.loadModule({ models: {}, schemas: {} }, "");
     await app["importFile"]("./../../test/moddas/fakeservice.js");
     const cwd = process.cwd();
     try {

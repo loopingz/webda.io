@@ -8,8 +8,8 @@ import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from 
 export class CloudBinaryParameters extends BinaryParameters {
   prefix?: string;
 
-  constructor(params: any, service: BinaryService) {
-    super(params, service);
+  default() {
+    super.default();
     this.prefix ??= "";
   }
 }
@@ -21,8 +21,8 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
   /**
    * @override
    */
-  loadParameters(params: any) {
-    return new CloudBinaryParameters(params, this);
+  loadParameters(params: any): T {
+    return <T>new CloudBinaryParameters().load(params);
   }
 
   /**

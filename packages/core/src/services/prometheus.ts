@@ -50,9 +50,8 @@ export class PrometheusParameters extends ServiceParameters {
    */
   prefix?: string;
 
-  constructor(params: any) {
-    super();
-    Object.assign(this, params);
+  default() {
+    super.default();
     this.url ??= "/metrics";
     this.labels ??= {};
     this.includeNodeMetrics ??= true;
@@ -98,7 +97,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
    * @returns
    */
   loadParameters(params: any) {
-    return new PrometheusParameters(params);
+    return <T>new PrometheusParameters().load(params);
   }
 
   /**

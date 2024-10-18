@@ -3,10 +3,6 @@
   "module": {},
   "cachedModules": {
     "sources": ["./test/moddas/fakeservice.js", "./test/models/task.js"],
-    "models": {
-      "list": {},
-      "graph": {},
-      "tree": {}
-    }
+    "models": {}
   }
 }

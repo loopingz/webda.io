@@ -7,7 +7,7 @@ import { Company } from "./company";
  * Abstract class should not be exported as model
  */
 export abstract class AbstractProject<T> extends AclModel {
-  protected abstract method1(arg1: string, arg2: CoreModel, arg3: Store<CoreModel>): Store<CoreModel>;
+  protected abstract method1(arg1: string, arg2: CoreModel, arg3: Store): Store;
 }
 
 export interface Test {
@@ -48,7 +48,7 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
     n: number;
   };
 
-  protected method1(): Store<CoreModel> {
+  protected method1(): Store {
     return null;
   }
 

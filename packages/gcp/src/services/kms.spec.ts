@@ -1,6 +1,6 @@
 import { KeyManagementServiceClient } from "@google-cloud/kms";
-import { suite, test } from "@testdeck/mocha";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { GCPKMSService } from "./kms";

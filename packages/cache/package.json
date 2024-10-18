@@ -21,13 +21,16 @@
     "test:watch": "vitest",
     "test:debug": "vitest debug",
     "test:coverage": "vitest --coverage",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.0.0",
     "skott": "^0.35.3",
-    "vitest": "^2.1.2"
+    "vitest": "^2.1.2",
+    "jscodeshift": "^17.0.0",
+    "@webda/compiler": "^4.0.0-beta.2"
   },
   "files": [
     "lib"

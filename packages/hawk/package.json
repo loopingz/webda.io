@@ -20,7 +20,8 @@
     "test:debug": "mocha src/**/*.spec.ts src/*.spec.ts",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
     "@webda/core": "^4.0.0-beta.1",
@@ -56,7 +57,9 @@
     "@types/node": "20.0.0",
     "@webda/shell": "^4.0.0-beta.1",
     "tsx": "^4.17.0",
-    "skott": "^0.35.3"
+    "skott": "^0.35.3",
+    "jscodeshift": "^17.0.0",
+    "@webda/compiler": "^4.0.0-beta.2"
   },
   "type": "module",
   "engines": {

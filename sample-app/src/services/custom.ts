@@ -6,6 +6,7 @@ import {
   Route,
   Service,
   ServiceParameters,
+  useRouter,
   WebContext
 } from "@webda/core";
 import { MyInterface } from "./compiler";
@@ -46,7 +47,7 @@ export class CustomService<T extends CustomParameters = CustomParameters> extend
    */
   resolve(): this {
     super.resolve();
-    this.getWebda().registerRequestFilter(this);
+    useRouter().registerRequestFilter(this);
     return this;
   }
 

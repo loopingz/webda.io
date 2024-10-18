@@ -8,12 +8,12 @@ import {
   OperationContext,
   WebContext
 } from "@webda/core";
+import { DeepPartial } from "@webda/tsc-esm";
 import { StorageFinder, Throttler } from "@webda/utils";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 import { Readable, Stream, Writable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { DeepPartial } from "@webda/tsc-esm";
 
 export type StorageObject = {
   key: string;

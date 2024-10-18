@@ -1,7 +1,7 @@
 import { PubSub } from "@google-cloud/pubsub";
-import { suite, test } from "@testdeck/mocha";
 import { CancelablePromise, Core, WaitFor, WaitLinearDelay } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { GCPPubSubService } from "./pubsub";

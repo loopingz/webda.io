@@ -1,15 +1,15 @@
 import { DocumentReference, FieldValue, Firestore, OrderByDirection, Timestamp } from "@google-cloud/firestore";
 import {
   CoreModel,
-  DeepPartial,
-  JSONUtils,
   Store,
   StoreFindResult,
   StoreNotFoundError,
   StoreParameters,
-  UpdateConditionFailError
+  UpdateConditionFailError,
 } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
+import { DeepPartial } from "@webda/tsc-esm";
+import { JSONUtils } from "@webda/utils";
 /**
  * Definition of a FireStore index
  */

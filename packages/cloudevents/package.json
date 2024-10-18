@@ -21,7 +21,8 @@
     "test:bun": "bun test --coverage",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
     "cloudevents": "^8.0.1",
@@ -33,7 +34,9 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "tsx": "^4.17.0",
-    "skott": "^0.35.3"
+    "skott": "^0.35.3",
+    "jscodeshift": "^17.0.0",
+    "@webda/compiler": "^4.0.0-beta.2"
   },
   "files": [
     "lib"

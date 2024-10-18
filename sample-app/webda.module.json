@@ -1,4 +1,5 @@
 {
+  "$schema": "https://webda.io/schemas/webda.module.v4.json",
   "beans": {
     "WebdaDemo/BeanService": {
       "Import": "lib/services/bean:BeanService",
@@ -28,7 +29,7 @@
             "description": "Type of the service"
           },
           "introspection": {
-            "$ref": "#/definitions/Partial%3Cclass-interfaces.d.ts-0-348-interfaces.d.ts-0-389976353190%3E"
+            "$ref": "#/definitions/Partial%3Cclass-676974613-0-348-676974613-0-389976353190%3E"
           }
         },
         "required": [
@@ -37,7 +38,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<class-interfaces.d.ts-0-348-interfaces.d.ts-0-389976353190>": {
+          "Partial<class-676974613-0-348-676974613-0-389976353190>": {
             "type": "object",
             "properties": {
               "type": {
@@ -101,7 +102,7 @@
             "type": "string"
           },
           "interfaceParam": {
-            "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-246-294-vices_compiler.ts-0-1238%3E",
+            "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
             "description": "The Partial will generate a new $ref"
           }
         },
@@ -112,7 +113,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<interface-vices_compiler.ts-246-294-vices_compiler.ts-0-1238>": {
+          "Partial<interface-817825559-246-294-817825559-0-1238>": {
             "type": "object",
             "properties": {
               "test": {
@@ -158,7 +159,7 @@
             "type": "string"
           },
           "interfaceParam": {
-            "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-246-294-vices_compiler.ts-0-1238%3E",
+            "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
             "description": "The Partial will generate a new $ref"
           },
           "fourthParameter": {
@@ -175,7 +176,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<interface-vices_compiler.ts-246-294-vices_compiler.ts-0-1238>": {
+          "Partial<interface-817825559-246-294-817825559-0-1238>": {
             "type": "object",
             "properties": {
               "test": {
@@ -256,7 +257,7 @@
             "type": "string"
           },
           "interfaceParam": {
-            "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-246-294-vices_compiler.ts-0-1238%3E",
+            "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
             "description": "The Partial will generate a new $ref"
           }
         },
@@ -267,7 +268,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<interface-vices_compiler.ts-246-294-vices_compiler.ts-0-1238>": {
+          "Partial<interface-817825559-246-294-817825559-0-1238>": {
             "type": "object",
             "properties": {
               "test": {
@@ -322,6 +323,9 @@
       "Import": "lib/models/project:AbstractProject",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [
+        "WebdaDemo/Project"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -441,7 +445,13 @@
           "model": "WebdaDemo/Company"
         }
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "WebdaDemo/Project",
+        "WebdaDemo/AbstractProject"
+      ],
+      "Subclasses": [
+        "WebdaDemo/SubSubProject"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -581,6 +591,7 @@
       "Import": "lib/models/relations:Brand",
       "Relations": {},
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -720,6 +731,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -878,6 +890,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1085,6 +1098,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1217,7 +1231,10 @@
           }
         ]
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "WebdaDemo/Hardware"
+      ],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1366,6 +1383,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1562,6 +1580,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1721,6 +1740,9 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [
+        "WebdaDemo/ComputerScreen"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -1847,7 +1869,13 @@
           "model": "WebdaDemo/Company"
         }
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "WebdaDemo/AbstractProject"
+      ],
+      "Subclasses": [
+        "WebdaDemo/SubProject",
+        "WebdaDemo/AnotherSubProject"
+      ],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2011,6 +2039,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2203,7 +2232,11 @@
           "model": "WebdaDemo/Company"
         }
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "WebdaDemo/Project",
+        "WebdaDemo/AbstractProject"
+      ],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2346,7 +2379,12 @@
           "model": "WebdaDemo/Company"
         }
       },
-      "Ancestors": [],
+      "Ancestors": [
+        "WebdaDemo/AnotherSubProject",
+        "WebdaDemo/Project",
+        "WebdaDemo/AbstractProject"
+      ],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2514,6 +2552,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -2725,6 +2764,7 @@
         ]
       },
       "Ancestors": [],
+      "Subclasses": [],
       "Schema": {
         "type": "object",
         "properties": {
@@ -3146,6 +3186,2586 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CustomBody"
+    },
+    "WebdaDemo/AbstractProject": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context"
+      ],
+      "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "AbstractProject"
+    },
+    "WebdaDemo/AnotherSubProject": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "n",
+        "name",
+        "test2",
+        "type",
+        "uuid"
+      ],
+      "description": "Test of TypeParams",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "AnotherSubProject"
+    },
+    "WebdaDemo/Brand": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "name"
+      ],
+      "description": "Model not exposed on purpose",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Brand"
+    },
+    "WebdaDemo/Classroom": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "name",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Classroom"
+    },
+    "WebdaDemo/Company": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "_projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "mapString": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Test of maps for GraphQL"
+        },
+        "mapAny": {
+          "type": "object"
+        },
+        "mapNumber": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "mapBoolean": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "mapObject": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "test": {
+                "type": "number"
+              },
+              "b": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "test",
+              "b",
+              "status"
+            ]
+          }
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Permission"
+          }
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        },
+        "Permission": {
+          "type": "string",
+          "enum": [
+            "PRODUCT_1",
+            "PRODUCT_2",
+            "PRODUCT_3"
+          ]
+        }
+      },
+      "title": "Company"
+    },
+    "WebdaDemo/Computer": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "_loanTo": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Computer"
+    },
+    "WebdaDemo/ComputerScreen": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        },
+        "classroom": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "modelId": {
+          "type": "string"
+        },
+        "serialNumber": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "classroom",
+        "context",
+        "modelId",
+        "name",
+        "serialNumber"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "ComputerScreen"
+    },
+    "WebdaDemo/Contact": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "firstName": {
+          "type": "string",
+          "description": "Contact firstname"
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Contact lastname"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "PERSONAL",
+            "PROFESSIONAL"
+          ],
+          "description": "Contact type"
+        },
+        "age": {
+          "type": "number",
+          "description": "Contact age",
+          "minimum": 0
+        },
+        "readonly": {
+          "type": "number",
+          "description": "To indicate a property that will be set by server, similar to",
+          "readOnly": true
+        },
+        "optional": {
+          "type": "string",
+          "description": "Useful to auto complete on the creation side without forcing UI to push the attribute"
+        },
+        "avatar": {
+          "type": "object",
+          "readOnly": true
+        },
+        "photos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lng"
+                ]
+              }
+            },
+            "required": [
+              "location"
+            ]
+          },
+          "readOnly": true
+        },
+        "owner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "age",
+        "context",
+        "firstName",
+        "lastName",
+        "owner",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Contact"
+    },
+    "WebdaDemo/Course": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "classroom": {
+          "type": "string"
+        },
+        "teacher": {
+          "type": "string"
+        },
+        "students": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "firstName",
+              "uuid"
+            ]
+          }
+        }
+      },
+      "required": [
+        "Events",
+        "classroom",
+        "context",
+        "name",
+        "students",
+        "teacher",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Course"
+    },
+    "WebdaDemo/Hardware": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        },
+        "classroom": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "classroom",
+        "context",
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Hardware"
+    },
+    "WebdaDemo/Project": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "n",
+        "name",
+        "test2",
+        "type",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Project"
+    },
+    "WebdaDemo/Student": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string",
+          "readOnly": true,
+          "$generated": true
+        },
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "order": {
+          "type": "number"
+        },
+        "friends": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "firstName",
+              "lastName",
+              "uuid"
+            ]
+          }
+        },
+        "teachers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "constraints": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "Events",
+        "constraints",
+        "context",
+        "email",
+        "firstName",
+        "friends",
+        "lastName",
+        "order",
+        "teachers"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Student"
+    },
+    "WebdaDemo/SubProject": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "n",
+        "name",
+        "test2",
+        "type",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "SubProject"
+    },
+    "WebdaDemo/SubSubProject": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "attribute1": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Events",
+        "attribute1",
+        "context",
+        "n",
+        "name",
+        "test2",
+        "type",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "SubSubProject"
+    },
+    "WebdaDemo/Teacher": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/CoreModelEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "students": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "firstName",
+              "lastName",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "senior": {
+          "type": "boolean"
+        },
+        "anyArray": {
+          "type": "array",
+          "items": {},
+          "description": "Test that graphql can handle any[]"
+        }
+      },
+      "required": [
+        "Events",
+        "anyArray",
+        "context",
+        "name",
+        "senior",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CoreModelEvents<>": {
+          "type": "object",
+          "properties": {
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "PartialUpdate",
+            "Delete",
+            "Update"
+          ],
+          "description": "Event sent by models\n\nEvents are sent by the model to notify of changes after the changes are done\n\nIf you need to prevent the change, you should extend the object"
+        }
+      },
+      "title": "Teacher"
+    },
+    "WebdaDemo/User": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "properties": {
+            "caches": {
+              "description": "Get the caches linked to the context"
+            },
+            "_promises": {
+              "type": "array",
+              "items": {},
+              "description": "Contain all registered promises to this context",
+              "readOnly": true
+            }
+          },
+          "required": [
+            "caches"
+          ],
+          "description": "Context is the object that will be passed to the services"
+        },
+        "Events": {
+          "$ref": "#/definitions/UserEvents%3C%3E"
+        },
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_new": {
+          "type": "boolean",
+          "description": "The model is new and not saved yet\n\nIt is set by the factory method and by the create method",
+          "readOnly": true
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "profilePicture": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number"
+            },
+            "height": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "readOnly": true
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "readOnly": true
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "firstName": {
+                "type": "string",
+                "description": "Contact firstname"
+              },
+              "lastName": {
+                "type": "string",
+                "description": "Contact lastname"
+              },
+              "age": {
+                "type": "number",
+                "description": "Contact age",
+                "minimum": 0
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "firstName",
+              "lastName",
+              "age",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        }
+      },
+      "required": [
+        "Events",
+        "context",
+        "displayName",
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "UserEvents<>": {
+          "type": "object",
+          "properties": {
+            "Login": {
+              "type": "object",
+              "properties": {
+                "user": {}
+              },
+              "required": [
+                "user"
+              ]
+            },
+            "Logout": {
+              "type": "object",
+              "properties": {
+                "user": {}
+              },
+              "required": [
+                "user"
+              ]
+            },
+            "Create": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {}
+              },
+              "required": [
+                "object_id",
+                "object"
+              ]
+            },
+            "PartialUpdate": {},
+            "Delete": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "object_id"
+              ]
+            },
+            "Update": {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": "string"
+                },
+                "object": {},
+                "previous": {}
+              },
+              "required": [
+                "object_id",
+                "object",
+                "previous"
+              ]
+            }
+          },
+          "required": [
+            "Create",
+            "Delete",
+            "Login",
+            "Logout",
+            "PartialUpdate",
+            "Update"
+          ]
+        }
+      },
+      "title": "User"
+    },
+    "WebdaDemo/AnotherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "anotherParameter": {
+          "type": "string"
+        },
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+          "description": "The Partial will generate a new $ref"
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-817825559-246-294-817825559-0-1238>": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "title": "AnotherService"
+    },
+    "WebdaDemo/CustomReusableService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "mandatoryField": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mandatoryField",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomReusableService"
+    },
+    "WebdaDemo/FourthOtherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "anotherParameter": {
+          "type": "string"
+        },
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+          "description": "The Partial will generate a new $ref"
+        },
+        "fourthParameter": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "fourthParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-817825559-246-294-817825559-0-1238>": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "title": "FourthOtherService"
+    },
+    "WebdaDemo/QueueService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "workerDelayer": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "expire": {
+          "type": "number",
+          "description": "Number of seconds before droping message",
+          "default": 30
+        },
+        "folder": {
+          "type": "string",
+          "description": "Where to store the queue"
+        }
+      },
+      "required": [
+        "folder",
+        "maxConsumers",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "QueueService"
+    },
+    "WebdaDemo/SecondOtherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "anotherParameter": {
+          "type": "string"
+        },
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+          "description": "The Partial will generate a new $ref"
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-817825559-246-294-817825559-0-1238>": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "title": "SecondOtherService"
+    },
+    "WebdaDemo/SimpleService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/ThirdOtherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/BeanService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/CustomService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "introspection": {
+          "$ref": "#/definitions/Partial%3Cclass-676974613-0-348-676974613-0-389976353190%3E"
+        }
+      },
+      "required": [
+        "introspection",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<class-676974613-0-348-676974613-0-389976353190>": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Type of the service"
+            }
+          }
+        }
+      },
+      "title": "CustomService"
+    },
+    "WebdaDemo/SampleAppGoodBean": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/CustomDeployer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomDeployer"
     }
   }
 }

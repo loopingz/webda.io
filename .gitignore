@@ -26,3 +26,7 @@ docs.json
 coverage
 packages/core/data
 *.log
+pocs
+grafana
+gatling
+*.bak

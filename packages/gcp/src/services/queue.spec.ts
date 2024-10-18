@@ -1,10 +1,10 @@
-import { suite, test } from "@testdeck/mocha";
+import { PubSub } from "@google-cloud/pubsub";
 import { QueueTest } from "@webda/core/lib/queues/queue.spec";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "events";
 import * as sinon from "sinon";
 import GCPQueue from "./queue";
-import { PubSub } from "@google-cloud/pubsub";
 
 class FakeSubscription extends EventEmitter {
   emitError() {

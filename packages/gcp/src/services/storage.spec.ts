@@ -1,7 +1,7 @@
 import { Storage as GCS } from "@google-cloud/storage";
-import { suite, test } from "@testdeck/mocha";
-import { BinaryService, getCommonJS, RESTDomainService } from "@webda/core";
-import { BinaryTest } from "@webda/core/lib/services/binary.spec";
+import { BinaryService, RESTDomainService } from "@webda/core";
+import { suite, test } from "@webda/test";
+import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
 import * as path from "path";
 import * as sinon from "sinon";

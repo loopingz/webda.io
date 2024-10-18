@@ -18,7 +18,8 @@
     "pretest": "tsc-esm",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
     "@webda/workout": "^4.0.0-beta.1"
@@ -26,7 +27,9 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@webda/tsc-esm": "^4.0.0-beta.1",
-    "vitest": "^2.1.2"
+    "vitest": "^2.1.2",
+    "jscodeshift": "^17.0.0",
+    "@webda/compiler": "^4.0.0-beta.2"
   },
   "files": [
     "lib"

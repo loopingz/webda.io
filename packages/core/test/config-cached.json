@@ -16,11 +16,7 @@
       "WebdaTest/Mailer": "./moddas/debugmailer",
       "WebdaTest/VoidStore": "./moddas/voidstore"
     },
-    "models": {
-      "list": {},
-      "graph": {},
-      "tree": {}
-    }
+    "models": {}
   },
   "services": {
     "ResourceService": {

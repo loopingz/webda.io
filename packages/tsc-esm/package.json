@@ -32,7 +32,8 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts"
+    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"
@@ -64,7 +65,9 @@
     "mocha": "^10.0.0",
     "openapi-types": "^12.0.0",
     "tsx": "^4.17.0",
-    "skott": "^0.35.3"
+    "skott": "^0.35.3",
+    "jscodeshift": "^17.0.0",
+    "@webda/compiler": "^4.0.0-beta.2"
   },
   "engines": {
     "node": ">=20.0.0"

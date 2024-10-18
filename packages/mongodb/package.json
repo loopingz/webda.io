@@ -1,6 +1,6 @@
 {
   "name": "@webda/mongo",
-  "version": "3.2.17",
+  "version": "3.2.18",
   "description": "Implements Mongo DB on webda",
   "keywords": [
     "mongo",
@@ -19,7 +19,7 @@
     "test": "c8 mocha"
   },
   "dependencies": {
-    "@webda/core": "^3.16.3",
+    "@webda/core": "^3.16.4",
     "mongodb": "^6.0.0"
   },
   "files": [
@@ -49,7 +49,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/node": "18.11.13",
-    "@webda/shell": "^3.11.1"
+    "@webda/shell": "^3.11.2"
   },
   "type": "module",
   "engines": {

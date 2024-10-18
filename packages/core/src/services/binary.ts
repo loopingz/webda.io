@@ -890,7 +890,27 @@ export abstract class BinaryService<
   /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    */
-  async uploadSuccess(object: BinaryModel, property: string, file: BinaryFileInfo): Promise<void> {
+  async uploadSuccess(
+    object: BinaryModel,
+    property: string,
+    fileInfo: BinaryFileInfo | { toBinaryFileInfo: () => BinaryFileInfo }
+  ): Promise<void> {
+    let file: BinaryFileInfo;
+    // Ensure we do not have a full object
+    if (fileInfo["toBinaryFileInfo"] && typeof fileInfo["toBinaryFileInfo"] === "function") {
+      file = fileInfo["toBinaryFileInfo"]();
+    } else {
+      file = fileInfo as BinaryFileInfo;
+    }
+    let additionalAttrs = Object.keys(file).filter(
+      k => !["name", "size", "mimetype", "hash", "challenge", "metadata"].includes(k)
+    );
+    if (additionalAttrs.length > 0) {
+      throw new Error(
+        "Invalid file object it should be a plain BinaryFileInfo found additional properties: " +
+          additionalAttrs.join(",")
+      );
+    }
     let object_uid = object.getUuid();
     // Check if the file is already in the array then skip
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {

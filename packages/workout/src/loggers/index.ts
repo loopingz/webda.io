@@ -24,6 +24,22 @@ export abstract class WorkerLogger {
   abstract onMessage(msg: WorkerMessage): void;
 
   /**
+   * Stop the listener
+   * @returns
+   */
+  stop() {
+    return this.close();
+  }
+
+  /**
+   * Start the listener again
+   */
+  start() {
+    if (!this.output.listeners("message").includes(this.listener)) {
+      this.output.on("message", this.listener);
+    }
+  }
+  /**
    * Close the listener
    */
   close() {

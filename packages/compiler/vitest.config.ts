@@ -12,6 +12,6 @@ export default defineConfig({
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
-    include: ["src/*.spec.ts"]
+    include: ["src/*.spec.ts", "src/**/*.spec.ts"]
   }
 });

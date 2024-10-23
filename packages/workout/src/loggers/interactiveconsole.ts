@@ -167,10 +167,16 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
     } else if (msg.type === "progress.stop") {
       this.spinner.stop();
       if (msg.status) {
+        let level: WorkerLogLevel = "INFO";
+        if (msg.status === "error") {
+          level = "ERROR";
+        } else if (msg.status === "warning") {
+          level = "WARN";
+        }
         ConsoleLogger.display(
           new WorkerMessage("log", this.output, {
             log: new WorkerLog(
-              "INFO",
+              level,
               `${statuses[msg.status] || ""} ${msg.title || this.spinner.title} in ${humanizeDuration(this.spinner.getElapsed())}`
             )
           }),

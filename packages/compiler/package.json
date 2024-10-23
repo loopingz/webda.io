@@ -1,6 +1,6 @@
 {
   "name": "@webda/compiler",
-  "version": "4.0.0-beta.1",
+  "version": "4.0.0-beta.2",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -32,20 +32,19 @@
     "@types/json-schema": "^7.0.8",
     "@webda/workout": "^4.0.0-beta.1",
     "accept-language": "^3.0.18",
+    "diff": "^7.0.0",
     "ts-json-schema-generator": "^2.3.0",
-    "yargs": "^17.7.2",
-    "yocto-spinner": "^0.1.1",
-    "yoctocolors": "^2.1.1"
+    "ts-morph": "^24.0.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@types/node": "20.0.0",
     "@webda/tsc-esm": "^4.0.0-beta.1",
     "eslint": "^9.12.0",
+    "eslint-plugin-import": "^2.31.0",
     "prettier": "^3.3.3",
     "skott": "^0.35.3",
-    "vitest": "^2.1.2",
-    "jscodeshift": "^17.0.0",
-    "@webda/compiler": "^4.0.0-beta.2"
+    "vitest": "^2.1.2"
   },
   "files": [
     "lib"

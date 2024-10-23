@@ -141,7 +141,7 @@ export class Compiler {
         } else {
           const took = Date.now() - compilationStart;
           if ((<string>diagnostic.messageText).match(/Found [1-9]\d* error/)) {
-            this.project.emit("error");
+            this.project.emit("compilationError");
             /* c8 ignore start */
           } else if (!diagnostic.messageText.toString().startsWith("Found 0 errors")) {
             useLog("INFO", diagnostic.messageText, ` - ${took}ms`);

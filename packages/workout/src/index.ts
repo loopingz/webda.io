@@ -1,4 +1,5 @@
 export * from "./core";
+export * from "./fork";
 export * from "./loggers/index";
 
 export * from "./loggers/console";

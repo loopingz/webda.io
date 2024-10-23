@@ -10,7 +10,11 @@ export class ForkParentLogger extends WorkerLogger {
   }
 }
 
-export async function Fork(callback: () => void | Promise<void>, output?: WorkerOutput) {
+export async function Fork(
+  callback: () => void | Promise<void>,
+  parentCallback?: () => void | Promise<void>,
+  output?: WorkerOutput
+) {
   let child: ChildProcess;
   if (process.send === undefined) {
     child = fork(process.argv[1], process.argv.slice(2), { env: { FORKED: "true" } });
@@ -36,7 +40,7 @@ export async function Fork(callback: () => void | Promise<void>, output?: Worker
     try {
       await callback();
     } catch (err) {
-      useLog("ERROR", err.message);
+      useLog("ERROR", "Fork catch", err, err.message);
       process.exit(1);
     }
     process.exit(0);
@@ -57,6 +61,9 @@ export async function Fork(callback: () => void | Promise<void>, output?: Worker
       child.kill("SIGINT");
     });
     await new Promise<void>((resolve, reject) => {
+      if (parentCallback) {
+        parentCallback();
+      }
       child.on("exit", code => {
         if (code === 0) {
           resolve();

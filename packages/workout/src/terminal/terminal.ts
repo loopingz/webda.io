@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import chalk from "yoctocolors";
 import { constants } from "os";
 import * as readline from "readline";
 import * as util from "util";
@@ -237,7 +237,7 @@ export class Terminal {
     const levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
-      groupsPart = `[${groups.map(g => getLevelColor(g)).join(chalk.grey(">"))}] `;
+      groupsPart = `[${groups.map(g => getLevelColor(g)).join(chalk.gray(">"))}] `;
     }
     args
       .map(a => (typeof a === "object" ? util.inspect(a) : a.toString()))
@@ -318,7 +318,7 @@ export class Terminal {
     if (complete) {
       return "[" + chalk.green("=".repeat(size));
     } else {
-      return chalk.grey("-".repeat(size)) + "]";
+      return chalk.gray("-".repeat(size)) + "]";
     }
   }
 

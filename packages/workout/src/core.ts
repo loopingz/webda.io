@@ -18,7 +18,7 @@ let moduleOutput;
  * @param output
  * @returns
  */
-export function useWorkerOutput(output?: WorkerOutput) {
+export function useWorkerOutput(output?: WorkerOutput): WorkerOutput {
   if (output) {
     moduleOutput = output;
   }
@@ -42,9 +42,16 @@ export class WorkerProgress {
   title: string;
   groups: string[] = [];
   uid: string;
+  /**
+   * If -1 the progress is indeterminate
+   */
   total: number;
   current: number = 0;
   running: boolean = true;
+  /**
+   * Status once done
+   */
+  status?: string;
 
   constructor(uid: string, total: number, groups: string[], title?: string) {
     this.uid = uid;
@@ -63,7 +70,7 @@ export class WorkerProgress {
 
   updateProgress(current: number) {
     this.current = current;
-    if (this.current >= this.total) {
+    if ((this.current >= this.total && this.total > 0) || this.current === this.total) {
       this.current = this.total;
       this.running = false;
     }
@@ -113,6 +120,23 @@ export class WorkerInput {
     this.type = type;
   }
 
+  toMessage(): WorkerInput {
+    return this;
+  }
+
+  toJSON() {
+    return {
+      uuid: this.uuid,
+      title: this.title,
+      type: this.type,
+      value: this.value,
+      validators: this.validators.map(v => {
+        const r = v.toString().substring(1);
+        return r.substring(0, r.length - 1);
+      })
+    };
+  }
+
   validate(input: string): boolean {
     if (!this.validators.length) {
       return true;
@@ -131,7 +155,7 @@ class WorkerInputEmitter extends WorkerInput {
   resolve?: (value?: string) => void;
   timeout?: NodeJS.Timeout;
 
-  toMessage() {
+  toMessage(): WorkerInput {
     return new WorkerInput(this.uuid, this.title, this.type, this.validators);
   }
 }
@@ -209,11 +233,13 @@ export class WorkerMessage {
   currentProgress?: string;
   log?: WorkerLog;
   timestamp: number;
+  pid: number;
   [key: string]: any;
   input?: WorkerInput;
 
   constructor(type: WorkerMessageType, workout: WorkerOutput, infos: any = {}) {
     this.type = type;
+    this.pid = process.pid;
     if (workout) {
       this.groups = workout.groups;
       this.progresses = workout.progresses;
@@ -221,6 +247,24 @@ export class WorkerMessage {
       this.timestamp = Date.now();
     }
     Object.assign(this, infos);
+  }
+
+  static fromJSON(json: string): WorkerMessage {
+    const obj = JSON.parse(json);
+    let message;
+    if (obj.type === "log") {
+      message = new WorkerMessage(obj.type, undefined, { ...obj, log: new WorkerLog(obj.log.level, ...obj.log.args) });
+    } else if (obj.type === "input.request" || obj.type === "input.received" || obj.type === "input.timeout") {
+      obj.input.validators = (obj.input.validators || []).map(v => new RegExp(v));
+      message = new WorkerMessage(obj.type, undefined, {
+        input: new WorkerInput(obj.input.uuid, obj.input.title, obj.input.type, obj.input.validators)
+      });
+      message.input.value = obj.input.value;
+    } else {
+      message = new WorkerMessage(obj.type, undefined, obj);
+    }
+    message.pid = obj.pid;
+    return message;
   }
 }
 
@@ -273,6 +317,31 @@ export class WorkerOutput extends EventEmitter {
   }
 
   /**
+   * Start an undetermined activity
+   * @param title
+   */
+  startActivity(title?: string, uid: string = "activity") {
+    if (this.progresses[uid]) {
+      this.updateProgress(0, uid, title);
+    } else {
+      this.startProgress(uid, -1, title);
+    }
+  }
+
+  /**
+   * Stop an activity
+   * @param status
+   * @param uid
+   */
+  stopActivity(status?: "info" | "error" | "success" | "warning", title?: string, uid: string = "activity") {
+    if (this.progresses[uid]) {
+      this.progresses[uid].status = status;
+      this.progresses[uid].title = title ?? this.progresses[uid].title;
+      this.updateProgress(-1, uid);
+    }
+  }
+
+  /**
    * Increment to add to progress
    *
    * @param inc
@@ -301,12 +370,14 @@ export class WorkerOutput extends EventEmitter {
     if (this.progresses[uid].running) {
       this.emitMessage("progress.update", { progress: uid });
     } else {
+      const status = this.progresses[uid].status;
+      const title = this.progresses[uid].title;
       delete this.progresses[uid];
       this.progressesStack.splice(this.progressesStack.indexOf(uid), 1);
       if (uid === this.currentProgress) {
         this.currentProgress = this.progressesStack[this.progressesStack.length - 1];
       }
-      this.emitMessage("progress.stop", { progress: uid });
+      this.emitMessage("progress.stop", { progress: uid, status, title });
     }
   }
 
@@ -454,6 +525,18 @@ export class WorkerOutput extends EventEmitter {
     return uuid;
   }
 
+  forwardEvent(rawEvent: string) {
+    const event = WorkerMessage.fromJSON(rawEvent);
+    if (event.pid === process.pid) {
+      // Should not forward an event emitted by itself
+      return;
+    }
+    if (event.input) {
+      this.inputs[event.input.uuid] = event.input;
+    }
+    this.emit("message", event);
+  }
+
   /**
    * Wait until an answer is provided
    *
@@ -481,8 +564,12 @@ export class WorkerOutput extends EventEmitter {
       throw new Error("Unknown input");
     }
     this.inputs[uuid].value = value;
-    this.inputs[uuid].resolve(value);
-    clearTimeout(this.inputs[uuid].timeout);
+    if (this.inputs[uuid].resolve) {
+      this.inputs[uuid].resolve(value);
+    }
+    if (this.inputs[uuid].timeout) {
+      clearTimeout(this.inputs[uuid].timeout);
+    }
     this.emitMessage("input.received", { input: this.inputs[uuid].toMessage() });
     delete this.inputs[uuid];
   }

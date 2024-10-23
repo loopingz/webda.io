@@ -5,6 +5,8 @@ import { WebdaProject } from "./definition";
 import { writer } from "@webda/tsc-esm";
 import { useLog } from "@webda/workout";
 import { generateModule as generateModule } from "./module";
+import { addUnserializeTransformer } from "./transformer";
+import { createFrontendAST } from "./frontend";
 
 /**
  * Compiler
@@ -43,8 +45,11 @@ export class Compiler {
     this.project.log("INFO", "Compiling...");
     let compilationStart = Date.now();
     this.createProgramFromApp();
+    const check = this.tsProgram.getTypeChecker();
     // Emit all code
-    const { diagnostics } = this.tsProgram.emit(undefined, writer);
+    const { diagnostics } = this.tsProgram.emit(undefined, writer, undefined, false, {
+      //before: [addUnserializeTransformer(check), () => createFrontendAST]
+    });
     const allDiagnostics = ts.getPreEmitDiagnostics(this.tsProgram).concat(diagnostics, this.configParseResult.errors);
     if (allDiagnostics.length) {
       const formatHost: ts.FormatDiagnosticsHost = {

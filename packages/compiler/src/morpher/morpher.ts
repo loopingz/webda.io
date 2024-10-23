@@ -1,0 +1,90 @@
+import { Project, ProjectOptions, SourceFile } from "ts-morph";
+import { setLoadParameters } from "./loadparameters";
+import { updateImports } from "./imports";
+import { unserializer } from "./unserialize";
+import { useLog } from "@webda/workout";
+import Diff from "diff";
+
+// Replace all imports
+// Specify after a : the exported name to replace
+const replacePackages = {
+  // Move to tsc-esm
+  "@webda/core:DeepPartial,NotEnumerable,FilterAttributes": "@webda/tsc-esm",
+  // Move to @webda/fs
+  "@webda/core:FileStore,FileBinary,FileQueue,FileQueueParameters": "@webda/fs",
+  // Move to @webda/utils
+  "@webda/core:Throttler,NDJSONStream,NDJSonReader,BufferWritableStream,GunzipConditional,StorageFinder,YAMLUtils,TransformCase,TransformCaseType,getCommonJS,JSONUtils,FileUtils,WaitFor,WaitLinearDelay,WaitDelayer,sleep,WaitExponentialDelay,WaitDelayerFactory,WaitDelayerDefinition,WaitDelayerFactories,CancelablePromise,CancelableLoopPromise":
+    "@webda/utils",
+  // Move to @webda/test
+  "@testdeck/mocha": "@webda/test",
+  // Rename WebdaQL to WebdaQL in its own module
+  "@webda/core:WebdaQL": "@webda/ql:*WebdaQL",
+  // Rename CoreModelDefinition to ModelDefinition
+  "@webda/core:CoreModelDefinition": "@webda/core:ModelDefinition",
+  "@webda/core/lib/test:WebdaTest": "@webda/core/lib/test/test:WebdaApplicationTest",
+  "@webda/core/lib/test:WebdaSimpleTest": "@webda/core/lib/test/test:WebdaSimpleTest"
+};
+
+type WebdaMorpherOptions = {
+  project?: ProjectOptions;
+  pretend?: boolean;
+  /**
+   * List of modules to check
+   */
+  modules?: string[];
+};
+
+export class WebdaMorpher {
+  project: Project;
+  modules: { [key: string]: (sourceFile: SourceFile) => void } = {
+    unserializer: sourceFile => unserializer(sourceFile, this.project.getTypeChecker()),
+    loadParameters: setLoadParameters,
+    updateImports: sourceFile => updateImports(sourceFile, replacePackages)
+  };
+  constructor(protected options: WebdaMorpherOptions = {}) {
+    this.project = new Project(options.project);
+    this.options.modules ??= Object.keys(this.modules);
+  }
+
+  async check() {
+    const p: Promise<void>[] = [];
+    this.project.getSourceFiles().forEach(sourceFile => {
+      const origin = sourceFile.getFullText();
+      const update = this.update(sourceFile);
+      if (origin !== update) {
+        if (this.options.pretend) {
+          useLog(
+            "INFO",
+            sourceFile.getFilePath(),
+            "\n",
+            Diff.diffLines(origin, update, {
+              ignoreWhitespace: true,
+              ignoreNewlineAtEof: true,
+              newlineIsToken: false
+            })
+          );
+        } else {
+          p.push(sourceFile.save().catch(e => useLog("ERROR", "Error saving", sourceFile.getFilePath(), e)));
+        }
+      }
+    });
+    return await Promise.all(p);
+  }
+
+  /**
+   * Parse on file and return the updated content
+   * @param input
+   * @returns
+   */
+  update(input: string | SourceFile): string {
+    const sourceFile = typeof input === "string" ? this.project.addSourceFileAtPath(input) : input;
+
+    for (const key in this.modules) {
+      if (this.options.modules.includes(key)) {
+        this.modules[key](sourceFile);
+      }
+    }
+
+    return sourceFile.getFullText();
+  }
+}

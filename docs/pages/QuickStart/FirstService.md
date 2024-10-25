@@ -2,7 +2,7 @@
 
 To create a service, you need to define a class that inherits from `Service`.
 
-```typescript
+```typescript title="src/MyService.ts"
 class MyServiceParameters extends ServiceParameters {
   /**
    * @param params

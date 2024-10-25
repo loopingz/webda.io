@@ -1,6 +1,8 @@
 import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Layout from "@theme/Layout";
 import React from "react";
+import Panel from "@site/src/components/Panel";
+import WebdaPanel from "../components/WebdaPanel";
 
 function HomepageHeader() {
   const { siteConfig } = useDocusaurusContext();
@@ -22,6 +24,9 @@ export default function Home() {
       description="NodeJS framework with GraphQL, REST, AWS, GCP, Kubernetes"
     >
       <HomepageHeader />
+      <div className="container">
+        <WebdaPanel>This is my service description</WebdaPanel>
+      </div>
     </Layout>
   );
   /*

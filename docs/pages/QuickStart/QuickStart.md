@@ -6,7 +6,7 @@ sidebar_position: 1
 
 Initiate the project
 
-```
+```shell
 npx @webda/shell init
 ```
 
@@ -14,7 +14,7 @@ It will create the default structure
 
 Configure the project
 
-```
+```shell
 webda config
 ```
 
@@ -22,7 +22,7 @@ webda config
 
 By executing `webda module` or `webda configuration-schema`, you will create two files
 
-```
+```shell
 .webda-config-schema.json
 .webda-deployment-schema.json
 ```

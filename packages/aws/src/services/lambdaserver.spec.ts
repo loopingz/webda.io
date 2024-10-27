@@ -1,6 +1,7 @@
-import { suite, test } from "@testdeck/mocha";
-import { Bean, getCommonJS, HttpContext, Route, Service, WebdaError } from "@webda/core";
+import { Bean, HttpContext, Route, Service, WebdaError } from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
+import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
 import * as fs from "fs";
 import { checkLocalStack, WebdaAwsTest } from "../index.spec";

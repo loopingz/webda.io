@@ -367,6 +367,35 @@ export class ModuleGenerator {
     return relative(this.compiler.project.getAppPath(), filePath);
   }
 
+  getTypeParameterResolution(node: ts.TypeReferenceNode): string | undefined {
+    const checker = this.typeChecker;
+    const type = checker.getTypeAtLocation(node);
+    const symbol = type.aliasSymbol || type.symbol;
+
+    if (symbol && symbol.declarations) {
+      for (const declaration of symbol.declarations) {
+        // Check if the declaration is a type alias or interface
+        if (ts.isTypeAliasDeclaration(declaration) || ts.isInterfaceDeclaration(declaration)) {
+          const typeParameters = declaration.typeParameters;
+          if (typeParameters) {
+            // Find the corresponding type parameter
+            const typeParameter = typeParameters.find(param => param.name.text === node.typeName.getText());
+            if (typeParameter) {
+              // Get the constraint of the type parameter
+              const constraint = typeParameter.constraint;
+              if (constraint) {
+                // Resolve the constraint to a user-friendly string
+                return checker.typeToString(checker.getTypeAtLocation(constraint));
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
   /**
    * Generate the graph relationship between models
    * And the hierarchy tree
@@ -389,6 +418,7 @@ export class ModuleGenerator {
         Relations: {},
         Ancestors: [],
         Subclasses: [],
+        Reflection: {},
         Schema: {}
       };
 
@@ -396,7 +426,17 @@ export class ModuleGenerator {
       type
         .getProperties()
         .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
-        .forEach((prop: ts.Symbol) => {
+        .forEach((prop: Omit<ts.Symbol, "valueDeclaration"> & { valueDeclaration: ts.PropertyDeclaration }) => {
+          // Skip the non enumerable properties
+          if (
+            (ts.getDecorators(<ts.PropertyDeclaration>prop.valueDeclaration) || []).find(annotation => {
+              return "NotEnumerable" === annotation?.expression?.getText();
+            }) ||
+            prop.getJsDocTags().find(p => p.name === "ignore") !== undefined
+          ) {
+            return;
+          }
+
           const pType: ts.TypeReferenceNode = <ts.TypeReferenceNode>prop.valueDeclaration
             .getChildren()
             .filter(c => c.kind === ts.SyntaxKind.TypeReference)
@@ -410,6 +450,44 @@ export class ModuleGenerator {
               type = children[i];
             }
             captureNext = children[i].kind === ts.SyntaxKind.ColonToken;
+          }
+
+          // Reflection of the attributes
+          if (pType) {
+            if (pType.typeArguments?.length) {
+              metadata.Reflection[prop.getName()] = {
+                type: pType.typeName.getText()
+              };
+              metadata.Reflection[prop.getName()].typeParameters = pType.typeArguments.map(t => {
+                const typeParameter = this.typeChecker.getTypeAtLocation(t);
+                // Check if the type parameter has a constraint
+                const constraint = typeParameter.getConstraint();
+                if (constraint) {
+                  return this.typeChecker.typeToString(constraint); // Use the constraint type
+                } else {
+                  return this.typeChecker.typeToString(typeParameter); // Fallback to original type
+                }
+              });
+            } else {
+              metadata.Reflection[prop.getName()] = {
+                type: pType.getText()
+              };
+            }
+          } else if (type) {
+            if (type.getText().endsWith("[]")) {
+              metadata.Reflection[prop.getName()] = {
+                type: "Array",
+                typeParameters: [type.getText().substring(0, type.getText().length - 2)]
+              };
+            } else {
+              metadata.Reflection[prop.getName()] = {
+                type: type?.getText()
+              };
+            }
+          } else {
+            metadata.Reflection[prop.getName()] = {
+              type: "any"
+            };
           }
 
           const currentGraph: ReplaceModelWith<ModelMetadata["Relations"], string | SymbolMapper> = <any>(
@@ -702,7 +780,7 @@ export function generateModule(compiler: Compiler) {
   try {
     return new ModuleGenerator(compiler).generate();
   } catch (err) {
-    useLog("ERROR", "Cannot generate module", err);
+    useLog("ERROR", "Cannot generate module", err.message);
   }
 }
 

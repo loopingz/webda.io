@@ -15,7 +15,7 @@
     "lib"
   ],
   "scripts": {
-    "build": "webdac",
+    "build": "webdac build",
     "pretest": "npm run build",
     "test": "echo 'No test sample available yet'",
     "format": "prettier --check src/**/*",

@@ -130,7 +130,9 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
     this.hash = info.hash;
     this.mimetype = info.mimetype || "application/octet-stream";
     this.metadata = info.metadata || {};
+    this.size = info.size;
   }
+  0;
 
   /**
    * Retrieve a plain BinaryFileInfo object
@@ -210,6 +212,7 @@ export class MemoryBinaryFile extends BinaryFile {
   /**
    * Content
    */
+  @NotEnumerable
   buffer: Buffer;
 
   constructor(buffer: Buffer | string, info: Partial<BinaryFileInfo> = {}) {
@@ -737,7 +740,29 @@ export abstract class BinaryService<
   /**
    * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
    */
-  async uploadSuccess(object: CoreModelWithBinary, property: string, file: BinaryFileInfo): Promise<void> {
+  async uploadSuccess(
+    object: CoreModelWithBinary,
+    property: string,
+    fileInfo: BinaryFileInfo | { toBinaryFileInfo: () => BinaryFileInfo }
+  ): Promise<void> {
+    let file: BinaryFileInfo;
+    // Ensure we do not have a full object
+    if (fileInfo["toBinaryFileInfo"] && typeof fileInfo["toBinaryFileInfo"] === "function") {
+      file = fileInfo["toBinaryFileInfo"]();
+    } else {
+      file = fileInfo as BinaryFileInfo;
+    }
+    let additionalAttr;
+    if (
+      (additionalAttr = Object.keys(file).filter(
+        k => !["name", "size", "mimetype", "hash", "challenge", "metadata"].includes(k)
+      ))
+    ) {
+      throw new Error(
+        "Invalid file object it should be a plain BinaryFileInfo found additional properties: " +
+          additionalAttr.join(",")
+      );
+    }
     const object_uid = object.getUuid();
     // Check if the file is already in the array then skip
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {

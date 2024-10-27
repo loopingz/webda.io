@@ -49,8 +49,7 @@ export function unserializer(sourceFile: SourceFile, typeChecker: TypeChecker) {
       const propertyName = property.getName();
       if (!propertyAssignments.has(propertyName)) {
         const propertyType = property.getTypeNode();
-        console.log("propertyType kind", propertyName, propertyType.getKind());
-
+        5;
         // Check if the type is an ArrayType defined with []
         if (propertyType?.getKind() === SyntaxKind.ArrayType) {
           // Get the array element type using the TypeChecker

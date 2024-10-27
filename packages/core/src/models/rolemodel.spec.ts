@@ -28,25 +28,18 @@ class RolePolicyModelPermissive extends RoleModel {
 }
 
 @suite
-class RolePolicyTest {
+class RolePolicyTest extends WebdaApplicationTest {
   _ctx: WebContext;
   nonPermissive: RoleModel;
   permissive: RoleModel;
-  _webda: Core;
   _session: Session;
   _user: SimpleUser;
 
-  async before() {
-    const app = new TestApplication({
-      parameters: {
-        ignoreBeans: true
-      }
-    });
-    await app.load();
-    this._webda = new Core(app);
-    await this._webda.init();
-    this._ctx = <WebContext>await useCore().newContext({ httpContext: new HttpContext("test.webda.io", "GET", "/") });
-    this._session = await this._ctx.getSession();
+  async beforeEach() {
+    await super.beforeEach();
+    this._ctx = <WebContext>await useCore()!.newContext({ httpContext: new HttpContext("test.webda.io", "GET", "/") });
+    this._ctx.newSession();
+    this._session = this._ctx.getSession();
     this._session.login("none", "none");
     // @ts-ignore
     this._ctx.getCurrentUser = async () => {

@@ -1,6 +1,6 @@
-import { suite, test } from "@testdeck/mocha";
 import { CancelablePromise, Cron, HttpContext, OperationContext, Queue, Service, Store, WebdaError } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import axios from "axios";
 import * as crypto from "crypto";

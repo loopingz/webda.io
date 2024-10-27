@@ -1,8 +1,9 @@
 import { UuidModel } from "./uuid";
 import { ModelLink } from "./relations";
 import { User } from "./user";
-import type { Constructor } from "@webda/tsc-esm";
+import type { Constructor, Prototype } from "@webda/tsc-esm";
 import { IOperationContext } from "../contexts/icontext";
+import { ModelDefinition } from "../internal/iapplication";
 
 /**
  * Abstract class to define an object with an owner
@@ -25,7 +26,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    *
    * @returns
    */
-  abstract getOwnerModel(): Constructor<T>;
+  abstract getOwnerModel(): ModelDefinition<T>;
 
   /**
    * Set object owner
@@ -94,7 +95,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
  * @WebdaModel
  */
 export class OwnerModel extends AbstractOwnerModel<User> {
-  getOwnerModel(): Constructor<User> {
-    return User;
+  getOwnerModel(): ModelDefinition<User> {
+    return <any>User;
   }
 }

@@ -8,7 +8,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Binaries, Binary, BinaryService, MemoryBinaryFile } from "../services/binary";
 import { ModelMapper } from "../stores/modelmapper";
-import { WebdaTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/test";
 import { CoreModel, Emitters } from "./coremodel";
 import {
   ModelLink,
@@ -16,14 +16,14 @@ import {
   ModelLinksMap,
   ModelLinksSimpleArray,
   ModelParent,
+  ModelRef,
   ModelRelated,
   ModelsMapped
 } from "./relations";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { CoreModelEvents } from "./imodel";
-import { useCore } from "../core/hooks";
-import { useModel } from "../application/hook";
+import { useApplication, useModel } from "../application/hook";
 
 interface StudentInterface extends CoreModel {
   email: string;
@@ -40,6 +40,7 @@ interface TeacherInterface extends CoreModel {
   students: ModelsMapped<StudentInterface, "teachers", "firstName" | "lastName" | "email">;
   name: string;
   senior: boolean;
+  ref: (uuid: string) => ModelRef<this>;
 }
 
 interface CourseInterface extends CoreModel {
@@ -55,6 +56,7 @@ interface CourseInterface extends CoreModel {
       lastName?: string;
     }
   >;
+  ref: (uuid: string) => ModelRef<this>;
 }
 
 interface ClassroomInterface extends CoreModel {
@@ -85,12 +87,14 @@ interface ContactInterface extends CoreModel {
   avatar: Binary;
   photos: Binaries;
   owner: ModelLink<CoreModel>;
+  ref: (uuid: string) => ModelRef<this>;
 }
 @suite
-export class ModelDrivenTest extends WebdaTest {
-  afterEach() {
+export class ModelDrivenTest extends WebdaApplicationTest {
+  async afterEach() {
+    super.afterEach();
     // Ensure we remove all listeners
-    Object.values(useCore().getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
+    Object.values(useApplication()!.getModels()).forEach(m => Emitters.get(m)?.removeAllListeners());
   }
 
   getTestConfiguration() {
@@ -194,10 +198,10 @@ export class ModelDrivenTest extends WebdaTest {
     const mapper = new ModelMapper(this.webda, "test", {}).resolve();
     await mapper.init();
 
-    const Course = this.webda.getModel<CourseInterface>("Course");
-    const Student = this.webda.getModel<StudentInterface>("Student");
-    const Teacher = this.webda.getModel<TeacherInterface>("Teacher");
-    const Classroom = this.webda.getModel<ClassroomInterface>("Classroom");
+    const Course = useModel<CourseInterface>("Course");
+    const Student = useModel<StudentInterface>("Student");
+    const Teacher = useModel<TeacherInterface>("Teacher");
+    const Classroom = useModel<ClassroomInterface>("Classroom");
 
     const t1 = await Teacher.ref("teacher1").create({ name: "teacher1", senior: true });
     const t2 = await Teacher.ref("teacher2").create({ name: "teacher2", senior: false });

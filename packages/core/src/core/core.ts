@@ -7,14 +7,14 @@ import { Application } from "../application/application";
 import { Configuration, ModelDefinition, AbstractCoreModel } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
 import { CoreModel } from "../models/coremodel";
-import type { Constructor } from "@webda/tsc-esm";
+import type { Constructor, Prototype } from "@webda/tsc-esm";
 import { Router, RouterParameters } from "../rest/router";
 import { useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
 import { Logger } from "../loggers/ilogger";
-import type { ConfigurationService } from "../services/configuration";
+import type { ConfigurationService } from "../configurations/configuration";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
 import { getUuid, JSONUtils } from "@webda/utils";
@@ -53,7 +53,7 @@ export class Core implements ICore {
   /**
    * Router that will route http request in
    */
-  protected router: Router = new Router("RESTService", new RouterParameters().load({}));
+  protected router: Router = new Router("RESTService", <any>{});
   /**
    * If Core is already initiated
    */
@@ -191,7 +191,7 @@ export class Core implements ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends AbstractCoreModel>(modelOrConstructor: Constructor<T> | T | string): Store {
+  getModelStore<T extends AbstractCoreModel>(modelOrConstructor: Prototype<T> | T | string): Store {
     let model: ModelDefinition;
     if (typeof modelOrConstructor === "string") {
       model = useModel(modelOrConstructor);

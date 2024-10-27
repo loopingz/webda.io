@@ -14,7 +14,7 @@ export class ServiceParameters {
    */
   constructor() {}
 
-  load(params) {
+  load(params: any = {}): this {
     Object.assign(this, params);
     this.default();
     return this;

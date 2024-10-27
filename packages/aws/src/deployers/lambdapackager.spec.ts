@@ -1,7 +1,7 @@
-import { suite, test } from "@testdeck/mocha";
-import { getCommonJS } from "@webda/core";
 import { DeploymentManager } from "@webda/shell";
 import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
+import { suite, test } from "@webda/test";
+import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
 import * as path from "path";
 import { LambdaPackager } from "./lambdapackager";

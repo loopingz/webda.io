@@ -1,11 +1,11 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { MailerParameters, UnpackedConfiguration, User, WebContext } from "../index";
-import { WebdaInternalTest } from "../test";
+import { MailerParameters, UnpackedConfiguration, User, useService, WebContext } from "../index";
+import { WebdaApplicationTest } from "../test/test";
 
 @suite
-class MailerTest extends WebdaInternalTest {
+class MailerTest extends WebdaApplicationTest {
   mailer;
   lastLevel;
   lastInfo;
@@ -28,11 +28,11 @@ class MailerTest extends WebdaInternalTest {
       }
     };
   }
-  async before() {
-    await super.before();
+  async beforeEach() {
+    await super.beforeEach();
     this.lastLevel = this.lastInfo = this.lastOptions = this.lastCallback = undefined;
     this.ctx = await this.newContext();
-    this.mailer = this.getService("TrueMailer");
+    this.mailer = useService("TrueMailer");
     // Mocking the transporter
     this.mailer._transporter = {};
     this.mailer._transporter.sendMail = (options, callback) => {
@@ -49,7 +49,7 @@ class MailerTest extends WebdaInternalTest {
 
   @test
   params() {
-    const params = new MailerParameters({
+    const params = new MailerParameters().load({
       templates: "ts",
       templatesEngine: "b"
     });

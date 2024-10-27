@@ -8,6 +8,7 @@ import { Counter } from "../metrics/metrics";
 import type { User } from "../models/user";
 import type { Ident } from "../models/ident";
 import { ServiceParameters } from "../interfaces";
+import { ServicePartialParameters } from "../internal/iapplication";
 
 interface IEmailTemplate {
   renderAll(file: string, options: any);
@@ -199,7 +200,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    * @param params
    * @ignore
    */
-  loadParameters(params: any): T {
+  loadParameters(params: ServicePartialParameters<T>): T {
     return <T>new MailerParameters().load(params);
   }
 

@@ -11,6 +11,7 @@ export type UserEvents<T> = CoreModelEvents<T> & {
  * First basic model for User
  * @class
  * @WebdaModel
+ * @Frontend
  */
 export class User extends CoreModel {
   @NotEnumerable
@@ -22,6 +23,7 @@ export class User extends CoreModel {
   /**
    * Display name for this user
    * @optional
+   * @Frontend
    */
   displayName: string;
   /**
@@ -45,6 +47,7 @@ export class User extends CoreModel {
   /**
    * Return user email if known or guessable
    * @returns
+   * @Frontend
    */
   getEmail(): string | undefined {
     this.email ??= this.getIdents().find(i => {
@@ -56,15 +59,15 @@ export class User extends CoreModel {
   /**
    * Return displayable public entry
    * @returns
+   * @Frontend
    */
   toPublicEntry(): any {
-    const res = {
+    return {
       displayName: this.displayName,
       uuid: this.getUuid(),
       avatar: this._avatar,
       email: this.getEmail()
     };
-    return res;
   }
 
   /**

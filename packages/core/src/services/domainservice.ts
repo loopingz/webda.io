@@ -435,6 +435,9 @@ export abstract class DomainService<
     const models = app.getModels();
     for (const modelKey in models) {
       const model = models[modelKey];
+      if (!model) {
+        continue;
+      }
       const expose = model.Expose;
       // Skip if not exposed or not included
       if (!expose || !this.parameters.isIncluded(model.getIdentifier())) {

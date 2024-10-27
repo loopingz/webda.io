@@ -2,6 +2,7 @@ import { MemoryLogger } from "@webda/workout";
 import { useWorkerOutput } from "./ilogger";
 import { MemoryLoggerServiceParameters } from "./params";
 import { LoggerService } from "./logger";
+import { ServicePartialParameters } from "../internal/iapplication";
 
 /**
  * Store logs within memory
@@ -22,7 +23,7 @@ export class MemoryLoggerService<
   /**
    * @inheritdoc
    */
-  loadParameters(params: any) {
+  loadParameters(params: ServicePartialParameters<T>) {
     return <T>new MemoryLoggerServiceParameters().load(params);
   }
 }

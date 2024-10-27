@@ -3,7 +3,6 @@ import { IApplication, Configuration } from "../internal/iapplication";
 import { OperationDefinitionInfo, ICore } from "./icore";
 import { ContextProvider } from "../contexts/icontext";
 import { IRouter } from "../rest/irest";
-import { useLog } from "@webda/workout";
 
 export type InstanceStorage = Partial<{
   // Used to store the application

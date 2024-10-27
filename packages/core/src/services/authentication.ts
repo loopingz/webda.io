@@ -589,26 +589,21 @@ class Authentication<
       }
       if (profile.email && !ident) {
         // Save additional email
-        await new this.identModel()
-          .load(
-            {
-              uuid: `${profile.email}_email`,
-              provider: "email",
-              _user: user.getUuid()
-            },
-            true
-          )
-          .save();
+        await this.identModel.create({
+          uuid: `${profile.email}_email`,
+          provider: "email",
+          _user: user.getUuid()
+        });
       }
       // Work directly on ident argument
-      ident = new this.identModel().load(
+      ident = await this.identModel.create(
         {
           uuid: identId,
           __profile: profile,
           __tokens: tokens,
           provider
         },
-        true
+        false
       );
       ident.setUser(user.uuid);
       ident._lastUsed = new Date();
@@ -633,7 +628,8 @@ class Authentication<
   }
     */
 
-  async registerUser(ctx: WebContext, data: any, identId: string, user: User = new this.userModel()): Promise<User> {
+  async registerUser(ctx: WebContext, data: any, identId: string, user?: User): Promise<User> {
+    user ??= await this.userModel.create({}, false);
     user.email = data.email;
     user.locale = ctx.getLocale();
     this.metrics.registration.inc();
@@ -779,7 +775,7 @@ class Authentication<
       let ident = await this.identModel.ref(uuid).get();
       // Would mean the ident got delete in the mean time... hyper low likely hood
       if (ident === undefined) {
-        ident = new this.identModel().setUuid(uuid);
+        ident = (await this.identModel.create({}, false)).setUuid(uuid);
       }
       ident._type = "email";
       ident._validation = new Date();
@@ -1027,12 +1023,13 @@ class Authentication<
         context: ctx
       });
       await user.save();
-      const newIdent: any = runAsSystem(() =>
-        new this.identModel().load({
-          uuid: uuid,
-          _type: "email",
-          email: email
-        })
+      const newIdent = await runAsSystem(
+        async () =>
+          await this.identModel.create({
+            uuid: uuid,
+            _type: "email",
+            email: email
+          })
       );
       newIdent.setUser(user.getUuid());
       if (validation) {

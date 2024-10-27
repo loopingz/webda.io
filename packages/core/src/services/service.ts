@@ -4,7 +4,7 @@ import { AsyncEventEmitterImpl, AsyncEventUnknown, EventEmitterUtils } from "../
 import { Route } from "../rest/irest";
 import type { OpenAPIWebdaDefinition } from "../rest/irest";
 import type { HttpMethodType } from "../contexts/httpcontext";
-import type { Constructor, DeepPartial } from "@webda/tsc-esm";
+import type { Attributes, Constructor, DeepPartial } from "@webda/tsc-esm";
 import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfiguration } from "../metrics/metrics";
 
 import type { Logger } from "../loggers/ilogger";
@@ -13,6 +13,7 @@ import { ServiceParameters } from "../interfaces";
 import { useService } from "../core/hooks";
 import { AbstractService } from "../core/icore";
 import { useLogger } from "../loggers/hooks";
+import { ServicePartialParameters } from "../internal/iapplication";
 
 /**
  * Represent a Inject annotation
@@ -205,7 +206,7 @@ abstract class Service<
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(name: string, params: T) {
+  constructor(name: string, params: ServicePartialParameters<T>) {
     super(name, params);
     this.logger = useLogger(this);
   }
@@ -215,10 +216,6 @@ abstract class Service<
    */
   computeParameters(): void {
     // Can be overriden by subclasses if needed
-  }
-
-  loadParameters(params: DeepPartial<T>): T {
-    return <T>new ServiceParameters().load(params);
   }
 
   /**

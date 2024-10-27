@@ -1,4 +1,4 @@
-import { FileQueue, FileQueueParameters, Service, ServiceParameters } from "@webda/core";
+import { MemoryQueue, MemoryQueueParameters, Service, ServiceParameters } from "@webda/core";
 
 /**
  * @WebdaSchema
@@ -57,4 +57,4 @@ export class FourthOtherService<
 /**
  * @WebdaModda
  */
-export class QueueService<T extends FileQueueParameters = FileQueueParameters, K = any> extends FileQueue<K, T> {}
+export class QueueService<T extends MemoryQueueParameters = MemoryQueueParameters, K = any> extends MemoryQueue<K, T> {}

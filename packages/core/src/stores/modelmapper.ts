@@ -1,7 +1,7 @@
 import { useApplication, useModel } from "../application/hook";
 import type { CoreModel } from "../models/coremodel";
 import type { CoreModelEvents } from "../models/imodel";
-import { ModelDefinition } from "../internal/iapplication";
+import { ModelDefinition, ServicePartialParameters } from "../internal/iapplication";
 import { ModelRef } from "../models/relations";
 import { Service } from "../services/service";
 import { DeepPartial } from "@webda/tsc-esm";
@@ -93,7 +93,7 @@ export class ModelMapper extends Service {
    * @param params
    * @returns
    */
-  loadParameters(params: DeepPartial<ServiceParameters>): ServiceParameters {
+  loadParameters(params: ServicePartialParameters<ServiceParameters>): ServiceParameters {
     return new ServiceParameters().load(params);
   }
   /**

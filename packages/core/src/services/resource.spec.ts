@@ -29,10 +29,6 @@ class ResourceTest extends WebdaApplicationTest {
     };
   }
 
-  static async beforeAll(init: boolean = true) {
-    await super.beforeAll(init);
-  }
-
   async beforeEach(): Promise<void> {
     this.resource = this.getService("ResourceService");
     this.resourceModel = this.getService("ModelsResource");
@@ -99,7 +95,10 @@ class ResourceTest extends WebdaApplicationTest {
     const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.json");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/config.json").toString());
+    assert.strictEqual(
+      this.ctx.getResponseBody().toString(),
+      fs.readFileSync(import.meta.dirname + "/../../test/config.json").toString()
+    );
     assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/json");
   }
 
@@ -108,7 +107,10 @@ class ResourceTest extends WebdaApplicationTest {
     const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.txt");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.txt").toString());
+    assert.strictEqual(
+      this.ctx.getResponseBody().toString(),
+      fs.readFileSync(import.meta.dirname + "/../../test/data/test.txt").toString()
+    );
     assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "text/plain; charset=UTF-8");
   }
 
@@ -117,7 +119,10 @@ class ResourceTest extends WebdaApplicationTest {
     const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.png");
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.png").toString());
+    assert.strictEqual(
+      this.ctx.getResponseBody().toString(),
+      fs.readFileSync(import.meta.dirname + "/../../test/data/test.png").toString()
+    );
     assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "image/png");
   }
 
@@ -142,7 +147,7 @@ class ResourceTest extends WebdaApplicationTest {
     await executor.execute(this.ctx);
     assert.strictEqual(
       this.ctx.getResponseBody().toString(),
-      fs.readFileSync("./templates/PASSPORT_EMAIL_RECOVERY/html.mustache").toString()
+      fs.readFileSync(import.meta.dirname + "/../../templates/PASSPORT_EMAIL_RECOVERY/html.mustache").toString()
     );
     assert.strictEqual(this.ctx.getResponseHeaders()["content-type"], "application/octet-stream");
   }

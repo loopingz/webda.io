@@ -17,7 +17,7 @@ export function Expose(...args: [Partial<ExposeParameters>?] | [any, string, Pro
     return descriptor;
   }
   return (target: ModelDefinition): void => {
-    const params = args[0];
+    const params = args[0] || {};
     params.restrict ??= {};
     target.Expose = <ExposeParameters>params;
   };

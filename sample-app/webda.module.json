@@ -29,7 +29,7 @@
             "description": "Type of the service"
           },
           "introspection": {
-            "$ref": "#/definitions/Partial%3Cclass-676974613-0-348-676974613-0-389976353190%3E"
+            "$ref": "#/definitions/Partial%3Cclass-interfaces.d.ts-0-349-interfaces.d.ts-0-390976353190%3E"
           }
         },
         "required": [
@@ -38,7 +38,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<class-676974613-0-348-676974613-0-389976353190>": {
+          "Partial<class-interfaces.d.ts-0-349-interfaces.d.ts-0-390976353190>": {
             "type": "object",
             "properties": {
               "type": {
@@ -102,7 +102,7 @@
             "type": "string"
           },
           "interfaceParam": {
-            "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+            "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248%3E",
             "description": "The Partial will generate a new $ref"
           }
         },
@@ -113,7 +113,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<interface-817825559-246-294-817825559-0-1238>": {
+          "Partial<interface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248>": {
             "type": "object",
             "properties": {
               "test": {
@@ -159,7 +159,7 @@
             "type": "string"
           },
           "interfaceParam": {
-            "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+            "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248%3E",
             "description": "The Partial will generate a new $ref"
           },
           "fourthParameter": {
@@ -176,7 +176,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<interface-817825559-246-294-817825559-0-1238>": {
+          "Partial<interface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248>": {
             "type": "object",
             "properties": {
               "test": {
@@ -229,16 +229,12 @@
             "type": "number",
             "description": "Number of seconds before droping message",
             "default": 30
-          },
-          "folder": {
-            "type": "string",
-            "description": "Where to store the queue"
           }
         },
         "required": [
-          "folder",
           "maxConsumers",
-          "type"
+          "type",
+          "workerParallelism"
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "QueueService"
@@ -257,7 +253,7 @@
             "type": "string"
           },
           "interfaceParam": {
-            "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+            "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248%3E",
             "description": "The Partial will generate a new $ref"
           }
         },
@@ -268,7 +264,7 @@
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "definitions": {
-          "Partial<interface-817825559-246-294-817825559-0-1238>": {
+          "Partial<interface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248>": {
             "type": "object",
             "properties": {
               "test": {
@@ -326,6 +322,50 @@
       "Subclasses": [
         "WebdaDemo/Project"
       ],
+      "Reflection": {
+        "_creator": {
+          "type": "string"
+        },
+        "__acl": {
+          "type": "Acl"
+        },
+        "_permissions": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "test": {
+          "type": "Date"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -452,6 +492,74 @@
       "Subclasses": [
         "WebdaDemo/SubSubProject"
       ],
+      "Reflection": {
+        "_company": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "Company"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "protectMe": {
+          "type": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }"
+        },
+        "_creator": {
+          "type": "string"
+        },
+        "__acl": {
+          "type": "Acl"
+        },
+        "_permissions": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "test": {
+          "type": "Date"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -592,6 +700,41 @@
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "name": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -732,6 +875,56 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "ModelsMapped",
+          "typeParameters": [
+            "Course",
+            "\"classroom\"",
+            "\"name\""
+          ]
+        },
+        "hardwares": {
+          "type": "ModelRelated",
+          "typeParameters": [
+            "Hardware",
+            "\"classroom\""
+          ]
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -891,6 +1084,74 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "_projects": {
+          "type": "ModelsMapped",
+          "typeParameters": [
+            "Project",
+            "\"_company\"",
+            "\"name\" | \"type\""
+          ]
+        },
+        "users": {
+          "type": "ModelRelated",
+          "typeParameters": [
+            "User",
+            "\"_company\""
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "mapString": {
+          "type": "{ [key: string]: string }"
+        },
+        "mapAny": {
+          "type": "{ [key: string]: any }"
+        },
+        "mapNumber": {
+          "type": "{ [key: string]: number }"
+        },
+        "mapBoolean": {
+          "type": "{ [key: string]: boolean }"
+        },
+        "mapObject": {
+          "type": "{ [key: string]: { test: number; b: boolean; status: string } }"
+        },
+        "permissions": {
+          "type": "Array",
+          "typeParameters": [
+            "Permission"
+          ]
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1099,6 +1360,50 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "_user": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "_loanTo": {
+          "type": "ModelLink",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1235,6 +1540,60 @@
         "WebdaDemo/Hardware"
       ],
       "Subclasses": [],
+      "Reflection": {
+        "modelId": {
+          "type": "string"
+        },
+        "serialNumber": {
+          "type": "string"
+        },
+        "classroom": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "Classroom"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "brands": {
+          "type": "ModelRelated",
+          "typeParameters": [
+            "Brand",
+            "\"name\""
+          ]
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1384,6 +1743,71 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "type": {
+          "type": "\"PERSONAL\" | \"PROFESSIONAL\""
+        },
+        "age": {
+          "type": "number"
+        },
+        "custom": {
+          "type": "string"
+        },
+        "readonly": {
+          "type": "number"
+        },
+        "optional": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "Binary"
+        },
+        "photos": {
+          "type": "Binaries",
+          "typeParameters": [
+            "{ location: { lat: number; lng: number; }; }"
+          ]
+        },
+        "owner": {
+          "type": "ModelLink",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1581,6 +2005,60 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "classroom": {
+          "type": "ModelLink",
+          "typeParameters": [
+            "Classroom"
+          ]
+        },
+        "teacher": {
+          "type": "ModelLink",
+          "typeParameters": [
+            "Teacher"
+          ]
+        },
+        "students": {
+          "type": "ModelLinksMap",
+          "typeParameters": [
+            "Student",
+            "{ firstName: string; lastName?: string; }"
+          ]
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1743,6 +2221,54 @@
       "Subclasses": [
         "WebdaDemo/ComputerScreen"
       ],
+      "Reflection": {
+        "classroom": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "Classroom"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "brands": {
+          "type": "ModelRelated",
+          "typeParameters": [
+            "Brand",
+            "\"name\""
+          ]
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1876,6 +2402,74 @@
         "WebdaDemo/SubProject",
         "WebdaDemo/AnotherSubProject"
       ],
+      "Reflection": {
+        "_company": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "Company"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "protectMe": {
+          "type": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }"
+        },
+        "_creator": {
+          "type": "string"
+        },
+        "__acl": {
+          "type": "Acl"
+        },
+        "_permissions": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "test": {
+          "type": "Date"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2040,6 +2634,74 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "order": {
+          "type": "number"
+        },
+        "friends": {
+          "type": "ModelLinksArray",
+          "typeParameters": [
+            "Student",
+            "{ email: string; firstName: string; lastName: string; }"
+          ]
+        },
+        "teachers": {
+          "type": "ModelLinksSimpleArray",
+          "typeParameters": [
+            "Teacher"
+          ]
+        },
+        "courses": {
+          "type": "ModelsMapped",
+          "typeParameters": [
+            "Course",
+            "\"students\"",
+            "\"name\""
+          ]
+        },
+        "constraints": {
+          "type": "null"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2237,6 +2899,74 @@
         "WebdaDemo/AbstractProject"
       ],
       "Subclasses": [],
+      "Reflection": {
+        "_company": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "Company"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "protectMe": {
+          "type": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }"
+        },
+        "_creator": {
+          "type": "string"
+        },
+        "__acl": {
+          "type": "Acl"
+        },
+        "_permissions": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "test": {
+          "type": "Date"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2385,6 +3115,77 @@
         "WebdaDemo/AbstractProject"
       ],
       "Subclasses": [],
+      "Reflection": {
+        "attribute1": {
+          "type": "string"
+        },
+        "_company": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "Company"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "n": {
+          "type": "number"
+        },
+        "test2": {
+          "type": "string"
+        },
+        "protectMe": {
+          "type": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }"
+        },
+        "_creator": {
+          "type": "string"
+        },
+        "__acl": {
+          "type": "Acl"
+        },
+        "_permissions": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "test": {
+          "type": "Date"
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2553,6 +3354,66 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "ModelsMapped",
+          "typeParameters": [
+            "Course",
+            "\"teacher\"",
+            "\"name\""
+          ]
+        },
+        "students": {
+          "type": "ModelsMapped",
+          "typeParameters": [
+            "Student",
+            "\"teachers\"",
+            "\"email\" | \"firstName\" | \"lastName\""
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "senior": {
+          "type": "boolean"
+        },
+        "anyArray": {
+          "type": "Array",
+          "typeParameters": [
+            "any"
+          ]
+        },
+        "Events": {
+          "type": "CoreModelEvents",
+          "typeParameters": [
+            "CoreModel"
+          ]
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2765,6 +3626,86 @@
       },
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "_company": {
+          "type": "ModelParent",
+          "typeParameters": [
+            "Company"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "profilePicture": {
+          "type": "Binary",
+          "typeParameters": [
+            "{ width: number; height: number; }"
+          ]
+        },
+        "images": {
+          "type": "Binaries"
+        },
+        "computers": {
+          "type": "ModelRelated",
+          "typeParameters": [
+            "Computer",
+            "\"_user\""
+          ]
+        },
+        "contacts": {
+          "type": "ModelsMapped",
+          "typeParameters": [
+            "Contact",
+            "\"owner\"",
+            "\"firstName\" | \"lastName\" | \"age\""
+          ]
+        },
+        "Events": {
+          "type": "UserEvents",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "__password": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number"
+        },
+        "_avatar": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "__class": {
+          "type": "ModelDefinition<this> & {\n        Store: typeof CoreModel.Store;\n    }"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        },
+        "_new": {
+          "type": "boolean"
+        },
+        "__dirty": {
+          "type": "Set",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "__context": {
+          "type": "any"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -3035,6 +3976,7 @@
     "WebdaDemo/BinaryFile": {
       "type": "object",
       "properties": {
+        "0": {},
         "hash": {
           "type": "string",
           "description": "Will be computed by the service\n\nhash of the content"
@@ -3064,6 +4006,7 @@
         }
       },
       "required": [
+        "0",
         "mimetype",
         "name",
         "size"
@@ -5500,7 +6443,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248%3E",
           "description": "The Partial will generate a new $ref"
         }
       },
@@ -5511,7 +6454,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-817825559-246-294-817825559-0-1238>": {
+        "Partial<interface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248>": {
           "type": "object",
           "properties": {
             "test": {
@@ -5551,7 +6494,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -5568,7 +6511,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-817825559-246-294-817825559-0-1238>": {
+        "Partial<interface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248>": {
           "type": "object",
           "properties": {
             "test": {
@@ -5618,16 +6561,12 @@
           "type": "number",
           "description": "Number of seconds before droping message",
           "default": 30
-        },
-        "folder": {
-          "type": "string",
-          "description": "Where to store the queue"
         }
       },
       "required": [
-        "folder",
         "maxConsumers",
-        "type"
+        "type",
+        "workerParallelism"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "QueueService"
@@ -5643,7 +6582,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-817825559-246-294-817825559-0-1238%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248%3E",
           "description": "The Partial will generate a new $ref"
         }
       },
@@ -5654,7 +6593,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-817825559-246-294-817825559-0-1238>": {
+        "Partial<interface-vices_compiler.ts-250-298-vices_compiler.ts-0-1248>": {
           "type": "object",
           "properties": {
             "test": {
@@ -5718,7 +6657,7 @@
           "description": "Type of the service"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-676974613-0-348-676974613-0-389976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-interfaces.d.ts-0-349-interfaces.d.ts-0-390976353190%3E"
         }
       },
       "required": [
@@ -5727,7 +6666,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-676974613-0-348-676974613-0-389976353190>": {
+        "Partial<class-interfaces.d.ts-0-349-interfaces.d.ts-0-390976353190>": {
           "type": "object",
           "properties": {
             "type": {

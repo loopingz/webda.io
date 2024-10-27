@@ -6,6 +6,7 @@ import { createGzip } from "node:zlib";
 import { GunzipConditional } from "@webda/utils";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 import * as WebdaQL from "@webda/ql";
+import { ServicePartialParameters } from "../internal/iapplication";
 interface StorageMap {
   [key: string]: string;
 }
@@ -226,7 +227,7 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
   /**
    * @override
    */
-  loadParameters(params: any): K {
+  loadParameters(params: ServicePartialParameters<K>): K {
     return <K>new MemoryStoreParameters().load(params);
   }
 

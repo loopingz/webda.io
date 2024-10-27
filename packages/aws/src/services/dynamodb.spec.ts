@@ -6,7 +6,6 @@ import {
   DynamoDBClient,
   ScanCommand
 } from "@aws-sdk/client-dynamodb";
-import { suite, test } from "@testdeck/mocha";
 import {
   CoreModel,
   Ident,
@@ -14,10 +13,11 @@ import {
   StoreEvents,
   StoreParameters,
   UpdateConditionFailError,
-  getCommonJS
 } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import { TestApplication } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
+import { getCommonJS } from "@webda/utils";
 import { WorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";

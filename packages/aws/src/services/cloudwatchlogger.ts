@@ -1,9 +1,9 @@
+import { CloudFormationContributor } from ".";
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { Service, ServiceParameters } from "@webda/core";
 import { LogFilter, WorkerLogLevel, WorkerMessage } from "@webda/workout";
-import { CloudFormationContributor } from ".";
-import { AWSServiceParameters } from "./aws-mixin";
 import { randomUUID } from "crypto";
+import { AWSServiceParameters } from "./aws-mixin";
 
 /**
  * Send webda log to CloudWatch

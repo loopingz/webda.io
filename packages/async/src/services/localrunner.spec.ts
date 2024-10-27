@@ -1,6 +1,6 @@
-import { suite, test } from "@testdeck/mocha";
 import { Store } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "events";
 import { nextTick } from "process";

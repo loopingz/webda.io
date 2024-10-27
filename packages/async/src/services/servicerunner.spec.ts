@@ -1,6 +1,6 @@
-import { suite, test } from "@testdeck/mocha";
 import { CoreModel, Operation, OperationContext, SimpleOperationContext, Store } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test/test";
+import { suite, test } from "@webda/test";
 import assert from "assert";
 import models, { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../models";
 import { Runner } from "./runner";
@@ -25,7 +25,7 @@ class FakeRunner extends Runner {
 }
 
 @suite
-class ServiceRunnerTest extends WebdaTest {
+class ServiceRunnerTest extends WebdaApplicationTest {
   @test
   async operationAction() {
     this.registerService(new FakeRunner(this.webda, "calledRunner"));

@@ -1,6 +1,6 @@
 import { ChangeResourceRecordSetsCommand, ListResourceRecordSetsCommand, Route53 } from "@aws-sdk/client-route-53";
-import { suite, test } from "@testdeck/mocha";
-import { JSONUtils } from "@webda/core";
+import { suite, test } from "@webda/test";
+import { JSONUtils } from "@webda/utils";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import * as sinon from "sinon";

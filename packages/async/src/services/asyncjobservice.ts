@@ -6,8 +6,6 @@ import {
   CoreModelDefinition,
   CronDefinition,
   CronService,
-  FileUtils,
-  JSONUtils,
   OperationContext,
   Queue,
   RequestFilter,
@@ -16,9 +14,10 @@ import {
   SimpleOperationContext,
   Store,
   WebContext,
-  WebdaError
+  WebdaError,
 } from "@webda/core";
 import * as WebdaQL from "@webda/ql";
+import { JSONUtils, FileUtils } from "@webda/utils";
 import { WorkerLogLevel } from "@webda/workout";
 import axios, { AxiosResponse } from "axios";
 import * as crypto from "crypto";

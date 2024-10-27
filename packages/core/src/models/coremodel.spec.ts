@@ -19,9 +19,13 @@ import {
   OperationContext,
   WebdaError,
   createModelLinksMap,
-  runWithContext
+  getAttributeLevelProxy,
+  runWithContext,
+  useConfiguration
 } from "../index";
-import { WebdaSimpleTest, Task } from "../test";
+import { Task } from "../test/objects";
+import { WebdaApplicationTest } from "../test/test";
+import { Constructor } from "@webda/tsc-esm";
 
 @Expose()
 class TestMask extends CoreModel {
@@ -36,8 +40,12 @@ class TestMask extends CoreModel {
   side: string;
   counter: number;
 
-  hasAttributePermissions(context: Context, mode: "READ" | "WRITE"): boolean {
+  hasAttributePermissions(mode: "READ" | "WRITE"): boolean {
     return true;
+  }
+
+  static getProxy<T extends CoreModel>(this: Constructor<T>, object: T): T {
+    return getAttributeLevelProxy(object);
   }
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {
@@ -51,11 +59,11 @@ class TestMask extends CoreModel {
           }
         }
         return value;
-      } else if (!(context instanceof GlobalContext) && context.getCurrentUserId() !== "admin") {
+      } else if (!(context instanceof GlobalContext) && this.context.getCurrentUserId() !== "admin") {
         return undefined;
       }
     }
-    return super.attributePermission(key, value, mode, context);
+    return super.attributePermission(key, value, mode);
   }
 
   @Action({ name: "globalAction" })
@@ -74,7 +82,7 @@ class SubTestMask extends TestMask {
 }
 
 @suite
-class CoreModelTest extends WebdaSimpleTest {
+class CoreModelTest extends WebdaApplicationTest {
   @test
   async contextPermission() {
     // Object within a system context
@@ -113,7 +121,7 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test("Verify unsecure loaded") unsecureLoad() {
-    runWithContext(new OperationContext(this.webda), () => {
+    runWithContext(new OperationContext(), () => {
       const object: any = new CoreModel();
       object.load({
         _test: "plop",
@@ -126,7 +134,7 @@ class CoreModelTest extends WebdaSimpleTest {
 
   @test
   maskAttribute() {
-    const test = new TestMask().load({ card: "1234-1245-5667-0124" });
+    const test = new TestMask()["load"]({ card: "1234-1245-5667-0124" });
     assert.strictEqual(test.card, "123X-XXXX-XXXX-X124");
   }
 
@@ -147,7 +155,7 @@ class CoreModelTest extends WebdaSimpleTest {
   @test
   unflat() {
     let counters = new CoreModel()
-      .load(<any>{
+      ["load"](<any>{
         "test#second#bytes": 12,
         "test#second#size": 66,
         "test#first#bytes": 1,
@@ -173,7 +181,7 @@ class CoreModelTest extends WebdaSimpleTest {
       "first#size": 2
     });
     counters = new CoreModel()
-      .load(<any>{
+      ["load"](<any>{
         "test|second|bytes": 12,
         "test|second|size": 66,
         "test|first|bytes": 1,
@@ -207,13 +215,17 @@ class CoreModelTest extends WebdaSimpleTest {
 
   @test("Verify JSON export") jsonExport() {
     const object = this.secureConstructor();
-    runWithContext(new OperationContext(this.webda), () => {
-      const exported = JSON.parse(JSON.stringify(object));
-      assert.strictEqual(exported.__serverOnly, undefined);
-      assert.strictEqual(exported._test, "plop");
-      assert.strictEqual(exported.test, "plop");
-      assert.strictEqual(exported._gotContext, undefined);
-    });
+    runWithContext(
+      new OperationContext(),
+      () => {
+        const exported = JSON.parse(JSON.stringify(object));
+        assert.strictEqual(exported.__serverOnly, undefined);
+        assert.strictEqual(exported._test, "plop");
+        assert.strictEqual(exported.test, "plop");
+        assert.strictEqual(exported._gotContext, undefined);
+      },
+      [object]
+    );
   }
 
   @test("Verify Context access within output to server") async withContext() {
@@ -227,10 +239,10 @@ class CoreModelTest extends WebdaSimpleTest {
   }
 
   @test async cov() {
-    const task = new Task();
+    const task = await Task.create({}, false);
     assert.ok(task instanceof CoreModel);
     await assert.rejects(
-      () => new CoreModel().checkAct(undefined, "test"),
+      () => new CoreModel().checkAct(undefined as any, "test"),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
     task.plop = 2;
@@ -242,7 +254,7 @@ class CoreModelTest extends WebdaSimpleTest {
         test: "123"
       })
     };
-    task.__class.store = () => <any>store;
+    task.__class.Store = <any>store;
     assert.strictEqual((await task.refresh()).test, "123");
     assert.notStrictEqual(task.generateUid(), undefined);
     const stub = sinon.stub(Task, "getUuidField").callsFake(() => "bouzouf");
@@ -266,7 +278,6 @@ class CoreModelTest extends WebdaSimpleTest {
     }
     // @ts-ignore
     process.webda = Core.singleton = undefined;
-    assert.throws(() => CoreModel.store(), /Webda not initialized/);
     // No test
     Task.getSchema();
   }
@@ -279,7 +290,7 @@ class CoreModelTest extends WebdaSimpleTest {
   @test async ref() {
     this.webda.getApplication().addModel("webdatest", TestMask);
     await this.addService<MemoryStore>(MemoryStore, { forceModel: false, model: "webdatest" }, "MemoryUsers");
-    this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
+    useConfiguration().parameters!["defaultStore"] = "MemoryUsers";
     assert.strictEqual(await TestMask.ref("unit1").exists(), false);
     console.log("LOAD OR CREATE");
     // @ts-ignore
@@ -323,7 +334,7 @@ class CoreModelTest extends WebdaSimpleTest {
 
   @test async fullUuid() {
     await this.addService(MemoryStore, {}, "MemoryUsers");
-    this.webda.getGlobalParams()["defaultStore"] = "MemoryUsers";
+    useConfiguration().parameters!["defaultStore"] = "MemoryUsers";
     assert.strictEqual(new Task().__type, "Task");
     const task = await Task.ref("task#1").getOrCreate({ test: false });
     assert.strictEqual(task.getFullUuid(), "Task$task#1");
@@ -337,15 +348,9 @@ class CoreModelTest extends WebdaSimpleTest {
 
   @test async refresh() {
     const task = new Task();
-    task.__class.store = () =>
-      <any>{
-        get: () => undefined
-      };
+    task.__class.Store.get = async () => undefined as any;
     await task.refresh();
-    task.__class.store = () =>
-      <any>{
-        get: () => <any>{ plop: "bouzouf" }
-      };
+    task.__class.Store.get = async () => <any>{ plop: "bouzouf" };
     await task.refresh();
     assert.strictEqual(task.plop, "bouzouf");
   }

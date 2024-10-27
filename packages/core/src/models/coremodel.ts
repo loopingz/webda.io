@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import * as WebdaError from "../errors/errors";
 import * as WebdaQL from "@webda/ql";
-import { Context, setContextUpdate } from "../contexts/icontext";
+import { Context } from "../contexts/icontext";
 import { OperationContext } from "../contexts/operationcontext";
 import type { HttpMethodType } from "../contexts/httpcontext";
 import { Throttler, getUuid } from "@webda/utils";
@@ -14,7 +14,7 @@ import {
   createModelLinksMap
 } from "./relations";
 import { runAsSystem, useContext } from "../contexts/execution";
-import { Attributes, NotEnumerable, type Constructor, type FilterAttributes } from "@webda/tsc-esm";
+import { Attributes, NotEnumerable, Prototype, type Constructor, type FilterAttributes } from "@webda/tsc-esm";
 import { EventEmitterUtils } from "../events/asynceventemitter";
 import { CoreModelEvents } from "./imodel";
 import { useModel, useModelId } from "../application/hook";
@@ -36,8 +36,8 @@ import {
   AbstractCoreModel
 } from "../internal/iapplication";
 import { StaticInterface } from "@webda/tsc-esm";
-import { canUpdateContext } from "../contexts/icontext";
 
+export type ModelClass<T extends CoreModel> = ModelDefinition<T> & { new (): T };
 /**
  * This is implementation of ModelRelated
  *
@@ -146,7 +146,7 @@ export function Action(options: { methods?: HttpMethodType[]; openapi?: any; nam
 /**
  * EventEmitter per class
  */
-export const Emitters: WeakMap<Constructor<CoreModel>, EventEmitter> = new WeakMap();
+export const Emitters: WeakMap<Prototype<CoreModel>, EventEmitter> = new WeakMap();
 
 /**
  * Basic Object in Webda
@@ -174,6 +174,8 @@ export class CoreModel extends AbstractCoreModel {
 
   /**
    * Types name
+   *
+   * @ignore
    */
   __types: string[];
 
@@ -225,7 +227,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static getIdentifier(full?: boolean) {
-    return useModelId(this.constructor, full);
+    return useModelId(this.constructor, full) || "Unknown";
   }
 
   /**
@@ -233,7 +235,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static getSchema() {
-    return this.Metadata.Schema;
+    return this.Metadata.Schema || {};
   }
 
   /**
@@ -241,7 +243,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static getRelations() {
-    return this.Metadata.Relations;
+    return this.Metadata.Relations || {};
   }
 
   /**
@@ -356,7 +358,7 @@ export class CoreModel extends AbstractCoreModel {
    * @param uid
    * @returns
    */
-  static ref<T extends CoreModel>(this: Constructor<T>, uid: string): ModelRefWithCreate<T> {
+  static ref<T extends CoreModel>(this: Prototype<T>, uid: string): ModelRefWithCreate<T> {
     return new ModelRefWithCreate<T>(uid, <ModelDefinition<T>>this);
   }
 
@@ -366,11 +368,19 @@ export class CoreModel extends AbstractCoreModel {
    * @param defaultValue if defined create an object with this value if needed
    */
   static async get<T extends CoreModel>(
-    this: ModelDefinition<T> & { Store: typeof CoreModel.Store },
+    this: Prototype<T> & { Store: typeof CoreModel.Store },
     uid: string,
     defaultValue?: any
   ): Promise<T> {
-    return <T>await this.Store.get(uid) || (await this.create(defaultValue, false));
+    const modelDef = <ModelClass<T>>this;
+    const data = <any>await this.Store.get(uid);
+    if (data) {
+      // @ts-ignore
+      const res = new modelDef();
+      res.load(data, true);
+      return <T>modelDef.getProxy(res);
+    }
+    return <T>await modelDef.create(defaultValue, false);
   }
 
   static resolve(): void {}
@@ -382,16 +392,17 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static async create<T extends CoreModel>(
-    this: Constructor<T>,
+    this: Prototype<T> & { Store: typeof CoreModel.Store },
     data: RawModel<T>,
     save: boolean = true
   ): Promise<Proxied<T>> {
-    const model = new this().load(data, true);
+    const modelDef = <ModelClass<T>>this;
+    const model = new modelDef().load(data, true);
     runAsSystem(() => (model._new = true));
     if (save) {
-      return getAttributeLevelProxy(await model.save());
+      return modelDef.getProxy(await model.save());
     }
-    return getAttributeLevelProxy(model);
+    return modelDef.getProxy(model);
   }
 
   /**
@@ -517,7 +528,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static iterate<T extends CoreModel>(
-    this: Constructor<T>,
+    this: Prototype<T>,
     query: string = "",
     includeSubclass: boolean = true,
     context?: OperationContext
@@ -533,7 +544,7 @@ export class CoreModel extends AbstractCoreModel {
    * @returns
    */
   static async query<T extends CoreModel>(
-    this: Constructor<T>,
+    this: Prototype<T>,
     query: string = "",
     includeSubclass: boolean = true
   ): Promise<{
@@ -689,13 +700,28 @@ export class CoreModel extends AbstractCoreModel {
    * @param partials
    * @returns
    */
-  static async fromFullUuid<T extends CoreModel = CoreModel>(fullUuid: string, partials?: any): Promise<T> {
+  static async fromFullUuid<T extends CoreModel = CoreModel>(
+    this: Prototype<T>,
+    fullUuid: string,
+    partials?: any
+  ): Promise<T> {
     const [model, uuid] = fullUuid.split("$");
-    const modelObject = <ModelDefinition<CoreModel>>useModel(model.replace("-", "/"));
+    const modelObject = <ModelDefinition<T> & { new (): T }>useModel(model.replace("-", "/"));
     if (partials) {
       return <T>new modelObject().load(partials, true).setUuid(uuid);
     }
     return <Promise<T>>new modelObject().setUuid(uuid).refresh();
+  }
+
+  /**
+   * Get the proxy for this object
+   *
+   * @param this
+   * @param object
+   * @returns
+   */
+  static getProxy<T extends CoreModel>(this: ModelDefinition<T>, object: T): T {
+    return <T>getAttributeLevelProxy(object);
   }
 
   /**
@@ -710,14 +736,14 @@ export class CoreModel extends AbstractCoreModel {
    * @param context
    * @returns updated value
    */
-  attributePermission(key: string | symbol, value: any, mode: "READ" | "WRITE"): any {
+  attributePermission(key: string | symbol, value: any, mode: "READ" | "WRITE" | "DELETE"): [any, boolean] {
     if (typeof key === "symbol" || !this.context) {
-      return value;
+      return [value, true];
     }
-    if (mode === "WRITE") {
-      return key.startsWith("_") ? undefined : value;
+    if (mode === "WRITE" || mode === "DELETE") {
+      return key.startsWith("_") ? [undefined, false] : [value, true];
     } else {
-      return !key.startsWith("__") ? value : undefined;
+      return !key.startsWith("__") ? [value, true] : [undefined, false];
     }
   }
 
@@ -753,12 +779,13 @@ export class CoreModel extends AbstractCoreModel {
    * @param secure if false will ignore any _ variable
    */
   protected load(raw: Partial<RawModel<this>>, relations: boolean = true): this {
-    setContextUpdate(true);
-    this.context = useContext();
-    setContextUpdate(false);
     const filterAttribute = this.hasAttributePermissions("WRITE");
     // Object assign with filter
     for (const prop in raw) {
+      // We do not want to override the context
+      if (["context", "__context"].includes(prop)) {
+        continue;
+      }
       let val = raw[prop];
       if (filterAttribute) {
         val = this.attributePermission(prop, raw[prop], "WRITE");
@@ -785,6 +812,13 @@ export class CoreModel extends AbstractCoreModel {
     return this;
   }
 
+  unserialize(data: any) {
+    for (const property in data) {
+      if (["_creationDate", "_lastUpdate"].includes(property)) {
+        this[property] = new Date(data[property]);
+      }
+    }
+  }
   /**
    * Patch every attribute that is based on a relation
    * to add all the helpers
@@ -844,6 +878,9 @@ export class CoreModel extends AbstractCoreModel {
       if (obj) {
         Object.assign(this, obj);
         for (const i in this) {
+          if (["context", "__context", "__class"].includes(i)) {
+            continue;
+          }
           // @ts-ignore
           if (obj[i] !== this[i]) {
             delete this[i];
@@ -968,7 +1005,7 @@ export class CoreModel extends AbstractCoreModel {
    * Return if the object is dirty: unsaved modifications
    */
   isDirty(): boolean {
-    return this.__dirty.size > 0;
+    return this.__dirty?.size > 0;
   }
 
   /**
@@ -992,7 +1029,11 @@ export class CoreModel extends AbstractCoreModel {
     for (const i in this) {
       let value = this[i];
       if (filterAttribute) {
-        value = this.attributePermission(i, value, "READ");
+        const [returnValue, allowed] = this.attributePermission(i, value, "READ");
+        if (!allowed) {
+          continue;
+        }
+        value = returnValue;
       }
       if (value === undefined) continue;
       if (value instanceof Service) {

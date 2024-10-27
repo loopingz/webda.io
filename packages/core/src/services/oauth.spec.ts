@@ -1,8 +1,10 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { HttpContext, Ident, Store, UnpackedConfiguration, WebdaError } from "../";
-import { TestApplication, WebdaInternalTest } from "../test";
+
 import { OAuthService, OAuthSession } from "./oauth";
+import { WebdaApplicationTest } from "../test/test";
+import { TestApplication } from "../test/objects";
 
 class FakeOAuthService extends OAuthService {
   getDefaultUrl() {
@@ -34,7 +36,7 @@ class FakeOAuthService extends OAuthService {
 }
 
 @suite
-class OAuthServiceTest extends WebdaInternalTest {
+class OAuthServiceTest extends WebdaApplicationTest {
   service: OAuthService;
 
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
@@ -62,7 +64,7 @@ class OAuthServiceTest extends WebdaInternalTest {
     };
   }
 
-  async tweakApp(app: TestApplication): Promise<void> {
+  static async tweakApp(app: TestApplication): Promise<void> {
     await super.tweakApp(app);
     app.addService("Webda/FakeOAuthService", FakeOAuthService);
   }
@@ -126,7 +128,7 @@ class OAuthServiceTest extends WebdaInternalTest {
     assert.notStrictEqual(this.service._authenticationService, undefined, "Should get default Authentication service");
     // Test the 403 on handleReturn
     assert.rejects(
-      () => this.service.handleReturn(undefined, undefined, undefined),
+      () => this.service.handleReturn(undefined, undefined, undefined, undefined),
       (err: WebdaError.HttpError) => err.getResponseCode() === 403
     );
     const ctx = await this.newContext();

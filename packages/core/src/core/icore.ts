@@ -1,6 +1,6 @@
 import { QueryValidator } from "@webda/ql";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
-import { Constructor } from "@webda/tsc-esm";
+import { Constructor, Prototype } from "@webda/tsc-esm";
 import { AbstractService, ModelDefinition, AbstractCoreModel } from "../internal/iapplication";
 export { AbstractService };
 /**
@@ -102,7 +102,7 @@ export interface ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends AbstractCoreModel>(item: Constructor<T> | T | string): AbstractService;
+  getModelStore<T extends AbstractCoreModel>(item: Prototype<T> | T | string): AbstractService;
   getService(name: string): AbstractService;
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);

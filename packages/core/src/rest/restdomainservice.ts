@@ -1,5 +1,5 @@
 import { QueryValidator } from "@webda/ql";
-import type { ModelDefinition, ModelAction } from "../internal/iapplication";
+import type { ModelDefinition, ModelAction, ServicePartialParameters } from "../internal/iapplication";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
 import { OpenAPIWebdaDefinition } from "./irest";
 import * as WebdaError from "../errors/errors";
@@ -102,13 +102,6 @@ export class RESTDomainService<
       this.addRoute(".", ["GET"], this.openapi, { hidden: true });
     }
     return this;
-  }
-
-  /**
-   * @override
-   */
-  loadParameters(params: DeepPartial<DomainServiceParameters>): T {
-    return <T>new RESTDomainServiceParameters().load(params);
   }
 
   /**

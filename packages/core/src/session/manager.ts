@@ -9,6 +9,7 @@ import { getUuid } from "@webda/utils";
 import { ServiceParameters } from "../interfaces";
 import { Session } from "./session";
 import { DeepPartial } from "@webda/tsc-esm";
+import { ServicePartialParameters } from "../internal/iapplication";
 
 /**
  * Manage load and save of sessions
@@ -63,7 +64,7 @@ export class CookieSessionManager<
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<T>): T {
+  loadParameters(params: ServicePartialParameters<T>): T {
     return <T>new CookieSessionParameters().load(params);
   }
 

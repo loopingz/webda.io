@@ -64,10 +64,6 @@ export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2
   union(): string | CoreModel | number {
     return 1;
   }
-
-  test(): this & { test: string } {
-    return { ...this, test: "plop" };
-  }
 }
 
 export class SubProject extends Project {}

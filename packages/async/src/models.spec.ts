@@ -1,6 +1,6 @@
-import { suite, test } from "@testdeck/mocha";
 import { Binaries, Expose, FileBinary, OperationContext, RESTDomainService } from "@webda/core";
 import { WebdaSimpleTest } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { AsyncAction } from "./models";
 

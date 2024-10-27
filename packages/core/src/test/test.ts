@@ -89,6 +89,10 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * Files to clean after test
    */
   cleanFiles: string[] = [];
+  /**
+   * Webda application
+   */
+  webda: Core;
 
   /**
    * Get the configuration file to use for the test
@@ -152,6 +156,8 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     const app = this.getApplication();
     await app.load();
     await this.tweakApp(app);
+    // Set the models metadata
+    app.setModelsMetadata();
 
     return new Core(app);
   }
@@ -174,6 +180,11 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
       // Prevent persistance for tests
       (<MemoryStore>(<any>RegistryModel.store())).persist = async () => {};
     }
+  }
+
+  async beforeEach(): Promise<void> {
+    await super.beforeEach();
+    this.webda = <Core>useCore();
   }
 
   async afterEach(): Promise<void> {

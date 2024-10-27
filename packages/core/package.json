@@ -12,8 +12,8 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "webdac",
-    "build:watch": "webdac --watch",
+    "build": "webdac build",
+    "build:watch": "webdac build --watch",
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && yarn run lint:fix",
     "format": "prettier --check src/**/*",

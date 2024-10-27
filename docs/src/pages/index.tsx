@@ -9,8 +9,7 @@ function HomepageHeader() {
   return (
     <header>
       <div className="container">
-        <h1 className="hero__title">{siteConfig.title}</h1>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <h1 className="hero__subtitle">{siteConfig.tagline}</h1>
       </div>
     </header>
   );
@@ -23,8 +22,15 @@ export default function Home() {
       title={`Hello from ${siteConfig.title}`}
       description="NodeJS framework with GraphQL, REST, AWS, GCP, Kubernetes"
     >
-      <HomepageHeader />
-      <div className="container">
+      <div style={{ paddingTop: 30 }}>
+        <HomepageHeader />
+      </div>
+      <div className="container" style={{ paddingBottom: 60 }}>
+        <p>
+          A typescript framework to create applications. It provides the features we think every application should
+          have: Authentication, Authorization, Logging, Monitoring, Configuration, Database Abstraction, Realtime
+          events, GraphQL, REST API.
+        </p>
         <WebdaPanel>This is my service description</WebdaPanel>
       </div>
     </Layout>

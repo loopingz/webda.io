@@ -70,9 +70,75 @@ export type OmitByTypeRecursive<T extends object, K> = {
 };
 
 /**
+ * Define a class prototype
+ */
+export type Prototype<T> = {
+  prototype: T;
+};
+
+/**
+ * Helper to define a Property decorator with or without parenthesis
+ * @param decoratorFn
+ * @returns
+ */
+export function createPropertyDecorator<T extends (...args: any[]) => void>(decoratorFn: T): Annotation<T> {
+  return ((...args: any[]) => {
+    if (typeof args[0] === "object" && typeof args[1] === "string") {
+      // Called without parentheses: @decorator
+      decoratorFn(...args);
+      return;
+    } else {
+      // Called with parentheses: @decorator(...)
+      return (target: any, propertyKey: string) => decoratorFn(target, propertyKey, ...args);
+    }
+  }) as any;
+}
+
+export type OmitFirtArg<F> = F extends (x: any, ...args: infer P) => infer R ? Parameters<(...args: P) => R> : never;
+/**
+ * A class annotation with optional arguments
+ */
+export type ClassAnnotation<T extends (target: Constructor, ...args: any[]) => void> = ((
+  ...args: OmitFirtArg<T>
+) => (target: Constructor) => void) &
+  ((target: Constructor) => void);
+
+/**
+ * Helper to create a class decorator with or without parenthesis
+ * @param decoratorFn
+ * @returns
+ */
+export function createClassDecorator<T extends (target: Constructor, ...args: any[]) => void>(
+  decoratorFn: T
+): ClassAnnotation<T> {
+  return (...args: any[]) => {
+    if (args.length === 1 && typeof args[0] === "function") {
+      // Called without parentheses: @decorator
+      decoratorFn(args[0]);
+      return args[0];
+    } else {
+      // Called with parentheses: @decorator(...)
+      return (target: any, ...rest: any[]) => decoratorFn(target, ...rest, ...args);
+    }
+  };
+}
+
+/**
+ * Omit the first two arguments of a function
+ */
+export type OmitTargetArgs<F> = F extends (x: any, y: any, ...args: infer P) => infer R
+  ? Parameters<(...args: P) => R>
+  : never;
+
+/**
+ * Define a property annotation
+ */
+export type PropertyAnnotation<T extends (...args: any[]) => void> = T & ((...args: OmitTargetArgs<T>) => T);
+
+/**
  * Define a constructor
  */
-export type Constructor<T, K extends Array<any> = []> = new (...args: K) => T;
+export type Constructor<T = any, K extends Array<any> = []> = new (...args: K) => T;
 
 /**
  * Make a property hidden from json and schema

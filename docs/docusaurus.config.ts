@@ -52,7 +52,8 @@ const config = {
         sidebarPath: "./sidebarsTypedoc.js"
         // ... other options
       }
-    ]
+    ],
+    "./src/plugins/configuration"
   ],
 
   themes: ["@docusaurus/theme-mermaid"],
@@ -60,7 +61,7 @@ const config = {
     [
       "classic",
       /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           path: "./pages",
@@ -72,14 +73,16 @@ const config = {
           // Remove this to remove the "edit this page" links.
           editUrl: "https://github.com/loopingz/webda.io/tree/docs/"
         },
-        theme: {}
-      })
+        theme: {
+          customCss: ["./src/css/custom.css"]
+        }
+      }
     ]
   ],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    ({
+    {
       // Replace with your project's social card
       image: "img/docusaurus-social-card.jpg",
       metadata: [
@@ -110,6 +113,12 @@ const config = {
             activeBasePath: "typedoc",
             label: "Typedoc",
             position: "left"
+          },
+          {
+            to: "/configuration/welcome",
+            activeBasePath: "configuration",
+            label: "My Application",
+            position: "right"
           },
           {
             to: "/contribute/Contribute",
@@ -186,7 +195,7 @@ const config = {
 
         //... other Algolia params
       }
-    })
+    }
 };
 
 module.exports = config;

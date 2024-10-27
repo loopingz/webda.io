@@ -19,6 +19,7 @@ export class ImageUser extends User {
 
 export class TestBinaryService extends BinaryService {
   store(object: CoreModel, property: string, file: any, metadatas: any, index?: number): Promise<any> {
+    // We should verify file:
     throw new Error("Method not implemented.");
   }
   getUsageCount(hash: any): Promise<number> {
@@ -98,6 +99,7 @@ abstract class BinaryTest<T extends BinaryService = BinaryService> extends Webda
     );
     assert.strictEqual(user.images.length, 1);
     assert.strictEqual(user.profile.isEmpty(), false);
+    assert.strictEqual(user.profile.size, 125);
 
     // Check download to memory
     assert.deepStrictEqual(await user.profile.getAsBuffer(), data);

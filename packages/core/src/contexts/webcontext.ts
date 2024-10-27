@@ -2,10 +2,8 @@ import { OperationContext } from "./operationcontext";
 import acceptLanguage from "accept-language";
 import * as http from "http";
 import { HttpContext } from "./httpcontext";
-import { PipelineOptions, Readable, Writable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import { Readable, Writable } from "node:stream";
 import { SessionManager } from "../session/manager";
-import { runWithContext } from "./execution";
 import { WritableStreamBuffer } from "stream-buffers";
 import { useCore, useService } from "../core/hooks";
 import { useParameters } from "../core/instancestorage";
@@ -65,7 +63,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   /**
    * Get current http context
    */
-  public getHttpContext(): HttpContext | undefined {
+  public getHttpContext(): HttpContext {
     return this.getExtension<HttpContext>("http");
   }
 

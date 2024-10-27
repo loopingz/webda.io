@@ -4,9 +4,9 @@
   "description": "Webda AWS Services implementation",
   "main": "lib/index.js",
   "scripts": {
-    "build": "webda build",
-    "build:watch": "webda build --watch",
-    "pretest": "webda build",
+    "build": "webdac",
+    "build:watch": "webdac --watch",
+    "pretest": "webdac",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "c8 mocha",

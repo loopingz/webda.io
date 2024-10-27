@@ -1,5 +1,5 @@
-import { getCommonJS } from "@webda/core";
 import { TestApplication, WebdaTest } from "@webda/core/lib/test";
+import { getCommonJS } from "@webda/utils";
 import fetch from "node-fetch";
 import * as path from "path";
 const { __dirname } = getCommonJS(import.meta.url);

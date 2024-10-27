@@ -4,7 +4,14 @@
  * They should not import other files not prefixed with i.
  */
 
-import type { Attributes, Constructor, FilterAttributes, Methods, OmitByTypeRecursive } from "@webda/tsc-esm";
+import type {
+  Attributes,
+  Constructor,
+  FilterAttributes,
+  Methods,
+  OmitByTypeRecursive,
+  Prototype
+} from "@webda/tsc-esm";
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { AsyncEventEmitter, AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter";
@@ -63,6 +70,9 @@ export abstract class AbstractCoreModel implements IAttributeLevelPermissionMode
     throw new Error("Method not implemented.");
   }
   Events: AsyncEventUnknown;
+  /**
+   * @ignore
+   */
   __type: string;
   /**
    * Class reference to the object
@@ -74,9 +84,9 @@ export abstract class AbstractCoreModel implements IAttributeLevelPermissionMode
    */
   __dirty: Set<string>;
 
-  constructor() {
+  protected constructor() {
     this.__class = <any>this.constructor;
-    this.__type = this.__class.getIdentifier();
+    this.__type = this.__class.Metadata?.Identifier;
   }
 
   /**
@@ -351,6 +361,7 @@ export type ModelEmitter<T extends AsyncEventUnknown> = Pick<
 
 export type ModelDefinition<T extends AbstractCoreModel = AbstractCoreModel> = ModelCRUD<T> &
   ModelEmitter<T["Events"]> &
+  Prototype<T> &
   ModelDeprecated<T> & {
     /**
      * Accessing metadata for a model is pretty common
@@ -363,14 +374,14 @@ export type ModelDefinition<T extends AbstractCoreModel = AbstractCoreModel> = M
     Expose?: ExposeParameters;
 
     /**
-     * Constructor to a new CoreModel object
-     */
-    new (): T;
-
-    /**
      * Get the model actions
      */
     getActions(): { [key: string]: ModelAction };
+
+    /**
+     * Get the proxy
+     */
+    getProxy(object: T): T;
 
     /**
      * Return the event on the model that can be listened to by an
@@ -390,6 +401,7 @@ export type ModelDefinition<T extends AbstractCoreModel = AbstractCoreModel> = M
     resolve(): void;
   };
 
+export type ServicePartialParameters<T extends ServiceParameters> = DeepPartial<Attributes<T>>;
 /**
  * Represent a Webda service
  */
@@ -401,13 +413,10 @@ export abstract class AbstractService<
   public readonly name: string;
   public readonly parameters: T;
 
-  constructor(name: string, params: T) {
+  constructor(name: string, params: ServicePartialParameters<T>) {
     super();
     this.name = name;
-    this.parameters = this.loadParameters(params);
   }
-
-  abstract loadParameters(params: DeepPartial<T>): T;
 
   /**
    * Initialize the service

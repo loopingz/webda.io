@@ -4,6 +4,7 @@ import { Service } from "./service";
 import { ServiceParameters } from "../interfaces";
 import { useCoreEvents } from "../events/events";
 import { WebContext } from "../contexts/webcontext";
+import { ServicePartialParameters } from "../internal/iapplication";
 
 interface PrometheusExtension {
   timer: (labels?: Partial<Record<string, string | number>> | undefined) => number;
@@ -96,7 +97,7 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
    * @param params
    * @returns
    */
-  loadParameters(params: any) {
+  loadParameters(params: ServicePartialParameters<T>) {
     return <T>new PrometheusParameters().load(params);
   }
 

@@ -6,6 +6,7 @@ import { useWorkerOutput, Fork, InteractiveConsoleLogger } from "@webda/workout"
 import { resolve } from "path";
 import { runWithCurrentDirectory } from "@webda/utils";
 import { bold, italic, yellow } from "yoctocolors";
+import { WebdaMorpher } from "./morpher/morpher";
 
 interface Arguments {
   appPath: string;
@@ -58,8 +59,8 @@ const command = argv._[0];
 Fork(
   async () => {
     if (isCodeCommand(argv)) {
-      console.log("Not implemented yet", argv.module);
-      process.exit(0);
+      const morpher = new WebdaMorpher();
+      await morpher.check();
     } else if (isBuildCommand(argv)) {
       const project = new WebdaProject(targetDir, useWorkerOutput());
       project.on("compiling", () => {

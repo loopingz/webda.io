@@ -1,5 +1,5 @@
 import { Counter, Histogram } from "../metrics/metrics";
-import type { ConfigurationProvider } from "../services/configuration";
+import type { ConfigurationProvider } from "../configurations/configuration";
 import * as WebdaError from "../errors/errors";
 import { Throttler } from "@webda/utils";
 
@@ -1441,7 +1441,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
 
   getOpenApiReplacements() {
     return {
-      modelName: this._model.name
+      modelName: this._model.Metadata.ShortName
     };
   }
 

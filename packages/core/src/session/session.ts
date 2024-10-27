@@ -13,7 +13,7 @@ export class Session {
   /**
    * User id
    */
-  userId: string;
+  userId?: string;
   /**
    * Ident used
    */

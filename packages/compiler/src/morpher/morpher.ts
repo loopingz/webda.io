@@ -2,8 +2,9 @@ import { Project, ProjectOptions, SourceFile } from "ts-morph";
 import { setLoadParameters } from "./loadparameters";
 import { updateImports } from "./imports";
 import { unserializer } from "./unserialize";
-import { useLog } from "@webda/workout";
-import Diff from "diff";
+import { useLog, useWorkerOutput } from "@webda/workout";
+import { Diff } from "diff";
+import { EventEmitter } from "stream";
 
 // Replace all imports
 // Specify after a : the exported name to replace
@@ -41,14 +42,21 @@ export class WebdaMorpher {
     loadParameters: setLoadParameters,
     updateImports: sourceFile => updateImports(sourceFile, replacePackages)
   };
+
   constructor(protected options: WebdaMorpherOptions = {}) {
     this.project = new Project(options.project);
     this.options.modules ??= Object.keys(this.modules);
   }
 
+  /**
+   * Update the source files
+   * @returns
+   */
   async check() {
     const p: Promise<void>[] = [];
-    this.project.getSourceFiles().forEach(sourceFile => {
+    const sourceFiles = this.project.getSourceFiles();
+    useWorkerOutput().startProgress("check", sourceFiles.length, "Updating source files");
+    sourceFiles.forEach(sourceFile => {
       const origin = sourceFile.getFullText();
       const update = this.update(sourceFile);
       if (origin !== update) {
@@ -63,8 +71,16 @@ export class WebdaMorpher {
               newlineIsToken: false
             })
           );
+          useWorkerOutput().incrementProgress();
         } else {
-          p.push(sourceFile.save().catch(e => useLog("ERROR", "Error saving", sourceFile.getFilePath(), e)));
+          p.push(
+            sourceFile
+              .save()
+              .catch(e => useLog("ERROR", "Error saving", sourceFile.getFilePath(), e))
+              .finally(() => {
+                useWorkerOutput().incrementProgress();
+              })
+          );
         }
       }
     });

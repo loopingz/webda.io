@@ -1,5 +1,5 @@
-import { getCommonJS } from "@webda/core";
 import { Packager, PackagerResources } from "@webda/shell";
+import { getCommonJS } from "@webda/utils";
 import * as path from "path";
 const { __dirname } = getCommonJS(import.meta.url);
 /**

@@ -239,8 +239,9 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     return <K>(<unknown>this.session);
   }
 
-  newSession(): void {
+  newSession(): Session {
     this.session = new Session();
+    return this.session;
   }
 
   /**

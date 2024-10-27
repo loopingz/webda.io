@@ -2,8 +2,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { GlobalContext } from "./globalcontext";
 import { Context, IContextAware, setContextUpdate } from "./icontext";
 
-const storage = new AsyncLocalStorage<{ context: Context; previousContext: Context }>();
 const globalContext = new GlobalContext();
+// Test are transpiling and creating several instances of 'instancestorage.ts'
+process["webdaContexts"] ??= new AsyncLocalStorage<{ context: Context; previousContext: Context }>();
+const storage = process["webdaContexts"];
 /**
  * Get current execution context
  */
@@ -46,7 +48,7 @@ function attachModels(models: any[], context: Context) {
  * @returns
  */
 export function runAsSystem<T>(run: () => T, attach: IContextAware[] = []): T {
-  return this.runWithContext(this.globalContext, run, attach);
+  return this.runWithContext(globalContext, run, attach);
 }
 /**
  * Run this function as user
@@ -60,7 +62,7 @@ export function runWithContext<T>(context: Context, run: () => T, attach: IConte
   const res = storage.run({ context, previousContext }, run);
   // Manage both promise and normal
   if (res instanceof Promise) {
-    res.then(() => attachModels(attach, undefined));
+    res.finally(() => attachModels(attach, undefined));
   } else {
     attachModels(attach, undefined);
   }

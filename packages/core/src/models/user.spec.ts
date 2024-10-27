@@ -2,11 +2,12 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { User } from "./user";
 import { SimpleUser } from "./simpleuser";
+import { WebdaApplicationTest } from "../test/test";
 
 @suite
-class UserTest {
-  @test("Verify groups in user") groupManagement() {
-    const user: SimpleUser = new SimpleUser();
+class UserTest extends WebdaApplicationTest {
+  @test("Verify groups in user") async groupManagement() {
+    const user: SimpleUser = await SimpleUser.create({}, false);
     user.addGroup("test");
     assert.strictEqual(user.inGroup("test"), true);
     user.addGroup("test");
@@ -17,8 +18,8 @@ class UserTest {
     user.removeGroup("unknown");
   }
 
-  @test("Verify roles in user") roleManagement() {
-    const user: SimpleUser = new SimpleUser();
+  @test("Verify roles in user") async roleManagement() {
+    const user: SimpleUser = await SimpleUser.create({}, false);
     user.addRole("test");
     assert.strictEqual(user.hasRole("test"), true);
     user.addRole("test");
@@ -29,26 +30,26 @@ class UserTest {
   }
 
   @test
-  userCov() {
-    const user = new User();
+  async userCov() {
+    const user = await User.create({}, false);
     assert.deepStrictEqual(user.getRoles(), []);
   }
 
   @test
-  password() {
-    const user: User = new User();
+  async password() {
+    const user: User = await User.create({}, false);
     user.setPassword("bouzouf");
   }
 
   @test
-  idents() {
-    const user: User = new User();
+  async idents() {
+    const user: User = await User.create({}, false);
     assert.deepStrictEqual(user.getIdents(), []);
   }
 
   @test
-  emailGetter() {
-    const user: SimpleUser = new SimpleUser();
+  async emailGetter() {
+    const user: SimpleUser = await SimpleUser.create({}, false);
     assert.strictEqual(user.getEmail(), undefined);
     assert.deepStrictEqual(user.toPublicEntry(), {
       avatar: undefined,

@@ -12,10 +12,10 @@ import {
   ListStackResourcesCommand
 } from "@aws-sdk/client-cloudformation";
 import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
-import { suite, test } from "@testdeck/mocha";
-import { JSONUtils } from "@webda/core";
 import { DeploymentManager } from "@webda/shell";
 import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
+import { suite, test } from "@webda/test";
+import { JSONUtils } from "@webda/utils";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import * as sinon from "sinon";

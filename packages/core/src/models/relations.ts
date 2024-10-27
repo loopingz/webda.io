@@ -245,7 +245,7 @@ export class ModelRefWithCreate<T extends AbstractCoreModel = AbstractCoreModel>
     if (withSave) {
       await result.save();
     }
-    return getAttributeLevelProxy(result);
+    return <T>getAttributeLevelProxy(result);
   }
 
   /**

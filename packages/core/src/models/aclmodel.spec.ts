@@ -2,36 +2,32 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import {
   AclModel,
-  Core,
+  getAttributeLevelProxy,
   HttpContext,
   runAsSystem,
   runWithContext,
-  Session,
   SimpleUser,
+  useCore,
   User,
   WebContext,
   WebdaError
 } from "../index";
-import { TestApplication } from "../test";
-import { getDirtyProxy } from "../utils/dirtyproxy";
+import { WebdaApplicationTest } from "../test/test";
 
 @suite
-class AclModelTest {
+class AclModelTest extends WebdaApplicationTest {
   _ctx: WebContext;
+  private _session: any;
   model: AclModel;
-  _webda: Core;
-  _session: Session;
-  _user: SimpleUser;
+  private _user: SimpleUser;
 
-  async before() {
-    const app = new TestApplication();
-    await app.load();
-    this._webda = new Core(app);
-    await this._webda.init();
-    this._ctx = await this._webda.newWebContext(new HttpContext("test.webda.io", "GET", "/"));
+  async beforeEach() {
+    this._ctx = <WebContext>await useCore()!.newContext({ http: new HttpContext("test.webda.io", "GET", "/") });
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");
-    this.model = getDirtyProxy(new AclModel());
+    runAsSystem(() => {
+      this.model = getAttributeLevelProxy(new AclModel());
+    });
     this._user = new SimpleUser();
     this._user.setUuid("user-uid");
     this._user.addGroup("gip-123");
@@ -47,7 +43,9 @@ class AclModelTest {
 
   @test async get() {
     await assert.rejects(() => this.model.checkAct(this._ctx, "get"));
-    this.model.__acl["gip-123"] = "get";
+    runAsSystem(() => {
+      this.model.__acl["gip-123"] = "get";
+    });
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), true);
   }
 
@@ -114,41 +112,24 @@ class AclModelTest {
   }
 
   @test async httpAcls() {
-    // @ts-ignore
-    this.model.__store = {
-      save: async () => this.model,
-      patch: async () => this.model,
-      // @ts-ignore
-      getService: () => {
-        return {
-          get: async () => {
-            return {
-              toPublicEntry: () => {
-                return {
-                  displayName: "Plopi"
-                };
-              }
-            };
-          }
-        };
-      }
-    };
+    await User.ref("acl").create({
+      displayName: "Plopi"
+    });
+    // Action return their result directly
     const actions = AclModel.getActions();
     assert.notStrictEqual(actions.acl, undefined);
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "PUT", "/"));
-    this._ctx.getHttpContext().setBody({ acl: "mine" });
+    this._ctx.getHttpContext()!.setBody({ acl: "mine" });
+    console.log(this._ctx);
     await this.model.acl(this._ctx);
     // @ts-ignore
     assert.strictEqual(this.model.getAcl().acl, "mine");
     this._ctx.reinit();
-    this._ctx.getHttpContext().setBody({ raw: { acl: "mine" } });
+    this._ctx.getHttpContext()!.setBody({ raw: { acl: "mine" } });
     await assert.rejects(() => this.model.acl(this._ctx));
     this._ctx.reinit();
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/"));
-    // Action return their result directly
-    await User.ref("acl").create({
-      displayName: "Plopi"
-    });
+
     const res = await this.model.acl(this._ctx);
     assert.deepStrictEqual(res, {
       raw: {

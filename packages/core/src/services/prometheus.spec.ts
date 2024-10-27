@@ -2,13 +2,13 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import axios from "axios";
 import { Histogram } from "prom-client";
-import { WebdaInternalTest } from "../test";
-import { HttpContext } from "../utils/httpcontext";
+import { WebdaApplicationTest } from "../test/test";
+import { HttpContext } from "../contexts/httpcontext";
 import { PrometheusService } from "./prometheus";
 import { UnpackedConfiguration } from "../application";
 
 @suite
-class PrometheusTest extends WebdaInternalTest {
+class PrometheusTest extends WebdaApplicationTest {
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
     return {
       parameters: {

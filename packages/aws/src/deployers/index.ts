@@ -7,12 +7,12 @@ import { Cache, DeployerResources, WaitFor, WaitLinearDelay, WebdaError } from "
 import { Deployer, DeploymentManager } from "@webda/shell";
 import bluebird from "bluebird";
 import * as crypto from "crypto";
+import { randomUUID } from "crypto";
 import * as fs from "fs";
 import { globSync } from "glob";
 import IamPolicyOptimizer from "iam-policy-optimizer";
 import * as mime from "mime-types";
 import * as path from "path";
-import { randomUUID } from "crypto";
 import { IAMPolicyContributor } from "../services";
 import { Route53Service } from "../services/route53";
 

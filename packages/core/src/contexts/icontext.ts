@@ -43,7 +43,7 @@ export abstract class Context {
   /**
    * Get current user id
    */
-  abstract getCurrentUserId(): string | "system";
+  abstract getCurrentUserId(): string | "system" | undefined;
 
   /**
    * Register a promise with the context
@@ -191,7 +191,7 @@ export abstract class IOperationContext<Input = any, Parameters = any, Output = 
    *
    * Logout the current user
    */
-  abstract newSession(): void;
+  abstract newSession(): any;
 }
 
 /**

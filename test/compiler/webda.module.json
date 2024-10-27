@@ -117,6 +117,7 @@
     "Webda/BinaryFile": {
       "type": "object",
       "properties": {
+        "0": {},
         "hash": {
           "type": "string",
           "description": "Will be computed by the service\n\nhash of the content"
@@ -146,6 +147,7 @@
         }
       },
       "required": [
+        "0",
         "mimetype",
         "name",
         "size"

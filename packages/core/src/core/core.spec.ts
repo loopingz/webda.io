@@ -7,7 +7,6 @@ import { Core } from "./core";
 import {
   Authentication,
   Bean,
-  CancelablePromise,
   ConsoleLoggerService,
   ContextProvider,
   CoreModel,
@@ -18,13 +17,13 @@ import {
   User,
   useRegistry,
   WebContext,
-  WebdaApplicationTest,
   WebdaError
 } from "../index";
-import { TestApplication, WebdaInternalSimpleTest, WebdaInternalTest } from "../test";
-import { getCommonJS } from "../utils/esm";
+import { TestApplication } from "../test/objects";
+import { WebdaApplicationTest } from "../test/test";
+import { CancelablePromise, getCommonJS, FileUtils, JSONUtils } from "@webda/utils";
 import { HttpContext } from "../contexts/httpcontext";
-import { FileUtils, JSONUtils } from "../utils/serializers";
+
 const { __dirname } = getCommonJS(import.meta.url);
 
 class BadService {
@@ -143,7 +142,7 @@ class ConditionCsrfService extends Service implements RequestFilter {
 }
 
 @suite
-class CSRFTest extends WebdaInternalSimpleTest {
+class CSRFTest extends WebdaApplicationTest {
   ctx: WebContext;
   filter: WebsiteOriginFilter;
 

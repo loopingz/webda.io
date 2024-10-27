@@ -3,7 +3,7 @@ import * as assert from "assert";
 import jwt from "jsonwebtoken";
 import * as sinon from "sinon";
 
-import { JSONUtils } from "../utils/serializers";
+import { JSONUtils } from "@webda/utils";
 import { CryptoService, SecretString, useCrypto } from "./cryptoservice";
 import { WebdaApplicationTest } from "../test/test";
 import { useRegistry } from "../models/registry";

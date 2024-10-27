@@ -162,7 +162,11 @@ export class Application implements IApplication {
         this.log("ERROR", `Model ${model} is not defined`);
         continue;
       }
-      const info = this.baseConfiguration.cachedModules.models[model];
+      const info = this.baseConfiguration.cachedModules.models[model] || {
+        Ancestors: [],
+        Subclasses: [],
+        Relations: {}
+      };
       const metadata = {
         Identifier: model,
         Ancestors: info.Ancestors.map(a => this.models[a]).filter(m => m),
@@ -424,7 +428,7 @@ export class Application implements IApplication {
   getRootExposedModels(): string[] {
     const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Expose));
     for (const model in this.models) {
-      if (this.models[model].Expose?.root) {
+      if (this.models[model]?.Expose?.root) {
         results.add(model);
       }
     }
@@ -436,7 +440,7 @@ export class Application implements IApplication {
    * @param object
    */
   getModelFromInstance(object: CoreModel): string | undefined {
-    return Object.keys(this.models).find(k => this.models[k] === object.constructor);
+    return Object.keys(this.models).find(k => this.models[k] === object.constructor.prototype);
   }
 
   /**

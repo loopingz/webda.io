@@ -1,8 +1,9 @@
 import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
-import { suite, test } from "@testdeck/mocha";
-import { BinaryService, getCommonJS, RESTDomainService } from "@webda/core";
+import { BinaryService, RESTDomainService } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import { TestApplication } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
+import { getCommonJS } from "@webda/utils";
 import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import * as path from "path";

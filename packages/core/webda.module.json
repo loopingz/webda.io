@@ -137,7 +137,7 @@
       }
     },
     "Webda/ConfigurationService": {
-      "Import": "lib/services/configuration:ConfigurationService",
+      "Import": "lib/configurations/configuration:ConfigurationService",
       "Schema": {
         "type": "object",
         "properties": {
@@ -607,58 +607,8 @@
         "title": "DebugMailer"
       }
     },
-    "Webda/FileBinary": {
-      "Import": "lib/services/filebinary:FileBinary",
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Type of the service"
-          },
-          "models": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
-          },
-          "maxFileSize": {
-            "type": "number",
-            "description": "Define the maximum filesize to accept as direct upload",
-            "default": "10*1024*1024"
-          },
-          "prefix": {
-            "type": "string"
-          },
-          "folder": {
-            "type": "string",
-            "description": "Define the folder to store objects in"
-          },
-          "maxSize": {
-            "type": "number",
-            "description": "Maximum size to handle",
-            "default": "10Mb"
-          },
-          "url": {
-            "type": "string",
-            "description": "URL to use for direct download"
-          }
-        },
-        "required": [
-          "folder",
-          "models",
-          "type"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "FileBinary"
-      }
-    },
     "Webda/FileConfiguration": {
-      "Import": "lib/services/fileconfiguration:FileConfigurationService",
+      "Import": "lib/configurations/fileconfiguration:FileConfigurationService",
       "Schema": {
         "type": "object",
         "properties": {
@@ -734,136 +684,6 @@
           }
         },
         "title": "FileLoggerService"
-      }
-    },
-    "Webda/FileQueue": {
-      "Import": "lib/queues/filequeue:FileQueue",
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Type of the service"
-          },
-          "workerDelayer": {
-            "type": "object",
-            "properties": {
-              "interval": {
-                "type": "number",
-                "description": "Interval"
-              },
-              "type": {
-                "type": "string",
-                "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-              }
-            },
-            "required": [
-              "interval",
-              "type"
-            ],
-            "description": "Delayer between two failed attempts to process messages"
-          },
-          "workerParallelism": {
-            "type": "boolean",
-            "description": "Define if worker should process multi message received in //",
-            "default": true
-          },
-          "maxConsumers": {
-            "type": "number",
-            "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
-            "default": 10
-          },
-          "expire": {
-            "type": "number",
-            "description": "Number of seconds before droping message",
-            "default": 30
-          },
-          "folder": {
-            "type": "string",
-            "description": "Where to store the queue"
-          }
-        },
-        "required": [
-          "folder",
-          "maxConsumers",
-          "type"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "FileQueue"
-      }
-    },
-    "Webda/FileStore": {
-      "Import": "lib/stores/file:FileStore",
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Type of the service"
-          },
-          "model": {
-            "type": "string",
-            "description": "Webda model to use within the Store",
-            "default": "Webda/CoreModel"
-          },
-          "additionalModels": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Additional models\n\nAllow this store to manage other models",
-            "default": []
-          },
-          "strict": {
-            "type": "boolean",
-            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
-            "default": false
-          },
-          "defaultModel": {
-            "type": "boolean",
-            "description": "When __type model not found, use the model If strict is setup this parameter is not used",
-            "default": true
-          },
-          "forceModel": {
-            "type": "boolean",
-            "description": "If set, Store will ignore the __type",
-            "default": false
-          },
-          "slowQueryThreshold": {
-            "type": "number",
-            "description": "Slow query threshold",
-            "default": 30000
-          },
-          "modelAliases": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Model Aliases to allow easier rename of Model"
-          },
-          "noCache": {
-            "type": "boolean",
-            "description": "Disable default memory cache"
-          },
-          "folder": {
-            "type": "string",
-            "description": "Local path where to store all `json` files"
-          },
-          "beautify": {
-            "type": [
-              "string",
-              "number"
-            ],
-            "description": "Parameter sent to JSON.stringify when storing the json"
-          }
-        },
-        "required": [
-          "folder",
-          "slowQueryThreshold",
-          "type"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "FileStore"
       }
     },
     "Webda/InvitationService": {
@@ -945,7 +765,7 @@
       }
     },
     "Webda/KubernetesConfigurationService": {
-      "Import": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
+      "Import": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationService",
       "Schema": {
         "type": "object",
         "properties": {
@@ -1100,7 +920,8 @@
         },
         "required": [
           "maxConsumers",
-          "type"
+          "type",
+          "workerParallelism"
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "MemoryQueue"
@@ -1526,6 +1347,26 @@
       "Subclasses": [
         "Webda/OwnerModel"
       ],
+      "Reflection": {
+        "_user": {
+          "type": "ModelLink",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1593,6 +1434,29 @@
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "_creator": {
+          "type": "string"
+        },
+        "__acl": {
+          "type": "Acl"
+        },
+        "_permissions": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "test": {
+          "type": "Date"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1651,6 +1515,14 @@
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1715,6 +1587,56 @@
         "Webda/UuidModel"
       ],
       "Subclasses": [],
+      "Reflection": {
+        "_type": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "__profile": {
+          "type": "any"
+        },
+        "__tokens": {
+          "type": "IdentTokens"
+        },
+        "_lastUsed": {
+          "type": "Date"
+        },
+        "_failedLogin": {
+          "type": "number"
+        },
+        "_lastValidationEmail": {
+          "type": "number"
+        },
+        "_validation": {
+          "type": "Date"
+        },
+        "email": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "_user": {
+          "type": "ModelLink",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1834,6 +1756,26 @@
       "Subclasses": [
         "Webda/Ident"
       ],
+      "Reflection": {
+        "_user": {
+          "type": "ModelLink",
+          "typeParameters": [
+            "User"
+          ]
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1900,6 +1842,14 @@
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -1953,6 +1903,14 @@
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
+      "Reflection": {
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2021,6 +1979,52 @@
         "Webda/User"
       ],
       "Subclasses": [],
+      "Reflection": {
+        "_groups": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "_roles": {
+          "type": "Array",
+          "typeParameters": [
+            "string"
+          ]
+        },
+        "_idents": {
+          "type": "ModelsMapped",
+          "typeParameters": [
+            "Ident",
+            "\"_user\"",
+            "\"uuid\" | \"email\" | \"_type\""
+          ]
+        },
+        "__password": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number"
+        },
+        "_avatar": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2131,6 +2135,32 @@
       "Subclasses": [
         "Webda/SimpleUser"
       ],
+      "Reflection": {
+        "__password": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number"
+        },
+        "_avatar": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2209,6 +2239,17 @@
       "Subclasses": [
         "Webda/AbstractOwnerModel"
       ],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        },
+        "_creationDate": {
+          "type": "Date"
+        },
+        "_lastUpdate": {
+          "type": "Date"
+        }
+      },
       "Schema": {
         "type": "object",
         "properties": {
@@ -2891,6 +2932,66 @@
       },
       "title": "UuidModel"
     },
+    "Webda/AclModel.acl.input": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/Acl"
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Acl": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "Webda/AclModel.acl.input"
+    },
+    "Webda/BinaryFile": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string",
+          "description": "Will be computed by the service\n\nhash of the content"
+        },
+        "challenge": {
+          "type": "string",
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+        },
+        "size": {
+          "type": "number",
+          "description": "Size of the binary"
+        },
+        "name": {
+          "type": "string",
+          "description": "Current name"
+        },
+        "mimetype": {
+          "type": "string",
+          "description": "Mimetype of the binary"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "originalname": {
+          "type": "string",
+          "description": "Original name"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "description": "Represent a file to store",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BinaryFile"
+    },
     "Webda/Authentication": {
       "type": "object",
       "properties": {
@@ -3474,53 +3575,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DebugMailer"
     },
-    "Webda/FileBinary": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "models": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
-        },
-        "maxFileSize": {
-          "type": "number",
-          "description": "Define the maximum filesize to accept as direct upload",
-          "default": "10*1024*1024"
-        },
-        "prefix": {
-          "type": "string"
-        },
-        "folder": {
-          "type": "string",
-          "description": "Define the folder to store objects in"
-        },
-        "maxSize": {
-          "type": "number",
-          "description": "Maximum size to handle",
-          "default": "10Mb"
-        },
-        "url": {
-          "type": "string",
-          "description": "URL to use for direct download"
-        }
-      },
-      "required": [
-        "folder",
-        "models",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FileBinary"
-    },
     "Webda/FileConfiguration": {
       "type": "object",
       "properties": {
@@ -3593,130 +3647,6 @@
         }
       },
       "title": "FileLoggerService"
-    },
-    "Webda/FileQueue": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "workerDelayer": {
-          "type": "object",
-          "properties": {
-            "interval": {
-              "type": "number",
-              "description": "Interval"
-            },
-            "type": {
-              "type": "string",
-              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-            }
-          },
-          "required": [
-            "interval",
-            "type"
-          ],
-          "description": "Delayer between two failed attempts to process messages"
-        },
-        "workerParallelism": {
-          "type": "boolean",
-          "description": "Define if worker should process multi message received in //",
-          "default": true
-        },
-        "maxConsumers": {
-          "type": "number",
-          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
-          "default": 10
-        },
-        "expire": {
-          "type": "number",
-          "description": "Number of seconds before droping message",
-          "default": 30
-        },
-        "folder": {
-          "type": "string",
-          "description": "Where to store the queue"
-        }
-      },
-      "required": [
-        "folder",
-        "maxConsumers",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FileQueue"
-    },
-    "Webda/FileStore": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "model": {
-          "type": "string",
-          "description": "Webda model to use within the Store",
-          "default": "Webda/CoreModel"
-        },
-        "additionalModels": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Additional models\n\nAllow this store to manage other models",
-          "default": []
-        },
-        "strict": {
-          "type": "boolean",
-          "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no model extending this one",
-          "default": false
-        },
-        "defaultModel": {
-          "type": "boolean",
-          "description": "When __type model not found, use the model If strict is setup this parameter is not used",
-          "default": true
-        },
-        "forceModel": {
-          "type": "boolean",
-          "description": "If set, Store will ignore the __type",
-          "default": false
-        },
-        "slowQueryThreshold": {
-          "type": "number",
-          "description": "Slow query threshold",
-          "default": 30000
-        },
-        "modelAliases": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Model Aliases to allow easier rename of Model"
-        },
-        "noCache": {
-          "type": "boolean",
-          "description": "Disable default memory cache"
-        },
-        "folder": {
-          "type": "string",
-          "description": "Local path where to store all `json` files"
-        },
-        "beautify": {
-          "type": [
-            "string",
-            "number"
-          ],
-          "description": "Parameter sent to JSON.stringify when storing the json"
-        }
-      },
-      "required": [
-        "folder",
-        "slowQueryThreshold",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FileStore"
     },
     "Webda/InvitationService": {
       "type": "object",
@@ -3938,7 +3868,8 @@
       },
       "required": [
         "maxConsumers",
-        "type"
+        "type",
+        "workerParallelism"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MemoryQueue"
@@ -4322,46 +4253,6 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Router"
-    },
-    "Webda/BinaryFile": {
-      "type": "object",
-      "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
-        "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
-        },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
-        },
-        "metadata": {
-          "description": "Metadatas stored along with the binary"
-        },
-        "originalname": {
-          "type": "string",
-          "description": "Original name"
-        }
-      },
-      "required": [
-        "mimetype",
-        "name",
-        "size"
-      ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
     }
   }
 }

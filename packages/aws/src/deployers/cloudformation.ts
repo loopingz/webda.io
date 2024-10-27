@@ -1,8 +1,9 @@
 import { APIGateway } from "@aws-sdk/client-api-gateway";
 import { CloudFormation } from "@aws-sdk/client-cloudformation";
 import { STS } from "@aws-sdk/client-sts";
-import { JSONUtils, WebdaError } from "@webda/core";
+import { WebdaError } from "@webda/core";
 import { ContainerResources } from "@webda/shell";
+import { JSONUtils } from "@webda/utils";
 import * as fs from "fs";
 import * as path from "path";
 import * as YAML from "yaml";

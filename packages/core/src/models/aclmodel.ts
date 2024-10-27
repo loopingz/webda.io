@@ -2,8 +2,9 @@ import { Action, CoreModel } from "./coremodel";
 import type { Context, IWebContext, IOperationContext } from "../contexts/icontext";
 import { User } from "./user";
 import * as WebdaError from "../errors/errors";
-import { useCurrentUser, useCurrentUserId } from "../contexts/execution";
+import { runAsSystem, useContext, useCurrentUser, useCurrentUserId } from "../contexts/execution";
 import { OperationContext } from "../contexts/operationcontext";
+import { WebContext } from "../contexts/webcontext";
 
 export type Acl = { [key: string]: string };
 
@@ -25,6 +26,8 @@ export class AclModel extends CoreModel {
    * Contains permissions
    */
   protected _permissions?: string[];
+
+  protected test: Date;
 
   /**
    * Ensure creator has all permissions by default
@@ -120,10 +123,11 @@ export class AclModel extends CoreModel {
       }
     }
   })
-  async acl(ctx: IWebContext & OperationContext<null | Acl>) {
-    if (ctx.getHttpContext().getMethod() === "PUT") {
+  async acl(ctx: OperationContext<null | Acl>) {
+    let method = (ctx as WebContext).getHttpContext().getMethod();
+    if (method === "PUT") {
       return this._httpPutAcls(ctx);
-    } else if (ctx.getHttpContext().getMethod() === "GET") {
+    } else if (method === "GET") {
       return this._httpGetAcls();
     }
   }
@@ -133,17 +137,19 @@ export class AclModel extends CoreModel {
    * @param ctx
    */
   async _httpGetAcls() {
-    return {
-      raw: this.__acl,
-      resolved: await Promise.all(
-        Object.keys(this.__acl).map(async ace => {
-          return {
-            permission: this.__acl[ace],
-            actor: await this.getUserPublicEntry(ace)
-          };
-        })
-      )
-    };
+    return await runAsSystem(async () => {
+      return {
+        raw: this.__acl,
+        resolved: await Promise.all(
+          Object.keys(this.__acl).map(async ace => {
+            return {
+              permission: this.__acl[ace],
+              actor: await this.getUserPublicEntry(ace)
+            };
+          })
+        )
+      };
+    }, [this]);
   }
 
   /**
@@ -154,7 +160,8 @@ export class AclModel extends CoreModel {
    * @returns
    */
   async getUserPublicEntry(ace: string) {
-    return (await User.ref(ace).get())?.toPublicEntry();
+    const user = await User.ref(ace).get();
+    return user?.toPublicEntry() || { uuid: ace, displayName: "Deleted user" };
   }
 
   /**
@@ -166,7 +173,9 @@ export class AclModel extends CoreModel {
     if (acl.raw) {
       throw new WebdaError.BadRequest("ACL should not have raw field");
     }
-    this.__acl = acl;
+    runAsSystem(() => {
+      this.__acl = acl;
+    }, [this]);
     await this.save();
   }
 

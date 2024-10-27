@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { JSONUtils } from "@webda/utils";
 import { type MessageReceipt, Queue, QueueParameters } from "./queueservice";
 import { ServiceParameters } from "../interfaces";
+import { ServicePartialParameters } from "../internal/iapplication";
 
 interface QueueMap {
   [key: string]: any;
@@ -40,7 +41,7 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
    * @param params
    * @ignore
    */
-  loadParameters(params: any): K {
+  loadParameters(params: ServicePartialParameters<K>): K {
     return <K>new MemoryQueueParameters().load(params);
   }
 

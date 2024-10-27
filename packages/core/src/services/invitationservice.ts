@@ -1,7 +1,7 @@
 import { EventWithContext } from "../events/events";
 import * as WebdaError from "../errors/errors";
 import type { CoreModel } from "../models/coremodel";
-import type { ModelDefinition } from "../internal/iapplication";
+import type { ModelDefinition, ServicePartialParameters } from "../internal/iapplication";
 import { Ident } from "../models/ident";
 import type { User } from "../models/user";
 import type { Store } from "../stores/store";
@@ -217,7 +217,7 @@ export class InvitationService<
   /**
    * @inheritdoc
    */
-  loadParameters(params: DeepPartial<T>) {
+  loadParameters(params: ServicePartialParameters<T>) {
     return <T>new InvitationParameters().load(params);
   }
 
@@ -588,12 +588,12 @@ export class InvitationService<
       // Notify ident
       const ident = invitation.invitation.split("_");
       await this.sendNotification(
-        new Ident().load(
+        await Ident.create(
           {
             _type: ident.pop(),
             uuid: ident.join("_")
           },
-          true
+          false
         ),
         {
           model,

@@ -15,11 +15,12 @@ import {
   useModel,
   User
 } from "../index";
-import { FileUtils } from "../utils/serializers";
+import { FileUtils } from "@webda/utils";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import * as WebdaQL from "@webda/ql";
-import { consumeAsyncIterator, WebdaInternalTest, WebdaTest } from "../test";
+import { WebdaApplicationTest } from "../test/test";
+import { consumeAsyncIterator } from "../test/utils";
 
 /**
  * Fake User for migration test
@@ -152,7 +153,7 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
 }
 
 @suite
-class AdditionalMemoryTest extends WebdaTest {
+class AdditionalMemoryTest extends WebdaApplicationTest {
   @test
   async multiModelQuery() {
     const Teacher = useModel<ModelDefinition & { name: string }>("Teacher");

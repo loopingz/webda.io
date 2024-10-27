@@ -2,6 +2,7 @@ import { FileLogger } from "@webda/workout";
 import { FileLoggerServiceParameters } from "./params";
 import { LoggerService } from "./logger";
 import { useWorkerOutput } from "./ilogger";
+import { ServicePartialParameters } from "../internal/iapplication";
 
 /**
  * Save logs into a file
@@ -36,7 +37,7 @@ export class FileLoggerService<
   /**
    * @inheritdoc
    */
-  loadParameters(params: any) {
+  loadParameters(params: ServicePartialParameters<T>): T {
     return <T>new FileLoggerServiceParameters().load(params);
   }
 }

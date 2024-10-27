@@ -34,7 +34,7 @@ export class QueueParameters extends ServiceParameters {
    * Define if worker should process multi message received in //
    * @default true
    */
-  workerParallelism?: boolean;
+  workerParallelism: boolean = true;
   /**
    * Max number of queue consumers
    * Queue will auto increase to this max number if queue is loaded
@@ -42,16 +42,7 @@ export class QueueParameters extends ServiceParameters {
    *
    * @default 10
    */
-  maxConsumers: number;
-
-  /**
-   * @inheritdoc
-   */
-  default() {
-    super.default();
-    this.workerParallelism ??= true;
-    this.maxConsumers ??= 10;
-  }
+  maxConsumers: number = 10;
 }
 
 /**

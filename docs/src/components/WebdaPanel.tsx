@@ -113,6 +113,7 @@ function Subpanel({
 }) {
   const panelStyle: React.CSSProperties = {
     padding: 10,
+    color: adjustLightness(WebdaColors[color], -0.4),
     backgroundColor: color === "WHITE" ? "#F8F8F8" : adjustLightness(WebdaColors[color], 0.3),
     minHeight: 250,
     minWidth: 250,
@@ -126,6 +127,42 @@ function Subpanel({
       <h3 style={{ color: adjustLightness(WebdaColors[color], -0.2) }}>{title}</h3>
       {children}
     </div>
+  );
+}
+
+function ModelsPanel({ style }) {
+  return (
+    <Subpanel color="BLUE" title="Models" style={style}>
+      They define your data and the way it is accessed. Permissions, actions, and what are their relations between each
+      others. It is easier to unit tests your applications by unit testing your models.
+    </Subpanel>
+  );
+}
+
+function ServicesPanel({ style }) {
+  return (
+    <Subpanel color="GREEN" title="Services" style={style}>
+      They implement behavior that are unrelated to models. Like authentication, database, queues, pub/sub. You can also
+      add security system like Hawk protocol.
+    </Subpanel>
+  );
+}
+
+function OthersPanel({ style }) {
+  return (
+    <Subpanel color="WHITE" title="Integrations" style={style}>
+      Your application can use REST or GraphQL or any other entrypoint. The Operations concept helps you have a
+      normalized way to interact with your application.
+    </Subpanel>
+  );
+}
+
+function DeploymentsPanel({ style }) {
+  return (
+    <Subpanel color="ORANGE" title="Deployments" style={style}>
+      Webda helps you to deploy as Kubernetes deployments, Lambda functions, or others. It has facilitator to read from
+      ConfigMap.
+    </Subpanel>
   );
 }
 
@@ -155,28 +192,20 @@ export default function WebdaPanel({
     };
     return (
       <div>
-        <Subpanel color="BLUE" title="Models" style={style}>
-          Blah blah
-        </Subpanel>
+        <ModelsPanel style={style} />
         <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
           <WebdaJigsaw fillColor={WebdaColors.BLUE} style={{ transform: "scale(-1, 1)", width: "96" }} />
         </div>
-        <Subpanel color="GREEN" title="Services" style={style}>
-          Blah blah
-        </Subpanel>
+        <ServicesPanel style={style} />
         <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
           <WebdaJigsaw fillColor={WebdaColors.GREEN} style={{ transform: "scale(-1, 1)", width: "96" }} />
         </div>
 
-        <Subpanel color="ORANGE" title="Deployments" style={style}>
-          Blah blah
-        </Subpanel>
+        <DeploymentsPanel style={style} />
         <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
           <WebdaJigsaw fillColor={WebdaColors.ORANGE} style={{ transform: "scale(-1, 1)", width: "96" }} />
         </div>
-        <Subpanel color="WHITE" title="..." style={style}>
-          Blah blah
-        </Subpanel>
+        <OthersPanel style={style} />
         <div style={{ display: "flex", justifyContent: "end", marginTop: -60, marginRight: -10 }}>
           <WebdaJigsaw
             fillColor={adjustLightness(WebdaColors.WHITE, -0.1)}
@@ -191,7 +220,9 @@ export default function WebdaPanel({
     minHeight: 250,
     minWidth: 250,
     width: "50%",
-    height: "50%"
+    height: "50%",
+    display: "flex",
+    flexDirection: "column"
   };
   return (
     <div style={{ margin: 20 }}>
@@ -202,32 +233,39 @@ export default function WebdaPanel({
         style={{ position: "relative", left: "calc(50% - 100px", bottom: -160 }}
       />
       <div style={{ display: "flex", marginTop: -200 }}>
-        <Subpanel color="BLUE" title="Models" style={{ ...panelStyle, borderBottomWidth: 1, borderTopLeftRadius: 10 }}>
-          Blah blah
-        </Subpanel>
-        <Subpanel
-          color="ORANGE"
-          title="Deployments"
-          style={{ ...panelStyle, borderBottomWidth: 1, borderTopRightRadius: 10 }}
-        >
-          Blah blah
-        </Subpanel>
+        <ModelsPanel style={{ ...panelStyle, borderBottomWidth: 1, borderTopLeftRadius: 10 }} />
+        <DeploymentsPanel
+          style={{
+            ...panelStyle,
+            borderBottomWidth: 1,
+            borderTopRightRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "end",
+            paddingBottom: 100
+          }}
+        />
       </div>
       <div style={{ display: "flex" }}>
-        <Subpanel
-          color="GREEN"
-          title="Services"
-          style={{ ...panelStyle, borderBottomWidth: 1, borderBottomLeftRadius: 10 }}
-        >
-          Blah blah
-        </Subpanel>
-        <Subpanel
-          color="WHITE"
-          title="..."
-          style={{ ...panelStyle, borderBottomWidth: 1, borderBottomRightRadius: 10 }}
-        >
-          Blah blah
-        </Subpanel>
+        <ServicesPanel
+          style={{
+            ...panelStyle,
+            borderBottomWidth: 1,
+            borderBottomLeftRadius: 10,
+            flexDirection: "column-reverse",
+            paddingTop: 100
+          }}
+        />
+        <OthersPanel
+          style={{
+            ...panelStyle,
+            borderBottomWidth: 1,
+            borderBottomRightRadius: 10,
+            paddingTop: 100,
+            flexDirection: "column-reverse",
+            alignItems: "end"
+          }}
+        />
       </div>
     </div>
   );

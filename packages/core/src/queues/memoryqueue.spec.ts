@@ -1,15 +1,16 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { register } from "prom-client";
-import { CancelablePromise, Queue } from "../index";
+import { Queue } from "../index";
 import { MemoryQueue } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";
+import { CancelablePromise } from "@webda/utils";
 
 class Title {
   title: string;
 
   constructor(title?: string) {
-    this.title = title;
+    this.title = title || "";
   }
 }
 @suite
@@ -173,7 +174,7 @@ class MemoryQueueTest extends QueueTest {
     // For coverage
     assert.strictEqual(queue.getParameters().expire, 1000, "1s should be convert to ms");
     queue.getParameters().expire = undefined;
-    await queue.reinit({});
+    await queue.init();
     assert.strictEqual(queue.getParameters().expire, 30000, "default should be 30s");
     queue.getParameters().expire = 1000;
     queue.__clean();

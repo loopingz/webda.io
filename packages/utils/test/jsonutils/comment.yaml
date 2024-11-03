@@ -1,0 +1,10 @@
+test: plop # This is a comment
+testToDelete: plop2
+# This is a second comment
+testArray:
+  # This is a comment in an array
+  - plop
+  - plop2
+testMap:
+  test: plop # This is a comment in a map
+  test2: plop2

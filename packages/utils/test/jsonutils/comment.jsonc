@@ -1,0 +1,18 @@
+// Pre comment
+{
+  "test" /* KEY : POST */: /* : PLOP */ "plop" /* POST VALUE , COMMENT*/, // This is a comment
+  "testToDelete": "plop2", // This should be deleted
+  // This is a second comment
+  "testArray" /* other comment */: [
+    // This is a comment in an array
+    "plop",
+    "plop2"
+    // This is a second comment in an array
+  ],
+  "testMap": /* map */ {
+    /* test property comment? */
+    "test": "plop", // This is a comment in a map
+    "test2": "plop2"
+  }
+  // Other comment
+}

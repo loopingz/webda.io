@@ -72,7 +72,7 @@ function createYAMLNode(item) {
 }
 
 function setYAMLNodes(target, node) {
-  node.items.forEach(attr => {
+  node?.items.forEach(attr => {
     if (yaml.isScalar(attr.value)) {
       target[attr.key.value] = attr.value.value;
     } else if (yaml.isSeq(attr.value)) {
@@ -172,7 +172,8 @@ class YAMLMap implements YAMLProxies {
       },
       set(target, prop, value) {
         if (!target[prop]) {
-          target.getYAMLNodes().items.push(new yaml.Pair(new yaml.Scalar(prop), createYAMLNode(value)));
+          const newValue = createYAMLNode(value);
+          target.getYAMLNodes().items.push(new yaml.Pair(new yaml.Scalar(prop), newValue));
         } else {
           target.getYAMLNodes().items.forEach((attr, ind) => {
             if (attr.key.value === prop) {

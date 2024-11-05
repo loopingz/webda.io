@@ -1,0 +1,17 @@
+// $$object_prefix
+{ // $$startEndOfLine_object
+  // $$prefix_property_a
+  /* $$prefix_property_a */ "a" /* $$suffix_key */: /* $$prefix_value */ "b",
+  // $$prefix_property_c
+  "c": "d", // $$endofline_property_c
+  "d": {
+    "e": "f",
+    "g": "h"
+    // $$suffix_property_d_value
+  } // $$endofline_property_d
+  // $$suffix_main_object
+} // $$endofline_main_object
+
+/**
+ * $$endofline_main_object continue
+ */

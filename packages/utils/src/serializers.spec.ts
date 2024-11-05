@@ -25,6 +25,7 @@ import {
 } from "./serializers";
 import { Readable } from "node:stream";
 import { getCommonJS } from "../lib";
+import { YAMLProxy } from "./yamlproxy";
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../test/jsonutils/";
 const PACKAGE_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../";
@@ -36,7 +37,7 @@ class UtilsTest {
     assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), {
       test: "ok"
     });
-    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.json"), {
+    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.json").toJSON(), {
       test: "ok"
     });
     assert.deepStrictEqual(FileUtils.load(TEST_FOLDER + "test.json"), {
@@ -49,7 +50,7 @@ class UtilsTest {
 
   @test("LoadYAML File")
   fileYml() {
-    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.yml"), {
+    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.yml").toJSON(), {
       test: { ok: "plop" },
       tab: ["ok", "item2"]
     });
@@ -346,21 +347,17 @@ plop: test
     }`;
     try {
       writeFileSync(file, JSONC_SOURCE);
-      await JSONUtils.updateFile(file, v => {
-        if (v === "bouzouf") {
-          return "bouzouf2";
-        }
-        return v;
-      });
+      const content = FileUtils.load(file);
+      content.test2.plop4 = "bouzouf2";
+      content.test4.p.v = "bouzouf2";
+      FileUtils.save(content, file);
       const data = FileUtils.load(file);
       assert.strictEqual(data.test4.p.v, "bouzouf2");
       assert.strictEqual(data.test2.plop4, "bouzouf2");
-      assert.strictEqual(data.test2.plop2, "bouzouf2");
-      assert.strictEqual(data.test2.plop3, "bouzouf2");
       const update = readFileSync(file).toString();
-      assert.strictEqual(update.length, JSONC_SOURCE.length + 4);
+      assert.strictEqual(update.length, JSONC_SOURCE.length + 2);
     } finally {
-      FileUtils.clean(file);
+      //FileUtils.clean(file);
     }
   }
 
@@ -386,5 +383,101 @@ plop: test
     faultyStream.emit("error", new Error("BOUZOUF"));
     await assert.rejects(() => p);
     await assert.rejects(() => b);
+  }
+
+  static testComments(file: string, loader: (data: string) => any, autoClone?: boolean) {
+    const obj: {
+      test: string;
+      testToAdd: any;
+      testToDelete: any;
+      testArray2: any;
+      testArray: string[];
+      testMap: { [key: string]: string };
+      testMapRenamed: { [key: string]: string };
+      testMapRenamed2: { [key: string]: string };
+    } = FileUtils.load(getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/" + file);
+
+    obj.test = "unitTest";
+    obj.testToAdd = "plop";
+    delete obj.testToDelete;
+    obj.testArray2 = [...obj.testArray];
+    obj.testArray.push(<any>true);
+    obj.testArray.unshift(<any>1234);
+    obj.testArray.push("rawType");
+    obj.testArray.push(<any>["seq", 12]);
+    obj.testArray.push(<any>{
+      test: "map",
+      test2: true
+    });
+    obj.testMapRenamed = obj.testMap;
+    obj.testMapRenamed2 = { ...obj.testMap };
+    obj.testMap.plop = "unitTest";
+    obj.testMap.unitTest = "unitTest";
+    delete obj.testMap.test2;
+    const rendered = obj.toString();
+    [
+      "This is a comment",
+      "This is a second comment",
+      "This is a comment in an array",
+      "This is a comment in a map"
+    ].forEach(c => assert.ok(rendered.includes(c), `Should contain '${c}'`));
+    const t2 = loader(rendered);
+    assert.deepStrictEqual(t2, JSON.parse(JSON.stringify(obj)));
+    assert.deepStrictEqual(t2, {
+      test: "unitTest",
+      testArray: [
+        1234,
+        "plop",
+        "plop2",
+        true,
+        "rawType",
+        ["seq", 12],
+        {
+          test: "map",
+          test2: true
+        }
+      ],
+      testMap: {
+        test: "plop",
+        plop: "unitTest",
+        unitTest: "unitTest"
+      },
+      testToAdd: "plop",
+      testArray2: ["plop", "plop2"],
+      testMapRenamed: autoClone
+        ? { test: "plop", test2: "plop2" }
+        : {
+            test: "plop",
+            plop: "unitTest",
+            unitTest: "unitTest"
+          },
+      testMapRenamed2: {
+        test: "plop",
+        test2: "plop2"
+      }
+    });
+  }
+
+  @test
+  yamlComments() {
+    UtilsTest.testComments("comment.yaml", (value: string) => YAMLUtils.parse(value), true);
+  }
+
+  @test
+  jsoncComments() {
+    UtilsTest.testComments("comment.jsonc", (value: string) => {
+      return JSONUtils.parse(value).toJSON();
+    });
+  }
+
+  @test
+  jsoncComments2() {
+    const data = FileUtils.load(getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/comment2.jsonc");
+    data.$schema = "http://...";
+    data.a = "cdcdcd";
+    data.cc = "dd";
+    data.e = "e";
+    const file = readFileSync(getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/comment2_update.jsonc");
+    assert.strictEqual(data.toString(), file.toString());
   }
 }

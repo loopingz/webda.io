@@ -1,0 +1,20 @@
+// $$object_prefix
+{ // $$startEndOfLine_object
+  "$schema": "http://...",
+  // $$prefix_property_a
+  /* $$prefix_property_a */ "a" /* $$suffix_key */: /* $$prefix_value */ "cdcdcd",
+  // $$prefix_property_c
+  "c": "d", // $$endofline_property_c
+  "cc": "dd",
+  "d": {
+    "e": "f",
+    "g": "h"
+    // $$suffix_property_d_value
+  }, // $$endofline_property_d
+  "e": "e"
+  // $$suffix_main_object
+} // $$endofline_main_object
+
+/**
+ * $$endofline_main_object continue
+ */

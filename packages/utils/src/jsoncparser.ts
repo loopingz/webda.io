@@ -1,9 +1,6 @@
-import { timeStamp } from "console";
-
 class JSONCNode {
   static fromValue(arg0: any): JSONCObject | JSONCValue | JSONCArray {
-    console.log("Loading from value", arg0);
-    if (arg0 instanceof JSONCNode || arg0 instanceof JSONCArrayProxy) {
+    if (arg0["$$target"] instanceof JSONCNode || arg0 instanceof JSONCArrayProxy) {
       return <any>arg0;
     }
     if (Array.isArray(arg0)) {
@@ -14,6 +11,13 @@ class JSONCNode {
       return new JSONCValue(arg0);
     }
   }
+  /**
+   * Line comment after the {
+   */
+  $$startEndOfLine: string = "";
+  /**
+   * Comment to be
+   */
   $$prefix: string = "";
   $$suffix: string = "";
   $$endOfLine: string = "";
@@ -33,7 +37,15 @@ class JSONCNode {
   }
 }
 
+function stripComments(str: string) {
+  return str.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
 class JSONCObject extends JSONCNode {
+  indentation: number = 2;
+  sorted: boolean = false;
+  multiline: boolean = true;
+
   constructor(value?: any) {
     super();
     if (value) {
@@ -44,60 +56,106 @@ class JSONCObject extends JSONCNode {
   }
   properties: JSONCProperty[] = [];
 
-  toString() {
-    let res = this.$$prefix + "{";
+  computeFormatting() {
+    // Keep with the default formatting
+    if (this.properties.length === 0) {
+      return;
+    }
+    // Check if the properties are sorted
+    const sorted = this.properties.map(prop => prop.key.name).sort();
+    this.multiline = false;
+    let currentCount = -1;
+    this.sorted = true;
+    for (const ind in this.properties) {
+      if (this.properties[ind].key.name !== sorted[ind]) {
+        this.sorted = false;
+      }
+      if (this.properties[ind].$$endOfLine.includes("\n")) {
+        this.multiline = true;
+      }
+      const uncommented = stripComments(this.properties[ind].key.$$prefix).split("\n").pop().length;
+      if (currentCount === -1) {
+        currentCount = uncommented;
+      } else if (currentCount !== uncommented) {
+        // Cannot determine the indentation
+        currentCount = -2;
+      }
+    }
+    // By default use current object indentation + 2
+    if (currentCount === -2) {
+      this.indentation = 2 + stripComments(this.$$prefix.split("\n").pop()).length;
+    } else {
+      this.indentation = currentCount;
+    }
+  }
+
+  addProperty(property: JSONCProperty) {
+    property.key.$$prefix = " ".repeat(this.indentation);
+    if (this.multiline) {
+      property.$$endOfLine = "\n";
+    }
+    // Schema should always be the first property
+    if (property.key.name === "$schema") {
+      this.properties.unshift(property);
+    } else {
+      this.properties.push(property);
+    }
+    if (this.sorted) {
+      this.properties.sort((a, b) => a.key.name.localeCompare(b.key.name));
+    }
+  }
+
+  toString(separator: string = "") {
+    let res = this.$$prefix + "{" + this.$$startEndOfLine;
     for (let i = 0; i < this.properties.length; i++) {
       res += this.properties[i].toString(i < this.properties.length - 1 ? "," : "");
     }
-    res += "}" + this.$$suffix;
+    res += this.$$suffix + "}" + separator + this.$$endOfLine;
     return res;
   }
 
   toProxy() {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
-    return new Proxy(
-      {},
-      {
-        get: (target, prop) => {
-          if (prop == "toString") {
-            // eslint-disable-next-line
-            return function () {
-              return self.toString();
-            };
-          }
-          if (prop == "toJSON") {
-            // eslint-disable-next-line
-            return function () {
-              return self.toJSON();
-            };
-          }
-          if (prop === "$$target") {
-            return self;
-          }
-          const property = self.properties.find(p => p.key.name === prop);
-          return property ? property.value.toProxy() : undefined;
-        },
-        set: (target, prop, value) => {
-          const property = self.properties.find(p => p.key.name === prop);
-          const newValue = JSONCNode.fromValue(value);
-          if (property) {
-            newValue.cloneComments(property.value);
-            property.value = newValue;
-          } else {
-            self.properties.push(new JSONCProperty(new JSONCKey(prop as string), newValue));
-          }
-          return true;
-        },
-        deleteProperty: (target, prop) => {
-          const index = self.properties.findIndex(p => p.key.name === prop);
-          if (index !== -1) {
-            self.properties.splice(index, 1);
-          }
-          return true;
+    return new Proxy(this.toJSON(), {
+      get: (target, prop) => {
+        if (prop == "toString") {
+          // eslint-disable-next-line
+          return function () {
+            return self.toString();
+          };
         }
+        if (prop == "toJSON") {
+          // eslint-disable-next-line
+          return function () {
+            return self.toJSON();
+          };
+        }
+        if (prop === "$$target") {
+          return self;
+        }
+        const property = self.properties.find(p => p.key.name === prop);
+        return property ? property.value.toProxy() : undefined;
+      },
+      set: (target, prop, value) => {
+        const property = self.properties.find(p => p.key.name === prop);
+        const newValue = JSONCNode.fromValue(value);
+        if (property) {
+          newValue.cloneComments(property.value);
+          property.value = newValue;
+        } else {
+          self.addProperty(new JSONCProperty(new JSONCKey(prop as string), newValue));
+        }
+        return true;
+      },
+      deleteProperty: (target, prop) => {
+        const index = self.properties.findIndex(p => p.key.name === prop);
+        if (index !== -1) {
+          self.properties.splice(index, 1);
+        }
+        return true;
       }
-    );
+    });
   }
 
   toJSON() {
@@ -111,6 +169,7 @@ class JSONCObject extends JSONCNode {
 
 class JSONCValue extends JSONCNode {
   value: any;
+  $$prefix = " ";
 
   constructor(value: any) {
     super();
@@ -184,7 +243,7 @@ class JSONCArrayProxy extends Array {
   }
 
   mapper(items: any[]) {
-    return items.map(item => JSONCNode.fromValue(item));
+    return items.map(item => this.array.computePrefix(JSONCNode.fromValue(item)));
   }
 
   unshift(...items: any[]): number {
@@ -199,6 +258,9 @@ class JSONCArrayProxy extends Array {
 }
 
 class JSONCArray extends JSONCNode {
+  multiline: boolean = true;
+  indentation: number = 2;
+
   constructor(value?: any[]) {
     super();
     this.elements =
@@ -209,12 +271,51 @@ class JSONCArray extends JSONCNode {
 
   elements: (JSONCValue | JSONCObject | JSONCArray)[];
 
+  computeFormatting() {
+    // Keep with the default formatting
+    if (this.elements.length === 0) {
+      this.indentation = stripComments(this.$$prefix.split("\n").pop()).length + 2;
+      return;
+    }
+    // Check if the properties are sorted
+    this.multiline = false;
+    let currentCount = -1;
+    for (const ind in this.elements) {
+      if (this.elements[ind].$$endOfLine.includes("\n")) {
+        this.multiline = true;
+      }
+      const uncommented = stripComments(this.elements[ind].$$prefix).split("\n").pop().length;
+      if (currentCount === -1) {
+        currentCount = uncommented;
+      } else if (currentCount !== uncommented) {
+        // Cannot determine the indentation
+        currentCount = -2;
+      }
+    }
+    // By default use current object indentation + 2
+    if (currentCount === -2) {
+      this.indentation = 2 + stripComments(this.$$prefix.split("\n").pop()).length;
+    } else {
+      this.indentation = currentCount;
+    }
+  }
+
+  computePrefix(property: JSONCObject | JSONCValue | JSONCArray) {
+    if (this.multiline) {
+      property.$$prefix = " ".repeat(this.indentation);
+    } else {
+      property.$$prefix = " ";
+    }
+    property.$$endOfLine = this.multiline ? "\n" : "";
+    return property;
+  }
+
   toString() {
     let res = this.$$prefix + "[";
     for (let i = 0; i < this.elements.length; i++) {
       res += this.elements[i].toString(i < this.elements.length - 1 ? "," : "");
     }
-    res += "]" + this.$$suffix;
+    res += this.$$suffix + "]" + this.$$endOfLine;
     return res;
   }
 
@@ -254,7 +355,7 @@ function parseJsoncToTree(jsoncString: string): any {
     }
     value.$$prefix = prefix;
     if (first) {
-      value.$$suffix = jsoncString.substring(i);
+      value.$$endOfLine += jsoncString.substring(i);
     }
     return value;
   }
@@ -263,6 +364,11 @@ function parseJsoncToTree(jsoncString: string): any {
     const obj = new JSONCObject();
     i++; // Consume '{'
     let whitespace = skipWhitespace();
+    if (whitespace.includes("\n")) {
+      const lines = whitespace.split("\n");
+      obj.$$startEndOfLine = lines.shift() + "\n";
+      whitespace = lines.join("\n");
+    }
 
     while (i < jsoncString.length && jsoncString[i] !== "}") {
       const key = parseKey();
@@ -288,6 +394,11 @@ function parseJsoncToTree(jsoncString: string): any {
           prop.$$endOfLine = whitespace.substring(0, newLine + 1);
           whitespace = whitespace.substring(newLine + 1);
         }
+      } else if (prop.$$suffix.includes("\n")) {
+        const lines = prop.$$suffix.split("\n");
+        prop.$$endOfLine = lines.shift() + "\n";
+        prop.$$suffix = "";
+        obj.$$suffix = lines.join("\n");
       }
     }
 
@@ -295,6 +406,7 @@ function parseJsoncToTree(jsoncString: string): any {
       throw new Error(`Expected '}' at position ${i}`);
     }
     i++; // Consume '}'
+    obj.computeFormatting();
     return obj;
   }
 
@@ -318,6 +430,11 @@ function parseJsoncToTree(jsoncString: string): any {
           value.$$endOfLine += whitespace.substring(0, newLine + 1);
           whitespace = whitespace.substring(newLine + 1);
         }
+      } else if (value.$$suffix.includes("\n")) {
+        const lines = value.$$suffix.split("\n");
+        value.$$endOfLine = lines.shift() + "\n";
+        value.$$suffix = "";
+        arr.$$suffix = lines.join("\n");
       }
     }
 
@@ -325,6 +442,7 @@ function parseJsoncToTree(jsoncString: string): any {
       throw new Error(`Expected ']' at position ${i}`);
     }
     i++; // Consume ']'
+    arr.computeFormatting();
     return arr;
   }
 
@@ -430,34 +548,9 @@ export class JSONCParser {
     return parseJsoncToTree(jsoncString);
   }
 
-  static stringify(tree: any) {
-    return tree instanceof JSONCNode ? tree.toString() : JSON.stringify(tree);
+  static stringify(tree: any, replacer?: (key: string, value: any) => any, space?: string | number): string {
+    return tree instanceof JSONCNode || tree["$$target"] instanceof JSONCNode
+      ? tree.toString()
+      : JSON.stringify(tree, replacer, space);
   }
 }
-
-// Example usage
-const jsoncData = `
-{
-  // This is a comment
-  "name" /* comment */: /* test
-  cvalid */ "John Doe",
-  "age": 30,
-  /* This is a
-     multi-line comment */
-  "occupation": "Software Engineer",
-  "skills": ["JavaScript", "TypeScript", "Python"]
-}
-`;
-
-const parsedTree = parseJsoncToTree(jsoncData);
-parsedTree.name = "unitTest";
-// delete parsedTree.name;
-parsedTree.name2 = [12, "test", { name: "test" }];
-console.log(JSON.stringify(parsedTree));
-// parsedTree.skills.push("Java");
-// console.log(parsedTree);
-// console.log(parsedTree.toString());
-// process.exit(0);
-// const data = readFileSync("test/jsonutils/comment.jsonc").toString();
-// const parsed = parseJsoncToTree(data);
-// console.log(parsed.toString(), parsed.toString() === data);

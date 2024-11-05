@@ -19,6 +19,7 @@ class ChdirTest {
         "esm.spec.ts",
         "esm.ts",
         "index.ts",
+        "jsoncparser.ts",
         "regexp.spec.ts",
         "regexp.ts",
         "serializers.spec.ts",
@@ -28,7 +29,8 @@ class ChdirTest {
         "uuid.spec.ts",
         "uuid.ts",
         "waiter.spec.ts",
-        "waiter.ts"
+        "waiter.ts",
+        "yamlproxy.ts"
       ]);
     });
     ok(readdirSync(__dirname + "/../").includes("src"));
@@ -75,6 +77,7 @@ class ChdirTest {
         "esm.spec.ts",
         "esm.ts",
         "index.ts",
+        "jsoncparser.ts",
         "regexp.spec.ts",
         "regexp.ts",
         "serializers.spec.ts",
@@ -84,7 +87,8 @@ class ChdirTest {
         "uuid.spec.ts",
         "uuid.ts",
         "waiter.spec.ts",
-        "waiter.ts"
+        "waiter.ts",
+        "yamlproxy.ts"
       ]);
     });
     ok(readdirSync(".").includes("src"));

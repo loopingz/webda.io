@@ -9,12 +9,13 @@ import {
   unlinkSync,
   writeFileSync
 } from "fs";
-import * as jsonc from "jsonc-parser";
 import { join } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
 import { createGunzip, gunzipSync, gzipSync } from "zlib";
 import { useLog } from "@webda/workout";
+import { YAMLProxy } from "./yamlproxy";
+import { JSONCParser as JSONC } from "./jsoncparser";
 
 type WalkerOptionsType = {
   followSymlinks?: boolean;
@@ -189,7 +190,7 @@ function getFormatFromFilename(filename: string): Format {
  * Allow save/load of yaml or json file
  */
 export const FileUtils: StorageFinder & {
-  save: (object: any, filename: string, publicAudience?: boolean, format?: Format) => void;
+  save: (object: any, filename: string, format?: Format) => void;
   load: (filename: string, format?: Format) => any;
   clean: (...files: string[]) => void;
   walkSync: (path: string, processor: (filepath: string) => void, options?: WalkerOptionsType, depth?: number) => void;
@@ -319,14 +320,10 @@ export const FileUtils: StorageFinder & {
     }
     format ??= getFormatFromFilename(filename);
     if (format === "yaml") {
-      const res = yaml.parseAllDocuments(content);
-      if (res.length === 1) {
-        return res.pop().toJSON();
-      }
-      return res.map(d => d.toJSON());
+      return YAMLProxy.parse(content);
     } else if (format === "json") {
       if (filename.endsWith("c")) {
-        return jsonc.parse(content);
+        return JSONC.parse(content);
       }
       return JSON.parse(content);
     }
@@ -338,7 +335,7 @@ export const FileUtils: StorageFinder & {
    * @param filename to save
    * @returns
    */
-  save: (object, filename = "", publicAudience: boolean = false, format?: Format) => {
+  save: (object, filename = "", format?: Format) => {
     if (filename.endsWith(".gz")) {
       format ??= getFormatFromFilename(filename.slice(0, -3));
     } else {
@@ -346,9 +343,9 @@ export const FileUtils: StorageFinder & {
     }
     let res;
     if (format === "yaml") {
-      res = yaml.stringify(JSON.parse(JSONUtils.stringify(object, undefined, 0, publicAudience)));
+      res = YAMLProxy.stringify(object);
     } else if (format === "json") {
-      res = JSONUtils.stringify(object, undefined, 2, publicAudience);
+      res = JSONC.stringify(object, undefined, 2);
     }
     if (filename.endsWith(".gz")) {
       res = gzipSync(res);
@@ -377,17 +374,12 @@ export const JSONUtils = {
    * @param space
    * @returns
    */
-  safeStringify: (
-    value,
-    replacer: (key: string, value: any) => any = undefined,
-    space: number | string = 2,
-    publicAudience: boolean = false
-  ) => {
+  safeStringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
     const stringified = [];
     return JSON.stringify(
       value,
       (key: string, val: any): any => {
-        if ((stringified.indexOf(val) >= 0 && typeof val === "object") || (key.startsWith("__") && publicAudience)) {
+        if (stringified.indexOf(val) >= 0 && typeof val === "object") {
           return undefined;
         }
         stringified.push(val);
@@ -416,27 +408,24 @@ export const JSONUtils = {
     space: number | string = 2,
     publicAudience: boolean = false
   ) => {
+    const fullReplacer = (key: string, val: any) => {
+      if (key.startsWith("__") && publicAudience) {
+        return undefined;
+      }
+      if (replacer) {
+        return replacer.bind(this, key, val)();
+      }
+      if (val === null) {
+        return;
+      }
+      return val;
+    };
     // Add a fallback if first did not work because of recursive
     try {
-      return JSON.stringify(
-        value,
-        (key: string, val: any) => {
-          if (key.startsWith("__") && publicAudience) {
-            return undefined;
-          }
-          if (replacer) {
-            return replacer.bind(this, key, val)();
-          }
-          if (val === null) {
-            return;
-          }
-          return val;
-        },
-        space
-      );
+      return JSON.stringify(value, fullReplacer, space);
     } catch (err) {
       if (err.message && err.message.startsWith("Converting circular structure to JSON")) {
-        return JSONUtils.safeStringify(value, replacer, space, publicAudience);
+        return JSONUtils.safeStringify(value, fullReplacer, space);
       }
       throw err;
     }
@@ -449,7 +438,7 @@ export const JSONUtils = {
    */
   parse: value => {
     // Auto clean any noise
-    return JSON.parse(value);
+    return JSONC.parse(value);
   },
   /**
    * Duplicate an object using serializer
@@ -458,38 +447,13 @@ export const JSONUtils = {
     return JSON.parse(JSONUtils.stringify(value));
   },
   /**
-   * Visit a json/jsonc file for update
-   * @param filename
-   */
-  updateFile: async (filename: string, replacer: (value: any) => any) => {
-    const content = readFileSync(filename).toString().trim();
-    const edits: jsonc.EditResult = [];
-    const promises: Promise<void>[] = [];
-    jsonc.visit(content, {
-      onLiteralValue(value, offset, length, startLine, startCharacter, pathSupplier) {
-        promises.push(
-          (async () => {
-            const newValue = await replacer(value);
-            if (value !== newValue) {
-              edits.push({ offset, length, content: JSON.stringify(newValue, undefined, 2) });
-            }
-          })()
-        );
-      }
-    });
-    //
-    await Promise.all(promises);
-    writeFileSync(filename, jsonc.applyEdits(content, edits));
-  },
-  /**
    * Helper to FileUtils.save
    */
   loadFile: (filename: string) => FileUtils.load(filename, "json"),
   /**
    * Helper to FileUtils.save
    */
-  saveFile: (object: any, filename: string, publicAudience?: boolean) =>
-    FileUtils.save(object, filename, publicAudience, "json"),
+  saveFile: (object: any, filename: string) => FileUtils.save(object, filename, "json"),
 
   /**
    * Sort object keys
@@ -521,8 +485,7 @@ export const YAMLUtils = {
   /**
    * Helper to FileUtils.save
    */
-  saveFile: (object: any, filename: string, publicAudience?: boolean) =>
-    FileUtils.save(object, filename, publicAudience, "yaml"),
+  saveFile: (object: any, filename: string) => FileUtils.save(object, filename, "yaml"),
   /**
    * Duplicate an object using serializer
    */

@@ -29,7 +29,7 @@
     "@opentelemetry/api-logs": "^0.53.0",
     "@opentelemetry/auto-instrumentations-node": "^0.50.0",
     "@opentelemetry/exporter-logs-otlp-grpc": "^0.53.0",
-    "@opentelemetry/exporter-metrics-otlp-proto": "^0.53.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.57.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.53.0",
     "@opentelemetry/instrumentation": "^0.53.0",
     "@opentelemetry/resources": "^1.26.0",

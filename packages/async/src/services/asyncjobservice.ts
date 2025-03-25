@@ -241,9 +241,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
 
     // This is internal job reporting so no need to document the api
-    this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, {
-      hidden: true
-    });
+    this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, { hidden: true });
 
     // Add upload/download route if needed
     if (this.parameters.binaryStore) {
@@ -368,19 +366,17 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     if (selectedRunner === undefined) {
       this.log("ERROR", `Cannot find a runner for action ${event.uuid}`);
-      await this.model.ref(event.uuid).patch({
-        status: "ERROR",
-        errorMessage: `No runner found for the job`
-      });
+      await this.model.ref(event.uuid).patch({ status: "ERROR", errorMessage: `No runner found for the job` });
       return;
     }
     this.log("INFO", `Starting action ${event.uuid}`);
-    await this.model.ref(event.uuid).patch({
-      uuid: event.uuid,
-      status: "STARTING"
-    });
+    await this.model.ref(event.uuid).patch({ uuid: event.uuid, status: "STARTING" });
     const action = await this.model.ref(event.uuid).get();
-    let job = await selectedRunner.launchAction(action, this.getJobInfo(action));
+    if (!action) {
+      this.log("ERROR", `Action NOT found`, { event });
+      return Promise.resolve();
+    }
+    const job = await selectedRunner.launchAction(action, this.getJobInfo(action));
     await action.patch({ job }, null);
     return job.promise || Promise.resolve();
   }
@@ -410,17 +406,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     context: WebContext<
       void,
       | {
-          application: {
-            name: string;
-            version: string;
-          };
-          operations: {
-            [key: string]: {
-              id: string;
-              input?: string;
-              output?: string;
-            };
-          };
+          application: { name: string; version: string };
+          operations: { [key: string]: { id: string; input?: string; output?: string } };
           schemas: { [key: string]: JSONSchema7 };
         }
       | string[]
@@ -542,10 +529,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @returns
    */
   getHeaders(jobInfo: JobInfo) {
-    let res: { [key: string]: string } = {
-      "X-Job-Id": jobInfo.JOB_ID,
-      "X-Job-Time": Date.now().toString()
-    };
+    let res: { [key: string]: string } = { "X-Job-Id": jobInfo.JOB_ID, "X-Job-Time": Date.now().toString() };
     res["X-Job-Hash"] = crypto
       .createHmac(AsyncJobService.HMAC_ALGO, jobInfo.JOB_SECRET_KEY)
       .update(res["X-Job-Time"])
@@ -626,10 +610,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     this.log("DEBUG", "Getting action to execute from hook", jobInfo);
     // Get action info by calling the hook
     let action = await this.postHook(jobInfo, {
-      agent: {
-        ...Runner.getAgentInfo(),
-        nodeVersion: process.version
-      },
+      agent: { ...Runner.getAgentInfo(), nodeVersion: process.version },
       status: "RUNNING"
     });
     this.log("DEBUG", "Action received", action.serviceName, action.method, action.arguments);
@@ -654,17 +635,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       results = await service[action.method](...(action.arguments || []));
     } catch (err) {
       // Job is in error
-      await this.postHook(jobInfo, {
-        errorMessage: <string | undefined>err?.message,
-        status: "ERROR"
-      });
+      await this.postHook(jobInfo, { errorMessage: <string | undefined>err?.message, status: "ERROR" });
       return;
     }
     // Update status
-    await this.postHook(jobInfo, {
-      results,
-      status: "SUCCESS"
-    });
+    await this.postHook(jobInfo, { results, status: "SUCCESS" });
   }
 
   /**

@@ -349,6 +349,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       status: "STARTING"
     });
     const action = await this.model.ref(event.uuid).get();
+    if (!action) {
+      this.log("ERROR", `Action NOT found`, { event });
+      return Promise.resolve();
+    }
+    this.log("DEBUG", `Action found`, { action });
     const job = await selectedRunner.launchAction(action, this.getJobInfo(action));
     await action.patch({ job }, null);
     return job.promise || Promise.resolve();

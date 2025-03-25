@@ -13,6 +13,9 @@ export const DateScalar = new GraphQLScalarType({
     if (typeof value === "string") {
       return new Date(value); // Convert incoming integer to Date
     }
+    if (value === null) {
+      return undefined; // prevent type error
+    }
     throw new Error("GraphQL Date Scalar parser expected a `string`");
   },
   parseLiteral(ast) {

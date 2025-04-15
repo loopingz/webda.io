@@ -331,24 +331,28 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         break;
       }
     }
+
+    // Use the model received
+    const eventModel: CoreModelDefinition<AsyncAction> = this.getWebda().getModel(event.type);
+
     // Fallback if needed
     if (selectedRunner === undefined && this.parameters.fallbackOnFirst) {
       selectedRunner = this.runners[0];
     }
     if (selectedRunner === undefined) {
       this.log("ERROR", `Cannot find a runner for action ${event.uuid}`);
-      await this.model.ref(event.uuid).patch({
+      await eventModel.ref(event.uuid).patch({
         status: "ERROR",
         errorMessage: `No runner found for the job`
       });
       return;
     }
     this.log("INFO", `Starting action ${event.uuid}`);
-    await this.model.ref(event.uuid).patch({
+    await eventModel.ref(event.uuid).patch({
       uuid: event.uuid,
       status: "STARTING"
     });
-    const action = await this.model.ref(event.uuid).get();
+    const action = await eventModel.ref(event.uuid).get();
     const job = await selectedRunner.launchAction(action, this.getJobInfo(action));
     await action.patch({ job }, null);
     return job.promise || Promise.resolve();

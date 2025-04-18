@@ -105,6 +105,14 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.2...async-v4.0.0-beta.3) (2025-04-18)
+
+
+### Bug Fixes
+
+* **async:** service runner operation context ([1fe1dcb](https://github.com/loopingz/webda.io/commit/1fe1dcb8adf8ba35d6dc7b126cfb2675bc0a5d78))
+* **async:** use model from event received ([a2b6a86](https://github.com/loopingz/webda.io/commit/a2b6a86a0c56bbe0a91fd7106764da3556ee1142))
+
 ## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.1...async-v4.0.0-beta.2) (2024-10-16)
 
 

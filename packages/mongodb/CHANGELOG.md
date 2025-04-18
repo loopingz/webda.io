@@ -200,6 +200,15 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.3](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.2...mongo-v4.0.0-beta.3) (2025-04-18)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/shell bumped from ^4.0.0-beta.2 to ^4.0.0-beta.3
+
 ## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/mongo-v4.0.0-beta.1...mongo-v4.0.0-beta.2) (2024-10-16)
 
 

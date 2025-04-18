@@ -2,6 +2,7 @@ import { ConsoleLogger, MemoryLogger, WorkerLogLevel, WorkerMessage, WorkerOutpu
 import { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../models";
 import AsyncJobService, { JobInfo } from "./asyncjobservice";
 import { AgentInfo, Runner, RunnerParameters } from "./runner";
+import { OperationContext } from "@webda/core";
 
 /**
  * Type of action returned by LocalRunner
@@ -121,7 +122,19 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
         if (action instanceof AsyncWebdaAction) {
           await this.getService(action.serviceName)[action.method](...(action.arguments || []));
         } else {
-          await this.getWebda().callOperation(action.context, action.operationId);
+          let ctx = new OperationContext(this.getWebda());
+          ctx.session = action.context.session;
+          ctx.input = action.context.input.data;
+          ctx.getRawInput = async function () {
+            return Buffer.from(ctx.input);
+          };
+          ctx.getCurrentUserId = function () {
+            if (this.session) {
+              return this.session.userId;
+            }
+            return undefined;
+          };
+          await this.getWebda().callOperation(ctx, action.operationId);
         }
         await logger.saveAndClose();
 

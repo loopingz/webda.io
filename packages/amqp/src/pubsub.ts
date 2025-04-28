@@ -60,7 +60,7 @@ export default class AMQPPubSubService<
   K extends AMQPPubSubParameters = AMQPPubSubParameters
 > extends PubSubService<T, K> {
   channel: amqplib.Channel;
-  conn: amqplib.Connection;
+  conn: amqplib.ChannelModel;
   exchange: any;
 
   /**

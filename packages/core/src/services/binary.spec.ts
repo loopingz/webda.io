@@ -15,6 +15,7 @@ import {
   LocalBinaryFile,
   MemoryBinaryFile
 } from "./binary";
+import { PassThrough } from "stream";
 export class ImageUser extends User {
   images: BinaryMap[];
 }
@@ -159,12 +160,21 @@ class BinaryTest<T extends BinaryService = BinaryService> extends WebdaTest {
     fs.unlinkSync("./downloadTo.tmp");
 
     // Fake IO issue
-    let stub = sinon.stub(binary, "_get").callsFake(() => {
-      return {
-        pipe: stream => {
-          stream.emit("error", "bad read");
-        }
+    let stub = sinon.stub(binary, "_get").callsFake(async (info: BinaryMap<any>): Promise<PassThrough> => {
+      const stream = new PassThrough();
+
+      // override pipe so that as soon as someone calls .pipe(dest),
+      // dest will immediately get an "error" event
+      const origPipe = stream.pipe;
+      stream.pipe = function <T extends NodeJS.WritableStream>(dest: T) {
+        // let the normal pipe setup happen first:
+        origPipe.call(stream, dest);
+        // then asynchronously emit an error on the destination:
+        process.nextTick(() => dest.emit("error", new Error("bad read")));
+        return dest;
       };
+
+      return stream;
     });
     let stub2;
     try {

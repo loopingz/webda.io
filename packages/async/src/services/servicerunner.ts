@@ -123,10 +123,13 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
           await this.getService(action.serviceName)[action.method](...(action.arguments || []));
         } else {
           let ctx = new OperationContext(this.getWebda());
+          //@ts-expect-error temporary fix
           ctx.session = action.context.session;
+          //@ts-expect-error temporary fix
           ctx.input = action.context.input.data;
           ctx.getRawInput = async function () {
-            return Buffer.from(ctx.input);
+            //@ts-expect-error temporary fix
+            return Buffer.from(ctx.input || []);
           };
           ctx.getCurrentUserId = function () {
             if (this.session) {

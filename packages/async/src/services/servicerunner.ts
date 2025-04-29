@@ -2,7 +2,7 @@ import { ConsoleLogger, MemoryLogger, WorkerLogLevel, WorkerMessage, WorkerOutpu
 import { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../models";
 import AsyncJobService, { JobInfo } from "./asyncjobservice";
 import { AgentInfo, Runner, RunnerParameters } from "./runner";
-import { OperationContext } from "@webda/core";
+import { OperationContext, SimpleOperationContext } from "@webda/core";
 
 /**
  * Type of action returned by LocalRunner
@@ -122,21 +122,11 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
         if (action instanceof AsyncWebdaAction) {
           await this.getService(action.serviceName)[action.method](...(action.arguments || []));
         } else {
-          let ctx = new OperationContext(this.getWebda());
-          //@ts-expect-error temporary fix
-          ctx.session = action.context.session;
-          //@ts-expect-error temporary fix
-          ctx.input = action.context.input.data;
-          ctx.getRawInput = async function () {
-            //@ts-expect-error temporary fix
-            return Buffer.from(ctx.input || []);
-          };
-          ctx.getCurrentUserId = function () {
-            if (this.session) {
-              return this.session.userId;
-            }
-            return undefined;
-          };
+          let ctx: SimpleOperationContext = new SimpleOperationContext(this.getWebda());
+          // Unserialization might not have happened
+          ctx.setSession(action.context.getSession ? action.context.getSession() : action.context["session"]);
+          // Unserialization might not have happened
+          ctx.setInput(Buffer.from(action.context["input"]?.data || []));
           await this.getWebda().callOperation(ctx, action.operationId);
         }
         await logger.saveAndClose();

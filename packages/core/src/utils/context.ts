@@ -373,7 +373,7 @@ export class OperationContext<T = any, U = any> extends EventEmitter {
    * Get the current user id from session
    */
   getCurrentUserId() {
-    return undefined;
+    return this.session?.userId;
   }
 
   /**

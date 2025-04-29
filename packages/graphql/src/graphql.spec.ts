@@ -507,7 +507,10 @@ class GraphQLSubscriptionTest {
             await Course.ref("test").delete();
           } else if (i === 4) {
             // Finishing the test
-            assert.deepStrictEqual(event.data?.Courses.results.map(c => c.name), ["test2b", "test3"]);
+            assert.deepStrictEqual(
+              event.data?.Courses.results.map(c => c.name),
+              ["test2b", "test3"]
+            );
             break;
           }
         }
@@ -685,5 +688,6 @@ class TypesTest {
     assert.throws(() => DateScalar.serialize("test"), /GraphQL Date Scalar serializer expected a `Date` object/);
     assert.ok(DateScalar.parseLiteral({ kind: Kind.STRING, value: "2020-01-01T00:00:00.000Z" }) instanceof Date);
     assert.strictEqual(DateScalar.parseLiteral({ kind: Kind.INT, value: "2020-01-01T00:00:00.000Z" }), null);
+    assert.strictEqual(DateScalar.parseValue(null), undefined);
   }
 }

@@ -45,7 +45,7 @@ class FileQueueTest extends QueueTest {
     // Check if the deletion is not crashing even if the content file is removed
     unlinkSync(`${queue.getParameters().folder}/${msg2[0].ReceiptHandle}.json`);
     await queue.deleteMessage(msg2[0].ReceiptHandle);
-    
+
     // Check if default parameter is correctly set
     queue = new FileQueue(this.webda, "q", {});
     assert.strictEqual(queue.getParameters().expire, 30000);

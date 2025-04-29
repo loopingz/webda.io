@@ -372,10 +372,6 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     this.log("INFO", `Starting action ${event.uuid}`);
     await this.model.ref(event.uuid).patch({ uuid: event.uuid, status: "STARTING" });
     const action = await this.model.ref(event.uuid).get();
-    if (!action) {
-      this.log("ERROR", `Action NOT found`, { event });
-      return Promise.resolve();
-    }
     const job = await selectedRunner.launchAction(action, this.getJobInfo(action));
     await action.patch({ job }, null);
     return job.promise || Promise.resolve();
@@ -683,9 +679,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       time -= time % this.parameters.schedulerResolution;
       // Queue all actions
       await Promise.all(
-        (await this.model.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)).results.map(a =>
-          this.launchAction(a)
-        )
+        (
+          await this.model.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)
+        ).results.map(a => this.launchAction(a))
       );
       time += this.parameters.schedulerResolution;
       // Wait for next scheduler resolution

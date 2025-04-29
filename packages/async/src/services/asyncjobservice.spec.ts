@@ -291,6 +291,7 @@ class AsyncJobServiceTest extends WebdaTest {
     service.getParameters().fallbackOnFirst = true;
     await handler();
     assert.strictEqual((await AsyncAction.ref("plop").get()).status, "STARTING");
+    await assert.rejects(() => service["handleEvent"](<any>{ uuid: "plop2", type: "Async" }), /Item not found/);
   }
 
   @test

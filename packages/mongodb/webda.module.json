@@ -140,7 +140,7 @@
                   "properties": {
                     "w": {
                       "$ref": "#/definitions/W",
-                      "description": "Request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags."
+                      "description": "Request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags. If w is 0 and is set on a write operation, the server will not send a response."
                     },
                     "journal": {
                       "type": "boolean",
@@ -148,7 +148,7 @@
                     },
                     "wtimeoutMS": {
                       "type": "number",
-                      "description": "Specify a time limit to prevent write operations from blocking indefinitely"
+                      "description": "Specify a time limit to prevent write operations from blocking indefinitely."
                     },
                     "wtimeout": {
                       "type": "number",
@@ -185,7 +185,7 @@
                     },
                     "wtimeoutMS": {
                       "type": "number",
-                      "description": "The write concern timeout"
+                      "description": "The write concern timeout."
                     },
                     "journal": {
                       "type": "boolean",
@@ -198,8 +198,7 @@
                     },
                     "wtimeout": {
                       "type": "number",
-                      "description": "The write concern timeout.",
-                      "deprecated": "Will be removed in the next major version. Please use the wtimeoutMS option."
+                      "description": "The write concern timeout."
                     },
                     "fsync": {
                       "anyOf": [
@@ -301,6 +300,9 @@
             "retryWrites": {
               "type": "boolean",
               "description": "Should retry failed writes"
+            },
+            "timeoutMS": {
+              "type": "number"
             }
           },
           "description": "Mongo Database Options"

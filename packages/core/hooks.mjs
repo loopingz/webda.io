@@ -15,13 +15,20 @@ export async function load(url, context, nextLoad) {
   if (url.startsWith(localModule + "/lib/")) {
     const newFile = localModule + "/src/" + url.substring(localModule.length + 5).replace(/\.js$/, ".ts");
     console.log("Replace compiled with source", url, "by", newFile);
-    return {
-      format: "module",
-      source: `export * from "${newFile}";`,
-      shortCircuit: true
-    };
+    return { format: "module", source: `export * from "${newFile}";`, shortCircuit: true };
   }
 
   return nextLoad(url, context, nextLoad);
 }
+
+// Check if something is wrong with the code
+process.on("uncaughtException", err => {
+  console.error("Uncaught exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled rejection at:", promise, "reason:", reason);
+  process.exit(1);
+});
 /* c8 ignore end */

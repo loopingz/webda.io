@@ -254,10 +254,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         this.log("DEBUG", "Return map for", defaultName, "because no fields");
         return { type: AnyScalarType, description: "Map" };
       }
-      type = new (input ? GraphQLInputObjectType : GraphQLObjectType)({
-        fields,
-        name: schema.title || defaultName
-      });
+      type = new (input ? GraphQLInputObjectType : GraphQLObjectType)({ fields, name: schema.title || defaultName });
     }
     return { type, description: schema.description };
   }
@@ -270,14 +267,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   getGraphQLQueryResult(type) {
     const name = `${type.name}QueryResult`;
     this.modelsMap[name] ??= new GraphQLObjectType({
-      fields: {
-        results: {
-          type: new GraphQLList(type)
-        },
-        continuationToken: {
-          type: GraphQLString
-        }
-      },
+      fields: { results: { type: new GraphQLList(type) }, continuationToken: { type: GraphQLString } },
       name
     });
     return this.modelsMap[name];
@@ -337,11 +327,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         } else {
           fields[link.attribute] = {
             type: new GraphQLList(this.modelsMap[link.model]),
-            args: {
-              filter: {
-                type: GraphQLString
-              }
-            },
+            args: { filter: { type: GraphQLString } },
             resolve: async (source, args, context, info) => {
               let src = link.type === "LINKS_MAP" ? Object.values(source[link.attribute]) : source[link.attribute];
               return (
@@ -364,11 +350,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       (webdaGraph.maps || []).filter(attributeFilter()).forEach(map => {
         fields[map.attribute] = {
           type: new GraphQLList(this.modelsMap[map.model]),
-          args: {
-            filter: {
-              type: GraphQLString
-            }
-          },
+          args: { filter: { type: GraphQLString } },
           resolve: async (source, args, context, info) => {
             let modelDefinition = this.app.getModel(map.model);
             return (
@@ -390,11 +372,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       (webdaGraph.queries || []).filter(attributeFilter(true)).forEach(query => {
         fields[query.attribute] = {
           type: this.getGraphQLQueryResult(this.modelsMap[query.model]),
-          args: {
-            query: {
-              type: GraphQLString
-            }
-          },
+          args: { query: { type: GraphQLString } },
           resolve: async (source, args, context, info) => {
             let res = await source[query.attribute].query(WebdaQL.unsanitize(args.query || ""), context);
             this.countOperation(context, res.results.length);
@@ -463,18 +441,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.countOperation(context);
     let modelInstance = await model.ref(res.uuid || "").get();
     if (!modelInstance) {
-      throw new GraphQLError("Object not found", {
-        extensions: {
-          code: "NOT_FOUND"
-        }
-      });
+      throw new GraphQLError("Object not found", { extensions: { code: "NOT_FOUND" } });
     }
     if ((await modelInstance?.canAct(context, "get")) !== true) {
-      throw new GraphQLError("Permission denied", {
-        extensions: {
-          code: "PERMISSION_DENIED"
-        }
-      });
+      throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
     }
     if (filter && !filter.eval(modelInstance, false)) {
       return null;
@@ -489,11 +459,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   countOperation(context: WebContext, increment: number = 1) {
     let ext = context.getExtension<GraphQLContextExtension>("graphql");
     if (ext?.count === this.parameters.maxOperationsPerRequest) {
-      throw new GraphQLError("Too many operations", {
-        extensions: {
-          code: "TOO_MANY_OPERATIONS"
-        }
-      });
+      throw new GraphQLError("Too many operations", { extensions: { code: "TOO_MANY_OPERATIONS" } });
     }
     if (ext) {
       ext.count ??= 0;
@@ -554,18 +520,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!model.Expose.restrict.create) {
         mutations[`create${name}`] = {
           type: this.modelsMap[i],
-          args: {
-            [name]: { type: input }
-          },
+          args: { [name]: { type: input } },
           resolve: async (_, args, context) => {
             let object = new model().load(args[name]);
             this.log("INFO", "Create", object, context.getCurrentUserId());
             if ((await object?.canAct(context, "create")) !== true) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
+              throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
             }
             await object.save();
             return object;
@@ -575,20 +535,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!model.Expose.restrict.update) {
         mutations[`update${name}`] = {
           type: this.modelsMap[i],
-          args: {
-            [name]: { type: input },
-            uuid: {
-              type: GraphQLString
-            }
-          },
+          args: { [name]: { type: input }, uuid: { type: GraphQLString } },
           resolve: async (_, args, context) => {
             let object = await model.ref(args.uuid).get();
             if ((await object?.canAct(context, "update")) !== true) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
+              throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
             }
             return object.load(args[name]).save();
           }
@@ -598,24 +549,14 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (!model.Expose.restrict.delete) {
         mutations[`delete${name}`] = {
           type: new GraphQLObjectType({ name: `delete${name}`, fields: { success: { type: GraphQLBoolean } } }),
-          args: {
-            uuid: {
-              type: GraphQLString
-            }
-          },
+          args: { uuid: { type: GraphQLString } },
           resolve: async (_, args, context) => {
             let object = await model.ref(args.uuid).get();
             if ((await object?.canAct(context, "delete")) !== true) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
+              throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
             }
             await object.delete();
-            return {
-              success: true
-            };
+            return { success: true };
           }
         };
       }
@@ -623,12 +564,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       let plural = this.transformName(this.app.getModelPlural(i).split("/").pop());
       rootFields[plural] = {
         type: this.getGraphQLQueryResult(this.modelsMap[i]),
-        args: {
-          query: {
-            type: GraphQLString,
-            defaultValue: ""
-          }
-        },
+        args: { query: { type: GraphQLString, defaultValue: "" } },
         resolve: async (_, args, context) => {
           return await model.query(WebdaQL.unsanitize(args.query || ""), true, context);
         },
@@ -642,11 +578,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
        */
       subscriptions[this.transformName(i.split("/").pop())] = {
         type: this.modelsMap[i],
-        args: {
-          [model.getUuidField()]: {
-            type: GraphQLString
-          }
-        },
+        args: { [model.getUuidField()]: { type: GraphQLString } },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
           return this.registerAsyncIterator(model, args[model.getUuidField()], context);
@@ -662,9 +594,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       if (modelEvents.length) {
         const eventTypes = {};
         modelEvents.forEach(e => {
-          eventTypes[e] = {
-            type: AnyScalarType
-          };
+          eventTypes[e] = { type: AnyScalarType };
         });
         eventTypes["latestEventTime"] = { type: GraphQLLong };
         /**
@@ -690,11 +620,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
          */
         subscriptions[this.transformName(i.split("/").pop()) + "Events"] = {
           type: new GraphQLObjectType({ fields: eventTypes, name: this.transformName(i.split("/").pop()) + "Events2" }),
-          args: {
-            [model.getUuidField()]: {
-              type: GraphQLString
-            }
-          },
+          args: { [model.getUuidField()]: { type: GraphQLString } },
           subscribe: async (_source, args, context, info) => {
             let subscribedEvents = this.getSubscribedEvents(info);
             this.log("DEBUG", "Subscription called on", model, args[model.getUuidField()], subscribedEvents);
@@ -713,11 +639,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
        */
       rootFields[this.transformName(i.split("/").pop())] = {
         type: this.modelsMap[i],
-        args: {
-          [model.getUuidField()]: {
-            type: GraphQLString
-          }
-        },
+        args: { [model.getUuidField()]: { type: GraphQLString } },
         resolve: async (_source, args, context, _info) => {
           this.countOperation(context);
           return this.loadModelInstance(args[model.getUuidField()] || "", model, context);
@@ -740,11 +662,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           type: this.modelsMap[userGraph],
           subscribe: async (_source, _args, context) => {
             if (!context.getCurrentUserId()) {
-              throw new GraphQLError("Permission denied", {
-                extensions: {
-                  code: "PERMISSION_DENIED"
-                }
-              });
+              throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
             }
             const user: CoreModel = await context.getCurrentUser();
             return this.registerAsyncIterator(user.__class, context.getCurrentUserId(), context, "Me");
@@ -763,11 +681,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             type: new GraphQLObjectType({ fields: eventTypes, name: "MeEvents" }),
             subscribe: async (_source, args, context, info) => {
               if (!context.getCurrentUserId()) {
-                throw new GraphQLError("Permission denied", {
-                  extensions: {
-                    code: "PERMISSION_DENIED"
-                  }
-                });
+                throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
               }
               const subscribedEvents = (info.fieldNodes[0].selectionSet?.selections || [])
                 .filter(node => node.kind === "Field")
@@ -804,10 +718,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       });
       const id = `${i}Events`;
       subscriptions[id] = {
-        type: new GraphQLObjectType({
-          fields,
-          name: id
-        }),
+        type: new GraphQLObjectType({ fields, name: id }),
         subscribe: async (_source, args, context, info) => {
           const fieldsMap = {};
           (info.fieldNodes[0].selectionSet?.selections || [])
@@ -826,10 +737,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     if (this.parameters.globalSubscription) {
       // Create global type based on all previous subscriptions
       subscriptions["Aggregate"] = {
-        type: new GraphQLObjectType({
-          fields: subscriptions,
-          name: "AggregateSubscriptions"
-        }),
+        type: new GraphQLObjectType({ fields: subscriptions, name: "AggregateSubscriptions" }),
         subscribe: async (_source, args2, context, info) => {
           let iterators = {};
           let p = [];
@@ -910,7 +818,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       },
       "Store.Saved": async evt => {
         // If object match the query and is not in the result and can be read by the user
-        if (queryInfo.eval(evt.object) && !queryInfo.getOffset() && evt.object?.canAct(context, "get")) {
+        if (
+          typeof evt.object?.canAct === "function" &&
+          queryInfo.eval(evt.object) &&
+          !queryInfo.getOffset() &&
+          evt.object?.canAct(context, "get")
+        ) {
           // Should check with the order by of the query to see if we need to recompute
           result = await model.query(query, true, context);
           return result;
@@ -957,11 +870,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     let modelInstance = await model.ref(uuid).get();
     // Ensure we have the permission to get the object
     if ((await modelInstance?.canAct(context, "get")) !== true) {
-      throw new GraphQLError("Permission denied", {
-        extensions: {
-          code: "PERMISSION_DENIED"
-        }
-      });
+      throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
     }
     return new EventIterator(
       <EventEmitter>model.store(),
@@ -999,11 +908,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
 
     // Ensure we have the permission to listen to the object
     if (Object.keys(eventsMap).length === 0) {
-      throw new GraphQLError("Permission denied", {
-        extensions: {
-          code: "PERMISSION_DENIED"
-        }
-      });
+      throw new GraphQLError("Permission denied", { extensions: { code: "PERMISSION_DENIED" } });
     }
     return new EventIterator(model.store(), eventsMap, identifier, { logout: { evt: "nok?" } }).iterate();
   }
@@ -1020,16 +925,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     subscription: ThunkObjMap<GraphQLFieldConfig<any, any, any>> = {}
   ): GraphQLSchema {
     // Emit Webda.GraphQL.Schema to allow other services to contribute
-    this.emit("Webda.GraphQL.Schema", {
-      rootFields,
-      mutations,
-      subscription
-    });
+    this.emit("Webda.GraphQL.Schema", { rootFields, mutations, subscription });
     return new GraphQLSchema({
-      query: new GraphQLObjectType({
-        name: "Query",
-        fields: rootFields
-      }),
+      query: new GraphQLObjectType({ name: "Query", fields: rootFields }),
       types: Object.values(this.modelsMap),
       subscription:
         Object.keys({ ...subscription }).length > 0
@@ -1143,17 +1041,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       requestBody: {
         content: {
           "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "string"
-                },
-                variables: {
-                  type: "object"
-                }
-              }
-            }
+            schema: { type: "object", properties: { query: { type: "string" }, variables: { type: "object" } } }
           }
         }
       }

@@ -442,7 +442,7 @@ class AsyncJobServiceTest extends WebdaTest {
 
       await action.refresh();
       assert.strictEqual(action.status, "ERROR");
-      assert.strictEqual(action.errorMessage, "WebdaAsyncAction must have method and serviceName defined at least");
+      assert.strictEqual(action.errorMessage, "Invalid AsyncAction");
 
       // Run without serviceName
       await action.patch({
@@ -457,7 +457,7 @@ class AsyncJobServiceTest extends WebdaTest {
       await service.runAsyncOperationAction();
       await action.refresh();
       assert.strictEqual(action.status, "ERROR");
-      assert.strictEqual(action.errorMessage, "WebdaAsyncAction must have method and serviceName defined at least");
+      assert.strictEqual(action.errorMessage, "Invalid AsyncAction");
 
       // Run with unknown service
       await action.patch({

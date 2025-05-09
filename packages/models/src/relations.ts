@@ -78,7 +78,7 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  delete<A extends StorableAttributes<T, any>>(conditionField?: A, condition?: T[A]): Promise<void> {
+  delete<A extends StorableAttributes<T, any>>(conditionField?: A, condition?: JSONed<T[A]> | T[A]): Promise<void> {
     return this.repository.delete(this.key, conditionField, condition);
   }
 
@@ -117,7 +117,7 @@ export class ModelRef<T extends Storable> {
    */
   upsertItemToCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
     collection: K,
-    item: ArrayElement<T[K]>,
+    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
     index?: number,
     itemWriteConditionField?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null,
     itemWriteCondition?: ArrayElement<T[K]> extends object ? L : never

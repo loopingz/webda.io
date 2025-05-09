@@ -11,6 +11,8 @@ export class ModelEvents<T> {
   Deleted: { model: T };
 }
 
+const Repositories = new WeakMap<Constructor<Model>, Repository<any>>();
+
 export abstract class Model implements Storable, Securable, ExposableModel {
   Events: ModelEvents<this>;
 
@@ -41,7 +43,33 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @returns
    */
   static getRepository<T extends Model>(this: Constructor<T>): Repository<T> {
-    return null as any;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let clazz: any = this;
+    while (!Repositories.has(clazz)) {
+      clazz = Object.getPrototypeOf(clazz);
+      if (clazz === Model) {
+        throw new Error(`No repository found for ${this.name}`);
+      }
+    }
+    return Repositories.get(clazz) as Repository<T>;
+  }
+
+  /**
+   * Get the repository of the model
+   * @returns 
+   */
+  getRepository(): Repository<this> {
+    return (this.constructor as any).getRepository();
+  }
+
+  /**
+   * Register a repository for the model
+   * 
+   * @param this 
+   * @param repository 
+   */
+  static registerRepository<T extends Model>(this: Constructor<T>, repository: Repository<T>): void {
+    Repositories.set(this, repository);
   }
 
   /**
@@ -85,6 +113,10 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    */
   toProxy(): this {
     return this;
+  }
+
+  async save(): Promise<void> {
+    throw new Error("Not implemented");
   }
 }
 

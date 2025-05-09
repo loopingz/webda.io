@@ -9,7 +9,9 @@
     "pretest": "webdac build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "c8 mocha",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
@@ -55,7 +57,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.3.2",
+    "@webda/test": "^4.0.0-beta.2",
     "@types/node": "20.0.0",
     "@webda/compiler": "^4.0.0-beta.2",
     "@webda/tsc-esm": "^4.0.0-beta.2"

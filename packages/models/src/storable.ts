@@ -251,7 +251,7 @@ export interface Repository<T extends Storable & Eventable> {
   upsertItemToCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
     uuid: PrimaryKeyType<T>,
     collection: K,
-    item: ArrayElement<T[K]>,
+    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
     index?: number,
     itemWriteConditionField?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null,
     itemWriteCondition?: ArrayElement<T[K]> extends object ? L : never

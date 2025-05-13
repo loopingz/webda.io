@@ -1,0 +1,64 @@
+{
+  "name": "@webda/serialize",
+  "version": "4.0.0-beta.1",
+  "description": "Serializer for JS",
+  "main": "lib/serializer.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "pretest": "tsc",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage",
+    "format": "prettier --check src/**/*",
+    "format:fix": "prettier --write src/**/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git"
+  },
+  "keywords": [
+    "webda",
+    "serializer"
+  ],
+  "files": [
+    "lib",
+    "package.json"
+  ],
+  "author": "loopingz",
+  "license": "LGPL-3.0-only",
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
+  "homepage": "https://github.com/loopingz/webda.io#readme",
+  "dependencies": {
+    "@types/mocha": "^10.0.0"
+  },
+  "c8": {
+    "report-dir": "./reports",
+    "reporter": [
+      "html",
+      "lcov",
+      "json",
+      "text"
+    ],
+    "exclude": [
+      "**/*.spec.ts",
+      "test/**/*"
+    ]
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@webda/test": "^4.0.0-beta.1",
+    "@types/node": "20.0.0",
+    "typescript": "^5.8.3"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

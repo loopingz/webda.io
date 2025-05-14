@@ -1,4 +1,4 @@
-import { ArrayElement, FilterAttributes, IsUnion } from "@webda/tsc-esm";
+import { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
 import { ModelRelated } from "./relations";
 
 /**
@@ -19,6 +19,9 @@ export interface Storable<T = any, K extends keyof T = any, U = any> {
    * Events is a type-only object?
    */
   Events: U;
+  /**
+   * Properties that are dirty and need to be saved
+   */
   __dirty?: Set<string>;
 }
 
@@ -42,6 +45,10 @@ export type JSONed<T> = T extends object
  */
 export type JSONedAttributes<T extends Storable> = {
   [P in StorableAttributes<T>]: JSONed<T[P]>;
+};
+
+export type AttributesArgument<T extends Storable> = {
+  [P in StorableAttributes<T>]: JSONed<T[P]> | T[P];
 };
 
 /**
@@ -71,6 +78,10 @@ export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T["PrimaryKey"]
  * The PrimaryKeyType<T> will return a Pick type only if the primary key is a union type
  */
 export type PrimaryKey<T extends Storable<any, any>> = Pick<T, T["PrimaryKey"][number]>;
+/**
+ * Get the primary key attributes of the object
+ */
+export type PrimaryKeyAttributes<T extends Storable<any, any>> = keyof PrimaryKey<T>;
 
 /**
  * Compare two primary keys for equality
@@ -78,9 +89,15 @@ export type PrimaryKey<T extends Storable<any, any>> = Pick<T, T["PrimaryKey"][n
  * @param b
  * @returns
  */
-export function PrimaryKeyEquals(a: PrimaryKey<any>, b: PrimaryKey<any>): boolean {
+export function PrimaryKeyEquals(a: PrimaryKeyType<any> | Storable, b: PrimaryKeyType<any> | Storable): boolean {
+  if (isStorable(a)) {
+    a = a.getPrimaryKey();
+  }
+  if (isStorable(b)) {
+    b = b.getPrimaryKey();
+  }
   if (a instanceof Object && b instanceof Object) {
-    return Object.keys(a).every(key => a[key] === b[key]);
+    return a.constructor === b.constructor && Object.keys(a).filter(k => typeof a[k] !== "function").every(key => a[key] === b[key]);
   }
   return a === b;
 }
@@ -113,193 +130,14 @@ export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
   U
 >;
 
-type Eventable = {
-  Events: any;
-};
+/**
+ * Get the model attributes without the primary key properties
+ */
+export type UpdatableAttributes<T extends Storable, U = any> = Exclude<StorableAttributes<T, U>, PrimaryKeyAttributes<T> | ReadonlyKeys<T>>;
 
 /**
- * This represent the injected methods of Store into the Model
+ * Define the events for the model
  */
-export interface Repository<T extends Storable & Eventable> {
-  /**
-   * In REST API, composite keys are represented as a string with the format "key1#key2#key3"
-   * We need a way to convert this string to the object
-   *
-   * @param uuid serialized primary key
-   */
-  fromUUID(uuid: string): PrimaryKeyType<T>;
-  /**
-   * Get data from the store
-   * @param uuid
-   * @returns
-   */
-  get(primaryKey: PrimaryKeyType<T>): Promise<T>;
-  /**
-   * Extract the primary key from the object
-   * @param object to extract the primary key from
-   */
-  getPrimaryKey(object: any): PrimaryKeyType<T>;
-  /**
-   * Create data in the store
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  create(primaryKey: PrimaryKeyType<T>, data: Pojo<T>): Promise<T>;
-  /**
-   * Upsert data in the store, creating or updating the object
-   * @param uuid
-   * @param data
-   */
-  upsert(primaryKey: PrimaryKeyType<T>, data: Pojo<T>): Promise<T>;
-  /**
-   * Update data in the store, replacing the object
-   * @param uuid
-   * @param data
-   * @param conditionField Field to check for condition, if not specified the _lastUpdated field will be used, if null no condition will be checked
-   * @param condition Value to check for condition
-   * @returns
-   */
-  update<K extends StorableAttributes<T>>(
-    uuid: PrimaryKeyType<T>,
-    data: Pojo<T>,
-    conditionField?: K | null,
-    condition?: T[K]
-  ): Promise<void>;
-  /**
-   * Patch data in the store, patching the object
-   * @param uuid
-   * @param data
-   * @param conditionField Field to check for condition, if not specified the _lastUpdated field will be used, if null no condition will be checked
-   * @param condition Value to check for condition
-   * @returns
-   */
-  patch<K extends StorableAttributes<T>>(
-    uuid: PrimaryKeyType<T>,
-    data: Partial<Pojo<T>>,
-    conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
-  ): Promise<void>;
-  /**
-   * Query the store
-   * @param query
-   * @returns
-   */
-  query(query: string): Promise<T[]>;
-  /**
-   * Iterate over the store
-   * @param query
-   * @returns
-   */
-  iterate(query: string): AsyncGenerator<T>;
-  /**
-   * Delete data from the store
-   * @param uuid
-   * @param conditionField Field to check for condition, if not specified the _lastUpdated field will be used, if null no condition will be checked
-   * @param condition Value to check for condition
-   * @returns
-   */
-  delete<K extends StorableAttributes<T>>(
-    uuid: PrimaryKeyType<T>,
-    conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
-  ): Promise<void>;
-  /**
-   * Verify if the object exists
-   * @param uuid
-   * @returns
-   */
-  exists(uuid: PrimaryKeyType<T>): Promise<boolean>;
-  /**
-   * Increment attributes of an object
-   * @param uuid
-   * @param info
-   * @param conditionField Field to check for condition, if not specified the _lastUpdated field will be used, if null no condition will be checked
-   * @param condition Value to check for condition
-   * @returns
-   */
-  incrementAttributes<K extends StorableAttributes<T>, L extends StorableAttributes<T, number>>(
-    uuid: PrimaryKeyType<T>,
-    info: ({ property: L; value?: number } | L)[] | Record<L, number>,
-    conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
-  ): Promise<void>;
-  /**
-   * Increment attribute of an object
-   * @param uuid
-   * @param info
-   * @param conditionField Field to check for condition, if not specified the _lastUpdated field will be used, if null no condition will be checked
-   * @param condition Value to check for condition
-   * @returns
-   */
-  incrementAttribute<K extends StorableAttributes<T>, L extends StorableAttributes<T, number>>(
-    uuid: PrimaryKeyType<T>,
-    info: { property: L; value?: number } | L,
-    conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
-  ): Promise<void>;
-  /**
-   * Upsert an item to a collection
-   * @param uuid
-   * @param collection
-   * @param item
-   * @param index
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
-   * @returns
-   */
-  upsertItemToCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
-    uuid: PrimaryKeyType<T>,
-    collection: K,
-    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
-    index?: number,
-    itemWriteConditionField?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null,
-    itemWriteCondition?: ArrayElement<T[K]> extends object ? L : never
-  ): Promise<void>;
-  /**
-   * Delete item from a collection
-   * @param uuid
-   * @param collection
-   * @param index
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
-   * @returns
-   */
-  deleteItemFromCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
-    uuid: PrimaryKeyType<T>,
-    collection: K,
-    index: number,
-    itemWriteConditionField?: L,
-    itemWriteCondition?: ArrayElement<T[K]>[L]
-  ): Promise<void>;
-  /**
-   * Remove an attribute from an object
-   * @param uuid
-   * @param attribute
-   * @param conditionField Field to check for condition, if not specified the _lastUpdated field will be used, if null no condition will be checked
-   * @param condition Value to check for condition
-   * @returns
-   */
-  removeAttribute<L extends StorableAttributes<T>, K extends StorableAttributes<T>>(
-    uuid: PrimaryKeyType<T>,
-    attribute: K,
-    conditionField?: L | null,
-    condition?: T[L] | JSONed<T[L]>
-  ): Promise<void>;
-  /**
-   * Set an attribute on an object
-   * @param uuid
-   * @param attribute
-   * @param value
-   */
-  setAttribute<K extends StorableAttributes<T>, L extends StorableAttributes<T>>(
-    uuid: PrimaryKeyType<T>,
-    attribute: K,
-    value: T[K],
-    conditionField?: L | null,
-    condition?: T[L] | JSONed<T[L]>
-  ): Promise<void>;
-  on<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void;
-  once<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void;
-  off<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void;
-}
+export type Eventable = {
+  Events: any;
+};

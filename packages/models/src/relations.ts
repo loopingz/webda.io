@@ -2,14 +2,17 @@ import { Attributes, FilterAttributes, NotEnumerable, ArrayElement } from "@webd
 import {
   isStorable,
   PrimaryKeyType,
-  Repository,
   Storable,
   StorableAttributes,
-  Pojo,
   JSONed,
   PrimaryKey,
-  PrimaryKeyEquals
+  PrimaryKeyEquals,
+  JSONedAttributes,
+  AttributesArgument,
+  PrimaryKeyAttributes,
+  UpdatableAttributes
 } from "./storable";
+import { Repository } from "./repository";
 
 /**
  * A reference to a model
@@ -42,7 +45,7 @@ export class ModelRef<T extends Storable> {
    * @param value
    * @returns
    */
-  setAttribute<A extends StorableAttributes<T, any>>(attribute: A, value: JSONed<T[A]>): Promise<void> {
+  setAttribute<A extends UpdatableAttributes<T>>(attribute: A, value: JSONed<T[A]>): Promise<void> {
     return this.repository.setAttribute(this.key, attribute, value as any);
   }
 
@@ -54,7 +57,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   patch<A extends StorableAttributes<T>>(
-    data: Partial<Pojo<T>>,
+    data: Partial<JSONedAttributes<T>>,
     conditionField?: A,
     condition?: T[A] | JSONed<T[A]>
   ): Promise<void> {
@@ -99,8 +102,8 @@ export class ModelRef<T extends Storable> {
    */
   incrementAttributes(
     info:
-      | (StorableAttributes<T, number> | { property: StorableAttributes<T, number>; value?: number })[]
-      | Record<StorableAttributes<T, number>, number>,
+      | (UpdatableAttributes<T, number> | { property: UpdatableAttributes<T, number>; value?: number })[]
+      | Record<UpdatableAttributes<T, number>, number>,
     conditionField?: StorableAttributes<T, any>,
     condition?: T[StorableAttributes<T, any>]
   ): Promise<void> {
@@ -165,7 +168,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   removeAttribute<A extends StorableAttributes<T, any>>(
-    attribute: StorableAttributes<T, any>,
+    attribute: Exclude<StorableAttributes<T, any>, PrimaryKeyAttributes<T>>,
     conditionField?: A,
     condition?: T[A]
   ): Promise<void> {
@@ -180,7 +183,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   incrementAttribute(
-    property: StorableAttributes<T, number>,
+    property: UpdatableAttributes<T, number>,
     value?: number,
     conditionField?: StorableAttributes<T, any>,
     condition?: T[StorableAttributes<T, any>]
@@ -217,7 +220,7 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
    * @param data
    * @returns
    */
-  create(data: Omit<JSONed<T>, T["PrimaryKey"][number]>): Promise<T> {
+  create(data: Omit<AttributesArgument<T>, T["PrimaryKey"][number]>): Promise<T> {
     return this.repository.create(this.key, data as any);
   }
 }

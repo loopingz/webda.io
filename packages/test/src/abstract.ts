@@ -116,8 +116,7 @@ export abstract class ClassTestUI {
         this.runner.test(
           method["__webda_name"],
           function () {
-            method.bind(instance);
-            return instance["testWrapper"] ? instance["testWrapper"](method) : method();
+            return instance["testWrapper"] ? instance["testWrapper"](() => instance[method.name]()) : instance[method.name]();
           },
           { ...this.getSettings(method), instance }
         );

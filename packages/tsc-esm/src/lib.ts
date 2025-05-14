@@ -77,6 +77,18 @@ export type Prototype<T> = {
 };
 
 /**
+ * Test if a type is a Union
+ */
+export type IsUnion<T, U extends T = T> = (T extends any ? (U extends T ? false : true) : never) extends false
+  ? false
+  : true;
+
+/**
+ * Define an annotation type
+ */
+export type Annotation<T extends (...args: any[]) => void> = T & ((...args: OmitTargetArgs<T>) => T);
+
+/**
  * Helper to define a Property decorator with or without parenthesis
  * @param decoratorFn
  * @returns
@@ -141,6 +153,11 @@ export type PropertyAnnotation<T extends (...args: any[]) => void> = T & ((...ar
 export type Constructor<T = any, K extends Array<any> = []> = new (...args: K) => T;
 
 /**
+ * Remove the first argument of a function
+ */
+export type OmitFirstArg<F> = F extends (x: any, ...args: infer P) => infer R ? (...args: P) => R : never;
+
+/**
  * Make a property hidden from json and schema
  *
  * This property will not be saved in the store
@@ -190,3 +207,32 @@ export function StaticInterface<T>() {
     constructor;
   };
 }
+
+/**
+ * Return the types of the arguments of a function
+ */
+export type FunctionArgs<T> = T extends (...args: infer A) => any ? A : never;
+/**
+ * Return the type of the return value of a function
+ */
+export type FunctionReturn<T> = T extends (...args: any) => infer R ? R : never;
+
+// 1) A strict “equals” check that can distinguish
+//    two types that differ only by a `readonly` modifier.
+export type IfEquals<X, Y, A = never, B = X> =
+  (<T>() => T extends X ? 1 : 2) extends
+  (<T>() => T extends Y ? 1 : 2)
+    ? A
+    : B;
+
+// 2) Now build ReadonlyKeys by stripping `readonly`
+//    off each single‑prop type and seeing which
+//    ones *change* (i.e. were readonly originally).
+export type ReadonlyKeys<T> = {
+  [P in keyof T]-?: IfEquals<
+    { [Q in P]: T[P] },          // original single‑prop type
+    { -readonly [Q in P]: T[P] },// “mutable” version
+    never,                       // same ⇒ not readonly
+    P                            // different ⇒ was readonly
+  >
+}[keyof T];

@@ -1,11 +1,11 @@
-import { JSONedAttributes, PK, PrimaryKeyType, Repository, Storable } from "./storable";
+import { JSONedAttributes, PK, PrimaryKeyType, Storable } from "./storable";
 import { randomUUID } from "crypto";
 import { Securable } from "./securable";
 import { ExposableModel } from "./exposable";
 import { ModelRefWithCreate } from "./relations";
 import { ActionsEnum } from "./actionable";
-import { Constructor } from "@webda/tsc-esm";
-
+import { Constructor, NotEnumerable } from "@webda/tsc-esm";
+import { Repository } from "./repository";
 export class ModelEvents<T> {
   Saved: { model: T };
   Deleted: { model: T };
@@ -15,6 +15,12 @@ const Repositories = new WeakMap<Constructor<Model>, Repository<any>>();
 
 export abstract class Model implements Storable, Securable, ExposableModel {
   Events: ModelEvents<this>;
+  /**
+   * Properties that are dirty and need to be saved
+   * @private
+   */
+  @NotEnumerable
+  __dirty?: Set<string>;
 
   /** Non-abstract class need to define their PrimaryKey */
   public abstract PrimaryKey: readonly (keyof this)[];
@@ -37,12 +43,27 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return result as any;
   }
 
+  ref() {
+    return this.getRepository().ref(this.getPrimaryKey());
+  }
+
+  setPrimaryKey<K extends readonly (keyof this)[]>(this: this & { PrimaryKey: K }, value: PK<this, K[number]>): this {
+    if (this.PrimaryKey.length === 1) {
+      this[this.PrimaryKey[0]] = value as any;
+    } else {
+      for (const k of this.PrimaryKey) {
+        this[k] = value[k as any];
+      }
+    }
+    return this;
+  }
+
   /**
    * Get the repository of the model
    * @param this
    * @returns
    */
-  static getRepository<T extends Model>(this: Constructor<T>): Repository<T> {
+  static getRepository<T extends Model>(this: Constructor<T, any[]>): Repository<T> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     let clazz: any = this;
     while (!Repositories.has(clazz)) {
@@ -68,7 +89,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @param this 
    * @param repository 
    */
-  static registerRepository<T extends Model>(this: Constructor<T>, repository: Repository<T>): void {
+  static registerRepository<T extends Model>(this: Constructor<T, any[]>, repository: Repository<T>): void {
     Repositories.set(this, repository);
   }
 
@@ -79,7 +100,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @returns
    */
   static ref<T extends Model>(this: Constructor<T>, key: PrimaryKeyType<T>): ModelRefWithCreate<T> {
-    return null;
+    return Repositories.get(this).ref(key);
   }
 
   toJSON(): JSONedAttributes<this> {
@@ -116,7 +137,17 @@ export abstract class Model implements Storable, Securable, ExposableModel {
   }
 
   async save(): Promise<void> {
-    throw new Error("Not implemented");
+    const repo = this.getRepository();
+    if (!this.__dirty) {
+      await repo.upsert(this.getPrimaryKey(), this.toJSON());
+    } else {
+      const patch = {} as JSONedAttributes<this>;
+      for (const k of this.__dirty) {
+        patch[k] = this[k];
+      }
+      await repo.patch(this.getPrimaryKey(), patch);
+      this.__dirty.clear();
+    }
   }
 }
 
@@ -124,9 +155,9 @@ export class UuidModel extends Model {
   public PrimaryKey = ["uuid"] as const;
   uuid: string;
 
-  constructor() {
+  constructor(data?: Partial<UuidModel>) {
     super();
-    this.uuid ??= randomUUID();
+    this.uuid = data?.uuid || randomUUID();
   }
 }
 

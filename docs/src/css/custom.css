@@ -1,0 +1,29 @@
+.configurationMenu > div {
+  padding-top: 10px;
+}
+
+.configurationMenu .models, .configurationMenu .services, .configurationMenu .deployments, .configurationMenu .others {
+    border-radius: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.configurationMenu .models {
+  background-color: rgb(171, 180, 226);
+  color: rgb(10, 13, 30);
+}
+
+.configurationMenu .services {
+  color: rgb(37, 65, 28);
+  background-color: rgb(219, 237, 213);
+}
+
+.configurationMenu .deployments {
+  background-color: rgb(255, 214, 154);
+  color: rgb(52, 31, 0);
+}
+
+.configurationMenu .others {
+  background-color: rgb(248, 248, 248);
+  color: rgb(142, 142, 142);
+}

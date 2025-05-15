@@ -1,6 +1,7 @@
-import { ArrayElement, Constructor } from "@webda/tsc-esm";
-import { Eventable, JSONed, JSONedAttributes, PK, PrimaryKeyType, Storable, StorableAttributes, UpdatableAttributes } from "./storable";
+import type { ArrayElement, Constructor } from "@webda/tsc-esm";
+import type { Eventable, JSONed, JSONedAttributes, PK, PrimaryKeyType, Storable, StorableAttributes, UpdatableAttributes } from "./storable";
 import { ModelRefWithCreate } from "./relations";
+
 
 
 /**
@@ -207,23 +208,28 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   constructor(private model: Constructor<T, any[]>) {}
 
   fromUUID(uuid: string): PK<T, T["PrimaryKey"][number]> {
-    return uuid as unknown as PK<T, T["PrimaryKey"][number]>;
+    throw new Error("Not implemented");
   }
 
   private makeKey(pk: PK<T, T["PrimaryKey"][number]>): string {
     return typeof pk === "object" ? JSON.stringify(pk) : String(pk);
   }
 
+  /**
+   * @inheritdoc
+   */
   async get(primaryKey: PK<T, T["PrimaryKey"][number]>): Promise<T> {
     const key = this.makeKey(primaryKey);
     const item = this.storage.get(key);
-    console.log("get", key, this.storage.has(key), item);
     if (!item) throw new Error(`Not found: ${key}`);
     return this.unserialize(item);
   }
 
+  /**
+   * @inheritdoc
+   */
   getPrimaryKey(object: any): PK<T, T["PrimaryKey"][number]> {
-    const pkFields = (object.constructor.PrimaryKey || []) as Array<keyof T>;
+    const pkFields = (object.PrimaryKey || []) as Array<keyof T>;
     if (pkFields.length === 0) {
       throw new Error("No primary key defined on model");
     }
@@ -237,31 +243,35 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     }, {} as any);
   }
 
+  /**
+   * @inheritdoc
+   */
   async create(primaryKey: PK<T, T["PrimaryKey"][number]>, data: JSONedAttributes<T>): Promise<T> {
     const key = this.makeKey(primaryKey);
     if (this.storage.has(key)) {
       throw new Error(`Already exists: ${key}`);
     }
-    console.log("create with (data)", data);
     // @ts-ignore
     const item = new this.model(data).setPrimaryKey(primaryKey);
-    console.log("create with (model)", item);
-    // if composite PK, caller must include PK fields in data
     this.storage.set(key, this.serialize(item));
-    console.log("create", key, this.storage.has(key), item);
-    return this.unserialize(this.storage.get(key)!);
+    return item;
   }
 
+  /**
+   * @inheritdoc
+   */
   async upsert(primaryKey: PK<T, T["PrimaryKey"][number]>, data: JSONedAttributes<T>): Promise<T> {
     const key = this.makeKey(primaryKey);
     if (this.storage.has(key)) {
-      const res = this.unserialize(this.storage.get(key)!);
-      Object.assign(res, data as any);
-      return res;
+      await this.patch(primaryKey, data);
+      return this.unserialize(this.storage.get(key)!);
     }
     return this.create(primaryKey, data);
   }
 
+  /**
+   * @inheritdoc
+   */
   async update<K extends StorableAttributes<T, any>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     data: JSONedAttributes<T>,
@@ -270,8 +280,12 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   ): Promise<void> {
     const item = await this.get(primaryKey);
     Object.assign(item, data as any);
+    this.storage.set(this.makeKey(primaryKey), this.serialize(item));
   }
 
+  /**
+   * @inheritdoc
+   */
   async patch<K extends StorableAttributes<T, any>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     data: Partial<JSONedAttributes<T>>,
@@ -283,24 +297,47 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     this.storage.set(this.makeKey(primaryKey), this.serialize(item));
   }
 
+  /**
+   * @inheritdoc
+   */
   async query(_q: string): Promise<T[]> {
-    return Array.from(this.storage.values()).map(v => this.unserialize(v));
+    throw new Error("Not implemented");
   }
 
+  /**
+   * Serialize the object to a string
+   *
+   * This method is used to allow switching between different serialization methods
+   *
+   * @param item to serialize
+   * @returns serialized object
+   */
   serialize(item: T): string {
     return JSON.stringify(item);
   }
 
+  /**
+   * Unserialize the object from a string
+   *
+   * This method is used to allow switching between different serialization methods
+   *
+   * @param item
+   * @returns
+   */
   unserialize(item: string): T {
     return new this.model(JSON.parse(item));
   }
 
+  /**
+   * @inheritdoc
+   */
   async *iterate(_q: string): AsyncGenerator<T> {
-    for (const item of this.storage.values()) {
-      yield this.unserialize(item);
-    }
+    throw new Error("Not implemented");
   }
 
+  /**
+   * @inheritdoc
+   */
   async delete<K extends StorableAttributes<T, any>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     _conditionField?: K | null,
@@ -309,10 +346,16 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     this.storage.delete(this.makeKey(primaryKey));
   }
 
+  /**
+   * @inheritdoc
+   */
   async exists(primaryKey: PK<T, T["PrimaryKey"][number]>): Promise<boolean> {
     return this.storage.has(this.makeKey(primaryKey));
   }
 
+  /**
+   * @inheritdoc
+   */
   async incrementAttributes<K extends StorableAttributes<T, any>, L extends StorableAttributes<T, number>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
@@ -331,8 +374,12 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
         (item as any)[prop] = ((item as any)[prop] || 0) + info[prop]!;
       }
     }
+    this.storage.set(this.makeKey(primaryKey), this.serialize(item));
   }
 
+  /**
+   * @inheritdoc
+   */
   async incrementAttribute<K extends StorableAttributes<T, any>, L extends StorableAttributes<T, number>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     info: L | { property: L; value?: number },
@@ -342,40 +389,68 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     await this.incrementAttributes(primaryKey, [info as any]);
   }
 
+  protected checkItemWriteCondition(
+    item: any[],
+    index: number,
+    itemWriteConditionField: string,
+    itemWriteCondition: any
+  ): void {
+    if (
+      (Array.isArray(item) && index < item.length && item[index][itemWriteConditionField] === itemWriteCondition) ||
+      !itemWriteCondition
+    ) {
+      return;
+    }
+    throw new Error("Item write condition failed");
+  }
+
+  /**
+   * @inheritdoc
+   */
   async upsertItemToCollection<K extends StorableAttributes<T, any[]>, L extends keyof ArrayElement<T[K]>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     collection: K,
     item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
     index?: number,
-    _itemWriteConditionField?: any,
-    _itemWriteCondition?: any
+    itemWriteConditionField?: any,
+    itemWriteCondition?: any
   ): Promise<void> {
     const obj = await this.get(primaryKey);
     if (!(obj as any)[collection]) {
       (obj as any)[collection] = [];
     }
+    this.checkItemWriteCondition(obj[collection] as Array<any>, index as number, itemWriteConditionField, itemWriteCondition);
     const arr = (obj as any)[collection] as Array<any>;
     if (typeof index === "number") {
       arr[index] = item;
     } else {
       arr.push(item);
     }
+    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));  
   }
 
+  /**
+   * @inheritdoc
+   */
   async deleteItemFromCollection<K extends StorableAttributes<T, any[]>, L extends keyof ArrayElement<T[K]>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     collection: K,
     index: number,
-    _itemWriteConditionField?: any,
-    _itemWriteCondition?: any
+    itemWriteConditionField?: any,
+    itemWriteCondition?: any
   ): Promise<void> {
     const obj = await this.get(primaryKey);
     const arr = (obj as any)[collection] as Array<any>;
+    this.checkItemWriteCondition(obj[collection] as Array<any>, index as number, itemWriteConditionField, itemWriteCondition);
     if (Array.isArray(arr) && index >= 0 && index < arr.length) {
       arr.splice(index, 1);
+      this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   async removeAttribute<L extends StorableAttributes<T, any>, K extends StorableAttributes<T, any>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     attribute: K,
@@ -384,8 +459,12 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   ): Promise<void> {
     const obj = await this.get(primaryKey);
     delete (obj as any)[attribute as string];
+    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
   }
 
+  /**
+   * @inheritdoc
+   */
   async setAttribute<K extends StorableAttributes<T, any>, L extends StorableAttributes<T, any>>(
     primaryKey: PK<T, T["PrimaryKey"][number]>,
     attribute: K,
@@ -395,8 +474,12 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   ): Promise<void> {
     const obj = await this.get(primaryKey);
     (obj as any)[attribute as string] = value;
+    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
   }
 
+  /**
+   * @inheritdoc
+   */
   on<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void {
     if (!this.events.has(event)) {
       this.events.set(event, new Set());
@@ -404,6 +487,9 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     this.events.get(event)!.add(listener as any);
   }
 
+  /**
+   * @inheritdoc
+   */
   once<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void {
     const wrapper = (d: any) => {
       listener(d);
@@ -412,6 +498,9 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     this.on(event, wrapper as any);
   }
 
+  /**
+   * @inheritdoc
+   */
   off<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void {
     this.events.get(event)?.delete(listener as any);
   }
@@ -421,6 +510,9 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     this.events.get(event)?.forEach(fn => fn(data));
   }
 
+  /**
+   * @inheritdoc
+   */
   public ref(key: PK<T, T["PrimaryKey"][number]>): ModelRefWithCreate<T> {
     return new ModelRefWithCreate<T>(key, this);
   }

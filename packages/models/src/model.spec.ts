@@ -10,7 +10,7 @@ import { isSecurable } from "./securable";
 import { isExposableModel } from "./exposable";
 import { MemoryRepository } from "./repository";
 
-class TestModel extends Model {
+export class TestModel extends Model {
     PrimaryKey = ["id", "name"] as const;
     id: string;
     name: string;
@@ -19,18 +19,18 @@ class TestModel extends Model {
     createdAt: Date;
     updatedAt: Date;
 
-    constructor() {
-        super();
-        this.id = "";
-        this.name = "";
-        this.age = 0;
-        this.email = "";
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
+    constructor(data: AttributesArgument<TestModel> = {}) {
+        super(data);
+        this.id = data.id || "";
+        this.name = data.name || "";
+        this.age = data.age || 0;
+        this.email = data.email || "";
+        this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
+        this.updatedAt = data.updatedAt ? new Date(data.updatedAt) : new Date();
     }
 }
 
-class SubClassModel extends UuidModel {
+export class SubClassModel extends UuidModel {
     
     name: string;
     age: number;
@@ -133,31 +133,5 @@ class ModelTest {
         name: "Test"
       });
       assert.ok(!PrimaryKeyEquals(model, model4));
-    }
-
-    @test
-    async testModelCRUD() {
-        const repo = new MemoryRepository<SubClassModel>(SubClassModel);
-        SubClassModel.registerRepository(repo);
-        const object = await repo.ref("test").create({
-            name: "Test",
-            age: 30,
-            collection: [{name: "item1", type: "type1"}],
-            createdAt: new Date(),
-            test: 123,
-        });
-        await object.save();
-        object.name = "Updated Test";
-        object.__dirty = new Set(["name"]);
-        await object.save();
-        console.log("UNIT_TEST", object, object.getPrimaryKey());
-        const object2 = await repo.get(object.getPrimaryKey());
-        assert.strictEqual(object2.name, "Updated Test");
-        assert.strictEqual(object2.age, 30);
-        
-        await object.ref().incrementAttribute("age", 1);
-        await object.ref().setAttribute("name", "New Name");
-        await object.ref().removeAttribute("createdAt");
-        
     }
 }

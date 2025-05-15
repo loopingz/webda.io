@@ -12,7 +12,7 @@ import {
   PrimaryKeyAttributes,
   UpdatableAttributes
 } from "./storable";
-import { Repository } from "./repository";
+import type { Repository } from "./repository";
 
 /**
  * A reference to a model
@@ -63,6 +63,22 @@ export class ModelRef<T extends Storable> {
   ): Promise<void> {
     return this.repository.patch(this.key, data, conditionField, condition);
   }
+
+  /**
+   * Patch the model
+   * @param data
+   * @param conditionField
+   * @param condition
+   * @returns
+   */
+  update<A extends StorableAttributes<T>>(
+    data: JSONedAttributes<T>,
+    conditionField?: A,
+    condition?: T[A]
+  ): Promise<void> {
+    return this.repository.update(this.key, data, conditionField, condition);
+  }
+
 
   /**
    * Get the model referenced by the key

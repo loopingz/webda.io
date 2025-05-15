@@ -14,7 +14,7 @@
     "test:coverage": "vitest --coverage",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --no-trackTypeOnlyDependencies --showCircularDependencies --displayMode=raw -e .ts",
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "repository": {
@@ -57,10 +57,11 @@
     "access": "public"
   },
   "devDependencies": {
-    "@webda/test": "^4.0.0-beta.1",
     "@types/node": "20.0.0",
     "@webda/compiler": "^4.0.0-beta.2",
-    "@webda/tsc-esm": "^4.0.0-beta.2"
+    "@webda/test": "^4.0.0-beta.1",
+    "@webda/tsc-esm": "^4.0.0-beta.2",
+    "skott": "^0.35.4"
   },
   "type": "module",
   "engines": {

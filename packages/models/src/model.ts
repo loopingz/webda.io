@@ -2,7 +2,7 @@ import { JSONedAttributes, PK, PrimaryKeyType, Storable } from "./storable";
 import { randomUUID } from "crypto";
 import { Securable } from "./securable";
 import { ExposableModel } from "./exposable";
-import { ModelRefWithCreate } from "./relations";
+import { ModelRefWithCreate, type ModelRef } from "./relations";
 import { ActionsEnum } from "./actionable";
 import { Constructor, NotEnumerable } from "@webda/tsc-esm";
 import { Repository } from "./repository";
@@ -43,7 +43,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return result as any;
   }
 
-  ref() {
+  ref() : ModelRef<this> {
     return this.getRepository().ref(this.getPrimaryKey());
   }
 
@@ -133,6 +133,13 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @returns
    */
   toProxy(): this {
+    return this;
+  }
+
+  async refresh(): Promise<this> {
+    const repo = this.getRepository();
+    const data = await repo.get(this.getPrimaryKey());
+    Object.assign(this, data);
     return this;
   }
 

@@ -1,5 +1,5 @@
-import { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
-import { ModelRelated } from "./relations";
+import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import type { ModelRelated } from "./relations";
 
 /**
  * A Storable object is an object that can be stored in a database or anywhere else

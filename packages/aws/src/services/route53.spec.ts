@@ -5,6 +5,7 @@ import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
 import * as sinon from "sinon";
 import { Route53Service } from "./route53";
+import { existsSync, unlinkSync } from "fs";
 
 @suite
 class Route53Test {
@@ -96,6 +97,7 @@ class Route53Test {
       );
       assert.deepStrictEqual([logs[0], logs[1].toString()], ["ERROR", "Error: Cannot do this"]);
     } finally {
+      existsSync("./myzone.json") && unlinkSync("./myzone.json");
       mock.restore();
     }
   }

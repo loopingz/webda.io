@@ -43,7 +43,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return result as any;
   }
 
-  ref() : ModelRef<this> {
+  ref(): ModelRef<this> {
     return this.getRepository().ref(this.getPrimaryKey());
   }
 
@@ -77,7 +77,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
 
   /**
    * Get the repository of the model
-   * @returns 
+   * @returns
    */
   getRepository(): Repository<this> {
     return (this.constructor as any).getRepository();
@@ -85,9 +85,9 @@ export abstract class Model implements Storable, Securable, ExposableModel {
 
   /**
    * Register a repository for the model
-   * 
-   * @param this 
-   * @param repository 
+   *
+   * @param this
+   * @param repository
    */
   static registerRepository<T extends Model>(this: Constructor<T, any[]>, repository: Repository<T>): void {
     Repositories.set(this, repository);
@@ -167,4 +167,3 @@ export class UuidModel extends Model {
     this.uuid = data?.uuid || randomUUID();
   }
 }
-

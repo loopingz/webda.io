@@ -32,3 +32,5 @@ gatling
 *.bak
 docs/build
 package-lock.json
+*.old
+.vite-custom

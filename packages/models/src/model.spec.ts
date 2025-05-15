@@ -19,14 +19,14 @@ export class TestModel extends Model {
     createdAt: Date;
     updatedAt: Date;
 
-    constructor(data: AttributesArgument<TestModel> = {}) {
-        super(data);
-        this.id = data.id || "";
-        this.name = data.name || "";
-        this.age = data.age || 0;
-        this.email = data.email || "";
-        this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
-        this.updatedAt = data.updatedAt ? new Date(data.updatedAt) : new Date();
+    constructor(data?: AttributesArgument<TestModel>) {
+        super();
+        this.id = data?.id || "";
+        this.name = data?.name || "";
+        this.age = data?.age || 0;
+        this.email = data?.email || "";
+        this.createdAt = data?.createdAt ? new Date(data.createdAt as any) : new Date();
+        this.updatedAt = data?.updatedAt ? new Date(data.updatedAt as any) : new Date();
     }
 }
 

@@ -119,6 +119,7 @@ export interface MappingService<T = any> {
 }
 type OmitFirstArg<F> = F extends (x: any, ...args: infer P) => infer R ? (...args: P) => R : never;
 
+/*
 export type CRUDHelper<T extends object> = {
   [K in keyof Omit<StoreHelper<T>, "create" | "query" | "get" | "update">]: OmitFirstArg<StoreHelper<T>[K]>;
 } & {
@@ -140,3 +141,5 @@ export type CRUDHelper<T extends object> = {
 
 export type CRUDModel<T extends object = object> = Omit<CRUDHelper<T>, "upsert" | "create" | "exists" | "update"> &
   T & { save(full?: boolean | keyof T, ...fields: (keyof T)[]): Promise<T> };
+
+*/

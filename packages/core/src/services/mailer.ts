@@ -160,7 +160,7 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
     const email = user.getEmail();
     if (!email) {
-      throw new Error(`Cannot find a valid email for ${user.__type} '${user.getUuid()}'`);
+      throw new Error(`Cannot find a valid email for ${user}`);
     }
     this.metrics.sent.inc();
     try {

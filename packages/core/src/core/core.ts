@@ -4,11 +4,11 @@ import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
 import { Application } from "../application/application";
-import { Configuration, ModelDefinition, AbstractCoreModel } from "../internal/iapplication";
+import { Configuration, AbstractModel, ModelClass } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
-import { CoreModel } from "../models/coremodel";
-import type { Constructor, Prototype } from "@webda/tsc-esm";
-import { Router, RouterParameters } from "../rest/router";
+import { Model } from "../models/model";
+import type { Prototype } from "@webda/tsc-esm";
+import { Router } from "../rest/router";
 import { useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
@@ -118,7 +118,7 @@ export class Core implements ICore {
   /**
    * Cache for model to store resolution
    */
-  private _modelStoresCache: Map<ModelDefinition, Store> = new Map<ModelDefinition, Store>();
+  private _modelStoresCache: Map<ModelClass, Store> = new Map<ModelClass, Store>();
   /**
    * Cache for model to store resolution
    */
@@ -191,14 +191,12 @@ export class Core implements ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends AbstractCoreModel>(modelOrConstructor: Prototype<T> | T | string): Store {
-    let model: ModelDefinition;
+  getModelStore<T extends AbstractModel>(modelOrConstructor: Prototype<T> | T | string): Store {
+    let model: ModelClass;
     if (typeof modelOrConstructor === "string") {
       model = useModel(modelOrConstructor);
     } else {
-      model = <ModelDefinition>(
-        (<any>(modelOrConstructor instanceof CoreModel ? modelOrConstructor.__class : modelOrConstructor))
-      );
+      model = <ModelClass>(<any>(modelOrConstructor instanceof Model ? modelOrConstructor.Class : modelOrConstructor));
     }
     if (!model) {
       throw new WebdaError.CodeError("MODEL_NOT_FOUND", "Model not found");
@@ -235,8 +233,8 @@ export class Core implements ICore {
    * @param attribute
    * @returns
    */
-  getBinaryStore<T extends AbstractCoreModel>(
-    modelOrConstructor: ModelDefinition<T> | T | string,
+  getBinaryStore<T extends AbstractModel>(
+    modelOrConstructor: ModelClass<T> | T | string,
     attribute: string
   ): AbstractService {
     const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);
@@ -393,7 +391,7 @@ export class Core implements ICore {
       await this.initService("Router");
       await this.initService("Registry");
       // By pass the store checks
-      CoreModel["Store"] = <any>this.services["Registry"];
+      Model["Store"] = <any>this.services["Registry"];
       RegistryModel["Store"] = <any>this.services["Registry"];
 
       await this.initService("CryptoService");
@@ -689,7 +687,7 @@ export class Core implements ICore {
    * @override
    */
   validateSchema(
-    webdaObject: AbstractCoreModel | string,
+    webdaObject: AbstractModel | string,
     object: any,
     ignoreRequired?: boolean
   ): NoSchemaResult | SchemaValidResult {

@@ -1,11 +1,13 @@
-import { OwnerModel } from "./ownermodel";
-import type { ModelLink } from "./relations";
+import { Model, ModelLink, ModelRef } from "./model";
+import { AbstractOwnerModel, OwnerModel } from "./ownermodel";
 import type { User } from "./user";
+import { UuidModel } from "./uuid";
 
 export class IdentTokens {
   refresh: string;
   access: string;
 }
+
 /**
  * First basic model for Ident
  * @class
@@ -53,16 +55,8 @@ export class Ident extends OwnerModel {
    */
   provider?: string;
 
-  getUser(): ModelLink<User> {
-    return this._user;
-  }
-
   getEmail(): string {
     return this.email;
-  }
-
-  setUser(user) {
-    this._user = user;
   }
 
   getType() {
@@ -71,5 +65,13 @@ export class Ident extends OwnerModel {
 
   setType(type) {
     this._type = type;
+  }
+
+  getUser() {
+    return this.getOwner();
+  }
+
+  setUser(uuid: string) {
+    this.setOwner(uuid);
   }
 }

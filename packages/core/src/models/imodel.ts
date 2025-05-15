@@ -1,30 +1,154 @@
-import { CRUDModel } from "../stores/istore";
-import { AbstractCoreModel } from "../internal/iapplication";
-import { IContextAware } from "../contexts/icontext";
+import { OmitFirstArg } from "@webda/tsc-esm";
+import { AbstractModel, ModelAttributes, Pojo, PrimaryKeyType } from "../internal/iapplication";
 
 /**
- * Reference to a user model
+ * This represent the injected methods of Store into the Model
  */
-export interface IUser extends AbstractCoreModel {
+export interface Repository<T extends AbstractModel> {
   /**
-   * Get the user email
+   * Get data from the store
+   * @param uuid
+   * @returns
    */
-  getEmail(): string | undefined;
+  get(uuid: PrimaryKeyType<T>): Promise<T>;
+  /**
+   * Create data in the store
+   * @param uuid
+   * @param data
+   * @returns
+   */
+  create(uuid: PrimaryKeyType<T>, data: T): Promise<T>;
+  /**
+   * Update data in the store, replacing the object
+   * @param uuid
+   * @param data
+   * @returns
+   */
+  update<K extends ModelAttributes<T>>(
+    uuid: PrimaryKeyType<T>,
+    data: Pojo<T>,
+    conditionField?: K,
+    condition?: T[K]
+  ): Promise<void>;
+  /**
+   * Patch data in the store, patching the object
+   * @param uuid
+   * @param data
+   * @returns
+   */
+  patch<K extends ModelAttributes<T>>(
+    uuid: PrimaryKeyType<T>,
+    data: Pojo<T>,
+    conditionField?: K,
+    condition?: T[K]
+  ): Promise<void>;
+  /**
+   * Query the store
+   * @param query
+   * @returns
+   */
+  query(query: string): Promise<T[]>;
+  /**
+   * Delete data from the store
+   * @param uuid
+   * @returns
+   */
+  delete<K extends ModelAttributes<T>>(uuid: PrimaryKeyType<T>, conditionField?: K, condition?: T[K]): Promise<void>;
+  /**
+   * Verify if the object exists
+   * @param uuid
+   * @returns
+   */
+  exists(uuid: PrimaryKeyType<T>): Promise<boolean>;
+  /**
+   * Increment attributes of an object
+   * @param uuid
+   * @param info
+   * @returns
+   */
+  incrementAttributes<K extends ModelAttributes<T>, L extends ModelAttributes<T, number>>(
+    uuid: PrimaryKeyType<T>,
+    info: ({ property: L; value?: number } | L)[],
+    conditionField?: K,
+    condition?: T[K]
+  ): Promise<void>;
+  /**
+   * Upsert an item to a collection
+   * @param uuid
+   * @param collection
+   * @param item
+   * @param index
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   * @returns
+   */
+  upsertItemToCollection<K extends ModelAttributes<T, Array<any>>>(
+    uuid: PrimaryKeyType<T>,
+    collection: K,
+    item: any,
+    index?: number,
+    itemWriteConditionField?: any,
+    itemWriteCondition?: any
+  ): Promise<void>;
+  /**
+   * Delete item from a collection
+   * @param uuid
+   * @param collection
+   * @param index
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   * @returns
+   */
+  deleteItemFromCollection<K extends ModelAttributes<T, Array<any>>>(
+    uuid: PrimaryKeyType<T>,
+    collection: K,
+    index: number,
+    itemWriteConditionField?: any,
+    itemWriteCondition?: any
+  ): Promise<void>;
+  /**
+   * Remove an attribute from an object
+   * @param uuid
+   * @param attribute
+   * @returns
+   */
+  removeAttribute<L extends ModelAttributes<T>, K extends ModelAttributes<T>>(
+    uuid: PrimaryKeyType<T>,
+    attribute: K,
+    conditionField?: L,
+    condition?: T[L]
+  ): Promise<void>;
 }
 
-type AbstractCoreModelCRUD = CRUDModel<any>;
+export type NonDeclarativeModel<T extends AbstractModel> = {
+  [K in keyof Omit<T, "Events" | "PrimaryKey" | "Class" | "__dirty">]: T[K];
+};
 
 /**
- * Event sent by models
- *
- * Events are sent by the model to notify of changes
- * after the changes are done
- *
- * If you need to prevent the change, you should extend the object
+ * Helper for a ModelRef
  */
-export type CoreModelEvents<T = any> = {
-  Create: { object_id: string; object: T };
-  PartialUpdate: any;
-  Delete: { object_id: string };
-  Update: { object_id: string; object: T; previous: T };
+export type CRUDHelper<T extends AbstractModel> = {
+  [K in keyof Omit<Repository<T>, "create" | "query" | "get" | "update">]: OmitFirstArg<Repository<T>[K]>;
+} & {
+  /**
+   * Set attribute on the object
+   * @param property
+   * @param value
+   * @param itemWriteConditionField
+   * @param itemWriteCondition
+   */
+  setAttribute<K extends ModelAttributes<T>, L extends ModelAttributes<T>>(
+    property: K,
+    value: T[K],
+    itemWriteConditionField?: L,
+    itemWriteCondition?: T[L]
+  ): Promise<void>;
+  incrementAttribute<K extends ModelAttributes<T, number>, L extends ModelAttributes<T>>(
+    property: K,
+    value?: number,
+    itemWriteConditionField?: L,
+    itemWriteCondition?: T[L]
+  ): Promise<void>;
+  upsert(data: Pojo<T>): Promise<T>;
+  create(data: Pojo<T>, withSave?: boolean): Promise<T>;
 };

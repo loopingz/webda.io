@@ -1,4 +1,4 @@
-import type { ModelDefinition, ExposeParameters } from "../internal/iapplication";
+import type { ModelClass, ExposeParameters } from "../internal/iapplication";
 
 /**
  * Expose the model through API or GraphQL if it exists
@@ -16,9 +16,11 @@ export function Expose(...args: [Partial<ExposeParameters>?] | [any, string, Pro
     };
     return descriptor;
   }
-  return (target: ModelDefinition): void => {
+  return (target: ModelClass): void => {
     const params = args[0] || {};
     params.restrict ??= {};
-    target.Expose = <ExposeParameters>params;
+    // At the time of the annotation Metadata might not be defined yet
+    target.Metadata ??= <any>{};
+    target.Metadata.Expose = <ExposeParameters>params;
   };
 }

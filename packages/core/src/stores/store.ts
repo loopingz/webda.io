@@ -3,8 +3,8 @@ import type { ConfigurationProvider } from "../configurations/configuration";
 import * as WebdaError from "../errors/errors";
 import { Throttler } from "@webda/utils";
 
-import type { CoreModel } from "../models/coremodel";
-import type { RawModel, ModelDefinition } from "../internal/iapplication";
+import type { Model } from "../models/model";
+import type { RawModel, ModelClass } from "../internal/iapplication";
 import { ServiceParameters } from "../interfaces";
 import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
@@ -13,7 +13,6 @@ import { MappingService } from "./istore";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { useRegistry } from "../models/registry";
 import { useLog } from "../loggers/hooks";
-import { useInstanceStorage } from "../core/instancestorage";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
@@ -36,7 +35,7 @@ interface EventStore {
   /**
    * Target object
    */
-  object: CoreModel;
+  object: Model;
   /**
    * Object id
    */
@@ -81,7 +80,7 @@ export interface EventStorePatchUpdated extends EventStoreUpdated {}
 /**
  * Event called after partial update of an object
  */
-export interface EventStorePartialUpdated<T extends CoreModel = CoreModel> {
+export interface EventStorePartialUpdated<T extends Model = Model> {
   /**
    * Object uuid
    */
@@ -321,7 +320,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   /**
    * Contains the current model
    */
-  _model: ModelDefinition;
+  _model: ModelClass;
   /**
    * Store teh manager hierarchy with their depth
    */
@@ -358,7 +357,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     this._model = useModel(this.parameters.model);
     useLog("TRACE", "METADATA", this._model.Metadata);
     this._modelType = this._model.Metadata.Identifier;
-    this._uuidField = this._model.getUuidField();
+    this._uuidField = this._model.Metadata.PrimaryKey;
     if (!this.parameters.noCache) {
       this._cacheStore = <Store>new (app.getModda("Webda/MemoryStore"))(`_${this.getName()}_cache`, <StoreParameters>{
         model: this.parameters.model
@@ -367,7 +366,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       this._cacheStore.initMetrics();
       this.cacheStorePatchException();
     }
-    const recursive = (tree: ModelDefinition[], depth) => {
+    const recursive = (tree: ModelClass[], depth) => {
       for (const model of tree) {
         this._modelsHierarchy[model.Metadata.Identifier] ??= depth;
         this._modelsHierarchy[model.Metadata.Identifier] = Math.min(
@@ -445,7 +444,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * Return Store current model
    * @returns
    */
-  getModel(): ModelDefinition {
+  getModel(): ModelClass {
     return this._model;
   }
 
@@ -455,7 +454,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @return distance from the managed class -1 means not managed, 0 manage exactly this model, >0 manage an ancestor model
    *
    */
-  handleModel(model: ModelDefinition | CoreModel): number {
+  handleModel(model: ModelClass | Model): number {
     const name = useModelId(model, true);
     return this._modelsHierarchy[name] ?? -1;
   }
@@ -495,7 +494,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * OVerwrite the model
    * Used mainly in test
    */
-  setModel(model: ModelDefinition) {
+  setModel(model: ModelClass) {
     this._model = model;
     this._cacheStore?.setModel(model);
     this.parameters.strict = false;
@@ -792,7 +791,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * Set a core model definition
    * @param model
    */
-  protected setModelDefinitionHelper(model: ModelDefinition) {
+  protected setModelDefinitionHelper(model: ModelClass) {
     // We are cheating and bypassing the protected method
     model["Store"] = {
       name: this.getName(),
@@ -1144,7 +1143,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @param stringify
    * @returns
    */
-  toStoredJSON(obj: CoreModel, stringify = false): any | string {
+  toStoredJSON(obj: Model, stringify = false): any | string {
     return runAsSystem(() => {
       if (stringify) {
         return JSON.stringify(obj);
@@ -1262,7 +1261,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    * @param uuid
    * @returns
    */
-  async cascadeDelete(obj: CoreModel, _uuid: string): Promise<any> {
+  async cascadeDelete(obj: Model, _uuid: string): Promise<any> {
     // We dont need uuid but Binary store will need it
     return this.delete(obj.getUuid());
   }

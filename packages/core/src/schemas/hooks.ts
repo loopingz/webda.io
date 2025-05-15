@@ -1,6 +1,5 @@
 import Ajv, { ErrorObject } from "ajv";
-import { AbstractCoreModel } from "../internal/iapplication";
-import { JSONUtils } from "@webda/utils";
+import { AbstractModel } from "../internal/iapplication";
 import { useApplication, useModelId } from "../application/hook";
 import { useCore } from "../core/hooks";
 
@@ -31,14 +30,14 @@ export class ValidationError extends Error {
  * @param object to validate
  */
 export function validateSchema(
-  webdaObject: AbstractCoreModel | string,
+  webdaObject: AbstractModel | string,
   object: any,
   ignoreRequired?: boolean
 ): NoSchemaResult | SchemaValidResult {
   return useCore().validateSchema(webdaObject, object, ignoreRequired);
 }
 
-export function hasSchema(webdaObject: AbstractCoreModel | string): boolean {
+export function hasSchema(webdaObject: AbstractModel | string): boolean {
   const name = typeof webdaObject === "string" ? webdaObject : useModelId(webdaObject);
   if (!name) {
     return false;

@@ -32,7 +32,8 @@
   "repository": "git://github.com/loopingz/webda.io.git",
   "workspaces": [
     "packages/*",
-    "sample-app"
+    "sample-app",
+    "sample-apps/*"
   ],
   "scripts": {
     "build": "nx run-many --target=build",

@@ -28,6 +28,20 @@ class CompilerTest {
   }
 
   @test
+  async compileCve() {
+    const workerOutput = new WorkerOutput();
+    const file = new FileLogger(workerOutput, "TRACE", "./cve.log");
+    const projectPath = path.join(__dirname, "..", "..", "..", "sample-apps", "cves");
+    useWorkerOutput(workerOutput);
+    const project = new WebdaProject(projectPath);
+    const compiler = new Compiler(project);
+    compiler.compile();
+    // Check module is generated
+    const info: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+    assert.notStrictEqual(info, undefined);
+  }
+
+  @test
   async compileTest() {
     const workerOutput = new WorkerOutput();
     const file = new FileLogger(workerOutput, "TRACE", "./test.log");

@@ -38,7 +38,7 @@ You can define your action by returning a map of `ModelAction` with the `@Action
 Action are using the method `PUT` by default.
 
 ```js title="src/mymodel.ts"
-class MyModel extends CoreModel {
+class MyModel extends Model {
   @Action()
   export(context: Context) {
     ctx.write("My export");
@@ -108,7 +108,7 @@ Additional needed:
 
 ## Relations
 
-A `CoreModel` represent one type of object within your application, it can be linked to other type of object.
+A `Model` represent one type of object within your application, it can be linked to other type of object.
 
 ```
 1-n: lazy collection   ModelLink <-> ModelLinked
@@ -187,3 +187,10 @@ model.incrementAttribute();
 model.removeAttribute();
 model.upsert...
 ```
+
+## Methods
+
+`toJSON` method is used to serialize the object to JSON.
+`toDTO` method is used to serialize the object for external usage
+`toProxy` method is used to proxy the object, allowing to have a secure behavior based on context
+`unserialize` method is used to unserialize the object from JSON/DTO, it is used by the `load` method and autocompleted by the webda compiler.

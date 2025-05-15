@@ -20,8 +20,8 @@ const replacePackages = {
   "@testdeck/mocha": "@webda/test",
   // Rename WebdaQL to WebdaQL in its own module
   "@webda/core:WebdaQL": "@webda/ql:*WebdaQL",
-  // Rename CoreModelDefinition to ModelDefinition
-  "@webda/core:CoreModelDefinition": "@webda/core:ModelDefinition",
+  // Rename CoreModelDefinition to ModelClass
+  "@webda/core:CoreModelDefinition": "@webda/core:ModelClass",
   "@webda/core/lib/test:WebdaTest": "@webda/core/lib/test/test:WebdaApplicationTest",
   "@webda/core/lib/test:WebdaSimpleTest": "@webda/core/lib/test/test:WebdaSimpleTest"
 };

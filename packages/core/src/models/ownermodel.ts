@@ -1,9 +1,8 @@
 import { UuidModel } from "./uuid";
-import { ModelLink } from "./relations";
+import { ModelLink } from "./model";
 import { User } from "./user";
-import type { Constructor, Prototype } from "@webda/tsc-esm";
 import { IOperationContext } from "../contexts/icontext";
-import { ModelDefinition } from "../internal/iapplication";
+import { PrimaryKeyType, ModelClass, Uuid } from "../internal/iapplication";
 
 /**
  * Abstract class to define an object with an owner
@@ -26,13 +25,13 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    *
    * @returns
    */
-  abstract getOwnerModel(): ModelDefinition<T>;
+  abstract getOwnerModel(): ModelClass<T>;
 
   /**
    * Set object owner
    * @param uuid
    */
-  setOwner(uuid: string): void {
+  setOwner(uuid: PrimaryKeyType<T>): void {
     this._user ??= new ModelLink<T>(uuid, <any>User, this);
     this._user.set(uuid);
   }
@@ -69,7 +68,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
       return "Object does not have an owner";
     }
     if (action === "create") {
-      this.setOwner(ctx.getCurrentUserId());
+      this.setOwner(Uuid.parse(ctx.getCurrentUserId(), this.getOwnerModel()));
     }
     return ctx.getCurrentUserId() === this.getOwner()?.toString();
   }
@@ -95,7 +94,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
  * @WebdaModel
  */
 export class OwnerModel extends AbstractOwnerModel<User> {
-  getOwnerModel(): ModelDefinition<User> {
+  getOwnerModel(): ModelClass<User> {
     return <any>User;
   }
 }

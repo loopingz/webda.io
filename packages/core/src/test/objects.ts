@@ -4,14 +4,13 @@ import { Store, StoreFindResult, StoreParameters } from "../stores/store";
 import { Service } from "../services/service";
 import { Ident as WebdaIdent } from "../models/ident";
 import { UnpackedApplication } from "../application/unpackedapplication";
-import { CachedModule, SectionEnum, UnpackedConfiguration } from "../internal/iapplication";
+import { CachedModule, SectionEnum, UnpackedConfiguration, ModelEvents } from "../internal/iapplication";
 import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
 import { FileUtils } from "@webda/utils";
-import { CoreModelEvents } from "../models/imodel";
 
-export type TaskEvents<T> = CoreModelEvents<T> & {
+export type TaskEvents<T> = ModelEvents<T> & {
   Done: { task: T };
   Started: { task: T };
   Errored: { task: T };

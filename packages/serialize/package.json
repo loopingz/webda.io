@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "format": "prettier --check src/**/*",
-    "format:fix": "prettier --write src/**/*"
+    "format:fix": "prettier --write src/**/*",
+    "deps:graph": "skott --no-trackTypeOnlyDependencies --showCircularDependencies --displayMode=raw -e .ts"
   },
   "repository": {
     "type": "git",

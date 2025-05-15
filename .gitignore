@@ -30,3 +30,5 @@ pocs
 grafana
 gatling
 *.bak
+docs/build
+package-lock.json

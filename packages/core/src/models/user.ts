@@ -1,9 +1,9 @@
 import { NotEnumerable } from "@webda/tsc-esm";
 import { Context } from "../contexts/icontext";
-import { CoreModel } from "./coremodel";
-import { CoreModelEvents } from "./imodel";
+import { Model } from "./model";
+import { ModelEvents } from "../internal/iapplication";
 
-export type UserEvents<T> = CoreModelEvents<T> & {
+export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
   Logout: { user: T };
 };
@@ -13,7 +13,7 @@ export type UserEvents<T> = CoreModelEvents<T> & {
  * @WebdaModel
  * @Frontend
  */
-export class User extends CoreModel {
+export class User extends Model {
   @NotEnumerable
   declare Events: UserEvents<this>;
   /**
@@ -107,7 +107,7 @@ export class User extends CoreModel {
    * Return the user idents
    * @returns
    */
-  getIdents(): Readonly<{ _type: string; uuid: string; email?: string }[]> {
+  getIdents(): Readonly<{ _type: string; uid: string; email?: string }[]> {
     return [];
   }
 
@@ -131,21 +131,13 @@ export class User extends CoreModel {
   }
 
   /**
-   * Add a login/logout event
-   * @returns
-   */
-  static getClientEvents(): string[] {
-    return [...CoreModel.getClientEvents(), "login", "logout"];
-  }
-
-  /**
    * Only current user can see its own events
    * @param _event
    * @param context
    * @param model
    * @returns
    */
-  static authorizeClientEvent(_event: string, context: Context, model?: CoreModel): boolean {
+  static authorizeClientEvent(_event: string, context: Context, model?: Model): boolean {
     if (model && model.getUuid() === context.getCurrentUserId()) {
       return true;
     }

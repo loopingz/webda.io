@@ -1,8 +1,8 @@
-import { CoreModel } from "./coremodel";
+import { Model } from "./model";
 import type { IOperationContext } from "../contexts/icontext";
 import * as WebdaError from "../errors/errors";
 
-abstract class RoleModel extends CoreModel {
+abstract class RoleModel extends Model {
   abstract getRolesMap(): { [key: string]: string };
 
   isPermissive(): boolean {

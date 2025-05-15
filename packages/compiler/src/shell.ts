@@ -30,12 +30,17 @@ function isCodeCommand(argv: Arguments): argv is CodeArguments {
 
 const argv: Arguments = yargs(process.argv.slice(2))
   .command("build", "Build an application", yargs => {
-    yargs.option("watch", {
-      alias: "w",
-      describe: "Watch the files for changes",
-      type: "boolean",
-      default: false
-    });
+    yargs
+      .option("watch", {
+        alias: "w",
+        describe: "Watch the files for changes",
+        type: "boolean",
+        default: false
+      })
+      .option("code", {
+        alias: "c",
+        describe: "Prerun code before compiling"
+      });
   })
   .command("code", "Analyzes the code and generate methods for you", yargs => {
     yargs.option("module", {

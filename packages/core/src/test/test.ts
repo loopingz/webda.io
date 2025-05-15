@@ -7,7 +7,7 @@ import { FileUtils } from "@webda/utils";
 
 // Separation on purpose to keep application import separated
 import { Service } from "../services/service";
-import { UnpackedConfiguration, ModelDefinition } from "../internal/iapplication";
+import { UnpackedConfiguration, ModelClass } from "../internal/iapplication";
 import { Core } from "../core/core";
 import { DebugMailer } from "../services/debugmailer";
 import { MemoryStore } from "../stores/memory";
@@ -395,7 +395,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @param model
    * @param klass
    */
-  registerModel<T extends ModelDefinition>(model: T, name: string = model.constructor.name) {
+  registerModel<T extends ModelClass>(model: T, name: string = model.constructor.name) {
     useApplication<Application>().addModel(name, model);
   }
 }

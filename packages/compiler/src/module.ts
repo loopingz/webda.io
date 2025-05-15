@@ -2,7 +2,7 @@ import * as ts from "typescript";
 import { Compiler } from "./compiler";
 import { useLog } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
-import { getTagsName, getParent, isSymbolMapper, SymbolMapper, getTypeIdFromTypeNode } from "./utils";
+import { getTagsName, getParent, isSymbolMapper, SymbolMapper, getTypeIdFromTypeNode, displayTree } from "./utils";
 import { existsSync, readFileSync } from "node:fs";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { tsquery } from "@phenomnomnominal/tsquery";
@@ -14,6 +14,25 @@ import { createSchemaGenerator } from "./schemaparser";
 type ReplaceModelWith<T, L> = T extends object
   ? { [K in keyof T]: K extends "model" ? L : ReplaceModelWith<T[K], L> }
   : T;
+
+function hasNotEnumerableDecorator(symbol: ts.Symbol): boolean {
+  const declaration = symbol.valueDeclaration;
+
+  if (!declaration || !ts.isPropertyDeclaration(declaration)) return false;
+  // Traverse the children of the declaration node to find decorators
+  let foundNotEnumerable = false;
+  ts.forEachChild(declaration, child => {
+    if (ts.isDecorator(child)) {
+      const expression = child.expression;
+      // Check if the decorator expression is an identifier with text "NotEnumerable"
+      if (ts.isIdentifier(expression) && expression.text === "NotEnumerable") {
+        foundNotEnumerable = true;
+      }
+    }
+  });
+
+  return foundNotEnumerable;
+}
 
 /**
  * With compiled program, analyze the program and generate module
@@ -427,13 +446,13 @@ export class ModuleGenerator {
         .getProperties()
         .filter(p => ts.isPropertyDeclaration(p.valueDeclaration))
         .forEach((prop: Omit<ts.Symbol, "valueDeclaration"> & { valueDeclaration: ts.PropertyDeclaration }) => {
+          useLog(
+            "DEBUG",
+            `Processing ${name}.${prop.getName()}: ${hasNotEnumerableDecorator(prop)} ${prop.getJsDocTags().map(p => p.name)}`
+          );
+
           // Skip the non enumerable properties
-          if (
-            (ts.getDecorators(<ts.PropertyDeclaration>prop.valueDeclaration) || []).find(annotation => {
-              return "NotEnumerable" === annotation?.expression?.getText();
-            }) ||
-            prop.getJsDocTags().find(p => p.name === "ignore") !== undefined
-          ) {
+          if (hasNotEnumerableDecorator(prop) || prop.getJsDocTags().find(p => p.name === "ignore") !== undefined) {
             return;
           }
 
@@ -502,7 +521,7 @@ export class ModuleGenerator {
                 type
               });
             };
-            switch (pType.typeName.getText()) {
+            switch (pType.typeName?.getText()) {
               case "ModelParent":
                 currentGraph.parent = {
                   attribute: prop.getName(),
@@ -511,11 +530,15 @@ export class ModuleGenerator {
                 break;
               case "ModelRelated":
                 currentGraph.queries ??= [];
-                currentGraph.queries.push({
+                const value = {
                   attribute: prop.getName(),
                   model: getTypeIdFromTypeNode(pType.typeArguments[0], this.typeChecker),
-                  targetAttribute: pType.typeArguments[1].getText().replace(/"/g, "")
-                });
+                  targetAttribute: pType.typeArguments[1]?.getText().replace(/"/g, "")
+                };
+                if (value.targetAttribute === undefined) {
+                  // Fallback to the first attribute found that match the type
+                }
+                currentGraph.queries.push(value);
                 break;
               case "ModelsMapped":
                 currentGraph.maps ??= [];
@@ -781,6 +804,7 @@ export function generateModule(compiler: Compiler) {
     return new ModuleGenerator(compiler).generate();
   } catch (err) {
     useLog("ERROR", "Cannot generate module", err.message);
+    useLog("TRACE", err.stack);
   }
 }
 

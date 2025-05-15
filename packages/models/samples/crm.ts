@@ -62,6 +62,7 @@ ref.incrementAttributes({
 });
 ref.setAttribute("amount", 12);
 
+
 const testJsoned: JSONed<Invoice> = {
   uuid: "1234",
   amount: 10,

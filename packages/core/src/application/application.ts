@@ -7,7 +7,6 @@ import { FileUtils, getCommonJS } from "@webda/utils";
 const { __dirname } = getCommonJS(import.meta.url);
 import {
   CachedModule,
-  ModelDefinition,
   Configuration,
   GitInformation,
   IApplication,
@@ -17,11 +16,12 @@ import {
   UnpackedConfiguration,
   WebdaPackageDescriptor,
   Reflection,
-  AbstractCoreModel,
   AbstractService,
-  Modda
+  Modda,
+  AbstractModel,
+  ModelClass
 } from "../internal/iapplication";
-import { CoreModel } from "../models/coremodel";
+import { Model } from "../models/model";
 import { useInstanceStorage } from "../core/instancestorage";
 import { setLogContext } from "../loggers/hooks";
 
@@ -79,7 +79,7 @@ export class Application implements IApplication {
   /**
    * Models type registry
    */
-  protected models: { [key: string /* LongId */]: ModelDefinition<CoreModel> } = {};
+  protected models: { [key: string /* LongId */]: ModelClass<AbstractModel> } = {};
 
   /**
    * Models metadata
@@ -399,7 +399,7 @@ export class Application implements IApplication {
    *
    * @param name model to retrieve
    */
-  getModel<T extends AbstractCoreModel = AbstractCoreModel>(name: string): ModelDefinition<T> {
+  getModel<T extends Model = Model>(name: string): ModelClass<T> {
     return this.getWebdaObject("models", name);
   }
 
@@ -407,7 +407,7 @@ export class Application implements IApplication {
    * Get all models definitions
    */
   getModels(): {
-    [key: string]: ModelDefinition<CoreModel>;
+    [key: string]: ModelClass<AbstractModel>;
   } {
     return this.models;
   }
@@ -426,9 +426,9 @@ export class Application implements IApplication {
    * @returns
    */
   getRootExposedModels(): string[] {
-    const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Expose));
+    const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Metadata?.Expose));
     for (const model in this.models) {
-      if (this.models[model]?.Expose?.root) {
+      if (this.models[model]?.Metadata?.Expose?.root) {
         results.add(model);
       }
     }
@@ -439,7 +439,7 @@ export class Application implements IApplication {
    * Return the model name for a object
    * @param object
    */
-  getModelFromInstance(object: CoreModel): string | undefined {
+  getModelFromInstance(object: Model): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === object.constructor.prototype);
   }
 
@@ -447,7 +447,7 @@ export class Application implements IApplication {
    * Return the model name for a object
    * @param object
    */
-  getModelFromConstructor<T extends CoreModel>(model: ModelDefinition<T>): string | undefined {
+  getModelFromConstructor<T extends Model>(model: ModelClass<T>): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === model);
   }
 
@@ -457,8 +457,8 @@ export class Application implements IApplication {
    * @param model
    * @returns longId for a model
    */
-  getModelId<T extends CoreModel = CoreModel>(model: ModelDefinition<T> | T): string | undefined {
-    if (model instanceof AbstractCoreModel) {
+  getModelId<T extends Model = Model>(model: ModelClass<T> | T): string | undefined {
+    if (model instanceof Model) {
       return this.getModelFromInstance(model);
     }
     return this.getModelFromConstructor(model);
@@ -493,7 +493,10 @@ export class Application implements IApplication {
         Ancestors: [],
         Subclasses: [],
         Relations: {},
-        Schema: {}
+        PrimaryKey: "id",
+        Events: [],
+        Schema: {},
+        Actions: {}
       });
     }
     return this;

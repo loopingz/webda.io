@@ -1,5 +1,5 @@
 import { useModel } from "../application/hook";
-import { ModelDefinition, UnpackedConfiguration } from "../internal/iapplication";
+import { ModelClass, UnpackedConfiguration } from "../internal/iapplication";
 import { UuidModel } from "../models/uuid";
 import { FileUtils } from "@webda/utils";
 import { TestApplication } from "./objects";
@@ -26,22 +26,20 @@ export class WebdaInternalTest extends WebdaApplicationTest {
    * Create a graph of objets from sample-app to be able to test graph
    */
   async createGraphObjects() {
-    const Teacher = <ModelDefinition<UuidModel & { name: string; senior: boolean; uuid: string }>>useModel("Teacher");
-    const Course = <ModelDefinition<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>>(
+    const Teacher = <ModelClass<UuidModel & { name: string; senior: boolean; uuid: string }>>useModel("Teacher");
+    const Course = <ModelClass<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>>(
       useModel("Course")
     );
-    const Classroom = <ModelDefinition<UuidModel & { name: string; courses: any; hardwares: any }>>(
-      useModel("Classroom")
+    const Classroom = <ModelClass<UuidModel & { name: string; courses: any; hardwares: any }>>useModel("Classroom");
+    const Student = <ModelClass<UuidModel & { order: number; email: string; firstName: string; lastName: string }>>(
+      useModel("Student")
     );
-    const Student = <
-      ModelDefinition<UuidModel & { order: number; email: string; firstName: string; lastName: string }>
-    >useModel("Student");
-    const Hardware = <ModelDefinition<UuidModel & { name: string; classroom: string }>>useModel("Hardware");
+    const Hardware = <ModelClass<UuidModel & { name: string; classroom: string }>>useModel("Hardware");
     const ComputerScreen = <
-      ModelDefinition<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>
+      ModelClass<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>
     >useModel("ComputerScreen");
-    const Company = <ModelDefinition<UuidModel & { name: string; uuid: string }>>useModel("Company");
-    const User = <ModelDefinition<UuidModel & { name: string; _company: string }>>useModel("User");
+    const Company = <ModelClass<UuidModel & { name: string; uuid: string }>>useModel("Company");
+    const User = <ModelClass<UuidModel & { name: string; _company: string }>>useModel("User");
 
     // 2 Companies
     const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];

@@ -1,22 +1,22 @@
 import { useApplication, useModel } from "../application/hook";
-import type { CoreModel } from "../models/coremodel";
-import type { CoreModelEvents } from "../models/imodel";
-import { ModelDefinition, ServicePartialParameters } from "../internal/iapplication";
-import { ModelRef } from "../models/relations";
+import type { ModelEvents } from "../internal/iapplication";
+import { ModelClass, ServicePartialParameters } from "../internal/iapplication";
+import { ModelRef } from "../models/model";
 import { Service } from "../services/service";
 import { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
+import { Model } from "../models/model";
 
 export interface Mapper {
   modelAttribute: string;
-  model: ModelDefinition<CoreModel>;
+  model: ModelClass<Model>;
   attributes: string[];
   attribute: string;
 }
 
 interface ModelMapperInfo {
   modelAttribute: string;
-  model: ModelDefinition<CoreModel>;
+  model: ModelClass<Model>;
   attributes: string[];
   attribute: string;
   type: "LINK" | "LINKS_MAP" | "LINKS_ARRAY" | "LINKS_SIMPLE_ARRAY";
@@ -34,8 +34,8 @@ export class ModelMapper extends Service {
   resolve() {
     super.resolve();
     const app = useApplication();
-    const graph: ModelDefinition<CoreModel>[] = Object.values(app.getModels()).filter(
-      (p: ModelDefinition) => p.Metadata.Relations.maps
+    const graph: ModelClass<Model>[] = Object.values(app.getModels()).filter(
+      (p: ModelClass) => p.Metadata.Relations.maps
     );
     for (const i in graph) {
       const targetModel = graph[i];
@@ -76,12 +76,12 @@ export class ModelMapper extends Service {
    * @param mapper
    * @returns
    */
-  getUuidsFromMapper(object: CoreModel, mapper: ModelMapperInfo) {
+  getUuidsFromMapper(object: Model, mapper: ModelMapperInfo) {
     const targetUuids = [];
     if (mapper.type === "LINK") {
       targetUuids.push(object[mapper.attribute]?.getUuid());
     } else if (mapper.type === "LINKS_MAP") {
-      targetUuids.push(...Object.values(object[mapper.attribute]).map((p: ModelRef<CoreModel>) => p.getUuid()));
+      targetUuids.push(...Object.values(object[mapper.attribute]).map((p: ModelRef<Model>) => p.getUuid()));
     } else {
       targetUuids.push(...object[mapper.attribute].map(p => (typeof p === "string" ? p : p.getUuid())));
     }
@@ -179,7 +179,7 @@ export class ModelMapper extends Service {
    * @param type
    * @returns
    */
-  async handlePartialEvent(modelName: string, evt: CoreModelEvents["PartialUpdate"]) {
+  async handlePartialEvent(modelName: string, evt: ModelEvents["PartialUpdate"]) {
     let uuid = evt.object_id;
     // Only use in Store.PartialUpdated
     const attributes = [];

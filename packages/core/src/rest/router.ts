@@ -1,7 +1,7 @@
 import uriTemplates from "uri-templates";
 import { HttpMethodType } from "../contexts/httpcontext";
 import type { IRouter, RequestFilter, RouteInfo } from "./irest";
-import { AbstractService, type AbstractCoreModel } from "../internal/iapplication";
+import { type AbstractModel } from "../internal/iapplication";
 import { useApplication, useModelId, useSchema } from "../application/hook";
 import { useLog } from "../loggers/hooks";
 import type { OpenAPIV3 } from "openapi-types";
@@ -61,7 +61,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param model
    * @returns
    */
-  getModelUrl(model: string | AbstractCoreModel) {
+  getModelUrl(model: string | AbstractModel) {
     if (typeof model !== "string") {
       model = useModelId(model);
     }

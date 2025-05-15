@@ -1,21 +1,21 @@
-import { CoreModel } from "./coremodel";
-import { ModelDefinition } from "../internal/iapplication";
+import { PrimaryKeyType, ModelClass } from "../internal/iapplication";
+import { UuidModel } from "./uuid";
 
 /**
  * Specific type for registry
  */
-export class RegistryModel extends CoreModel {
+export class RegistryModel extends UuidModel {
   /**
    * Helper for upsert
    * @param uuid
    * @param data
    * @returns
    */
-  static async put<T extends CoreModel, K = any>(this: ModelDefinition<T>, uuid: string, data: K) {
+  static async put<T extends RegistryModel, K = any>(this: ModelClass<T>, uuid: PrimaryKeyType<T>, data: K) {
     return await this.ref(uuid).upsert(<any>data);
   }
 
-  static async delete<T extends CoreModel>(this: ModelDefinition<T>, uuid: string) {
+  static async delete<T extends RegistryModel>(this: ModelClass<T>, uuid: PrimaryKeyType<T>) {
     return await this.ref(uuid).delete();
   }
 }
@@ -34,6 +34,7 @@ export class RegistryEntry {
    * @returns
    */
   static async removeAttribute(uuid: string, attribute: string) {
+    // @ts-ignore
     return await RegistryModel.ref(uuid).removeAttribute(<any>attribute);
   }
   /**
@@ -73,6 +74,7 @@ export class RegistryEntry {
    * @returns
    */
   static patch(uuid: string, patch: any, conditionField: string, conditionValue: any) {
+    // @ts-ignore
     return RegistryModel.ref(uuid).patch(patch, <any>conditionField, conditionValue);
   }
 }

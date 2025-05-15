@@ -1,5 +1,5 @@
 import type { Ident } from "./ident";
-import type { ModelsMapped } from "./relations";
+import type { ModelsMapped } from "./model";
 import { User } from "./user";
 
 /**
@@ -20,7 +20,7 @@ export class SimpleUser extends User {
   /**
    * Normal ident
    */
-  _idents: ModelsMapped<Ident, "_user", "_type" | "uuid" | "email"> = [];
+  _idents: ModelsMapped<Ident, "_user", "_type" | "uid" | "email"> = [];
   //_idents: any[];
   /**
    * Return idents

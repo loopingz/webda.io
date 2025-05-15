@@ -2,10 +2,10 @@ import type { DeepPartial } from "@webda/tsc-esm";
 import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service";
 import { Application } from "../application/application";
-import type { ModelDefinition, ModelAction } from "../internal/iapplication";
+import type { ModelClass, ModelAction } from "../internal/iapplication";
 import { JSONUtils } from "@webda/utils";
 import { OperationContext } from "../contexts/operationcontext";
-import { CoreModel } from "../models/coremodel";
+import { Model } from "../models/model";
 import { runAsSystem, runWithContext } from "../contexts/execution";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
@@ -217,7 +217,7 @@ export abstract class DomainService<
    * @param context
    * @returns
    */
-  abstract handleModel(model: ModelDefinition, name: string, context: any): boolean;
+  abstract handleModel(model: ModelClass, name: string, context: any): boolean;
 
   /**
    * Explore the models
@@ -227,12 +227,15 @@ export abstract class DomainService<
    * @param modelContext
    * @returns
    */
-  walkModel(model: ModelDefinition, name: string, depth: number = 0, modelContext: any = {}) {
+  walkModel(model: ModelClass, name: string, depth: number = 0, modelContext: any = {}) {
     // If not expose or not in the list of models
-    if (!model.Expose || (model.getIdentifier && !this.parameters.isIncluded(model.getIdentifier()))) {
+    if (
+      !model.Metadata.Expose ||
+      (model.Metadata.Identifier && !this.parameters.isIncluded(model.Metadata.Identifier))
+    ) {
       return;
     }
-    const identifier = model.getIdentifier();
+    const identifier = model.Metadata.Identifier;
     // Overlap object are hidden by design
     if (!this.app.isFinalModel(identifier)) {
       return;
@@ -277,8 +280,8 @@ export abstract class DomainService<
    * @param model
    * @param uuid
    */
-  private async getModel(context: OperationContext): Promise<CoreModel> {
-    const { model } = context.getExtension<{ model: ModelDefinition<CoreModel> }>("operationContext");
+  private async getModel(context: OperationContext): Promise<Model> {
+    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     const { uuid } = context.getParameters();
     const object = await model.ref(uuid).get();
     if (object === undefined || object.isDeleted()) {
@@ -296,26 +299,19 @@ export abstract class DomainService<
    * @param context
    */
   async modelCreate(context: OperationContext) {
-    const { model } = context.getExtension<{ model: ModelDefinition<CoreModel> }>("operationContext");
+    const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     await runWithContext(context, async () => {
       const object = await model.factory(await context.getInput());
       await object.checkAct(context, "create");
-      // Enforce the UUID
-      object.setUuid(object.generateUid());
       // Check for conflict
       // await object.validate(context, {});
-      console.log("exists?");
       if (await model.ref(object.getUuid()).exists()) {
         throw new WebdaError.Conflict("Object already exists");
       }
-      console.log("SAVE");
-      runAsSystem(() => console.log("CREATE WITH", object._new));
       await object.save();
-      console.log("SAVED");
       // Set the location header to only uuid for now
       context.setHeader("Location", object.getUuid());
       context.write(object);
-      console.log("WRITE");
     });
   }
 
@@ -362,7 +358,7 @@ export abstract class DomainService<
    * @param context
    */
   async modelQuery(context: OperationContext) {
-    const { model } = context.getExtension<{ model: ModelDefinition }>("operationContext");
+    const { model } = context.getExtension<{ model: ModelClass }>("operationContext");
     const { query } = context.getParameters();
     await runWithContext(context, async () => {
       try {
@@ -395,7 +391,7 @@ export abstract class DomainService<
    */
   async modelAction(context: OperationContext) {
     const { model, action } = context.getExtension<{
-      model: ModelDefinition<CoreModel>;
+      model: ModelClass<Model>;
       action: ModelAction & { name: string };
     }>("operationContext");
     if (!action.global) {
@@ -438,14 +434,14 @@ export abstract class DomainService<
       if (!model) {
         continue;
       }
-      const expose = model.Expose;
+      const expose = model.Metadata.Expose;
       // Skip if not exposed or not included
-      if (!expose || !this.parameters.isIncluded(model.getIdentifier())) {
+      if (!expose || !this.parameters.isIncluded(model.Metadata.Identifier)) {
         continue;
       }
 
       // Overlap object are hidden by design
-      if (!this.app.isFinalModel(model.getIdentifier())) {
+      if (!this.app.isFinalModel(model.Metadata.Identifier)) {
         continue;
       }
       const shortId = model.Metadata.ShortName;
@@ -512,7 +508,7 @@ export abstract class DomainService<
         });
       }
       // Add all operations for Actions
-      const actions = model.getActions();
+      const actions = model.Metadata.Actions;
       Object.keys(actions).forEach(name => {
         const id = `${shortId}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
         const info: any = {
@@ -530,12 +526,12 @@ export abstract class DomainService<
         registerOperation(id, info);
       });
 
-      this.addBinaryOperations(model, shortId);
+      this.addBinaryOperations(model as any, shortId);
     }
   }
 
-  addBinaryOperations(model: ModelDefinition<CoreModel>, name: string) {
-    (model.getRelations().binaries || []).forEach(binary => {
+  addBinaryOperations(model: ModelClass<Model>, name: string) {
+    (model.Metadata.Relations.binaries || []).forEach(binary => {
       const webda = useCore();
       const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
       const info = {
@@ -604,7 +600,7 @@ export abstract class DomainService<
     const body = await context.getInput();
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: ModelDefinition<CoreModel>;
+      model: ModelClass<Model>;
       binary: any;
     }>("operationContext");
     // First verify if map exist
@@ -645,7 +641,7 @@ export abstract class DomainService<
   async binaryPut(context: OperationContext) {
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: ModelDefinition;
+      model: ModelClass;
       binary: any;
     }>("operationContext");
     // First verify if map exist
@@ -669,7 +665,7 @@ export abstract class DomainService<
   async binaryGet(context: OperationContext) {
     const { model, returnUrl, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: ModelDefinition<CoreModel>;
+      model: ModelClass<Model>;
       binary: ModelGraphBinaryDefinition;
       returnUrl: boolean;
     }>("operationContext");
@@ -723,7 +719,7 @@ export abstract class DomainService<
   async binaryAction(context: OperationContext) {
     const { model, binaryStore, binary, action } = context.getExtension<{
       binaryStore: BinaryService;
-      model: ModelDefinition<CoreModel>;
+      model: ModelClass<Model>;
       binary: ModelGraphBinaryDefinition;
       action: "delete" | "metadata" | "create";
     }>("operationContext");
@@ -776,7 +772,7 @@ export class ModelsOperationsService<T extends DomainServiceParameters> extends 
   /**
    * Do nothing here
    */
-  handleModel(model: ModelDefinition, name: string, context: any): boolean {
+  handleModel(model: ModelClass, name: string, context: any): boolean {
     return true;
   }
 }

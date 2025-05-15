@@ -1,5 +1,5 @@
 import { createCoreHook } from "../core/instancestorage";
-import { ModelDefinition } from "../internal/iapplication";
+import { ModelClass } from "../internal/iapplication";
 
 /**
  * Hook to get the current application
@@ -25,7 +25,7 @@ export { useApplication, setApplication };
  * @param name
  * @returns
  */
-export function useModel<T = ModelDefinition>(name: string): T {
+export function useModel<T = ModelClass>(name: string): T {
   return <T>useApplication().getModel(name);
 }
 

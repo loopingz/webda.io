@@ -6,7 +6,7 @@ import { Readable } from "stream";
 import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
 import { NotEnumerable } from "@webda/tsc-esm";
-import { AbstractCoreModel } from "../internal/iapplication";
+import { AbstractModel } from "../internal/iapplication";
 import { useModel } from "../application/hook";
 import { useCore } from "../core/hooks";
 import { ServiceParameters } from "../interfaces";
@@ -14,6 +14,7 @@ import { Counter } from "../metrics/metrics";
 import { IOperationContext } from "../contexts/icontext";
 import { IStore } from "../core/icore";
 import { MappingService } from "../stores/istore";
+import { Model } from "../models/model";
 
 /**
  * Represent basic EventBinary
@@ -24,14 +25,14 @@ export interface EventBinary {
 }
 
 export interface EventBinaryUploadSuccess extends EventBinary {
-  target: AbstractCoreModel;
+  target: AbstractModel;
 }
 
 /**
  * Sent before metadata are updated to allow alteration of the modification
  */
 export interface EventBinaryMetadataUpdate extends EventBinaryUploadSuccess {
-  target: AbstractCoreModel;
+  target: AbstractModel;
   metadata: BinaryMetadata;
 }
 
@@ -289,12 +290,12 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
  */
 export class Binary<T = any> extends BinaryMap<T> {
   @NotEnumerable
-  protected model: AbstractCoreModel;
+  protected model: AbstractModel;
   @NotEnumerable
   protected attribute: string;
   @NotEnumerable
   protected empty: boolean;
-  constructor(attribute: string, model: AbstractCoreModel) {
+  constructor(attribute: string, model: AbstractModel) {
     super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
     this.empty = model[attribute] === undefined;
     this.attribute = attribute;
@@ -386,12 +387,12 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
   __service: BinaryService;
 
   @NotEnumerable
-  protected model: AbstractCoreModel;
+  protected model: AbstractModel;
 
   @NotEnumerable
   protected attribute: string;
 
-  assign(model: AbstractCoreModel, attribute: string): this {
+  assign(model: AbstractModel, attribute: string): this {
     this.model = model;
     this.attribute = attribute;
     for (const binary of model[attribute] || []) {
@@ -496,7 +497,7 @@ export type BinaryEvents = {
 /**
  * Define a BinaryModel with infinite field for binary map
  */
-export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> = AbstractCoreModel & T;
+export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> = AbstractModel & T;
 
 /**
  * This is an abstract service to represent a storage of files
@@ -628,12 +629,7 @@ export abstract class BinaryService<
    * @emits 'binaryCreate'
    */
 
-  abstract store(
-    object: AbstractCoreModel,
-    property: string,
-    file: BinaryFile,
-    metadata?: BinaryMetadata
-  ): Promise<void>;
+  abstract store(object: AbstractModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void>;
 
   /**
    * The store can retrieve how many time a binary has been used
@@ -648,7 +644,7 @@ export abstract class BinaryService<
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(object: AbstractCoreModel, property: string, index?: number): Promise<void>;
+  abstract delete(object: AbstractModel, property: string, index?: number): Promise<void>;
 
   /**
    * Get a binary
@@ -730,8 +726,8 @@ export abstract class BinaryService<
    * @param name
    * @param property
    */
-  protected checkMap(object: AbstractCoreModel, property: string) {
-    if (this.handleBinary(object.__type, property) !== -1) {
+  protected checkMap(object: AbstractModel, property: string) {
+    if (this.handleBinary(object.Class.Metadata.Identifier, property) !== -1) {
       return;
     }
     throw new Error("Unknown mapping");
@@ -763,7 +759,7 @@ export abstract class BinaryService<
           additionalAttr.join(",")
       );
     }
-    const object_uid = object.getUuid();
+    const object_uid = <any>object.getUuid();
     // Check if the file is already in the array then skip
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
       return;
@@ -773,16 +769,12 @@ export abstract class BinaryService<
       service: this,
       target: object
     });
-    const relations = object.__class.Metadata.Relations;
+    const relations = object.Class.Metadata.Relations;
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     if (cardinality === "MANY") {
-      await (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class.Store.upsertItemToCollection(
-        object_uid,
-        property,
-        file
-      );
+      await (<CoreModelWithBinary<any>>object).Class.ref(object_uid).upsertItemToCollection(property, file);
     } else {
-      await object.__class.Store.patch(object_uid, <any>{ [property]: file });
+      await object.patch(<any>{ [property]: file });
     }
     await this.emit("Binary.Create", {
       object: file,
@@ -810,19 +802,18 @@ export abstract class BinaryService<
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
     const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
-    const relations = object.__class.Metadata.Relations;
+    const relations = object.Class.Metadata.Relations;
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
     if (cardinality === "MANY") {
-      update = (<CoreModelWithBinary<{ [key: string]: BinaryMap[] }>>object).__class.Store.deleteItemFromCollection(
-        object.getUuid(),
+      update = (<CoreModelWithBinary<any>>object).Class.ref(object.getUuid()).deleteItemFromCollection(
         property,
         index,
         "hash",
         info.hash
       );
     } else {
-      object.__class.Store.removeAttribute(object.getUuid(), property);
+      (<Model & any>object).ref().removeAttribute(property);
     }
     await this.emit("Binary.Delete", {
       object: info,

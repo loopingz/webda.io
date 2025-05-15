@@ -1,7 +1,7 @@
 import { EventWithContext } from "../events/events";
 import * as WebdaError from "../errors/errors";
 import type { CoreModel } from "../models/coremodel";
-import type { ModelDefinition, ServicePartialParameters } from "../internal/iapplication";
+import type { ModelClass, ServicePartialParameters } from "../internal/iapplication";
 import { Ident } from "../models/ident";
 import type { User } from "../models/user";
 import type { Store } from "../stores/store";
@@ -9,8 +9,7 @@ import type { Authentication, EventAuthenticationRegister } from "./authenticati
 import type { NotificationService } from "./notificationservice";
 import { Inject, Service } from "./service";
 import { ServiceParameters } from "../interfaces";
-import { DeepPartial } from "@webda/tsc-esm";
-import { useApplication, useModel } from "../application/hook";
+import { useModel } from "../application/hook";
 import { WebContext } from "../contexts/webcontext";
 import { OperationContext } from "../contexts/operationcontext";
 
@@ -212,7 +211,7 @@ export class InvitationService<
   /**
    * CoreModel to manage invitation on
    */
-  model: ModelDefinition<User>;
+  model: ModelClass<User>;
 
   /**
    * @inheritdoc

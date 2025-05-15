@@ -1,3 +1,4 @@
+import { WorkerLogLevel } from "@webda/workout";
 import { EventEmitter } from "node:events";
 
 /**
@@ -181,7 +182,7 @@ export class EventEmitterUtils {
     eventEmitter: EventEmitter | AsyncEventEmitter,
     event: string | number | symbol,
     data: any,
-    log: (level: string, ...args: any[]) => void,
+    log: (level: WorkerLogLevel, ...args: any[]) => void,
     longListenerThreshold: number = 100
   ) {
     const promises = [];

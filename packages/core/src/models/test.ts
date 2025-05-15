@@ -1,5 +1,5 @@
 import { Ident } from "./ident";
-import { ModelLink, ModelMapLoader } from "./relations";
+import { ModelLink, ModelMapLoader } from "./model";
 import { SimpleUser } from "./simpleuser";
 
 /**
@@ -14,5 +14,5 @@ export class MyIdent extends Ident {
  * @WebdaIgnore
  */
 export class MySimpleUser extends SimpleUser {
-  declare _idents: ModelMapLoader<MyIdent, "_type" | "uuid" | "email">[];
+  declare idents: ModelMapLoader<MyIdent, "_type" | "uid" | "email">[];
 }

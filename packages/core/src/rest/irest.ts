@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext";
-import { ModelDefinition } from "../internal/iapplication";
+import { ModelClass } from "../internal/iapplication";
 import { DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext";
 
@@ -67,7 +67,7 @@ export interface OpenApiWebdaOperation extends DeepPartial<OpenAPIV3.OperationOb
  * Route Information default information
  */
 export interface RouteInfo {
-  model?: ModelDefinition;
+  model?: ModelClass;
   /**
    * HTTP Method to expose
    */

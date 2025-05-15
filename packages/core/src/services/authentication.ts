@@ -1,8 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Counter } from "../metrics/metrics";
 import * as WebdaError from "../errors/errors";
-import type { IUser } from "../models/imodel";
-import type { Ident } from "../models/ident";
+import { Ident } from "../models/ident";
 import type { User } from "../models/user";
 import { Inject, Service } from "../services/service";
 import { Route } from "../rest/irest";
@@ -16,7 +15,7 @@ import { ServiceParameters } from "../interfaces";
 import { useModel } from "../application/hook";
 import { useCore, useService } from "../core/hooks";
 import { WebContext } from "../contexts/webcontext";
-import { ModelDefinition } from "../internal/iapplication";
+import type { IUser, ModelClass } from "../internal/iapplication";
 
 /**
  * Emitted when the /me route is called
@@ -245,11 +244,11 @@ class Authentication<
   /**
    * Ident model to use
    */
-  protected identModel: ModelDefinition<Ident>;
+  protected identModel: ModelClass<Ident>;
   /**
    * User model to use
    */
-  protected userModel: ModelDefinition<User>;
+  protected userModel: ModelClass<User>;
   /**
    * Used for hmac
    */
@@ -482,6 +481,7 @@ class Authentication<
       if (ident._lastValidationEmail >= Date.now() - this.parameters.email.delay) {
         throw new WebdaError.TooManyRequests("Email sent recently");
       }
+      Ident.ref(ident.getUuid()).setAttribute("_lastValidationEmail", Date.now());
       await this.identModel.ref(ident.getUuid()).setAttribute("_lastValidationEmail", Date.now());
     }
     await this.sendValidationEmail(ctx, ctx.parameters.email);
@@ -560,7 +560,7 @@ class Authentication<
       await this.login(ctx, ident.getUser().toString(), ident, provider);
       await runAsSystem(() =>
         ident.patch({
-          _lastUsed: new Date(),
+          _lastUsed: new Date().toString(),
           __tokens: tokens
         })
       );
@@ -609,7 +609,6 @@ class Authentication<
       ident._lastUsed = new Date();
       ident.setType(provider);
       await ident.save();
-      ident._new = true;
       await this.login(ctx, user, ident, provider);
     });
   }

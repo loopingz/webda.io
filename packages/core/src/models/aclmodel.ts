@@ -1,10 +1,11 @@
-import { Action, CoreModel } from "./coremodel";
+import { Action, Model } from "./model";
 import type { Context, IWebContext, IOperationContext } from "../contexts/icontext";
 import { User } from "./user";
 import * as WebdaError from "../errors/errors";
 import { runAsSystem, useContext, useCurrentUser, useCurrentUserId } from "../contexts/execution";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
+import { OmitByTypeRecursive } from "@webda/tsc-esm";
 
 export type Acl = { [key: string]: string };
 
@@ -13,7 +14,7 @@ export type Acl = { [key: string]: string };
  *
  * @WebdaModel
  */
-export class AclModel extends CoreModel {
+export class AclModel extends Model {
   /**
    * Object creator
    */
@@ -124,7 +125,7 @@ export class AclModel extends CoreModel {
     }
   })
   async acl(ctx: OperationContext<null | Acl>) {
-    let method = (ctx as WebContext).getHttpContext().getMethod();
+    const method = (ctx as WebContext).getHttpContext().getMethod();
     if (method === "PUT") {
       return this._httpPutAcls(ctx);
     } else if (method === "GET") {

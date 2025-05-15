@@ -3,7 +3,7 @@ import { suite, test } from "@testdeck/mocha";
 import { other } from "@webda/tsc-esm";
 import { DeepPartial } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
-import { ModelDefinition } from "fake";
+import { ModelClass } from "fake";
 
 class Test extends CoreModelDefinition {
   test() {

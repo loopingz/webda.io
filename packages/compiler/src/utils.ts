@@ -84,9 +84,9 @@ export function displayParents(node: ts.Node, stream?: any) {
     parent = parent.parent;
   }
   parents.forEach((p, ind) => {
-    this.displayItem(p, stream, ind);
+    displayItem(p, stream, ind);
   });
-  this.displayItem(node, stream, parents.length);
+  displayItem(node, stream, parents.length);
 }
 
 /********************* DEVELOPMENT UTILS ****************/
@@ -99,8 +99,8 @@ export function displayParents(node: ts.Node, stream?: any) {
  * @param level
  */
 export function displayTree(node: ts.Node, stream?: (...args) => void, level: number = 0) {
-  this.displayItem(node, stream, level);
-  ts.forEachChild(node, n => this.displayTree(n, stream, level + 1));
+  displayItem(node, stream, level);
+  ts.forEachChild(node, n => displayTree(n, stream, level + 1));
 }
 
 /**

@@ -29,7 +29,7 @@ export interface SQLResult<T> {
 export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
   toStringValue(value: (string | number | boolean) | (string | number | boolean)[]): string {
     if (typeof value === "string") {
-      return `'${value}'`;
+      return `'${value.replace(/'/g, "''")}'`;
     }
     return super.toStringValue(value);
   }

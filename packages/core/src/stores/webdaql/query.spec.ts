@@ -155,6 +155,30 @@ class QueryTest {
   }
 
   @test
+  escape() {
+    const test = {
+      attr1: "pl'op",
+      attr2: 'pl"op'
+    };
+    assert.strictEqual(new WebdaQL.QueryValidator("attr1 = 'pl\\'op'").eval(test), true, "Escape single quote");
+    assert.strictEqual(new WebdaQL.QueryValidator("attr2 = 'pl\"op'").eval(test), true, "Double quote in simple quote");
+    assert.strictEqual(
+      new WebdaQL.QueryValidator('attr2 = "pl\\"op"').eval(test),
+      true,
+      "Double quote in double quote"
+    );
+    assert.throws(() => new WebdaQL.QueryValidator("attr1 = 'pl\\\\'op'").eval({ attr1: "pl'op" }), SyntaxError);
+    assert.strictEqual(
+      new WebdaQL.QueryValidator("attr1 = 'pl\\\\\\'op'").eval(test),
+      false,
+      "Escape double backslash"
+    );
+
+    assert.throws(() => new WebdaQL.QueryValidator("na'me = 'test'"), /SyntaxError/);
+    assert.throws(() => new WebdaQL.QueryValidator("na\"me = 'test'"), /SyntaxError/);
+  }
+
+  @test
   contains() {
     assert.strictEqual(new WebdaQL.QueryValidator("test.attr1 CONTAINS 'plop2'").eval(targets[0]), false);
   }

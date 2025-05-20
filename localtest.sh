@@ -10,7 +10,7 @@ echo "Launching MongoDB"
 docker run --name webda-mongo -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=webda.io --name webda-mongo -p 37017:27017 -d mongo
 
 echo "Launching Postgres"
-docker run -d --name webda-postgres -v `pwd`/packages/postgres/test/sql:/docker-entrypoint-initdb.d -it -e POSTGRES_PASSWORD=webda.io -e POSTGRES_DB=webda.io -e POSTGRES_USER=webda.io -p 5432:5432 docker.io/library/postgres:13
+docker run -d --name webda-postgres -v `pwd`/packages/postgres/test/sql:/docker-entrypoint-initdb.d -it -e POSTGRES_PASSWORD=webda.io -e POSTGRES_DB=webda.io -e POSTGRES_USER=webda.io -p 5432:5432 docker.io/library/postgres:17
 
 echo "Launching GCP emulators"
 gcloud beta emulators firestore start --host-port=localhost:19090

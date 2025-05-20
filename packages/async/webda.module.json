@@ -256,6 +256,16 @@
           "description": "Limit the number of lines of logs available for an async action\n\nIf you need to store large amount of logs then you should use the CloudWatchLogger or similar logger",
           "default": 500
         },
+        "logFormat": {
+          "type": "string",
+          "description": "Define the log format",
+          "default": "ConsoleLoggerDefaultFormat"
+        },
+        "logSaveDelay": {
+          "type": "number",
+          "description": "How long before saving logs (in ms)",
+          "default": 5000
+        },
         "asyncActionModel": {
           "type": "string",
           "description": "Model to use when launching async action",

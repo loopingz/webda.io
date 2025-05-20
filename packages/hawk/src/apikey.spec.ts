@@ -39,7 +39,7 @@ class ApiKeyTest extends WebdaSimpleTest {
   }
 
   @test
-  checkOrigin() {
+  async checkOrigin() {
     this.apikey.load(<any>KEY, true);
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/origins", {}, { origin: "https://test.webda.io/" });
@@ -49,11 +49,11 @@ class ApiKeyTest extends WebdaSimpleTest {
     assert.ok(this.apikey.checkOrigin(this.context.getHttpContext()), "localhost should be granted");
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/origins", {}, { origin: "https://localhost:18080/" });
-    assert.ok(!this.apikey.canRequest(this.context), "localhost https should be refused");
+    assert.ok(!await this.apikey.canRequest(this.context), "localhost https should be refused");
   }
 
   @test
-  checkWhitelist() {
+  async checkWhitelist() {
     this.apikey.load(
       <any>{
         ...KEY,
@@ -65,38 +65,38 @@ class ApiKeyTest extends WebdaSimpleTest {
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/path/to/the/valhalla");
     this.context.getHttpContext().setClientIp("127.0.0.1");
-    assert.ok(this.apikey.canRequest(this.context), "remotehost should be granted");
+    assert.ok(await this.apikey.canRequest(this.context), "remotehost should be granted");
     this.context.getHttpContext().setClientIp("127.0.0.2");
-    assert.ok(!this.apikey.canRequest(this.context), "127.0.0.2 should not be granted");
+    assert.ok(!(await this.apikey.canRequest(this.context)), "127.0.0.2 should not be granted");
     this.context.getHttpContext().setClientIp("10.0.0.1");
-    assert.ok(this.apikey.canRequest(this.context), "10.0.0.1 should be granted");
+    assert.ok(await this.apikey.canRequest(this.context), "10.0.0.1 should be granted");
     this.context.getHttpContext().setClientIp("10.1.0.1");
-    assert.ok(!this.apikey.canRequest(this.context), "10.1.0.1 should not be granted");
+    assert.ok(!(await this.apikey.canRequest(this.context)), "10.1.0.1 should not be granted");
   }
 
   @test
-  canRequestNoOrigin() {
+  async canRequestNoOrigin() {
     this.apikey.load(<any>{ ...KEY, origins: undefined }, true);
 
     this.getExecutor(this.context, "test.webda.io", "POST", "/path");
-    assert.ok(!this.apikey.canRequest(this.context), "POST should be false");
+    assert.ok(!await this.apikey.canRequest(this.context), "POST should be false");
 
     this.getExecutor(this.context, "test.webda.io", "PATCH", "/path/to/inferno");
-    assert.ok(!this.apikey.canRequest(this.context), "inferno should be false");
+    assert.ok(!(await this.apikey.canRequest(this.context)), "inferno should be false");
 
     this.getExecutor(this.context, "test.webda.io", "GET", "/path/to/the/valhalla");
-    assert.ok(!this.apikey.canRequest(this.context), "valhalla GET should be false");
+    assert.ok(!(await this.apikey.canRequest(this.context)), "valhalla GET should be false");
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/path/to/the/valhalla");
-    assert.ok(this.apikey.canRequest(this.context), "valhalla PUT should be granted");
+    assert.ok(await this.apikey.canRequest(this.context), "valhalla PUT should be granted");
   }
 
   @test
-  canRequestNoPermissions() {
+  async canRequestNoPermissions() {
     this.apikey.load({ ...KEY, origins: undefined, permissions: undefined }, true);
 
     this.getExecutor(this.context, "test.webda.io", "GET", "/path/to/the/valhalla");
-    assert.ok(this.apikey.canRequest(this.context), "no permissions should be true");
+    assert.ok(await this.apikey.canRequest(this.context), "no permissions should be true");
   }
 
   @test

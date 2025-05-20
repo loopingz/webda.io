@@ -2363,6 +2363,11 @@
             ".*"
           ]
         },
+        "debug": {
+          "type": "boolean",
+          "description": "Call explain on each query to ensure it is optimized",
+          "default": false
+        },
         "openapi": {
           "type": "object",
           "additionalProperties": true

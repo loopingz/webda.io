@@ -4,6 +4,7 @@ import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import pg from "pg";
 import PostgresStore from "./postgresstore";
+import Sinon from "sinon";
 
 @suite
 export class PostgresTest extends StoreTest {
@@ -21,6 +22,27 @@ export class PostgresTest extends StoreTest {
   @test
   async deleteConcurrent() {
     return super.deleteConcurrent();
+  }
+
+  @test
+  async debugMode() {
+    const store = <PostgresStore<Ident>>this.getIdentStore();
+    store.getParameters().debug = true;
+    store.getParameters().autoCreateTable = true;
+    await store.init();
+    const obj = await store.save({
+      name: "test"
+    });
+
+    const spy = Sinon.spy(store, "log");
+    await store.executeQuery("SELECT * FROM idents");
+    assert.ok(spy.getCalls().filter(call => call.args[0] === "WARN" && call.args[2].startsWith("Seq Scan")).length > 0);
+    spy.resetHistory();
+    await Ident.query();
+    assert.ok(spy.getCalls().filter(call => call.args[0] === "WARN").length == 0);
+    spy.resetHistory();
+    await Ident.query("name = 'test'");
+    assert.ok(spy.getCalls().filter(call => call.args[0] === "WARN").length == 0);
   }
 
   @test

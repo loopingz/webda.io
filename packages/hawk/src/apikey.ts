@@ -116,7 +116,7 @@ export default class ApiKey extends OwnerModel {
    * @param {HttpContext} ctx
    * @returns {boolean} TRUE if all key's contraints are authorized
    */
-  canRequest(context: WebContext): boolean {
+  async canRequest(context: WebContext): Promise<boolean> {
     const ctx = context.getHttpContext();
     if (!this.checkOrigin(ctx)) {
       return false;

@@ -263,7 +263,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       try {
         context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
         let fullKey = await this.model.ref(context.getExtension("hawk").credentials.id).get();
-        if (!fullKey.canRequest(context)) {
+        if (!(await fullKey.canRequest(context))) {
           throw new WebdaError.Forbidden("Key not allowed to request");
         }
       } catch (err) {

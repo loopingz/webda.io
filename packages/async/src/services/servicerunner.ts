@@ -2,7 +2,7 @@ import { ConsoleLogger, MemoryLogger, WorkerLogLevel, WorkerMessage, WorkerOutpu
 import { AsyncAction, AsyncOperationAction, AsyncWebdaAction } from "../models";
 import AsyncJobService, { JobInfo } from "./asyncjobservice";
 import { AgentInfo, Runner, RunnerParameters } from "./runner";
-import { OperationContext, SimpleOperationContext } from "@webda/core";
+import { SimpleOperationContext } from "@webda/core";
 
 /**
  * Type of action returned by LocalRunner
@@ -22,21 +22,40 @@ export interface ServiceAction {
 
 /**
  * Keep log in memory and save it to the action object every 5s
+ *
  */
 export class ActionMemoryLogger extends MemoryLogger {
   protected timeout: NodeJS.Timeout;
+  protected saver: (logs: string[]) => Promise<void>;
 
+  /**
+   *
+   * @param output to connect to
+   * @param level of logs
+   * @param limit the size of the log
+   * @param actionOrSaver the action to save the logs to or a function to save the logs
+   * @param logSaveDelay delay before saving the logs
+   * @param format format of the logs
+   */
   constructor(
     output: WorkerOutput,
     level: WorkerLogLevel,
     limit: number,
-    protected action: AsyncAction,
+    actionOrSaver: AsyncAction | ((logs: string[]) => Promise<void>),
     public logSaveDelay: number,
     public format?: string
   ) {
     super(output, level, limit);
+    if (typeof actionOrSaver === "function") {
+      this.saver = actionOrSaver;
+    } else {
+      this.saver = async (logs: string[]) => await actionOrSaver?.patch({ logs }, null);
+    }
   }
 
+  /**
+   * @inheritdoc
+   */
   onMessage(msg: WorkerMessage) {
     super.onMessage(msg);
     if (!this.timeout) {
@@ -44,14 +63,49 @@ export class ActionMemoryLogger extends MemoryLogger {
     }
   }
 
+  /**
+   * Save the logs to the action
+   * @returns
+   */
   save(): Promise<void> {
+    this.clearTimeout();
+    return this.saver(this.getFormattedLogs());
+  }
+
+  /**
+   * Clear the timeout
+   */
+  clearTimeout() {
     if (this.timeout) {
       clearTimeout(this.timeout);
       this.timeout = undefined;
     }
-    return this.action.patch({ logs: this.getLogs().map(msg => ConsoleLogger.format(msg, this.format)) }, null);
   }
 
+  /**
+   * Close the logger
+   * @param clearTimeout clear the timeout
+   * @returns
+   */
+  close(clearTimeout: boolean = false): void {
+    if (clearTimeout) {
+      this.clearTimeout();
+    }
+    return super.close();
+  }
+
+  /**
+   * Returns the formatted logs based on this.format
+   * @returns
+   */
+  getFormattedLogs(): string[] {
+    return this.getLogs().map(msg => ConsoleLogger.format(msg, this.format));
+  }
+
+  /**
+   * Save the logs and close the logger
+   * @returns
+   */
   async saveAndClose() {
     this.close();
     return this.save();

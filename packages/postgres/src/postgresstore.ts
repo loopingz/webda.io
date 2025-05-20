@@ -2,6 +2,7 @@ import { CoreModel, RegExpStringValidator, StoreNotFoundError, UpdateConditionFa
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
+import { randomUUID } from "crypto";
 
 /*
  * Ideas:
@@ -41,6 +42,11 @@ export class PostgresParameters extends SQLStoreParameters {
    * @default [".*"]
    */
   views?: string[];
+  /**
+   * Call explain on each query to ensure it is optimized
+   * @default false
+   */
+  debug?: boolean;
 
   constructor(params: any, store: PostgresStore) {
     super(params, store);
@@ -109,6 +115,14 @@ export class PostgresStore<
     await this.client.query(
       `CREATE TABLE IF NOT EXISTS ${this.parameters.table} (uuid VARCHAR(255) NOT NULL, data jsonb, CONSTRAINT ${this.parameters.table}_pkey PRIMARY KEY (uuid))`
     );
+    if (!this.parameters.strict) {
+      let q = `CREATE INDEX IF NOT EXISTS ${this.parameters.table}_types ON ${this.parameters.table} USING GIN (((data->'__types')::jsonb) jsonb_ops)`;
+      this.log("DEBUG", q);
+      await this.client.query(q);
+      q = `CREATE INDEX IF NOT EXISTS ${this.parameters.table}_type ON ${this.parameters.table} ((data->>'__type'))`;
+      this.log("DEBUG", q);
+      await this.client.query(q);
+    }
   }
 
   /**
@@ -126,8 +140,27 @@ export class PostgresStore<
    * @returns
    */
   async executeQuery(query: string, values: any[] = []): Promise<SQLResult<T>> {
-    this.log("DEBUG", "Query", query);
-    let res = await this.client.query(query, values);
+    if (!this.parameters.debug) {
+      this.log("DEBUG", "Query", query);
+    }
+    let p = [this.client.query(query, values)];
+    if (this.parameters.debug) {
+      p.push(this.client.query("EXPLAIN " + query, values));
+    }
+    let [res, explain] = await Promise.all(p);
+    if (explain) {
+      const prefix = `[${randomUUID()}] EXPLAIN`;
+      this.log("INFO", prefix, query);
+      for (let row of explain.rows) {
+        if (row["QUERY PLAN"]) {
+          if (row["QUERY PLAN"].includes("Seq Scan")) {
+            this.log("WARN", prefix, row["QUERY PLAN"]);
+          } else {
+            this.log("INFO", prefix, row["QUERY PLAN"]);
+          }
+        }
+      }
+    }
     return {
       rows: res.rows.map(r => this.initModel(r.data)),
       rowCount: res.rowCount
@@ -188,7 +221,7 @@ export class PostgresStore<
         store.getParameters().table
       }`;
       if (store.handleModel(model) > 0) {
-        query += ` WHERE (data#>>'{__types}')::jsonb ? '${app.getShortId(app.getModelName(model))}'`;
+        query += ` WHERE (data->'{__types}') ? '${app.getShortId(app.getModelName(model))}'`;
       }
       try {
         this.log("INFO", "Dropping view");
@@ -204,8 +237,13 @@ export class PostgresStore<
   /**
    * @override
    */
-  mapExpressionAttribute(attribute: string[]): string {
-    return `data#>>'{${attribute.join(",")}}'`;
+  mapExpressionAttribute(attribute: string[], asString: boolean = true): string {
+    const sep = asString ? ">>" : ">";
+    if (attribute.length > 1) {
+      return `data#${sep}'{${attribute.join(",")}}'`;
+    } else {
+      return `data-${sep}'${attribute[0]}'`;
+    }
   }
 
   /**

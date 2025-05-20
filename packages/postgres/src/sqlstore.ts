@@ -94,7 +94,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     }
   }
 
-  abstract mapExpressionAttribute(attribute: string[]): string;
+  abstract mapExpressionAttribute(attribute: string[], asString?: boolean): string;
 
   duplicateExpression(expression: WebdaQL.Expression): WebdaQL.Expression {
     if (expression instanceof WebdaQL.AndExpression) {
@@ -112,7 +112,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
         return new SQLComparisonExpression(
           // Small hack
           <any>"?",
-          "(" + this.mapExpressionAttribute(expression.attribute) + ")::jsonb",
+          "(" + this.mapExpressionAttribute(expression.attribute, false) + ")",
           expression.value
         );
       }

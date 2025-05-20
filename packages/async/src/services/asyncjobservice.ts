@@ -28,7 +28,7 @@ import { JSONSchema7 } from "json-schema";
 import { schedule as crontabSchedule } from "node-cron";
 import { AsyncAction, AsyncActionQueueItem, AsyncOperationAction, AsyncWebdaAction } from "../models";
 import { Runner } from "./runner";
-import ServiceRunner from "./servicerunner";
+import ServiceRunner, { ActionMemoryLogger } from "./servicerunner";
 
 /**
  * Represent a Job information as you will find in env
@@ -118,6 +118,18 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    * @default 500
    */
   logsLimit: number;
+  /**
+   * Define the log format
+   *
+   * @default ConsoleLoggerDefaultFormat
+   */
+  logFormat?: string;
+  /**
+   * How long before saving logs (in ms)
+   *
+   * @default 5000
+   */
+  logSaveDelay?: number;
 
   /**
    * Model to use when launching async action
@@ -188,7 +200,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   model: Constructor<AsyncWebdaAction, [string, string, ...any[]]> & CoreModelDefinition<AsyncAction>;
   /**
-   * Model to use when launching action
+   * Operation Model to use when launching action
    */
   operationModel: Constructor<AsyncOperationAction, [string, OperationContext, WorkerLogLevel?]>;
   /**
@@ -236,9 +248,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.log("INFO", "Loading operations", this.parameters.asyncOperationDefinition);
       this.addRoute(`${this.parameters.url}{?full}`, ["GET"], this.listOperations);
       this.addRoute(`${this.parameters.url}/{operationId}{?schedule}`, ["PUT"], this.launchOperation);
-      this.operationModel = <any>this.getWebda().getModel(this.parameters.asyncOperationModel);
       this.registerOperations(FileUtils.load(this.parameters.asyncOperationDefinition));
     }
+
+    // Load operations model
+    this.operationModel = <any>this.getWebda().getModel(this.parameters.asyncOperationModel);
 
     // This is internal job reporting so no need to document the api
     this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, { hidden: true });
@@ -539,14 +553,21 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param message
    * @returns
    */
-  async postHook(jobInfo: JobInfo, message: any): Promise<AsyncWebdaAction> {
+  async postHook(jobInfo: JobInfo, message: any): Promise<AsyncWebdaAction | AsyncOperationAction> {
     // Http allow to break paradigm between the executor and the orchestrator
     if (jobInfo.JOB_HOOK.startsWith("http")) {
-      return (
+      const data: any = (
         await axios.post<any, AxiosResponse<AsyncWebdaAction>>(jobInfo.JOB_HOOK, message, {
           headers: this.getHeaders(jobInfo)
         })
       ).data;
+      if (data.operationId) {
+        return new this.operationModel(data.operationId, data.context, data.logLevel);
+      } else if (data.service && data.method) {
+        data.arguments ??= [];
+        return new this.model(data.service, data.method, ...data.arguments);
+      }
+      throw new Error("Unknown action received from hook");
     } else if (jobInfo.JOB_HOOK === "store") {
       // If executor and orchestrator runs within same privilege it simplify the infrastructure
       return <Promise<AsyncWebdaAction>>(await this.model.ref(jobInfo.JOB_ID).get()).update(message);
@@ -600,42 +621,72 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     // If we are not the target redirect to the right one
     if (jobInfo.JOB_ORCHESTRATOR !== this.getName()) {
-      this.log("DEBUG", `Passing jobInfo ${jobInfo} to targeted service`);
+      this.log("DEBUG", `Passing jobInfo ${JSON.stringify(jobInfo)} to targeted service`);
       return this.getService<AsyncJobService>(jobInfo.JOB_ORCHESTRATOR).runAsyncOperationAction(jobInfo);
     }
     this.log("DEBUG", "Getting action to execute from hook", jobInfo);
-    // Get action info by calling the hook
-    let action = await this.postHook(jobInfo, {
-      agent: { ...Runner.getAgentInfo(), nodeVersion: process.version },
-      status: "RUNNING"
-    });
-    this.log("DEBUG", "Action received", action.serviceName, action.method, action.arguments);
-    let results;
+    let results, logger, errorMessage;
+    let status = "SUCCESS";
     try {
-      // Check it contains the right info
-      if (!action.method || !action.serviceName) {
-        throw new Error("WebdaAsyncAction must have method and serviceName defined at least");
+      // Get action info by calling the hook
+      let action = await this.postHook(jobInfo, {
+        agent: { ...Runner.getAgentInfo(), nodeVersion: process.version },
+        status: "RUNNING"
+      });
+      logger = new ActionMemoryLogger(
+        this.getWebda().getWorkerOutput(),
+        action.logLevel,
+        this.parameters.logsLimit || 5000,
+        async (logs: string[]) => {
+          // Send logs to the hook
+          if (jobInfo && jobInfo.JOB_HOOK) {
+            await this.postHook(jobInfo, {
+              logs
+            });
+          }
+        },
+        this.parameters.logSaveDelay,
+        this.parameters.logFormat
+      );
+      if (action instanceof AsyncWebdaAction) {
+        // Check it contains the right info
+        if (!action.method || !action.serviceName) {
+          throw new Error("WebdaAsyncAction must have method and serviceName defined at least");
+        }
+        // Call the service[method](...args)
+        let service = this.getService(action.serviceName);
+        if (!service) {
+          throw new Error(`WebdaAsyncAction Service '${action.serviceName}' not found: mismatch app version`);
+        }
+        // @ts-ignore
+        if (!service[action.method]) {
+          throw new Error(
+            `WebdaAsyncAction Method '${action.method}' not found in service ${action.serviceName}: mismatch app version`
+          );
+        }
+        // @ts-ignore
+        results = await service[action.method](...(action.arguments || []));
+      } else if (action instanceof AsyncOperationAction) {
+        // Call the operation
+        let ctx: SimpleOperationContext = new SimpleOperationContext(this.getWebda());
+        // Unserialization might not have happened
+        ctx.setSession(action.context.getSession ? action.context.getSession() : action.context["session"]);
+        // Unserialization might not have happened
+        ctx.setInput(Buffer.from(action.context["input"]?.data || []));
+        // Set the logger in extension
+        ctx.setExtension("actionLogger", logger);
+        // Call the operation
+        this.log("TRACE", `Calling operation ${action.operationId}`);
+        await this.getWebda().callOperation(ctx, action.operationId);
       }
-      // Call the service[method](...args)
-      let service = this.getService(action.serviceName);
-      if (!service) {
-        throw new Error(`WebdaAsyncAction Service '${action.serviceName}' not found: mismatch app version`);
-      }
-      // @ts-ignore
-      if (!service[action.method]) {
-        throw new Error(
-          `WebdaAsyncAction Method '${action.method}' not found in service ${action.serviceName}: mismatch app version`
-        );
-      }
-      // @ts-ignore
-      results = await service[action.method](...(action.arguments || []));
     } catch (err) {
       // Job is in error
-      await this.postHook(jobInfo, { errorMessage: <string | undefined>err?.message, status: "ERROR" });
-      return;
+      errorMessage = err?.message;
+      status = "ERROR";
     }
+    logger?.close(true);
     // Update status
-    await this.postHook(jobInfo, { results, status: "SUCCESS" });
+    await this.postHook(jobInfo, { results, status, errorMessage, logs: logger?.getFormattedLogs() });
   }
 
   /**
@@ -679,9 +730,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       time -= time % this.parameters.schedulerResolution;
       // Queue all actions
       await Promise.all(
-        (
-          await this.model.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)
-        ).results.map(a => this.launchAction(a))
+        (await this.model.query(`status = 'SCHEDULED' AND scheduled < ${time + 1}`)).results.map(a =>
+          this.launchAction(a)
+        )
       );
       time += this.parameters.schedulerResolution;
       // Wait for next scheduler resolution

@@ -24,6 +24,17 @@ export class PostgresTest extends StoreTest {
   }
 
   @test
+  async correctEscape() {
+    const ident = <Store<Ident>>this.getIdentStore();
+    await ident.save({
+      name: "test"
+    });
+    assert.strictEqual((await Ident.query("name = 'test'")).results.length, 1);
+    await assert.rejects(() => Ident.query("name = '\"test'"), /SyntaxError/);
+    assert.strictEqual((await Ident.query('name = "\'test"')).results.length, 0);
+  }
+
+  @test
   async createTable() {
     const client = new pg.Client({
       host: "localhost",

@@ -25,3 +25,4 @@ pnpm-lock.yaml
 .nx
 .webda
 coverage
+docs/build

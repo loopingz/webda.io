@@ -247,7 +247,13 @@ export namespace WebdaQL {
      * Read the string literal (removing the simple or double bracket)
      */
     visitStringLiteral(ctx: StringLiteralContext): string {
-      return ctx.text.substring(1, ctx.text.length - 1);
+      let text = ctx.text.substring(1, ctx.text.length - 1);
+      if (ctx.text[0] === '"') {
+        text = text.replace(/\\"/g, '"');
+      } else {
+        text = text.replace(/\\'/g, "'");
+      }
+      return text;
     }
 
     /**

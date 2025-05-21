@@ -80,16 +80,20 @@
                       "server": {
                         "type": "string"
                       },
+                      "tlsServerName": {
+                        "type": "string"
+                      },
                       "skipTLSVerify": {
                         "type": "boolean"
                       },
-                      "tlsServerName": {
+                      "proxyUrl": {
                         "type": "string"
                       }
                     },
                     "required": [
                       "name",
-                      "server"
+                      "server",
+                      "skipTLSVerify"
                     ]
                   }
                 },
@@ -150,6 +154,9 @@
                         "type": "string"
                       },
                       "password": {
+                        "type": "string"
+                      },
+                      "impersonateUser": {
                         "type": "string"
                       }
                     },

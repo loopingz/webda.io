@@ -33,15 +33,12 @@ class KubeRunnerTest extends WebdaTest {
   async launchAction() {
     let runner = new KubeRunner(this.webda, "runner", { jobImage: "webda.io/runner" });
     runner.resolve();
-    const kube = stub(runner.client, "create").returns({
-      // @ts-ignore
-      body: {
+    const kube = stub(runner.client, "create").returns(Promise.resolve({
         spec: true,
         metadata: "fake",
         apiVersion: "1.0",
         kind: "Job"
-      }
-    });
+    }) as any);
     const action = new AsyncAction();
     try {
       let result = await runner.launchAction(action, this.getJobInfo(action));

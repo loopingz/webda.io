@@ -50,11 +50,11 @@ export interface K8sConfiguration {
  * @param params
  * @returns
  */
-export function getKubernetesApiClient(params: KubernetesParameters, api?: any): k8s.ApiType | k8s.KubernetesObjectApi {
+export function getKubernetesApiClient<T extends k8s.ApiType>(params: KubernetesParameters, api?: k8s.ApiConstructor<T>): T extends never ? k8s.KubernetesObjectApi : T {
   const kc = getKubeConfig(params);
   if (api) {
-    return kc.makeApiClient(api);
+    return <any>kc.makeApiClient(api);
   } else {
-    return k8s.KubernetesObjectApi.makeApiClient(kc);
+    return <any>k8s.KubernetesObjectApi.makeApiClient(kc);
   }
 }

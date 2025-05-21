@@ -21,7 +21,7 @@
     "package.json"
   ],
   "dependencies": {
-    "@kubernetes/client-node": "^0.21.0",
+    "@kubernetes/client-node": "^1.2.0",
     "@webda/async": "^3.8.0",
     "@webda/core": "^3.17.0"
   },

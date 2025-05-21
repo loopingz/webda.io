@@ -77,29 +77,27 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
         return {
           deleteNamespacedCronJob: async () => {},
           listNamespacedCronJob: async () => ({
-            body: {
-              items: [
-                {
-                  spec: {
-                    schedule: "10 * * * *"
-                  },
-                  metadata: {
-                    name: "BeanService-cron-5dbf01c8",
-                    namespace: "default",
-                    annotations: {
-                      "webda.io/crondeployer": "e63d39145a743541c090bbc9f0869bd871ff6fa42a6d4e10387e2cf3762fe5e9",
-                      "webda.io/cronid": "5dbf01c8",
-                      "webda.io/crondescription": "10 * * * *: beanservice.cron()",
-                      "webda.io/deployer": undefined,
-                      "webda.io/deployment": "Production",
-                      "webda.io/version": "1.2.1",
-                      "webda.io/application.name": "@webda/sample-app",
-                      "webda.io/application.version": "1.0.14"
-                    }
+            items: [
+              {
+                spec: {
+                  schedule: "10 * * * *"
+                },
+                metadata: {
+                  name: "BeanService-cron-5dbf01c8",
+                  namespace: "default",
+                  annotations: {
+                    "webda.io/crondeployer": "e63d39145a743541c090bbc9f0869bd871ff6fa42a6d4e10387e2cf3762fe5e9",
+                    "webda.io/cronid": "5dbf01c8",
+                    "webda.io/crondescription": "10 * * * *: beanservice.cron()",
+                    "webda.io/deployer": undefined,
+                    "webda.io/deployment": "Production",
+                    "webda.io/version": "1.2.1",
+                    "webda.io/application.name": "@webda/sample-app",
+                    "webda.io/application.version": "1.0.14"
                   }
                 }
-              ]
-            }
+              }
+            ]
           })
         };
       } else {
@@ -233,10 +231,8 @@ spec:
 
     patch.callsFake(async () => {
       throw {
-        body: {
-          kind: "Status",
-          message: "Error in kubernetes"
-        }
+        kind: "Status",
+        message: "Error in kubernetes"
       };
     });
     await this.deployer.upsertKubernetesObject({

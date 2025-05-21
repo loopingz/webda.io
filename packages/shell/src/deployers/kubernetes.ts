@@ -155,10 +155,10 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         .digest("hex");
       jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);
 
-      const k8sApi = <k8s.BatchV1Api>this.getClient(k8s.BatchV1Api);
+      const k8sApi = this.getClient(k8s.BatchV1Api);
       let currentJobs = (
         await k8sApi.listNamespacedCronJob(resource.metadata.namespace || "default")
-      ).body.items.filter(i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId);
+      ).items.filter(i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId);
       let currentJobsNamesMap = {};
       currentJobs.forEach(
         i =>
@@ -194,7 +194,10 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       for (let i in currentJobsNamesMap) {
         this.logger.log("INFO", `Deleting CronJob ${i}: ${currentJobsNamesMap[i]}`);
         // Delete resource
-        await k8sApi.deleteNamespacedCronJob(i, cronNamespace);
+        await k8sApi.deleteNamespacedCronJob({
+          name: i,
+          namespace: cronNamespace
+        });
       }
     }
 
@@ -211,7 +214,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       try {
         // move to any
         // error TS2345: Argument of type 'KubernetesObject' is not assignable to parameter of type 'KubernetesObjectHeader<KubernetesObject>
-        let spec = (await this.client.read(<any>resource)).body;
+        let spec = (await this.client.read(<any>resource));
         for (let prop in resource.patch) {
           let path = prop;
           if (!prop.startsWith("$.")) {
@@ -259,8 +262,8 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     }
   }
 
-  getClient(api?: any): k8s.ApiType | k8s.KubernetesObjectApi {
-    return getKubernetesApiClient(this.resources, api);
+  getClient<T extends k8s.ApiType>(api?: k8s.ApiConstructor<T>): T extends never ? k8s.KubernetesObjectApi : T {
+    return <any>getKubernetesApiClient(this.resources, api);
   }
 
   async upsertKubernetesObject(resource: KubernetesObject) {
@@ -277,8 +280,8 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         // we got the resource, so it exists, so patch it
         await this.client.patch(resource);
       } catch (e) {
-        if (e.body && e.body.kind === "Status") {
-          this.logger.log("ERROR", "Cannot patch", resource.metadata, e.body.message);
+        if (e?.kind === "Status") {
+          this.logger.log("ERROR", "Cannot patch", resource.metadata, e.message);
         } else {
           this.logger.log("ERROR", "Cannot patch", resource.metadata, e);
         }

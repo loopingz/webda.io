@@ -4,15 +4,7 @@
  * They should not import other files not prefixed with i.
  */
 
-import type {
-  Attributes,
-  Constructor,
-  FilterAttributes,
-  IsUnion,
-  Methods,
-  OmitByTypeRecursive,
-  Prototype
-} from "@webda/tsc-esm";
+import type { Attributes, Constructor, IsUnion, OmitByTypeRecursive, Prototype } from "@webda/tsc-esm";
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { AsyncEventEmitter, AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter";
@@ -25,13 +17,8 @@ import { NotEnumerable, DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
 
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
+import { Model } from "@webda/models";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
-
-type JSONed<T> = T extends { toJSON: () => any } ? ReturnType<T["toJSON"]> : T;
-
-export type NonDeclarativeModel<T extends AbstractModel> = {
-  [K in keyof Omit<T, "Events" | "PrimaryKey" | "Class" | "__dirty">]: JSONed<T[K]>;
-};
 
 export type Values<T> = T[keyof T];
 export type OmitNever<T> = Pick<
@@ -40,29 +27,6 @@ export type OmitNever<T> = Pick<
     [Prop in keyof T]: [T[Prop]] extends [never] ? never : Prop;
   }>
 >;
-
-export type Pojo<T extends AbstractModel> = Partial<
-  OmitNever<{
-    [K in keyof NonDeclarativeModel<T>]: T[K] extends Function ? never : JSONed<T[K]>;
-  }>
->;
-
-type DtoEd<T> = T extends { toDTO: () => any } ? ReturnType<T["toDTO"]> : T;
-
-type Dto<T extends AbstractModel> = Partial<
-  OmitNever<{
-    [K in keyof NonDeclarativeModel<T>]: T[K] extends Function ? never : DtoEd<T[K]>;
-  }>
->;
-/**
- * Retrieve the only
- */
-export type ModelAttributes<T extends AbstractModel, K = false> = K extends false
-  ? keyof Omit<T, Methods<T> | "Events" | "Store" | "Metadata" | "PrimaryKey" | "Class" | "__dirty">
-  : keyof Omit<
-      T,
-      Methods<T> | "Events" | "Store" | "Metadata" | "PrimaryKey" | "Class" | "__dirty" | FilterAttributes<T, K>
-    >;
 
 /**
  * Define the model hierarchy
@@ -79,13 +43,6 @@ export type ModelsTree = {
 export interface IAttributeLevelPermissionModel extends IContextAware {
   attributePermission(attribute: string | symbol, value: any, action: "READ" | "WRITE"): any;
 }
-
-/**
- * Proxied object
- *
- * TODO: Check if this is real useful
- */
-export type Proxied<T> = T;
 
 /**
  * Expose parameters for the model
@@ -154,410 +111,11 @@ export type PrimaryKeyType<T extends { PrimaryKey: any }> =
 /**
  * Reference to a user model
  */
-export interface IUser extends AbstractModel {
+export interface IUser extends Model {
   /**
    * Get the user email
    */
   getEmail(): string | undefined;
-}
-
-export interface PrimaryKeyModel {
-  PrimaryKey: any;
-}
-
-export type ModelClass<T extends AbstractModel = AbstractModel> = {
-  /**
-   * Metadata to access the model
-   */
-  Metadata: Reflection;
-  /**
-   * Shortcut to ref(uuid).get()
-   * @param uuid
-   */
-  get(uuid: PrimaryKeyType<T>): Promise<T>;
-  ref(uuid: PrimaryKeyType<T>): IModelRefWithCreate<T>;
-  emit(event: string, evt: any): Promise<void>;
-  create(data: Pojo<T>, withSave?: boolean): Promise<Proxied<T>>;
-  factory(data: Pojo<T>): Promise<Proxied<T>>;
-  /**
-   * Return the query that maps permission to the model
-   * The permission query will be AND with the current query
-   *
-   * If null or partial is true, permissions checks should still be done in the code
-   * If partial is false, canAct won't be called
-   */
-  getPermissionQuery(_ctx: Context): null | { partial: boolean; query: string };
-  /**
-   * Iterate through objects
-   * @param query
-   * @param includeSubclass
-   * @param context
-   */
-  iterate(query?: string, includeSubclass?: boolean, context?: Context): AsyncGenerator<T>;
-  /**
-   * Query for models
-   * @param this
-   * @param id
-   * @returns
-   */
-  query(
-    query?: string,
-    includeSubclass?: boolean
-  ): Promise<{
-    results: T[];
-    continuationToken?: string;
-  }>;
-  resolve();
-};
-
-/**
- * Check if the object is a ModelClass
- */
-function isModelClass(obj: any): obj is ModelClass<any> {
-  return obj.Metadata !== undefined;
-}
-/**
- * Define a model uuid
- */
-export class Uuid<T extends object> {
-  /**
-   * Serialize the key
-   * @returns
-   */
-  toString() {
-    return Object.values(this.data).join(this.separator);
-  }
-
-  static from<T extends object | string | number, K extends keyof T>(
-    data: T,
-    attributes: K[] | ModelClass<any>,
-    separator: string = "-"
-  ): Pick<T, K> {
-    if (typeof data === "string") {
-      return data;
-    }
-    const res: any = {};
-    let attrs: K[];
-    if (isModelClass(attributes)) {
-      attrs = <any>(
-        (Array.isArray(attributes.Metadata.PrimaryKey)
-          ? attributes.Metadata.PrimaryKey
-          : [attributes.Metadata.PrimaryKey])
-      );
-    } else {
-      attrs = attributes;
-    }
-    attrs.forEach(e => {
-      // Might want to check for separator
-      res[e] = data[e];
-    });
-    return <T>new Uuid(res, separator);
-  }
-
-  /**
-   * Parse a uuid into a Uuid object
-   * @param uuid
-   * @param attributes
-   * @param separator
-   * @returns
-   */
-  static parse(uuid: string, attributes: string[] | ModelClass<any>, separator?: string): any {
-    if (isModelClass(attributes)) {
-      separator = attributes.Metadata.PrimaryKeySeparator || "-";
-    }
-    const info = uuid.split(separator || "-");
-    const res = {};
-    let attrs: string[];
-    if (isModelClass(attributes)) {
-      attrs = <any>(
-        (Array.isArray(attributes.Metadata.PrimaryKey)
-          ? attributes.Metadata.PrimaryKey
-          : [attributes.Metadata.PrimaryKey])
-      );
-    } else {
-      attrs = attributes;
-    }
-    if (info.length !== attrs.length) {
-      throw new Error(`Uuid '${uuid}' is invalid for ${attrs.join(",")}`);
-    }
-    attrs.forEach((a, ind) => {
-      res[a] = info[ind];
-    });
-    return Uuid.from(res, <any>attributes, separator);
-  }
-
-  /**
-   * Protected constructor that assign the data to the object
-   * @param data
-   * @param separator
-   */
-  protected constructor(
-    protected data: T,
-    protected separator: string = "-"
-  ) {
-    Object.assign(this, data);
-  }
-}
-
-/**
- * Represent a permissive core model
- */
-export abstract class AbstractModel implements PrimaryKeyModel {
-  /**
-   * Dirty fields
-   */
-  __dirty: Set<string>;
-  /**
-   * Context of the object
-   */
-  context: Context;
-  /**
-   * Events for the object
-   */
-  Events: ModelEvents<this>;
-  /**
-   * Metadata for the model
-   */
-  static Metadata: Reflection;
-  /**
-   * Current class
-   */
-  Class: ModelClass<this>;
-  /**
-   * We do not want to allow direct instantiation
-   */
-  protected constructor() {}
-  /**
-   * Define the primary key for the model
-   *
-   * This is only used for typing and should not be used in the code
-   */
-  PrimaryKey: any;
-  /**
-   * Unserialize the data into the object
-   * @param data
-   */
-  abstract unserialize(data: any): this;
-  /**
-   * Get the proxy for this object
-   */
-  abstract getProxy(): Proxied<this>;
-
-  /**
-   * Save the object
-   */
-  abstract save(): Promise<this>;
-
-  abstract checkAct(
-    context: Context,
-    action:
-      | "create"
-      | "update"
-      | "get"
-      | "delete"
-      | "get_binary"
-      | "detach_binary"
-      | "attach_binary"
-      | "update_binary_metadata"
-      | "subscribe" // To manage MQTT or Websockets
-      | string
-  ): Promise<void>;
-  abstract canAct(
-    context: Context,
-    action:
-      | "create"
-      | "update"
-      | "get"
-      | "delete"
-      | "get_binary"
-      | "detach_binary"
-      | "attach_binary"
-      | "update_binary_metadata"
-      | "subscribe" // To manage MQTT or Websockets
-      | string
-  ): Promise<boolean | string>;
-
-  abstract isDeleted(): boolean;
-
-  static resolve() {}
-  /**
-   *
-   * @param data
-   */
-  abstract patch<T extends ModelAttributes<this>>(
-    data: Pojo<this>,
-    conditionField?: T,
-    condition?: this[T]
-  ): Promise<this>;
-
-  /**
-   * Delete the object
-   */
-  abstract delete(): Promise<void>;
-
-  /**
-   * Get the uuid for the object
-   * @returns
-   */
-  getUuid(): PrimaryKeyType<this> {
-    if (Array.isArray(this.Class.Metadata.PrimaryKey)) {
-      return <any>Uuid.from(this, <any>this.Class.Metadata.PrimaryKey);
-    }
-    return this[this.Class.Metadata.PrimaryKey];
-  }
-
-  /**
-   * Set the uuid for the object
-   * @param uuid
-   */
-  setUuid(uuid: PrimaryKeyType<this>): this {
-    if (Array.isArray(this.Class.Metadata.PrimaryKey)) {
-      this.Class.Metadata.PrimaryKey.forEach(key => {
-        this[key] = uuid[key];
-      });
-    } else {
-      this[this.Class.Metadata.PrimaryKey] = uuid;
-    }
-    return this;
-  }
-
-  /**
-   * @deprecated You should override the save method
-   */
-  _onSave() {}
-
-  /**
-   * @deprecated You should override the save method
-   */
-  _onSaved() {}
-
-  /**
-   * @deprecated You should override the save/patch method
-   */
-  _onUpdate() {}
-
-  /**
-   * @deprecated You should override the save/patch method
-   */
-  _onUpdated() {}
-
-  /**
-   * @deprecated You should override the delete method
-   */
-  _onDelete() {}
-
-  /**
-   * @deprecated You should override the delete method
-   */
-  _onDeleted() {}
-}
-
-/**
- * ModelRef create
- */
-export interface IModelRefWithCreate<T extends AbstractModel> {
-  get(): Promise<T>;
-  /**
-   * Set attribute on the object
-   * @param property
-   * @param value
-   * @param itemWriteConditionField
-   * @param itemWriteCondition
-   */
-  setAttribute<K extends ModelAttributes<T>, L extends ModelAttributes<T>>(
-    property: K,
-    value: T[K],
-    itemWriteConditionField?: L,
-    itemWriteCondition?: T[L]
-  ): Promise<void>;
-  incrementAttribute<K extends ModelAttributes<T, number>, L extends ModelAttributes<T>>(
-    property: K,
-    value?: number,
-    itemWriteConditionField?: L,
-    itemWriteCondition?: T[L]
-  ): Promise<void>;
-  upsert(data: Pojo<T>): Promise<T>;
-  create(data: Pojo<T>, withSave?: boolean): Promise<T>;
-  /**
-   * Update data in the store, replacing the object
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  update<K extends ModelAttributes<T>>(data: Pojo<T>, conditionField?: K, condition?: T[K]): Promise<void>;
-  /**
-   * Patch data in the store, patching the object
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  patch<K extends ModelAttributes<T>>(data: Pojo<T>, conditionField?: K, condition?: T[K]): Promise<void>;
-  /**
-   * Delete data from the store
-   * @param uuid
-   * @returns
-   */
-  delete<K extends ModelAttributes<T>>(conditionField?: K, condition?: T[K]): Promise<void>;
-  /**
-   * Verify if the object exists
-   * @param uuid
-   * @returns
-   */
-  exists(): Promise<boolean>;
-  /**
-   * Increment attributes of an object
-   * @param uuid
-   * @param info
-   * @returns
-   */
-  incrementAttributes<K extends ModelAttributes<T>, L extends ModelAttributes<T, number>>(
-    info: ({ property: L; value?: number } | L)[],
-    conditionField?: K,
-    condition?: T[K]
-  ): Promise<void>;
-  /**
-   * Upsert an item to a collection
-   * @param uuid
-   * @param collection
-   * @param item
-   * @param index
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
-   * @returns
-   */
-  upsertItemToCollection<K extends ModelAttributes<T, Array<any>>>(
-    collection: K,
-    item: any,
-    index?: number,
-    itemWriteConditionField?: any,
-    itemWriteCondition?: any
-  ): Promise<void>;
-  /**
-   * Delete item from a collection
-   * @param uuid
-   * @param collection
-   * @param index
-   * @param itemWriteCondition
-   * @param itemWriteConditionField
-   * @returns
-   */
-  deleteItemFromCollection<K extends ModelAttributes<T, Array<any>>>(
-    collection: K,
-    index: number,
-    itemWriteConditionField?: any,
-    itemWriteCondition?: any
-  ): Promise<void>;
-  /**
-   * Remove an attribute from an object
-   * @param uuid
-   * @param attribute
-   * @returns
-   */
-  removeAttribute<L extends ModelAttributes<T>, K extends ModelAttributes<T>>(
-    attribute: K,
-    conditionField?: L,
-    condition?: T[L]
-  ): Promise<void>;
 }
 
 /**
@@ -584,11 +142,11 @@ export interface Reflection {
    *
    * This is basically the prototype chain of the model
    */
-  Ancestors: ModelClass[];
+  Ancestors: Prototype<Model>[];
   /**
    * Subclasses of the model
    */
-  Subclasses: ModelClass[];
+  Subclasses: Prototype<Model>[];
   /**
    * Relations for the model
    *
@@ -631,96 +189,7 @@ export interface Reflection {
 }
 
 export type SerializedReflection = {
-  [K in keyof Reflection]: Reflection[K] extends Array<ModelClass<any>> ? string[] : Reflection[K];
-};
-
-export type ModelCRUD<T extends AbstractModel> = {
-  Store: StoreHelper<T> & { name: string };
-  /**
-   * Complete uuid useful to implement uuid prefix or suffix
-   * @param uid
-   */
-  completeUid(uid: string): string;
-  /**
-   * Get the model uuid field if you do not want to use the uuid field
-   */
-  getUuidField(): string;
-  /**
-   * Permission query for the model
-   * @param context
-   */
-  getPermissionQuery(context: Context): null | { partial: boolean; query: string };
-  /**
-   * Reference to an object without doing a DB request yet
-   */
-  ref: (uuid: string) => IModelRefWithCreate<any>;
-  /**
-   * Get an object
-   */
-  get: (uuid: string) => Promise<any>;
-  /**
-   * Create a new model
-   * @param this
-   * @param data
-   * @param save if the object should be saved
-   */
-  create(data: RawModel<T>, save?: boolean): Promise<Proxied<T>>;
-  /**
-   * Query the model
-   * @param query
-   */
-  query(query?: string, includeSubclass?: boolean): Promise<{ results: T[]; continuationToken?: string }>;
-  /**
-   * Iterate through objects
-   * @param query
-   * @param includeSubclass
-   * @param context
-   */
-  iterate(query?: string, includeSubclass?: boolean): AsyncGenerator<T>;
-
-  /**
-   * Create a CoreModel object loaded with the content of object
-   *
-   * It allows polymorphism from Store
-   *
-   * By default it will act as a create method without saving
-   * @param model to create by default
-   * @param object to load data from
-   */
-  factory(object: RawModel<T>): Promise<Proxied<T>>;
-};
-
-export type ModelDeprecated<T extends AbstractModel> = {
-  /**
-   * Get the model schema
-   *
-   * @deprecated
-   */
-  getSchema(): JSONSchema7;
-
-  /**
-   * Get the model hierarchy
-   *
-   * @deprecated
-   */
-  getHierarchy(): { ancestors: string[]; children: ModelsTree };
-  /**
-   * Get the model relations
-   *
-   * @deprecated
-   */
-  getRelations(): ModelGraph;
-  /**
-   * Get Model identifier
-   *
-   * @deprecated
-   */
-  getIdentifier(): string;
-  /**
-   * Use Store
-   * @deprecated
-   */
-  store<T = any>(): T;
+  [K in keyof Reflection]: Reflection[K] extends Array<Prototype<Model>> ? string[] : Reflection[K];
 };
 
 export type ModelEmitter<T extends AsyncEventUnknown> = Pick<

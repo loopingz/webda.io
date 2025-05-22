@@ -4,9 +4,9 @@
   "description": "Webda Models implementation",
   "main": "lib/index.js",
   "scripts": {
-    "build": "webdac build",
-    "build:watch": "webdac build --watch",
-    "pretest": "webdac build",
+    "build": "tsc-esm",
+    "build:watch": "tsc-esm --watch",
+    "pretest": "tsc-esm",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "vitest run",
@@ -27,8 +27,6 @@
   ],
   "files": [
     "lib",
-    "webda.module.json",
-    "webda.shell.json",
     "package.json"
   ],
   "author": "loopingz",
@@ -58,7 +56,6 @@
   },
   "devDependencies": {
     "@types/node": "20.0.0",
-    "@webda/compiler": "^4.0.0-beta.2",
     "@webda/test": "^4.0.0-beta.1",
     "@webda/tsc-esm": "^4.0.0-beta.2",
     "skott": "^0.35.4"

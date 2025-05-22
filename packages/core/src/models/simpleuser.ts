@@ -1,5 +1,5 @@
 import type { Ident } from "./ident";
-import type { ModelsMapped } from "./model";
+import type { ModelsMapped } from "@webda/models";
 import { User } from "./user";
 
 /**
@@ -9,6 +9,11 @@ import { User } from "./user";
  * models
  */
 export class SimpleUser extends User {
+  PrimaryKey: readonly (keyof this)[] = ["uuid"] as const;
+  /**
+   * UUID of the model
+   */
+  uuid: string;
   /**
    * Groups for a user
    */
@@ -48,7 +53,7 @@ export class SimpleUser extends User {
    * @returns
    */
   inGroup(group: string): boolean {
-    if (group === "all" || group === this.getUuid()) {
+    if (group === "all" || group === this.uuid) {
       return true;
     }
     return this._groups.includes(group);

@@ -29,7 +29,7 @@ export interface Storable<T = any, K extends keyof T = any, U = any> {
  * Internal type to get the JSONed type of an object
  * @ignore
  */
-type JSONedInternal<T> = T extends { toJSON: () => any } ? ReturnType<T["toJSON"]> : T;
+export type JSONedInternal<T> = T extends { toJSON: () => any } ? ReturnType<T["toJSON"]> : T;
 /**
  * If object have a toJSON method take the return type of this method
  * otherwise return the object

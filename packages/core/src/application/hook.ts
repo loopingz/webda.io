@@ -1,6 +1,5 @@
 import { createCoreHook } from "../core/instancestorage";
-import { ModelClass } from "../internal/iapplication";
-
+import { Model } from "@webda/models";
 /**
  * Hook to get the current application
  */
@@ -25,7 +24,7 @@ export { useApplication, setApplication };
  * @param name
  * @returns
  */
-export function useModel<T = ModelClass>(name: string): T {
+export function useModel<T = Model>(name: string): T {
   return <T>useApplication().getModel(name);
 }
 

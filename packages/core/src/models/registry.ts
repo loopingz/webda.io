@@ -1,5 +1,5 @@
-import { PrimaryKeyType, ModelClass } from "../internal/iapplication";
-import { UuidModel } from "./uuid";
+import { PrimaryKeyType } from "../internal/iapplication";
+import { UuidModel } from "@webda/models";
 
 /**
  * Specific type for registry

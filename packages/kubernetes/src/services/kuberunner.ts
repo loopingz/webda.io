@@ -53,7 +53,7 @@ export class KubeRunnerParameters extends RunnerParameters implements Kubernetes
 /**
  * Type of action returned by LocalRunner
  */
-export interface KubeJob {}
+export interface KubeJob extends k8s.V1Job {}
 
 /**
  * Run a Job locally on the server by spawning a child process
@@ -100,8 +100,7 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
       }
     }
     // Launch the resource now
-    const result = await this.client.create(resources);
-    return { metadata: result.body.metadata, apiVersion: result.body.apiVersion, kind: result.body.kind };
+    return await this.client.create(resources);
   }
 
   /**

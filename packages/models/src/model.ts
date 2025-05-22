@@ -1,11 +1,11 @@
-import { JSONedAttributes, PK, PrimaryKeyType, Storable } from "./storable";
+import type { JSONedAttributes, PK, PrimaryKeyType, Storable } from "./storable";
 import { randomUUID } from "crypto";
-import { Securable } from "./securable";
-import { ExposableModel } from "./exposable";
-import { ModelRefWithCreate, type ModelRef } from "./relations";
-import { ActionsEnum } from "./actionable";
-import { Constructor, NotEnumerable } from "@webda/tsc-esm";
-import { Repository } from "./repository";
+import type { Securable } from "./securable";
+import type { ExposableModel } from "./exposable";
+import type { ModelRefWithCreate, ModelRef } from "./relations";
+import type { ActionsEnum } from "./actionable";
+import { type Constructor, NotEnumerable } from "@webda/tsc-esm";
+import type { Repository } from "./repository";
 export class ModelEvents<T> {
   Saved: { model: T };
   Deleted: { model: T };

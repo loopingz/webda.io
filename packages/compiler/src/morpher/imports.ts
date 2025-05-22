@@ -7,8 +7,8 @@ import { SourceFile, ts } from "ts-morph";
 export function updateImports(sourceFile: SourceFile, replacePackages: { [key: string]: string }) {
   const moveImports = {};
   // Flat the replacePackage into moveImports
-  for (let i in replacePackages) {
-    let [pkg, replace = "*"] = i.split(":");
+  for (const i in replacePackages) {
+    const [pkg, replace = "*"] = i.split(":");
     moveImports[pkg] ??= {};
     if (replace.includes(",")) {
       replace.split(",").forEach(r => {
@@ -19,14 +19,14 @@ export function updateImports(sourceFile: SourceFile, replacePackages: { [key: s
     }
   }
   // Check for each moved import now
-  for (let pkg in moveImports) {
+  for (const pkg in moveImports) {
     const importDeclarations = sourceFile
       .getImportDeclarations()
       .filter(declaration => declaration.getModuleSpecifierValue() === pkg);
     const replacements = moveImports[pkg];
     // Update each import declaration
     importDeclarations.forEach(importDeclaration => {
-      for (let i in replacements) {
+      for (const i in replacements) {
         if (i === "*") {
           // The whole module has been renamed
           importDeclaration.setModuleSpecifier("@webda/test");
@@ -63,7 +63,7 @@ export function updateImports(sourceFile: SourceFile, replacePackages: { [key: s
         } else {
           original.remove();
           // Move to another module
-          let newDeclaration =
+          const newDeclaration =
             sourceFile.getImportDeclaration(newPkg) ||
             sourceFile.addImportDeclaration({
               moduleSpecifier: newPkg,

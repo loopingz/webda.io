@@ -3,7 +3,7 @@ import { upsertMethod } from "./utils";
 
 function getTypeArgumentName(serviceClass: ClassDeclaration): string {
   // 1. Check if the class has explicit type arguments for Service
-  let typeArgument = serviceClass
+  const typeArgument = serviceClass
     .getHeritageClauseByKind(SyntaxKind.ExtendsKeyword)
     ?.getTypeNodes()[0]
     .getTypeArguments()[0];

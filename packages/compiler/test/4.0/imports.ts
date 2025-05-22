@@ -7,6 +7,6 @@ import { ModelClass } from "fake";
 
 class Test extends CoreModelDefinition {
   test() {
-    let CoreModelDefinition = "";
+    const CoreModelDefinition = "";
   }
 }

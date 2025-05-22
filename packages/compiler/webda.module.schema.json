@@ -1,0 +1,552 @@
+{
+  "$ref": "#/definitions/Module",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "JSONSchema7": {
+      "additionalProperties": false,
+      "properties": {
+        "$comment": {
+          "type": "string"
+        },
+        "$defs": {
+          "additionalProperties": {
+            "$ref": "#/definitions/JSONSchema7Definition"
+          },
+          "type": "object"
+        },
+        "$id": {
+          "type": "string"
+        },
+        "$ref": {
+          "type": "string"
+        },
+        "$schema": {
+          "$ref": "#/definitions/JSONSchema7Version"
+        },
+        "additionalItems": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "additionalProperties": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "allOf": {
+          "items": {
+            "$ref": "#/definitions/JSONSchema7Definition"
+          },
+          "type": "array"
+        },
+        "anyOf": {
+          "items": {
+            "$ref": "#/definitions/JSONSchema7Definition"
+          },
+          "type": "array"
+        },
+        "const": {
+          "$ref": "#/definitions/JSONSchema7Type"
+        },
+        "contains": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "contentEncoding": {
+          "type": "string"
+        },
+        "contentMediaType": {
+          "type": "string"
+        },
+        "default": {
+          "$ref": "#/definitions/JSONSchema7Type"
+        },
+        "definitions": {
+          "additionalProperties": {
+            "$ref": "#/definitions/JSONSchema7Definition"
+          },
+          "type": "object"
+        },
+        "dependencies": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/JSONSchema7Definition"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "else": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "enum": {
+          "items": {
+            "$ref": "#/definitions/JSONSchema7Type"
+          },
+          "type": "array"
+        },
+        "examples": {
+          "$ref": "#/definitions/JSONSchema7Type"
+        },
+        "exclusiveMaximum": {
+          "type": "number"
+        },
+        "exclusiveMinimum": {
+          "type": "number"
+        },
+        "format": {
+          "type": "string"
+        },
+        "if": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "items": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/JSONSchema7Definition"
+            },
+            {
+              "items": {
+                "$ref": "#/definitions/JSONSchema7Definition"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "maxItems": {
+          "type": "number"
+        },
+        "maxLength": {
+          "type": "number"
+        },
+        "maxProperties": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "minItems": {
+          "type": "number"
+        },
+        "minLength": {
+          "type": "number"
+        },
+        "minProperties": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "multipleOf": {
+          "type": "number"
+        },
+        "not": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "oneOf": {
+          "items": {
+            "$ref": "#/definitions/JSONSchema7Definition"
+          },
+          "type": "array"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "patternProperties": {
+          "additionalProperties": {
+            "$ref": "#/definitions/JSONSchema7Definition"
+          },
+          "type": "object"
+        },
+        "properties": {
+          "additionalProperties": {
+            "$ref": "#/definitions/JSONSchema7Definition"
+          },
+          "type": "object"
+        },
+        "propertyNames": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "required": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "then": {
+          "$ref": "#/definitions/JSONSchema7Definition"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/JSONSchema7TypeName"
+            },
+            {
+              "items": {
+                "$ref": "#/definitions/JSONSchema7TypeName"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "uniqueItems": {
+          "type": "boolean"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "JSONSchema7Array": {
+      "items": {
+        "$ref": "#/definitions/JSONSchema7Type"
+      },
+      "type": "array"
+    },
+    "JSONSchema7Definition": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/JSONSchema7"
+        },
+        {
+          "type": "boolean"
+        }
+      ],
+      "description": "JSON Schema v7"
+    },
+    "JSONSchema7Object": {
+      "additionalProperties": {
+        "$ref": "#/definitions/JSONSchema7Type"
+      },
+      "type": "object"
+    },
+    "JSONSchema7Type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/definitions/JSONSchema7Object"
+        },
+        {
+          "$ref": "#/definitions/JSONSchema7Array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Primitive type"
+    },
+    "JSONSchema7TypeName": {
+      "description": "Primitive type",
+      "enum": [
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "object",
+        "array",
+        "null"
+      ],
+      "type": "string"
+    },
+    "JSONSchema7Version": {
+      "description": "Meta schema\n\nRecommended values:\n- 'http://json-schema.org/schema#'\n- 'http://json-schema.org/hyper-schema#'\n- 'http://json-schema.org/draft-07/schema#'\n- 'http://json-schema.org/draft-07/hyper-schema#'",
+      "type": "string"
+    },
+    "ModelGraph": {
+      "additionalProperties": false,
+      "description": "Defined relationship for one model",
+      "properties": {
+        "ancestors": {
+          "description": "Model names of the parent of the parent, etc...",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "binaries": {
+          "description": "Binaries attribute, in the model you can declare attributes as Binary, so users can upload binaries that will be linked to this object with some metadata",
+          "items": {
+            "$ref": "#/definitions/ModelGraphBinaryDefinition"
+          },
+          "type": "array"
+        },
+        "children": {
+          "description": "References to every model that declare this model as a parent",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "links": {
+          "description": "This contains links to other models. These links are low cardinality as ids and their selected attributes are stored in the current model.",
+          "items": {
+            "$ref": "#/definitions/ModelRelation"
+          },
+          "type": "array"
+        },
+        "maps": {
+          "description": "Maps are deduplication of data in your model They are managed automatically by a service like `ModelMapper`\n\nThey are useful in NoSQL environment like DynamoDB or Firebase",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "attribute": {
+                "description": "Attribute in the model",
+                "type": "string"
+              },
+              "cascadeDelete": {
+                "type": "boolean"
+              },
+              "model": {
+                "description": "Target model",
+                "type": "string"
+              },
+              "targetAttributes": {
+                "description": "Target model attributes to duplicate",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "targetLink": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "attribute",
+              "model",
+              "targetAttributes",
+              "targetLink",
+              "cascadeDelete"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "parent": {
+          "additionalProperties": false,
+          "description": "If the model has a parent",
+          "properties": {
+            "attribute": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "attribute",
+            "model"
+          ],
+          "type": "object"
+        },
+        "queries": {
+          "description": "Target other models with a new query This is usually our foreign keys\n\nThis will generate queries for you: SELECT * FROM 'model' WHERE 'targetAttribute' = 'this[attribute]'",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "attribute": {
+                "description": "Attribute in the model",
+                "type": "string"
+              },
+              "model": {
+                "description": "Targeted model",
+                "type": "string"
+              },
+              "targetAttribute": {
+                "description": "Targeted model attribute",
+                "type": "string"
+              }
+            },
+            "required": [
+              "attribute",
+              "model",
+              "targetAttribute"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ModelGraphBinaryDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "attribute": {
+          "type": "string"
+        },
+        "cardinality": {
+          "enum": [
+            "ONE",
+            "MANY"
+          ],
+          "type": "string"
+        },
+        "metadata": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribute",
+        "cardinality"
+      ],
+      "type": "object"
+    },
+    "ModelMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "Ancestors": {
+          "description": "Ancestors of the model",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "Import": {
+          "description": "File to import",
+          "type": "string"
+        },
+        "Plural": {
+          "description": "Specific plurals for a model",
+          "type": "string"
+        },
+        "Relations": {
+          "$ref": "#/definitions/ModelGraph",
+          "description": "Models graph\n\nTypescript does not have reflection, we therefore deduct the relations on compilation time and inject in the module\n\nThe parent is define by a ModelParent type on the model The links are attribute of types ModelLink"
+        },
+        "Schema": {
+          "$ref": "#/definitions/JSONSchema7",
+          "description": "Schema defining the model"
+        },
+        "ShortName": {
+          "description": "If model have a short name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "Import",
+        "Plural",
+        "Schema",
+        "Relations",
+        "Ancestors"
+      ],
+      "type": "object"
+    },
+    "ModelRelation": {
+      "additionalProperties": false,
+      "properties": {
+        "attribute": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "LINK",
+            "LINKS_MAP",
+            "LINKS_ARRAY",
+            "LINKS_SIMPLE_ARRAY"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribute",
+        "model",
+        "type"
+      ],
+      "type": "object"
+    },
+    "Module": {
+      "additionalProperties": false,
+      "description": "A Webda module is a NPM package\n\nIt contains one or more Modda to provide features",
+      "properties": {
+        "$schema": {
+          "description": "Schema version",
+          "type": "string"
+        },
+        "beans": {
+          "additionalProperties": {
+            "$ref": "#/definitions/ServiceMetadata"
+          },
+          "description": "Beans",
+          "type": "object"
+        },
+        "deployers": {
+          "additionalProperties": {
+            "$ref": "#/definitions/ServiceMetadata"
+          },
+          "description": "Deployers provided by this module",
+          "type": "object"
+        },
+        "moddas": {
+          "additionalProperties": {
+            "$ref": "#/definitions/ServiceMetadata"
+          },
+          "description": "Services provided by the module",
+          "type": "object"
+        },
+        "models": {
+          "additionalProperties": {
+            "$ref": "#/definitions/ModelMetadata",
+            "description": "Models provided by the module"
+          },
+          "description": "Models provided by the module",
+          "type": "object"
+        },
+        "schemas": {
+          "additionalProperties": {
+            "$ref": "#/definitions/JSONSchema7"
+          },
+          "description": "Additional schemas defined by the module Not through a CoreModel or a ServiceParameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "$schema",
+        "schemas",
+        "models"
+      ],
+      "type": "object"
+    },
+    "ServiceMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "Import": {
+          "description": "File to import",
+          "type": "string"
+        },
+        "Schema": {
+          "$ref": "#/definitions/JSONSchema7",
+          "description": "Schema defining the service"
+        }
+      },
+      "required": [
+        "Import",
+        "Schema"
+      ],
+      "type": "object"
+    }
+  }
+}

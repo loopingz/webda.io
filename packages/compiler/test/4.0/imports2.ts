@@ -6,6 +6,6 @@ import { WebdaTest } from "@webda/core/lib/test";
 
 class Test extends CoreModelDefinition {
   test() {
-    let CoreModelDefinition = "";
+    const CoreModelDefinition = "";
   }
 }

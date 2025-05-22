@@ -100,8 +100,7 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
       }
     }
     // Launch the resource now
-    const result = await this.client.create(resources);
-    return { metadata: result.body.metadata, apiVersion: result.body.apiVersion, kind: result.body.kind };
+    return await this.client.create(resources);
   }
 
   /**

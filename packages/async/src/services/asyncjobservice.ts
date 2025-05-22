@@ -570,7 +570,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       throw new Error("Unknown action received from hook");
     } else if (jobInfo.JOB_HOOK === "store") {
       // If executor and orchestrator runs within same privilege it simplify the infrastructure
-      return <Promise<AsyncWebdaAction>>(await this.model.ref(jobInfo.JOB_ID).get()).update(message);
+      const model = await this.model.ref(jobInfo.JOB_ID).get();
+      await model.patch(message, null);
+      return <AsyncWebdaAction>model;
     }
   }
 

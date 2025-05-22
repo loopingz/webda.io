@@ -20,7 +20,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @private
    */
   @NotEnumerable
-  __dirty?: Set<string>;
+  __WEBDA_DIRTY?: Set<string>;
 
   /** Non-abstract class need to define their PrimaryKey */
   public abstract PrimaryKey: readonly (keyof this)[];
@@ -145,15 +145,15 @@ export abstract class Model implements Storable, Securable, ExposableModel {
 
   async save(): Promise<void> {
     const repo = this.getRepository();
-    if (!this.__dirty) {
+    if (!this.__WEBDA_DIRTY) {
       await repo.upsert(this.getPrimaryKey(), this.toJSON());
     } else {
       const patch = {} as JSONedAttributes<this>;
-      for (const k of this.__dirty) {
+      for (const k of this.__WEBDA_DIRTY) {
         patch[k] = this[k];
       }
       await repo.patch(this.getPrimaryKey(), patch);
-      this.__dirty.clear();
+      this.__WEBDA_DIRTY.clear();
     }
   }
 }

@@ -220,19 +220,23 @@ export type FunctionReturn<T> = T extends (...args: any) => infer R ? R : never;
 // 1) A strict “equals” check that can distinguish
 //    two types that differ only by a `readonly` modifier.
 export type IfEquals<X, Y, A = never, B = X> =
-  (<T>() => T extends X ? 1 : 2) extends
-  (<T>() => T extends Y ? 1 : 2)
-    ? A
-    : B;
+  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B;
 
 // 2) Now build ReadonlyKeys by stripping `readonly`
 //    off each single‑prop type and seeing which
 //    ones *change* (i.e. were readonly originally).
 export type ReadonlyKeys<T> = {
   [P in keyof T]-?: IfEquals<
-    { [Q in P]: T[P] },          // original single‑prop type
-    { -readonly [Q in P]: T[P] },// “mutable” version
-    never,                       // same ⇒ not readonly
-    P                            // different ⇒ was readonly
-  >
+    { [Q in P]: T[P] }, // original single‑prop type
+    { -readonly [Q in P]: T[P] }, // “mutable” version
+    never, // same ⇒ not readonly
+    P // different ⇒ was readonly
+  >;
 }[keyof T];
+
+/**
+ * Omit all keys that start with a prefix
+ */
+export type OmitPrefixed<T, Prefix extends string> = {
+  [K in keyof T as K extends `${Prefix}${string}` ? never : K]: T[K];
+};

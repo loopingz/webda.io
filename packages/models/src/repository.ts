@@ -1,8 +1,16 @@
 import type { ArrayElement, Constructor } from "@webda/tsc-esm";
-import type { Eventable, JSONed, JSONedAttributes, PK, PrimaryKeyType, Storable, StorableAttributes, UpdatableAttributes } from "./storable";
+import type {
+  Eventable,
+  JSONed,
+  JSONedAttributes,
+  PK,
+  PrimaryKey,
+  PrimaryKeyType,
+  Storable,
+  StorableAttributes,
+  UpdatableAttributes
+} from "./storable";
 import { ModelRefWithCreate } from "./relations";
-
-
 
 /**
  * This represent the injected methods of Store into the Model
@@ -13,8 +21,9 @@ export interface Repository<T extends Storable & Eventable> {
    * We need a way to convert this string to the object
    *
    * @param uuid serialized primary key
+   * @param forceObject if true, the result will be an object with the primary key fields
    */
-  fromUUID(uuid: string): PrimaryKeyType<T>;
+  fromUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T>;
   /**
    * Get data from the store
    * @param uuid
@@ -27,10 +36,20 @@ export interface Repository<T extends Storable & Eventable> {
    */
   ref(uuid: PrimaryKeyType<T>): ModelRefWithCreate<T>;
   /**
+   * Remove the primary key from the object
+   * @param object
+   */
+  excludePrimaryKey(object: any): any;
+  /**
    * Extract the primary key from the object
    * @param object to extract the primary key from
    */
   getPrimaryKey(object: any): PrimaryKeyType<T>;
+  /**
+   * Get the UUID of the object
+   * @param object to extract the primary key from
+   */
+  getUUID(object: any): string;
   /**
    * Create data in the store
    * @param uuid
@@ -196,7 +215,6 @@ export interface Repository<T extends Storable & Eventable> {
   off<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void;
 }
 
-
 /**
  * This is a simple in-memory repository implementation
  * It is used for testing purposes only
@@ -205,10 +223,25 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   private storage = new Map<string, string>();
   private events = new Map<keyof T["Events"], Set<(data: any) => void>>();
 
-  constructor(private model: Constructor<T, any[]>) {}
+  constructor(
+    private model: Constructor<T, any[]>,
+    protected pks: string[],
+    protected separator: string = "_"
+  ) {}
 
-  fromUUID(uuid: string): PK<T, T["PrimaryKey"][number]> {
-    throw new Error("Not implemented");
+  fromUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T> {
+    if (this.pks.length === 1) {
+      return forceObject ? ({ [this.pks[0]]: uuid } as PrimaryKey<T>) : (uuid as PK<T, T["PrimaryKey"][number]>);
+    }
+    const parts = uuid.split(this.separator);
+    if (parts.length !== this.pks.length) {
+      throw new Error(`Invalid UUID: ${uuid}`);
+    }
+    const result = {} as PK<T, T["PrimaryKey"][number]>;
+    for (let i = 0; i < this.pks.length; i++) {
+      result[this.pks[i] as keyof T] = parts[i] as any;
+    }
+    return result;
   }
 
   private makeKey(pk: PK<T, T["PrimaryKey"][number]>): string {
@@ -228,8 +261,20 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  getPrimaryKey(object: any): PK<T, T["PrimaryKey"][number]> {
-    const pkFields = (object.PrimaryKey || []) as Array<keyof T>;
+  excludePrimaryKey(object: any): any {
+    const pkFields = (object.PrimaryKey || this.pks || []) as Array<keyof T>;
+    const result = { ...object };
+    for (const field of pkFields) {
+      delete result[field];
+    }
+    return result;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  getPrimaryKey(object: any, forceObject?: boolean): PK<T, T["PrimaryKey"][number]> {
+    const pkFields = (object.PrimaryKey || this.pks || []) as Array<keyof T>;
     if (pkFields.length === 0) {
       throw new Error("No primary key defined on model");
     }
@@ -241,6 +286,20 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
       (acc as any)[field] = object[field];
       return acc;
     }, {} as any);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  getUUID(object: any): string {
+    if (typeof object !== "object") {
+      return object.toString();
+    }
+    const pk = this.getPrimaryKey(object);
+    if (typeof pk === "object") {
+      return Object.values(pk).join(this.separator);
+    }
+    return pk.toString();
   }
 
   /**
@@ -419,14 +478,19 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     if (!(obj as any)[collection]) {
       (obj as any)[collection] = [];
     }
-    this.checkItemWriteCondition(obj[collection] as Array<any>, index as number, itemWriteConditionField, itemWriteCondition);
+    this.checkItemWriteCondition(
+      obj[collection] as Array<any>,
+      index as number,
+      itemWriteConditionField,
+      itemWriteCondition
+    );
     const arr = (obj as any)[collection] as Array<any>;
     if (typeof index === "number") {
       arr[index] = item;
     } else {
       arr.push(item);
     }
-    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));  
+    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
   }
 
   /**
@@ -441,7 +505,12 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   ): Promise<void> {
     const obj = await this.get(primaryKey);
     const arr = (obj as any)[collection] as Array<any>;
-    this.checkItemWriteCondition(obj[collection] as Array<any>, index as number, itemWriteConditionField, itemWriteCondition);
+    this.checkItemWriteCondition(
+      obj[collection] as Array<any>,
+      index as number,
+      itemWriteConditionField,
+      itemWriteCondition
+    );
     if (Array.isArray(arr) && index >= 0 && index < arr.length) {
       arr.splice(index, 1);
       this.storage.set(this.makeKey(primaryKey), this.serialize(obj));

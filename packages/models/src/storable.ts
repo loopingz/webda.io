@@ -22,7 +22,7 @@ export interface Storable<T = any, K extends keyof T = any, U = any> {
   /**
    * Properties that are dirty and need to be saved
    */
-  __dirty?: Set<string>;
+  __WEBDA_DIRTY?: Set<string>;
 }
 
 /**
@@ -97,7 +97,12 @@ export function PrimaryKeyEquals(a: PrimaryKeyType<any> | Storable, b: PrimaryKe
     b = b.getPrimaryKey();
   }
   if (a instanceof Object && b instanceof Object) {
-    return a.constructor === b.constructor && Object.keys(a).filter(k => typeof a[k] !== "function").every(key => a[key] === b[key]);
+    return (
+      a.constructor === b.constructor &&
+      Object.keys(a)
+        .filter(k => typeof a[k] !== "function")
+        .every(key => a[key] === b[key])
+    );
   }
   return a === b;
 }
@@ -133,7 +138,10 @@ export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
 /**
  * Get the model attributes without the primary key properties
  */
-export type UpdatableAttributes<T extends Storable, U = any> = Exclude<StorableAttributes<T, U>, PrimaryKeyAttributes<T> | ReadonlyKeys<T>>;
+export type UpdatableAttributes<T extends Storable, U = any> = Exclude<
+  StorableAttributes<T, U>,
+  PrimaryKeyAttributes<T> | ReadonlyKeys<T>
+>;
 
 /**
  * Define the events for the model

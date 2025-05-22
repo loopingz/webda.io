@@ -8,7 +8,7 @@ import { PrimaryKeyEquals } from "./storable";
 class RepositoryTest {
   @test
   async testModelCRUD() {
-    const repo = new MemoryRepository<SubClassModel>(SubClassModel);
+    const repo = new MemoryRepository<SubClassModel>(SubClassModel, ["uuid"]);
     SubClassModel.registerRepository(repo);
     const object = await repo.ref("test").create({
       name: "Test",
@@ -19,7 +19,7 @@ class RepositoryTest {
     });
     await object.save();
     object.name = "Updated Test";
-    object.__dirty = new Set(["name"]);
+    object.__WEBDA_DIRTY = new Set(["name"]);
     await object.save();
     const object2 = await repo.get(object.getPrimaryKey());
     assert.strictEqual(object2.name, "Updated Test");
@@ -145,7 +145,7 @@ class RepositoryTest {
 
   @test
   async testModelWithCompositeId() {
-    const repo = new MemoryRepository<TestModel>(TestModel);
+    const repo = new MemoryRepository<TestModel>(TestModel, ["uuid"]);
     TestModel.registerRepository(repo);
     const test = await repo.create(
       {
@@ -162,7 +162,19 @@ class RepositoryTest {
     });
     const test2 = await repo.get(test.getPrimaryKey());
     assert.deepStrictEqual(test2, test);
-    assert.throws(() => repo.getPrimaryKey({}), /No primary key defined on model/);
-    assert.throws(() => repo.fromUUID("test"), /Not implemented/);
+    assert.strictEqual(repo.getPrimaryKey({ uuid: "test" }), "test");
+    assert.strictEqual(repo.fromUUID("test"), "test");
+  }
+
+  @test
+  cov() {
+    let repo = new MemoryRepository<TestModel>(TestModel, []);
+    assert.throws(() => repo.getPrimaryKey({}), /No primary key defined/);
+    repo = new MemoryRepository<TestModel>(TestModel, ["uuid", "name"]);
+    assert.throws(() => repo.fromUUID("test_test_test"), /Invalid UUID/);
+    assert.deepStrictEqual(repo.fromUUID("test_test2"), {
+      uuid: "test",
+      name: "test2"
+    });
   }
 }

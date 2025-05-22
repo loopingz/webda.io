@@ -56,6 +56,8 @@ export function ActionSuper(target: any, action: string, ...args: any[]): any {
   return new (Object.getPrototypeOf(Object.getPrototypeOf(target).constructor))(this)[action](...args);
 }
 
+ActionWrapper.super = ActionSuper;
+
 /**
  * Find all actions defined in a class
  *

@@ -1,0 +1,69 @@
+{
+ "parameters": {
+  "website": ["dev.webda-demo.com","dev.webda-demo.com:28080"],
+  "csrfOrigins": [
+    "^accounts\\.google\\.\\w{2,}$",
+    "\\w+\\.facebook\\.com"
+  ],
+  "region": "eu-west-1",
+  "accessKeyId": "DEV_ACCESS",
+  "secretAccessKey": "DEV_KEY",
+  "sessionSecret": "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+ },
+ "resources": {
+  "restApi": "webda-demo-dev",
+  "lambdaRole": "arn:aws:iam::111222333:role/webda-demo-dev-api",
+  "accessKeyId": "DEV_DEPLOYMENT_KEY",
+  "secretAccessKey": "DEV_DEPLOYMENT_SECRET_KEY",
+  "FargateRegion": "eu-west-1"
+ },
+ "services": {
+  "Mailer": {
+    "config": {
+      "accessKeyId": "MAIL_TEST"
+    }
+  },
+    "contacts": {
+      "table": "dev-table"
+    }
+ },
+ "uuid": "Dev",
+ "type": "aws",
+ "callback": "",
+ "units": [
+  {
+   "workers": [
+    "ProcessorService"
+   ],
+   "name": "Workers",
+   "type": "Webda/CdkDeployer",
+   "subtype": "Fargate",
+   "clusterName": "webda-demo",
+   "serviceName": "webda-demo-workers",
+   "taskMemory": "1024",
+   "taskCpu": "512",
+   "subnets": "subnet-30095257,subnet-3aa9cd61,subnet-4708250e",
+   "securityGroup": "sg-72d37e09",
+   "tasksNumber": "2",
+   "taskRole": "arn:aws:iam::111222333:role/webda-test"
+  },
+  {
+   "name": "Lambda",
+   "type": "Webda/CdkDeployer",
+   "subtype": "Lambda",
+   "restApi": "webda-api-dev",
+   "lambdaRole": "arn:aws:iam::111222333:role/webdaapi-api",
+   "lambdaStorage": "s3://webda-lambdas/webda-api-dev-$commit.zip",
+   "lambdaMemory": "2048",
+   "customDomain": false
+  },
+  {
+   "name": "S3",
+   "type": "Webda/CdkDeployer",
+   "subtype": "S3",
+   "customDomain": true
+  }
+ ],
+ "_type": "deployment",
+ "lastUpdate": "2018-03-30T17:10:21.836Z"
+}

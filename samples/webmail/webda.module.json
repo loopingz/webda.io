@@ -1,0 +1,2103 @@
+{
+  "beans": {
+    "WebdaDemo/BeanService": "lib/services/bean:BeanService",
+    "WebdaDemo/CustomService": "lib/services/custom:CustomService",
+    "WebdaDemo/SampleAppGoodBean": "lib/services/bean:SampleAppGoodBean"
+  },
+  "deployers": {
+    "WebdaDemo/CustomDeployer": "lib/services/deployer:CustomDeployer"
+  },
+  "moddas": {
+    "WebdaDemo/AnotherService": "lib/services/compiler:AnotherService",
+    "WebdaDemo/CustomReusableService": "lib/services/reusable:default",
+    "WebdaDemo/FourthOtherService": "lib/services/compiler:FourthOtherService",
+    "WebdaDemo/QueueService": "lib/services/compiler:QueueService",
+    "WebdaDemo/SecondOtherService": "lib/services/compiler:SecondOtherService",
+    "WebdaDemo/SimpleService": "lib/services/compiler:SimpleService",
+    "WebdaDemo/ThirdOtherService": "lib/services/compiler:ThirdOtherService"
+  },
+  "models": {
+    "graph": {
+      "WebdaDemo/AbstractProject": {},
+      "WebdaDemo/AnotherSubProject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        }
+      },
+      "WebdaDemo/Brand": {},
+      "WebdaDemo/Classroom": {
+        "maps": [
+          {
+            "attribute": "courses",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Course",
+            "targetLink": "classroom",
+            "targetAttributes": [
+              "name",
+              "uuid"
+            ]
+          }
+        ],
+        "queries": [
+          {
+            "attribute": "hardwares",
+            "model": "WebdaDemo/Hardware",
+            "targetAttribute": "classroom"
+          }
+        ],
+        "children": [
+          "WebdaDemo/Hardware"
+        ]
+      },
+      "WebdaDemo/Company": {
+        "maps": [
+          {
+            "attribute": "_projects",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Project",
+            "targetLink": "_company",
+            "targetAttributes": [
+              "name",
+              "type",
+              "uuid"
+            ]
+          }
+        ],
+        "queries": [
+          {
+            "attribute": "users",
+            "model": "WebdaDemo/User",
+            "targetAttribute": "_company"
+          }
+        ],
+        "children": [
+          "WebdaDemo/Project",
+          "WebdaDemo/User"
+        ]
+      },
+      "WebdaDemo/Computer": {
+        "parent": {
+          "attribute": "_user",
+          "model": "WebdaDemo/User"
+        },
+        "links": [
+          {
+            "attribute": "_loanTo",
+            "model": "WebdaDemo/User",
+            "type": "LINK"
+          }
+        ]
+      },
+      "WebdaDemo/ComputerScreen": {
+        "parent": {
+          "attribute": "classroom",
+          "model": "WebdaDemo/Classroom"
+        },
+        "queries": [
+          {
+            "attribute": "brands",
+            "model": "WebdaDemo/Brand",
+            "targetAttribute": "name"
+          }
+        ]
+      },
+      "WebdaDemo/Contact": {
+        "binaries": [
+          {
+            "attribute": "avatar",
+            "cardinality": "ONE"
+          },
+          {
+            "attribute": "photos",
+            "cardinality": "MANY"
+          }
+        ],
+        "links": [
+          {
+            "attribute": "owner",
+            "model": "WebdaDemo/User",
+            "type": "LINK"
+          }
+        ]
+      },
+      "WebdaDemo/Course": {
+        "links": [
+          {
+            "attribute": "classroom",
+            "model": "WebdaDemo/Classroom",
+            "type": "LINK"
+          },
+          {
+            "attribute": "teacher",
+            "model": "WebdaDemo/Teacher",
+            "type": "LINK"
+          },
+          {
+            "attribute": "students",
+            "model": "WebdaDemo/Student",
+            "type": "LINKS_MAP"
+          }
+        ]
+      },
+      "WebdaDemo/Hardware": {
+        "parent": {
+          "attribute": "classroom",
+          "model": "WebdaDemo/Classroom"
+        },
+        "queries": [
+          {
+            "attribute": "brands",
+            "model": "WebdaDemo/Brand",
+            "targetAttribute": "name"
+          }
+        ]
+      },
+      "WebdaDemo/Project": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        }
+      },
+      "WebdaDemo/Student": {
+        "links": [
+          {
+            "attribute": "friends",
+            "model": "WebdaDemo/Student",
+            "type": "LINKS_ARRAY"
+          },
+          {
+            "attribute": "teachers",
+            "model": "WebdaDemo/Teacher",
+            "type": "LINKS_SIMPLE_ARRAY"
+          }
+        ],
+        "maps": [
+          {
+            "attribute": "courses",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Course",
+            "targetLink": "students",
+            "targetAttributes": [
+              "name",
+              "uuid"
+            ]
+          }
+        ]
+      },
+      "WebdaDemo/SubProject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        }
+      },
+      "WebdaDemo/SubSubProject": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        }
+      },
+      "WebdaDemo/Teacher": {
+        "maps": [
+          {
+            "attribute": "courses",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Course",
+            "targetLink": "teacher",
+            "targetAttributes": [
+              "name",
+              "uuid"
+            ]
+          },
+          {
+            "attribute": "students",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Student",
+            "targetLink": "teachers",
+            "targetAttributes": [
+              "firstName",
+              "lastName",
+              "email",
+              "uuid"
+            ]
+          }
+        ]
+      },
+      "WebdaDemo/User": {
+        "parent": {
+          "attribute": "_company",
+          "model": "WebdaDemo/Company"
+        },
+        "binaries": [
+          {
+            "attribute": "profilePicture",
+            "cardinality": "ONE"
+          },
+          {
+            "attribute": "images",
+            "cardinality": "MANY"
+          }
+        ],
+        "queries": [
+          {
+            "attribute": "computers",
+            "model": "WebdaDemo/Computer",
+            "targetAttribute": "_user"
+          }
+        ],
+        "maps": [
+          {
+            "attribute": "contacts",
+            "cascadeDelete": false,
+            "model": "WebdaDemo/Contact",
+            "targetLink": "owner",
+            "targetAttributes": [
+              "firstName",
+              "lastName",
+              "age",
+              "uuid"
+            ]
+          }
+        ],
+        "children": [
+          "WebdaDemo/Computer"
+        ]
+      }
+    },
+    "tree": {
+      "Webda/AclModel": {
+        "WebdaDemo/AbstractProject": {
+          "WebdaDemo/Project": {
+            "WebdaDemo/SubProject": {},
+            "WebdaDemo/AnotherSubProject": {
+              "WebdaDemo/SubSubProject": {}
+            }
+          }
+        }
+      },
+      "Webda/User": {
+        "WebdaDemo/User": {}
+      },
+      "Webda/UuidModel": {
+        "WebdaDemo/Student": {},
+        "WebdaDemo/Teacher": {},
+        "WebdaDemo/Course": {},
+        "WebdaDemo/Classroom": {},
+        "WebdaDemo/Hardware": {
+          "WebdaDemo/ComputerScreen": {}
+        },
+        "WebdaDemo/Brand": {}
+      },
+      "WebdaDemo/Company": {},
+      "WebdaDemo/Computer": {},
+      "WebdaDemo/Contact": {}
+    },
+    "plurals": {
+      "WebdaDemo/Company": "Companies"
+    },
+    "list": {
+      "WebdaDemo/AbstractProject": "lib/models/project:AbstractProject",
+      "WebdaDemo/AnotherSubProject": "lib/models/project:AnotherSubProject",
+      "WebdaDemo/Brand": "lib/models/relations:Brand",
+      "WebdaDemo/Classroom": "lib/models/relations:Classroom",
+      "WebdaDemo/Company": "lib/models/company:Company",
+      "WebdaDemo/Computer": "lib/models/user:Computer",
+      "WebdaDemo/ComputerScreen": "lib/models/relations:ComputerScreen",
+      "WebdaDemo/Contact": "lib/models/contact:default",
+      "WebdaDemo/Course": "lib/models/relations:Course",
+      "WebdaDemo/Hardware": "lib/models/relations:Hardware",
+      "WebdaDemo/Project": "lib/models/project:Project",
+      "WebdaDemo/Student": "lib/models/relations:Student",
+      "WebdaDemo/SubProject": "lib/models/project:SubProject",
+      "WebdaDemo/SubSubProject": "lib/models/project:SubSubProject",
+      "WebdaDemo/Teacher": "lib/models/relations:Teacher",
+      "WebdaDemo/User": "lib/models/user:User"
+    },
+    "reflections": {
+      "WebdaDemo/AbstractProject": {
+        "_creator": "string",
+        "__acl": "Acl",
+        "_permissions": "string[]",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/AnotherSubProject": {
+        "_company": "ModelParent<Company>",
+        "name": "string",
+        "type": "string",
+        "uuid": "string",
+        "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
+        "_creator": "string",
+        "__acl": "Acl",
+        "_permissions": "string[]",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Brand": {
+        "name": "string",
+        "uuid": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Classroom": {
+        "uuid": "string",
+        "name": "string",
+        "courses": "ModelsMapped<Course, \"classroom\", \"name\">",
+        "hardwares": "ModelRelated<Hardware, \"classroom\">",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Company": {
+        "_projects": "ModelsMapped<Project, \"_company\", \"name\" | \"type\">",
+        "users": "ModelRelated<User, \"_company\">",
+        "name": "string",
+        "testNotEnumerable": "string",
+        "mapString": "{ [key: string]: string }",
+        "mapAny": "{ [key: string]: any }",
+        "mapNumber": "{ [key: string]: number }",
+        "mapBoolean": "{ [key: string]: boolean }",
+        "mapObject": "{ [key: string]: { test: number; b: boolean; status: string } }",
+        "permissions": "Permission[]",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Computer": {
+        "_user": "ModelParent<User>",
+        "_loanTo": "ModelLink<User>",
+        "name": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/ComputerScreen": {
+        "modelId": "string",
+        "serialNumber": "string",
+        "classroom": "ModelParent<Classroom>",
+        "name": "string",
+        "brands": "ModelRelated<Brand, \"name\">",
+        "uuid": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Contact": {
+        "firstName": "string",
+        "lastName": "string",
+        "type": "\"PERSONAL\" | \"PROFESSIONAL\"",
+        "age": "number",
+        "custom": "string",
+        "readonly": "number",
+        "optional": "string",
+        "avatar": "Binary",
+        "photos": "Binaries<{ location: { lat: number; lng: number } }>",
+        "owner": "ModelLink<User>",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Course": {
+        "uuid": "string",
+        "name": "string",
+        "classroom": "ModelLink<Classroom>",
+        "teacher": "ModelLink<Teacher>",
+        "students": "ModelLinksMap<\n    Student,\n    {\n      firstName: string;\n      lastName?: string;\n    }\n  >",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Hardware": {
+        "classroom": "ModelParent<Classroom>",
+        "name": "string",
+        "brands": "ModelRelated<Brand, \"name\">",
+        "uuid": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Project": {
+        "_company": "ModelParent<Company>",
+        "name": "string",
+        "type": "string",
+        "uuid": "string",
+        "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
+        "_creator": "string",
+        "__acl": "Acl",
+        "_permissions": "string[]",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Student": {
+        "email": "string",
+        "firstName": "string",
+        "lastName": "string",
+        "order": "number",
+        "friends": "ModelLinksArray<Student, { email: string; firstName: string; lastName: string }>",
+        "teachers": "ModelLinksSimpleArray<Teacher>",
+        "courses": "ModelsMapped<Course, \"students\", \"name\">",
+        "constraints": "null",
+        "uuid": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/SubProject": {
+        "_company": "ModelParent<Company>",
+        "name": "string",
+        "type": "string",
+        "uuid": "string",
+        "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
+        "_creator": "string",
+        "__acl": "Acl",
+        "_permissions": "string[]",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/SubSubProject": {
+        "attribute1": "string",
+        "_company": "ModelParent<Company>",
+        "name": "string",
+        "type": "string",
+        "uuid": "string",
+        "protectMe": "{\n    /**\n     * Some doc\n     */\n    test: string;\n    /**\n     * Other doc\n     */\n    n: number;\n  }",
+        "_creator": "string",
+        "__acl": "Acl",
+        "_permissions": "string[]",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/Teacher": {
+        "uuid": "string",
+        "courses": "ModelsMapped<Course, \"teacher\", \"name\">",
+        "students": "ModelsMapped<Student, \"teachers\", \"firstName\" | \"lastName\" | \"email\">",
+        "name": "string",
+        "senior": "boolean",
+        "anyArray": "any[]",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      },
+      "WebdaDemo/User": {
+        "_company": "ModelParent<Company>",
+        "name": "string",
+        "profilePicture": "Binary<{ width: number; height: number }>",
+        "images": "Binaries",
+        "computers": "ModelRelated<Computer, \"_user\">",
+        "contacts": "ModelsMapped<Contact, \"owner\", \"firstName\" | \"lastName\" | \"age\">",
+        "__password": "string",
+        "displayName": "string",
+        "_lastPasswordRecovery": "number",
+        "_avatar": "string",
+        "locale": "string",
+        "email": "string",
+        "__class": "CoreModelDefinition<this>",
+        "__type": "string",
+        "__types": "string[]",
+        "__ctx": "OperationContext",
+        "__store": "Store<this>",
+        "__dirty": "Set<string | symbol>",
+        "_creationDate": "Date",
+        "_lastUpdate": "Date",
+        "__deleted": "boolean"
+      }
+    }
+  },
+  "schemas": {
+    "CustomService.testOperation.input": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "num": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "test",
+        "num"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomService.testOperation.input"
+    },
+    "CustomService.testOperationWithOutput.input": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomService.testOperationWithOutput.input"
+    },
+    "CustomService.testOperationWithOutput.output": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomService.testOperationWithOutput.output"
+    },
+    "SampleAppGoodBean.operation.input": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "projectId"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SampleAppGoodBean.operation.input"
+    },
+    "WebdaDemo/AbstractProject": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        }
+      },
+      "description": "This file contains several empty methods to test our auto docs\n\nAbstract class should not be exported as model",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AbstractProject"
+    },
+    "WebdaDemo/AnotherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "anotherParameter": {
+          "type": "string"
+        },
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "description": "The Partial will generate a new $ref"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "title": "AnotherService"
+    },
+    "WebdaDemo/AnotherSubProject": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "uuid"
+      ],
+      "description": "Test of TypeParams",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnotherSubProject"
+    },
+    "WebdaDemo/BeanService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/BinaryFile": {
+      "type": "object",
+      "properties": {
+        "hash": {
+          "type": "string",
+          "description": "Will be computed by the service\n\nhash of the content"
+        },
+        "challenge": {
+          "type": "string",
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
+        },
+        "size": {
+          "type": "number",
+          "description": "Size of the binary"
+        },
+        "name": {
+          "type": "string",
+          "description": "Current name"
+        },
+        "mimetype": {
+          "type": "string",
+          "description": "Mimetype of the binary"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "originalname": {
+          "type": "string",
+          "description": "Original name"
+        }
+      },
+      "required": [
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "description": "Represent a file to store",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BinaryFile"
+    },
+    "WebdaDemo/Brand": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "uuid"
+      ],
+      "description": "Model not exposed on purpose",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Brand"
+    },
+    "WebdaDemo/Classroom": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        }
+      },
+      "required": [
+        "name",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Classroom"
+    },
+    "WebdaDemo/Classroom.test.input": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test",
+        "id"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WebdaDemo/Classroom.test.input"
+    },
+    "WebdaDemo/Company": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "mapString": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Test of maps for GraphQL"
+        },
+        "mapAny": {
+          "type": "object"
+        },
+        "mapNumber": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "mapBoolean": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "mapObject": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "test": {
+                "type": "number"
+              },
+              "b": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "test",
+              "b",
+              "status"
+            ]
+          }
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Permission"
+          }
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Permission": {
+          "type": "string",
+          "enum": [
+            "PRODUCT_1",
+            "PRODUCT_2",
+            "PRODUCT_3"
+          ]
+        }
+      },
+      "title": "Company"
+    },
+    "WebdaDemo/Computer": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_user": {
+          "type": "string",
+          "readOnly": true
+        },
+        "_loanTo": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Computer"
+    },
+    "WebdaDemo/ComputerScreen": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "classroom": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "modelId": {
+          "type": "string"
+        },
+        "serialNumber": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "classroom",
+        "modelId",
+        "name",
+        "serialNumber",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ComputerScreen"
+    },
+    "WebdaDemo/Contact": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "firstName": {
+          "type": "string",
+          "description": "Contact firstname"
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Contact lastname"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "PERSONAL",
+            "PROFESSIONAL"
+          ],
+          "description": "Contact type"
+        },
+        "age": {
+          "type": "number",
+          "description": "Contact age",
+          "minimum": 0
+        },
+        "readonly": {
+          "type": "number",
+          "description": "To indicate a property that will be set by server, similar to",
+          "readOnly": true
+        },
+        "optional": {
+          "type": "string",
+          "description": "Useful to auto complete on the creation side without forcing UI to push the attribute"
+        },
+        "avatar": {
+          "type": "object",
+          "readOnly": true
+        },
+        "photos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "object",
+                "properties": {
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lng"
+                ]
+              }
+            },
+            "required": [
+              "location"
+            ]
+          },
+          "readOnly": true
+        },
+        "owner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "firstName",
+        "lastName",
+        "type",
+        "age",
+        "owner"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact"
+    },
+    "WebdaDemo/Course": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "classroom": {
+          "type": "string"
+        },
+        "teacher": {
+          "type": "string"
+        },
+        "students": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "firstName",
+              "uuid"
+            ]
+          }
+        }
+      },
+      "required": [
+        "classroom",
+        "name",
+        "students",
+        "teacher",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Course"
+    },
+    "WebdaDemo/CustomDeployer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomDeployer"
+    },
+    "WebdaDemo/CustomReusableService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "mandatoryField": {
+          "type": "string"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "mandatoryField",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomReusableService"
+    },
+    "WebdaDemo/CustomService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "introspection": {
+          "$ref": "#/definitions/Partial%3Cclass-178760925-2901-3385-178760925-0-9590976353190%3E"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "introspection",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<class-178760925-2901-3385-178760925-0-9590976353190>": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Type of the service"
+            },
+            "url": {
+              "type": "string",
+              "description": "URL on which to serve the content"
+            }
+          }
+        }
+      },
+      "title": "CustomService"
+    },
+    "WebdaDemo/FourthOtherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "anotherParameter": {
+          "type": "string"
+        },
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "description": "The Partial will generate a new $ref"
+        },
+        "fourthParameter": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 1000
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "fourthParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "title": "FourthOtherService"
+    },
+    "WebdaDemo/Hardware": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "classroom": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "classroom",
+        "name",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Hardware"
+    },
+    "WebdaDemo/MyInterface": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "num": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "test",
+        "num"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MyInterface"
+    },
+    "WebdaDemo/Project": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Project"
+    },
+    "WebdaDemo/QueueService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "workerDelayer": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "expire": {
+          "type": "number",
+          "description": "Number of seconds before droping message",
+          "default": 30
+        },
+        "folder": {
+          "type": "string",
+          "description": "Where to store the queue"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "folder",
+        "maxConsumers",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "QueueService"
+    },
+    "WebdaDemo/SampleAppGoodBean": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/SecondOtherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "anotherParameter": {
+          "type": "string"
+        },
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-246-294-1076421816-0-1238%3E",
+          "description": "The Partial will generate a new $ref"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-1076421816-246-294-1076421816-0-1238>": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "title": "SecondOtherService"
+    },
+    "WebdaDemo/SimpleService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/Student": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "order": {
+          "type": "number"
+        },
+        "friends": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "firstName",
+              "lastName",
+              "uuid"
+            ]
+          }
+        },
+        "teachers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "constraints": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "constraints",
+        "email",
+        "firstName",
+        "friends",
+        "lastName",
+        "order",
+        "teachers",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Student"
+    },
+    "WebdaDemo/SubProject": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubProject"
+    },
+    "WebdaDemo/SubSubProject": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_creator": {
+          "type": "string",
+          "description": "Object creator",
+          "readOnly": true
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "attribute1": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attribute1",
+        "name",
+        "type",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubSubProject"
+    },
+    "WebdaDemo/SubSubProject.action.input": {
+      "type": "object",
+      "properties": {
+        "param": {
+          "type": "string",
+          "description": "My param"
+        }
+      },
+      "required": [
+        "param"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WebdaDemo/SubSubProject.action.input"
+    },
+    "WebdaDemo/SubSubProject.action2.input": {
+      "type": "object",
+      "properties": {
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "_creator": {},
+        "_creationDate": {},
+        "_lastUpdate": {}
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WebdaDemo/SubSubProject.action2.input"
+    },
+    "WebdaDemo/SubSubProject.action3.input": "WebdaDemo/Project",
+    "WebdaDemo/SubSubProject.action6.input": {
+      "type": "string",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WebdaDemo/SubSubProject.action6.input"
+    },
+    "WebdaDemo/Teacher": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "courses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "students": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "email",
+              "firstName",
+              "lastName",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "senior": {
+          "type": "boolean"
+        },
+        "anyArray": {
+          "type": "array",
+          "items": {},
+          "description": "Test that graphql can handle any[]"
+        }
+      },
+      "required": [
+        "anyArray",
+        "name",
+        "senior",
+        "uuid"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Teacher"
+    },
+    "WebdaDemo/testInput": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "optional": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomBody"
+    },
+    "WebdaDemo/testOutput": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomBody"
+    },
+    "WebdaDemo/ThirdOtherService": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL on which to serve the content"
+        },
+        "openapi": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "WebdaDemo/User": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name for this user"
+        },
+        "_lastPasswordRecovery": {
+          "type": "number",
+          "description": "Last time the password was recovered",
+          "readOnly": true
+        },
+        "_avatar": {
+          "type": "string",
+          "description": "Define the user avatar if exists",
+          "readOnly": true
+        },
+        "locale": {
+          "type": "string",
+          "description": "Contains the locale of the user if known"
+        },
+        "email": {
+          "type": "string",
+          "description": "Contain main user email if exists"
+        },
+        "_company": {
+          "type": "string",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "profilePicture": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number"
+            },
+            "height": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "readOnly": true
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "readOnly": true
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "firstName": {
+                "type": "string",
+                "description": "Contact firstname"
+              },
+              "lastName": {
+                "type": "string",
+                "description": "Contact lastname"
+              },
+              "age": {
+                "type": "number",
+                "description": "Contact age",
+                "minimum": 0
+              },
+              "uuid": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "firstName",
+              "lastName",
+              "age",
+              "uuid"
+            ],
+            "additionalProperties": false
+          },
+          "readOnly": true
+        }
+      },
+      "required": [
+        "displayName",
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User"
+    }
+  }
+}

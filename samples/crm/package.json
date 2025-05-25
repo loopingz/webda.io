@@ -1,0 +1,46 @@
+{
+  "name": "@webda/sample-crm",
+  "version": "3.0.2",
+  "description": "Sample CRM application for @webda tutorial",
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "webda build",
+    "pretest": "npm run build",
+    "test": "echo 'No test sample available yet'"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@webda/core": "^3.10.0",
+    "@webda/shell": "^3.7.0",
+    "@webda/tsc-esm": "^1.1.0",
+    "@webda/workout": "^3.1.0",
+    "deepmerge": "^4.2.2",
+    "merge": "^2.1.1",
+    "yaml": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "logo": "none.txt",
+    "namespace": "CRMSample"
+  },
+  "devDependencies": {
+    "@types/node": "18.11.13"
+  },
+  "type": "module",
+  "nx": {
+    "implicitDependencies": [
+      "@webda/core",
+      "@webda/shell"
+    ]
+  }
+}

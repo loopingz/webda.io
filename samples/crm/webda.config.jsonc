@@ -1,0 +1,30 @@
+{
+  "$schema": "./.webda-config-schema.json",
+  "version": 3,
+  "services": {
+    "users": {
+      "model": "CRMSample/User",
+      "type": "MemoryStore",
+      "expose": { "url": "/users" }
+    },
+    "companies": {
+      "model": "CRMSample/Company",
+      "type": "MemoryStore",
+      "expose": { "url": "/companies" }
+    },
+    "contacts": {
+      "model": "CRMSample/Contact",
+      "type": "MemoryStore",
+      "expose": { "url": "/contacts" }
+    },
+    "opportunities": {
+      "model": "CRMSample/Opportunity",
+      "type": "MemoryStore",
+      "expose": { "url": "/opportunities" }
+    }
+  },
+  "parameters": {
+    "trustedProxies": "127.0.0.1, ::1",
+    "configurationService": "test"
+  }
+}

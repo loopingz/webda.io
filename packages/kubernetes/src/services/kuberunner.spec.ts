@@ -34,7 +34,6 @@ class KubeRunnerTest extends WebdaTest {
     let runner = new KubeRunner(this.webda, "runner", { jobImage: "webda.io/runner" });
     runner.resolve();
     const kube = stub(runner.client, "create").returns(Promise.resolve({
-        spec: true,
         metadata: "fake",
         apiVersion: "1.0",
         kind: "Job"

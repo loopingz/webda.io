@@ -1,4 +1,4 @@
-import type { JSONedAttributes, PK, PrimaryKeyType, Storable } from "./storable";
+import type { Eventable, JSONedAttributes, JSONedInternal, PK, PrimaryKeyType, Storable } from "./storable";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
 import type { ExposableModel } from "./exposable";
@@ -6,13 +6,73 @@ import type { ModelRefWithCreate, ModelRef } from "./relations";
 import type { ActionsEnum } from "./actionable";
 import { type Constructor, NotEnumerable } from "@webda/tsc-esm";
 import type { Repository } from "./repository";
-export class ModelEvents<T> {
-  Saved: { model: T };
-  Deleted: { model: T };
+
+/**
+ * Event sent by models
+ *
+ * Events are sent by the model to notify of changes
+ * after the changes are done
+ *
+ * If you need to prevent the change, you should extend the object
+ */
+export type ModelEvents<T = any> = {
+  Create: { object_id: string; object: T };
+  PartialUpdate: any;
+  Delete: { object_id: string };
+  Update: { object_id: string; object: T; previous: T };
+};
+
+const Repositories = new WeakMap<Constructor<Storable & Eventable>, Repository<any>>();
+
+/**
+ * Return a repository for a model
+ * @param arg
+ * @returns
+ */
+export function useRepository<T extends Storable & Eventable>(arg: Constructor<T>): Repository<T> {
+  let clazz: any = arg;
+  while (!Repositories.has(clazz)) {
+    clazz = Object.getPrototypeOf(clazz);
+    if (clazz === Model) {
+      throw new Error(`No repository found for ${this.name}`);
+    }
+  }
+  return Repositories.get(clazz) as Repository<T>;
 }
 
-const Repositories = new WeakMap<Constructor<Model>, Repository<any>>();
+/**
+ * Register a repository
+ * @param this
+ * @param repository
+ */
+export function registerRepository<T extends Storable & Eventable>(
+  model: Constructor<T, any[]>,
+  repository: Repository<T>
+): void {
+  Repositories.set(model, repository);
+}
 
+/**
+ * Model Constructor
+ */
+export type ModelPrototype<T extends Model = Model> = {
+  /**
+   * Create a new model
+   */
+  new (data: JSONedInternal<T>): T;
+  /**
+   * Reference
+   * @param this
+   * @param key
+   */
+  ref<T extends Model>(this: Constructor<T>, key: PrimaryKeyType<T>): ModelRefWithCreate<T>;
+};
+
+/**
+ * Model object definition
+ *
+ * This is the core of many application
+ */
 export abstract class Model implements Storable, Securable, ExposableModel {
   Events: ModelEvents<this>;
   /**
@@ -43,10 +103,28 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return result as any;
   }
 
+  /**
+   * Return the UUID of the model
+   * @returns
+   */
+  getUUID(): string {
+    return this.getRepository().getUUID(this);
+  }
+
+  /**
+   * Get object reference
+   * @returns
+   */
   ref(): ModelRef<this> {
     return this.getRepository().ref(this.getPrimaryKey());
   }
 
+  /**
+   * Set the primary key of the model
+   * @param this
+   * @param value
+   * @returns
+   */
   setPrimaryKey<K extends readonly (keyof this)[]>(this: this & { PrimaryKey: K }, value: PK<this, K[number]>): this {
     if (this.PrimaryKey.length === 1) {
       this[this.PrimaryKey[0]] = value as any;
@@ -64,15 +142,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @returns
    */
   static getRepository<T extends Model>(this: Constructor<T, any[]>): Repository<T> {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let clazz: any = this;
-    while (!Repositories.has(clazz)) {
-      clazz = Object.getPrototypeOf(clazz);
-      if (clazz === Model) {
-        throw new Error(`No repository found for ${this.name}`);
-      }
-    }
-    return Repositories.get(clazz) as Repository<T>;
+    return useRepository(this);
   }
 
   /**
@@ -90,7 +160,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @param repository
    */
   static registerRepository<T extends Model>(this: Constructor<T, any[]>, repository: Repository<T>): void {
-    Repositories.set(this, repository);
+    registerRepository(this, repository);
   }
 
   /**
@@ -136,6 +206,10 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return this;
   }
 
+  /**
+   * Reload the model from the repository
+   * @returns
+   */
   async refresh(): Promise<this> {
     const repo = this.getRepository();
     const data = await repo.get(this.getPrimaryKey());
@@ -143,6 +217,9 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return this;
   }
 
+  /**
+   * Save the model to the repository
+   */
   async save(): Promise<void> {
     const repo = this.getRepository();
     if (!this.__WEBDA_DIRTY) {
@@ -158,10 +235,23 @@ export abstract class Model implements Storable, Securable, ExposableModel {
   }
 }
 
+/**
+ * Simple model with a UUID
+ */
 export class UuidModel extends Model {
+  /**
+   * Definition of the primary key
+   */
   public PrimaryKey = ["uuid"] as const;
+  /**
+   * UUID of the model
+   */
   uuid: string;
 
+  /**
+   * Constructor
+   * @param data
+   */
   constructor(data?: Partial<UuidModel>) {
     super();
     this.uuid = data?.uuid || randomUUID();

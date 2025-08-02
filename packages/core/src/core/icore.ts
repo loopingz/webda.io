@@ -1,7 +1,8 @@
 import { QueryValidator } from "@webda/ql";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { Prototype } from "@webda/tsc-esm";
-import { AbstractService, AbstractModel, ModelClass } from "../internal/iapplication";
+import { AbstractService } from "../internal/iapplication";
+import { Model, ModelPrototype } from "@webda/models";
 export { AbstractService };
 /**
  * Define an operation within webda app
@@ -95,19 +96,19 @@ export interface ICore {
   isDebug(): boolean;
   getServices(): { [key: string]: AbstractService };
   reinit(updates: any): void | Promise<void>;
-  getBinaryStore(model: AbstractModel | ModelClass | string, attribute: string): AbstractService;
+  getBinaryStore(model: ModelPrototype | Model | string, attribute: string): AbstractService;
   getLocales(): string[];
   /**
    * Get the store assigned to this model
    * @param model
    * @returns
    */
-  getModelStore<T extends AbstractModel>(item: Prototype<T> | T | string): AbstractService;
+  getModelStore<T extends Model>(item: Prototype<T> | T | string): AbstractService;
   getService(name: string): AbstractService;
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);
   validateSchema(
-    webdaObject: AbstractModel | string,
+    webdaObject: Model | string,
     object: any,
     ignoreRequired?: boolean
   ): NoSchemaResult | SchemaValidResult;

@@ -14,7 +14,7 @@ import { Counter } from "../metrics/metrics";
 import { IOperationContext } from "../contexts/icontext";
 import { IStore } from "../core/icore";
 import { MappingService } from "../stores/istore";
-import { Model } from "../models/model";
+import { Model } from "@webda/models";
 
 /**
  * Represent basic EventBinary
@@ -497,7 +497,7 @@ export type BinaryEvents = {
 /**
  * Define a BinaryModel with infinite field for binary map
  */
-export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> = AbstractModel & T;
+export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> = Model & T;
 
 /**
  * This is an abstract service to represent a storage of files
@@ -759,28 +759,28 @@ export abstract class BinaryService<
           additionalAttr.join(",")
       );
     }
-    const object_uid = <any>object.getUuid();
+    const object_uid = <any>object.getUUID();
     // Check if the file is already in the array then skip
     if (Array.isArray(object[property]) && object[property].find(i => i.hash === file.hash)) {
       return;
     }
-    await this.emit("Binary.UploadSuccess", {
-      object: file,
-      service: this,
-      target: object
-    });
-    const relations = object.Class.Metadata.Relations;
-    const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
-    if (cardinality === "MANY") {
-      await (<CoreModelWithBinary<any>>object).Class.ref(object_uid).upsertItemToCollection(property, file);
-    } else {
-      await object.patch(<any>{ [property]: file });
-    }
-    await this.emit("Binary.Create", {
-      object: file,
-      service: this,
-      target: object
-    });
+    // await this.emit("Binary.UploadSuccess", {
+    //   object: file,
+    //   service: this,
+    //   target: object
+    // });
+    // const relations = object.Class.Metadata.Relations;
+    // const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
+    // if (cardinality === "MANY") {
+    //   await (<CoreModelWithBinary<any>>object).Class.ref(object_uid).upsertItemToCollection(property, file);
+    // } else {
+    //   await object.patch(<any>{ [property]: file });
+    // }
+    // await this.emit("Binary.Create", {
+    //   object: file,
+    //   service: this,
+    //   target: object
+    // });
     this.metrics.upload.inc();
   }
 
@@ -802,11 +802,12 @@ export abstract class BinaryService<
    */
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
     const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
-    const relations = object.Class.Metadata.Relations;
+    // TODO: Refactor
+    const relations: any = {};//object.Class.Metadata.Relations;
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
     if (cardinality === "MANY") {
-      update = (<CoreModelWithBinary<any>>object).Class.ref(object.getUuid()).deleteItemFromCollection(
+      update = (<CoreModelWithBinary<any>>object).Class.ref(object.getUUID()).deleteItemFromCollection(
         property,
         index,
         "hash",
@@ -867,7 +868,8 @@ export abstract class BinaryService<
     if (this.handleBinary(ctx.parameter("model"), ctx.parameter("property")) === -1) {
       throw new WebdaError.NotFound("Model not managed by this store");
     }
-    return <IStore>useCore().getModelStore(useModel(ctx.parameter("model")));
+    // TODO: Refactor
+    return null;//<IStore>useCore().getModelStore(useModel(ctx.parameter("model")));
   }
 
   /**

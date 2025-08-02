@@ -1,5 +1,3 @@
-import { Proxied, IAttributeLevelPermissionModel } from "../internal/iapplication";
-
 interface ProxyFilter {
   get: (target: any, prop: string | symbol) => any;
   set: (target: any, prop: string | symbol, value: any) => [any, boolean];

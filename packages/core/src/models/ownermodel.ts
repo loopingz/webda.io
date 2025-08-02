@@ -1,8 +1,7 @@
-import { UuidModel } from "./uuid";
-import { ModelLink } from "./model";
+import { ActionsEnum, ModelLink, PrimaryKeyType, UuidModel } from "@webda/models";
 import { User } from "./user";
 import { IOperationContext } from "../contexts/icontext";
-import { PrimaryKeyType, ModelClass, Uuid } from "../internal/iapplication";
+import { useContext } from "../contexts/execution";
 
 /**
  * Abstract class to define an object with an owner
@@ -25,7 +24,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    *
    * @returns
    */
-  abstract getOwnerModel(): ModelClass<T>;
+  //abstract getOwnerModel(): ModelClass<T>;
 
   /**
    * Set object owner
@@ -46,19 +45,8 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     return this._user;
   }
 
-  async canAct(
-    ctx: IOperationContext,
-    action:
-      | "create"
-      | "update"
-      | "get"
-      | "delete"
-      | "get_binary"
-      | "detach_binary"
-      | "attach_binary"
-      | "update_binary_metadata"
-      | string
-  ): Promise<string | boolean> {
+  async canAct(action: ActionsEnum<this>): Promise<string | boolean> {
+    const ctx = useContext();
     // Object is public
     if (this.public && (action === "get" || action === "get_binary")) {
       return true;
@@ -68,7 +56,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
       return "Object does not have an owner";
     }
     if (action === "create") {
-      this.setOwner(Uuid.parse(ctx.getCurrentUserId(), this.getOwnerModel()));
+      //this.setOwner(Uuid.parse(ctx.getCurrentUserId(), this.getOwnerModel()));
     }
     return ctx.getCurrentUserId() === this.getOwner()?.toString();
   }
@@ -94,7 +82,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
  * @WebdaModel
  */
 export class OwnerModel extends AbstractOwnerModel<User> {
-  getOwnerModel(): ModelClass<User> {
-    return <any>User;
-  }
+  // getOwnerModel(): ModelClass<User> {
+  //   return <any>User;
+  // }
 }

@@ -1,7 +1,7 @@
 import { NotEnumerable } from "@webda/tsc-esm";
 import { Context } from "../contexts/icontext";
-import { Model } from "./model";
 import { ModelEvents } from "../internal/iapplication";
+import { CoreModel } from "./coremodel";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
@@ -13,7 +13,7 @@ export type UserEvents<T> = ModelEvents<T> & {
  * @WebdaModel
  * @Frontend
  */
-export class User extends Model {
+export class User extends CoreModel {
   @NotEnumerable
   declare Events: UserEvents<this>;
   /**

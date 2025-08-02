@@ -1,7 +1,7 @@
 import { WorkerOutput, useLog } from "@webda/workout";
 import { Logger } from "./ilogger";
 import { AbstractService } from "../core/icore";
-import { AbstractModel } from "../internal/iapplication";
+import { Model } from "@webda/models";
 import { useModelId } from "../application/hook";
 
 /**
@@ -24,10 +24,10 @@ export function setLogContext(object: { log: (level, ...args) => void }) {
  * @param clazz
  * @returns
  */
-export function useLogger(clazz: string | AbstractService | AbstractModel): Logger {
+export function useLogger(clazz: string | AbstractService | Model): Logger {
   let className = typeof clazz === "string" ? clazz : "";
   if (typeof clazz !== "string") {
-    if (clazz instanceof AbstractModel) {
+    if (clazz instanceof Model) {
       className = useModelId(clazz, true);
     } else {
       className = clazz.getName();

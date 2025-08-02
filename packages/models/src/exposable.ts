@@ -1,5 +1,11 @@
 import { ActionsEnum } from "./actionable";
+import { ModelPrototype } from "./model";
 
+/**
+ *
+ * @param obj
+ * @returns
+ */
 export function isExposable(obj: any): obj is Exposable {
   return typeof obj.toDTO === "function" && typeof obj.fromDTO === "function";
 }
@@ -19,4 +25,19 @@ export interface ExposableModel<T = any, W = T> extends Exposable<T, W> {
    * @param action
    */
   canAct(action: ActionsEnum<this>): Promise<boolean | string>;
+  /**
+   * Return if a model is exposed
+   * @returns true if no restriction, undefined if not exposed, array of type of exposition
+   */
+  isExposed?: () => boolean | undefined | "create" | "get" | "update" | "delete"[];
 }
+
+/**
+ * Get the root models (model that should be defined)
+ */
+const rootModels: WeakSet<ModelPrototype> = new WeakSet<ModelPrototype>();
+
+/**
+ * Expose annotation to declare which object should be exposed through API
+ */
+function Expose() {}

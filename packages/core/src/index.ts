@@ -33,7 +33,6 @@ export * from "./models/simpleuser";
 export * from "./models/ident";
 export * from "./models/aclmodel";
 export * from "./models/test";
-export * from "./models/model";
 //export * from "./models/relations";
 export * from "./models/registry";
 export * from "./models/imodel";

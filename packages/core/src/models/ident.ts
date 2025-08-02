@@ -1,4 +1,3 @@
-import { Model, ModelLink, ModelRef } from "./model";
 import { AbstractOwnerModel, OwnerModel } from "./ownermodel";
 import type { User } from "./user";
 import { UuidModel } from "./uuid";

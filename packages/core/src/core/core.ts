@@ -4,10 +4,9 @@ import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
 import { Application } from "../application/application";
-import { Configuration, AbstractModel, ModelClass } from "../internal/iapplication";
+import { Configuration } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
-import { Model } from "../models/model";
-import type { Prototype } from "@webda/tsc-esm";
+import { Model, ModelPrototype } from "@webda/models";
 import { Router } from "../rest/router";
 import { useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
@@ -118,7 +117,7 @@ export class Core implements ICore {
   /**
    * Cache for model to store resolution
    */
-  private _modelStoresCache: Map<ModelClass, Store> = new Map<ModelClass, Store>();
+  private _modelStoresCache: Map<ModelPrototype, Store> = new Map<ModelPrototype, Store>();
   /**
    * Cache for model to store resolution
    */
@@ -191,12 +190,14 @@ export class Core implements ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends AbstractModel>(modelOrConstructor: Prototype<T> | T | string): Store {
-    let model: ModelClass;
+  getModelStore<T extends Model>(modelOrConstructor: ModelPrototype<T> | T | string): Store {
+    let model: ModelPrototype<T>;
     if (typeof modelOrConstructor === "string") {
       model = useModel(modelOrConstructor);
     } else {
-      model = <ModelClass>(<any>(modelOrConstructor instanceof Model ? modelOrConstructor.Class : modelOrConstructor));
+      model = <ModelPrototype<T>>(
+        (<any>(modelOrConstructor instanceof Model ? modelOrConstructor.Class : modelOrConstructor))
+      );
     }
     if (!model) {
       throw new WebdaError.CodeError("MODEL_NOT_FOUND", "Model not found");
@@ -233,8 +234,8 @@ export class Core implements ICore {
    * @param attribute
    * @returns
    */
-  getBinaryStore<T extends AbstractModel>(
-    modelOrConstructor: ModelClass<T> | T | string,
+  getBinaryStore<T extends Model>(
+    modelOrConstructor: ModelPrototype<T> | T | string,
     attribute: string
   ): AbstractService {
     const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);
@@ -626,7 +627,7 @@ export class Core implements ICore {
         return model && this.application.isFinalModel(useModelId(model));
       })
       .forEach(model => {
-        model.resolve();
+        //model.resolve();
       });
     // Init the registry
 
@@ -687,7 +688,7 @@ export class Core implements ICore {
    * @override
    */
   validateSchema(
-    webdaObject: AbstractModel | string,
+    webdaObject: Model | string,
     object: any,
     ignoreRequired?: boolean
   ): NoSchemaResult | SchemaValidResult {

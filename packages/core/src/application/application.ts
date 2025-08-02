@@ -17,11 +17,9 @@ import {
   WebdaPackageDescriptor,
   Reflection,
   AbstractService,
-  Modda,
-  AbstractModel,
-  ModelClass
+  Modda
 } from "../internal/iapplication";
-import { Model } from "../models/model";
+import { Model, ModelPrototype } from "@webda/models";
 import { useInstanceStorage } from "../core/instancestorage";
 import { setLogContext } from "../loggers/hooks";
 
@@ -79,7 +77,7 @@ export class Application implements IApplication {
   /**
    * Models type registry
    */
-  protected models: { [key: string /* LongId */]: ModelClass<AbstractModel> } = {};
+  protected models: { [key: string /* LongId */]: ModelPrototype } = {};
 
   /**
    * Models metadata
@@ -399,7 +397,7 @@ export class Application implements IApplication {
    *
    * @param name model to retrieve
    */
-  getModel<T extends Model = Model>(name: string): ModelClass<T> {
+  getModel<T extends Model = Model>(name: string): ModelPrototype<T> {
     return this.getWebdaObject("models", name);
   }
 
@@ -407,7 +405,7 @@ export class Application implements IApplication {
    * Get all models definitions
    */
   getModels(): {
-    [key: string]: ModelClass<AbstractModel>;
+    [key: string]: ModelPrototype;
   } {
     return this.models;
   }
@@ -447,7 +445,7 @@ export class Application implements IApplication {
    * Return the model name for a object
    * @param object
    */
-  getModelFromConstructor<T extends Model>(model: ModelClass<T>): string | undefined {
+  getModelFromConstructor<T extends Model>(model: ModelPrototype<T>): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === model);
   }
 
@@ -457,7 +455,7 @@ export class Application implements IApplication {
    * @param model
    * @returns longId for a model
    */
-  getModelId<T extends Model = Model>(model: ModelClass<T> | T): string | undefined {
+  getModelId<T extends Model = Model>(model: ModelPrototype<T> | T): string | undefined {
     if (model instanceof Model) {
       return this.getModelFromInstance(model);
     }

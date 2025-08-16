@@ -1,7 +1,7 @@
 import type { Serializer } from "../serializer";
 
 const UndefinedSerializer: Serializer = {
-  constructor: null,
+  constructorType: null,
   serializer: (obj: null) => {
     return { value: undefined };
   },

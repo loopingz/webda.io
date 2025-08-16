@@ -10,7 +10,7 @@ import type { Serializer, SerializerContext } from "../serializer";
  * @returns The serialized array and metadata.
  */
 const ArraySerializer: Serializer = {
-  constructor: Array,
+  constructorType: Array,
   serializer: (obj: any[], context: SerializerContext) => {
     const objArray = [];
     const metadata = {};

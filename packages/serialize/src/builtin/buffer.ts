@@ -1,7 +1,7 @@
 import type { Serializer } from "../serializer";
 
 const BufferSerializer: Serializer = {
-  constructor: Buffer,
+  constructorType: Buffer,
   serializer: (obj: Buffer) => {
     return { value: Array.from(obj) };
   },

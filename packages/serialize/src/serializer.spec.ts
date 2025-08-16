@@ -1,6 +1,15 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { registerSerializer, serialize, SerializerContext, unregisterSerializer, unserialize } from "./serializer";
+import {
+  registerSerializer,
+  serialize,
+  SerializerContext,
+  unregisterSerializer,
+  deserialize,
+  ObjectSerializer,
+  serializeRaw,
+  deserializeRaw
+} from "./serializer";
 
 class Test {
   startDate: Date;
@@ -63,7 +72,9 @@ class Serializer {
       }
     };
     const serialized = serialize(source);
-    const deserialized = unserialize(serialized);
+    const deserialized = deserialize(serialized);
+    console.log("Serialized:", serialized);
+    console.log("Deserialized:", deserialized);
     assert.deepStrictEqual(source, deserialized);
   }
 
@@ -75,11 +86,11 @@ class Serializer {
       boolean: true,
       obj: {
         name: "test",
-        email: "",
+        email: ""
       }
     };
     const serialized = serialize(source);
-    const deserialized = unserialize(serialized);
+    const deserialized = deserialize(serialized);
     assert.deepStrictEqual(source, deserialized);
     assert.ok(!serialized.includes("$serializer"));
   }
@@ -88,7 +99,7 @@ class Serializer {
   testCustomSerializer() {
     try {
       registerSerializer("test", {
-        constructor: Test,
+        constructorType: Test,
         deserializer: Test.fromJSON
       });
       const test = new Test();
@@ -102,7 +113,7 @@ class Serializer {
         },
         "Serialized object should have a simple type"
       );
-      const deserialized = unserialize(serialized);
+      const deserialized = deserialize(serialized);
       assert.deepStrictEqual(test, deserialized);
 
       // Do a serialization within a subobject
@@ -111,7 +122,7 @@ class Serializer {
         test: test,
         emittedAt: new Date()
       };
-      const clone = unserialize(serialize(source));
+      const clone = deserialize(serialize(source));
       assert.deepStrictEqual(clone, source);
       assert.ok(clone.test instanceof Test);
       assert.ok(clone.test.startDate instanceof Date);
@@ -131,7 +142,7 @@ class Serializer {
     };
     source.circular = source;
     const serialized = serialize(source);
-    const deserialized = unserialize(serialized);
+    const deserialized = deserialize(serialized);
     assert.deepStrictEqual(source, deserialized);
   }
 
@@ -148,7 +159,7 @@ class Serializer {
     obj.c.f = obj;
     obj.c.g = obj.c;
     const serialized = serialize(obj);
-    const deserialized = unserialize(serialized);
+    const deserialized = deserialize(serialized);
     assert.deepStrictEqual(obj, deserialized);
   }
 
@@ -169,22 +180,93 @@ class Serializer {
       set: new Set([1, 2, email]),
       map: new Map<string, any>([
         ["key", email],
-        ["key2", 12],
-      ]),
+        ["key2", 12]
+      ])
     };
     const serialized = serialize(source);
     assert.ok(serialized.includes("$ref"));
-    const deserialized = unserialize(serialized);
+    const deserialized = deserialize(serialized);
     assert.deepStrictEqual(source, deserialized);
   }
 
   @test
   testCustomContext() {
     const serializer = new SerializerContext().unregisterSerializer("undefined");
-    assert.ok(!serializer.serialize({
-      test: undefined,
-      plop: true
-    }).includes("test"));
+    assert.ok(
+      !serializer
+        .serialize({
+          test: undefined,
+          plop: true
+        })
+        .includes("test")
+    );
+  }
+
+  @test
+  testUndefined() {
+    assert.strictEqual(deserialize(serialize(undefined)), undefined);
+    assert.strictEqual(deserialize(undefined as any), undefined);
+  }
+
+  @test
+  testObjectStaticProperties() {
+    registerSerializer(
+      "Test",
+      new ObjectSerializer(Test, {
+        startDate: { type: "Date" },
+        endDate: { type: "Date" },
+        quantity: { type: "bigint" }
+      })
+    );
+    const obj = new Test();
+    const serialized = serialize(obj);
+    const deserialized = deserialize(serialized);
+    assert.ok(deserialized instanceof Test);
+    assert.ok(deserialized.startDate instanceof Date);
+    assert.ok(deserialized.endDate instanceof Date);
+    assert.ok(typeof deserialized.quantity === "bigint");
+  }
+
+  @test
+  testRaw() {
+    const raw = {
+      a: 1,
+      b: 2,
+      c: {
+        d: 3,
+        e: 4
+      }
+    };
+    const serialized = serialize(raw);
+    const serializedRaw = serializeRaw(raw);
+    const deserialized = deserialize(serialized);
+    const deserializedRaw = deserializeRaw(serializedRaw);
+    assert.deepStrictEqual(raw, deserialized);
+    assert.deepStrictEqual(raw, deserializedRaw);
+  }
+
+  @test
+  testBuffer() {
+    const buffer = Buffer.from("Hello World");
+    const serialized = serialize(buffer);
+    assert.deepStrictEqual(deserialize(serialized) as Buffer, buffer);
+  }
+
+  @test
+  testArray() {
+    const array = [1, 2, 3];
+    const serialized = serialize(array);
+    console.log("Serialized array:", serialized);
+    assert.deepStrictEqual(deserialize(serialized) as number[], array);
+  }
+
+  @test
+  testBigint() {
+    const bigint = BigInt(12345678901234567890);
+    const serialized = serialize(bigint);
+    const deserialized = deserialize(serialized);
+    assert.strictEqual(typeof deserialized, "bigint");
+    assert.strictEqual(deserialized, bigint);
   }
 
   @test
@@ -193,9 +275,12 @@ class Serializer {
     assert.throws(() => serializer.registerSerializer("bigint", {} as any), /already registered/);
     serializer.mode = "serialize";
     assert.throws(() => serializer.getReference("#/test", {}), /Cannot get reference in serialize mode/);
-    serializer.mode = "unserialize";
+    serializer.mode = "deserialize";
     assert.throws(() => serializer.getReference("#/test", { test2: {} }), /Reference '#\/test' not found/);
     assert.throws(() => serializer.getReference("test", {}), /Invalid reference 'test'/);
-    assert.throws(() => serializer.unserialize(`{"$serializer":{"type":"test2"}}`), /Serializer for type 'test2' not found/);
+    assert.throws(
+      () => serializer.deserialize(`{"$serializer":{"type":"test2"}}`),
+      /Serializer for type 'test2' not found/
+    );
   }
 }

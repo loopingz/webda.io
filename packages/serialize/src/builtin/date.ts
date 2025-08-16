@@ -1,7 +1,7 @@
 import type { Serializer } from "../serializer";
 
 const DateSerializer: Serializer = {
-  constructor: Date,
+  constructorType: Date,
   serializer: o => ({ value: o }),
   deserializer: (str: string) => new Date(str)
 };

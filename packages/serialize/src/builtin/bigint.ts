@@ -1,7 +1,7 @@
 import type { Serializer } from "../serializer";
 
 const BigIntSerializer: Serializer = {
-  constructor: null,
+  constructorType: null,
   serializer: (obj: bigint) => {
     return { value: obj.toString() };
   },

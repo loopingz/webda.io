@@ -1,7 +1,7 @@
 import type { Serializer } from "../serializer";
 
 const ArrayBufferSerializer: Serializer = {
-  constructor: ArrayBuffer,
+  constructorType: ArrayBuffer,
   serializer: (obj: ArrayBuffer) => {
     const buffer = new Uint8Array(obj);
     return { value: Array.from(buffer) };

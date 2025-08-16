@@ -1,7 +1,7 @@
 import type { Serializer, SerializerContext } from "../serializer";
 
 const MapSerializer: Serializer = {
-  constructor: Map,
+  constructorType: Map,
   serializer: (obj: Map<any, any>, context: SerializerContext) => {
     const objMap = {};
     const metadata = {};

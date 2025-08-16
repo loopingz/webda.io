@@ -1,17 +1,17 @@
-import ArraySerializer from "./builtin/array";
-import ArrayBufferSerializer from "./builtin/arraybuffer";
-import BigIntSerializer from "./builtin/bigint";
-import BufferSerializer from "./builtin/buffer";
-import DateSerializer from "./builtin/date";
-import InfinitySerializer from "./builtin/infinity";
-import MapSerializer from "./builtin/map";
-import NaNSerializer from "./builtin/nan";
-import NullSerializer from "./builtin/null";
-import ObjectSerializer from "./builtin/object";
-import RegExpSerializer from "./builtin/regexp";
-import SetSerializer from "./builtin/set";
-import UndefinedSerializer from "./builtin/undefined";
-import URLSerializer from "./builtin/url";
+import ArraySerializer from "./builtin/array.js";
+import ArrayBufferSerializer from "./builtin/arraybuffer.js";
+import BigIntSerializer from "./builtin/bigint.js";
+import BufferSerializer from "./builtin/buffer.js";
+import DateSerializer from "./builtin/date.js";
+import InfinitySerializer from "./builtin/infinity.js";
+import MapSerializer from "./builtin/map.js";
+import NaNSerializer from "./builtin/nan.js";
+import NullSerializer from "./builtin/null.js";
+import ObjectSerializer from "./builtin/object.js";
+import RegExpSerializer from "./builtin/regexp.js";
+import SetSerializer from "./builtin/set.js";
+import UndefinedSerializer from "./builtin/undefined.js";
+import URLSerializer from "./builtin/url.js";
 
 /**
  * Define an object constructor type
@@ -24,15 +24,15 @@ export type Constructor<T = any> = new (...args: any[]) => T;
 export type Serializer<T = any> = {
   /**
    * Constructor of the object to be serialized
-   * 
+   *
    * Can be null if the serializer is for specific built-in types
    * (e.g. Date, Map, Set, etc. mainly used internally)
    */
-  constructor: Constructor<T>;
+  constructorType: Constructor<T>;
   /**
    * Serializer function
-   * @param obj 
-   * @param context 
+   * @param obj
+   * @param context
    * @returns {value: any, metadata?: any}
    *  The value to be serialized and optional metadata
    *  The metadata is used to store additional information about the object
@@ -49,7 +49,7 @@ export type Serializer<T = any> = {
    * and the metadata from the serializer
    * @param obj raw object returned by JSON.parse
    * @param metadata returned by the serializer
-   * @param context 
+   * @param context
    * @returns deserialized object
    */
   deserializer: (obj: any, metadata: any, context: SerializerContext) => T;
@@ -59,7 +59,7 @@ export type Serializer<T = any> = {
  * Define a stored serializer
  * This is used to store the serializer in the context
  * and to register it globally
- * 
+ *
  * It ensure serializer exists and has a type
  */
 type StoredSerializer<T = any> = Required<Serializer<T>> & { type: string };
@@ -71,11 +71,7 @@ type StoredSerializer<T = any> = Required<Serializer<T>> & { type: string };
  * @param methods
  * @param overwrite
  */
-export function registerSerializer(
-  type: string,
-  methods: Serializer,
-  overwrite: boolean = false
-): void {
+export function registerSerializer(type: string, methods: Serializer, overwrite: boolean = false): void {
   SerializerContext.globalContext.registerSerializer(type, methods, overwrite);
 }
 
@@ -91,9 +87,9 @@ export function unregisterSerializer(type: string): void {
  * Serializer context
  * This is used to store the serializers and the current state of the serialization
  * We rely on the mono-thread nature of JS to store the execution context
- * 
+ *
  * It has a singleton in globalContext, instances can be created to keep a specific configuration
- * 
+ *
  * @see serialize
  * @see unserialize
  * @see registerSerializer
@@ -105,7 +101,7 @@ export class SerializerContext {
    */
   protected serializers: { [key: string]: StoredSerializer };
   /**
-   * Contains all the registerd serializer for each constructor
+   * Contains all the registered serializer for each constructor
    */
   protected typeSerializer: WeakMap<any, StoredSerializer>;
   /**
@@ -128,7 +124,7 @@ export class SerializerContext {
    * Used to store the current mode
    * This is used to prevent circular references
    */
-  mode?: "serialize" | "unserialize";
+  mode?: "serialize" | "deserialize";
 
   /**
    * Global context
@@ -162,22 +158,18 @@ export class SerializerContext {
    * @param overwrite – If true, replace any existing registration.
    * @returns this context for chaining.
    */
-  public registerSerializer(
-    type: string,
-    methods: Serializer,
-    overwrite: boolean = false
-  ): this {
+  public registerSerializer(type: string, methods: Serializer, overwrite: boolean = false): this {
     if (!overwrite && this.serializers[type]) {
       throw new Error(`Serializer for type ${type} already registered`);
     }
-    const info: StoredSerializer = {
-      serializer: o => ({ value: o.toJSON ? o.toJSON() : o }),
-      ...methods,
-      type,
-    };
+    const info: StoredSerializer = methods as StoredSerializer;
+    if (!info.serializer) {
+      info.serializer = o => ({ value: o.toJSON ? o.toJSON() : o });
+    }
+    info.type = type;
     this.serializers[type] = info;
-    if (info.constructor) {
-      this.typeSerializer.set(info.constructor, info);
+    if (info.constructorType) {
+      this.typeSerializer.set(info.constructorType, info);
     }
     return this;
   }
@@ -190,7 +182,7 @@ export class SerializerContext {
    */
   public unregisterSerializer(type: string): this {
     if (this.serializers[type]) {
-      this.typeSerializer.delete(this.serializers[type].constructor);
+      this.typeSerializer.delete(this.serializers[type].constructorType);
       delete this.serializers[type];
     }
     return this;
@@ -344,16 +336,25 @@ export class SerializerContext {
    * @returns The JSON string representation.
    */
   public serialize(obj: any): string {
+    return JSON.stringify(this.serializeRaw(obj));
+  }
+
+  /**
+   * Serialize an object to a raw format, keeping serializer metadata.
+   * @param obj – Any JS object/value.
+   * @returns The raw serialized representation.
+   */
+  public serializeRaw(obj: any): any {
     this.mode = "serialize";
     try {
       this.stack = [];
       this.objects = new WeakMap();
       const { value, metadata } = this.prepareObject(obj);
       if (!metadata) {
-        return JSON.stringify(value);
+        return value;
       }
-      const raw = { $serializer: metadata, ...value };
-      return JSON.stringify(raw);
+      // If the value is an object, we need to add the metadata to the object
+      return { $serializer: metadata, value };
     } finally {
       this.mode = undefined;
     }
@@ -367,7 +368,7 @@ export class SerializerContext {
    * @returns The target value.
    */
   public getReference(ref: string, object: any): any {
-    if (this.mode !== "unserialize") {
+    if (this.mode !== "deserialize") {
       throw new Error("Cannot get reference in serialize mode");
     }
     if (!ref.startsWith("#/")) {
@@ -392,19 +393,27 @@ export class SerializerContext {
    * @param str – The JSON string produced by serialize().
    * @returns The reconstructed object graph.
    */
-  public unserialize<T>(str: string): T {
-    this.mode = "unserialize";
+  public deserialize<T>(str: string): T {
+    if (!str) {
+      return undefined as T;
+    }
+    return this.deserializeRaw(JSON.parse(str));
+  }
+
+  public deserializeRaw<T>(info: any): T {
+    this.mode = "deserialize";
     this.resolvers = [];
     try {
-      const info = JSON.parse(str);
-      if (!info.$serializer) {
+      if (!info || !info.$serializer) {
         return info as T;
       }
       const entry = this.serializers[info.$serializer.type];
       if (!entry) {
         throw new Error(`Serializer for type '${info.$serializer.type}' not found`);
       }
-      const value = entry.deserializer(info, info.$serializer, this);
+      const $serializer = info.$serializer;
+      delete info.$serializer; // Remove metadata before deserialization
+      const value = entry.deserializer(info.value, $serializer, this);
       // Fix up circular references
       this.resolvers.forEach(r => {
         r.updater(this.getReference(r.$ref, value));
@@ -421,20 +430,28 @@ const globalContext: SerializerContext = new SerializerContext(false);
 
 /**
  * Serialize an object into a string
- * @param obj 
- * @returns 
+ * @param obj
+ * @returns
  */
 export function serialize(obj: any): string {
   return SerializerContext.globalContext.serialize(obj);
 }
 
+export function serializeRaw(obj: any): any {
+  return SerializerContext.globalContext.serializeRaw(obj);
+}
+
 /**
- * Unserialize a string into an object
- * @param str 
- * @returns 
+ * Deserialize a string into an object
+ * @param str
+ * @returns
  */
-export function unserialize<T>(str: string): T {
-  return SerializerContext.globalContext.unserialize(str);
+export function deserialize<T>(str: string): T {
+  return SerializerContext.globalContext.deserialize(str);
+}
+
+export function deserializeRaw<T>(info: any): T {
+  return SerializerContext.globalContext.deserializeRaw(info);
 }
 
 // Register the built-in serializers
@@ -447,7 +464,7 @@ registerSerializer("RegExp", RegExpSerializer);
 registerSerializer("URL", URLSerializer);
 registerSerializer("bigint", BigIntSerializer);
 registerSerializer("array", ArraySerializer);
-registerSerializer("object", ObjectSerializer);
+registerSerializer("object", new ObjectSerializer());
 registerSerializer("null", NullSerializer);
 registerSerializer("Infinity", InfinitySerializer);
 registerSerializer("NaN", NaNSerializer);
@@ -469,4 +486,4 @@ export {
   InfinitySerializer,
   NaNSerializer,
   UndefinedSerializer
-}
+};

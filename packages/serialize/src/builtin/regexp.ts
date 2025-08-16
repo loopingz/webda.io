@@ -1,7 +1,7 @@
 import type { Serializer } from "../serializer";
 
 const RegExpSerializer: Serializer = {
-  constructor: RegExp,
+  constructorType: RegExp,
   serializer: (obj: RegExp) => {
     return { value: obj.toString() };
   },

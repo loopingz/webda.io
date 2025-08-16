@@ -1,7 +1,7 @@
 import type { Serializer, SerializerContext } from "../serializer";
 
 const SetSerializer: Serializer = {
-  constructor: Set,
+  constructorType: Set,
   serializer: (obj: Set<any>, context: SerializerContext) => {
     const objSet = [];
     const metadata = {};

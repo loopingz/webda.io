@@ -1,5 +1,10 @@
 import type { Constructor, Serializer, SerializerContext } from "../serializer";
 
+/**
+ * Serializer for plain objects.
+ * It serializes the object as a plain object with its properties.
+ * It does not serialize methods or prototype properties.
+ */
 export class ObjectSerializer implements Serializer {
   constructor(
     public constructorType: Constructor = null,
@@ -47,4 +52,31 @@ export class ObjectSerializer implements Serializer {
   }
 }
 
+/**
+ * Serializer for objects that are able to construct themselves from a string representation.
+ * It serializes the object as a string using its `toString` method.
+ * It deserializes the object by calling its constructor with the string.
+ */
+export class ObjectStringified {
+  constructor(
+    public constructorType: Constructor<{ toString: () => string }> = null,
+    protected staticProperties: any = {}
+  ) {}
+
+  /**
+   * @inheritdoc
+   */
+  serializer(obj: any, context: SerializerContext) {
+    return {
+      value: obj.toString()
+    };
+  }
+
+  /**
+   * @inheritdoc
+   */
+  deserializer(obj: any, metadata: any, context: SerializerContext) {
+    return new this.constructorType(obj);
+  }
+}
 export default ObjectSerializer;

@@ -62,7 +62,6 @@ ref.incrementAttributes({
 });
 ref.setAttribute("amount", 12);
 
-
 const testJsoned: JSONed<Invoice> = {
   uuid: "1234",
   amount: 10,
@@ -110,7 +109,7 @@ class Contact extends Model {
 
 class Email extends UuidModel {
   recipents: string[];
-  contacts: ModelLinksArray<Contact, "email">;
+  contacts: ModelLinksSimpleArray<Contact>;
 }
 
 export class MFA implements Actionable {
@@ -155,14 +154,15 @@ class User extends UuidModel {
     } else if (action === "logout") {
       return true;
     }
-    return super.canAct(action);
+    return false;
   }
 }
 
 const userRepo = User.getRepository();
 userRepo.incrementAttribute("myUser", "loginCount");
-userRepo.on("Saved", model => {});
+userRepo.on("Updated", model => {});
 userRepo.on("Login", model => {});
+
 const user = await userRepo.get("myUser");
 
 const invoice = new Invoice();
@@ -174,6 +174,13 @@ Customer.ref({
   country: "fr",
   identifier: "1234"
 }).create({
+  name: "John Doe",
+  email: "",
+  categories: []
+});
+Customer.create({
+  country: "fr",
+  identifier: "1234",
   name: "John Doe",
   email: "",
   categories: []

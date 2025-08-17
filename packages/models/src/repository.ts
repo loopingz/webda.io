@@ -11,11 +11,17 @@ import type {
   UpdatableAttributes
 } from "./storable";
 import { ModelRefWithCreate } from "./relations";
+import { deserialize, serialize } from "@webda/serialize";
 
 /**
  * This represent the injected methods of Store into the Model
  */
 export interface Repository<T extends Storable & Eventable> {
+  /**
+   * Get the root model class for this repository
+   * @returns
+   */
+  getRootModel(): Constructor<T, any[]>;
   /**
    * In REST API, composite keys are represented as a string with the format "key1#key2#key3"
    * We need a way to convert this string to the object
@@ -229,6 +235,16 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     protected separator: string = "_"
   ) {}
 
+  /**
+   * @inheritdoc
+   */
+  getRootModel(): Constructor<T, any[]> {
+    return this.model;
+  }
+
+  /**
+   * @inheritdoc
+   */
   fromUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T> {
     if (this.pks.length === 1) {
       return forceObject ? ({ [this.pks[0]]: uuid } as PrimaryKey<T>) : (uuid as PK<T, T["PrimaryKey"][number]>);
@@ -255,7 +271,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     const key = this.makeKey(primaryKey);
     const item = this.storage.get(key);
     if (!item) throw new Error(`Not found: ${key}`);
-    return this.unserialize(item);
+    return this.deserialize(item);
   }
 
   /**
@@ -323,7 +339,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     const key = this.makeKey(primaryKey);
     if (this.storage.has(key)) {
       await this.patch(primaryKey, data);
-      return this.unserialize(this.storage.get(key)!);
+      return this.deserialize(this.storage.get(key)!);
     }
     return this.create(primaryKey, data);
   }
@@ -372,7 +388,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @returns serialized object
    */
   serialize(item: T): string {
-    return JSON.stringify(item);
+    return serialize(item);
   }
 
   /**
@@ -383,8 +399,8 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @param item
    * @returns
    */
-  unserialize(item: string): T {
-    return new this.model(JSON.parse(item));
+  deserialize(item: string): T {
+    return deserialize(item) as T;
   }
 
   /**

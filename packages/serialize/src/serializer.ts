@@ -7,11 +7,10 @@ import InfinitySerializer from "./builtin/infinity.js";
 import MapSerializer from "./builtin/map.js";
 import NaNSerializer from "./builtin/nan.js";
 import NullSerializer from "./builtin/null.js";
-import ObjectSerializer from "./builtin/object.js";
+import ObjectSerializer, { ObjectStringified } from "./builtin/object.js";
 import RegExpSerializer from "./builtin/regexp.js";
 import SetSerializer from "./builtin/set.js";
 import UndefinedSerializer from "./builtin/undefined.js";
-import URLSerializer from "./builtin/url.js";
 
 /**
  * Define an object constructor type
@@ -344,7 +343,7 @@ export class SerializerContext {
    * @param obj – Any JS object/value.
    * @returns The raw serialized representation.
    */
-  public serializeRaw(obj: any): any {
+  public serializeRaw(obj: any): { value: any; $serializer: any } {
     this.mode = "serialize";
     try {
       this.stack = [];
@@ -400,7 +399,14 @@ export class SerializerContext {
     return this.deserializeRaw(JSON.parse(str));
   }
 
-  public deserializeRaw<T>(info: any): T {
+  /**
+   * Deserialize a raw object
+   * This is used to deserialize objects without the JSON.parse overhead
+   * It expects an object with the value and metadata
+   * @param info
+   * @returns
+   */
+  public deserializeRaw<T>(info: { value: any; $serializer: any }): T {
     this.mode = "deserialize";
     this.resolvers = [];
     try {
@@ -437,6 +443,13 @@ export function serialize(obj: any): string {
   return SerializerContext.globalContext.serialize(obj);
 }
 
+/**
+ * Return a raw serialized object
+ * This is used to serialize objects without the JSON.stringify overhead
+ * It returns an object with the value and metadata
+ * @param obj
+ * @returns
+ */
 export function serializeRaw(obj: any): any {
   return SerializerContext.globalContext.serializeRaw(obj);
 }
@@ -450,7 +463,14 @@ export function deserialize<T>(str: string): T {
   return SerializerContext.globalContext.deserialize(str);
 }
 
-export function deserializeRaw<T>(info: any): T {
+/**
+ * Deserialize a raw object
+ * This is used to deserialize objects without the JSON.parse overhead
+ * It expects an object with the value and metadata
+ * @param info
+ * @returns
+ */
+export function deserializeRaw<T>(info: { value: any; $serializer: any }): T {
   return SerializerContext.globalContext.deserializeRaw(info);
 }
 
@@ -461,7 +481,7 @@ registerSerializer("Set", SetSerializer);
 registerSerializer("Buffer", BufferSerializer);
 registerSerializer("ArrayBuffer", ArrayBufferSerializer);
 registerSerializer("RegExp", RegExpSerializer);
-registerSerializer("URL", URLSerializer);
+registerSerializer("URL", new ObjectStringified(URL));
 registerSerializer("bigint", BigIntSerializer);
 registerSerializer("array", ArraySerializer);
 registerSerializer("object", new ObjectSerializer());
@@ -478,10 +498,10 @@ export {
   BufferSerializer,
   ArrayBufferSerializer,
   RegExpSerializer,
-  URLSerializer,
   BigIntSerializer,
   ArraySerializer,
   ObjectSerializer,
+  ObjectStringified,
   NullSerializer,
   InfinitySerializer,
   NaNSerializer,

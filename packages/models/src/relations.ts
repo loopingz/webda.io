@@ -23,7 +23,7 @@ export class ModelRef<T extends Storable> {
   constructor(
     protected __WEBDA_KEY: PrimaryKeyType<T>,
     protected __WEBDA_REPOSITORY?: Repository<T>,
-    protected __WEBDA_PARENT?: Storable
+    protected __WEBDA_PARENT_OBJECT?: Storable
   ) {}
 
   /**
@@ -388,16 +388,16 @@ type ModelCollectionManager<T> = {
 export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>> implements ModelLinker {
   WEBDA_ROLE: "ModelLinker" = "ModelLinker" as const;
   @NotEnumerable
-  private parent: T;
+  private parentObject: T;
 
   constructor(
     protected repo: Repository<T>,
     content: PrimaryKeyType<T>[] = [],
-    parent?: T
+    parentObject?: T
   ) {
     super();
-    content.forEach(c => this.add(c));
-    this.parent = parent!;
+    content.forEach(c => this.push(c));
+    this.parentObject = parentObject!;
   }
 
   protected getModelRef(model: string | PrimaryKeyType<T> | ModelRef<T> | T) {
@@ -407,9 +407,9 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
     } else if (model instanceof ModelRef) {
       modelRef = model;
     } else if (isStorable(model)) {
-      modelRef = new ModelRef<T>(model.getPrimaryKey(), this.repo, this.parent);
+      modelRef = new ModelRef<T>(model.getPrimaryKey(), this.repo, this.parentObject);
     } else {
-      modelRef = new ModelRef<T>(model, this.repo, this.parent);
+      modelRef = new ModelRef<T>(model, this.repo, this.parentObject);
     }
     return modelRef;
   }
@@ -460,16 +460,25 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
     this.push(model);
   }
 
+  /**
+   * Set the collection to a new set of items
+   * @param items
+   */
+  set(items?: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): void {
+    this.splice(0, this.length, ...(items?.map(i => this.getModelRef(i)) || []));
+    this.setDirty();
+  }
+
   setDirty() {
-    const attrName = this.parent
-      ? Object.keys(this.parent)
-          .filter(k => this.parent[k] === this)
+    const attrName = this.parentObject
+      ? Object.keys(this.parentObject)
+          .filter(k => this.parentObject[k] === this)
           .pop()
       : undefined;
     if (!attrName) {
       return;
     }
-    this.parent.__WEBDA_DIRTY?.add(attrName);
+    this.parentObject.__WEBDA_DIRTY?.add(attrName);
   }
 
   remove(model: string | ModelRef<T> | PrimaryKeyType<T> | T) {
@@ -519,7 +528,7 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
   @NotEnumerable
   protected __WEBDA_DATA: K;
   @NotEnumerable
-  protected __WEBDA_PARENT?: Storable;
+  protected __WEBDA_PARENT_OBJECT?: Storable;
 
   constructor(__WEBDA_KEY: PrimaryKeyType<T>, __WEBDA_REPO: Repository<T>, __WEBDA_DATA: K, __WEBDA_PARENT?: Storable) {
     super(__WEBDA_KEY, __WEBDA_REPO, __WEBDA_PARENT);
@@ -533,7 +542,7 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
     }
     this.__WEBDA_KEY = __WEBDA_KEY;
     this.__WEBDA_REPO = __WEBDA_REPO;
-    this.__WEBDA_PARENT = __WEBDA_PARENT;
+    this.__WEBDA_PARENT_OBJECT = __WEBDA_PARENT;
     this.__WEBDA_DATA = __WEBDA_DATA;
     Object.assign(this, __WEBDA_DATA);
     // We might want to explore moving data in sub-classes
@@ -571,42 +580,60 @@ export class ModelLinksArray<T extends Storable, K extends object>
   extends Array<ModelRefCustomProperties<T, K>>
   implements ModelLinker
 {
+  @NotEnumerable
   WEBDA_ROLE: "ModelLinker" = "ModelLinker" as const;
   @NotEnumerable
-  protected parent: T;
+  protected parentObject: T;
   constructor(
     protected repo: Repository<T>,
     content: (PrimaryKey<T> & K)[] = [],
-    parent?: T
+    parentObject?: T
   ) {
     super();
-    this.parent = parent!;
+    this.parentObject = parentObject!;
     this.push(
       ...content.map(
         c =>
           <ModelRefCustomProperties<T, K>>(
-            (<unknown>new ModelRefCustom<T, K>(repo.getPrimaryKey(c), repo, c, this.parent))
+            (<unknown>new ModelRefCustom<T, K>(repo.getPrimaryKey(c), repo, c, this.parentObject))
           )
       )
     );
   }
 
+  /**
+   * Add a model to the collection
+   * @param model
+   * @returns
+   * @deprecated use push instead
+   */
   add(model: JSONed<ModelRefCustomProperties<T, K>>) {
-    this.push(new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any, this.parent) as any);
+    this.push(
+      new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any, this.parentObject) as any
+    );
   }
 
-  push(...items: ModelRefCustomProperties<T, K>[]) {
-    const result = super.push(...items);
+  /**
+   * @inheritdoc
+   */
+  push(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]) {
+    const result = super.push(...items.map(i => this.getModelRef(i)));
     this.setDirty();
     return result;
   }
 
+  /**
+   * @inheritdoc
+   */
   pop(): ModelRefCustomProperties<T, K> {
     const result = super.pop();
     this.setDirty();
     return result;
   }
 
+  /**
+   * @inheritdoc
+   */
   shift(): ModelRefCustomProperties<T, K> {
     const result = super.shift();
     this.setDirty();
@@ -619,10 +646,13 @@ export class ModelLinksArray<T extends Storable, K extends object>
     return <any>(
       (model instanceof ModelRefCustom
         ? model
-        : new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any, this.parent))
+        : new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any, this.parentObject))
     );
   }
 
+  /**
+   * @inheritdoc
+   */
   splice(
     start: unknown,
     deleteCount?: unknown,
@@ -633,6 +663,9 @@ export class ModelLinksArray<T extends Storable, K extends object>
     return result;
   }
 
+  /**
+   * @inheritdoc
+   */
   unshift(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]): number {
     const result = super.unshift(...items.map(i => this.getModelRef(i)));
     this.setDirty();
@@ -640,17 +673,20 @@ export class ModelLinksArray<T extends Storable, K extends object>
   }
 
   setDirty() {
-    const attrName = this.parent
-      ? Object.keys(this.parent)
-          .filter(k => this.parent[k] === this)
+    const attrName = this.parentObject
+      ? Object.keys(this.parentObject)
+          .filter(k => this.parentObject[k] === this)
           .pop()!
       : undefined;
     if (!attrName) {
       return;
     }
-    this.parent.__WEBDA_DIRTY?.add(attrName);
+    this.parentObject.__WEBDA_DIRTY?.add(attrName);
   }
 
+  /**
+   * @inheritdoc
+   */
   remove(model: ModelRefCustomProperties<T, K> | PrimaryKeyType<T> | T) {
     const uuid = typeof model["getPrimaryKey"] === "function" ? model["getPrimaryKey"]() : model;
     const index = this.findIndex(m => PrimaryKeyEquals(m.getPrimaryKey(), uuid));
@@ -700,7 +736,6 @@ export type ModelLinksMap<T extends Storable, K, L extends keyof T = undefined> 
  */
 export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, K> {
   toJSON(): any {
-    console.log("toJSON", this.__WEBDA_DATA);
     return this.__WEBDA_DATA || {};
   }
 }

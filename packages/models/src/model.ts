@@ -1,7 +1,15 @@
-import type { Eventable, JSONedAttributes, JSONedInternal, PK, PrimaryKeyType, Storable } from "./storable";
+import type {
+  AttributesArgument,
+  Eventable,
+  JSONedAttributes,
+  JSONedInternal,
+  PK,
+  PrimaryKeyType,
+  Storable
+} from "./storable";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
-import type { ExposableModel } from "./exposable";
+import type { ExposableMetadata, ExposableModel } from "./exposable";
 import type { ModelRefWithCreate, ModelRef } from "./relations";
 import type { ActionsEnum } from "./actionable";
 import { type Constructor, NotEnumerable } from "@webda/tsc-esm";
@@ -20,6 +28,11 @@ export type ModelEvents<T = any> = {
   PartialUpdate: any;
   Delete: { object_id: string };
   Update: { object_id: string; object: T; previous: T };
+  // Events sent after the change
+  Created: { object_id: string; object: T };
+  PartialUpdated: any;
+  Deleted: { object_id: string };
+  Updated: { object_id: string; object: T; previous: T };
 };
 
 const Repositories = new WeakMap<Constructor<Storable & Eventable>, Repository<any>>();
@@ -34,7 +47,7 @@ export function useRepository<T extends Storable & Eventable>(arg: Constructor<T
   while (!Repositories.has(clazz)) {
     clazz = Object.getPrototypeOf(clazz);
     if (clazz === Model) {
-      throw new Error(`No repository found for ${this.name}`);
+      throw new Error(`No repository found for ${arg.name}`);
     }
   }
   return Repositories.get(clazz) as Repository<T>;
@@ -173,6 +186,11 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return Repositories.get(this).ref(key);
   }
 
+  static create<T extends Model>(this: Constructor<T, any[]>, data?: AttributesArgument<T>): Promise<T> {
+    const repository = Repositories.get(this);
+    return repository.ref(repository.getPrimaryKey(data)).create(data);
+  }
+
   toJSON(): JSONedAttributes<this> {
     return <JSONedAttributes<this>>this;
   }
@@ -232,6 +250,16 @@ export abstract class Model implements Storable, Securable, ExposableModel {
       await repo.patch(this.getPrimaryKey(), patch);
       this.__WEBDA_DIRTY.clear();
     }
+  }
+
+  getConfiguration() {
+    return Object.freeze({
+      expose: {
+        types: ["create", "get", "update", "delete", "actions"],
+        plural: this.constructor.name.toLowerCase() + "s"
+      } as ExposableMetadata,
+      actions: []
+    });
   }
 }
 

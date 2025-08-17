@@ -1,17 +1,17 @@
 import { ActionsEnum } from "../src/actionable";
 import { Exposable } from "../src/exposable";
 import { Model, ModelEvents } from "../src/model";
-import { ModelLinksArray } from "../src/relations";
-import { PK, Storable } from "../src/storable";
+import { ModelLinksArray, ModelLinksSimpleArray } from "../src/relations";
+import { JSONed, PK, Storable } from "../src/storable";
 
 export class Container extends Model {
   PrimaryKey = ["digest"] as const;
   declare Events: ModelEvents<this> & { Test: { digest: string } };
 
   digest: string;
-  vulnerabilities: ModelLinksArray<Vulnerability, "digest">;
+  vulnerabilities: ModelLinksSimpleArray<Vulnerability>;
   toJSON() {
-    return this;
+    return this as JSONed<Container>;
   }
 }
 
@@ -29,7 +29,7 @@ export class Vulnerability implements Storable<Vulnerability, "id"> {
   }
 
   toJSON() {
-    return this;
+    return this as JSONed<Vulnerability>;
   }
 }
 

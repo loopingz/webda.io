@@ -1,4 +1,4 @@
-import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import type { FilterAttributes, FunctionArgs, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
 import type { ModelRelated } from "./relations";
 
 /**
@@ -18,7 +18,7 @@ export interface Storable<T = any, K extends keyof T = any, U = any> {
   /**
    * Events is a type-only object?
    */
-  Events: U;
+  //Events: U;
   /**
    * Properties that are dirty and need to be saved
    */
@@ -47,9 +47,30 @@ export type JSONedAttributes<T extends Storable> = {
   [P in StorableAttributes<T>]: JSONed<T[P]>;
 };
 
-export type AttributesArgument<T extends Storable> = {
-  [P in StorableAttributes<T>]: JSONed<T[P]> | T[P];
+// Helper to grab the first arg to a "set" method
+type FirstSetArg<X> = X extends { set: (...args: infer A) => any } ? A[0] : never;
+
+// Your value type, unchanged
+type AttributeValue<X> = X extends { set: Function } ? FirstSetArg<X> : JSONed<X> | X;
+
+// Keys where the first "set" arg is optional or includes undefined
+type OptionalArgKeys<T extends Storable> = {
+  [P in StorableAttributes<T>]-?: T[P] extends { set: any } ? (undefined extends FirstSetArg<T[P]> ? P : never) : never;
+}[StorableAttributes<T>];
+
+// Complement set: required-arg keys
+type RequiredArgKeys<T extends Storable> = Exclude<StorableAttributes<T>, OptionalArgKeys<T>>;
+
+// Final type:
+// - required when first "set" arg is required
+// - optional when first "set" arg is optional or includes undefined
+export type AttributesArgument<T extends Storable> = { [P in RequiredArgKeys<T>]: AttributeValue<T[P]> } & {
+  [P in OptionalArgKeys<T>]?: AttributeValue<T[P]>;
 };
+
+// export type AttributesArgument<T extends Storable> = {
+//   [P in StorableAttributes<T>]: T[P] extends { set: Function } ? FunctionArgs<T[P]["set"]>[0] : JSONed<T[P]> | T[P];
+// };
 
 /**
  * If object have a toDTO method take the return type of this method
@@ -127,16 +148,31 @@ export function isStorable<T = any>(object: any): object is Storable<T> {
   return typeof object.getPrimaryKey === "function" && Array.isArray(object.PrimaryKey);
 }
 
+//export type ReadonlyKeys<T> = { [P in keyof T]: "readonly" extends keyof T[P] ? P : never }[keyof T];
+
 /**
  * Get the model attributes without the internal properties
+ *
+ * Used for the create method
  */
 export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
-  Omit<T, "Events" | "__dirty" | "PrimaryKey" | FilterAttributes<T, Function>>,
+  Omit<
+    T,
+    | "Events"
+    | "__dirty"
+    | "PrimaryKey"
+    | "__WEBDA_DIRTY"
+    | FilterAttributes<T, Function>
+    | FilterAttributes<T, ModelRelated<any>>
+    | ReadonlyKeys<T>
+  >,
   U
 >;
 
 /**
  * Get the model attributes without the primary key properties
+ *
+ * Used for the update method
  */
 export type UpdatableAttributes<T extends Storable, U = any> = Exclude<
   StorableAttributes<T, U>,

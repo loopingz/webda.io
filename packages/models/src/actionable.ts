@@ -3,9 +3,9 @@ import { FunctionArgs, FunctionReturn } from "@webda/tsc-esm";
 /**
  * An Actionable object is an object that can be converted to a DTO and back
  */
-export interface Actionable {
-  toDTO(): any;
-  fromDTO(dto: any): void;
+export interface Actionable<T = any> {
+  toDTO(): T;
+  fromDTO(dto: T): void;
 }
 
 /**
@@ -63,14 +63,19 @@ ActionWrapper.super = ActionSuper;
  *
  * You can disable actions defined by an attribute by used `DeactivateActions`
  */
-export type ActionsEnum<T> = T extends object
-  ? {
-      [K in keyof T]: K extends string
-        ? T[K] extends Action
-          ? K
-          : T[K] extends Actionable
-            ? `${K}.${ActionsEnum<T[K]>}`
-            : never
-        : never;
-    }[keyof T]
-  : never;
+export type ActionsEnum<T> =
+  | (T extends object
+      ? {
+          [K in keyof T]: K extends string
+            ? T[K] extends Action
+              ? K
+              : T[K] extends Actionable
+                ? `${K}.${ActionsEnum<T[K]>}`
+                : never
+            : never;
+        }[keyof T]
+      : never)
+  | "create"
+  | "get"
+  | "update"
+  | "delete";

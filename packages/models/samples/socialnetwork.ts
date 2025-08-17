@@ -1,4 +1,4 @@
-import { Model, UuidModel } from "../src/model";
+import { UuidModel } from "../src/model";
 import { BelongTo, ManyToMany, ManyToOne, ModelRef, ModelRelated, OneToMany, RelateTo } from "../src/relations";
 
 class User extends UuidModel {
@@ -50,5 +50,6 @@ class Friendship extends UuidModel {
   rejectedAt: Date;
 }
 
-new Post().categories.add(new Category());
-new Category().posts.query("title = 'test'");
+const geek = new Category();
+new Post().categories.push(geek);
+geek.posts.query("title = 'test'");

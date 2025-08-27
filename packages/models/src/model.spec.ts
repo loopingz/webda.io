@@ -1,13 +1,12 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Model, UuidModel } from "./model";
-import { AttributesArgument, isStorable, PrimaryKeyEquals } from "./storable";
+import { isStorable, PrimaryKeyEquals, SelfJSON, WEBDA_PRIMARY_KEY } from "./storable";
 import { isSecurable } from "./index";
-import { isExposableModel } from "./exposable";
 import { MemoryRepository } from "./repository";
 
 export class TestModel extends Model {
-  PrimaryKey = ["id", "name"] as const;
+  [WEBDA_PRIMARY_KEY] = ["id", "name"] as const;
   id: string;
   name: string;
   age: number;
@@ -15,7 +14,7 @@ export class TestModel extends Model {
   createdAt: Date;
   updatedAt: Date;
 
-  constructor(data?: AttributesArgument<TestModel>) {
+  constructor(data?: SelfJSON<TestModel>) {
     super();
     this.id = data?.id || "";
     this.name = data?.name || "";
@@ -33,7 +32,7 @@ export class SubClassModel extends UuidModel {
   collection: { name: string; type: string }[];
   createdAt: Date;
 
-  constructor(data: AttributesArgument<SubClassModel>) {
+  constructor(data: SelfJSON<SubClassModel>) {
     super(data);
     this.name = data.name;
     this.age = data.age;
@@ -41,7 +40,7 @@ export class SubClassModel extends UuidModel {
       throw new Error("Age cannot be negative");
     }
     this.test = data.test || data.age * 4;
-    this.collection = data.collection;
+    //this.collection = data.collection;
     // @ts-ignore
     this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
   }
@@ -65,7 +64,7 @@ class ModelTest {
         uuid: "plop",
         age: 0,
         collection: [],
-        createdAt: new Date(),
+        createdAt: "",
         name: "",
         test: 123
       }).getRepository(),

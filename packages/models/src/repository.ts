@@ -1,14 +1,16 @@
 import type { ArrayElement, Constructor } from "@webda/tsc-esm";
 import type {
   Eventable,
-  JSONed,
-  JSONedAttributes,
+  JSON,
+  SelfJSON,
   PK,
   PrimaryKey,
   PrimaryKeyType,
   Storable,
   StorableAttributes,
-  UpdatableAttributes
+  UpdatableAttributes,
+  WEBDA_EVENTS,
+  WEBDA_PRIMARY_KEY
 } from "./storable";
 import { ModelRefWithCreate } from "./relations";
 import { deserialize, serialize } from "@webda/serialize";
@@ -62,13 +64,13 @@ export interface Repository<T extends Storable & Eventable> {
    * @param data
    * @returns
    */
-  create(primaryKey: PrimaryKeyType<T>, data: JSONedAttributes<T>): Promise<T>;
+  create(primaryKey: PrimaryKeyType<T>, data: SelfJSON<T>): Promise<T>;
   /**
    * Upsert data in the store, creating or updating the object
    * @param uuid
    * @param data
    */
-  upsert(primaryKey: PrimaryKeyType<T>, data: JSONedAttributes<T>): Promise<T>;
+  upsert(primaryKey: PrimaryKeyType<T>, data: SelfJSON<T>): Promise<T>;
   /**
    * Update data in the store, replacing the object
    * @param uuid
@@ -79,7 +81,7 @@ export interface Repository<T extends Storable & Eventable> {
    */
   update<K extends StorableAttributes<T>>(
     uuid: PrimaryKeyType<T>,
-    data: JSONedAttributes<T>,
+    data: SelfJSON<T>,
     conditionField?: K | null,
     condition?: T[K]
   ): Promise<void>;
@@ -93,9 +95,9 @@ export interface Repository<T extends Storable & Eventable> {
    */
   patch<K extends StorableAttributes<T>>(
     uuid: PrimaryKeyType<T>,
-    data: Partial<JSONedAttributes<T>>,
+    data: Partial<SelfJSON<T>>,
     conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
+    condition?: T[K] | JSON<T[K]>
   ): Promise<void>;
   /**
    * Query the store
@@ -119,7 +121,7 @@ export interface Repository<T extends Storable & Eventable> {
   delete<K extends StorableAttributes<T>>(
     uuid: PrimaryKeyType<T>,
     conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
+    condition?: T[K] | JSON<T[K]>
   ): Promise<void>;
   /**
    * Verify if the object exists
@@ -139,7 +141,7 @@ export interface Repository<T extends Storable & Eventable> {
     uuid: PrimaryKeyType<T>,
     info: ({ property: L; value?: number } | L)[] | Record<L, number>,
     conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
+    condition?: T[K] | JSON<T[K]>
   ): Promise<void>;
   /**
    * Increment attribute of an object
@@ -153,7 +155,7 @@ export interface Repository<T extends Storable & Eventable> {
     uuid: PrimaryKeyType<T>,
     info: { property: L; value?: number } | L,
     conditionField?: K | null,
-    condition?: T[K] | JSONed<T[K]>
+    condition?: T[K] | JSON<T[K]>
   ): Promise<void>;
   /**
    * Upsert an item to a collection
@@ -168,7 +170,7 @@ export interface Repository<T extends Storable & Eventable> {
   upsertItemToCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
     uuid: PrimaryKeyType<T>,
     collection: K,
-    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
+    item: ArrayElement<T[K]> | JSON<ArrayElement<T[K]>>,
     index?: number,
     itemWriteConditionField?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null,
     itemWriteCondition?: ArrayElement<T[K]> extends object ? L : never
@@ -201,7 +203,7 @@ export interface Repository<T extends Storable & Eventable> {
     uuid: PrimaryKeyType<T>,
     attribute: K,
     conditionField?: L | null,
-    condition?: T[L] | JSONed<T[L]>
+    condition?: T[L] | JSON<T[L]>
   ): Promise<void>;
   /**
    * Set an attribute on an object
@@ -214,11 +216,11 @@ export interface Repository<T extends Storable & Eventable> {
     attribute: K,
     value: T[K],
     conditionField?: L | null,
-    condition?: T[L] | JSONed<T[L]>
+    condition?: T[L] | JSON<T[L]>
   ): Promise<void>;
-  on<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void;
-  once<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void;
-  off<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void;
+  on<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void;
+  once<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void;
+  off<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void;
 }
 
 /**
@@ -227,7 +229,7 @@ export interface Repository<T extends Storable & Eventable> {
  */
 export class MemoryRepository<T extends Storable> implements Repository<T> {
   private storage = new Map<string, string>();
-  private events = new Map<keyof T["Events"], Set<(data: any) => void>>();
+  private events = new Map<keyof T[typeof WEBDA_EVENTS], Set<(data: any) => void>>();
 
   constructor(
     private model: Constructor<T, any[]>,
@@ -247,27 +249,29 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    */
   fromUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T> {
     if (this.pks.length === 1) {
-      return forceObject ? ({ [this.pks[0]]: uuid } as PrimaryKey<T>) : (uuid as PK<T, T["PrimaryKey"][number]>);
+      return forceObject
+        ? ({ [this.pks[0]]: uuid } as PrimaryKey<T>)
+        : (uuid as PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>);
     }
     const parts = uuid.split(this.separator);
     if (parts.length !== this.pks.length) {
       throw new Error(`Invalid UUID: ${uuid}`);
     }
-    const result = {} as PK<T, T["PrimaryKey"][number]>;
+    const result = {} as PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>;
     for (let i = 0; i < this.pks.length; i++) {
       result[this.pks[i] as keyof T] = parts[i] as any;
     }
     return result;
   }
 
-  private makeKey(pk: PK<T, T["PrimaryKey"][number]>): string {
+  private makeKey(pk: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>): string {
     return typeof pk === "object" ? JSON.stringify(pk) : String(pk);
   }
 
   /**
    * @inheritdoc
    */
-  async get(primaryKey: PK<T, T["PrimaryKey"][number]>): Promise<T> {
+  async get(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
     const key = this.makeKey(primaryKey);
     const item = this.storage.get(key);
     if (!item) throw new Error(`Not found: ${key}`);
@@ -289,7 +293,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  getPrimaryKey(object: any, forceObject?: boolean): PK<T, T["PrimaryKey"][number]> {
+  getPrimaryKey(object: any, forceObject?: boolean): PK<T, T[typeof WEBDA_PRIMARY_KEY][number]> {
     const pkFields = (object.PrimaryKey || this.pks || []) as Array<keyof T>;
     if (pkFields.length === 0) {
       throw new Error("No primary key defined on model");
@@ -321,7 +325,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  async create(primaryKey: PK<T, T["PrimaryKey"][number]>, data: JSONedAttributes<T>): Promise<T> {
+  async create(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>, data: SelfJSON<T>): Promise<T> {
     const key = this.makeKey(primaryKey);
     if (this.storage.has(key)) {
       throw new Error(`Already exists: ${key}`);
@@ -335,7 +339,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  async upsert(primaryKey: PK<T, T["PrimaryKey"][number]>, data: JSONedAttributes<T>): Promise<T> {
+  async upsert(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>, data: SelfJSON<T>): Promise<T> {
     const key = this.makeKey(primaryKey);
     if (this.storage.has(key)) {
       await this.patch(primaryKey, data);
@@ -348,8 +352,8 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async update<K extends StorableAttributes<T, any>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
-    data: JSONedAttributes<T>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
+    data: SelfJSON<T>,
     _conditionField?: K | null,
     _condition?: T[K]
   ): Promise<void> {
@@ -362,8 +366,8 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async patch<K extends StorableAttributes<T, any>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
-    data: Partial<JSONedAttributes<T>>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
+    data: Partial<SelfJSON<T>>,
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void> {
@@ -414,7 +418,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async delete<K extends StorableAttributes<T, any>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void> {
@@ -424,7 +428,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  async exists(primaryKey: PK<T, T["PrimaryKey"][number]>): Promise<boolean> {
+  async exists(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<boolean> {
     return this.storage.has(this.makeKey(primaryKey));
   }
 
@@ -432,7 +436,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async incrementAttributes<K extends StorableAttributes<T, any>, L extends StorableAttributes<T, number>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
@@ -456,7 +460,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async incrementAttribute<K extends StorableAttributes<T, any>, L extends StorableAttributes<T, number>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     info: L | { property: L; value?: number },
     _conditionField?: K | null,
     _condition?: any
@@ -483,9 +487,9 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async upsertItemToCollection<K extends StorableAttributes<T, any[]>, L extends keyof ArrayElement<T[K]>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     collection: K,
-    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
+    item: ArrayElement<T[K]> | JSON<ArrayElement<T[K]>>,
     index?: number,
     itemWriteConditionField?: any,
     itemWriteCondition?: any
@@ -513,7 +517,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async deleteItemFromCollection<K extends StorableAttributes<T, any[]>, L extends keyof ArrayElement<T[K]>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     collection: K,
     index: number,
     itemWriteConditionField?: any,
@@ -537,7 +541,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async removeAttribute<L extends StorableAttributes<T, any>, K extends StorableAttributes<T, any>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     attribute: K,
     _conditionField?: L | null,
     _condition?: any
@@ -551,7 +555,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    * @inheritdoc
    */
   async setAttribute<K extends StorableAttributes<T, any>, L extends StorableAttributes<T, any>>(
-    primaryKey: PK<T, T["PrimaryKey"][number]>,
+    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     attribute: K,
     value: T[K],
     _conditionField?: L | null,
@@ -565,7 +569,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  on<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void {
+  on<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void {
     if (!this.events.has(event)) {
       this.events.set(event, new Set());
     }
@@ -575,7 +579,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  once<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void {
+  once<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void {
     const wrapper = (d: any) => {
       listener(d);
       this.off(event, wrapper as any);
@@ -586,19 +590,19 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  off<K extends keyof T["Events"]>(event: K, listener: (data: T["Events"][K]) => void): void {
+  off<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void {
     this.events.get(event)?.delete(listener as any);
   }
 
   // Optional: trigger events internally
-  private emit<K extends keyof T["Events"]>(event: K, data: T["Events"][K]): void {
+  private emit<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, data: T[typeof WEBDA_EVENTS][K]): void {
     this.events.get(event)?.forEach(fn => fn(data));
   }
 
   /**
    * @inheritdoc
    */
-  public ref(key: PK<T, T["PrimaryKey"][number]>): ModelRefWithCreate<T> {
+  public ref(key: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>): ModelRefWithCreate<T> {
     return new ModelRefWithCreate<T>(key, this);
   }
 }

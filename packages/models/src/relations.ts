@@ -4,14 +4,15 @@ import {
   PrimaryKeyType,
   Storable,
   StorableAttributes,
-  JSONed,
+  JSON,
   PrimaryKey,
   PrimaryKeyEquals,
-  JSONedAttributes,
   AttributesArgument,
   PrimaryKeyAttributes,
   UpdatableAttributes,
-  PK
+  WEBDA_PRIMARY_KEY,
+  WEBDA_DIRTY,
+  SelfJSON
 } from "./storable";
 import type { Repository } from "./repository";
 import { Model } from "./model";
@@ -47,7 +48,7 @@ export class ModelRef<T extends Storable> {
    * @param value
    * @returns
    */
-  setAttribute<A extends UpdatableAttributes<T>>(attribute: A, value: JSONed<T[A]>): Promise<void> {
+  setAttribute<A extends UpdatableAttributes<T>>(attribute: A, value: JSON<T[A]>): Promise<void> {
     return this.__WEBDA_REPOSITORY.setAttribute(this.__WEBDA_KEY, attribute, value as any);
   }
 
@@ -59,9 +60,9 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   patch<A extends StorableAttributes<T>>(
-    data: Partial<JSONedAttributes<T>>,
+    data: Partial<SelfJSON<T>>,
     conditionField?: A,
-    condition?: T[A] | JSONed<T[A]>
+    condition?: T[A] | JSON<T[A]>
   ): Promise<void> {
     return this.__WEBDA_REPOSITORY.patch(this.__WEBDA_KEY, data, conditionField, condition);
   }
@@ -73,11 +74,7 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  update<A extends StorableAttributes<T>>(
-    data: JSONedAttributes<T>,
-    conditionField?: A,
-    condition?: T[A]
-  ): Promise<void> {
+  update<A extends StorableAttributes<T>>(data: SelfJSON<T>, conditionField?: A, condition?: T[A]): Promise<void> {
     return this.__WEBDA_REPOSITORY.update(this.__WEBDA_KEY, data, conditionField, condition);
   }
 
@@ -98,7 +95,7 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  delete<A extends StorableAttributes<T, any>>(conditionField?: A, condition?: JSONed<T[A]> | T[A]): Promise<void> {
+  delete<A extends StorableAttributes<T, any>>(conditionField?: A, condition?: JSON<T[A]> | T[A]): Promise<void> {
     return this.__WEBDA_REPOSITORY.delete(this.__WEBDA_KEY, conditionField, condition);
   }
 
@@ -137,7 +134,7 @@ export class ModelRef<T extends Storable> {
    */
   upsertItemToCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
     collection: K,
-    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
+    item: ArrayElement<T[K]> | JSON<ArrayElement<T[K]>>,
     index?: number,
     itemWriteConditionField?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null,
     itemWriteCondition?: ArrayElement<T[K]> extends object ? L : never
@@ -222,7 +219,7 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
    * @param data
    * @returns
    */
-  upsert(data: Omit<JSONed<T>, T["PrimaryKey"][number]>): Promise<T> {
+  upsert(data: Omit<JSON<T>, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
     return this.__WEBDA_REPOSITORY.upsert(this.__WEBDA_KEY, data as any);
   }
   /**
@@ -232,7 +229,7 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
    * @param data
    * @returns
    */
-  create(data: Omit<AttributesArgument<T>, T["PrimaryKey"][number]>): Promise<T> {
+  create(data: Omit<AttributesArgument<T>, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
     return this.__WEBDA_REPOSITORY.create(this.__WEBDA_KEY, data as any);
   }
 }
@@ -332,7 +329,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
   set(id: PrimaryKeyType<T> | T) {
     this.uuid = isStorable(id) ? id.getPrimaryKey() : id;
     // Set dirty for parent
-    this.parent?.__WEBDA_DIRTY.add(
+    this.parent?.[WEBDA_DIRTY].add(
       Object.keys(this.parent)
         .filter(k => this.parent[k] === this)
         .pop()!
@@ -478,7 +475,7 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
     if (!attrName) {
       return;
     }
-    this.parentObject.__WEBDA_DIRTY?.add(attrName);
+    this.parentObject?.[WEBDA_DIRTY].add(attrName);
   }
 
   remove(model: string | ModelRef<T> | PrimaryKeyType<T> | T) {
@@ -502,7 +499,7 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
 type ModelRefCustomProperties<T extends Storable, K extends object> = ModelRef<T> & {
   [key in keyof K]: K[key];
 } & {
-  toJSON(): JSONed<K> & PrimaryKey<T>;
+  toJSON(): JSON<K> & PrimaryKey<T>;
 };
 
 /**
@@ -549,8 +546,8 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
   }
 
   toJSON(): K & PrimaryKey<T> {
-    let res: any = {};
-    for (let i in this) {
+    const res: any = {};
+    for (const i in this) {
       if (i.startsWith("__WEBDA_")) {
         continue;
       }
@@ -607,7 +604,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
    * @returns
    * @deprecated use push instead
    */
-  add(model: JSONed<ModelRefCustomProperties<T, K>>) {
+  add(model: JSON<ModelRefCustomProperties<T, K>>) {
     this.push(
       new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any, this.parentObject) as any
     );
@@ -616,7 +613,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   /**
    * @inheritdoc
    */
-  push(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]) {
+  push(...items: (ModelRefCustomProperties<T, K> | JSON<ModelRefCustomProperties<T, K>>)[]) {
     const result = super.push(...items.map(i => this.getModelRef(i)));
     this.setDirty();
     return result;
@@ -641,7 +638,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   }
 
   getModelRef(
-    model: ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>
+    model: ModelRefCustomProperties<T, K> | JSON<ModelRefCustomProperties<T, K>>
   ): ModelRefCustomProperties<T, K> {
     return <any>(
       (model instanceof ModelRefCustom
@@ -656,7 +653,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   splice(
     start: unknown,
     deleteCount?: unknown,
-    ...rest: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]
+    ...rest: (ModelRefCustomProperties<T, K> | JSON<ModelRefCustomProperties<T, K>>)[]
   ): ModelRefCustomProperties<T, K>[] {
     const result = super.splice(start as number, deleteCount as number, ...rest.map(i => this.getModelRef(i)));
     this.setDirty();
@@ -666,7 +663,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   /**
    * @inheritdoc
    */
-  unshift(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]): number {
+  unshift(...items: (ModelRefCustomProperties<T, K> | JSON<ModelRefCustomProperties<T, K>>)[]): number {
     const result = super.unshift(...items.map(i => this.getModelRef(i)));
     this.setDirty();
     return result;
@@ -681,7 +678,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
     if (!attrName) {
       return;
     }
-    this.parentObject.__WEBDA_DIRTY?.add(attrName);
+    this.parentObject?.[WEBDA_DIRTY].add(attrName);
   }
 
   /**
@@ -700,7 +697,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
    *
    * @returns
    */
-  toJSON(): JSONed<ModelRefCustomProperties<T, K>>[] {
+  toJSON(): JSON<ModelRefCustomProperties<T, K>>[] {
     return <any>this;
   }
 }
@@ -724,7 +721,7 @@ export type ModelLinksMap<T extends Storable, K, L extends keyof T = undefined> 
   ModelCollectionManager<PrimaryKey<T> & K & { [key in L]: T[L] }> &
   ModelLinker & {
     toJSON(): {
-      [key: string]: Omit<JSONed<ModelRefCustomProperties<T, K & { [key in L]: T[L] }>>, keyof PrimaryKey<T>>;
+      [key: string]: Omit<JSON<ModelRefCustomProperties<T, K & { [key in L]: T[L] }>>, keyof PrimaryKey<T>>;
     };
   };
 
@@ -745,7 +742,7 @@ export function createModelLinksMap<T extends Storable = Storable, K extends obj
   data: any = {},
   parent?: T
 ) {
-  let setDirty = () => {
+  const setDirty = () => {
     const attrName = parent
       ? Object.keys(parent)
           .filter(k => parent[k] === result)
@@ -754,10 +751,10 @@ export function createModelLinksMap<T extends Storable = Storable, K extends obj
     if (!attrName) {
       return;
     }
-    parent.__WEBDA_DIRTY?.add(attrName);
+    parent?.[WEBDA_DIRTY]?.add(attrName);
   };
   const result = {
-    add: (model: JSONed<ModelRefCustomProperties<T, K>>) => {
+    add: (model: JSON<ModelRefCustomProperties<T, K>>) => {
       const uuid = repo.getUUID(model);
       const pk = repo.getPrimaryKey(model);
       result[uuid] = new ModelRefCustomMap(pk, repo, repo.excludePrimaryKey(model), parent!);

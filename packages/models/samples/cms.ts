@@ -1,7 +1,7 @@
 import { Model, registerRepository, UuidModel } from "../src/model";
 import { ModelLink, ModelLinksArray, ModelLinksSimpleArray, ModelParent, ModelRelated } from "../src/relations";
-import { MemoryRepository } from "../src/repository";
-import { PrimaryKeyType } from "../src/storable";
+import { MemoryRepository, Repository } from "../src/repository";
+import { PrimaryKeyType, WEBDA_PRIMARY_KEY } from "../src/storable";
 
 class WebdaDate extends Date {
   set(value: string | Date | number) {
@@ -20,7 +20,7 @@ class WebdaDate extends Date {
   }
 }
 export class SlugModel extends Model {
-  public PrimaryKey: readonly "slug"[] = ["slug"];
+  [WEBDA_PRIMARY_KEY]: readonly "slug"[] = ["slug"];
   slug: string;
   creator: ModelLink<User>;
   creationDate: Date;
@@ -39,7 +39,7 @@ export class Section extends SlugModel {
 }
 
 export class Group extends Model {
-  PrimaryKey = ["name"] as const;
+  [WEBDA_PRIMARY_KEY] = ["name"] as const;
   name: string;
   members: ModelLinksArray<User, { permission: "admin" | "member" }>;
   parent: ModelParent<Group>;
@@ -64,7 +64,7 @@ export class User extends UuidModel {
  * One to one relation with user
  */
 export class Profile extends Model {
-  public PrimaryKey: readonly "user"[] = ["user"];
+  [WEBDA_PRIMARY_KEY]: readonly "user"[] = ["user"];
   user: PrimaryKeyType<User>;
   language: string;
   picture: string;
@@ -74,7 +74,7 @@ const profileRepository = new MemoryRepository(Profile, ["user"]);
 const slugRepository = new MemoryRepository(SlugModel, ["slug"]);
 registerRepository(Profile, profileRepository);
 registerRepository(SlugModel, slugRepository);
-registerRepository(Blog, slugRepository);
+registerRepository(Blog, slugRepository as unknown as Repository<Blog>);
 registerRepository(Section, slugRepository);
 registerRepository(Group, new MemoryRepository(Group, ["name"]));
 registerRepository(User, new MemoryRepository(User, ["uuid"]));

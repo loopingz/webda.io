@@ -1,14 +1,14 @@
-import { Actionable, ActionsEnum, ActionWrapper, DeactivateActions } from "../src/actionable";
+import { Actionable, ActionsEnum, WEBDA_ACTIONS } from "../src/actionable";
 import { Model, ModelEvents, UuidModel } from "../src/model";
 import { ModelLinksArray, ModelLinksMap, ModelLinksSimpleArray, ModelParent, ModelRelated } from "../src/relations";
-import { JSONed, JSONedAttributes, PrimaryKeyType } from "../src/storable";
+import { JSON, PrimaryKeyType, SelfJSON, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } from "../src/storable";
 
 class Customer extends Model {
   // Define the primary key for the Customer model
-  PrimaryKey = ["country", "identifier"] as const;
+  [WEBDA_PRIMARY_KEY] = ["country", "identifier"] as const;
 
   // Delare events
-  declare Events: ModelEvents<this> & {
+  [WEBDA_EVENTS]: ModelEvents<this> & {
     Created: { customer: Customer };
     Updated: { customer: Customer };
   };
@@ -62,7 +62,7 @@ ref.incrementAttributes({
 });
 ref.setAttribute("amount", 12);
 
-const testJsoned: JSONed<Invoice> = {
+const testJsoned: JSON<Invoice> = {
   uuid: "1234",
   amount: 10,
   customer: {
@@ -102,7 +102,7 @@ export class Product extends UuidModel {
 }
 
 class Contact extends Model {
-  PrimaryKey = ["email"] as const;
+  [WEBDA_PRIMARY_KEY] = ["email"] as const;
   name: string;
   email: string;
 }
@@ -113,13 +113,21 @@ class Email extends UuidModel {
 }
 
 export class MFA implements Actionable {
+  [WEBDA_ACTIONS]: {
+    verify: {
+      description: "Verify a MFA code";
+    };
+    confirm: {
+      description: "Confirm a MFA code";
+    };
+  };
   secret: string;
-  verify = ActionWrapper(async (code: string) => {
+  async verify(code: string) {
     return true;
-  }, "Verify a MFA code");
-  confirm = ActionWrapper(async (code: string, code2: string, secret: string) => {
+  }
+  async confirm(code: string, code2: string, secret: string) {
     return true;
-  }, "Set a MFA secret");
+  }
 
   toDTO() {
     return {
@@ -130,21 +138,34 @@ export class MFA implements Actionable {
   fromDTO(dto: any): void {}
 }
 
+class ReadonlyMFA extends MFA {
+  [WEBDA_ACTIONS]: MFA[typeof WEBDA_ACTIONS] & {
+    confirm: {
+      disabled: true;
+    };
+  };
+}
+
 class User extends UuidModel {
-  declare Events: ModelEvents<this> & {
+  [WEBDA_EVENTS]: ModelEvents<this> & {
     Login: { user: User };
     Logout: { user: User };
+  };
+  [WEBDA_ACTIONS]: UuidModel[typeof WEBDA_ACTIONS] & {
+    logout: {
+      description: "Logout the user";
+    };
   };
 
   name: string;
   email: string;
   mfa: MFA;
-  readonly_mfa: DeactivateActions<MFA, "confirm">;
+  readonly_mfa: ReadonlyMFA;
   loginCount: number;
 
-  logout = ActionWrapper(async () => {
+  logout() {
     return true;
-  }, "Logout the user");
+  }
 
   async canAct(action: ActionsEnum<User>): Promise<boolean | string> {
     if (action === "mfa.confirm") {
@@ -187,11 +208,11 @@ Customer.create({
 });
 
 class GithubIssue extends Model {
+  [WEBDA_PRIMARY_KEY] = ["id"] as const;
   id: number;
-  public PrimaryKey = ["id"] as const;
 
-  toJSON(): JSONedAttributes<this> {
-    return <JSONedAttributes<this>>this;
+  toJSON(): SelfJSON<this> {
+    return <SelfJSON<this>>this;
   }
   /*
   toJSON(): {
@@ -209,7 +230,7 @@ class GithubIssue extends Model {
     */
 }
 
-const jsoned: JSONed<GithubIssue> = {
+const jsoned: JSON<GithubIssue> = {
   id: 1
 };
 

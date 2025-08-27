@@ -2,7 +2,7 @@ import { test, suite } from "@webda/test";
 import { MemoryRepository } from "./repository";
 import { SubClassModel, TestModel } from "./model.spec";
 import * as assert from "assert";
-import { PrimaryKeyEquals } from "./storable";
+import { PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "./storable";
 
 @suite
 class RepositoryTest {
@@ -19,7 +19,7 @@ class RepositoryTest {
     });
     await object.save();
     object.name = "Updated Test";
-    object.__WEBDA_DIRTY = new Set(["name"]);
+    object[WEBDA_DIRTY] = new Set(["name"]);
     await object.save();
     const object2 = await repo.get(object.getPrimaryKey());
     assert.strictEqual(object2.name, "Updated Test");
@@ -121,7 +121,7 @@ class RepositoryTest {
       /Already exists/
     );
     repo.getPrimaryKey(object);
-    console.log(object.PrimaryKey);
+    console.log(object[WEBDA_PRIMARY_KEY]);
 
     let count = 0;
     const listener = () => count++;

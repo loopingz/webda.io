@@ -1,18 +1,19 @@
-import type {
-  AttributesArgument,
-  Eventable,
-  JSONedAttributes,
-  JSONedInternal,
-  PK,
-  PrimaryKeyType,
-  Storable
+import {
+  WEBDA_DIRTY,
+  WEBDA_EVENTS,
+  WEBDA_PRIMARY_KEY,
+  type AttributesArgument,
+  type Eventable,
+  type SelfJSON,
+  type PK,
+  type PrimaryKeyType,
+  type Storable
 } from "./storable";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
-import type { ExposableMetadata, ExposableModel } from "./exposable";
 import type { ModelRefWithCreate, ModelRef } from "./relations";
-import type { ActionsEnum } from "./actionable";
-import { type Constructor, NotEnumerable } from "@webda/tsc-esm";
+import { WEBDA_ACTIONS, type Actionable, type ActionsEnum } from "./actionable";
+import { type Constructor } from "@webda/tsc-esm";
 import type { Repository } from "./repository";
 
 /**
@@ -72,7 +73,7 @@ export type ModelPrototype<T extends Model = Model> = {
   /**
    * Create a new model
    */
-  new (data: JSONedInternal<T>): T;
+  new (data: SelfJSON<T>): T;
   /**
    * Reference
    * @param this
@@ -86,32 +87,52 @@ export type ModelPrototype<T extends Model = Model> = {
  *
  * This is the core of many application
  */
-export abstract class Model implements Storable, Securable, ExposableModel {
-  Events: ModelEvents<this>;
+export abstract class Model implements Storable, Securable, Actionable {
+  [WEBDA_EVENTS]: ModelEvents<this>;
   /**
    * Properties that are dirty and need to be saved
    * @private
    */
-  @NotEnumerable
-  __WEBDA_DIRTY?: Set<string>;
+  [WEBDA_DIRTY]?: Set<string>;
+  /**
+   * Define actions for the model
+   */
+  [WEBDA_ACTIONS]: {
+    /**
+     * Create a new instance
+     */
+    create: {};
+    /**
+     * Get an instance
+     */
+    get: {};
+    /**
+     * Update an instance
+     */
+    update: {};
+    /**
+     * Delete an instance
+     */
+    delete: {};
+  };
 
   /** Non-abstract class need to define their PrimaryKey */
-  public abstract PrimaryKey: readonly (keyof this)[];
+  public abstract [WEBDA_PRIMARY_KEY]: readonly (keyof this)[];
 
   /**
    * K is inferred as the literal tuple type of `this.keyFields`,
    * so K[number] is the exact union of keys you wrote.
    */
-  getPrimaryKey<K extends readonly (keyof this)[]>(this: this & { PrimaryKey: K }): PK<this, K[number]> {
+  getPrimaryKey<K extends readonly (keyof this)[]>(this: this & { [WEBDA_PRIMARY_KEY]: K }): PK<this, K[number]> {
     const result = {} as Pick<this, K[number]>;
-    if (this.PrimaryKey.length === 1) {
-      return this[this.PrimaryKey[0]] as any;
+    if (this[WEBDA_PRIMARY_KEY].length === 1) {
+      return this[this[WEBDA_PRIMARY_KEY][0]] as any;
     }
-    for (const k of this.PrimaryKey) {
+    for (const k of this[WEBDA_PRIMARY_KEY]) {
       result[k] = this[k];
     }
     result.toString = () => {
-      return this.PrimaryKey.map(k => `${this[k]}`).join("_");
+      return this[WEBDA_PRIMARY_KEY].map(k => `${this[k]}`).join("_");
     };
     return result as any;
   }
@@ -138,11 +159,14 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @param value
    * @returns
    */
-  setPrimaryKey<K extends readonly (keyof this)[]>(this: this & { PrimaryKey: K }, value: PK<this, K[number]>): this {
-    if (this.PrimaryKey.length === 1) {
-      this[this.PrimaryKey[0]] = value as any;
+  setPrimaryKey<K extends readonly (keyof this)[]>(
+    this: this & { [WEBDA_PRIMARY_KEY]: K },
+    value: PK<this, K[number]>
+  ): this {
+    if (this[WEBDA_PRIMARY_KEY].length === 1) {
+      this[this[WEBDA_PRIMARY_KEY][0]] = value as any;
     } else {
-      for (const k of this.PrimaryKey) {
+      for (const k of this[WEBDA_PRIMARY_KEY]) {
         this[k] = value[k as any];
       }
     }
@@ -191,8 +215,8 @@ export abstract class Model implements Storable, Securable, ExposableModel {
     return repository.ref(repository.getPrimaryKey(data)).create(data);
   }
 
-  toJSON(): JSONedAttributes<this> {
-    return <JSONedAttributes<this>>this;
+  toJSON(): SelfJSON<this> {
+    return <SelfJSON<this>>this;
   }
 
   toDTO() {
@@ -212,7 +236,7 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    * @param action
    * @returns
    */
-  async canAct(action: ActionsEnum<this>): Promise<boolean | string> {
+  async canAct(action: ActionsEnum<Model>): Promise<boolean | string> {
     return false;
   }
 
@@ -240,26 +264,16 @@ export abstract class Model implements Storable, Securable, ExposableModel {
    */
   async save(): Promise<void> {
     const repo = this.getRepository();
-    if (!this.__WEBDA_DIRTY) {
+    if (!this[WEBDA_DIRTY]) {
       await repo.upsert(this.getPrimaryKey(), this.toJSON());
     } else {
-      const patch = {} as JSONedAttributes<this>;
-      for (const k of this.__WEBDA_DIRTY) {
+      const patch = {} as SelfJSON<this>;
+      for (const k of this[WEBDA_DIRTY]) {
         patch[k] = this[k];
       }
       await repo.patch(this.getPrimaryKey(), patch);
-      this.__WEBDA_DIRTY.clear();
+      this[WEBDA_DIRTY].clear();
     }
-  }
-
-  getConfiguration() {
-    return Object.freeze({
-      expose: {
-        types: ["create", "get", "update", "delete", "actions"],
-        plural: this.constructor.name.toLowerCase() + "s"
-      } as ExposableMetadata,
-      actions: []
-    });
   }
 }
 
@@ -270,7 +284,7 @@ export class UuidModel extends Model {
   /**
    * Definition of the primary key
    */
-  public PrimaryKey = ["uuid"] as const;
+  public [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
   /**
    * UUID of the model
    */

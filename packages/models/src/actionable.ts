@@ -1,81 +1,58 @@
-import { FunctionArgs, FunctionReturn } from "@webda/tsc-esm";
+export const WEBDA_ACTIONS: unique symbol = Symbol("Actions definition");
 
 /**
  * An Actionable object is an object that can be converted to a DTO and back
  */
 export interface Actionable<T = any> {
+  [WEBDA_ACTIONS]: T;
   toDTO(): T;
   fromDTO(dto: T): void;
 }
 
 /**
- * Deactivate actions of a class
+ * Return attribute actions
  */
-export type DeactivateActions<T, U extends ActionsEnum<T> = ActionsEnum<T>> = {
-  [K in keyof T as K extends U ? never : K]: T[K];
-} & {
-  [K in keyof T as K extends U ? K : never]: T[K] extends (...args: any[]) => infer R
-    ? (...args: FunctionArgs<T[K]>) => FunctionReturn<T[K]>
-    : T[K];
-};
+export type AttributesActions<T extends Actionable> = {
+  [K in keyof T]-?: NonNullable<T[K]> extends Actionable
+    ? `${Extract<K, string>}.${OwnActions<NonNullable<T[K]>>}`
+    : never;
+}[keyof T];
 
 /**
- * Define a Function as an Action
+ * Return object actions
  */
-export type Action = Function & {
-  description: string;
-  action: true;
-};
-
-/**
- * Wraps a function and adds a description to it and a property `action` set to true.
- *
- * You can disable actions defined by an attribute by used `DeactivateActions`
- * @param action
- * @param description
- * @returns
- */
-export function ActionWrapper<T extends (...args: any[]) => any>(
-  action: T,
-  description: string
-): T & { description: string; action: true } {
-  const actionWrapped = action as T & { description: string; action: true };
-  actionWrapped.description = description;
-  actionWrapped.action = true;
-  return actionWrapped;
-}
-
-/**
- * Call the super action of a class
- * @param target
- * @param action
- * @param args
- * @returns
- */
-export function ActionSuper(target: any, action: string, ...args: any[]): any {
-  return new (Object.getPrototypeOf(Object.getPrototypeOf(target).constructor))(this)[action](...args);
-}
-
-ActionWrapper.super = ActionSuper;
+export type OwnActions<T extends Actionable> = {
+  [K in keyof T[typeof WEBDA_ACTIONS]]: T[typeof WEBDA_ACTIONS][K] extends { disabled: true } ? never : K;
+}[keyof T[typeof WEBDA_ACTIONS]] &
+  string;
 
 /**
  * Find all actions defined in a class
  *
- * You can disable actions defined by an attribute by used `DeactivateActions`
  */
-export type ActionsEnum<T> =
-  | (T extends object
-      ? {
-          [K in keyof T]: K extends string
-            ? T[K] extends Action
-              ? K
-              : T[K] extends Actionable
-                ? `${K}.${ActionsEnum<T[K]>}`
-                : never
-            : never;
-        }[keyof T]
-      : never)
-  | "create"
-  | "get"
-  | "update"
-  | "delete";
+export type ActionsEnum<T extends Actionable> = AttributesActions<T> | OwnActions<T>;
+
+/**
+ * Exposable model implement the canAct
+ */
+export type Exposable = {
+  canAct: () => Promise<boolean | string>;
+} & Actionable;
+
+/**
+ * Check if a model is exposable
+ * @param model
+ * @returns
+ */
+export function isExposable(model: any): model is Exposable {
+  return typeof model.canAct === "function" && isActionable(model);
+}
+
+/**
+ * Check if a model is exposable
+ * @param model
+ * @returns
+ */
+export function isActionable(model: any): model is Actionable {
+  return typeof model.toDTO === "function" && typeof model.fromDTO === "function";
+}

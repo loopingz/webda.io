@@ -1,4 +1,3 @@
-import { Test } from "mocha";
 import { UuidModel } from "./model";
 import {
   createModelLinksMap,
@@ -10,7 +9,7 @@ import {
 import { MemoryRepository } from "./repository";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { PrimaryKeyEquals } from "./storable";
+import { PrimaryKeyEquals, WEBDA_DIRTY } from "./storable";
 import { TestModel } from "./model.spec";
 
 class TestSimpleModel extends UuidModel {
@@ -80,23 +79,23 @@ class RelationsTest {
     model.setPrimaryKey("test");
     await repo.create("test", model);
     const model2 = await repo.create("test2", new TestSimpleModel({ name: "Test2", age: 20 }));
-    model2.__WEBDA_DIRTY = new Set();
+    model2[WEBDA_DIRTY] = new Set();
     let links = new ModelLinksArray<TestSimpleModel, { status: "OK" | "NOK" }>(repo, [], model2);
     links.add({
       uuid: "test",
       status: "OK"
     });
-    assert.ok(model2.__WEBDA_DIRTY.size === 0);
+    assert.ok(model2[WEBDA_DIRTY].size === 0);
     links.remove("test");
     assert.ok(links.length === 0);
-    assert.ok(model2.__WEBDA_DIRTY.size === 0);
+    assert.ok(model2[WEBDA_DIRTY].size === 0);
     model2["fake"] = links;
     links.add({
       uuid: "test",
       status: "OK"
     });
-    assert.ok(model2.__WEBDA_DIRTY.has("fake"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake"));
+    model2[WEBDA_DIRTY].clear();
     links.toJSON();
     model2["fake2"] = links;
     delete model2["fake"];
@@ -105,7 +104,7 @@ class RelationsTest {
       status: "OK"
     });
     links.remove(links[0]);
-    assert.ok(model2.__WEBDA_DIRTY.has("fake2"));
+    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
     assert.ok(links.length === 0);
 
     // Without parent
@@ -128,7 +127,7 @@ class RelationsTest {
     assert.ok(links.length === 1);
     assert.strictEqual((await links[0].get()).name, "Test");
     model2["fake2"] = links;
-    model2.__WEBDA_DIRTY.clear();
+    model2[WEBDA_DIRTY].clear();
     links.unshift(
       {
         uuid: "test2",
@@ -136,14 +135,14 @@ class RelationsTest {
       },
       links[0]
     );
-    assert.ok(model2.__WEBDA_DIRTY.has("fake2"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
+    model2[WEBDA_DIRTY].clear();
     links.shift();
-    assert.ok(model2.__WEBDA_DIRTY.has("fake2"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
+    model2[WEBDA_DIRTY].clear();
     links.pop();
-    assert.ok(model2.__WEBDA_DIRTY.has("fake2"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
+    model2[WEBDA_DIRTY].clear();
     assert.ok(links.length === 1);
     assert.throws(
       () => new ModelLinksArray(repo, [{ __WEBDA_KEY: "toto" } as any]),
@@ -159,31 +158,31 @@ class RelationsTest {
     model.setPrimaryKey("test");
     await repo.create("test", model);
     const model2 = await repo.create("test2", new TestSimpleModel({ name: "Test2", age: 20 }));
-    model2.__WEBDA_DIRTY = new Set();
+    model2[WEBDA_DIRTY] = new Set();
     let links = new ModelLinksSimpleArray<TestSimpleModel>(repo, [], model2);
     links.add(model);
-    assert.ok(model2.__WEBDA_DIRTY.size === 0);
+    assert.ok(model2[WEBDA_DIRTY].size === 0);
     links.remove("test");
     assert.ok(links.length === 0);
-    assert.ok(model2.__WEBDA_DIRTY.size === 0);
+    assert.ok(model2[WEBDA_DIRTY].size === 0);
     model2["fake"] = links;
     links.add("test");
-    assert.ok(model2.__WEBDA_DIRTY.has("fake"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake"));
+    model2[WEBDA_DIRTY].clear();
     links.unshift("test", "test2");
-    assert.ok(model2.__WEBDA_DIRTY.has("fake"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake"));
+    model2[WEBDA_DIRTY].clear();
     links.shift();
-    assert.ok(model2.__WEBDA_DIRTY.has("fake"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake"));
+    model2[WEBDA_DIRTY].clear();
     links.pop();
-    assert.ok(model2.__WEBDA_DIRTY.has("fake"));
-    model2.__WEBDA_DIRTY.clear();
+    assert.ok(model2[WEBDA_DIRTY].has("fake"));
+    model2[WEBDA_DIRTY].clear();
     links.toJSON();
     model2["fake2"] = links;
     delete model2["fake"];
     links.remove(links[0]);
-    assert.ok(model2.__WEBDA_DIRTY.has("fake2"));
+    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
     assert.ok(links.length === 0);
 
     // Without parent
@@ -207,7 +206,7 @@ class RelationsTest {
     const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel({ name: "Test", age: 10 });
-    model.__WEBDA_DIRTY = new Set();
+    model[WEBDA_DIRTY] = new Set();
     const map = createModelLinksMap<TestSimpleModel, { name: string }>(
       repo,
       {
@@ -221,20 +220,20 @@ class RelationsTest {
       name: "test2",
       uuid: "test2"
     });
-    assert.strictEqual(model.__WEBDA_DIRTY.size, 0);
+    assert.strictEqual(model[WEBDA_DIRTY].size, 0);
     model["fake"] = map;
     map.add({
       name: "test3",
       uuid: "test3"
     });
-    assert.strictEqual(model.__WEBDA_DIRTY.size, 1);
-    assert.ok(model.__WEBDA_DIRTY!.has("fake"));
-    model.__WEBDA_DIRTY!.clear();
+    assert.strictEqual(model[WEBDA_DIRTY].size, 1);
+    assert.ok(model[WEBDA_DIRTY]!.has("fake"));
+    model[WEBDA_DIRTY]!.clear();
     map.remove("test3");
-    assert.ok(model.__WEBDA_DIRTY!.has("fake"));
-    model.__WEBDA_DIRTY!.clear();
+    assert.ok(model[WEBDA_DIRTY]!.has("fake"));
+    model[WEBDA_DIRTY]!.clear();
     map.remove("test4");
-    assert.strictEqual(model.__WEBDA_DIRTY.size, 0);
+    assert.strictEqual(model[WEBDA_DIRTY].size, 0);
   }
 
   @test
@@ -242,7 +241,7 @@ class RelationsTest {
     const repo = new MemoryRepository<TestModel>(TestModel, ["id", "name"]);
     TestModel.registerRepository(repo);
     const model = new TestModel({ id: "test", name: "test" } as any);
-    model.__WEBDA_DIRTY = new Set();
+    model[WEBDA_DIRTY] = new Set();
     const map = createModelLinksMap<TestModel, { status: string }>(repo, {});
     map.add({
       name: "test2",

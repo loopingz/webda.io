@@ -1,35 +1,56 @@
-import { ActionsEnum } from "../src/actionable";
-import { Exposable } from "../src/exposable";
+import { Actionable, WEBDA_ACTIONS } from "../src";
 import { Model, ModelEvents } from "../src/model";
-import { ModelLinksArray, ModelLinksSimpleArray } from "../src/relations";
-import { JSONed, PK, Storable } from "../src/storable";
+import { ModelLinksSimpleArray } from "../src/relations";
+import { PK, SelfDTO, SelfJSON, Storable, WEBDA_EVENTS, WEBDA_PLURAL, WEBDA_PRIMARY_KEY } from "../src/storable";
 
 export class Container extends Model {
-  PrimaryKey = ["digest"] as const;
-  declare Events: ModelEvents<this> & { Test: { digest: string } };
+  [WEBDA_PRIMARY_KEY] = ["digest"] as const;
+  [WEBDA_EVENTS]: ModelEvents<this> & { Test: { digest: string } };
 
   digest: string;
   vulnerabilities: ModelLinksSimpleArray<Vulnerability>;
   toJSON() {
-    return this as JSONed<Container>;
+    return this as SelfJSON<this>;
   }
 }
 
-export class Vulnerability implements Storable<Vulnerability, "id"> {
-  __dirty?: Set<string> | undefined;
-  Events: {};
+/**
+ * Define some additional customer event
+ */
+export type VulnerabilityEvents<T> = {
+  discover: (info: { vulnerability: T }) => void;
+} & ModelEvents<T>;
+/**
+ * Example of a model that implements the interface
+ * instead of expanding model
+ */
+export class Vulnerability implements Storable<Vulnerability, "id">, Actionable {
+  [WEBDA_EVENTS]: VulnerabilityEvents<this>;
+  [WEBDA_PRIMARY_KEY]: readonly "id"[] = ["id"] as const;
+  [WEBDA_ACTIONS]: {
+    update: {};
+  };
+  [WEBDA_PLURAL] = "Vulnerabilities";
   id: string;
-  public PrimaryKey: readonly "id"[] = ["id"] as const;
+
   /**
    * K is inferred as the literal tuple type of `this.keyFields`,
    * so K[number] is the exact union of keys you wrote.
    */
-  getPrimaryKey(): PK<Vulnerability, Vulnerability["PrimaryKey"][number]> {
+  getPrimaryKey(): PK<Vulnerability, Vulnerability[typeof WEBDA_PRIMARY_KEY][number]> {
     return this.id;
   }
 
   toJSON() {
-    return this as JSONed<Vulnerability>;
+    return this as SelfJSON<this>;
+  }
+
+  toDTO() {
+    return this as SelfDTO<this>;
+  }
+
+  fromDTO(dto: SelfDTO<this>): void {
+    Object.assign(this, dto);
   }
 }
 

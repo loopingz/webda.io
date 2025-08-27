@@ -1,5 +1,30 @@
-import type { FilterAttributes, FunctionArgs, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import type { Attributes, FilterAttributes, FunctionArgs, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
 import type { ModelRelated } from "./relations";
+
+/**
+ * Define the model primary key
+ */
+export const WEBDA_PRIMARY_KEY: unique symbol = Symbol("Primary key");
+/**
+ * Define the model plural key
+ * @default <modelName>s
+ */
+export const WEBDA_PLURAL: unique symbol = Symbol("Plural definition");
+/**
+ * Define the model events key
+ */
+export const WEBDA_EVENTS: unique symbol = Symbol("Events definition");
+/**
+ * Define the dirty properties key
+ */
+export const WEBDA_DIRTY: unique symbol = Symbol("Dirty properties");
+
+/**
+ * Define the events for the model
+ */
+export type Eventable = {
+  [WEBDA_EVENTS]: any;
+};
 
 /**
  * A Storable object is an object that can be stored in a database or anywhere else
@@ -8,50 +33,67 @@ import type { ModelRelated } from "./relations";
  * It has a primary key, a toJSON method and an Events object
  *
  */
-export interface Storable<T = any, K extends keyof T = any, U = any> {
-  PrimaryKey: readonly K[];
+export interface Storable<T = any, K extends keyof T = any> extends Eventable {
+  /**
+   * Define the primary key for your model
+   */
+  [WEBDA_PRIMARY_KEY]: readonly K[];
+  /**
+   * Define the plural for your model
+   */
+  [WEBDA_PLURAL]?: string;
+  /**
+   * Properties that are dirty and need to be saved
+   */
+  [WEBDA_DIRTY]?: Set<string>;
+  /**
+   * Return the primary key
+   */
   getPrimaryKey(): IsUnion<K> extends true ? Pick<T, K> : T[K];
   /**
    * Return the object as a POJO
    */
   toJSON(): any;
-  /**
-   * Events is a type-only object?
-   */
-  //Events: U;
-  /**
-   * Properties that are dirty and need to be saved
-   */
-  __WEBDA_DIRTY?: Set<string>;
 }
-
-/**
- * Internal type to get the JSONed type of an object
- * @ignore
- */
-export type JSONedInternal<T> = T extends { toJSON: () => any } ? ReturnType<T["toJSON"]> : T;
 /**
  * If object have a toJSON method take the return type of this method
  * otherwise return the object
  */
-export type JSONed<T> = T extends object
-  ? Omit<JSONedInternal<T>, FilterAttributes<T, ModelRelated<any>>>
-  : JSONedInternal<T>;
-
+export type JSON<T> = T extends { toJSON: () => any }
+  ? ReturnType<T["toJSON"]>
+  : T extends object
+    ? Pick<T, Extract<Attributes<T>, string>>
+    : T;
 /**
- * Define a JSONed without refering to its own toJSON
- *
- * To be used within the model definition
+ * Allow to use this type in a JSON context
  */
-export type JSONedAttributes<T extends Storable> = {
-  [P in StorableAttributes<T>]: JSONed<T[P]>;
+export type SelfJSON<T extends object> = {
+  [K in Extract<Attributes<T>, string>]: JSON<T[K]>;
+};
+
+export type DTO<T, U extends "in" | "out" = "out"> = T extends object
+  ? U extends "out"
+    ? T extends { toDTO: () => any }
+      ? ReturnType<T["toDTO"]>
+      : {
+          [K in Extract<Attributes<T>, string>]: DTO<T[K], U>;
+        }
+    : T extends { fromDTO: (arg: infer Argument) => any }
+      ? Argument
+      : {
+          [K in Extract<Attributes<T>, string>]: DTO<T[K], "in">;
+        }
+  : JSON<T>;
+
+export type SelfDTO<T extends object, U extends "in" | "out" = "out"> = {
+  [K in Extract<Attributes<T>, string>]: DTO<T[K], U>;
 };
 
 // Helper to grab the first arg to a "set" method
 type FirstSetArg<X> = X extends { set: (...args: infer A) => any } ? A[0] : never;
 
 // Your value type, unchanged
-type AttributeValue<X> = X extends { set: Function } ? FirstSetArg<X> : JSONed<X> | X;
+type AttributeValue<X> = X extends { set: Function } ? FirstSetArg<X> : JSON<X> | X;
 
 // Keys where the first "set" arg is optional or includes undefined
 type OptionalArgKeys<T extends Storable> = {
@@ -64,19 +106,15 @@ type RequiredArgKeys<T extends Storable> = Exclude<StorableAttributes<T>, Option
 // Final type:
 // - required when first "set" arg is required
 // - optional when first "set" arg is optional or includes undefined
-export type AttributesArgument<T extends Storable> = { [P in RequiredArgKeys<T>]: AttributeValue<T[P]> } & {
-  [P in OptionalArgKeys<T>]?: AttributeValue<T[P]>;
+export type AttributesArgument<T extends Storable> = {
+  [P in Extract<RequiredArgKeys<T>, string | number>]: AttributeValue<T[P]>;
+} & {
+  [P in Extract<OptionalArgKeys<T>, string | number>]?: AttributeValue<T[P]>;
 };
 
 // export type AttributesArgument<T extends Storable> = {
 //   [P in StorableAttributes<T>]: T[P] extends { set: Function } ? FunctionArgs<T[P]["set"]>[0] : JSONed<T[P]> | T[P];
 // };
-
-/**
- * If object have a toDTO method take the return type of this method
- * otherwise return the object
- */
-export type DTOed<T> = T extends { toDTO: () => any } ? ReturnType<T["toDTO"]> : JSONed<T>;
 
 /**
  * Get the type of one key or a Pick of the object is multiple keys provided
@@ -90,7 +128,7 @@ export type PK<K, T extends keyof K> = IsUnion<T> extends true ? Pick<K, T> : K[
  *
  * The PrimaryKey<T> will always return a Pick type
  */
-export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T["PrimaryKey"][number]>;
+export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>;
 /**
  * Get the primary key of the object
  *
@@ -98,7 +136,7 @@ export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T["PrimaryKey"]
  *
  * The PrimaryKeyType<T> will return a Pick type only if the primary key is a union type
  */
-export type PrimaryKey<T extends Storable<any, any>> = Pick<T, T["PrimaryKey"][number]>;
+export type PrimaryKey<T extends Storable<any, any>> = Pick<T, T[typeof WEBDA_PRIMARY_KEY][number]>;
 /**
  * Get the primary key attributes of the object
  */
@@ -136,7 +174,7 @@ export type OnlyNumbers<T> = {
 };
 
 export type Pojo<T extends object> = {
-  [P in keyof Omit<T, FilterAttributes<T, Function>>]: JSONed<T[P]>;
+  [P in Extract<keyof Omit<T, FilterAttributes<T, Function>>, string | number>]: JSON<T[P]>;
 };
 
 /**
@@ -156,16 +194,7 @@ export function isStorable<T = any>(object: any): object is Storable<T> {
  * Used for the create method
  */
 export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
-  Omit<
-    T,
-    | "Events"
-    | "__dirty"
-    | "PrimaryKey"
-    | "__WEBDA_DIRTY"
-    | FilterAttributes<T, Function>
-    | FilterAttributes<T, ModelRelated<any>>
-    | ReadonlyKeys<T>
-  >,
+  Omit<T, FilterAttributes<T, Function> | FilterAttributes<T, ModelRelated<any>> | ReadonlyKeys<T>>,
   U
 >;
 
@@ -178,10 +207,3 @@ export type UpdatableAttributes<T extends Storable, U = any> = Exclude<
   StorableAttributes<T, U>,
   PrimaryKeyAttributes<T> | ReadonlyKeys<T>
 >;
-
-/**
- * Define the events for the model
- */
-export type Eventable = {
-  Events: any;
-};

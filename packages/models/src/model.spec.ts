@@ -1,8 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Model, UuidModel } from "./model";
-import { isStorable, PrimaryKeyEquals, SelfJSON, WEBDA_PRIMARY_KEY } from "./storable";
-import { isSecurable } from "./index";
+import { isStorable, PrimaryKeyEquals, SelfJSONed, WEBDA_PRIMARY_KEY } from "./storable";
+import { isExposable, isSecurable } from "./index";
 import { MemoryRepository } from "./repository";
 
 export class TestModel extends Model {
@@ -14,7 +14,7 @@ export class TestModel extends Model {
   createdAt: Date;
   updatedAt: Date;
 
-  constructor(data?: SelfJSON<TestModel>) {
+  constructor(data?: SelfJSONed<TestModel>) {
     super();
     this.id = data?.id || "";
     this.name = data?.name || "";
@@ -25,6 +25,8 @@ export class TestModel extends Model {
   }
 }
 
+TestModel.registerSerializer();
+
 export class SubClassModel extends UuidModel {
   name: string;
   age: number;
@@ -32,7 +34,7 @@ export class SubClassModel extends UuidModel {
   collection: { name: string; type: string }[];
   createdAt: Date;
 
-  constructor(data: SelfJSON<SubClassModel>) {
+  constructor(data: SelfJSONed<SubClassModel> = {} as any) {
     super(data);
     this.name = data.name;
     this.age = data.age;
@@ -40,11 +42,13 @@ export class SubClassModel extends UuidModel {
       throw new Error("Age cannot be negative");
     }
     this.test = data.test || data.age * 4;
-    //this.collection = data.collection;
+    this.collection = data.collection;
     // @ts-ignore
     this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
   }
 }
+
+SubClassModel.registerSerializer();
 
 @suite
 class ModelTest {
@@ -97,7 +101,7 @@ class ModelTest {
       assert.ok(typeof model2.toProxy === "function");
     }
 
-    if (isExposableModel(model2)) {
+    if (isExposable(model2)) {
       assert.ok(typeof model2.canAct === "function");
     }
 
@@ -132,5 +136,18 @@ class ModelTest {
       name: "Test"
     });
     assert.ok(!PrimaryKeyEquals(model, model4));
+  }
+
+  @test
+  async upsert() {
+    const repo1 = new MemoryRepository<SubClassModel>(SubClassModel, ["uuid"]);
+    SubClassModel.registerRepository(repo1);
+    const model1 = SubClassModel.ref("test").upsert({
+      name: "Test",
+      collection: [],
+      createdAt: "",
+      age: 0,
+      test: 123
+    });
   }
 }

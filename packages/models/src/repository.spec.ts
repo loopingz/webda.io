@@ -10,6 +10,9 @@ class RepositoryTest {
   async testModelCRUD() {
     const repo = new MemoryRepository<SubClassModel>(SubClassModel, ["uuid"]);
     SubClassModel.registerRepository(repo);
+    assert.deepStrictEqual(repo.fromUUID("test", true), {
+      uuid: "test"
+    });
     const object = await repo.ref("test").create({
       name: "Test",
       age: 30,
@@ -99,8 +102,9 @@ class RepositoryTest {
       name: "Updated Test",
       age: 31,
       collection: [{ name: "item3", type: "type3" }],
-      createdAt: new Date(),
-      test: 456
+      createdAt: "",
+      test: 456,
+      uuid: "test"
     });
     await object.refresh();
     assert.strictEqual(object.name, "Updated Test");
@@ -108,18 +112,6 @@ class RepositoryTest {
 
     await object.ref().delete();
     assert.ok(!(await repo.exists(object.getPrimaryKey())));
-    await object.ref().upsert({
-      name: "Test"
-    });
-    await object.refresh();
-    assert.strictEqual(object.name, "Test");
-    await assert.rejects(
-      () =>
-        object.ref().create({
-          name: "Test"
-        }),
-      /Already exists/
-    );
     repo.getPrimaryKey(object);
     console.log(object[WEBDA_PRIMARY_KEY]);
 
@@ -145,25 +137,36 @@ class RepositoryTest {
 
   @test
   async testModelWithCompositeId() {
-    const repo = new MemoryRepository<TestModel>(TestModel, ["uuid"]);
+    const repo = new MemoryRepository<TestModel>(TestModel, ["id", "name"]);
     TestModel.registerRepository(repo);
-    const test = await repo.create(
-      {
-        id: "123",
-        name: "Test"
-      },
-      {
-        content: "test"
-      }
-    );
-    assert.deepStrictEqual(repo.getPrimaryKey(test), {
+    const test = await repo.create({
       id: "123",
-      name: "Test"
+      name: "Test",
+      age: 10,
+      email: "test@example.com",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
+    let pk = repo.getPrimaryKey(test);
+    assert.strictEqual(pk.toString(), "123_Test");
+    Object.keys(pk)
+      .filter(key => key !== "toString")
+      .forEach(key => {
+        assert.strictEqual(pk[key], test[key]);
+      });
+    assert.deepStrictEqual(Object.keys(pk).sort(), ["id", "name", "toString"]);
     const test2 = await repo.get(test.getPrimaryKey());
     assert.deepStrictEqual(test2, test);
-    assert.strictEqual(repo.getPrimaryKey({ uuid: "test" }), "test");
-    assert.strictEqual(repo.fromUUID("test"), "test");
+    assert.strictEqual(repo.getPrimaryKey({ id: "123", name: "Test" }).toString(), "123_Test");
+    assert.deepStrictEqual(repo.fromUUID("123_Test"), { id: "123", name: "Test" });
+    await assert.rejects(
+      () =>
+        repo.create({
+          id: "123",
+          name: "Test"
+        } as any),
+      /Already exists: 123_Test/
+    );
   }
 
   @test
@@ -171,6 +174,7 @@ class RepositoryTest {
     let repo = new MemoryRepository<TestModel>(TestModel, []);
     assert.throws(() => repo.getPrimaryKey({}), /No primary key defined/);
     repo = new MemoryRepository<TestModel>(TestModel, ["uuid", "name"]);
+    assert.strictEqual(repo.getRootModel(), TestModel);
     assert.throws(() => repo.fromUUID("test_test_test"), /Invalid UUID/);
     assert.deepStrictEqual(repo.fromUUID("test_test2"), {
       uuid: "test",

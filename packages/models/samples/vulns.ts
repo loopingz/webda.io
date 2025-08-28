@@ -1,7 +1,7 @@
 import { Actionable, WEBDA_ACTIONS } from "../src";
 import { Model, ModelEvents } from "../src/model";
 import { ModelLinksSimpleArray } from "../src/relations";
-import { PK, SelfDTO, SelfJSON, Storable, WEBDA_EVENTS, WEBDA_PLURAL, WEBDA_PRIMARY_KEY } from "../src/storable";
+import { PK, SelfDTOed, SelfJSONed, Storable, WEBDA_EVENTS, WEBDA_PLURAL, WEBDA_PRIMARY_KEY } from "../src/storable";
 
 export class Container extends Model {
   [WEBDA_PRIMARY_KEY] = ["digest"] as const;
@@ -10,7 +10,7 @@ export class Container extends Model {
   digest: string;
   vulnerabilities: ModelLinksSimpleArray<Vulnerability>;
   toJSON() {
-    return this as SelfJSON<this>;
+    return this as SelfJSONed<this>;
   }
 }
 
@@ -42,14 +42,14 @@ export class Vulnerability implements Storable<Vulnerability, "id">, Actionable 
   }
 
   toJSON() {
-    return this as SelfJSON<this>;
+    return this as SelfJSONed<this>;
   }
 
   toDTO() {
-    return this as SelfDTO<this>;
+    return this as SelfDTOed<this>;
   }
 
-  fromDTO(dto: SelfDTO<this>): void {
+  fromDTO(dto: SelfDTOed<this>): void {
     Object.assign(this, dto);
   }
 }

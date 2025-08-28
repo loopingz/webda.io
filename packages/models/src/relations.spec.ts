@@ -16,12 +16,14 @@ class TestSimpleModel extends UuidModel {
   name: string;
   age: number;
 
-  constructor(data?: { name: string; age: number }) {
-    super();
+  constructor(data?: { name: string; age: number; uuid: string }) {
+    super(data);
     this.name = data?.name || "";
     this.age = data?.age || 0;
   }
 }
+
+TestSimpleModel.registerSerializer();
 
 @suite
 class RelationsTest {
@@ -31,7 +33,7 @@ class RelationsTest {
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel();
     model.setPrimaryKey("test");
-    await repo.create("test", model);
+    await repo.create(model);
     await model.ref().patch({ name: "Test" });
     assert.strictEqual((await model.ref().get()).name, "Test");
     assert.deepStrictEqual(model.ref().getPrimaryKey(), model.getPrimaryKey());
@@ -44,7 +46,7 @@ class RelationsTest {
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel({ name: "Test", age: 10 });
     model.setPrimaryKey("test");
-    await repo.create("test", model);
+    await repo.create(model);
     const link = new ModelLink("test", repo);
     assert.ok(PrimaryKeyEquals(link.getPrimaryKey(), model.getPrimaryKey()));
     assert.ok((await link.get()) instanceof TestSimpleModel);
@@ -60,7 +62,8 @@ class RelationsTest {
     const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
     const model = new TestSimpleModel();
     model.name = "Test";
-    repo.create("test", model);
+    model.setPrimaryKey("test");
+    await repo.create(model);
     const mapper = new ModelMapLoaderImplementation(
       repo,
       {
@@ -75,10 +78,9 @@ class RelationsTest {
   async modelLinksArray() {
     const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
-    const model = new TestSimpleModel({ name: "Test", age: 10 });
-    model.setPrimaryKey("test");
-    await repo.create("test", model);
-    const model2 = await repo.create("test2", new TestSimpleModel({ name: "Test2", age: 20 }));
+    const model = new TestSimpleModel({ name: "Test", age: 10, uuid: "test" });
+    await repo.create(model);
+    const model2 = await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" }));
     model2[WEBDA_DIRTY] = new Set();
     let links = new ModelLinksArray<TestSimpleModel, { status: "OK" | "NOK" }>(repo, [], model2);
     links.add({
@@ -154,10 +156,10 @@ class RelationsTest {
   async modelLinksSimpleArray() {
     const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
-    const model = new TestSimpleModel({ name: "Test", age: 10 });
+    const model = new TestSimpleModel({ name: "Test", age: 10, uuid: "test" });
     model.setPrimaryKey("test");
-    await repo.create("test", model);
-    const model2 = await repo.create("test2", new TestSimpleModel({ name: "Test2", age: 20 }));
+    await repo.create(model);
+    const model2 = await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" }));
     model2[WEBDA_DIRTY] = new Set();
     let links = new ModelLinksSimpleArray<TestSimpleModel>(repo, [], model2);
     links.add(model);
@@ -192,6 +194,8 @@ class RelationsTest {
     links.remove("test2");
     assert.ok(links.length === 1);
     assert.strictEqual((await links[0].get()).name, "Test");
+    // Might remove set method
+    links.set();
 
     const repo2 = new MemoryRepository<TestModel>(TestModel, ["id", "name"]);
     const links2 = new ModelLinksSimpleArray<TestModel>(repo2, []);

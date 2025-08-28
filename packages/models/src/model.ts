@@ -4,10 +4,11 @@ import {
   WEBDA_PRIMARY_KEY,
   type AttributesArgument,
   type Eventable,
-  type SelfJSON,
+  type SelfJSONed,
   type PK,
   type PrimaryKeyType,
-  type Storable
+  type Storable,
+  WEBDA_PRIMARY_KEY_SEPARATOR
 } from "./storable";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
@@ -15,6 +16,7 @@ import type { ModelRefWithCreate, ModelRef } from "./relations";
 import { WEBDA_ACTIONS, type Actionable, type ActionsEnum } from "./actionable";
 import { type Constructor } from "@webda/tsc-esm";
 import type { Repository } from "./repository";
+import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 
 /**
  * Event sent by models
@@ -73,7 +75,7 @@ export type ModelPrototype<T extends Model = Model> = {
   /**
    * Create a new model
    */
-  new (data: SelfJSON<T>): T;
+  new (data: SelfJSONed<T>): T;
   /**
    * Reference
    * @param this
@@ -123,7 +125,7 @@ export abstract class Model implements Storable, Securable, Actionable {
    * K is inferred as the literal tuple type of `this.keyFields`,
    * so K[number] is the exact union of keys you wrote.
    */
-  getPrimaryKey<K extends readonly (keyof this)[]>(this: this & { [WEBDA_PRIMARY_KEY]: K }): PK<this, K[number]> {
+  getPrimaryKey<K extends readonly (keyof this)[]>(this: this & { [WEBDA_PRIMARY_KEY]: K }): PrimaryKeyType<this> {
     const result = {} as Pick<this, K[number]>;
     if (this[WEBDA_PRIMARY_KEY].length === 1) {
       return this[this[WEBDA_PRIMARY_KEY][0]] as any;
@@ -132,7 +134,7 @@ export abstract class Model implements Storable, Securable, Actionable {
       result[k] = this[k];
     }
     result.toString = () => {
-      return this[WEBDA_PRIMARY_KEY].map(k => `${this[k]}`).join("_");
+      return this[WEBDA_PRIMARY_KEY].map(k => `${this[k]}`).join(this[WEBDA_PRIMARY_KEY_SEPARATOR] || "_");
     };
     return result as any;
   }
@@ -200,6 +202,16 @@ export abstract class Model implements Storable, Securable, Actionable {
     registerRepository(this, repository);
   }
 
+  static registerSerializer<T extends Model>(
+    this: Constructor<T, any> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any }
+  ): void {
+    const clazz: Constructor<T> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any } = this;
+    if (!clazz.getStaticProperties) {
+      clazz.getStaticProperties = () => ({}) as any;
+    }
+    registerSerializer(`@webda/models/${this.name}`, new ObjectSerializer(clazz, clazz.getStaticProperties()));
+  }
+
   /**
    * Get a reference to the model
    * @param this
@@ -210,13 +222,8 @@ export abstract class Model implements Storable, Securable, Actionable {
     return Repositories.get(this).ref(key);
   }
 
-  static create<T extends Model>(this: Constructor<T, any[]>, data?: AttributesArgument<T>): Promise<T> {
-    const repository = Repositories.get(this);
-    return repository.ref(repository.getPrimaryKey(data)).create(data);
-  }
-
-  toJSON(): SelfJSON<this> {
-    return <SelfJSON<this>>this;
+  toJSON(): SelfJSONed<this> {
+    return <SelfJSONed<this>>this;
   }
 
   toDTO() {
@@ -265,9 +272,9 @@ export abstract class Model implements Storable, Securable, Actionable {
   async save(): Promise<void> {
     const repo = this.getRepository();
     if (!this[WEBDA_DIRTY]) {
-      await repo.upsert(this.getPrimaryKey(), this.toJSON());
+      await repo.upsert(this);
     } else {
-      const patch = {} as SelfJSON<this>;
+      const patch = {} as SelfJSONed<this>;
       for (const k of this[WEBDA_DIRTY]) {
         patch[k] = this[k];
       }

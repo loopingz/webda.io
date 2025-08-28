@@ -6,6 +6,13 @@ import type { ModelRelated } from "./relations";
  */
 export const WEBDA_PRIMARY_KEY: unique symbol = Symbol("Primary key");
 /**
+ * REST API and other system may require a string representation of the primary key
+ * We concatenate the primary key fields with the separator '_'
+ *
+ * If one of these fields can contain a _ you can pick a different separator
+ */
+export const WEBDA_PRIMARY_KEY_SEPARATOR: unique symbol = Symbol("Primary key separator");
+/**
  * Define the model plural key
  * @default <modelName>s
  */
@@ -59,41 +66,43 @@ export interface Storable<T = any, K extends keyof T = any> extends Eventable {
  * If object have a toJSON method take the return type of this method
  * otherwise return the object
  */
-export type JSON<T> = T extends { toJSON: () => any }
+export type JSONed<T> = T extends { toJSON: () => any }
   ? ReturnType<T["toJSON"]>
-  : T extends object
-    ? Pick<T, Extract<Attributes<T>, string>>
-    : T;
+  : T extends Array<any>
+    ? T // TODO Recursive check for elements
+    : T extends object
+      ? Pick<T, Extract<Attributes<T>, string>>
+      : T;
 /**
  * Allow to use this type in a JSON context
  */
-export type SelfJSON<T extends object> = {
-  [K in Extract<Attributes<T>, string>]: JSON<T[K]>;
+export type SelfJSONed<T extends object> = {
+  [K in Extract<Attributes<T>, string>]: JSONed<T[K]>;
 };
 
-export type DTO<T, U extends "in" | "out" = "out"> = T extends object
+export type DTOed<T, U extends "in" | "out" = "out"> = T extends object
   ? U extends "out"
     ? T extends { toDTO: () => any }
       ? ReturnType<T["toDTO"]>
       : {
-          [K in Extract<Attributes<T>, string>]: DTO<T[K], U>;
+          [K in Extract<Attributes<T>, string>]: DTOed<T[K], U>;
         }
     : T extends { fromDTO: (arg: infer Argument) => any }
       ? Argument
       : {
-          [K in Extract<Attributes<T>, string>]: DTO<T[K], "in">;
+          [K in Extract<Attributes<T>, string>]: DTOed<T[K], "in">;
         }
-  : JSON<T>;
+  : JSONed<T>;
 
-export type SelfDTO<T extends object, U extends "in" | "out" = "out"> = {
-  [K in Extract<Attributes<T>, string>]: DTO<T[K], U>;
+export type SelfDTOed<T extends object, U extends "in" | "out" = "out"> = {
+  [K in Extract<Attributes<T>, string>]: DTOed<T[K], U>;
 };
 
 // Helper to grab the first arg to a "set" method
 type FirstSetArg<X> = X extends { set: (...args: infer A) => any } ? A[0] : never;
 
 // Your value type, unchanged
-type AttributeValue<X> = X extends { set: Function } ? FirstSetArg<X> : JSON<X> | X;
+type AttributeValue<X> = X extends { set: Function } ? FirstSetArg<X> : JSONed<X> | X;
 
 // Keys where the first "set" arg is optional or includes undefined
 type OptionalArgKeys<T extends Storable> = {
@@ -128,7 +137,9 @@ export type PK<K, T extends keyof K> = IsUnion<T> extends true ? Pick<K, T> : K[
  *
  * The PrimaryKey<T> will always return a Pick type
  */
-export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>;
+export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T[typeof WEBDA_PRIMARY_KEY][number]> & {
+  toString(): string;
+};
 /**
  * Get the primary key of the object
  *
@@ -136,7 +147,9 @@ export type PrimaryKeyType<T extends Storable<any, any>> = PK<T, T[typeof WEBDA_
  *
  * The PrimaryKeyType<T> will return a Pick type only if the primary key is a union type
  */
-export type PrimaryKey<T extends Storable<any, any>> = Pick<T, T[typeof WEBDA_PRIMARY_KEY][number]>;
+export type PrimaryKey<T extends Storable<any, any>> = Pick<T, T[typeof WEBDA_PRIMARY_KEY][number]> & {
+  toString(): string;
+};
 /**
  * Get the primary key attributes of the object
  */
@@ -174,7 +187,7 @@ export type OnlyNumbers<T> = {
 };
 
 export type Pojo<T extends object> = {
-  [P in Extract<keyof Omit<T, FilterAttributes<T, Function>>, string | number>]: JSON<T[P]>;
+  [P in Extract<keyof Omit<T, FilterAttributes<T, Function>>, string | number>]: JSONed<T[P]>;
 };
 
 /**
@@ -183,7 +196,7 @@ export type Pojo<T extends object> = {
  * @returns
  */
 export function isStorable<T = any>(object: any): object is Storable<T> {
-  return typeof object.getPrimaryKey === "function" && Array.isArray(object.PrimaryKey);
+  return typeof object.getPrimaryKey === "function" && Array.isArray(object[WEBDA_PRIMARY_KEY]);
 }
 
 //export type ReadonlyKeys<T> = { [P in keyof T]: "readonly" extends keyof T[P] ? P : never }[keyof T];

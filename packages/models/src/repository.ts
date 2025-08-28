@@ -1,8 +1,8 @@
 import type { ArrayElement, Constructor } from "@webda/tsc-esm";
-import type {
+import {
   Eventable,
-  JSON,
-  SelfJSON,
+  JSONed,
+  SelfJSONed,
   PK,
   PrimaryKey,
   PrimaryKeyType,
@@ -52,7 +52,8 @@ export interface Repository<T extends Storable & Eventable> {
    * Extract the primary key from the object
    * @param object to extract the primary key from
    */
-  getPrimaryKey(object: any): PrimaryKeyType<T>;
+  getPrimaryKey<K>(object: any, forceObject?: boolean): K extends false ? PrimaryKeyType<T> : PrimaryKey<T>;
+
   /**
    * Get the UUID of the object
    * @param object to extract the primary key from
@@ -64,13 +65,13 @@ export interface Repository<T extends Storable & Eventable> {
    * @param data
    * @returns
    */
-  create(primaryKey: PrimaryKeyType<T>, data: SelfJSON<T>): Promise<T>;
+  create(data: SelfJSONed<T> | T): Promise<T>;
   /**
    * Upsert data in the store, creating or updating the object
    * @param uuid
    * @param data
    */
-  upsert(primaryKey: PrimaryKeyType<T>, data: SelfJSON<T>): Promise<T>;
+  upsert(data: SelfJSONed<T> | T): Promise<T>;
   /**
    * Update data in the store, replacing the object
    * @param uuid
@@ -80,8 +81,7 @@ export interface Repository<T extends Storable & Eventable> {
    * @returns
    */
   update<K extends StorableAttributes<T>>(
-    uuid: PrimaryKeyType<T>,
-    data: SelfJSON<T>,
+    data: SelfJSONed<T> | T,
     conditionField?: K | null,
     condition?: T[K]
   ): Promise<void>;
@@ -95,9 +95,9 @@ export interface Repository<T extends Storable & Eventable> {
    */
   patch<K extends StorableAttributes<T>>(
     uuid: PrimaryKeyType<T>,
-    data: Partial<SelfJSON<T>>,
+    data: Partial<SelfJSONed<T>>,
     conditionField?: K | null,
-    condition?: T[K] | JSON<T[K]>
+    condition?: T[K] | JSONed<T[K]>
   ): Promise<void>;
   /**
    * Query the store
@@ -121,7 +121,7 @@ export interface Repository<T extends Storable & Eventable> {
   delete<K extends StorableAttributes<T>>(
     uuid: PrimaryKeyType<T>,
     conditionField?: K | null,
-    condition?: T[K] | JSON<T[K]>
+    condition?: T[K] | JSONed<T[K]>
   ): Promise<void>;
   /**
    * Verify if the object exists
@@ -141,7 +141,7 @@ export interface Repository<T extends Storable & Eventable> {
     uuid: PrimaryKeyType<T>,
     info: ({ property: L; value?: number } | L)[] | Record<L, number>,
     conditionField?: K | null,
-    condition?: T[K] | JSON<T[K]>
+    condition?: T[K] | JSONed<T[K]>
   ): Promise<void>;
   /**
    * Increment attribute of an object
@@ -155,7 +155,7 @@ export interface Repository<T extends Storable & Eventable> {
     uuid: PrimaryKeyType<T>,
     info: { property: L; value?: number } | L,
     conditionField?: K | null,
-    condition?: T[K] | JSON<T[K]>
+    condition?: T[K] | JSONed<T[K]>
   ): Promise<void>;
   /**
    * Upsert an item to a collection
@@ -170,10 +170,10 @@ export interface Repository<T extends Storable & Eventable> {
   upsertItemToCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
     uuid: PrimaryKeyType<T>,
     collection: K,
-    item: ArrayElement<T[K]> | JSON<ArrayElement<T[K]>>,
+    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
     index?: number,
-    itemWriteConditionField?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null,
-    itemWriteCondition?: ArrayElement<T[K]> extends object ? L : never
+    itemWriteConditionField?: ArrayElement<T[K]> extends object ? L : never,
+    itemWriteCondition?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null
   ): Promise<void>;
   /**
    * Delete item from a collection
@@ -203,7 +203,7 @@ export interface Repository<T extends Storable & Eventable> {
     uuid: PrimaryKeyType<T>,
     attribute: K,
     conditionField?: L | null,
-    condition?: T[L] | JSON<T[L]>
+    condition?: T[L] | JSONed<T[L]>
   ): Promise<void>;
   /**
    * Set an attribute on an object
@@ -216,7 +216,7 @@ export interface Repository<T extends Storable & Eventable> {
     attribute: K,
     value: T[K],
     conditionField?: L | null,
-    condition?: T[L] | JSON<T[L]>
+    condition?: T[L] | JSONed<T[L]>
   ): Promise<void>;
   on<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void;
   once<K extends keyof T[typeof WEBDA_EVENTS]>(event: K, listener: (data: T[typeof WEBDA_EVENTS][K]) => void): void;
@@ -264,15 +264,11 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     return result;
   }
 
-  private makeKey(pk: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>): string {
-    return typeof pk === "object" ? JSON.stringify(pk) : String(pk);
-  }
-
   /**
    * @inheritdoc
    */
   async get(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
-    const key = this.makeKey(primaryKey);
+    const key = this.getPrimaryKey(primaryKey).toString();
     const item = this.storage.get(key);
     if (!item) throw new Error(`Not found: ${key}`);
     return this.deserialize(item);
@@ -290,48 +286,52 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     return result;
   }
 
+  getPrimaryKey(object: any, forceObject?: false): PrimaryKeyType<T>;
+  getPrimaryKey(object: any, forceObject: true): PrimaryKey<T>;
   /**
    * @inheritdoc
    */
-  getPrimaryKey(object: any, forceObject?: boolean): PK<T, T[typeof WEBDA_PRIMARY_KEY][number]> {
-    const pkFields = (object.PrimaryKey || this.pks || []) as Array<keyof T>;
+  getPrimaryKey(object: any, forceObject: boolean): PrimaryKeyType<T> | PrimaryKey<T> {
+    const pkFields = (object[WEBDA_PRIMARY_KEY] || this.pks || []) as Array<keyof T>;
     if (pkFields.length === 0) {
       throw new Error("No primary key defined on model");
     }
     if (pkFields.length === 1) {
-      return object[pkFields[0]] as PK<T, any>;
+      if (typeof object === "object") {
+        return object[pkFields[0]] as PK<T, any>;
+      }
+      return forceObject ? ({ [pkFields[0]]: object, toString: () => object.toString() } as PK<T, any>) : object;
     }
     // composite key
-    return pkFields.reduce((acc, field) => {
+    const key = pkFields.reduce((acc, field) => {
       (acc as any)[field] = object[field];
       return acc;
     }, {} as any);
+    key.toString = () => {
+      return Object.values(key)
+        .filter(v => typeof v !== "function")
+        .join(this.separator);
+    };
+    return key;
   }
 
   /**
    * @inheritdoc
    */
   getUUID(object: any): string {
-    if (typeof object !== "object") {
-      return object.toString();
-    }
-    const pk = this.getPrimaryKey(object);
-    if (typeof pk === "object") {
-      return Object.values(pk).join(this.separator);
-    }
-    return pk.toString();
+    return this.getPrimaryKey(object).toString();
   }
 
   /**
    * @inheritdoc
    */
-  async create(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>, data: SelfJSON<T>): Promise<T> {
-    const key = this.makeKey(primaryKey);
+  async create(data: SelfJSONed<T> | T): Promise<T> {
+    const key = this.getPrimaryKey(data).toString();
     if (this.storage.has(key)) {
       throw new Error(`Already exists: ${key}`);
     }
     // @ts-ignore
-    const item = new this.model(data).setPrimaryKey(primaryKey);
+    const item = new this.model(data).setPrimaryKey(this.getPrimaryKey(data));
     this.storage.set(key, this.serialize(item));
     return item;
   }
@@ -339,27 +339,26 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  async upsert(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>, data: SelfJSON<T>): Promise<T> {
-    const key = this.makeKey(primaryKey);
+  async upsert(data: SelfJSONed<T>): Promise<T> {
+    const key = this.getPrimaryKey(data).toString();
     if (this.storage.has(key)) {
-      await this.patch(primaryKey, data);
+      await this.patch(this.getPrimaryKey(data), data);
       return this.deserialize(this.storage.get(key)!);
     }
-    return this.create(primaryKey, data);
+    return this.create(data);
   }
 
   /**
    * @inheritdoc
    */
   async update<K extends StorableAttributes<T, any>>(
-    primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
-    data: SelfJSON<T>,
+    data: SelfJSONed<T> | T,
     _conditionField?: K | null,
     _condition?: T[K]
   ): Promise<void> {
-    const item = await this.get(primaryKey);
+    const item = await this.get(this.getPrimaryKey(data));
     Object.assign(item, data as any);
-    this.storage.set(this.makeKey(primaryKey), this.serialize(item));
+    this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(item));
   }
 
   /**
@@ -367,13 +366,13 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
    */
   async patch<K extends StorableAttributes<T, any>>(
     primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
-    data: Partial<SelfJSON<T>>,
+    data: Partial<SelfJSONed<T>>,
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void> {
     const item = await this.get(primaryKey);
     Object.assign(item, data as any);
-    this.storage.set(this.makeKey(primaryKey), this.serialize(item));
+    this.storage.set(item.getPrimaryKey().toString(), this.serialize(item));
   }
 
   /**
@@ -422,14 +421,14 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void> {
-    this.storage.delete(this.makeKey(primaryKey));
+    this.storage.delete(this.getPrimaryKey(primaryKey).toString());
   }
 
   /**
    * @inheritdoc
    */
   async exists(primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<boolean> {
-    return this.storage.has(this.makeKey(primaryKey));
+    return this.storage.has(this.getPrimaryKey(primaryKey).toString());
   }
 
   /**
@@ -453,7 +452,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
         (item as any)[prop] = ((item as any)[prop] || 0) + info[prop]!;
       }
     }
-    this.storage.set(this.makeKey(primaryKey), this.serialize(item));
+    this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
   }
 
   /**
@@ -489,15 +488,13 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   async upsertItemToCollection<K extends StorableAttributes<T, any[]>, L extends keyof ArrayElement<T[K]>>(
     primaryKey: PK<T, T[typeof WEBDA_PRIMARY_KEY][number]>,
     collection: K,
-    item: ArrayElement<T[K]> | JSON<ArrayElement<T[K]>>,
+    item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
     index?: number,
     itemWriteConditionField?: any,
     itemWriteCondition?: any
   ): Promise<void> {
     const obj = await this.get(primaryKey);
-    if (!(obj as any)[collection]) {
-      (obj as any)[collection] = [];
-    }
+    (obj as any)[collection] ??= [];
     this.checkItemWriteCondition(
       obj[collection] as Array<any>,
       index as number,
@@ -510,7 +507,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     } else {
       arr.push(item);
     }
-    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
+    this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
   }
 
   /**
@@ -533,7 +530,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
     );
     if (Array.isArray(arr) && index >= 0 && index < arr.length) {
       arr.splice(index, 1);
-      this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
+      this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
     }
   }
 
@@ -548,7 +545,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   ): Promise<void> {
     const obj = await this.get(primaryKey);
     delete (obj as any)[attribute as string];
-    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
+    this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
   }
 
   /**
@@ -563,7 +560,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   ): Promise<void> {
     const obj = await this.get(primaryKey);
     (obj as any)[attribute as string] = value;
-    this.storage.set(this.makeKey(primaryKey), this.serialize(obj));
+    this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
   }
 
   /**

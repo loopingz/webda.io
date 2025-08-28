@@ -1,7 +1,7 @@
 import { Actionable, ActionsEnum, WEBDA_ACTIONS } from "../src/actionable";
 import { Model, ModelEvents, UuidModel } from "../src/model";
 import { ModelLinksArray, ModelLinksMap, ModelLinksSimpleArray, ModelParent, ModelRelated } from "../src/relations";
-import { JSON, PrimaryKeyType, SelfJSON, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } from "../src/storable";
+import { JSONed, PrimaryKeyType, SelfJSONed, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } from "../src/storable";
 
 class Customer extends Model {
   // Define the primary key for the Customer model
@@ -62,7 +62,7 @@ ref.incrementAttributes({
 });
 ref.setAttribute("amount", 12);
 
-const testJsoned: JSON<Invoice> = {
+const testJsoned: JSONed<Invoice> = {
   uuid: "1234",
   amount: 10,
   customer: {
@@ -211,8 +211,8 @@ class GithubIssue extends Model {
   [WEBDA_PRIMARY_KEY] = ["id"] as const;
   id: number;
 
-  toJSON(): SelfJSON<this> {
-    return <SelfJSON<this>>this;
+  toJSON(): SelfJSONed<this> {
+    return <SelfJSONed<this>>this;
   }
   /*
   toJSON(): {
@@ -230,7 +230,7 @@ class GithubIssue extends Model {
     */
 }
 
-const jsoned: JSON<GithubIssue> = {
+const jsoned: JSONed<GithubIssue> = {
   id: 1
 };
 

@@ -6,15 +6,14 @@ import { Readable } from "stream";
 import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
 import { NotEnumerable } from "@webda/tsc-esm";
-import { AbstractModel } from "../internal/iapplication";
-import { useModel } from "../application/hook";
 import { useCore } from "../core/hooks";
 import { ServiceParameters } from "../interfaces";
 import { Counter } from "../metrics/metrics";
 import { IOperationContext } from "../contexts/icontext";
 import { IStore } from "../core/icore";
 import { MappingService } from "../stores/istore";
-import { Model } from "@webda/models";
+import { Model, Storable } from "@webda/models";
+import { useModel } from "../application/hook";
 
 /**
  * Represent basic EventBinary
@@ -24,15 +23,15 @@ export interface EventBinary {
   service: BinaryService;
 }
 
-export interface EventBinaryUploadSuccess extends EventBinary {
-  target: AbstractModel;
+export interface EventBinaryUploadSuccess<T extends Storable = Storable> extends EventBinary {
+  target: T;
 }
 
 /**
  * Sent before metadata are updated to allow alteration of the modification
  */
-export interface EventBinaryMetadataUpdate extends EventBinaryUploadSuccess {
-  target: AbstractModel;
+export interface EventBinaryMetadataUpdate<T extends Storable = Storable> extends EventBinaryUploadSuccess<T> {
+  target: T;
   metadata: BinaryMetadata;
 }
 
@@ -174,8 +173,8 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
         });
         stream.on("data", chunk => {
           const buffer = Buffer.from(chunk);
-          hash.update(buffer);
-          challenge.update(buffer);
+          hash.update(buffer as crypto.BinaryLike);
+          challenge.update(buffer as crypto.BinaryLike);
         });
       });
     }
@@ -290,12 +289,12 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
  */
 export class Binary<T = any> extends BinaryMap<T> {
   @NotEnumerable
-  protected model: AbstractModel;
+  protected model: Model;
   @NotEnumerable
   protected attribute: string;
   @NotEnumerable
   protected empty: boolean;
-  constructor(attribute: string, model: AbstractModel) {
+  constructor(attribute: string, model: Model) {
     super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
     this.empty = model[attribute] === undefined;
     this.attribute = attribute;
@@ -387,12 +386,12 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
   __service: BinaryService;
 
   @NotEnumerable
-  protected model: AbstractModel;
+  protected model: Model;
 
   @NotEnumerable
   protected attribute: string;
 
-  assign(model: AbstractModel, attribute: string): this {
+  assign(model: Model, attribute: string): this {
     this.model = model;
     this.attribute = attribute;
     for (const binary of model[attribute] || []) {
@@ -629,7 +628,7 @@ export abstract class BinaryService<
    * @emits 'binaryCreate'
    */
 
-  abstract store(object: AbstractModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void>;
+  abstract store(object: Storable, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void>;
 
   /**
    * The store can retrieve how many time a binary has been used
@@ -644,7 +643,7 @@ export abstract class BinaryService<
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(object: AbstractModel, property: string, index?: number): Promise<void>;
+  abstract delete(object: Storable, property: string, index?: number): Promise<void>;
 
   /**
    * Get a binary
@@ -726,8 +725,9 @@ export abstract class BinaryService<
    * @param name
    * @param property
    */
-  protected checkMap(object: AbstractModel, property: string) {
-    if (this.handleBinary(object.Class.Metadata.Identifier, property) !== -1) {
+  protected checkMap(object: Model, property: string) {
+    const { Identifier } = useModel(object).Metadata;
+    if (this.handleBinary(Identifier, property) !== -1) {
       return;
     }
     throw new Error("Unknown mapping");
@@ -803,7 +803,7 @@ export abstract class BinaryService<
   async deleteSuccess(object: CoreModelWithBinary, property: string, index?: number) {
     const info: BinaryMap = <BinaryMap>(index !== undefined ? object[property][index] : object[property]);
     // TODO: Refactor
-    const relations: any = {};//object.Class.Metadata.Relations;
+    const relations: any = {}; //object.Class.Metadata.Relations;
     const cardinality = (relations.binaries || []).find(p => p.attribute === property)?.cardinality || "MANY";
     let update;
     if (cardinality === "MANY") {
@@ -869,7 +869,7 @@ export abstract class BinaryService<
       throw new WebdaError.NotFound("Model not managed by this store");
     }
     // TODO: Refactor
-    return null;//<IStore>useCore().getModelStore(useModel(ctx.parameter("model")));
+    return null; //<IStore>useCore().getModelStore(useModel(ctx.parameter("model")));
   }
 
   /**

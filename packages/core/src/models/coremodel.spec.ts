@@ -2,23 +2,11 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import {
-  Action,
-  Context,
   Core,
-  CoreModel,
-  Expose,
   GlobalContext,
   MemoryStore,
-  ModelLink,
-  ModelLinksArray,
-  ModelLinksMap,
-  ModelLinksSimpleArray,
-  ModelParent,
-  ModelRelated,
-  ModelsMapped,
   OperationContext,
   WebdaError,
-  createModelLinksMap,
   getAttributeLevelProxy,
   runWithContext,
   useConfiguration
@@ -26,16 +14,29 @@ import {
 import { Task } from "../test/objects";
 import { WebdaApplicationTest } from "../test/test";
 import { Constructor } from "@webda/tsc-esm";
+import { CoreModel } from "./coremodel";
+import { Action } from "../deprecated";
+import {
+  ModelLink,
+  ModelLinksArray,
+  ModelLinksMap,
+  ModelLinksSimpleArray,
+  ModelParent,
+  ModelRelated,
+  ModelsMapped,
+  WEBDA_PRIMARY_KEY
+} from "@webda/models";
 
-@Expose()
 class TestMask extends CoreModel {
+  [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
+  uuid: string;
   card: string;
   link: ModelLink<Task>;
   links: ModelLinksArray<Task, { card: string }>;
   links_simple: ModelLinksSimpleArray<Task>;
   links_map: ModelLinksMap<Task, { card: string }>;
   maps: ModelsMapped<Task, "_user", "uuid">;
-  queries: ModelRelated<Task, "side">;
+  queries: ModelRelated<Task, "_user">;
   parent: ModelParent<Task>;
   side: string;
   counter: number;
@@ -45,7 +46,7 @@ class TestMask extends CoreModel {
   }
 
   static getProxy<T extends CoreModel>(this: Constructor<T>, object: T): T {
-    return getAttributeLevelProxy(object);
+    return getAttributeLevelProxy(object) as T;
   }
 
   attributePermission(key: string, value: any, mode: "READ" | "WRITE", context?: OperationContext): any {

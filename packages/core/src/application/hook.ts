@@ -1,5 +1,7 @@
+import { Prototype } from "@webda/tsc-esm";
 import { createCoreHook } from "../core/instancestorage";
-import { Model } from "@webda/models";
+import { Model, Repository, Storable } from "@webda/models";
+import { ModelAction, ModelClass } from "../internal/iapplication";
 /**
  * Hook to get the current application
  */
@@ -24,8 +26,11 @@ export { useApplication, setApplication };
  * @param name
  * @returns
  */
-export function useModel<T = Model>(name: string): T {
-  return <T>useApplication().getModel(name);
+export function useModel<T extends Model = Model>(name: string | T): ModelClass<T> {
+  if (typeof name !== "string") {
+    return <ModelClass<T>>useApplication().getModel(name.constructor as any);
+  }
+  return <ModelClass<T>>useApplication().getModel(name);
 }
 
 /**
@@ -46,4 +51,9 @@ export function useSchema(name: string) {
  */
 export function useModelId(object: any, full: boolean = false): string | undefined {
   return useApplication().getModelId(object, full);
+}
+
+export function useModelRepository<T extends Storable>(name: string): Repository<T> {
+  // TODO Implement
+  return undefined; //useApplication().getModelRepository(name);
 }

@@ -5,6 +5,7 @@ import type { ModelRelated } from "./relations";
  * Define the model primary key
  */
 export const WEBDA_PRIMARY_KEY: unique symbol = Symbol("Primary key");
+export const test = "123";
 /**
  * REST API and other system may require a string representation of the primary key
  * We concatenate the primary key fields with the separator '_'
@@ -57,6 +58,10 @@ export interface Storable<T = any, K extends keyof T = any> extends Eventable {
    * Return the primary key
    */
   getPrimaryKey(): IsUnion<K> extends true ? Pick<T, K> : T[K];
+  /**
+   * Return the string version of the primary key
+   */
+  getUUID(): string;
   /**
    * Return the object as a POJO
    */
@@ -207,7 +212,10 @@ export function isStorable<T = any>(object: any): object is Storable<T> {
  * Used for the create method
  */
 export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
-  Omit<T, FilterAttributes<T, Function> | FilterAttributes<T, ModelRelated<any>> | ReadonlyKeys<T>>,
+  Omit<
+    T,
+    FilterAttributes<T, Function> | FilterAttributes<T, ModelRelated<any>> | ReadonlyKeys<T> | Extract<keyof T, symbol>
+  >,
   U
 >;
 

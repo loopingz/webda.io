@@ -33,10 +33,21 @@ export type OwnActions<T extends Actionable> = {
 export type ActionsEnum<T extends Actionable> = AttributesActions<T> | OwnActions<T>;
 
 /**
+ * Empty class that will represent the execution context
+ */
+export abstract class ExecutionContext {
+  /**
+   * Return the current user id
+   */
+  abstract getCurrentUserId(): string | null;
+}
+
+/**
  * Exposable model implement the canAct
  */
 export type Exposable = {
-  canAct: () => Promise<boolean | string>;
+  canAct: (context: ExecutionContext, action: string) => Promise<boolean | string>;
+  checkAct: (context: ExecutionContext, action: string) => Promise<void>;
 } & Actionable;
 
 /**

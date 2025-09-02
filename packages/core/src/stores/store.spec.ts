@@ -8,6 +8,7 @@ import { CoreModel, CoreModelAny } from "../models/coremodel";
 import { ModelDefinition } from "../application/iapplication";
 import { WebdaApplicationTest } from "../test/test";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
+import { UuidModel } from "@webda/models";
 
 /**
  * Fake model that refuse the half of the items
@@ -56,14 +57,10 @@ export class IdentTest extends Ident {
   saveInnerMethod: boolean;
 }
 
-class TypeTest extends CoreModel {
+class TypeTest extends UuidModel {
   type: "ATTR" | "COLLECTION";
   counter: number;
 }
-
-TypeTest.ref("").setAttribute("type", "ATTR");
-const t = new TypeTest();
-t.setAttribute("counter", 12);
 
 abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
   abstract getIdentStore(): Promise<T>;
@@ -100,7 +97,7 @@ abstract class StoreTest<T extends Store<any>> extends WebdaApplicationTest {
    * Get the base of documents to query
    */
   getQueryDocuments(): any[] {
-    const docs = [];
+    const docs: any[] = [];
     for (let i = 0; i < 1000; i++) {
       docs.push({
         state: ["CA", "OR", "NY", "FL"][i % 4],

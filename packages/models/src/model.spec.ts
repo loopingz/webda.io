@@ -142,7 +142,7 @@ class ModelTest {
   async upsert() {
     const repo1 = new MemoryRepository<SubClassModel>(SubClassModel, ["uuid"]);
     SubClassModel.registerRepository(repo1);
-    const model1 = SubClassModel.ref("test").upsert({
+    const model1 = await SubClassModel.ref("test").upsert({
       name: "Test",
       collection: [],
       createdAt: "",

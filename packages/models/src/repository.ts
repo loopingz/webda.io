@@ -1,4 +1,4 @@
-import type { ArrayElement, Constructor } from "@webda/tsc-esm";
+import type { ArrayElement, Constructor, Prototype } from "@webda/tsc-esm";
 import {
   Eventable,
   JSONed,
@@ -18,12 +18,12 @@ import { deserialize, serialize } from "@webda/serialize";
 /**
  * This represent the injected methods of Store into the Model
  */
-export interface Repository<T extends Storable & Eventable> {
+export interface Repository<T extends Storable = Storable> {
   /**
    * Get the root model class for this repository
    * @returns
    */
-  getRootModel(): Constructor<T, any[]>;
+  getRootModel(): Prototype<T>;
   /**
    * In REST API, composite keys are represented as a string with the format "key1#key2#key3"
    * We need a way to convert this string to the object
@@ -31,7 +31,13 @@ export interface Repository<T extends Storable & Eventable> {
    * @param uuid serialized primary key
    * @param forceObject if true, the result will be an object with the primary key fields
    */
-  fromUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T>;
+  fromUUID(uuid: string, forceObject?: boolean): ModelRefWithCreate<T>;
+  /**
+   * Parse the UUID into the primary key
+   * @param uuid
+   * @param forceObject
+   */
+  parseUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T>;
   /**
    * Get data from the store
    * @param uuid
@@ -40,9 +46,9 @@ export interface Repository<T extends Storable & Eventable> {
   get(primaryKey: PrimaryKeyType<T>): Promise<T>;
   /**
    * Refers to the object in the store
-   * @param uuid
+   * @param pk primary key
    */
-  ref(uuid: PrimaryKeyType<T>): ModelRefWithCreate<T>;
+  ref(pk: PrimaryKeyType<T> | string): ModelRefWithCreate<T>;
   /**
    * Remove the primary key from the object
    * @param object
@@ -65,7 +71,7 @@ export interface Repository<T extends Storable & Eventable> {
    * @param data
    * @returns
    */
-  create(data: SelfJSONed<T> | T): Promise<T>;
+  create(data: SelfJSONed<T> | T, save?: boolean): Promise<T>;
   /**
    * Upsert data in the store, creating or updating the object
    * @param uuid
@@ -104,7 +110,10 @@ export interface Repository<T extends Storable & Eventable> {
    * @param query
    * @returns
    */
-  query(query: string): Promise<T[]>;
+  query(query: string): Promise<{
+    results: T[];
+    continuationToken?: string;
+  }>;
   /**
    * Iterate over the store
    * @param query
@@ -232,7 +241,7 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   private events = new Map<keyof T[typeof WEBDA_EVENTS], Set<(data: any) => void>>();
 
   constructor(
-    private model: Constructor<T, any[]>,
+    private model: Prototype<T>,
     protected pks: string[],
     protected separator: string = "_"
   ) {}
@@ -240,14 +249,23 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  getRootModel(): Constructor<T, any[]> {
+  getRootModel(): Prototype<T> {
     return this.model;
+  }
+
+  /**
+   * Return a ref from the uuid
+   * @param uuid
+   * @returns
+   */
+  fromUUID(uuid: string): ModelRefWithCreate<T> {
+    return this.ref(this.parseUUID(uuid));
   }
 
   /**
    * @inheritdoc
    */
-  fromUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T> {
+  parseUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<T> | PrimaryKey<T> {
     if (this.pks.length === 1) {
       return forceObject
         ? ({ [this.pks[0]]: uuid } as PrimaryKey<T>)
@@ -325,14 +343,16 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  async create(data: SelfJSONed<T> | T): Promise<T> {
+  async create(data: SelfJSONed<T> | T, save: boolean = true): Promise<T> {
     const key = this.getPrimaryKey(data).toString();
     if (this.storage.has(key)) {
       throw new Error(`Already exists: ${key}`);
     }
     // @ts-ignore
     const item = new this.model(data).setPrimaryKey(this.getPrimaryKey(data));
-    this.storage.set(key, this.serialize(item));
+    if (save !== false) {
+      this.storage.set(key, this.serialize(item));
+    }
     return item;
   }
 
@@ -378,7 +398,10 @@ export class MemoryRepository<T extends Storable> implements Repository<T> {
   /**
    * @inheritdoc
    */
-  async query(_q: string): Promise<T[]> {
+  async query(_q: string): Promise<{
+    results: T[];
+    continuationToken?: string;
+  }> {
     throw new Error("Not implemented");
   }
 

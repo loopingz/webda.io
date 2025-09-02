@@ -119,11 +119,8 @@ export class Compiler {
       this.tsProgram = this.watchProgram.getProgram().getProgram();
 
       generateModule(this);
-      //this.createSchemaGenerator(this.tsProgram);
-      //await this.app.generateModule();
       callback("MODULE_GENERATED");
       this.project.emit("done");
-      //logger.logTitle("Compilation done");
       useLog(
         "INFO",
         `Took: Compilation - ${compilationStart}ms | Module generation - ${Date.now() - moduleGenerationStart}ms`

@@ -8,7 +8,7 @@ import { JSONUtils } from "@webda/utils";
 import { useLog } from "../loggers/hooks";
 import { runAsSystem } from "./execution";
 import { useParameters } from "../core/instancestorage";
-import { useModel } from "../application/hook";
+import { useModel, useModelRepository } from "../application/hook";
 import { IUser } from "../internal/iapplication";
 
 /**
@@ -311,7 +311,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     // Caching the answer
     if (!this.user || refresh) {
       await runAsSystem(async () => {
-        this.user = <IUser>(<unknown>await useModel("User").ref(this.getCurrentUserId()).get());
+        this.user = <IUser>(<unknown>await useModelRepository("User").fromUUID(this.getCurrentUserId()).get());
       });
     }
     return <K>this.user;

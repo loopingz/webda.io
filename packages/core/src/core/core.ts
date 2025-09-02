@@ -4,9 +4,9 @@ import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
 import { Application } from "../application/application";
-import { Configuration } from "../internal/iapplication";
+import { Configuration, ModelClass } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
-import { Model, ModelPrototype } from "@webda/models";
+import { Model, ModelPrototype, Storable } from "@webda/models";
 import { Router } from "../rest/router";
 import { useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
@@ -32,6 +32,8 @@ import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icont
 import { useRouter } from "../rest/hooks";
 import { RegistryModel } from "../models/registry";
 import { Modda } from "../internal/iapplication";
+import { Prototype } from "@webda/tsc-esm";
+import { ProcessCache } from "@webda/cache";
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -116,10 +118,12 @@ export class Core implements ICore {
   protected operations: { [key: string]: OperationDefinitionInfo } = {};
   /**
    * Cache for model to store resolution
+   * @deprecated use ProcessCache instead
    */
-  private _modelStoresCache: Map<ModelPrototype, Store> = new Map<ModelPrototype, Store>();
+  private _modelStoresCache: Map<Prototype<Storable>, Store> = new Map<Prototype<Storable>, Store>();
   /**
    * Cache for model to store resolution
+   * @deprecated use ProcessCache instead
    */
   private _modelBinariesCache: Map<string, BinaryService> = new Map<string, BinaryService>();
 
@@ -171,18 +175,6 @@ export class Core implements ICore {
 
     // Load the configuration and migrate
     this.configuration = useConfiguration();
-
-    // Init default values for configuration
-    this.configuration.parameters ??= {};
-    this.configuration.parameters.apiUrl ??= "http://localhost:18080";
-    this.configuration.parameters.defaultStore ??= "Registry";
-    this.configuration.parameters.metrics ??= {};
-    if (this.configuration.parameters.metrics) {
-      this.configuration.parameters.metrics.labels ??= {};
-      this.configuration.parameters.metrics.config ??= {};
-      this.configuration.parameters.metrics.prefix ??= "";
-    }
-    this.configuration.services ??= {};
   }
 
   /**
@@ -190,24 +182,30 @@ export class Core implements ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends Model>(modelOrConstructor: ModelPrototype<T> | T | string): Store {
-    let model: ModelPrototype<T>;
+  getModelStore<T extends Model>(modelOrConstructor: ModelClass<T> | T | string): Store {
+    let model: ModelClass<T>;
     if (typeof modelOrConstructor === "string") {
-      model = useModel(modelOrConstructor);
+      model = useModel<T>(modelOrConstructor);
     } else {
-      model = <ModelPrototype<T>>(
-        (<any>(modelOrConstructor instanceof Model ? modelOrConstructor.Class : modelOrConstructor))
+      model = <ModelClass<T>>(
+        (<any>(modelOrConstructor instanceof Model ? modelOrConstructor.constructor : modelOrConstructor))
       );
     }
     if (!model) {
       throw new WebdaError.CodeError("MODEL_NOT_FOUND", "Model not found");
     }
-    if (this._modelStoresCache.has(model)) {
-      return <Store>this._modelStoresCache.get(model);
-    }
-    const setCache = store => {
-      this._modelStoresCache.set(model, store);
-    };
+    return this.getModelStoreCached(model);
+  }
+
+  /**
+   * Get the model store for a specific model
+   * Leverage the Process cache
+   *
+   * @param model
+   * @returns
+   */
+  @ProcessCache
+  private getModelStoreCached<T extends Model>(model: T | ModelClass<T>): Store {
     // @ts-ignore
     const stores: { [key: string]: Store } = useApplication().getImplementations(Store);
     let actualScore: number;
@@ -217,14 +215,12 @@ export class Core implements ICore {
       const score = stores[store].handleModel(model);
       // As 0 mean exact match we stop there
       if (score === 0) {
-        setCache(stores[store]);
         return <Store>stores[store];
       } else if (score > 0 && (actualScore === undefined || actualScore > score)) {
         actualScore = score;
         actualStore = stores[store];
       }
     }
-    setCache(actualStore);
     return <Store>actualStore;
   }
 
@@ -523,7 +519,7 @@ export class Core implements ICore {
    */
   protected createService(service: string) {
     const params = useParameters(service);
-    let serviceConstructor: ServiceConstructor<AbstractService> = undefined;
+    let serviceConstructor: Modda = undefined;
     try {
       serviceConstructor = this.application.getModda(params.type);
     } catch (ex) {
@@ -533,8 +529,9 @@ export class Core implements ICore {
     }
 
     try {
+      const paramsClass = serviceConstructor.createConfiguration(params);
       this.log("TRACE", "Constructing service", service);
-      this.services[service] = new serviceConstructor(service, params);
+      this.services[service] = new serviceConstructor(service, paramsClass);
     } catch (err) {
       this.log("ERROR", "Cannot create service", service, err);
       // @ts-ignore
@@ -686,6 +683,7 @@ export class Core implements ICore {
 
   /**
    * @override
+   * @deprecated use ProcessCache instead and move to schemas/hooks.ts
    */
   validateSchema(
     webdaObject: Model | string,

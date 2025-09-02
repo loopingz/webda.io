@@ -1,5 +1,5 @@
 import type { Context } from "../contexts/icontext";
-import { ActionsEnum, ActionWrapper, Exposable } from "@webda/models";
+import { Actionable, ActionsEnum, WEBDA_ACTIONS } from "@webda/models";
 
 export type Acl = { [key: string]: string };
 
@@ -10,7 +10,15 @@ export type Acl = { [key: string]: string };
  * you can add it later on to existing models
  *
  */
-export class Acls implements Exposable {
+export class Acls implements Actionable {
+  [WEBDA_ACTIONS]: {
+    set: {
+      description: "Set the ACLs for the object";
+    };
+    get: {
+      description: "Get the ACLs for the object";
+    };
+  };
   toDTO() {
     throw new Error("Method not implemented.");
   }
@@ -18,13 +26,10 @@ export class Acls implements Exposable {
     throw new Error("Method not implemented.");
   }
 
-  setAcl = ActionWrapper(() => {}, "Set the ACLs for the object");
-
-  getAcl = ActionWrapper(() => {}, "Get the ACLs for the object");
   /**
    * ACLs for the object
    */
-  async canAct(context: Context, action: ActionsEnum<Acls>): Promise<string | boolean> {
+  async canAct(action: string, user?: any): Promise<string | boolean> {
     return true;
   }
 }

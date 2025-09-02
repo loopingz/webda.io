@@ -1,6 +1,6 @@
 import { useModel } from "../application/hook";
 import { ModelClass, UnpackedConfiguration } from "../internal/iapplication";
-import { UuidModel } from "../models/uuid";
+import { Repository, UuidModel } from "@webda/models";
 import { FileUtils } from "@webda/utils";
 import { TestApplication } from "./objects";
 import { WebdaApplicationTest } from "./test";
@@ -13,6 +13,7 @@ export class TestInternalApplication extends TestApplication {
   }
 }
 
+type TeacherType = UuidModel & { name: string; senior: boolean; uuid: string };
 export class WebdaInternalTest extends WebdaApplicationTest {
   static getApplication(): TestApplication {
     let cfg = this.getTestConfiguration();
@@ -26,23 +27,20 @@ export class WebdaInternalTest extends WebdaApplicationTest {
    * Create a graph of objets from sample-app to be able to test graph
    */
   async createGraphObjects() {
-    const Teacher = <ModelClass<UuidModel & { name: string; senior: boolean; uuid: string }>>useModel("Teacher");
-    const Course = <ModelClass<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>>(
-      useModel("Course")
-    );
-    const Classroom = <ModelClass<UuidModel & { name: string; courses: any; hardwares: any }>>useModel("Classroom");
-    const Student = <ModelClass<UuidModel & { order: number; email: string; firstName: string; lastName: string }>>(
-      useModel("Student")
-    );
-    const Hardware = <ModelClass<UuidModel & { name: string; classroom: string }>>useModel("Hardware");
-    const ComputerScreen = <
-      ModelClass<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>
-    >useModel("ComputerScreen");
-    const Company = <ModelClass<UuidModel & { name: string; uuid: string }>>useModel("Company");
-    const User = <ModelClass<UuidModel & { name: string; _company: string }>>useModel("User");
+    const Teacher = useModel<TeacherType>("Teacher");
+    const Course = useModel<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>("Course");
+    const Classroom = useModel<UuidModel & { name: string; courses: any; hardwares: any }>("Classroom");
+    const Student = useModel<UuidModel & { order: number; email: string; firstName: string; lastName: string }>("Student");
+    const Hardware = useModel<UuidModel & { name: string; classroom: string }>("Hardware");
+    const ComputerScreen = useModel<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>("ComputerScreen");
+    const Company = useModel<UuidModel & { name: string; uuid: string }>("Company");
+    const User = useModel<UuidModel & { name: string; _company: string }>("User");
 
     // 2 Companies
-    const companies = [await Company.create({ name: "company 1" }), await Company.create({ name: "company 2" })];
+    const companies = [
+      await Company.create({ name: "company 1" } as any),
+      await Company.create({ name: "company 2" } as any)
+    ];
     const users = [];
     for (const company of companies) {
       for (let i = 1; i < 6; i++) {
@@ -51,13 +49,16 @@ export class WebdaInternalTest extends WebdaApplicationTest {
           await User.create({
             name: `User ${users.length + 1}`,
             _company: company.uuid
-          })
+          } as any)
         );
       }
     }
 
     // 2 Teachers
-    const teachers = [await Teacher.create({ name: "test" }), await Teacher.create({ name: "test2", senior: true })];
+    const teachers = [
+      await Teacher.create({ name: "test" } as any),
+      await Teacher.create({ name: "test2", senior: true } as any)
+    ];
     const students = [];
     const courses = [];
 
@@ -69,7 +70,7 @@ export class WebdaInternalTest extends WebdaApplicationTest {
           firstName: `Student ${i}`,
           lastName: `Lastname ${i}`,
           order: i
-        })
+        } as any)
       );
     }
 
@@ -91,7 +92,7 @@ export class WebdaInternalTest extends WebdaApplicationTest {
           name: `${topics[i % 5]} ${i}`,
           teacher: teachers[i % 2].uuid,
           students: courseStudents
-        })
+        } as any)
       );
     }
 
@@ -106,7 +107,7 @@ export class WebdaInternalTest extends WebdaApplicationTest {
         await Classroom.create({
           name: `Classroom ${i}`,
           courses: classCourses
-        })
+        } as any)
       );
     }
 
@@ -124,14 +125,14 @@ export class WebdaInternalTest extends WebdaApplicationTest {
           await ComputerScreen.create({
             classroom: classrooms[i % 3].uuid,
             name: `Computer Screen ${i}`
-          })
+          } as any)
         );
       } else {
         hardwares.push(
           await Hardware.create({
             classroom: classrooms[i % 3].uuid,
             name: `Hardware ${i}`
-          })
+          } as any)
         );
       }
     }

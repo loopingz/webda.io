@@ -14,7 +14,7 @@
   "scripts": {
     "build": "webdac build",
     "build:watch": "webdac build --watch",
-    "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
+    "deps:graph": "skott --no-trackTypeOnlyDependencies --showCircularDependencies --displayMode=raw -e .ts",
     "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && yarn run lint:fix",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",

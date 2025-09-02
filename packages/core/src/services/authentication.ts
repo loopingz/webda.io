@@ -12,22 +12,22 @@ import type { Mailer } from "./mailer";
 import { runAsSystem } from "../contexts/execution";
 import { EventWithContext } from "../events/events";
 import { ServiceParameters } from "../interfaces";
-import { useModel } from "../application/hook";
+import { useModel, useModelRepository } from "../application/hook";
 import { useCore, useService } from "../core/hooks";
 import { WebContext } from "../contexts/webcontext";
-import type { IUser, ModelClass } from "../internal/iapplication";
+import { Repository, useRepository } from "@webda/models";
 
 /**
  * Emitted when the /me route is called
  */
-export interface EventAuthenticationGetMe extends EventWithContext {
-  user: IUser;
+export interface EventAuthenticationGetMe<T extends User = User> extends EventWithContext {
+  user: T;
 }
 
 /**
  * Emitted when new user registered
  */
-export interface EventAuthenticationRegister extends EventAuthenticationGetMe {
+export interface EventAuthenticationRegister<T extends User = User> extends EventAuthenticationGetMe<T> {
   data: any;
   identId: string;
 }
@@ -40,16 +40,16 @@ export interface EventAuthenticationLogout extends EventWithContext {}
 /**
  * Sent when a user update his password
  */
-export interface EventAuthenticationPasswordUpdate extends EventAuthenticationGetMe {
+export interface EventAuthenticationPasswordUpdate<T extends User = User> extends EventAuthenticationGetMe<T> {
   password: string;
 }
 
 /**
  * Emitted when user login
  */
-export interface EventAuthenticationLogin extends EventWithContext {
+export interface EventAuthenticationLogin<T extends User = User> extends EventWithContext {
   userId: string;
-  user?: IUser;
+  user?: T;
   identId: string;
   ident: Ident;
 }
@@ -57,7 +57,7 @@ export interface EventAuthenticationLogin extends EventWithContext {
 /**
  * Export when a user failed to authenticate with his password
  */
-export interface EventAuthenticationLoginFailed extends EventAuthenticationGetMe {}
+export interface EventAuthenticationLoginFailed<T extends User = User> extends EventAuthenticationGetMe<T> {}
 
 /**
  * Implement a PasswordVerifier so you can implement
@@ -244,11 +244,11 @@ class Authentication<
   /**
    * Ident model to use
    */
-  protected identModel: ModelClass<Ident>;
+  protected identModel: Repository<Ident>;
   /**
    * User model to use
    */
-  protected userModel: ModelClass<User>;
+  protected userModel: Repository<User>;
   /**
    * Used for hmac
    */
@@ -263,7 +263,7 @@ class Authentication<
    */
   providers: Set<string> = new Set<string>();
 
-  declare metrics: {
+  metrics: {
     login: Counter;
     logout: Counter;
     loginFailed?: Counter;
@@ -302,8 +302,8 @@ class Authentication<
   computeParameters(): void {
     super.computeParameters();
 
-    this.identModel = useModel(this.parameters.identModel);
-    this.userModel = useModel(this.parameters.userModel);
+    this.identModel = useModelRepository<Ident>(this.parameters.identModel);
+    this.userModel = useModelRepository<User>(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {
       this._passwordVerifier = useService<PasswordVerifier>(this.parameters.password.verifier);
@@ -463,14 +463,15 @@ class Authentication<
   async _sendEmailValidation(ctx) {
     const identKey = ctx.parameters.email + "_email";
     const ident = await this.identModel.ref(identKey).get();
+    ident._lastUsed?.getDate();
     if (!ident) {
       await this.identModel.ref(`${ctx.parameters.email}_email`).create({
         _lastValidationEmail: Date.now(),
         _type: "email"
-      });
+      } as any);
     } else {
       // If the ident is linked to someone else - might want to remove it
-      if (ident.getUser().getUuid() !== ctx.getCurrentUserId()) {
+      if (ident.getUser().getPrimaryKey().toString() !== ctx.getCurrentUserId()) {
         throw new WebdaError.Conflict("Ident is linked to someone else");
       }
       // If the email is already validated
@@ -481,8 +482,10 @@ class Authentication<
       if (ident._lastValidationEmail >= Date.now() - this.parameters.email.delay) {
         throw new WebdaError.TooManyRequests("Email sent recently");
       }
-      Ident.ref(ident.getUuid()).setAttribute("_lastValidationEmail", Date.now());
-      await this.identModel.ref(ident.getUuid()).setAttribute("_lastValidationEmail", Date.now());
+
+      await this.identModel.ref(ident.getUUID()).setAttribute("_lastValidationEmail", Date.now());
+      //ident.ref(ident.getUUID()).setAttribute("_lastValidationEmail", Date.now());
+      //await this.identModel.ref(ident.getUUID()).setAttribute("lastValidationEmail", Date.now());
     }
     await this.sendValidationEmail(ctx, ctx.parameters.email);
   }
@@ -593,22 +596,18 @@ class Authentication<
           uuid: `${profile.email}_email`,
           provider: "email",
           _user: user.getUuid()
-        });
+        } as any);
       }
       // Work directly on ident argument
-      ident = await this.identModel.create(
-        {
-          uuid: identId,
-          __profile: profile,
-          __tokens: tokens,
-          provider
-        },
-        false
-      );
-      ident.setUser(user.uuid);
-      ident._lastUsed = new Date();
-      ident.setType(provider);
-      await ident.save();
+      ident = await this.identModel.create({
+        uuid: identId,
+        __profile: profile,
+        __tokens: tokens,
+        provider,
+        _lastUsed: new Date(),
+        _user: user.uuid,
+        _type: provider
+      } as any);
       await this.login(ctx, user, ident, provider);
     });
   }
@@ -628,7 +627,13 @@ class Authentication<
     */
 
   async registerUser(ctx: WebContext, data: any, identId: string, user?: User): Promise<User> {
-    user ??= await this.userModel.create({}, false);
+    user ??= await this.userModel.create(
+      {
+        email: data.email,
+        locale: ctx.getLocale()
+      } as any,
+      false
+    );
     user.email = data.email;
     user.locale = ctx.getLocale();
     this.metrics.registration.inc();
@@ -648,7 +653,7 @@ class Authentication<
     const expire = Date.now() + interval;
     let user;
     if (typeof uuid === "string") {
-      user = await this.userModel.ref(uuid).get();
+      user = await this.userModel.fromUUID(uuid).get();
     } else {
       user = uuid;
     }
@@ -678,12 +683,9 @@ class Authentication<
     if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
       throw new WebdaError.TooManyRequests("Password recovery already requested recently");
     }
-    await user.patch(
-      {
-        _lastPasswordRecovery: Date.now()
-      },
-      null
-    );
+    await user.patch({
+      _lastPasswordRecovery: Date.now()
+    });
     this.metrics.recovery.inc();
     await this.sendRecoveryEmail(ctx, user, email);
   }
@@ -717,12 +719,9 @@ class Authentication<
     }
     await this._verifyPassword(body.password, user);
     const password = this.hashPassword(body.password);
-    await user.patch(
-      {
-        __password: password
-      },
-      null
-    );
+    await user.patch({
+      __password: password
+    });
     this.metrics.recovered.inc();
     await this.emit("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
       user,
@@ -774,7 +773,12 @@ class Authentication<
       let ident = await this.identModel.ref(uuid).get();
       // Would mean the ident got delete in the mean time... hyper low likely hood
       if (ident === undefined) {
-        ident = (await this.identModel.create({}, false)).setUuid(uuid);
+        ident = await this.identModel.create(
+          {
+            uuid
+          } as any,
+          false
+        );
       }
       ident._type = "email";
       ident._validation = new Date();
@@ -893,7 +897,7 @@ class Authentication<
     };
 
     if (typeof user == "object") {
-      event.userId = user.getUuid();
+      event.userId = user.getPrimaryKey();
       event.user = user;
     } else {
       event.userId = user;
@@ -1011,7 +1015,7 @@ class Authentication<
             {
               ...body,
               __password
-            },
+            } as any,
             false
           )
         )
@@ -1028,9 +1032,9 @@ class Authentication<
             uuid: uuid,
             _type: "email",
             email: email
-          })
+          } as any)
       );
-      newIdent.setUser(user.getUuid());
+      newIdent.setUser(user.getPrimaryKey());
       if (validation) {
         newIdent._validation = validation;
       } else if (!mailConfig.skipEmailValidation) {

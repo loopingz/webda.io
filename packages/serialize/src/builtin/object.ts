@@ -28,7 +28,7 @@ export class ObjectSerializer implements Serializer {
     return { value: newObj, metadata: Object.keys(objMetadata).length > 0 ? objMetadata : undefined };
   }
   deserializer(obj: any, metadata: any, context: SerializerContext) {
-    let res = new (this.constructorType || Object)();
+    const res = new (this.constructorType || Object)();
     Object.assign(res, obj);
     for (const key in metadata) {
       if (key === "type") {

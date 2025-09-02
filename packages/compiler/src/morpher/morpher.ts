@@ -1,7 +1,7 @@
 import { Project, ProjectOptions, SourceFile } from "ts-morph";
 import { setLoadParameters } from "./loadparameters";
 import { updateImports } from "./imports";
-import { unserializer } from "./unserialize";
+import { deserializer } from "./deserialize";
 import { useLog, useWorkerOutput } from "@webda/workout";
 import { Diff } from "diff";
 import { EventEmitter } from "stream";
@@ -26,6 +26,9 @@ const replacePackages = {
   "@webda/core/lib/test:WebdaSimpleTest": "@webda/core/lib/test/test:WebdaSimpleTest"
 };
 
+// TODO Replace getUuid() by getUUID() for Model
+// TODO Replace this.metrics to this[WEBDA_METRICS] in Services
+
 type WebdaMorpherOptions = {
   project?: ProjectOptions;
   pretend?: boolean;
@@ -38,7 +41,7 @@ type WebdaMorpherOptions = {
 export class WebdaMorpher {
   project: Project;
   modules: { [key: string]: (sourceFile: SourceFile) => void } = {
-    unserializer: sourceFile => unserializer(sourceFile, this.project.getTypeChecker()),
+    unserializer: sourceFile => deserializer(sourceFile, this.project.getTypeChecker()),
     loadParameters: setLoadParameters,
     updateImports: sourceFile => updateImports(sourceFile, replacePackages)
   };

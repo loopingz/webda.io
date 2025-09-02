@@ -22,8 +22,8 @@ function hasConstructor(typeReference: TypeReferenceNode) {
   return isClassWithConstructor || isBuiltInConstructor;
 }
 
-export function unserializer(sourceFile: SourceFile, typeChecker: TypeChecker) {
-  upsertMethod(sourceFile, "CoreModel", "unserialize", (modelClass: ClassDeclaration, method: MethodDeclaration) => {
+export function deserializer(sourceFile: SourceFile, typeChecker: TypeChecker) {
+  upsertMethod(sourceFile, "CoreModel", "deserialize", (modelClass: ClassDeclaration, method: MethodDeclaration) => {
     const statements = method?.getStatements() || [];
 
     const propertyAssignments = new Set<string>();
@@ -120,8 +120,8 @@ export function unserializer(sourceFile: SourceFile, typeChecker: TypeChecker) {
       }
     });
 
-    if (!statements.find(statement => statement.getText().includes("super.unserialize("))) {
-      newStatements.unshift("super.unserialize(data);");
+    if (!statements.find(statement => statement.getText().includes("super.deserialize("))) {
+      newStatements.unshift("super.deserialize(data);");
     }
 
     return {

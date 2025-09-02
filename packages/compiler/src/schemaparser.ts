@@ -10,6 +10,7 @@ import {
   createFormatter,
   createParser,
   Definition,
+  ExposeNodeParser,
   ExtendedAnnotationsReader,
   FunctionType,
   InterfaceAndClassNodeParser,
@@ -21,6 +22,7 @@ import {
   StringType,
   SubNodeParser,
   SubTypeFormatter,
+  TypeLiteralNodeParser,
   UnionType
 } from "ts-json-schema-generator";
 import * as ts from "typescript";
@@ -147,6 +149,92 @@ export class ThisNodeParser implements SubNodeParser {
   }
 }
 
+function FilterNeverProp(prop: ObjectProperty, hasRequiredNever: () => void): boolean {
+  if (!prop) {
+    return false;
+  }
+  if (prop.isRequired() && prop.getType() === undefined) {
+    hasRequiredNever();
+  }
+  return prop.getType() !== undefined;
+}
+
+/**
+ * Get a stable textual name for simple identifiers/string/numeric names.
+ * Returns undefined for computed names (which we check separately).
+ */
+function TryGetStableName(
+  member: ts.TypeElement | ts.ClassElement
+): string | undefined {
+  const name = (member as any).name as ts.PropertyName | undefined;
+  if (!name) return undefined;
+
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
+    return name.text;
+  }
+  // For private identifiers like `#x`, you can choose to skip or include.
+  // Private identifiers do not appear in JS output as keys; many schema
+  // generators omit them. Treat them like "__" if you want:
+  if (ts.isPrivateIdentifier(name)) {
+    return `__private_${name.text}`;
+  }
+
+  // Computed names get checked elsewhere
+  return undefined;
+}
+
+/**
+ * Decide whether to skip a TS member based on its *name* and kind.
+ */
+function ShouldSkipMember(member: ts.TypeElement | ts.ClassElement, checker: ts.TypeChecker): boolean {
+  // Index signatures: `[k: symbol]: ...`
+  if (ts.isIndexSignatureDeclaration(member)) {
+    const p = member.parameters?.[0];
+    if (p?.type?.kind === ts.SyntaxKind.SymbolKeyword) return true;
+    // Even if the parameter lacks an explicit `symbol` type, still allow it
+    // (string/number indexes are OK); only the explicit symbol form is skipped.
+    return false;
+  }
+  
+  // Handle regular props/methods/fields/accessors
+  const nameText = TryGetStableName(member);
+  // console.log(nameText);
+  // return nameText === undefined;
+  // 2) Skip TypeScript well-known symbol spellings like "__@iterator"
+  if (nameText && nameText.startsWith("__@")) return true;
+
+  // 3) Skip computed names whose type resolves to a symbol
+  const nameNode = (member as any).name as ts.PropertyName | undefined;
+  if (nameNode && ts.isComputedPropertyName(nameNode)) {
+    const type = checker.getTypeAtLocation(nameNode.expression);
+    if ((type.flags & ts.TypeFlags.ESSymbolLike) !== 0) return true;
+  }
+
+  return false;
+}
+
+export class WebdaTypeNodeParser extends TypeLiteralNodeParser {
+  protected getProperties(node: ts.TypeLiteralNode, context: Context): ObjectProperty[] | undefined {
+    let hasRequiredNever = false;
+    const properties = node.members
+        .filter((element) => ts.isPropertySignature(element))
+        .filter(element => !ShouldSkipMember(element, this.typeChecker))
+        .map((propertyNode) => {
+          const type = this.childNodeParser.createType(propertyNode.type, context);
+          // Filter out function
+          if (type instanceof FunctionType) {
+            return undefined;
+          }
+          return new ObjectProperty(this.getPropertyName(propertyNode.name), type, !propertyNode.questionToken);
+        })
+        .filter((prop) => FilterNeverProp(prop, () => { hasRequiredNever = true; }));
+    if (hasRequiredNever) {
+        return undefined;
+    }
+    return properties;
+  }
+}
+
 /* c8 ignore stop */
 export class WebdaAnnotatedNodeParser extends AnnotatedNodeParser {
   createType(node: ts.Node, context: Context, reference?: ReferenceType) {
@@ -167,8 +255,12 @@ export class WebdaAnnotatedNodeParser extends AnnotatedNodeParser {
 
 export class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
   public supportsNode(node: ts.InterfaceDeclaration | ts.ClassDeclaration): boolean {
-    return node.kind === ts.SyntaxKind.ClassDeclaration || node.kind === ts.SyntaxKind.InterfaceDeclaration;
+    return ts.isInterfaceDeclaration(node) || ts.isClassDeclaration(node);
   }
+
+
+
+
 
   /**
    * Override to filter __ properties
@@ -180,17 +272,17 @@ export class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
     node: ts.InterfaceDeclaration | ts.ClassDeclaration,
     context: Context
   ): ObjectProperty[] | undefined {
+    //return super.getProperties(node, context);
     let hasRequiredNever = false;
     const properties = (node.members as ts.NodeArray<ts.TypeElement | ts.ClassElement>)
-      .reduce(
-        (members, member) => {
-          if (ts.isConstructorDeclaration(member)) {
-            const params = member.parameters.filter(param =>
-              ts.isParameterPropertyDeclaration(param, param.parent)
-            ) as ts.ParameterPropertyDeclaration[];
-            members.push(...params);
-          } else if (ts.isPropertySignature(member)) {
-            members.push(member);
+      .filter(
+        (member) => {
+          if (ShouldSkipMember(member, this.typeChecker)) {
+            return false;
+          }
+          // Why ts.isConstructorDeclaration?: https://github.com/loopingz/webda.io/blame/eaa5fd4baf65e8509be4fea6a45127154ac17d39/packages/shell/src/code/compiler.ts#L279C25-L279C25
+          if (ts.isPropertySignature(member)) {
+            return true
           } else if (ts.isPropertyDeclaration(member)) {
             // Ensure NotEnumerable is not part of the property annotation
             if (
@@ -198,18 +290,17 @@ export class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
                 return "NotEnumerable" === annotation?.expression?.getText();
               })
             ) {
-              members.push(member);
+              return true;
             }
           }
-          return members;
-        },
-        [] as (ts.PropertyDeclaration | ts.PropertySignature | ts.ParameterPropertyDeclaration)[]
+          return false;
+        }
       )
       .filter(
-        member =>
+        (member: ts.PropertyDeclaration | ts.PropertySignature) =>
           isPublic(member) && !isStatic(member) && member.type && !this.getPropertyName(member.name).startsWith("__")
       )
-      .map(member => {
+      .map((member: ts.PropertyDeclaration | ts.PropertySignature) => {
         // Check for other tags
         let ignore = false;
         let generated = false;
@@ -228,7 +319,6 @@ export class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         if (ignore) {
           return undefined;
         }
-
         // @ts-ignore
         const typeName = member.type?.typeName?.escapedText;
         let readOnly =
@@ -237,7 +327,7 @@ export class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         let optional =
           readOnly || member.questionToken || jsDocs.find(n => "SchemaOptional" === n.tagName.text) !== undefined;
         let type;
-
+        
         if (typeName === "ModelParent" || typeName === "ModelLink") {
           type = new StringType();
         } else if (typeName === "ModelLinksSimpleArray") {
@@ -304,6 +394,10 @@ export class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
           //return new ObjectProperty(this.getPropertyName(member.name), type, false);
         }
         type ??= this.childNodeParser.createType(member.type, context);
+        // We do not want FunctionType
+        if (type instanceof FunctionType) {
+          return undefined;
+        }
         if (readOnly || generated) {
           const annotations = {};
           if (readOnly || generated) {
@@ -319,22 +413,12 @@ export class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         // If property is in readOnly then we do not want to require it
         return new ObjectProperty(this.getPropertyName(member.name), type, !optional);
       })
-      .filter(prop => {
-        if (!prop) {
-          return false;
-        }
-        if (prop.isRequired() && prop.getType() === undefined) {
-          /* c8 ignore next 2 */
-          hasRequiredNever = true;
-        }
-        return prop.getType() !== undefined;
-      });
+      .filter((prop) => FilterNeverProp(prop, () => { hasRequiredNever = true; }));
 
     if (hasRequiredNever) {
       /* c8 ignore next 2 */
       return undefined;
     }
-
     return properties;
   }
 }
@@ -356,21 +440,42 @@ export function createSchemaGenerator(program: ts.Program, typeChecker: ts.TypeC
     functions: "comment"
   };
   const extraTags = new Set(["Modda", "Model"]);
+  
   const parser = createParser(program, config, (chainNodeParser: ChainNodeParser) => {
+    function withExpose(nodeParser) {
+        return new ExposeNodeParser(typeChecker, nodeParser, config.expose, config.jsDoc);
+    }
+    function withJsDoc(nodeParser) {
+        const extraTags = new Set(config.extraTags);
+        return new AnnotatedNodeParser(nodeParser, new ExtendedAnnotationsReader(typeChecker, extraTags, config.markdownDescription));
+    }
+    function withCircular(nodeParser) {
+        return new CircularReferenceNodeParser(nodeParser);
+    }
     chainNodeParser.addNodeParser(new ConstructorNodeParser());
     chainNodeParser.addNodeParser(new ThisNodeParser());
     chainNodeParser.addNodeParser(
-      new CircularReferenceNodeParser(
-        new AnnotatedNodeParser(
-          new WebdaModelNodeParser(
-            typeChecker,
-            new WebdaAnnotatedNodeParser(chainNodeParser, new ExtendedAnnotationsReader(typeChecker, extraTags)),
-            true
+      withCircular(
+        withExpose(
+          withJsDoc(
+            new WebdaModelNodeParser(
+              typeChecker,
+              chainNodeParser, //new WebdaAnnotatedNodeParser(chainNodeParser, new ExtendedAnnotationsReader(typeChecker, extraTags)),
+              true
+          )
+        )
+      )
+    ));
+    chainNodeParser.addNodeParser(
+      withCircular(
+        withExpose(
+          withJsDoc(
+            new WebdaTypeNodeParser(typeChecker, chainNodeParser, true),
           ),
-          new ExtendedAnnotationsReader(typeChecker, extraTags)
         )
       )
     );
+
   });
   const formatter = createFormatter(config, (fmt, _circularReferenceTypeFormatter) => {
     // If your formatter DOES NOT support children, e.g. getChildren() { return [] }:

@@ -1,9 +1,9 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext";
-import { ModelClass } from "../internal/iapplication";
 import { DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext";
+import { Repository } from "@webda/models";
 
 /**
  * Define overridable OpenAPI description
@@ -67,7 +67,7 @@ export interface OpenApiWebdaOperation extends DeepPartial<OpenAPIV3.OperationOb
  * Route Information default information
  */
 export interface RouteInfo {
-  model?: ModelClass;
+  model?: Repository;
   /**
    * HTTP Method to expose
    */

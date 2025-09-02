@@ -7,14 +7,15 @@ import { GunzipConditional } from "@webda/utils";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 import * as WebdaQL from "@webda/ql";
 import { ServicePartialParameters } from "../internal/iapplication";
-interface StorageMap {
+
+export interface StorageMap {
   [key: string]: string;
 }
 
 /**
  * Memory store
  */
-class MemoryStoreParameters extends StoreParameters {
+export class MemoryStoreParameters extends StoreParameters {
   /**
    * Persist the data in a file
    */
@@ -136,7 +137,7 @@ class LDJSONMemoryStreamReader extends Writable {
  * @category CoreServices
  * @WebdaModda
  */
-class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> extends Store<K> {
+export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> extends Store<K> {
   /**
    * Inmemory storage
    */
@@ -222,13 +223,6 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
         reject(err);
       });
     });
-  }
-
-  /**
-   * @override
-   */
-  loadParameters(params: ServicePartialParameters<K>): K {
-    return <K>new MemoryStoreParameters().load(params);
   }
 
   /**
@@ -465,4 +459,3 @@ class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters> exten
   }
 }
 
-export { MemoryStore, MemoryStore as Plop, type StorageMap };

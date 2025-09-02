@@ -3,7 +3,7 @@ import type { ConfigurationProvider } from "../configurations/configuration";
 import * as WebdaError from "../errors/errors";
 import { Throttler } from "@webda/utils";
 
-import type { Model } from "../models/model";
+import type { Model, Repository } from "@webda/models";
 import type { RawModel, ModelClass } from "../internal/iapplication";
 import { ServiceParameters } from "../interfaces";
 import { Service } from "../services/service";
@@ -322,7 +322,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   _model: ModelClass;
   /**
-   * Store teh manager hierarchy with their depth
+   * Store the manager hierarchy with their depth
    */
   _modelsHierarchy: { [key: string]: number } = {};
   /**
@@ -345,6 +345,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     cache_hits: Counter;
     queries: Histogram;
   };
+  private _modelMetadata: any;
 
   /**
    * Retrieve the Model
@@ -355,9 +356,9 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     super.computeParameters();
     const app = useApplication();
     this._model = useModel(this.parameters.model);
-    useLog("TRACE", "METADATA", this._model.Metadata);
-    this._modelType = this._model.Metadata.Identifier;
-    this._uuidField = this._model.Metadata.PrimaryKey;
+    this._modelMetadata = this._model.Metadata;
+    useLog("TRACE", "METADATA", this._modelMetadata);
+    this._modelType = this._modelMetadata.Identifier;
     if (!this.parameters.noCache) {
       this._cacheStore = <Store>new (app.getModda("Webda/MemoryStore"))(`_${this.getName()}_cache`, <StoreParameters>{
         model: this.parameters.model
@@ -368,19 +369,19 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     }
     const recursive = (tree: ModelClass[], depth) => {
       for (const model of tree) {
-        this._modelsHierarchy[model.Metadata.Identifier] ??= depth;
-        this._modelsHierarchy[model.Metadata.Identifier] = Math.min(
+        this._modelsHierarchy[this._modelMetadata.Identifier] ??= depth;
+        this._modelsHierarchy[this._modelMetadata.Identifier] = Math.min(
           depth,
-          this._modelsHierarchy[model.Metadata.Identifier]
+          this._modelsHierarchy[this._modelMetadata.Identifier]
         );
-        recursive(model.Metadata.Subclasses, depth + 1);
+        recursive(this._modelMetadata.Subclasses, depth + 1);
       }
     };
     // Compute the hierarchy
-    this._modelsHierarchy[this._model.Metadata.Identifier] = 0;
+    this._modelsHierarchy[this._modelMetadata.Identifier] = 0;
     // Strict Store only store their model
     if (!this.parameters.strict) {
-      recursive(this._model.Metadata.Subclasses, 1);
+      recursive(this._modelMetadata.Subclasses, 1);
     }
     // Add additional models
     if (this.parameters.additionalModels.length) {
@@ -390,8 +391,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       } else {
         for (const modelType of this.parameters.additionalModels) {
           const model = useModel(modelType);
-          this._modelsHierarchy[model.Metadata.Identifier] = 0;
-          recursive(model.Metadata.Subclasses, 1);
+          this._modelsHierarchy[this._modelMetadata.Identifier] = 0;
+          recursive(this._modelMetadata.Subclasses, 1);
         }
       }
     }
@@ -591,7 +592,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     prop: string,
     item: any,
     index: number = undefined,
-    itemWriteConditionField: string = this._uuidField,
+    itemWriteConditionField: string = undefined,
     itemWriteCondition: any = undefined
   ) {
     const updateDate = new Date();
@@ -634,7 +635,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     uid: string,
     prop: string,
     index: number,
-    itemWriteConditionField: string = this._uuidField,
+    itemWriteConditionField: string = undefined,
     itemWriteCondition?: any
   ) {
     const updateDate = new Date();
@@ -704,7 +705,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     if (context.isGlobalContext()) {
       context = undefined;
     }
-    const permissionQuery = context ? this._model.getPermissionQuery(context) : null;
+    const permissionQuery =
+      context && this._model["getPermissionQuery"] ? this._model["getPermissionQuery"](context) : null;
     let partialPermission = true;
     let fullQuery = query;
     if (permissionQuery) {
@@ -1263,7 +1265,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   async cascadeDelete(obj: Model, _uuid: string): Promise<any> {
     // We dont need uuid but Binary store will need it
-    return this.delete(obj.getUuid());
+    return this.delete(obj.getUUID());
   }
 
   /**
@@ -1329,7 +1331,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     }
     const result: { [key: string]: any } = {};
     for (const i in object) {
-      if (i === this._uuidField || i === "_lastUpdate" || i.startsWith("_")) {
+      if (i === "_lastUpdate" || i.startsWith("_")) {
         continue;
       }
       result[i] = object[i];
@@ -1440,7 +1442,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
 
   getOpenApiReplacements() {
     return {
-      modelName: this._model.Metadata.ShortName
+      modelName: this._modelMetadata.ShortName
     };
   }
 

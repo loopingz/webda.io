@@ -1,22 +1,17 @@
-import { PrimaryKeyType } from "../internal/iapplication";
-import { UuidModel } from "@webda/models";
+import { PrimaryKeyType, SelfJSONed, useRepository, UuidModel } from "@webda/models";
 
 /**
  * Specific type for registry
  */
 export class RegistryModel extends UuidModel {
-  /**
-   * Helper for upsert
-   * @param uuid
-   * @param data
-   * @returns
-   */
-  static async put<T extends RegistryModel, K = any>(this: ModelClass<T>, uuid: PrimaryKeyType<T>, data: K) {
-    return await this.ref(uuid).upsert(<any>data);
+  toJSON(): undefined {
+    return undefined;
   }
-
-  static async delete<T extends RegistryModel>(this: ModelClass<T>, uuid: PrimaryKeyType<T>) {
-    return await this.ref(uuid).delete();
+  toDTO(): undefined {
+    return undefined;
+  }
+  fromDTO(): this {
+    return this;
   }
 }
 
@@ -44,7 +39,9 @@ export class RegistryEntry {
    * @returns
    */
   static async get<K = any>(uuid: string, data?: K): Promise<RegistryModel & K> {
-    return data ? <any>await RegistryModel.ref(uuid).upsert(<any>data) : await RegistryModel.ref(uuid).get();
+    return data
+      ? <any>await RegistryModel.ref(uuid).upsert(<any>data)
+      : <K & RegistryModel>await RegistryModel.ref(uuid).get();
   }
 
   /**

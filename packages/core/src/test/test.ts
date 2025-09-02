@@ -25,6 +25,7 @@ import { InstanceStorage, runWithInstanceStorage, useInstanceStorage } from "../
 import { Application } from "../application/application";
 import { useLog } from "@webda/workout";
 import { CallbackOptionallyAsync, WebdaTest } from "@webda/test";
+import { serialize, deserialize } from "@webda/serialize";
 
 export class WebdaAsyncStorageTest extends WebdaTest {
   static globalContext: InstanceStorage = {
@@ -39,16 +40,22 @@ export class WebdaAsyncStorageTest extends WebdaTest {
   ) => {
     if (type === "beforeAll") {
       return <Promise<void>>runWithInstanceStorage({}, async () => {
+        // Set cache to null first
+        this.globalContext.caches = '{}';
+        console.log(`Before All`);
         // @ts-ignore
         await callback();
+        console.log(`Before All - after callback`);
         this.globalContext = useInstanceStorage();
-        this.globalContext.caches = JSON.stringify(this.globalContext.caches || {});
+        console.log(`Serialize '${this.globalContext.caches}'`);
+        this.globalContext.caches = serialize(this.globalContext.caches || {});
+        
       });
     } else if (type === "beforeEach") {
       return <Promise<void>>runWithInstanceStorage(
         {
           ...this.globalContext,
-          caches: JSON.parse(this.globalContext.caches)
+          caches: deserialize(this.globalContext.caches)
         },
         async () => {
           await callback.bind(instance)();
@@ -60,10 +67,11 @@ export class WebdaAsyncStorageTest extends WebdaTest {
         await callback.bind(instance)();
       });
     } else if (type === "afterAll") {
+      console.log(`Deserialize '${this.globalContext.caches}'`);
       return <Promise<void>>runWithInstanceStorage(
         {
           ...this.globalContext,
-          caches: JSON.parse(this.globalContext.caches)
+          caches: deserialize(this.globalContext.caches)
         },
         async () => {
           await callback.bind(this)();
@@ -178,7 +186,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     if (init) {
       await core.init();
       // Prevent persistance for tests
-      (<MemoryStore>(<any>RegistryModel.store())).persist = async () => {};
+      (<MemoryStore>(<any>RegistryModel.getRepository())).persist = async () => {};
     }
   }
 

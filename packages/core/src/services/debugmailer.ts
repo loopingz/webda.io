@@ -1,3 +1,4 @@
+import { ServiceParameters } from "../interfaces";
 import { AbstractMailer } from "./mailer";
 
 /**
@@ -6,7 +7,10 @@ import { AbstractMailer } from "./mailer";
  */
 export class DebugMailer extends AbstractMailer {
   sent: any[] = [];
-
+  
+  static createConfiguration(params: any): any {
+    return new ServiceParameters().load(params).default();
+  }
   /**
    * Fakely send a message saving it to memory to test later on
    *

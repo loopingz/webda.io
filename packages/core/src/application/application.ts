@@ -17,11 +17,13 @@ import {
   WebdaPackageDescriptor,
   Reflection,
   AbstractService,
-  Modda
+  Modda,
+  ModelClass
 } from "../internal/iapplication";
 import { Model, ModelPrototype } from "@webda/models";
 import { useInstanceStorage } from "../core/instancestorage";
 import { setLogContext } from "../loggers/hooks";
+import { ServiceParameters } from "../interfaces";
 
 /**
  * Map a Webda Application
@@ -163,14 +165,16 @@ export class Application implements IApplication {
       const info = this.baseConfiguration.cachedModules.models[model] || {
         Ancestors: [],
         Subclasses: [],
-        Relations: {}
+        Relations: {},
+        Reflection: {}
       };
       const metadata = {
         Identifier: model,
         Ancestors: info.Ancestors.map(a => this.models[a]).filter(m => m),
         Subclasses: info.Subclasses.map(c => this.models[c]).filter(m => m),
         Relations: info.Relations,
-        Schema: this.getSchema(model)
+        Schema: this.getSchema(model),
+        Reflection: info.Reflection || {},
       };
       // @ts-ignore
       this.models[model].Metadata = Object.freeze(metadata);
@@ -196,6 +200,16 @@ export class Application implements IApplication {
       this.baseConfiguration ??= file ? FileUtils.load(file) : {};
       this.baseConfiguration.parameters ??= {};
       this.baseConfiguration.parameters.defaultStore ??= "Registry";
+
+      // Init default values for configuration
+      this.baseConfiguration.parameters.apiUrl ??= "http://localhost:18080";
+      this.baseConfiguration.parameters.metrics ??= {};
+      if (this.baseConfiguration.parameters.metrics) {
+        this.baseConfiguration.parameters.metrics.labels ??= {};
+        this.baseConfiguration.parameters.metrics.config ??= {};
+        this.baseConfiguration.parameters.metrics.prefix ??= "";
+      }
+      this.baseConfiguration.services ??= {};
       if (this.baseConfiguration.version !== 4) {
         this.log("ERROR", "Your configuration file should use version 4, see https://docs.webda.io/");
       }
@@ -397,7 +411,7 @@ export class Application implements IApplication {
    *
    * @param name model to retrieve
    */
-  getModel<T extends Model = Model>(name: string): ModelPrototype<T> {
+  getModel<T extends Model = Model>(name: string): ModelClass<T> {
     return this.getWebdaObject("models", name);
   }
 
@@ -405,7 +419,7 @@ export class Application implements IApplication {
    * Get all models definitions
    */
   getModels(): {
-    [key: string]: ModelPrototype;
+    [key: string]: ModelClass<any>;
   } {
     return this.models;
   }
@@ -424,13 +438,8 @@ export class Application implements IApplication {
    * @returns
    */
   getRootExposedModels(): string[] {
-    const results = new Set<string>(this.getRootModels().filter(k => this.getModel(k).Metadata?.Expose));
-    for (const model in this.models) {
-      if (this.models[model]?.Metadata?.Expose?.root) {
-        results.add(model);
-      }
-    }
-    return [...results];
+    // TODO Redefine this
+    return [];
   }
 
   /**
@@ -722,6 +731,22 @@ export class Application implements IApplication {
     const sectionLoader = async (section: Section) => {
       for (const key in info[section]) {
         this[section][key] ??= await this.importFile(path.join(parent, info[section][key].Import));
+        if (section === "beans" || section === "moddas") {
+          const configurationClass = info[section][key].Configuration ? await this.importFile(path.join(parent, info[section][key].Configuration)) : ServiceParameters;
+          this[section][key].createConfiguration = (params: any) => {
+            const filteredParams = {};
+            if (info[section][key].Schema) {
+              // If schema is defined, filter the params
+              for (const field of Object.keys(info[section][key].Schema.properties)) {
+                filteredParams[field] = params[field];
+              }
+            } else {
+              // If no schema we just use the params as is
+              Object.assign(filteredParams, params);
+            }
+            return new configurationClass().load(filteredParams);
+          }
+        }
       }
     };
     // TODO Merging tree from different modules

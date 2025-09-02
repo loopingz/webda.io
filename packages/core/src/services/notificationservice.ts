@@ -48,9 +48,10 @@ export class MultiNotificationParameters extends ServiceParameters {
   /**
    * @override
    */
-  constructor(params: any) {
-    super();
-    this.senders = params.sender || [];
+  default() {
+    super.default();
+    this.senders ??= [];
+    this.multiple ??= false;
   }
 }
 
@@ -65,13 +66,6 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
   implements NotificationService
 {
   senders: NotificationService[];
-
-  /**
-   * @override
-   */
-  loadParameters(params: any): T {
-    return <T>new MultiNotificationParameters(params);
-  }
 
   /**
    * @override

@@ -1,7 +1,7 @@
-import { NotEnumerable } from "@webda/tsc-esm";
-import { Context } from "../contexts/icontext";
-import { ModelEvents } from "../internal/iapplication";
+import { useContext } from "../contexts/execution";
+import { Context, IOperationContext } from "../contexts/icontext";
 import { CoreModel } from "./coremodel";
+import { ModelEvents, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
@@ -11,11 +11,9 @@ export type UserEvents<T> = ModelEvents<T> & {
  * First basic model for User
  * @class
  * @WebdaModel
- * @Frontend
  */
-export class User extends CoreModel {
-  @NotEnumerable
-  declare Events: UserEvents<this>;
+export abstract class User extends UuidModel {
+  [WEBDA_EVENTS]: UserEvents<this>;
   /**
    * Password of the user if defined
    */
@@ -64,7 +62,7 @@ export class User extends CoreModel {
   toPublicEntry(): any {
     return {
       displayName: this.displayName,
-      uuid: this.getUuid(),
+      uuid: this.getUUID(),
       avatar: this._avatar,
       email: this.getEmail()
     };
@@ -107,7 +105,7 @@ export class User extends CoreModel {
    * Return the user idents
    * @returns
    */
-  getIdents(): Readonly<{ _type: string; uid: string; email?: string }[]> {
+  getIdents(): Readonly<{ _type: string; uid: string; email?: string; uuid: string }[]> {
     return [];
   }
 
@@ -123,24 +121,10 @@ export class User extends CoreModel {
     this.__password = password;
   }
 
-  async canAct(ctx: Context, _action: string): Promise<string | boolean> {
-    if (!ctx.getCurrentUserId() || ctx.getCurrentUserId() !== this.getUuid()) {
+  async canAct(ctx: IOperationContext, action: string): Promise<string | boolean> {
+    if (!ctx.getCurrentUserId() || ctx.getCurrentUserId() !== this.getUUID()) {
       return "You can't act on this user";
     }
     return true;
-  }
-
-  /**
-   * Only current user can see its own events
-   * @param _event
-   * @param context
-   * @param model
-   * @returns
-   */
-  static authorizeClientEvent(_event: string, context: Context, model?: Model): boolean {
-    if (model && model.getUuid() === context.getCurrentUserId()) {
-      return true;
-    }
-    return false;
   }
 }

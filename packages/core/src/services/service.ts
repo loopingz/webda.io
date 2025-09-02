@@ -4,7 +4,7 @@ import { AsyncEventEmitterImpl, AsyncEventUnknown, EventEmitterUtils } from "../
 import { Route } from "../rest/irest";
 import type { OpenAPIWebdaDefinition } from "../rest/irest";
 import type { HttpMethodType } from "../contexts/httpcontext";
-import type { Attributes, Constructor, DeepPartial } from "@webda/tsc-esm";
+import type { Constructor } from "@webda/tsc-esm";
 import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfiguration } from "../metrics/metrics";
 
 import type { Logger } from "../loggers/ilogger";
@@ -13,7 +13,7 @@ import { ServiceParameters } from "../interfaces";
 import { useService } from "../core/hooks";
 import { AbstractService } from "../core/icore";
 import { useLogger } from "../loggers/hooks";
-import { ServicePartialParameters } from "../internal/iapplication";
+import { WEBDA_EVENTS } from "@webda/models";
 
 /**
  * Represent a Inject annotation
@@ -184,6 +184,11 @@ abstract class Service<
   }[] = [];
 
   /**
+   * Set the Webda events here
+   */
+  [WEBDA_EVENTS]: E;
+
+  /**
    * Get the current state
    */
   getState() {
@@ -197,7 +202,7 @@ abstract class Service<
   /**
    * Get metrics
    */
-  protected metrics?: any;
+  protected metrics?: {};
   /**
    *
    *
@@ -206,7 +211,7 @@ abstract class Service<
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(name: string, params: ServicePartialParameters<T>) {
+  constructor(name: string, params: T) {
     super(name, params);
     this.logger = useLogger(this);
   }
@@ -424,7 +429,7 @@ abstract class Service<
    * @returns
    */
   toJSON() {
-    return this.name;
+    return this.toString();
   }
 
   /**

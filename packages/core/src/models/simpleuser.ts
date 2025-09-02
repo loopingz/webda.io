@@ -1,5 +1,5 @@
 import type { Ident } from "./ident";
-import type { ModelsMapped } from "@webda/models";
+import { WEBDA_PRIMARY_KEY, type ModelsMapped } from "@webda/models";
 import { User } from "./user";
 
 /**
@@ -9,7 +9,6 @@ import { User } from "./user";
  * models
  */
 export class SimpleUser extends User {
-  PrimaryKey: readonly (keyof this)[] = ["uuid"] as const;
   /**
    * UUID of the model
    */

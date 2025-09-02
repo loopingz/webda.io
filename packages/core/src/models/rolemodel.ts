@@ -24,7 +24,7 @@ abstract class RoleModel extends Model {
     return ctx.getSession().roles;
   }
 
-  async canAct(action: string): Promise<string | boolean> {
+  async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
     // If this action doesn't require role
     if (!this.getRolesMap()[action]) {
       if (this.isPermissive()) {

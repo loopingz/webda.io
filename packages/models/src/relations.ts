@@ -311,6 +311,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
    */
   @NotEnumerable
   protected parent: Storable;
+  protected uuid: PrimaryKeyType<T>;
 
   constructor(
     /**
@@ -318,7 +319,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
      *
      * In our example, the uuid of the Artist
      */
-    protected uuid: PrimaryKeyType<T>,
+    uuid: PrimaryKeyType<T> | string,
     /**
      * The repository of the object to link
      */
@@ -326,14 +327,15 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     parent?: Storable
   ) {
     this.parent = parent!;
+    this.uuid = typeof uuid === "string" ? model.parseUUID(uuid) : uuid;
   }
 
   async get(): Promise<T> {
     return await this.model.get(this.uuid);
   }
 
-  set(id: PrimaryKeyType<T> | T) {
-    this.uuid = isStorable(id) ? id.getPrimaryKey() : id;
+  set(id: PrimaryKeyType<T> | T | string) {
+    this.uuid = isStorable(id) ? id.getPrimaryKey() : typeof id === "string" ? this.model.parseUUID(id) : id;
     // Set dirty for parent
     this.parent?.[WEBDA_DIRTY].add(
       Object.keys(this.parent)
@@ -406,7 +408,7 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
   protected getModelRef(model: string | PrimaryKeyType<T> | ModelRef<T> | T) {
     let modelRef: ModelRef<T>;
     if (typeof model === "string") {
-      modelRef = new ModelRef<T>(this.repo.fromUUID(model), this.repo);
+      modelRef = new ModelRef<T>(this.repo.parseUUID(model), this.repo);
     } else if (model instanceof ModelRef) {
       modelRef = model;
     } else if (isStorable(model)) {
@@ -778,7 +780,7 @@ export function createModelLinksMap<T extends Storable = Storable, K extends obj
   Object.keys(data)
     .filter(k => k !== "__proto__")
     .forEach(key => {
-      data[key] = new ModelRefCustomMap(repo.fromUUID(key), repo, data[key], parent!);
+      data[key] = new ModelRefCustomMap(repo.parseUUID(key), repo, data[key], parent!);
     });
   Object.defineProperty(result, "add", { enumerable: false });
   Object.defineProperty(result, "remove", { enumerable: false });

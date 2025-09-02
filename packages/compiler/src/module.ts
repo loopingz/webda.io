@@ -2,7 +2,15 @@ import * as ts from "typescript";
 import { Compiler } from "./compiler";
 import { useLog } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
-import { getTagsName, getParent, isSymbolMapper, SymbolMapper, getTypeIdFromTypeNode, displayTree } from "./utils";
+import {
+  getTagsName,
+  getParent,
+  isSymbolMapper,
+  SymbolMapper,
+  getTypeIdFromTypeNode,
+  displayTree,
+  getKeyKind
+} from "./utils";
 import { existsSync, readFileSync } from "node:fs";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { tsquery } from "@phenomnomnominal/tsquery";
@@ -10,6 +18,22 @@ import { dirname, join, relative } from "path";
 import { SchemaGenerator } from "ts-json-schema-generator";
 import { ModelGraphBinaryDefinition, ModelMetadata, ModelRelation, WebdaModule } from "./definition";
 import { createSchemaGenerator } from "./schemaparser";
+import { getPlural } from "./morpher/metadata";
+import { ActionsMetadata } from "./metadata/actions";
+import { EventsMetadata } from "./metadata/events";
+import { PrimaryKeyMetadata } from "./metadata/primarykey";
+
+
+/**
+ * Found all objects from compiled source
+ */
+export type WebdaObjects = {
+  schemas: WebdaSchemaResults;
+  models: WebdaSearchResults;
+  moddas: WebdaSearchResults;
+  deployers: WebdaSearchResults;
+  beans: WebdaSearchResults;
+}
 
 type ReplaceModelWith<T, L> = T extends object
   ? { [K in keyof T]: K extends "model" ? L : ReplaceModelWith<T[K], L> }
@@ -236,14 +260,8 @@ export class ModuleGenerator {
    * Every CoreModel object will be added if it is exported and not abstract
    * @returns
    */
-  searchForWebdaObjects() {
-    const result: {
-      schemas: WebdaSchemaResults;
-      models: WebdaSearchResults;
-      moddas: WebdaSearchResults;
-      deployers: WebdaSearchResults;
-      beans: WebdaSearchResults;
-    } = {
+  searchForWebdaObjects(): WebdaObjects {
+    const result: WebdaObjects = {
       schemas: new WebdaSchemaResults(),
       models: {},
       moddas: {},
@@ -306,7 +324,7 @@ export class ModuleGenerator {
 
           let section;
           let schemaNode;
-          if (this.extends(classTree, "@webda/core", "CoreModel")) {
+          if (this.extends(classTree, "@webda/models", "Model")) {
             section = "models";
             schemaNode = node;
           } else if (tags["WebdaModda"]) {
@@ -414,6 +432,55 @@ export class ModuleGenerator {
 
     return undefined;
   }
+  
+getExportedSymbolFromModule(
+  moduleSpecifier: string,
+  exportName: string,
+): ts.Symbol | undefined {
+  const checker = this.typeChecker;
+
+  // Find the ambient module whose name matches the specifier
+  const ambientModule = checker
+    .getAmbientModules()
+    .find(m => m.name === `"${moduleSpecifier}"`);
+  checker
+    .getAmbientModules().forEach(m => {
+      console.log(m.escapedName)
+    });
+  if (!ambientModule) return undefined;
+
+
+  // Step 2: Get the export symbol
+  const sym = checker.tryGetMemberInModuleExports(
+    exportName,
+    ambientModule
+  );
+
+  // Step 3: Resolve aliases, if any
+  if (sym && (sym.flags & ts.SymbolFlags.Alias)) {
+    return checker.getAliasedSymbol(sym);
+  }
+  return sym;
+}
+
+  /** True if `propSym` is declared with a computed name `[uniqueKeySym]`. */
+  propertyIsKeyedBySymbol(propSym: ts.Symbol, packageName: string, symbolName: string): boolean {
+    for (const d of propSym.getDeclarations() ?? []) {
+      const name = (d as ts.NamedDeclaration).name;
+      if (name && ts.isComputedPropertyName(name)) {
+        const keyExprSym = this.resolveAliases(this.typeChecker.getSymbolAtLocation(name.expression));
+        if (keyExprSym.getName() === symbolName && this.getPackageFromType(this.typeChecker.getTypeAtLocation(keyExprSym.valueDeclaration)) === packageName) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  resolveAliases(sym: ts.Symbol | undefined) {
+    if (!sym) return sym;
+    return sym.flags & ts.SymbolFlags.Alias ? this.typeChecker.getAliasedSymbol(sym) : sym;
+  }
 
   /**
    * Generate the graph relationship between models
@@ -432,13 +499,17 @@ export class ModuleGenerator {
         return;
       }
       const metadata = {
-        Plural: tags["WebdaPlural"] || name.split("/").pop() + "s",
+        Plural: tags["WebdaPlural"] || getPlural(name.split("/").pop()),
         Import: jsFile,
         Relations: {},
         Ancestors: [],
         Subclasses: [],
         Reflection: {},
-        Schema: {}
+        Schema: {},
+        Actions: {},
+        Events: [],
+        PrimaryKey: [],
+        Identifier: name
       };
 
       // Retrieve declare link in the model
@@ -472,41 +543,43 @@ export class ModuleGenerator {
           }
 
           // Reflection of the attributes
-          if (pType) {
-            if (pType.typeArguments?.length) {
-              metadata.Reflection[prop.getName()] = {
-                type: pType.typeName.getText()
-              };
-              metadata.Reflection[prop.getName()].typeParameters = pType.typeArguments.map(t => {
-                const typeParameter = this.typeChecker.getTypeAtLocation(t);
-                // Check if the type parameter has a constraint
-                const constraint = typeParameter.getConstraint();
-                if (constraint) {
-                  return this.typeChecker.typeToString(constraint); // Use the constraint type
-                } else {
-                  return this.typeChecker.typeToString(typeParameter); // Fallback to original type
-                }
-              });
+          if (getKeyKind(prop.valueDeclaration, this.typeChecker) !== "symbol") {
+            if (pType) {
+              if (pType.typeArguments?.length) {
+                metadata.Reflection[prop.getName()] = {
+                  type: pType.typeName.getText()
+                };
+                metadata.Reflection[prop.getName()].typeParameters = pType.typeArguments.map(t => {
+                  const typeParameter = this.typeChecker.getTypeAtLocation(t);
+                  // Check if the type parameter has a constraint
+                  const constraint = typeParameter.getConstraint();
+                  if (constraint) {
+                    return this.typeChecker.typeToString(constraint); // Use the constraint type
+                  } else {
+                    return this.typeChecker.typeToString(typeParameter); // Fallback to original type
+                  }
+                });
+              } else {
+                metadata.Reflection[prop.getName()] = {
+                  type: pType.getText()
+                };
+              }
+            } else if (type) {
+              if (type.getText().endsWith("[]")) {
+                metadata.Reflection[prop.getName()] = {
+                  type: "Array",
+                  typeParameters: [type.getText().substring(0, type.getText().length - 2)]
+                };
+              } else {
+                metadata.Reflection[prop.getName()] = {
+                  type: type?.getText()
+                };
+              }
             } else {
               metadata.Reflection[prop.getName()] = {
-                type: pType.getText()
+                type: "any"
               };
             }
-          } else if (type) {
-            if (type.getText().endsWith("[]")) {
-              metadata.Reflection[prop.getName()] = {
-                type: "Array",
-                typeParameters: [type.getText().substring(0, type.getText().length - 2)]
-              };
-            } else {
-              metadata.Reflection[prop.getName()] = {
-                type: type?.getText()
-              };
-            }
-          } else {
-            metadata.Reflection[prop.getName()] = {
-              type: "any"
-            };
           }
 
           const currentGraph: ReplaceModelWith<ModelMetadata["Relations"], string | SymbolMapper> = <any>(
@@ -781,18 +854,14 @@ export class ModuleGenerator {
       schemas: {}
     };
     // Dispatch schemas
-    Object.entries(objects.schemas.generateSchemas(this)).forEach(([section, schemas]) => {
-      for (const [name, schema] of Object.entries(schemas)) {
-        if (!mod[section][name] && section !== "schemas") {
-          continue;
-        }
-        if (section === "schemas") {
-          mod[section][name] = schema;
-        } else {
-          mod[section][name].Schema = schema;
-          mod["schemas"][name] = schema;
-        }
-      }
+    objects.schemas.generateSchemas(this, mod);
+    const plugins = [
+      new ActionsMetadata(this),
+      new EventsMetadata(this),
+      new PrimaryKeyMetadata(this)
+    ]
+    plugins.forEach(plugin => {
+      plugin.getMetadata(mod, objects);
     });
     FileUtils.save(mod, this.compiler.project.getAppPath("webda.module.json"));
     return mod;
@@ -856,26 +925,52 @@ class WebdaSchemaResults {
    * Generate all schemas
    * @param info
    */
-  generateSchemas(moduleGenerator: ModuleGenerator): { [key: string]: { [key: string]: JSONSchema7 } } {
+  generateSchemas(moduleGenerator: ModuleGenerator, results: WebdaModule) {
     const schemas = {};
     Object.entries(this.store)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .forEach(([name, { schemaNode, link, title, addOpenApi, section }]) => {
-        schemas[section] ??= {};
+        results[section] ??= {};
+        if (!results[section][name] && section !== "schemas") {
+          return;
+        }
+        if (section === "schemas") {
+          results[section][name] = schemaNode ? moduleGenerator.generateSchema(schemaNode, title || name) : link;
+          return;
+        }
+
         if (schemaNode) {
-          schemas[section][name] = moduleGenerator.generateSchema(schemaNode, title || name);
-          if (addOpenApi && schemas[name]) {
-            schemas[section][name].properties ??= {};
-            schemas[section][name].properties["openapi"] = {
+          results[section][name].Schema = moduleGenerator.generateSchema(schemaNode, title || name);
+          if (section !== "models") {
+            let jsFile = "",
+              exportName = "";
+            try {
+              jsFile = moduleGenerator.getJSTargetFile(schemaNode.getSourceFile()).replace(/\.js$/, "");
+              const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode);
+              exportName = moduleGenerator.getExportedName(
+                type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
+              );
+              const className = (
+                type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
+              ).name?.escapedText.toString();
+              if (!exportName) {
+                throw new Error(`Cannot find exported name for ${className}, check that the class is exported`);
+              }
+              results[section][name].Configuration = `${jsFile}:${exportName}`;
+            } catch (err) {
+              console.log("Cannot guess export name for service configuration:", err);
+            }
+          }
+          if (addOpenApi && results[section][name]) {
+            results[section][name].Schema.properties ??= {};
+            results[section][name].Schema.properties["openapi"] = {
               type: "object",
               additionalProperties: true
             };
           }
-        } else {
-          schemas[section][name] = link;
         }
       });
-    return schemas;
+    return;
   }
 
   add(

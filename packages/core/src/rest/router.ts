@@ -1,7 +1,7 @@
 import uriTemplates from "uri-templates";
 import { HttpMethodType } from "../contexts/httpcontext";
 import type { IRouter, RequestFilter, RouteInfo } from "./irest";
-import { type AbstractModel } from "../internal/iapplication";
+
 import { useApplication, useModelId, useSchema } from "../application/hook";
 import { useLog } from "../loggers/hooks";
 import type { OpenAPIV3 } from "openapi-types";
@@ -13,7 +13,7 @@ import { IWebContext } from "../contexts/icontext";
 import { Service } from "../services/service";
 import { WebContext } from "../contexts/webcontext";
 import { ServiceParameters } from "../interfaces";
-import { DeepPartial } from "@webda/tsc-esm";
+import { Storable } from "@webda/models";
 
 export class RouterParameters extends ServiceParameters {
   /**
@@ -61,7 +61,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @param model
    * @returns
    */
-  getModelUrl(model: string | AbstractModel) {
+  getModelUrl(model: string | Storable) {
     if (typeof model !== "string") {
       model = useModelId(model);
     }

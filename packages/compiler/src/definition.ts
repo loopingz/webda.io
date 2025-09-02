@@ -95,6 +95,10 @@ export type ModelGraph = {
 
 export interface ModelMetadata {
   /**
+   * Model identifier
+   */
+  Identifier: string;
+  /**
    * File to import
    */
   Import: string;
@@ -134,6 +138,35 @@ export interface ModelMetadata {
    * Direct Subclasses of the model
    */
   Subclasses: string[];
+  /**
+   * Return the primary key
+   */
+  PrimaryKey: string[];
+  /**
+   * Return all events for the model
+   */
+  Events: string[];
+  /**
+   * Fields reflection
+   */
+  Reflection: {
+    [field: string]: {
+      type: string;
+      typeParameters?: string[];
+      required: boolean;
+      description?: string;
+    };
+  };
+  /**
+   * Actions defined for the model
+   */
+  Actions: {
+    [action: string]: {
+      method: string;
+      path: string;
+      description?: string;
+    };
+  };
 }
 
 export type ServiceMetadata = {
@@ -145,6 +178,10 @@ export type ServiceMetadata = {
    * Schema defining the service
    */
   Schema?: JSONSchema7;
+  /**
+   * Configuration for the service
+   */
+  Configuration?: string;
 };
 
 /**

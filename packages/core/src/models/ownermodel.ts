@@ -1,7 +1,9 @@
+//import { UuidModel } from "./uuid";
 import { ActionsEnum, ModelLink, PrimaryKeyType, UuidModel } from "@webda/models";
 import { User } from "./user";
 import { IOperationContext } from "../contexts/icontext";
 import { useContext } from "../contexts/execution";
+import { Context } from "mocha";
 
 /**
  * Abstract class to define an object with an owner
@@ -45,12 +47,14 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     return this._user;
   }
 
-  async canAct(action: ActionsEnum<this>): Promise<string | boolean> {
-    const ctx = useContext();
+  async canAct(
+    context: IOperationContext,
+    action: ActionsEnum<this>
+  ): Promise<string | boolean> {
     // Object is public
     if (this.public && (action === "get" || action === "get_binary")) {
       return true;
-    } else if (!ctx.getCurrentUserId()) {
+    } else if (!context.getCurrentUserId()) {
       return "You need to be logged in to access this object";
     } else if (!this.getOwner() && action !== "create") {
       return "Object does not have an owner";
@@ -58,7 +62,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     if (action === "create") {
       //this.setOwner(Uuid.parse(ctx.getCurrentUserId(), this.getOwnerModel()));
     }
-    return ctx.getCurrentUserId() === this.getOwner()?.toString();
+    return context.getCurrentUserId() === this.getOwner()?.toString();
   }
 
   /**

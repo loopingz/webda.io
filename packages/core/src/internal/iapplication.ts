@@ -8,16 +8,14 @@ import type { Attributes, Constructor, IsUnion, OmitByTypeRecursive, Prototype }
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { AsyncEventEmitter, AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter";
-import { Context, IContextAware, canUpdateContext } from "../contexts/icontext";
-import { useContext } from "../contexts/execution";
+import { IContextAware } from "../contexts/icontext";
 
-import { StoreHelper } from "../stores/istore";
 import { HttpMethodType } from "../contexts/httpcontext";
-import { NotEnumerable, DeepPartial } from "@webda/tsc-esm";
+import { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
 
-import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
-import { Model } from "@webda/models";
+import type { ModelGraph, ModelMetadata, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
+import { Model, ModelLink, ModelRef, Repository, Storable } from "@webda/models";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
 export type Values<T> = T[keyof T];
@@ -83,30 +81,6 @@ export interface ExposeParameters {
     delete?: boolean;
   };
 }
-
-/**
- * Event sent by models
- *
- * Events are sent by the model to notify of changes
- * after the changes are done
- *
- * If you need to prevent the change, you should extend the object
- */
-export type ModelEvents<T = any> = {
-  Create: { object_id: string; object: T };
-  PartialUpdate: any;
-  Delete: { object_id: string };
-  Update: { object_id: string; object: T; previous: T };
-};
-
-/**
- * Get the model Primary Key type
- *
- * If the PrimaryKey is a union it will return a partial of the model with the PrimaryKey
- * Otherwise it will return the type of the PrimaryKey
- */
-export type PrimaryKeyType<T extends { PrimaryKey: any }> =
-  IsUnion<T["PrimaryKey"]> extends true ? Pick<T, T["PrimaryKey"]> : T[T["PrimaryKey"]];
 
 /**
  * Reference to a user model
@@ -209,9 +183,11 @@ export abstract class AbstractService<
   public readonly name: string;
   public readonly parameters: T;
 
-  constructor(name: string, params: ServicePartialParameters<T>) {
+  constructor(name: string, params: T) {
     super();
     this.name = name;
+    // TODO Remove to auto create based on service definition
+    this.parameters = !(params instanceof ServiceParameters) && this["loadParameters"] ? this["loadParameters"](params) : params;
   }
 
   /**
@@ -243,7 +219,7 @@ export abstract class AbstractService<
   abstract getOpenApiReplacements(): { [key: string]: string };
 }
 
-export type Modda<T = AbstractService> = Constructor<T, [name: string, params: any]>;
+export type Modda<T = AbstractService> = Constructor<T, [name: string, params: any]> & {createConfiguration: (params: any) => any};
 
 /**
  * Application interface.
@@ -262,7 +238,7 @@ export interface IApplication {
   /**
    * Get an application model
    */
-  getModel(name: string): any;
+  getModel(name: string | object): any;
 
   /**
    * Get Webda model name
@@ -564,3 +540,7 @@ export type ModelActions = {
 export type RawModel<T extends object> = Partial<
   OmitByTypeRecursive<Omit<T, "__dirty" | "Events" | "__type" | "__types" | "_new" | "context">, Function>
 >;
+
+export type ModelClass<T extends Model = Model> = Repository<T> & T & {
+  Metadata: ModelMetadata
+};

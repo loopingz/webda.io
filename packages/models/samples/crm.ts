@@ -199,13 +199,6 @@ Customer.ref({
   email: "",
   categories: []
 });
-Customer.create({
-  country: "fr",
-  identifier: "1234",
-  name: "John Doe",
-  email: "",
-  categories: []
-});
 
 class GithubIssue extends Model {
   [WEBDA_PRIMARY_KEY] = ["id"] as const;

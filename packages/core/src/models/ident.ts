@@ -1,6 +1,6 @@
-import { AbstractOwnerModel, OwnerModel } from "./ownermodel";
+import { SelfJSONed } from "@webda/models";
+import { OwnerModel } from "./ownermodel";
 import type { User } from "./user";
-import { UuidModel } from "./uuid";
 
 export class IdentTokens {
   refresh: string;
@@ -32,15 +32,15 @@ export class Ident extends OwnerModel {
   /**
    * Last time the ident was used
    */
-  _lastUsed: Date;
+  _lastUsed?: Date = undefined;
   /**
    * If the ident is validated
    */
-  _failedLogin: number;
+  _failedLogin: number = 0;
   /**
    * If EmailIdent
    */
-  _lastValidationEmail?: number;
+  _lastValidationEmail?: number = 0;
   /**
    * When the ident was validated
    */
@@ -70,7 +70,12 @@ export class Ident extends OwnerModel {
     return this.getOwner();
   }
 
-  setUser(uuid: string) {
-    this.setOwner(uuid);
+  setUser(uuid: string | User) {
+    this.setOwner(typeof uuid === "string" ? uuid : uuid.getPrimaryKey());
+  }
+
+  deserialize(data: Partial<SelfJSONed<this>>): this {
+    Object.assign(this, data);
+    return this;
   }
 }

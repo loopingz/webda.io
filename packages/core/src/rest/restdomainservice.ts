@@ -9,6 +9,8 @@ import { useCore } from "../core/hooks";
 import { callOperation } from "../core/operations";
 import { WebContext } from "../contexts/webcontext";
 import { hasSchema } from "../schemas/hooks";
+import { Constructor } from "@webda/tsc-esm";
+import { Storable } from "@webda/models";
 
 /**
  * Swagger static html
@@ -70,9 +72,10 @@ export class RESTDomainServiceParameters extends DomainServiceParameters {
    * https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js
    * https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js
    *
-   * @default "3.19.5"
+   * TODO Add renovatebot regex
+   * @default "5.28.0"
    */
-  swaggerVersion: string = "3.19.5";
+  swaggerVersion: string = "5.28.0";
   /**
    * When to query
    */
@@ -112,7 +115,7 @@ export class RESTDomainService<
    */
   handleModel(model: ModelClass, name: string, context: any): boolean {
     const depth = context.depth || 0;
-    const relations = model.Metadata.Relations;
+    const { Relations: relations, Identifier, Plural: plural, Actions: actions } = model.Metadata;
     const injectAttribute = relations?.parent?.attribute;
     const app = useApplication();
     // Update prefix
@@ -120,8 +123,8 @@ export class RESTDomainService<
       (context.prefix || (this.parameters.url.endsWith("/") ? this.parameters.url : this.parameters.url + "/")) +
       this.transformName(name);
     context.prefix = prefix + `/{pid.${depth}}/`;
-    const shortId = model.Metadata.Identifier.split("/").pop();
-    const plurial = model.Metadata.Plural;
+    const shortId = Identifier.split("/").pop();
+    const actionsName = Object.keys(actions);
 
     // Register the model url
     useRouter().registerModelUrl(app.getModelId(model), prefix);
@@ -173,7 +176,7 @@ export class RESTDomainService<
                     results: {
                       type: "array",
                       items: {
-                        $ref: `#/components/schemas/${model.Metadata.Identifier}`
+                        $ref: `#/components/schemas/${Identifier}`
                       }
                     }
                   }
@@ -190,8 +193,9 @@ export class RESTDomainService<
         }
       }
     };
+    // TODO Fallback to normal actions
     // Add query route
-    if (!model.Metadata.Expose.restrict.query) {
+    if (!actionsName.includes("query")) {
       this.addRoute(
         `${prefix}${this.parameters.queryMethod === "GET" ? "{?q?}" : ""}`,
         [this.parameters.queryMethod],
@@ -216,7 +220,7 @@ export class RESTDomainService<
             query.merge(`${injectAttribute} = '${context.parameter(parentId)}'`);
           }
           context.getParameters().query = query.toString();
-          return callOperation(context, `${plurial}.Query`);
+          return callOperation(context, `${plural}.Query`);
         },
         openapi
       );
@@ -230,7 +234,7 @@ export class RESTDomainService<
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${model.Metadata.Identifier}`
+                $ref: `#/components/schemas/${Identifier}`
               }
             }
           }
@@ -241,7 +245,7 @@ export class RESTDomainService<
             content: {
               "application/json": {
                 schema: {
-                  $ref: `#/components/schemas/${model.Metadata.Identifier}`
+                  $ref: `#/components/schemas/${Identifier}`
                 }
               }
             }
@@ -258,7 +262,7 @@ export class RESTDomainService<
         }
       }
     };
-    if (!model.Metadata.Expose.restrict.create) {
+    if (!actionsName.includes("create")) {
       this.addRoute(
         `${prefix}`,
         ["POST"],
@@ -297,7 +301,7 @@ export class RESTDomainService<
         }
       }
     };
-    if (!model.Metadata.Expose.restrict.delete) {
+    if (!actionsName.includes("delete")) {
       this.addRoute(
         `${prefix}/{uuid}`,
         ["DELETE"],
@@ -315,7 +319,7 @@ export class RESTDomainService<
         content: {
           "application/json": {
             schema: {
-              $ref: `#/components/schemas/${model.Metadata.Identifier}`
+              $ref: `#/components/schemas/${Identifier}`
             }
           }
         }
@@ -339,7 +343,7 @@ export class RESTDomainService<
       put: openapiInfo,
       patch: openapiInfo
     };
-    if (!model.Metadata.Expose.restrict.update) {
+    if (!actionsName.includes("update")) {
       this.addRoute(
         `${prefix}/{uuid}`,
         ["PUT", "PATCH"],
@@ -364,7 +368,7 @@ export class RESTDomainService<
             content: {
               "application/json": {
                 schema: {
-                  $ref: `#/components/schemas/${model.Metadata.Identifier}`
+                  $ref: `#/components/schemas/${Identifier}`
                 }
               }
             }
@@ -381,7 +385,7 @@ export class RESTDomainService<
         }
       }
     };
-    if (!model.Metadata.Expose.restrict.get) {
+    if (!actionsName.includes("get")) {
       this.addRoute(
         `${prefix}/{uuid}`,
         ["GET"],
@@ -391,7 +395,6 @@ export class RESTDomainService<
     }
     // Add all actions
     // Actions cannot be restricted as its purpose is to be exposed
-    const actions = model.Metadata.Actions;
     Object.keys(actions).forEach(actionName => {
       const action: ModelAction = actions[actionName];
       openapi = {
@@ -403,7 +406,7 @@ export class RESTDomainService<
           ...(action.openapi?.[method.toLowerCase()] ?? {})
         };
       });
-      if (hasSchema(`${model.Metadata.Identifier}.${actionName}.input`)) {
+      if (hasSchema(`${Identifier}.${actionName}.input`)) {
         Object.keys(openapi)
           .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
           .forEach(k => {
@@ -411,14 +414,14 @@ export class RESTDomainService<
               content: {
                 "application/json": {
                   schema: {
-                    $ref: `#/components/schemas/${model.Metadata.Identifier}.${actionName}.input`
+                    $ref: `#/components/schemas/${Identifier}.${actionName}.input`
                   }
                 }
               }
             };
           });
       }
-      if (hasSchema(`${model.Metadata.Identifier}.${actionName}.output`)) {
+      if (hasSchema(`${Identifier}.${actionName}.output`)) {
         Object.keys(openapi)
           .filter(k => ["get", "post", "put", "patch", "delete"].includes(k))
           .forEach(k => {
@@ -427,7 +430,7 @@ export class RESTDomainService<
             openapi[k].responses["200"].content = {
               "application/json": {
                 schema: {
-                  $ref: `#/components/schemas/${model.Metadata.Identifier}.${actionName}.output`
+                  $ref: `#/components/schemas/${Identifier}.${actionName}.output`
                 }
               }
             };
@@ -469,7 +472,7 @@ export class RESTDomainService<
 
     (relations.binaries || []).forEach(binary => {
       const modelInjector = async (context: WebContext) => {
-        context.getParameters().model = model.Metadata.Identifier;
+        context.getParameters().model = Identifier;
         context.getParameters().property = binary.attribute;
         let action = "SetMetadata";
         if (context.getHttpContext().getMethod() === "POST") {

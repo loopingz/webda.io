@@ -5,13 +5,13 @@ import { Application } from "../application/application";
 import type { ModelClass, ModelAction } from "../internal/iapplication";
 import { JSONUtils } from "@webda/utils";
 import { OperationContext } from "../contexts/operationcontext";
-import { Model } from "../models/model";
+import { ActionsEnum, Model, ModelEvents } from "@webda/models";
 import { runAsSystem, runWithContext } from "../contexts/execution";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
 import * as WebdaError from "../errors/errors";
 import { ServiceParameters } from "../interfaces";
-import { useApplication } from "../application/hook";
+import { useApplication, useModel } from "../application/hook";
 import { OperationDefinition } from "../core/icore";
 import { ModelGraphBinaryDefinition } from "../internal/iapplication";
 import { useCore } from "../core/hooks";
@@ -227,15 +227,13 @@ export abstract class DomainService<
    * @param modelContext
    * @returns
    */
-  walkModel(model: ModelClass, name: string, depth: number = 0, modelContext: any = {}) {
+  walkModel(model: ModelClass, name?: string, depth: number = 0, modelContext: any = {}) {
+    const { Identifier: identifier, Relations: relations, Plural: plural } = model.Metadata;
+    name ??= plural;
     // If not expose or not in the list of models
-    if (
-      !model.Metadata.Expose ||
-      (model.Metadata.Identifier && !this.parameters.isIncluded(model.Metadata.Identifier))
-    ) {
+    if (!this.parameters.isIncluded(identifier)) {
       return;
     }
-    const identifier = model.Metadata.Identifier;
     // Overlap object are hidden by design
     if (!this.app.isFinalModel(identifier)) {
       return;
@@ -246,16 +244,13 @@ export abstract class DomainService<
       return;
     }
 
-    const relations = model.Metadata.Relations;
-
     const queries = relations.queries || [];
     // Get the children now
     (relations.children || []).forEach(name => {
-      const childModel = this.app.getModel(name);
-      const parentAttribute = childModel?.Metadata?.Relations?.parent?.attribute;
-      const segment =
-        queries.find(q => q.model === name && q.targetAttribute === parentAttribute)?.attribute ||
-        this.app.getModel(name).Metadata.Plural;
+      const childModel = useModel(name);
+      const { Identifier: childIdentifier, Relations: childRelations } = useModel(name).Metadata;
+      const parentAttribute = childRelations?.parent?.attribute;
+      const segment = queries.find(q => q.model === name && q.targetAttribute === parentAttribute)?.attribute;
       this.walkModel(childModel, segment, depth + 1, context);
     });
   }
@@ -268,8 +263,8 @@ export abstract class DomainService<
     this.app = <Application>(<any>useApplication());
     // Add all routes per model
     this.app.getRootExposedModels().forEach(name => {
-      const model = this.app.getModel(name);
-      this.walkModel(model, model.Metadata.Plural);
+      const model = <ModelClass>(<unknown>this.app.getModel(name));
+      this.walkModel(model);
     });
 
     return this;
@@ -301,16 +296,16 @@ export abstract class DomainService<
   async modelCreate(context: OperationContext) {
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     await runWithContext(context, async () => {
-      const object = await model.factory(await context.getInput());
+      const object = (await model.create({}, false)).fromDTO(await context.getInput());
       await object.checkAct(context, "create");
       // Check for conflict
       // await object.validate(context, {});
-      if (await model.ref(object.getUuid()).exists()) {
+      if (await model.ref(object.getUUID()).exists()) {
         throw new WebdaError.Conflict("Object already exists");
       }
       await object.save();
       // Set the location header to only uuid for now
-      context.setHeader("Location", object.getUuid());
+      context.setHeader("Location", object.getUUID());
       context.write(object);
     });
   }
@@ -325,8 +320,7 @@ export abstract class DomainService<
     await object.checkAct(context, "update");
     // By pass load for now
     object["load"](input);
-    await object.save(true);
-    context.write(object);
+    context.write((await object.save()).toDTO());
   }
 
   /**
@@ -336,7 +330,7 @@ export abstract class DomainService<
   async modelGet(context: OperationContext) {
     const object = await this.getModel(context);
     await object.checkAct(context, "get");
-    context.write(object);
+    context.write(object.toDTO());
   }
 
   /**
@@ -362,7 +356,7 @@ export abstract class DomainService<
     const { query } = context.getParameters();
     await runWithContext(context, async () => {
       try {
-        context.write(await model.query(query, true));
+        context.write(await model.query(query));
       } catch (err) {
         if (err instanceof SyntaxError) {
           this.log("INFO", "Query syntax error");
@@ -399,7 +393,7 @@ export abstract class DomainService<
       if (!object || object.isDeleted()) {
         throw new WebdaError.NotFound("Object not found");
       }
-      await object.checkAct(context, action.name);
+      await object.checkAct(context, action.name as ActionsEnum<Model>);
       const output = await object[action.name](context);
       context.write(output);
     } else {
@@ -431,25 +425,26 @@ export abstract class DomainService<
     const models = app.getModels();
     for (const modelKey in models) {
       const model = models[modelKey];
+      const Metadata = model.Metadata;
       if (!model) {
         continue;
       }
-      const expose = model.Metadata.Expose;
       // Skip if not exposed or not included
-      if (!expose || !this.parameters.isIncluded(model.Metadata.Identifier)) {
+      if (!this.parameters.isIncluded(Metadata.Identifier)) {
         continue;
       }
 
       // Overlap object are hidden by design
-      if (!this.app.isFinalModel(model.Metadata.Identifier)) {
+      if (!this.app.isFinalModel(Metadata.Identifier)) {
         continue;
       }
-      const shortId = model.Metadata.ShortName;
-      const plurial = model.Metadata.Plural;
+      const shortId = Metadata.Identifier.split("/").pop();
+      const plural = Metadata.Plural;
       const modelSchema = modelKey;
+      const actionsName = Object.keys(Metadata.Actions);
 
       ["create", "update"]
-        .filter(k => !expose.restrict[k])
+        .filter(k => actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
@@ -465,7 +460,7 @@ export abstract class DomainService<
           });
         });
       ["delete", "get"]
-        .filter(k => !expose.restrict[k])
+        .filter(k => actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
           const id = `${shortId}.${k}`;
@@ -483,8 +478,8 @@ export abstract class DomainService<
           }
           registerOperation(id, info);
         });
-      if (!expose.restrict.query) {
-        const id = `${plurial}.Query`;
+      if (actionsName.includes("query")) {
+        const id = `${plural}.Query`;
         registerOperation(id, {
           service: this.getName(),
           method: "modelQuery",
@@ -495,7 +490,7 @@ export abstract class DomainService<
         });
       }
       // Add patch
-      if (!expose.restrict.update) {
+      if (actionsName.includes("update")) {
         const id = `${shortId}.Patch`;
         registerOperation(id, {
           service: this.getName(),
@@ -508,30 +503,32 @@ export abstract class DomainService<
         });
       }
       // Add all operations for Actions
-      const actions = model.Metadata.Actions;
-      Object.keys(actions).forEach(name => {
-        const id = `${shortId}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
-        const info: any = {
-          service: this.getName(),
-          method: `modelAction`,
-          id
-        };
-        info.input = `${modelKey}.${name}.input`;
-        info.output = `${modelKey}.${name}.output`;
-        info.parameters = actions[name].global ? undefined : "uuidRequest";
-        info.context = {
-          model,
-          action: { ...actions[name], name }
-        };
-        registerOperation(id, info);
-      });
+      const actions = Metadata.Actions;
+      Object.keys(actions)
+        .filter(k => !["create", "update", "delete", "get", "query"].includes(k))
+        .forEach(name => {
+          const id = `${shortId}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
+          const info: any = {
+            service: this.getName(),
+            method: `modelAction`,
+            id
+          };
+          info.input = `${modelKey}.${name}.input`;
+          info.output = `${modelKey}.${name}.output`;
+          info.parameters = actions[name].global ? undefined : "uuidRequest";
+          info.context = {
+            model,
+            action: { ...actions[name], name }
+          };
+          registerOperation(id, info);
+        });
 
-      this.addBinaryOperations(model as any, shortId);
+      this.addBinaryOperations(model as any, Metadata, shortId);
     }
   }
 
-  addBinaryOperations(model: ModelClass<Model>, name: string) {
-    (model.Metadata.Relations.binaries || []).forEach(binary => {
+  addBinaryOperations(model: ModelClass<Model>, Metadata: any, name: string) {
+    (Metadata.Relations.binaries || []).forEach(binary => {
       const webda = useCore();
       const attribute = binary.attribute.substring(0, 1).toUpperCase() + binary.attribute.substring(1);
       const info = {
@@ -539,7 +536,7 @@ export abstract class DomainService<
         context: {
           model,
           binary,
-          binaryStore: webda.getBinaryStore(model, binary.attribute)
+          binaryStore: webda.getBinaryStore(model as any, binary.attribute)
         },
         parameters: "uuidRequest"
       };
@@ -611,7 +608,7 @@ export abstract class DomainService<
     if (this.checkBinaryAlreadyLinked(object[binary.attribute], body.hash)) {
       return;
     }
-    await object.checkAct(context, "attach_binary");
+    await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
     const url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
     context.write({
@@ -641,7 +638,7 @@ export abstract class DomainService<
   async binaryPut(context: OperationContext) {
     const { model, binaryStore, binary } = context.getExtension<{
       binaryStore: BinaryService;
-      model: ModelClass;
+      model: ModelClass<Model>;
       binary: any;
     }>("operationContext");
     // First verify if map exist
@@ -654,7 +651,7 @@ export abstract class DomainService<
     if (this.checkBinaryAlreadyLinked(object[binary.attribute], hash)) {
       return;
     }
-    await object.checkAct(context, "attach_binary");
+    await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
     await binaryStore.store(object, binary.attribute, file);
   }
 
@@ -679,7 +676,7 @@ export abstract class DomainService<
     if (!object || (Array.isArray(object[property]) && object[property].length <= index)) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
-    await object.checkAct(context, "get_binary");
+    await object.checkAct(context, "get_binary" as ActionsEnum<Model>);
     const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
     const url = await binaryStore.getRedirectUrlFromObject(file, context);
     // No url, we return the file
@@ -730,7 +727,7 @@ export abstract class DomainService<
       throw new WebdaError.NotFound("Object does not exist");
     }
     if (action === "create") {
-      await object.checkAct(context, "attach_binary");
+      await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
       await binaryStore.store(object, binary.attribute, await binaryStore.getFile(context));
       return;
     }
@@ -741,10 +738,10 @@ export abstract class DomainService<
       throw new WebdaError.BadRequest("Hash does not match");
     }
     if (action === "delete") {
-      await object.checkAct(context, "detach_binary");
+      await object.checkAct(context, "detach_binary" as ActionsEnum<Model>);
       await binaryStore.delete(object, binary.attribute, index);
     } else if (action === "metadata") {
-      await object.checkAct(context, "update_binary_metadata");
+      await object.checkAct(context, "update_binary_metadata" as ActionsEnum<Model>);
       const metadata: BinaryMetadata = await context.getInput();
       // Limit metadata to 4kb
       if (JSON.stringify(metadata).length >= 4096) {

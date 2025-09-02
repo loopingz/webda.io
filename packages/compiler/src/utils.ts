@@ -114,3 +114,43 @@ export function displayItem(node: ts.Node, log?: (...args) => void, level: numbe
   }
   log(".".repeat(level), ts.SyntaxKind[node.kind], node.getText().split("\n")[0].substring(0, 60));
 }
+
+type KeyKind = "string" | "number" | "symbol" | "other-computed";
+
+export function getKeyKind(
+  decl: ts.NamedDeclaration,
+  checker: ts.TypeChecker
+): KeyKind | undefined {
+  const name = decl.name;
+  if (!name) return;
+
+  // ___password  (Identifier)
+  if (ts.isIdentifier(name)) return "string";
+
+  // "foo" | 'bar' | `baz` (StringLiteralLike)
+  if (ts.isStringLiteralLike(name)) return "string";
+
+  // 123 (NumericLiteral)
+  if (ts.isNumericLiteral(name)) return "number";
+
+  // [ ... ] (ComputedPropertyName)
+  if (ts.isComputedPropertyName(name)) {
+    const expr = name.expression;
+
+    // If the computed expression is a literal, classify directly
+    if (ts.isStringLiteralLike(expr)) return "string";
+    if (ts.isNumericLiteral(expr)) return "number";
+
+    // Otherwise, ask the type checker
+    const t = checker.getTypeAtLocation(expr);
+    const flags = t.getFlags();
+    const isSymbol =
+      (flags & ts.TypeFlags.ESSymbol) !== 0 ||
+      (flags & ts.TypeFlags.UniqueESSymbol) !== 0;
+
+    if (isSymbol) return "symbol";
+    return "other-computed";
+  }
+
+  return undefined;
+}

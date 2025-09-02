@@ -1,8 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import {
-  Action,
-  Expose,
   HttpContext,
   OwnerModel,
   RESTDomainService,
@@ -15,33 +13,40 @@ import {
 } from "../index";
 import { TestApplication } from "../test/objects";
 import { WebdaApplicationTest } from "../test/test";
+import { WEBDA_ACTIONS } from "@webda/models";
 
-@Expose()
 class TestTask extends OwnerModel {
   name: string;
-  public: boolean;
+  [WEBDA_ACTIONS]: {
+    create: {};
+    get: {};
+    update: {};
+    delete: {};
+    actionable: {
+      rest: {
+        methods: ["GET"];
+      };
+    };
+    impossible: {};
+  };
 
   getOwnerModel() {
     return User;
   }
 
-  @Action({
-    methods: ["GET"]
-  })
   actionable() {
     return true;
   }
 
-  @Action()
   impossible() {
     process.exit(1);
   }
 
-  async canAct(ctx, action) {
+  async canAct(action, ctx) {
     if ("actionable" === action) {
       return true;
     }
-    return super.canAct(ctx, action);
+    return super.canAct(action, ctx);
   }
 }
 

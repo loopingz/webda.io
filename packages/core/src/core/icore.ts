@@ -1,8 +1,8 @@
 import { QueryValidator } from "@webda/ql";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { Prototype } from "@webda/tsc-esm";
-import { AbstractService } from "../internal/iapplication";
-import { Model, ModelPrototype } from "@webda/models";
+import { AbstractService, ModelClass } from "../internal/iapplication";
+import { Model, ModelPrototype, Storable } from "@webda/models";
 export { AbstractService };
 /**
  * Define an operation within webda app
@@ -103,7 +103,7 @@ export interface ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends Model>(item: Prototype<T> | T | string): AbstractService;
+  getModelStore<T extends Model>(item: ModelClass<T> | T | string): AbstractService;
   getService(name: string): AbstractService;
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);

@@ -4,11 +4,14 @@ import { Store, StoreFindResult, StoreParameters } from "../stores/store";
 import { Service } from "../services/service";
 import { Ident as WebdaIdent } from "../models/ident";
 import { UnpackedApplication } from "../application/unpackedapplication";
-import { CachedModule, SectionEnum, UnpackedConfiguration, ModelEvents } from "../internal/iapplication";
+import { CachedModule, SectionEnum, UnpackedConfiguration } from "../internal/iapplication";
 import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
 import { FileUtils } from "@webda/utils";
+import { ModelEvents, ModelActions, WEBDA_ACTIONS, ActionsEnum } from "@webda/models";
+import { ServiceParameters } from "../interfaces";
+import { IOperationContext } from "../contexts/icontext";
 
 export type TaskEvents<T> = ModelEvents<T> & {
   Done: { task: T };
@@ -25,32 +28,31 @@ export class Task extends OwnerModel {
   declare Events: TaskEvents<this>;
 
   _autoListener: number;
-  plop: any;
-  plop2: any;
-  card: any;
-  test: any;
-  bouzouf: any;
+
   side: string;
 
   _gotContext: boolean;
-  static getActions() {
-    return {
-      actionable: {
-        methods: <any>["GET"]
-      },
-      impossible: {}
+  [WEBDA_ACTIONS]: ModelActions<"create" | "get" | "update" | "delete"> & {
+    actionable: {
+      rest: {
+        methods: ["GET"];
+      };
     };
-  }
+    impossible: {};
+  };
 
   actionable() {}
 
   impossible() {}
 
-  async canAct(ctx, action) {
+  async canAct(context: IOperationContext, action: ActionsEnum<Task> | string): Promise<boolean | string> {
     if ("actionable" === action) {
       return true;
     }
-    return super.canAct(ctx, action);
+    if ("impossible" === action) {
+      return "Action impossible is not allowed";
+    }
+    return super.canAct(context, action as any);
   }
 
   async _onSave() {
@@ -77,6 +79,9 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   }
   getAll(_list?: string[]): Promise<any[]> {
     throw new Error("Method not implemented.");
+  }
+  static createConfiguration(params: any): any {
+    return new StoreParameters().load(params).default();
   }
   protected _patch(
     _object: any,
@@ -182,7 +187,11 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
  * FakeService is a service that does not implement any method
  * @WebdaIgnore
  */
-export class FakeService extends Service {}
+export class FakeService extends Service {
+  static createConfiguration(params: any): any {
+    return new ServiceParameters().load(params).default();
+  }
+}
 
 /**
  * @class
@@ -206,7 +215,7 @@ export class TestIdent extends WebdaIdent {
     return "youpi";
   }
 
-  async canAct(ctx, action) {
+  async canAct(action) {
     return true;
   }
 

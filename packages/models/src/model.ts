@@ -2,7 +2,6 @@ import {
   WEBDA_DIRTY,
   WEBDA_EVENTS,
   WEBDA_PRIMARY_KEY,
-  type AttributesArgument,
   type Eventable,
   type SelfJSONed,
   type PK,
@@ -13,11 +12,15 @@ import {
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
 import type { ModelRefWithCreate, ModelRef } from "./relations";
-import { WEBDA_ACTIONS, type Actionable, type ActionsEnum } from "./actionable";
-import { type Constructor } from "@webda/tsc-esm";
+import { ExecutionContext, Exposable, WEBDA_ACTIONS, type ActionsEnum } from "./actionable";
+import type { Prototype } from "@webda/tsc-esm";
 import type { Repository } from "./repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 
+/**
+ * Allow simulated delete
+ */
+export const WEBDA_DELETED = "__deleted";
 /**
  * Event sent by models
  *
@@ -38,19 +41,19 @@ export type ModelEvents<T = any> = {
   Updated: { object_id: string; object: T; previous: T };
 };
 
-const Repositories = new WeakMap<Constructor<Storable & Eventable>, Repository<any>>();
+const Repositories = new WeakMap<Prototype<Storable>, Repository<any>>();
 
 /**
  * Return a repository for a model
  * @param arg
  * @returns
  */
-export function useRepository<T extends Storable & Eventable>(arg: Constructor<T>): Repository<T> {
+export function useRepository<T extends Storable>(arg: Prototype<T>): Repository<T> {
   let clazz: any = arg;
   while (!Repositories.has(clazz)) {
     clazz = Object.getPrototypeOf(clazz);
     if (clazz === Model) {
-      throw new Error(`No repository found for ${arg.name}`);
+      throw new Error(`No repository found for ${arg.prototype.constructor.name}`);
     }
   }
   return Repositories.get(clazz) as Repository<T>;
@@ -62,7 +65,7 @@ export function useRepository<T extends Storable & Eventable>(arg: Constructor<T
  * @param repository
  */
 export function registerRepository<T extends Storable & Eventable>(
-  model: Constructor<T, any[]>,
+  model: Prototype<T>,
   repository: Repository<T>
 ): void {
   Repositories.set(model, repository);
@@ -81,7 +84,52 @@ export type ModelPrototype<T extends Model = Model> = {
    * @param this
    * @param key
    */
-  ref<T extends Model>(this: Constructor<T>, key: PrimaryKeyType<T>): ModelRefWithCreate<T>;
+  ref<T extends Model>(this: Prototype<T>, key: PrimaryKeyType<T>): ModelRefWithCreate<T>;
+};
+
+export type ModelActions<
+  T extends "create" | "get" | "update" | "query" | "delete" = "create" | "get" | "update" | "query" | "delete"
+> = {
+  /**
+   * Create a new instance
+   */
+  create: T extends "create"
+    ? {}
+    : {
+        disabled: true;
+      };
+  /**
+   * Get an instance
+   */
+  get: T extends "get"
+    ? {}
+    : {
+        disabled: true;
+      };
+  /**
+   * Update an instance
+   */
+  update: T extends "update"
+    ? {}
+    : {
+        disabled: true;
+      };
+  /**
+   * Delete an instance
+   */
+  delete: T extends "delete"
+    ? {}
+    : {
+        disabled: true;
+      };
+  /**
+   * Query instances
+   */
+  query: T extends "query"
+    ? {}
+    : {
+        disabled: true;
+      };
 };
 
 /**
@@ -89,7 +137,10 @@ export type ModelPrototype<T extends Model = Model> = {
  *
  * This is the core of many application
  */
-export abstract class Model implements Storable, Securable, Actionable {
+export abstract class Model implements Storable, Securable, Exposable {
+  /**
+   * Model events
+   */
   [WEBDA_EVENTS]: ModelEvents<this>;
   /**
    * Properties that are dirty and need to be saved
@@ -99,24 +150,7 @@ export abstract class Model implements Storable, Securable, Actionable {
   /**
    * Define actions for the model
    */
-  [WEBDA_ACTIONS]: {
-    /**
-     * Create a new instance
-     */
-    create: {};
-    /**
-     * Get an instance
-     */
-    get: {};
-    /**
-     * Update an instance
-     */
-    update: {};
-    /**
-     * Delete an instance
-     */
-    delete: {};
-  };
+  [WEBDA_ACTIONS]: ModelActions;
 
   /** Non-abstract class need to define their PrimaryKey */
   public abstract [WEBDA_PRIMARY_KEY]: readonly (keyof this)[];
@@ -180,8 +214,41 @@ export abstract class Model implements Storable, Securable, Actionable {
    * @param this
    * @returns
    */
-  static getRepository<T extends Model>(this: Constructor<T, any[]>): Repository<T> {
+  static getRepository<T extends Model>(this: Prototype<T>): Repository<T> {
     return useRepository(this);
+  }
+
+  /**
+   * Create the object directly
+   * @param this 
+   * @param data 
+   * @returns 
+   */
+  static create<T extends Model>(this: Prototype<T>, data: SelfJSONed<T>, save: boolean = true): Promise<T> {
+    return useRepository(this).create(data, save);
+  }
+
+  /**
+   * Query the object directly
+   * @param this
+   * @param query
+   * @returns
+   */
+  static query<T extends Model>(this: Prototype<T>, query: string): Promise<{
+    results: T[];
+    continuationToken?: string;
+}> {
+    return useRepository(this).query(query);
+  }
+
+  /**
+   * Iterate through all objects
+   * @param this
+   * @param query
+   * @returns
+   */
+  static *iterate<T extends Model>(this: Prototype<T>, query: string) {
+    return useRepository(this).iterate(query);
   }
 
   /**
@@ -198,18 +265,21 @@ export abstract class Model implements Storable, Securable, Actionable {
    * @param this
    * @param repository
    */
-  static registerRepository<T extends Model>(this: Constructor<T, any[]>, repository: Repository<T>): void {
+  static registerRepository<T extends Model>(this: Prototype<T>, repository: Repository<T>): void {
     registerRepository(this, repository);
   }
 
   static registerSerializer<T extends Model>(
-    this: Constructor<T, any> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any }
+    this: Prototype<T> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any }
   ): void {
-    const clazz: Constructor<T> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any } = this;
+    const clazz: Prototype<T> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any } = this;
     if (!clazz.getStaticProperties) {
       clazz.getStaticProperties = () => ({}) as any;
     }
-    registerSerializer(`@webda/models/${this.name}`, new ObjectSerializer(clazz, clazz.getStaticProperties()));
+    registerSerializer(
+      `@webda/models/${this.prototype.constructor.name}`,
+      new ObjectSerializer(clazz as any, clazz.getStaticProperties())
+    );
   }
 
   /**
@@ -218,7 +288,7 @@ export abstract class Model implements Storable, Securable, Actionable {
    * @param key
    * @returns
    */
-  static ref<T extends Model>(this: Constructor<T>, key: PrimaryKeyType<T>): ModelRefWithCreate<T> {
+  static ref<T extends Model>(this: Prototype<T>, key: PrimaryKeyType<T> | string): ModelRefWithCreate<T> {
     return Repositories.get(this).ref(key);
   }
 
@@ -234,7 +304,9 @@ export abstract class Model implements Storable, Securable, Actionable {
    * Read from a DTO
    * @param dto
    */
-  fromDTO(dto: any): void {}
+  fromDTO(dto: any): this {
+    return this;
+  }
 
   /**
    * Validate actions on the model
@@ -243,8 +315,23 @@ export abstract class Model implements Storable, Securable, Actionable {
    * @param action
    * @returns
    */
-  async canAct(action: ActionsEnum<Model>): Promise<boolean | string> {
+  async canAct(context: ExecutionContext, action: ActionsEnum<this> | string): Promise<boolean | string> {
     return false;
+  }
+
+  /**
+   * Ensure action is allowed
+   * @param action
+   * @param context
+   */
+  async checkAct(context: ExecutionContext, action: ActionsEnum<this>): Promise<void> {
+    let canAct = await this.canAct(context, action);
+    if (canAct === false) {
+      canAct = `Action ${action} is not allowed`;
+    }
+    if (canAct !== true) {
+      throw new Error(canAct);
+    }
   }
 
   /**
@@ -269,7 +356,7 @@ export abstract class Model implements Storable, Securable, Actionable {
   /**
    * Save the model to the repository
    */
-  async save(): Promise<void> {
+  async save(): Promise<this> {
     const repo = this.getRepository();
     if (!this[WEBDA_DIRTY]) {
       await repo.upsert(this);
@@ -281,6 +368,50 @@ export abstract class Model implements Storable, Securable, Actionable {
       await repo.patch(this.getPrimaryKey(), patch);
       this[WEBDA_DIRTY].clear();
     }
+    return this;
+  }
+
+  deserialize(data: Partial<SelfJSONed<this>>): this {
+    Object.assign(this, data);
+    return this;
+  }
+
+  /**
+   * Return if the model is deleted
+   * @returns
+   */
+  isDeleted() {
+    return this[WEBDA_DELETED];
+  }
+
+  /**
+   * Delete a model
+   */
+  async delete(): Promise<void> {
+    // Mark the model as deleted
+    // return this.ref().setAttribute(WEBDA_DELETED, true);
+    // or delete for real
+    return this.ref().delete();
+  }
+
+  /**
+   * Patch the object
+   * @param data
+   */
+  async patch(data: Partial<SelfJSONed<this>>): Promise<this> {
+    this.deserialize(data);
+    const repo = this.getRepository();
+    await repo.patch(
+      this.getPrimaryKey(),
+      Object.keys(data).reduce(
+        (acc, key) => {
+          acc[key] = this[key];
+          return acc;
+        },
+        {} as Partial<SelfJSONed<this>>
+      )
+    );
+    return this;
   }
 }
 
@@ -303,6 +434,14 @@ export class UuidModel extends Model {
    */
   constructor(data?: Partial<UuidModel>) {
     super();
-    this.uuid = data?.uuid || randomUUID();
+    this.uuid = data?.uuid || this.generateUUID(data);
+  }
+
+  /**
+   * Generate the UUID
+   * @returns
+   */
+  generateUUID(data?: any): string {
+    return randomUUID();
   }
 }

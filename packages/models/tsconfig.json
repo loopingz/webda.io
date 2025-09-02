@@ -14,6 +14,6 @@
     "declarationMap": true,
     "useDefineForClassFields": false
   },
-  "include": ["src/**/*", "samples/**/*.ts"],
+  "include": ["src/**/*"],
   "exclude": ["**/node_modules", "src/**/*.spec.ts"]
 }

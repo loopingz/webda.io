@@ -5,9 +5,9 @@
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",
-  "main": "lib/decorators.js",
+  "main": "lib/decorator.js",
   "exports": {
-    "default": "./lib/decorators.js"
+    "default": "./lib/decorator.js"
   },
   "typings": "lib/index.d.ts",
   "scripts": {

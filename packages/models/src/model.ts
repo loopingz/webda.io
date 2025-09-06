@@ -220,9 +220,9 @@ export abstract class Model implements Storable, Securable, Exposable {
 
   /**
    * Create the object directly
-   * @param this 
-   * @param data 
-   * @returns 
+   * @param this
+   * @param data
+   * @returns
    */
   static create<T extends Model>(this: Prototype<T>, data: SelfJSONed<T>, save: boolean = true): Promise<T> {
     return useRepository(this).create(data, save);
@@ -234,10 +234,13 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param query
    * @returns
    */
-  static query<T extends Model>(this: Prototype<T>, query: string): Promise<{
+  static query<T extends Model>(
+    this: Prototype<T>,
+    query: string
+  ): Promise<{
     results: T[];
     continuationToken?: string;
-}> {
+  }> {
     return useRepository(this).query(query);
   }
 
@@ -315,7 +318,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param action
    * @returns
    */
-  async canAct(context: ExecutionContext, action: ActionsEnum<this> | string): Promise<boolean | string> {
+  async canAct(context: ExecutionContext, action: ActionsEnum<this>): Promise<boolean | string> {
     return false;
   }
 

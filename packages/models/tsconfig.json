@@ -7,7 +7,6 @@
     "declaration": true,
     "sourceMap": true,
     "isolatedModules": true,
-    "experimentalDecorators": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "skipLibCheck": true,

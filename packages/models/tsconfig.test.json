@@ -4,7 +4,6 @@
     "module": "ES2022",
     "strict": false,
     "downlevelIteration": true,
-    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,

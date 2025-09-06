@@ -12,6 +12,8 @@ import * as assert from "node:assert";
 import { PrimaryKeyEquals, WEBDA_DIRTY } from "./storable";
 import { TestModel } from "./model.spec";
 
+const mySymbol = Symbol("mySymbol");
+
 class TestSimpleModel extends UuidModel {
   name: string;
   age: number;
@@ -146,10 +148,11 @@ class RelationsTest {
     assert.ok(model2[WEBDA_DIRTY].has("fake2"));
     model2[WEBDA_DIRTY].clear();
     assert.ok(links.length === 1);
-    assert.throws(
-      () => new ModelLinksArray(repo, [{ __WEBDA_KEY: "toto" } as any]),
-      /__WEBDA_\* are reserved keywords/
-    );
+    const test = new ModelLinksArray(repo, [{ [mySymbol]: "toto", data: 34, name: "plop" } as any]);
+    // @ts-ignore
+    assert.strictEqual(test[0][mySymbol], undefined);
+    assert.strictEqual(test[0].data, 34);
+    assert.strictEqual(test[0].name, "plop");
   }
 
   @test

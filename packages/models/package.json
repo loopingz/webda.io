@@ -11,7 +11,7 @@
     "lint:fix": "eslint --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --no-trackTypeOnlyDependencies --showCircularDependencies --displayMode=raw -e .ts",
@@ -38,25 +38,12 @@
   "dependencies": {
     "@types/mocha": "^10.0.0"
   },
-  "c8": {
-    "report-dir": "./reports",
-    "reporter": [
-      "html",
-      "lcov",
-      "json",
-      "text"
-    ],
-    "exclude": [
-      "**/*.spec.ts",
-      "test/**/*"
-    ]
-  },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
     "@types/node": "20.0.0",
-    "@webda/serializer": "^4.0.0-beta.1",
+    "@webda/serialize": "^4.0.0-beta.1",
     "@webda/test": "^4.0.0-beta.1",
     "@webda/tsc-esm": "^4.0.0-beta.2",
     "skott": "^0.35.4"

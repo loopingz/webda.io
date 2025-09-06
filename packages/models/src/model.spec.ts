@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Model, UuidModel } from "./model";
 import { isStorable, PrimaryKeyEquals, SelfJSONed, WEBDA_PRIMARY_KEY } from "./storable";
-import { isExposable, isSecurable } from "./index";
+import { ExecutionContext, isExposable, isSecurable, Operation } from "./index";
 import { MemoryRepository } from "./repository";
 
 export class TestModel extends Model {
@@ -23,6 +23,14 @@ export class TestModel extends Model {
     this.createdAt = data?.createdAt ? new Date(data.createdAt as any) : new Date();
     this.updatedAt = data?.updatedAt ? new Date(data.updatedAt as any) : new Date();
   }
+
+  @Operation({
+    name: "testAction"
+  })
+  async action() {}
+
+  @Operation
+  async action2() {}
 }
 
 TestModel.registerSerializer();
@@ -94,7 +102,7 @@ class ModelTest {
     model2.uuid = "456";
     assert.strictEqual(model2.getPrimaryKey(), "456");
     assert.strictEqual(model2.getUUID(), "456");
-    assert.strictEqual(await model2.canAct("" as never), false);
+    assert.strictEqual(await model2.canAct(undefined as ExecutionContext, "" as never), false);
     assert.strictEqual(model2.toProxy(), model2);
 
     if (isSecurable(model2)) {

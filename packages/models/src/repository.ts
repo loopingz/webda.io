@@ -1,6 +1,5 @@
-import type { ArrayElement, Constructor, Prototype } from "@webda/tsc-esm";
+import type { ArrayElement, Prototype } from "@webda/tsc-esm";
 import {
-  Eventable,
   JSONed,
   SelfJSONed,
   PK,

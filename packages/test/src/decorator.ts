@@ -60,5 +60,43 @@ export function createClassDecorator<TArgs extends any[]>(
   };
 }
 
+// Matches TS 5.x / TC39 "field" decorators (class properties, not accessors/methods)
+export function createPropertyDecorator<V = unknown, TArgs extends any[] = []>(
+  impl: (initialValue: V, context: ClassFieldDecoratorContext, ...args: TArgs) => ((initialValue: V) => V | void) | void
+) {
+  // Overloads: direct decorator OR decorator factory
+  function deco(initialValue: V, context: ClassFieldDecoratorContext): ((initialValue: V) => V | void) | void;
+  function deco(
+    ...args: TArgs
+  ): (initialValue: V, context: ClassFieldDecoratorContext) => ((initialValue: V) => V | void) | void;
+
+  function deco(...all: unknown[]) {
+    // Direct use: @deco
+    // In field decorators, the second arg is a context with kind === "field"
+    if (all[1] && typeof all[1] === "object" && (all[1] as ClassFieldDecoratorContext).kind === "field") {
+      const [initialValue, context] = all as [V, ClassFieldDecoratorContext];
+      // No extra args were provided in direct mode
+      return impl(initialValue, context, ...([] as unknown as TArgs));
+    }
+
+    // Factory use: @deco(...args)
+    const args = all as TArgs;
+    return (initialValue: V, context: ClassFieldDecoratorContext) => {
+      // Enforce field-only usage even in factory mode
+      if (context.kind !== "field") {
+        throw new TypeError(`This decorator can only be applied to class fields (got kind="${context.kind}").`);
+      }
+      return impl(initialValue, context, ...args);
+    };
+  }
+
+  return deco as {
+    (initialValue: V, context: ClassFieldDecoratorContext): ((initialValue: V) => V | void) | void;
+    (...args: TArgs): (initialValue: V, context: ClassFieldDecoratorContext) => ((initialValue: V) => V | void) | void;
+  };
+}
+
+// A handy type alias if you want parity with your other helpers
+export type FieldDecorator = ReturnType<typeof createPropertyDecorator>;
 export type ClassDecorator = ReturnType<typeof createClassDecorator>;
 export type MethodDecorator = ReturnType<typeof createMethodDecorator>;

@@ -20,7 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:debug": "vitest debug",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {

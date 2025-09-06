@@ -1,6 +1,8 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { dirname } from "path";
+import { createClassDecorator, createMethodDecorator, createPropertyDecorator } from "@webda/test";
 
+export { createClassDecorator, createMethodDecorator, createPropertyDecorator };
 export function writer(fileName: string, text: string) {
   mkdirSync(dirname(fileName), { recursive: true });
   // Add the ".js" -> if module
@@ -88,24 +90,6 @@ export type IsUnion<T, U extends T = T> = (T extends any ? (U extends T ? false 
  */
 export type Annotation<T extends (...args: any[]) => void> = T & ((...args: OmitTargetArgs<T>) => T);
 
-/**
- * Helper to define a Property decorator with or without parenthesis
- * @param decoratorFn
- * @returns
- */
-export function createPropertyDecorator<T extends (...args: any[]) => void>(decoratorFn: T): Annotation<T> {
-  return ((...args: any[]) => {
-    if (typeof args[0] === "object" && typeof args[1] === "string") {
-      // Called without parentheses: @decorator
-      decoratorFn(...args);
-      return;
-    } else {
-      // Called with parentheses: @decorator(...)
-      return (target: any, propertyKey: string) => decoratorFn(target, propertyKey, ...args);
-    }
-  }) as any;
-}
-
 export type OmitFirtArg<F> = F extends (x: any, ...args: infer P) => infer R ? Parameters<(...args: P) => R> : never;
 /**
  * A class annotation with optional arguments
@@ -116,36 +100,11 @@ export type ClassAnnotation<T extends (target: Constructor, ...args: any[]) => v
   ((target: Constructor) => void);
 
 /**
- * Helper to create a class decorator with or without parenthesis
- * @param decoratorFn
- * @returns
- */
-export function createClassDecorator<T extends (target: Constructor, ...args: any[]) => void>(
-  decoratorFn: T
-): ClassAnnotation<T> {
-  return (...args: any[]) => {
-    if (args.length === 1 && typeof args[0] === "function") {
-      // Called without parentheses: @decorator
-      decoratorFn(args[0]);
-      return args[0];
-    } else {
-      // Called with parentheses: @decorator(...)
-      return (target: any, ...rest: any[]) => decoratorFn(target, ...rest, ...args);
-    }
-  };
-}
-
-/**
  * Omit the first two arguments of a function
  */
 export type OmitTargetArgs<F> = F extends (x: any, y: any, ...args: infer P) => infer R
   ? Parameters<(...args: P) => R>
   : never;
-
-/**
- * Define a property annotation
- */
-export type PropertyAnnotation<T extends (...args: any[]) => void> = T & ((...args: OmitTargetArgs<T>) => T);
 
 /**
  * Define a constructor
@@ -158,26 +117,23 @@ export type Constructor<T = any, K extends Array<any> = []> = new (...args: K) =
 export type OmitFirstArg<F> = F extends (x: any, ...args: infer P) => infer R ? (...args: P) => R : never;
 
 /**
- * Make a property hidden from json and schema
+ * Make a property hidden from JSON and schema.
  *
  * This property will not be saved in the store
- * Nor it will be exposed in the API
- *
- * @param target
- * @param propertyKey
+ * Nor will it be exposed in the API
  */
-export function NotEnumerable(target: any, propertyKey: string) {
-  Object.defineProperty(target, propertyKey, {
-    set(value) {
-      Object.defineProperty(this, propertyKey, {
-        value,
+export const NotEnumerable = createPropertyDecorator((value: any, context) => {
+  if (context.kind === "field") {
+    context.addInitializer(function (this: any) {
+      Object.defineProperty(this, context.name, {
+        enumerable: false,
+        configurable: true,
         writable: true,
-        configurable: true
+        value
       });
-    },
-    configurable: true
-  });
-}
+    });
+  }
+});
 
 /**
  * Create a new type with only optional
@@ -198,13 +154,12 @@ export type FilterOutAttributes<T extends object, K> = {
 }[keyof T];
 
 /**
- * Ensure a class implements a static interface
- * @returns
+ * Ensure the decorated class's *constructor object* conforms to S (its static side).
+ * Usage: @StaticInterface<YourStaticInterface>()
  */
-export function StaticInterface<T>() {
-  return <U extends T>(constructor: U) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    constructor;
+export function StaticInterface<S extends object>() {
+  return function <C extends Constructor<unknown> & S>(value: C, _context: ClassDecoratorContext): void {
+    // no-op at runtime; the type of `value` enforces the static interface
   };
 }
 
@@ -240,3 +195,25 @@ export type ReadonlyKeys<T> = {
 export type OmitPrefixed<T, Prefix extends string> = {
   [K in keyof T as K extends `${Prefix}${string}` ? never : K]: T[K];
 };
+
+/**
+ * Utility function that uses the type system to check if a switch statement is exhaustive.
+ * If the switch statement is not exhaustive, there will be a type error caught in CI.
+ *
+ * See https://stackoverflow.com/questions/39419170/how-do-i-check-that-a-switch-block-is-exhaustive-in-typescript for more details.
+ */
+export function assertUnreachable(unreachable: never): never {
+  throw new Error(`Unreachable: ${JSON.stringify(unreachable)}`);
+}
+
+export function getFileName(importMeta: ImportMeta): string {
+  if (typeof importMeta === "object" && typeof importMeta.url === "string") {
+    return new URL(importMeta.url).pathname;
+  }
+  throw new Error("Cannot determine file name from importMeta");
+}
+export function isMainModule(importMeta: ImportMeta): boolean {
+  console.log(importMeta.url, process.argv[1]);
+  // @ts-ignore
+  return importMeta.url === (typeof process !== "undefined" ? `file://${process.argv[1]}` : undefined);
+}

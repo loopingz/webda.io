@@ -5,7 +5,7 @@
   "keywords": [
     "webda"
   ],
-  "bin": "./lib/index.js",
+  "bin": "./lib/bin.js",
   "type": "module",
   "author": "Remi Cattiau <remi@cattiau.com>",
   "homepage": "https://github.com/loopingz/webda.io/tree/master/packages/codemod#readme",
@@ -26,14 +26,17 @@
     "url": "git+https://github.com/loopingz/webda.io.git"
   },
   "scripts": {
-    "test": "c8 mocha",
     "build": "tsc && chmod +x lib/index.js",
     "format": "prettier --check src/**/*",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --showCircularDependencies --displayMode=raw -e .ts",
-    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
+    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:debug": "vitest debug",
+    "test:coverage": "vitest run --coverage"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"
@@ -56,13 +59,12 @@
     "excludeNodeModules": true
   },
   "dependencies": {
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "@webda/test": "^4.0.0-beta.1"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.3.2",
     "@types/node": "20.0.0",
-    "c8": "^10.1.2",
-    "mocha": "^10.0.0",
+    "vitest": "^3.2.4",
     "openapi-types": "^12.0.0",
     "tsx": "^4.17.0",
     "skott": "^0.35.3",

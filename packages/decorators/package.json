@@ -1,13 +1,13 @@
 {
-  "name": "@webda/test",
+  "name": "@webda/decorators",
   "version": "4.0.0-beta.1",
-  "description": "Test for NodeJS projects",
+  "description": "Decorators utils",
   "keywords": [],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.io.git",
-  "main": "lib/index.js",
+  "main": "lib/decorators.js",
   "exports": {
-    "default": "./lib/index.js"
+    "default": "./lib/decorators.js"
   },
   "typings": "lib/index.d.ts",
   "scripts": {
@@ -23,27 +23,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:debug": "vitest debug",
-    "test:coverage": "vitest run --coverage",
-    "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
+    "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
-    "@webda/decorators": "^4.0.0-beta.1",
-    "@webda/workout": "^4.0.0-beta.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "jscodeshift": "^17.0.0"
-  },
-  "peerDependenciesMeta": {
-    "mocha": {
-      "required": false
-    },
-    "jest": {
-      "required": false
-    },
-    "vitest": {
-      "required": false
-    }
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   },
   "files": [
     "lib"

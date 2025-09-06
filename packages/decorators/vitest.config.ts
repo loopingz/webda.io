@@ -7,11 +7,11 @@ export default defineConfig({
   test: {
     allowOnly: true,
     coverage: {
-      include: ["src/*.ts", "!src/bin.ts"],
+      include: ["src/*.ts"],
       exclude: ["src/*.spec.ts"],
       reporter: ["lcov", "html", "text"]
     },
     reporters: "verbose",
     include: ["src/*.spec.ts"]
   }
-} as any);
+});

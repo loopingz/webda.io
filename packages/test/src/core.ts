@@ -1,6 +1,6 @@
 // test-runtime.ts — TS 5 decorators version
 import { useLog } from "@webda/workout";
-import { AnyCtor, AnyMethod, createClassDecorator, createMethodDecorator } from "./decorator";
+import { AnyCtor, AnyMethod, createClassDecorator, createMethodDecorator } from "@webda/decorators";
 
 /**
  * Some frameworks pass `this` as context to `describe` and `it`,

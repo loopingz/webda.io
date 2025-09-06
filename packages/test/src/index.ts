@@ -1,2 +1,1 @@
-export * from "./core";
-export * from "./decorator";
+export * from "./core.js";

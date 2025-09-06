@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { dirname } from "path";
-import { createClassDecorator, createMethodDecorator, createPropertyDecorator } from "@webda/test";
+import { createPropertyDecorator } from "@webda/decorators";
 
-export { createClassDecorator, createMethodDecorator, createPropertyDecorator };
+export { createClassDecorator, createPropertyDecorator, createMethodDecorator } from "@webda/decorators";
 export function writer(fileName: string, text: string) {
   mkdirSync(dirname(fileName), { recursive: true });
   // Add the ".js" -> if module
@@ -206,14 +206,24 @@ export function assertUnreachable(unreachable: never): never {
   throw new Error(`Unreachable: ${JSON.stringify(unreachable)}`);
 }
 
+/**
+ * Get the file name from importMeta
+ * @param importMeta
+ * @returns
+ */
 export function getFileName(importMeta: ImportMeta): string {
   if (typeof importMeta === "object" && typeof importMeta.url === "string") {
     return new URL(importMeta.url).pathname;
   }
   throw new Error("Cannot determine file name from importMeta");
 }
+
+/**
+ * Return true if the current module is the main module
+ * @param importMeta
+ * @returns
+ */
 export function isMainModule(importMeta: ImportMeta): boolean {
-  console.log(importMeta.url, process.argv[1]);
   // @ts-ignore
   return importMeta.url === (typeof process !== "undefined" ? `file://${process.argv[1]}` : undefined);
 }

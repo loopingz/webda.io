@@ -82,10 +82,6 @@ export function createPropertyDecorator<V = unknown, TArgs extends any[] = []>(
     // Factory use: @deco(...args)
     const args = all as TArgs;
     return (initialValue: V, context: ClassFieldDecoratorContext) => {
-      // Enforce field-only usage even in factory mode
-      if (context.kind !== "field") {
-        throw new TypeError(`This decorator can only be applied to class fields (got kind="${context.kind}").`);
-      }
       return impl(initialValue, context, ...args);
     };
   }

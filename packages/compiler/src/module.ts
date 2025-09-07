@@ -8,7 +8,6 @@ import {
   isSymbolMapper,
   SymbolMapper,
   getTypeIdFromTypeNode,
-  displayTree,
   getKeyKind
 } from "./utils";
 import { existsSync, readFileSync } from "node:fs";
@@ -16,12 +15,12 @@ import { FileUtils, JSONUtils } from "@webda/utils";
 import { tsquery } from "@phenomnomnominal/tsquery";
 import { dirname, join, relative } from "path";
 import { SchemaGenerator } from "ts-json-schema-generator";
-import { ModelGraphBinaryDefinition, ModelMetadata, ModelRelation, WebdaModule } from "./definition";
+import { ModelMetadata, WebdaModule } from "./definition";
 import { createSchemaGenerator } from "./schemaparser";
-import { getPlural } from "./morpher/metadata";
 import { ActionsMetadata } from "./metadata/actions";
 import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
+import { PluralMetadata } from "./metadata/plural";
 
 
 /**
@@ -65,6 +64,7 @@ function hasNotEnumerableDecorator(symbol: ts.Symbol): boolean {
 export class ModuleGenerator {
   typeChecker: ts.TypeChecker;
   schemaGenerator: SchemaGenerator;
+
   constructor(protected compiler: Compiler) {}
 
   /**
@@ -499,7 +499,7 @@ getExportedSymbolFromModule(
         return;
       }
       const metadata = {
-        Plural: tags["WebdaPlural"] || getPlural(name.split("/").pop()),
+        Plural: "",
         Import: jsFile,
         Relations: {},
         Ancestors: [],
@@ -858,7 +858,8 @@ getExportedSymbolFromModule(
     const plugins = [
       new ActionsMetadata(this),
       new EventsMetadata(this),
-      new PrimaryKeyMetadata(this)
+      new PrimaryKeyMetadata(this),
+      new PluralMetadata(this),
     ]
     plugins.forEach(plugin => {
       plugin.getMetadata(mod, objects);
@@ -956,7 +957,8 @@ class WebdaSchemaResults {
               if (!exportName) {
                 throw new Error(`Cannot find exported name for ${className}, check that the class is exported`);
               }
-              results[section][name].Configuration = `${jsFile}:${exportName}`;
+              let jsConfFile = moduleGenerator.getJSTargetFile(type.symbol.valueDeclaration.getSourceFile()).replace(/\.js$/, "");
+              results[section][name].Configuration = `${jsConfFile}:${exportName}`;
             } catch (err) {
               console.log("Cannot guess export name for service configuration:", err);
             }

@@ -28,6 +28,7 @@ const replacePackages = {
 
 // TODO Replace getUuid() by getUUID() for Model
 // TODO Replace this.metrics to this[WEBDA_METRICS] in Services
+// TODO Ensure tsconfig.json does not have experimentalDecorators true
 
 type WebdaMorpherOptions = {
   project?: ProjectOptions;

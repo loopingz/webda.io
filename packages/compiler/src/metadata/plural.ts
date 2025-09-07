@@ -1,5 +1,9 @@
 // We need a compiler plugin to handle custom extraction
 
+import { WebdaModule } from "../definition";
+import { WebdaObjects } from "../module";
+import { MetadataPlugin } from "./plugin";
+
 /**
  * Plural
  *
@@ -55,4 +59,18 @@ export function getPlural(name: string): string {
 }
 function isVowel(char: string): boolean {
   return "aeiouy".includes(char.toLowerCase());
+}
+
+/**
+ * Plural metadata plugin
+ */
+export class PluralMetadata extends MetadataPlugin {
+    getMetadata(module: WebdaModule, objects: WebdaObjects): void {
+        Object.keys(objects.models).forEach(name => {
+            const { tags } = objects.models[name];
+
+            module.models[name].Plural = tags["WebdaPlural"] || getPlural(name.split("/").pop())
+        });
+    }
+
 }

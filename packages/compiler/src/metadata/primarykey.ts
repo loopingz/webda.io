@@ -1,13 +1,13 @@
 import ts from "typescript";
 import { WebdaObjects } from "../module";
 import { MetadataPlugin } from "./plugin";
-import { Module } from "module";
+import { WebdaModule } from "../definition";
 
 /**
  * Primary key metadata plugin
  */
 export class PrimaryKeyMetadata extends MetadataPlugin {
-  getMetadata(module: any, objects: WebdaObjects): void {
+  getMetadata(module: WebdaModule, objects: WebdaObjects): void {
     Object.keys(objects.models).forEach(name => {
       const { type } = objects.models[name];
       const primarySymbol = type

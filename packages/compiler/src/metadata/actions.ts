@@ -1,3 +1,4 @@
+import { WebdaModule } from "../definition";
 import { WebdaObjects } from "../module";
 import { MetadataPlugin } from "./plugin";
 
@@ -5,7 +6,7 @@ import { MetadataPlugin } from "./plugin";
  * Actions metadata plugin
  */
 export class ActionsMetadata extends MetadataPlugin {
-    getMetadata(module: any, objects: WebdaObjects): void {
+    getMetadata(module: WebdaModule, objects: WebdaObjects): void {
         Object.keys(objects.models).forEach(name => {
             const model = objects.models[name];
             const actionsSymbol = model.type.getProperties().find(p => this.moduleGenerator.propertyIsKeyedBySymbol(p, "@webda/models", "WEBDA_ACTIONS"));

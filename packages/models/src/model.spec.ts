@@ -1,10 +1,12 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Model, UuidModel } from "./model";
-import { isStorable, PrimaryKeyEquals, SelfJSONed, WEBDA_PRIMARY_KEY } from "./storable";
+import { Model, ModelClass, UuidModel } from "./model";
+import { isStorable, PrimaryKeyEquals, SelfJSONed, Storable, StorableClass, WEBDA_PRIMARY_KEY } from "./storable";
 import { ExecutionContext, isExposable, isSecurable, Operation } from "./index";
-import { MemoryRepository } from "./repository";
+import { MemoryRepository, Repository } from "./repository";
 
+type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
+type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 export class TestModel extends Model {
   [WEBDA_PRIMARY_KEY] = ["id", "name"] as const;
   id: string;
@@ -14,14 +16,19 @@ export class TestModel extends Model {
   createdAt: Date;
   updatedAt: Date;
 
-  constructor(data?: SelfJSONed<TestModel>) {
+  constructor(data?: ExceptPartial<SelfJSONed<TestModel>, "createdAt" | "updatedAt">) {
     super();
-    this.id = data?.id || "";
-    this.name = data?.name || "";
-    this.age = data?.age || 0;
-    this.email = data?.email || "";
-    this.createdAt = data?.createdAt ? new Date(data.createdAt as any) : new Date();
-    this.updatedAt = data?.updatedAt ? new Date(data.updatedAt as any) : new Date();
+    this.deserialize(data || {});
+  }
+
+  deserialize(data: Partial<SelfJSONed<TestModel>>): this {
+    this.id = data.id || "";
+    this.name = data.name || "";
+    this.age = data.age || 0;
+    this.email = data.email || "";
+    this.createdAt = data.createdAt ? new Date(data.createdAt as any) : new Date();
+    this.updatedAt = data.updatedAt ? new Date(data.updatedAt as any) : new Date();
+    return this;
   }
 
   @Operation({
@@ -58,13 +65,14 @@ export class SubClassModel extends UuidModel {
 
 SubClassModel.registerSerializer();
 
+type Repo<T extends Storable> = Repository<StorableClass<T> & ModelClass<T>>;
 @suite
 class ModelTest {
   @test
   async repositories() {
-    // Ensuring that the repositories are registered correctly
-    const repo1 = new MemoryRepository<UuidModel>(UuidModel, ["uuid"]);
-    const repo2 = new MemoryRepository<TestModel>(TestModel, ["id", "name"]);
+    // Ensuring that the repositories are re  gistered correctly
+    const repo1: Repo<UuidModel> = new MemoryRepository(UuidModel, ["uuid"]);
+    const repo2 = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
     assert.throws(() => UuidModel.getRepository(), /No repository found/);
     UuidModel.registerRepository(repo1);
     TestModel.registerRepository(repo2);
@@ -84,6 +92,12 @@ class ModelTest {
     );
     assert.strictEqual(new UuidModel().getRepository(), repo1);
     assert.strictEqual(new TestModel().getRepository(), repo2);
+    await TestModel.create({
+      id: "123",
+      name: "Test",
+      age: 10,
+      email: "test@example.com"
+    })
   }
 
   @test
@@ -148,7 +162,7 @@ class ModelTest {
 
   @test
   async upsert() {
-    const repo1 = new MemoryRepository<SubClassModel>(SubClassModel, ["uuid"]);
+    const repo1 = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
     SubClassModel.registerRepository(repo1);
     const model1 = await SubClassModel.ref("test").upsert({
       name: "Test",

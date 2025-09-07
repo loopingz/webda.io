@@ -5,38 +5,34 @@ import { runWithInstanceStorage } from "../core/instancestorage";
 import { runWithContext } from "../contexts/execution";
 
 let callCount = 0;
-function processKey() {
-  return "test";
+function processKey(method: string, args: any[]) {
+  return args[0];
 }
 
 /**
  * Test the cache
  */
 class MyObject {
-  @InstanceCache
+  @InstanceCache()
   method(argument1: string, argument2: any) {
     callCount++;
     return callCount;
   }
-
-  @InstanceCache
+  @InstanceCache()
   static method2(arg: string) {
     callCount++;
     return callCount;
   }
-
   @ProcessCache(processKey)
   processCachedMethod(argument1: string, argument2: any) {
     callCount++;
     return callCount;
   }
-
-  @ContextCache
+  @ContextCache()
   contextCachedMethod(argument1: string, argument2: any) {
     callCount++;
     return callCount;
   }
-
   @SessionCache()
   sessionCachedMethod(argument1: string, argument2: any) {
     callCount++;
@@ -72,8 +68,8 @@ class CacheTest {
     callCount = 0;
     assert.strictEqual(obj.processCachedMethod("test", 1), 1);
     assert.strictEqual(obj.processCachedMethod("test", 1), 1);
-    assert.strictEqual(obj.processCachedMethod("test", 2), 2);
-    assert.strictEqual(obj.processCachedMethod("test", 2), 2);
+    assert.strictEqual(obj.processCachedMethod("test", 2), 1);
+    assert.strictEqual(obj.processCachedMethod("test2", 2), 2);
   }
 
   @test

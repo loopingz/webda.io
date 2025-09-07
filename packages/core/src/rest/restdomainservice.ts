@@ -1,16 +1,15 @@
 import { QueryValidator } from "@webda/ql";
-import type { ModelAction, ModelClass } from "../internal/iapplication";
+import type { ModelAction } from "../internal/iapplication";
 import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
 import { OpenAPIWebdaDefinition } from "./irest";
 import * as WebdaError from "../errors/errors";
 import { useRouter } from "./hooks";
 import { useApplication } from "../application/hook";
-import { useCore } from "../core/hooks";
+import { useCore, useModelMetadata } from "../core/hooks";
 import { callOperation } from "../core/operations";
 import { WebContext } from "../contexts/webcontext";
 import { hasSchema } from "../schemas/hooks";
-import { Constructor } from "@webda/tsc-esm";
-import { Storable } from "@webda/models";
+import type { ModelClass } from "@webda/models";
 
 /**
  * Swagger static html
@@ -115,7 +114,7 @@ export class RESTDomainService<
    */
   handleModel(model: ModelClass, name: string, context: any): boolean {
     const depth = context.depth || 0;
-    const { Relations: relations, Identifier, Plural: plural, Actions: actions } = model.Metadata;
+    const { Relations: relations, Identifier, Plural: plural, Actions: actions } = useModelMetadata(model);
     const injectAttribute = relations?.parent?.attribute;
     const app = useApplication();
     // Update prefix

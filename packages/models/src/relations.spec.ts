@@ -9,7 +9,7 @@ import {
 import { MemoryRepository } from "./repository";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { PrimaryKeyEquals, WEBDA_DIRTY } from "./storable";
+import { ConcreteStorable, PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PLURAL } from "./storable";
 import { TestModel } from "./model.spec";
 
 const mySymbol = Symbol("mySymbol");
@@ -23,6 +23,7 @@ class TestSimpleModel extends UuidModel {
     this.name = data?.name || "";
     this.age = data?.age || 0;
   }
+  [WEBDA_PLURAL]?: string | undefined;
 }
 
 TestSimpleModel.registerSerializer();

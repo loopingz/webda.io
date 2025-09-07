@@ -4,9 +4,9 @@ import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
 import { Application } from "../application/application";
-import { Configuration, ModelClass } from "../internal/iapplication";
+import { Configuration } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
-import { Model, ModelPrototype, Storable } from "@webda/models";
+import { Model, ModelClass, Storable } from "@webda/models";
 import { Router } from "../rest/router";
 import { useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
@@ -204,7 +204,7 @@ export class Core implements ICore {
    * @param model
    * @returns
    */
-  @ProcessCache
+  @ProcessCache()
   private getModelStoreCached<T extends Model>(model: T | ModelClass<T>): Store {
     // @ts-ignore
     const stores: { [key: string]: Store } = useApplication().getImplementations(Store);
@@ -231,7 +231,7 @@ export class Core implements ICore {
    * @returns
    */
   getBinaryStore<T extends Model>(
-    modelOrConstructor: ModelPrototype<T> | T | string,
+    modelOrConstructor: ModelClass<T> | T | string,
     attribute: string
   ): AbstractService {
     const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);

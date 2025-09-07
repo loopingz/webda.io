@@ -31,7 +31,7 @@ export const WEBDA_DIRTY: unique symbol = Symbol("Dirty properties");
  * Define the events for the model
  */
 export type Eventable = {
-  [WEBDA_EVENTS]: any;
+  [WEBDA_EVENTS]?: any;
 };
 
 /**
@@ -46,6 +46,10 @@ export interface Storable<T = any, K extends keyof T = any> extends Eventable {
    * Define the primary key for your model
    */
   [WEBDA_PRIMARY_KEY]: readonly K[];
+  /**
+   * Define the separator to use when concatenating primary key fields (for UUID generation)
+   */
+  [WEBDA_PRIMARY_KEY_SEPARATOR]?: string;
   /**
    * Define the plural for your model
    */
@@ -67,6 +71,22 @@ export interface Storable<T = any, K extends keyof T = any> extends Eventable {
    */
   toJSON(): any;
 }
+
+/**
+ * A concrete storable is a storable that has a constructor that can be used to create a new instance
+ */
+export type ConcreteStorable<T = any, K extends keyof T = any> = Storable<T, K> & (new (arg: any) => any);
+
+export type StorableClass<T extends Storable = Storable> = {
+  new (arg: any): T;
+  prototype: T;
+};
+
+/**
+ * All storable need to have a constructor that take an object as argument 
+ */
+export type StorableConstructor<T extends new (arg: any) => any = any> = new (arg: ConstructorParameters<T>[0]) => T;
+
 /**
  * If object have a toJSON method take the return type of this method
  * otherwise return the object

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import { WorkerOutput } from "@webda/workout";
-import { WebdaTest } from "@webda/test";
+import { WebdaTest } from "../test/core";
 import { Logger } from "./ilogger";
 import { FileLoggerService } from "./file";
 

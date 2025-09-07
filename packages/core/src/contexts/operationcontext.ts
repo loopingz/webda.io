@@ -8,8 +8,8 @@ import { JSONUtils } from "@webda/utils";
 import { useLog } from "../loggers/hooks";
 import { runAsSystem } from "./execution";
 import { useParameters } from "../core/instancestorage";
-import { useModel, useModelRepository } from "../application/hook";
 import { IUser } from "../internal/iapplication";
+import { useModelRepository } from "../core/hooks";
 
 /**
  * OperationInput

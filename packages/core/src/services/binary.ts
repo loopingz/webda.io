@@ -6,7 +6,7 @@ import { Readable } from "stream";
 import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
 import { NotEnumerable } from "@webda/tsc-esm";
-import { useCore } from "../core/hooks";
+import { useCore, useModelMetadata } from "../core/hooks";
 import { ServiceParameters } from "../interfaces";
 import { Counter } from "../metrics/metrics";
 import { IOperationContext } from "../contexts/icontext";
@@ -726,7 +726,7 @@ export abstract class BinaryService<
    * @param property
    */
   protected checkMap(object: Model, property: string) {
-    const { Identifier } = useModel(object).Metadata;
+    const { Identifier } = useModelMetadata(object);
     if (this.handleBinary(Identifier, property) !== -1) {
       return;
     }

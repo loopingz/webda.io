@@ -26,7 +26,6 @@ export * from "./stores/memory";
 export * from "./stores/store";
 export * from "./utils/abstractdeployer";
 export * from "./models/coremodelproxy";
-export * from "./models/coremodel";
 export * from "./models/simpleuser";
 export * from "./models/ident";
 export * from "./models/aclmodel";
@@ -74,7 +73,7 @@ export * from "./rest/originfilter";
 export * from "./session/manager";
 export * from "./session/cookie";
 export * from "./session/session";
-export * from "./deprecated";
+export * from "./utils/misc";
 
 //import { GitInformation } from "./internal/iapplication";
 

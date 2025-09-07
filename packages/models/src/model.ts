@@ -2,16 +2,16 @@ import {
   WEBDA_DIRTY,
   WEBDA_EVENTS,
   WEBDA_PRIMARY_KEY,
-  type Eventable,
   type SelfJSONed,
   type PK,
   type PrimaryKeyType,
   type Storable,
-  WEBDA_PRIMARY_KEY_SEPARATOR
+  WEBDA_PRIMARY_KEY_SEPARATOR,
+  StorableClass,
 } from "./storable";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
-import type { ModelRefWithCreate, ModelRef } from "./relations";
+import { type ModelRefWithCreate, type ModelRef, assignNonSymbols } from "./relations";
 import { ExecutionContext, Exposable, WEBDA_ACTIONS, type ActionsEnum } from "./actionable";
 import type { Prototype } from "@webda/tsc-esm";
 import type { Repository } from "./repository";
@@ -48,7 +48,7 @@ const Repositories = new WeakMap<Prototype<Storable>, Repository<any>>();
  * @param arg
  * @returns
  */
-export function useRepository<T extends Storable>(arg: Prototype<T>): Repository<T> {
+export function useRepository<T extends StorableClass>(arg: T): Repository<T> {
   let clazz: any = arg;
   while (!Repositories.has(clazz)) {
     clazz = Object.getPrototypeOf(clazz);
@@ -64,8 +64,8 @@ export function useRepository<T extends Storable>(arg: Prototype<T>): Repository
  * @param this
  * @param repository
  */
-export function registerRepository<T extends Storable & Eventable>(
-  model: Prototype<T>,
+export function registerRepository<T extends StorableClass>(
+  model: T,
   repository: Repository<T>
 ): void {
   Repositories.set(model, repository);
@@ -74,17 +74,40 @@ export function registerRepository<T extends Storable & Eventable>(
 /**
  * Model Constructor
  */
-export type ModelPrototype<T extends Model = Model> = {
+export type ModelClass<T extends Model = Model> = {
   /**
    * Create a new model
    */
-  new (data: SelfJSONed<T>): T;
+  new (data: any): T;
+  /**
+   * Prototype
+   */
+  prototype: T;
   /**
    * Reference
    * @param this
    * @param key
    */
-  ref<T extends Model>(this: Prototype<T>, key: PrimaryKeyType<T>): ModelRefWithCreate<T>;
+  ref<T extends StorableClass>(this: T, key: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
+  iterate<T extends StorableClass>(this: T, query: string) : Iterable<Promise<InstanceType<T>>>;
+  create<T extends StorableClass>(
+    this: T,
+    data: ConstructorParameters<T>[0],
+    save?: boolean
+  ): Promise<InstanceType<T>>;
+  query<T extends StorableClass>(
+    this: T,
+    query: string
+  ): Promise<{
+    results: InstanceType<T>[];
+    continuationToken?: string;
+  }>;
+  getRepository<T extends StorableClass>(this: T): Repository<T>;
+  registerRepository<T extends StorableClass>(this: T, repository: Repository<T>): void;
+  registerSerializer<T extends StorableClass>(
+    this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any }
+  ): void;
+
 };
 
 export type ModelActions<
@@ -141,7 +164,7 @@ export abstract class Model implements Storable, Securable, Exposable {
   /**
    * Model events
    */
-  [WEBDA_EVENTS]: ModelEvents<this>;
+  [WEBDA_EVENTS]?: ModelEvents<this>;
   /**
    * Properties that are dirty and need to be saved
    * @private
@@ -150,7 +173,7 @@ export abstract class Model implements Storable, Securable, Exposable {
   /**
    * Define actions for the model
    */
-  [WEBDA_ACTIONS]: ModelActions;
+  [WEBDA_ACTIONS]?: ModelActions;
 
   /** Non-abstract class need to define their PrimaryKey */
   public abstract [WEBDA_PRIMARY_KEY]: readonly (keyof this)[];
@@ -159,7 +182,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * K is inferred as the literal tuple type of `this.keyFields`,
    * so K[number] is the exact union of keys you wrote.
    */
-  getPrimaryKey<K extends readonly (keyof this)[]>(this: this & { [WEBDA_PRIMARY_KEY]: K }): PrimaryKeyType<this> {
+  getPrimaryKey<K extends readonly (keyof this)[]>(this: this & { [WEBDA_PRIMARY_KEY]: K, [WEBDA_PRIMARY_KEY_SEPARATOR]?: string }): PrimaryKeyType<this> {
     const result = {} as Pick<this, K[number]>;
     if (this[WEBDA_PRIMARY_KEY].length === 1) {
       return this[this[WEBDA_PRIMARY_KEY][0]] as any;
@@ -185,8 +208,8 @@ export abstract class Model implements Storable, Securable, Exposable {
    * Get object reference
    * @returns
    */
-  ref(): ModelRef<this> {
-    return this.getRepository().ref(this.getPrimaryKey());
+  ref(): ModelRef<this & Storable> {
+    return this.getRepository().ref(this.getPrimaryKey()) as any;
   }
 
   /**
@@ -214,7 +237,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param this
    * @returns
    */
-  static getRepository<T extends Model>(this: Prototype<T>): Repository<T> {
+  static getRepository<T extends StorableClass>(this: T): Repository<T> {
     return useRepository(this);
   }
 
@@ -224,7 +247,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param data
    * @returns
    */
-  static create<T extends Model>(this: Prototype<T>, data: SelfJSONed<T>, save: boolean = true): Promise<T> {
+  static create<T extends StorableClass>(this: T, data: ConstructorParameters<T>[0], save: boolean = true): Promise<InstanceType<T>> {
     return useRepository(this).create(data, save);
   }
 
@@ -234,11 +257,11 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param query
    * @returns
    */
-  static query<T extends Model>(
-    this: Prototype<T>,
+  static query<T extends StorableClass>(
+    this: T,
     query: string
   ): Promise<{
-    results: T[];
+    results: InstanceType<T>[];
     continuationToken?: string;
   }> {
     return useRepository(this).query(query);
@@ -250,7 +273,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param query
    * @returns
    */
-  static *iterate<T extends Model>(this: Prototype<T>, query: string) {
+  static *iterate<T extends StorableClass>(this: T, query: string) : Iterable<Promise<InstanceType<T>>> {
     return useRepository(this).iterate(query);
   }
 
@@ -258,7 +281,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * Get the repository of the model
    * @returns
    */
-  getRepository(): Repository<this> {
+  getRepository(): Repository {
     return (this.constructor as any).getRepository();
   }
 
@@ -268,14 +291,14 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param this
    * @param repository
    */
-  static registerRepository<T extends Model>(this: Prototype<T>, repository: Repository<T>): void {
+  static registerRepository<T extends StorableClass>(this: T, repository: Repository<T>): void {
     registerRepository(this, repository);
   }
 
-  static registerSerializer<T extends Model>(
-    this: Prototype<T> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any }
+  static registerSerializer<T extends StorableClass>(
+    this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any }
   ): void {
-    const clazz: Prototype<T> & { fromJSON?: (data: any) => T; getStaticProperties?: () => any } = this;
+    const clazz: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any } = this;
     if (!clazz.getStaticProperties) {
       clazz.getStaticProperties = () => ({}) as any;
     }
@@ -291,7 +314,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param key
    * @returns
    */
-  static ref<T extends Model>(this: Prototype<T>, key: PrimaryKeyType<T> | string): ModelRefWithCreate<T> {
+  static ref<T extends StorableClass>(this: T, key: PrimaryKeyType<InstanceType<T>> | string): ModelRefWithCreate<InstanceType<T>> {
     return Repositories.get(this).ref(key);
   }
 
@@ -361,10 +384,11 @@ export abstract class Model implements Storable, Securable, Exposable {
    */
   async save(): Promise<this> {
     const repo = this.getRepository();
+    const concreteThis: this & Storable = this as any;
     if (!this[WEBDA_DIRTY]) {
-      await repo.upsert(this);
+      await repo.upsert(concreteThis);
     } else {
-      const patch = {} as SelfJSONed<this>;
+      const patch = {} as SelfJSONed<this & Storable>;
       for (const k of this[WEBDA_DIRTY]) {
         patch[k] = this[k];
       }
@@ -374,8 +398,8 @@ export abstract class Model implements Storable, Securable, Exposable {
     return this;
   }
 
-  deserialize(data: Partial<SelfJSONed<this>>): this {
-    Object.assign(this, data);
+  deserialize(data: Partial<SelfJSONed<Model>>): this {
+    assignNonSymbols(this, data);
     return this;
   }
 
@@ -411,7 +435,7 @@ export abstract class Model implements Storable, Securable, Exposable {
           acc[key] = this[key];
           return acc;
         },
-        {} as Partial<SelfJSONed<this>>
+        {} as Partial<SelfJSONed<this & Storable>>
       )
     );
     return this;

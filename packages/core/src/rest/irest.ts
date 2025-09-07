@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { HttpMethodType } from "../contexts/httpcontext";
-import { DeepPartial } from "@webda/tsc-esm";
+import { createPropertyDecorator, DeepPartial } from "@webda/tsc-esm";
 import { IWebContext } from "../contexts/icontext";
 import { Repository } from "@webda/models";
 
@@ -36,22 +36,19 @@ export interface OpenAPIWebdaDefinition extends DeepPartial<OpenAPIV3.PathItemOb
  * @param methods
  * @param openapi
  * @returns
+ * @deprecated use @Operation instead
  */
-export function Route(
-  route: string,
-  methods: HttpMethodType | HttpMethodType[] = ["GET"],
-  openapi: OpenAPIWebdaDefinition = {}
-) {
-  return (target: any, executor: string) => {
-    target.constructor.routes ??= {};
-    target.constructor.routes[route] ??= [];
-    target.constructor.routes[route].push({
+export const Route = createPropertyDecorator(
+  (value: any, context: ClassFieldDecoratorContext, route: string, methods: HttpMethodType | HttpMethodType[] = ["GET"], openapi: OpenAPIWebdaDefinition = {}) => {
+    context.metadata["webda.route"] ??= {};
+    context.metadata["webda.route"][route] ??= [];
+    context.metadata["webda.route"][route].push({
       methods: Array.isArray(methods) ? methods : [methods],
-      executor,
+      executor: context.name,
       openapi
     });
-  };
-}
+  });
+    
 
 /**
  * Operation object with optional schemas

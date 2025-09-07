@@ -1,4 +1,4 @@
-import { Constructor } from "@webda/tsc-esm";
+import { CustomConstructor } from "@webda/tsc-esm";
 import {
   Counter,
   CounterConfiguration,
@@ -38,7 +38,7 @@ export type MetricConfiguration<T = Counter | Gauge | Histogram, K extends strin
  * @returns
  */
 export function useMetric<T = Gauge | Counter | Histogram>(
-  type: Constructor<T, [MetricConfiguration<T>]>,
+  type: CustomConstructor<T, [MetricConfiguration<T>]>,
   configuration: MetricConfiguration<T>
 ): T {
   const metrics = useParameters().metrics;

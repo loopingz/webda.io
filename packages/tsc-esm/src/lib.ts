@@ -109,8 +109,17 @@ export type OmitTargetArgs<F> = F extends (x: any, y: any, ...args: infer P) => 
 /**
  * Define a constructor
  */
-export type Constructor<T = any, K extends Array<any> = []> = new (...args: K) => T;
+export type Constructor<T extends new (...args: any[]) => any = any> = new (...args: ConstructorParameters<T>) => T;
+/**
+ * Define a constructor for abstract classes
+ */
+export type AbstractConstructor<T extends abstract new (...args: any[]) => any = any> = abstract new (...args: ConstructorParameters<T>) => T;
 
+/**
+ * Any constructor
+ */
+export type AnyConstructor = abstract new (...args: any[]) => any;
+export type CustomConstructor<T, K extends any[] = []> = new (...args: K) => T;
 /**
  * Remove the first argument of a function
  */
@@ -158,7 +167,7 @@ export type FilterOutAttributes<T extends object, K> = {
  * Usage: @StaticInterface<YourStaticInterface>()
  */
 export function StaticInterface<S extends object>() {
-  return function <C extends Constructor<unknown> & S>(value: C, _context: ClassDecoratorContext): void {
+  return function <C extends Constructor & S>(value: C, _context: ClassDecoratorContext): void {
     // no-op at runtime; the type of `value` enforces the static interface
   };
 }
@@ -233,3 +242,6 @@ export function isMainModule(importMeta: ImportMeta): boolean {
   // @ts-ignore
   return importMeta.url === (typeof process !== "undefined" ? `file://${realPath}` : undefined);
 }
+
+// We might want to explore: https://github.com/sindresorhus/type-fest
+export type SetOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

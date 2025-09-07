@@ -1,7 +1,5 @@
-import { Prototype } from "@webda/tsc-esm";
 import { createCoreHook } from "../core/instancestorage";
-import { Model, Repository, Storable } from "@webda/models";
-import { ModelAction, ModelClass } from "../internal/iapplication";
+import { Model, Repository, ModelClass } from "@webda/models";
 /**
  * Hook to get the current application
  */
@@ -51,9 +49,4 @@ export function useSchema(name: string) {
  */
 export function useModelId(object: any, full: boolean = false): string | undefined {
   return useApplication().getModelId(object, full);
-}
-
-export function useModelRepository<T extends Storable>(name: string): Repository<T> {
-  // TODO Implement
-  return undefined; //useApplication().getModelRepository(name);
 }

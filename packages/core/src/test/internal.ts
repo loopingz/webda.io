@@ -1,9 +1,9 @@
 import { useModel } from "../application/hook";
-import { ModelClass, UnpackedConfiguration } from "../internal/iapplication";
-import { Repository, UuidModel } from "@webda/models";
+import {  UnpackedConfiguration } from "../internal/iapplication";
+import {  UuidModel } from "@webda/models";
 import { FileUtils } from "@webda/utils";
 import { TestApplication } from "./objects";
-import { WebdaApplicationTest } from "./test";
+import { WebdaApplicationTest } from "./application";
 
 export class TestInternalApplication extends TestApplication {
   loadProjectInformation() {
@@ -15,7 +15,7 @@ export class TestInternalApplication extends TestApplication {
 
 type TeacherType = UuidModel & { name: string; senior: boolean; uuid: string };
 export class WebdaInternalTest extends WebdaApplicationTest {
-  static getApplication(): TestApplication {
+  getApplication(): TestApplication {
     let cfg = this.getTestConfiguration();
     if (typeof cfg === "string") {
       cfg = FileUtils.load(cfg);

@@ -2,10 +2,10 @@ import type { DeepPartial } from "@webda/tsc-esm";
 import { TransformCase, TransformCaseType } from "@webda/utils";
 import { Service } from "./service";
 import { Application } from "../application/application";
-import type { ModelClass, ModelAction } from "../internal/iapplication";
+import type { ModelAction } from "../internal/iapplication";
 import { JSONUtils } from "@webda/utils";
 import { OperationContext } from "../contexts/operationcontext";
-import { ActionsEnum, Model, ModelEvents } from "@webda/models";
+import type { ActionsEnum, Model, ModelClass } from "@webda/models";
 import { runAsSystem, runWithContext } from "../contexts/execution";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
@@ -14,7 +14,7 @@ import { ServiceParameters } from "../interfaces";
 import { useApplication, useModel } from "../application/hook";
 import { OperationDefinition } from "../core/icore";
 import { ModelGraphBinaryDefinition } from "../internal/iapplication";
-import { useCore } from "../core/hooks";
+import { useCore, useModelMetadata } from "../core/hooks";
 import { registerOperation } from "../core/operations";
 import { WebContext } from "../contexts/webcontext";
 
@@ -228,7 +228,7 @@ export abstract class DomainService<
    * @returns
    */
   walkModel(model: ModelClass, name?: string, depth: number = 0, modelContext: any = {}) {
-    const { Identifier: identifier, Relations: relations, Plural: plural } = model.Metadata;
+    const { Identifier: identifier, Relations: relations, Plural: plural } = useModelMetadata(model);
     name ??= plural;
     // If not expose or not in the list of models
     if (!this.parameters.isIncluded(identifier)) {
@@ -248,7 +248,7 @@ export abstract class DomainService<
     // Get the children now
     (relations.children || []).forEach(name => {
       const childModel = useModel(name);
-      const { Identifier: childIdentifier, Relations: childRelations } = useModel(name).Metadata;
+      const { Identifier: childIdentifier, Relations: childRelations } = useModelMetadata(childModel);
       const parentAttribute = childRelations?.parent?.attribute;
       const segment = queries.find(q => q.model === name && q.targetAttribute === parentAttribute)?.attribute;
       this.walkModel(childModel, segment, depth + 1, context);
@@ -300,7 +300,7 @@ export abstract class DomainService<
       await object.checkAct(context, "create");
       // Check for conflict
       // await object.validate(context, {});
-      if (await model.ref(object.getUUID()).exists()) {
+      if (await model.ref(object.getPrimaryKey()).exists()) {
         throw new WebdaError.Conflict("Object already exists");
       }
       await object.save();
@@ -425,7 +425,7 @@ export abstract class DomainService<
     const models = app.getModels();
     for (const modelKey in models) {
       const model = models[modelKey];
-      const Metadata = model.Metadata;
+      const Metadata = useModelMetadata(model);
       if (!model) {
         continue;
       }

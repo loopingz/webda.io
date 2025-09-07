@@ -1,10 +1,9 @@
 import type { WorkerLogLevel } from "@webda/workout";
-import { AsyncEventEmitterImpl, AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitter";
+import { AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitter";
 
-import { Route } from "../rest/irest";
 import type { OpenAPIWebdaDefinition } from "../rest/irest";
 import type { HttpMethodType } from "../contexts/httpcontext";
-import type { Constructor } from "@webda/tsc-esm";
+import { createPropertyDecorator, CustomConstructor, type Constructor } from "@webda/tsc-esm";
 import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfiguration } from "../metrics/metrics";
 
 import type { Logger } from "../loggers/ilogger";
@@ -14,6 +13,7 @@ import { useService } from "../core/hooks";
 import { AbstractService } from "../core/icore";
 import { useLogger } from "../loggers/hooks";
 import { WEBDA_EVENTS } from "@webda/models";
+import { getMetadata } from "@webda/test";
 
 /**
  * Represent a Inject annotation
@@ -92,73 +92,28 @@ class Injector {
  *
  * Might consider to split into two annotations
  */
+export const Inject = createPropertyDecorator(
+  (value: Service, context: ClassFieldDecoratorContext, parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) => {
+
+  } 
+)
+/*
 export function Inject(parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) {
-  return (target: any, propertyName: string): void => {
+  return (target: Service, context: ClassFieldDecoratorContext): void => {
+    context.metadata["webda.inject"] ??= {};
+    context.metadata["webda.inject"][context.name] = { parameterOrName, defaultValue, optional };
+
+    /*
     target.Injectors = target.Injectors || [];
     if (typeof defaultValue === "boolean") {
       target.Injectors.push(new Injector(propertyName, parameterOrName || propertyName, undefined, defaultValue));
     } else {
       target.Injectors.push(new Injector(propertyName, parameterOrName || propertyName, defaultValue, optional));
     }
+      /
   };
 }
-
-/**
- * Register an Operation within the framework
- *
- * An operation is a callable method with an input and output
- * The method will receive a Context from where it can execute
- *
- * @param id
- * @param input
- * @param output
- */
-export function Operation(
-  properties?: {
-    /**
-     * Id of the Operation
-     *
-     * @default methodName
-     */
-    id?: string;
-    /**
-     * WebdaQL to execute on session object to ensure it can access
-     */
-    permission?: string;
-  },
-  route?: {
-    url: string;
-    method?: HttpMethodType;
-    openapi?: OpenAPIWebdaDefinition;
-  }
-) {
-  return (target: any, executor: string) => {
-    target.constructor.operations ??= {};
-    properties ??= {};
-    properties.id ??= executor.substring(0, 1).toUpperCase() + executor.substring(1);
-    const id = properties.id;
-    if (target.constructor.operations[id]) {
-      console.error("Operation already exists", id);
-      return;
-    }
-    target.constructor.operations[id] ??= {
-      method: executor,
-      ...properties
-    };
-    // If url is specified define the openapi
-    if (route) {
-      route.method ??= "GET";
-      route.openapi ??= {};
-      route.openapi[route.method.toLowerCase()] ??= {};
-      const def = route.openapi[route.method.toLowerCase()];
-      def.operationId = id;
-      def.schemas ??= {};
-      def.schemas.input ??= properties.id.toLowerCase() + ".input";
-      def.schemas.output ??= properties.id.toLowerCase() + ".output";
-      Route(route.url, route.method, route.openapi)(target, executor);
-    }
-  };
-}
+  */
 
 /**
  * Use this object for representing a service in the application
@@ -285,7 +240,7 @@ abstract class Service<
    * @returns
    */
   getMetric<T = Gauge | Counter | Histogram>(
-    type: Constructor<T, [MetricConfiguration<T>]>,
+    type: CustomConstructor<T, [MetricConfiguration<T>]>,
     configuration: MetricConfiguration<T>
   ): T {
     configuration.labelNames ??= [];

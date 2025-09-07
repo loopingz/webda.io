@@ -5,7 +5,7 @@ import * as sinon from "sinon";
 
 import { JSONUtils } from "@webda/utils";
 import { CryptoService, SecretString, useCrypto } from "./cryptoservice";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
 import { useRegistry } from "../models/registry";
 
 /**

@@ -12,10 +12,9 @@ import type { Mailer } from "./mailer";
 import { runAsSystem } from "../contexts/execution";
 import { EventWithContext } from "../events/events";
 import { ServiceParameters } from "../interfaces";
-import { useModel, useModelRepository } from "../application/hook";
-import { useCore, useService } from "../core/hooks";
+import { useCore, useService, useModelRepository } from "../core/hooks";
 import { WebContext } from "../contexts/webcontext";
-import { Repository, useRepository } from "@webda/models";
+import { Repository } from "@webda/models";
 
 /**
  * Emitted when the /me route is called
@@ -244,11 +243,11 @@ class Authentication<
   /**
    * Ident model to use
    */
-  protected identModel: Repository<Ident>;
+  protected identModel: Repository<typeof Ident>;
   /**
    * User model to use
    */
-  protected userModel: Repository<User>;
+  protected userModel: Repository<typeof User>;
   /**
    * Used for hmac
    */
@@ -302,7 +301,7 @@ class Authentication<
   computeParameters(): void {
     super.computeParameters();
 
-    this.identModel = useModelRepository<Ident>(this.parameters.identModel);
+    this.identModel = <any>useModelRepository<Ident>(this.parameters.identModel);
     this.userModel = useModelRepository<User>(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {

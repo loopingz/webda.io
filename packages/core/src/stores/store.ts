@@ -3,8 +3,8 @@ import type { ConfigurationProvider } from "../configurations/configuration";
 import * as WebdaError from "../errors/errors";
 import { Throttler } from "@webda/utils";
 
-import type { Model, Repository } from "@webda/models";
-import type { RawModel, ModelClass } from "../internal/iapplication";
+import type { Model, ModelClass } from "@webda/models";
+import type { RawModel } from "../internal/iapplication";
 import { ServiceParameters } from "../interfaces";
 import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
@@ -13,6 +13,7 @@ import { MappingService } from "./istore";
 import { useApplication, useModel, useModelId } from "../application/hook";
 import { useRegistry } from "../models/registry";
 import { useLog } from "../loggers/hooks";
+import { useModelMetadata } from "../core/hooks";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
@@ -356,7 +357,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     super.computeParameters();
     const app = useApplication();
     this._model = useModel(this.parameters.model);
-    this._modelMetadata = this._model.Metadata;
+    this._modelMetadata = useModelMetadata(this._model);
     useLog("TRACE", "METADATA", this._modelMetadata);
     this._modelType = this._modelMetadata.Identifier;
     if (!this.parameters.noCache) {

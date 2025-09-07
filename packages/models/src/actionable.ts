@@ -6,7 +6,7 @@ export const WEBDA_ACTIONS: unique symbol = Symbol("Actions definition");
  * An Actionable object is an object that can be converted to a DTO and back
  */
 export interface Actionable<T = any> {
-  [WEBDA_ACTIONS]: T;
+  [WEBDA_ACTIONS]?: T;
   toDTO(): T;
   fromDTO(dto: T): void;
 }

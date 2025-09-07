@@ -6,4 +6,4 @@ const SessionCache = createCacheAnnotation(() => useContext().getSession());
 const InstanceCache = createCacheAnnotation(() => useInstanceStorage());
 const ContextCache = createCacheAnnotation(() => useContext());
 
-export { ProcessCache, SessionCache, InstanceCache, ContextCache };
+export { SessionCache, InstanceCache, ContextCache, ProcessCache };

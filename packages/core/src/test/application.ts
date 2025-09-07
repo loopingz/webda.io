@@ -1,5 +1,4 @@
 import { useWorkerOutput, WorkerLogLevel } from "@webda/workout";
-import { existsSync, unlinkSync } from "fs";
 import { register } from "prom-client";
 
 import { PrometheusService } from "../services/prometheus";
@@ -7,7 +6,7 @@ import { FileUtils } from "@webda/utils";
 
 // Separation on purpose to keep application import separated
 import { Service } from "../services/service";
-import { UnpackedConfiguration, ModelClass } from "../internal/iapplication";
+import { UnpackedConfiguration } from "../internal/iapplication";
 import { Core } from "../core/core";
 import { DebugMailer } from "../services/debugmailer";
 import { MemoryStore } from "../stores/memory";
@@ -19,72 +18,13 @@ import { sleep } from "@webda/utils";
 import { DeepPartial } from "@webda/tsc-esm";
 import { useApplication } from "../application/hook";
 import { useRouter } from "../rest/hooks";
-import { useCore, useService } from "../core/hooks";
+import { useCore, useModelStore, useService } from "../core/hooks";
 import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects";
-import { InstanceStorage, runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage";
 import { Application } from "../application/application";
 import { useLog } from "@webda/workout";
-import { CallbackOptionallyAsync, WebdaTest } from "@webda/test";
-import { serialize, deserialize } from "@webda/serialize";
-
-export class WebdaAsyncStorageTest extends WebdaTest {
-  static globalContext: InstanceStorage = {
-    caches: {}
-  };
-  localContext;
-
-  static wrap = (
-    type: "beforeEach" | "beforeAll" | "test" | "afterEach" | "afterAll",
-    callback: CallbackOptionallyAsync,
-    instance?: WebdaAsyncStorageTest
-  ) => {
-    if (type === "beforeAll") {
-      return <Promise<void>>runWithInstanceStorage({}, async () => {
-        // Set cache to null first
-        this.globalContext.caches = '{}';
-        console.log(`Before All`);
-        // @ts-ignore
-        await callback();
-        console.log(`Before All - after callback`);
-        this.globalContext = useInstanceStorage();
-        console.log(`Serialize '${this.globalContext.caches}'`);
-        this.globalContext.caches = serialize(this.globalContext.caches || {});
-        
-      });
-    } else if (type === "beforeEach") {
-      return <Promise<void>>runWithInstanceStorage(
-        {
-          ...this.globalContext,
-          caches: deserialize(this.globalContext.caches)
-        },
-        async () => {
-          await callback.bind(instance)();
-          instance.localContext = useInstanceStorage();
-        }
-      );
-    } else if (type === "afterEach") {
-      return <Promise<void>>runWithInstanceStorage(instance.localContext, async () => {
-        await callback.bind(instance)();
-      });
-    } else if (type === "afterAll") {
-      console.log(`Deserialize '${this.globalContext.caches}'`);
-      return <Promise<void>>runWithInstanceStorage(
-        {
-          ...this.globalContext,
-          caches: deserialize(this.globalContext.caches)
-        },
-        async () => {
-          await callback.bind(this)();
-        }
-      );
-    } else if (type === "test") {
-      return <Promise<void>>runWithInstanceStorage(instance.localContext, async () => {
-        await callback.bind(instance)();
-        instance.localContext = useInstanceStorage();
-      });
-    }
-  };
-}
+import { WebdaAsyncStorageTest } from "./asyncstorage";
+import { afterAll, beforeAll, beforeEach } from "@webda/test";
+import { ModelClass, Repository } from "@webda/models";
 
 /**
  * Utility class for UnitTest
@@ -107,7 +47,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    *
    * @returns absolute path to configuration file
    */
-  static getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
     return FileUtils.load(process.cwd() + "/test/config.json");
   }
 
@@ -115,7 +55,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * Allow test to add custom made service
    * @param app
    */
-  static async tweakApp(app: TestApplication) {
+  async tweakApp(app: TestApplication) {
     app.addModda("WebdaTest/VoidStore", VoidStore);
     app.addModda("WebdaTest/FakeService", FakeService);
     app.addModda("WebdaTest/Mailer", DebugMailer);
@@ -151,7 +91,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * Return an application
    * @returns
    */
-  static getApplication() {
+  getApplication() {
     return new TestApplication(this.getTestConfiguration(), useWorkerOutput());
   }
 
@@ -160,7 +100,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    *
    * Add a ConsoleLogger if addConsoleLogger is true
    */
-  protected static async buildWebda(): Promise<Core> {
+  protected async buildWebda(): Promise<Core> {
     const app = this.getApplication();
     await app.load();
     await this.tweakApp(app);
@@ -175,7 +115,8 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    *
    * @param init wait for the full init
    */
-  static async beforeAll(init: boolean = true) {
+  @beforeAll
+  async beforeAll(init: boolean = true) {
     // Reset any prometheus
     // @ts-ignore
     PrometheusService.nodeMetricsRegistered = false;
@@ -186,23 +127,18 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     if (init) {
       await core.init();
       // Prevent persistance for tests
-      (<MemoryStore>(<any>RegistryModel.getRepository())).persist = async () => {};
+      (<MemoryStore>(useModelStore(RegistryModel))).persist = async () => {};
     }
   }
 
+  @beforeEach
   async beforeEach(): Promise<void> {
-    await super.beforeEach();
     this.webda = <Core>useCore();
   }
 
-  async afterEach(): Promise<void> {
-    await super.afterEach();
-    // Clean all remaining files
-    this.cleanFiles.filter(f => existsSync(f)).forEach(f => unlinkSync(f));
-    this.cleanFiles = [];
-  }
-
-  static async afterAll() {
+  @afterAll
+  async afterAll() {
+    console.log("After all");
     //
     await useCore()?.stop();
   }

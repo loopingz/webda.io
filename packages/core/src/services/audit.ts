@@ -7,4 +7,5 @@ import { Store } from "../stores/store";
 class AuditService extends Service {
   @Inject("auditStore", "auditStore")
   auditStore: Store;
+  test: string;
 }

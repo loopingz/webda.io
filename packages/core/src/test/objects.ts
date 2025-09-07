@@ -19,6 +19,24 @@ export type TaskEvents<T> = ModelEvents<T> & {
   Errored: { task: T };
 };
 
+type RESTConfiguration<Methods extends "PUT" | "GET" | "POST" | "DELETE", Route extends string> = {
+  rest: {
+    methods: Methods[];
+    path: Route;
+  };
+};
+
+type GraphQLConfiguration<Name extends string = any> = {
+  graphql: {
+    operations: {
+      [key in Name]: {
+        query: string;
+        variables: Record<string, any>;
+      };
+    };
+  };
+};
+
 /**
  * An additional test model
  * @class
@@ -39,20 +57,23 @@ export class Task extends OwnerModel {
       };
     };
     impossible: {};
+  } & {
+    create: RESTConfiguration<"POST", "/"> & GraphQLConfiguration;
   };
 
   actionable() {}
 
   impossible() {}
 
-  async canAct(context: IOperationContext, action: ActionsEnum<Task> | string): Promise<boolean | string> {
-    if ("actionable" === action) {
+  async canAct(context: IOperationContext, actionArg: ActionsEnum<this>): Promise<boolean | string> {
+    const action: ActionsEnum<Task> = actionArg as ActionsEnum<Task>;
+    if (action === "actionable") {
       return true;
     }
     if ("impossible" === action) {
       return "Action impossible is not allowed";
     }
-    return super.canAct(context, action as any);
+    return super.canAct(context, actionArg);
   }
 
   async _onSave() {

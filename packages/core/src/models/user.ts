@@ -1,7 +1,5 @@
-import { useContext } from "../contexts/execution";
-import { Context, IOperationContext } from "../contexts/icontext";
-import { CoreModel } from "./coremodel";
-import { ModelEvents, UuidModel, WEBDA_EVENTS } from "@webda/models";
+import { IOperationContext } from "../contexts/icontext";
+import { ModelEvents, SelfJSONed, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
@@ -12,8 +10,22 @@ export type UserEvents<T> = ModelEvents<T> & {
  * @class
  * @WebdaModel
  */
-export abstract class User extends UuidModel {
+export class User extends UuidModel {
   [WEBDA_EVENTS]: UserEvents<this>;
+  constructor(data?: Partial<SelfJSONed<User>>) {
+    super(data);
+    this.deserialize(data || {});
+  }
+
+  deserialize(data: Partial<SelfJSONed<User>>): this {
+    super.deserialize(data);
+    this.displayName = data.displayName;
+    this._lastPasswordRecovery = data._lastPasswordRecovery || 0;
+    this._avatar = data._avatar;
+    this.locale = data.locale;
+    this.email = data.email;
+    return this;
+  }
   /**
    * Password of the user if defined
    */

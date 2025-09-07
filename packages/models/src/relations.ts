@@ -12,7 +12,8 @@ import {
   UpdatableAttributes,
   WEBDA_PRIMARY_KEY,
   WEBDA_DIRTY,
-  SelfJSONed
+  SelfJSONed,
+  StorableClass,
 } from "./storable";
 import type { Repository } from "./repository";
 
@@ -39,9 +40,9 @@ export function assignNonSymbols(target, source) {
 export class ModelRef<T extends Storable> {
   [RelationParent]?: Storable;
   [RelationKey]?: PrimaryKeyType<T>;
-  [RelationRepository]?: Repository<T>;
+  [RelationRepository]?: Repository<StorableClass<T>>;
 
-  constructor(key: PrimaryKeyType<T>, repository?: Repository<T>, parent?: Storable) {
+  constructor(key: PrimaryKeyType<T>, repository?: Repository<StorableClass<T>>, parent?: Storable) {
     this[RelationParent] = parent;
     this[RelationKey] = key;
     this[RelationRepository] = repository;
@@ -103,7 +104,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   get(): Promise<T> {
-    return this[RelationRepository].get(this[RelationKey]);
+    return this[RelationRepository].get(this[RelationKey]) as Promise<T>;
   }
 
   /**
@@ -342,7 +343,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     /**
      * The repository of the object to link
      */
-    protected model: Repository<T>,
+    protected model: Repository<StorableClass<T>>,
     parent?: Storable
   ) {
     this[RelationParent] = parent!;
@@ -412,9 +413,9 @@ type ModelCollectionManager<T> = {
 export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>> implements ModelLinker {
   [RelationRole]: "ModelLinker" = "ModelLinker" as const;
   private [RelationParent]: T;
-  protected [RelationRepository]: Repository<T>;
+  protected [RelationRepository]: Repository<StorableClass<T>>;
 
-  constructor(repo: Repository<T>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
+  constructor(repo: Repository<StorableClass<T>>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
     super();
     this[RelationRepository] = repo;
     content.forEach(c => this.push(c));
@@ -544,7 +545,7 @@ type ModelRefCustomProperties<T extends Storable, K extends object> = ModelRef<T
 class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
   protected [RelationData]: K;
 
-  constructor(key: PrimaryKeyType<T>, repo: Repository<T>, data: K, parent?: Storable) {
+  constructor(key: PrimaryKeyType<T>, repo: Repository<StorableClass<T>>, data: K, parent?: Storable) {
     super(key, repo, parent);
     this[RelationData] = data;
     assignNonSymbols(this, data);
@@ -586,7 +587,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   [RelationRole]: "ModelLinker" = "ModelLinker" as const;
   protected [RelationParent]?: T;
   constructor(
-    protected repo: Repository<T>,
+    protected repo: Repository<StorableClass<T>>,
     content: (PrimaryKey<T> & K)[] = [],
     parentObject?: T
   ) {
@@ -742,7 +743,7 @@ export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, 
 }
 
 export function createModelLinksMap<T extends Storable = Storable, K extends object = object>(
-  repo: Repository<T>,
+  repo: Repository<StorableClass<T>>,
   data: any = {},
   parent?: T
 ) {
@@ -816,14 +817,14 @@ export type ModelsMapped<
  * TODO Handle 1:1 map
  */
 export class ModelMapLoaderImplementation<T extends Storable, K = any> {
-  protected [RelationRepository]: Repository<T>;
+  protected [RelationRepository]: Repository<StorableClass<T>>;
   protected [RelationParent]?: Storable;
   /**
    * The uuid of the object
    */
   public uuid: PrimaryKeyType<T>;
 
-  constructor(model: Repository<T>, data: PrimaryKey<T> & K, parent: T) {
+  constructor(model: Repository<StorableClass<T>>, data: PrimaryKey<T> & K, parent: T) {
     assignNonSymbols(this, data);
     this[RelationRepository] = model;
     this[RelationParent] = parent;

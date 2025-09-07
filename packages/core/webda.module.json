@@ -348,7 +348,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "CronService"
       },
-      "Configuration": "lib/services/service:ServiceParameters"
+      "Configuration": "lib/interfaces:ServiceParameters"
     },
     "Webda/CryptoService": {
       "Import": "lib/services/cryptoservice:CryptoService",
@@ -572,7 +572,7 @@
         },
         "title": "CryptoService"
       },
-      "Configuration": "lib/services/cryptoservice:CryptoServiceParameters"
+      "Configuration": "lib/services/icryptoservice:CryptoServiceParameters"
     },
     "Webda/DebugMailer": {
       "Import": "lib/services/debugmailer:DebugMailer",
@@ -594,7 +594,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "DebugMailer"
       },
-      "Configuration": "lib/services/mailer:ServiceParameters"
+      "Configuration": "lib/interfaces:ServiceParameters"
     },
     "Webda/FileConfiguration": {
       "Import": "lib/configurations/fileconfiguration:FileConfigurationService",
@@ -625,7 +625,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "FileConfigurationService"
       },
-      "Configuration": "lib/configurations/fileconfiguration:ConfigurationServiceParameters"
+      "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
     },
     "Webda/FileLogger": {
       "Import": "lib/loggers/file:FileLoggerService",
@@ -673,7 +673,7 @@
         },
         "title": "FileLoggerService"
       },
-      "Configuration": "lib/loggers/file:FileLoggerServiceParameters"
+      "Configuration": "lib/loggers/params:FileLoggerServiceParameters"
     },
     "Webda/KubernetesConfigurationService": {
       "Import": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationService",
@@ -704,7 +704,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "KubernetesConfigurationService"
       },
-      "Configuration": "lib/configurations/kubernetesconfiguration:ConfigurationServiceParameters"
+      "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
     },
     "Webda/Mailer": {
       "Import": "lib/services/mailer:Mailer",
@@ -782,7 +782,7 @@
         },
         "title": "MemoryLoggerService"
       },
-      "Configuration": "lib/loggers/memory:MemoryLoggerServiceParameters"
+      "Configuration": "lib/loggers/params:MemoryLoggerServiceParameters"
     },
     "Webda/MemoryQueue": {
       "Import": "lib/queues/memoryqueue:MemoryQueue",
@@ -1266,41 +1266,6 @@
       ],
       "Identifier": "Webda/AbstractOwnerModel"
     },
-    "Webda/CoreModel": {
-      "Plural": "CoreModels",
-      "Import": "lib/models/coremodel:CoreModel",
-      "Relations": {},
-      "Ancestors": [],
-      "Subclasses": [],
-      "Reflection": {},
-      "Schema": {
-        "type": "object",
-        "properties": {},
-        "description": "Compatibility layer for core models",
-        "deprecated": "Use the Model from \"@webda/models\" directly",
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "CoreModel"
-      },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
-      "Events": [
-        "Create",
-        "PartialUpdate",
-        "Delete",
-        "Update",
-        "Created",
-        "PartialUpdated",
-        "Deleted",
-        "Updated"
-      ],
-      "PrimaryKey": [],
-      "Identifier": "Webda/CoreModel"
-    },
     "Webda/Ident": {
       "Plural": "Idents",
       "Import": "lib/models/ident:Ident",
@@ -1613,9 +1578,6 @@
       ],
       "Subclasses": [],
       "Reflection": {
-        "uuid": {
-          "type": "string"
-        },
         "_groups": {
           "type": "Array",
           "typeParameters": [
@@ -1652,6 +1614,9 @@
           "type": "string"
         },
         "email": {
+          "type": "string"
+        },
+        "uuid": {
           "type": "string"
         }
       },

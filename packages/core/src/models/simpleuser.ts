@@ -1,5 +1,5 @@
 import type { Ident } from "./ident";
-import { WEBDA_PRIMARY_KEY, type ModelsMapped } from "@webda/models";
+import { SelfJSONed,  type ModelsMapped } from "@webda/models";
 import { User } from "./user";
 
 /**
@@ -9,10 +9,29 @@ import { User } from "./user";
  * models
  */
 export class SimpleUser extends User {
+  constructor(data?: Partial<SelfJSONed<SimpleUser>>) {
+    super(data);
+    this.deserialize(data || {});
+  }
+
   /**
-   * UUID of the model
+   * Deserialize user data
+   * @param data User data
+   * @returns This instance
    */
-  uuid: string;
+  deserialize(data: Partial<SelfJSONed<SimpleUser>>): this {
+    super.deserialize(data);
+    if (data._groups) {
+      this._groups = data._groups;
+    }
+    if (data._roles) {
+      this._roles = data._roles;
+    }
+    if (data._idents) {
+      this._idents = data._idents as ModelsMapped<Ident, "_user", "_type" | "uid" | "email">;
+    }
+    return this;
+  }
   /**
    * Groups for a user
    */

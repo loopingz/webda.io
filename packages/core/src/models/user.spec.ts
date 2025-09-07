@@ -1,11 +1,21 @@
-import { suite, test } from "@webda/test";
+import { beforeAll, suite, test } from "@webda/test";
 import * as assert from "assert";
 import { User } from "./user";
 import { SimpleUser } from "./simpleuser";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
+import { MemoryRepository, registerRepository, useRepository } from "@webda/models";
 
 @suite
 class UserTest extends WebdaApplicationTest {
+  repo: MemoryRepository<typeof SimpleUser>;
+  
+  async beforeAll(init?: boolean): Promise<void> {
+    await super.beforeAll(init);
+    console.log("Register SimpleUser repo");
+    this.repo = new MemoryRepository(SimpleUser, ["uuid"]);
+    registerRepository(SimpleUser, this.repo);
+  }
+
   @test("Verify groups in user") async groupManagement() {
     const user: SimpleUser = await SimpleUser.create({}, false);
     user.addGroup("test");
@@ -49,25 +59,31 @@ class UserTest extends WebdaApplicationTest {
 
   @test
   async emailGetter() {
+        this.repo = new MemoryRepository(SimpleUser, ["uuid"]);
+    registerRepository(SimpleUser, this.repo);
+    console.log("Emailgetter", SimpleUser);
+    console.log("useRepo", useRepository(SimpleUser));
+
     const user: SimpleUser = await SimpleUser.create({}, false);
     assert.strictEqual(user.getEmail(), undefined);
+    const uuid = user.getUUID();
+    assert.notStrictEqual(uuid, undefined);
     assert.deepStrictEqual(user.toPublicEntry(), {
       avatar: undefined,
       displayName: undefined,
-      uuid: undefined,
-      email: undefined
+      email: undefined,
+      uuid
     });
-    // @ts-ignore
-    user["load"]({ _idents: [{}, { email: "testIdent@test.com" }] }, true);
+    user.deserialize({ _idents: [{}, { email: "testIdent@test.com" }] });
     assert.strictEqual(user.getEmail(), "testIdent@test.com");
-    user["load"]({ email: "test@test.com", displayName: "Top" });
+    user.deserialize({ email: "test@test.com", displayName: "Top" });
     assert.strictEqual(user.getEmail(), "test@test.com");
     assert.strictEqual(user.getDisplayName(), "Top");
     assert.deepStrictEqual(user.toPublicEntry(), {
       avatar: undefined,
       displayName: "Top",
       email: "test@test.com",
-      uuid: user.getUuid()
+      uuid: user.getUUID()
     });
   }
 }

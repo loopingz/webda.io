@@ -263,8 +263,8 @@ export class UnpackedApplication extends Application {
    * @param path
    * @returns
    */
-  @ProcessCache
-  static async findModulesFiles(path: string): Promise<string[]> {
+  @ProcessCache()
+  static async findModulesFiles<T extends any>(this: T, path: string): Promise<string[]> {
     if (!path.endsWith("node_modules") || !fs.existsSync(path)) {
       return [];
     }
@@ -274,7 +274,7 @@ export class UnpackedApplication extends Application {
         files.add(join(filepath, "webda.module.json"));
       }
       if (fs.existsSync(join(filepath, "node_modules"))) {
-        (await this.findModulesFiles(join(filepath, "node_modules"))).forEach(f => files.add(f));
+        (await UnpackedApplication.findModulesFiles(join(filepath, "node_modules"))).forEach(f => files.add(f));
       }
     };
     const recursiveSearch = async (dirpath: string, depth: number = 0) => {

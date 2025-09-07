@@ -7,13 +7,23 @@
     "declaration": true,
     "sourceMap": true,
     "isolatedModules": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": false,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
     "declarationMap": true,
     "useDefineForClassFields": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "src/**/*.spec.ts"
+  ],
+  "ts-node": {
+    "compilerOptions": {
+      "experimentalDecorators": false
+    }
+  }
 }

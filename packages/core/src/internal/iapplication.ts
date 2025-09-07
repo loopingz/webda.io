@@ -4,7 +4,7 @@
  * They should not import other files not prefixed with i.
  */
 
-import type { Attributes, Constructor, IsUnion, OmitByTypeRecursive, Prototype } from "@webda/tsc-esm";
+import type { Attributes, CustomConstructor, OmitByTypeRecursive, Prototype } from "@webda/tsc-esm";
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
 import { AsyncEventEmitter, AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter";
@@ -14,8 +14,8 @@ import { HttpMethodType } from "../contexts/httpcontext";
 import { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
 
-import type { ModelGraph, ModelMetadata, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
-import { Model, ModelLink, ModelRef, Repository, Storable } from "@webda/models";
+import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
+import { Model } from "@webda/models";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
 export type Values<T> = T[keyof T];
@@ -219,7 +219,7 @@ export abstract class AbstractService<
   abstract getOpenApiReplacements(): { [key: string]: string };
 }
 
-export type Modda<T = AbstractService> = Constructor<T, [name: string, params: any]> & {createConfiguration: (params: any) => any};
+export type Modda<T = AbstractService> = CustomConstructor<T, [name: string, params: any]> & {createConfiguration: (params: any) => any};
 
 /**
  * Application interface.
@@ -250,7 +250,7 @@ export interface IApplication {
   /**
    * Get a service definition by name
    */
-  getModda(name: string): Constructor<AbstractService, [string, any]> | undefined;
+  getModda(name: string): CustomConstructor<AbstractService, [string, any]> | undefined;
 }
 
 export enum SectionEnum {
@@ -540,7 +540,3 @@ export type ModelActions = {
 export type RawModel<T extends object> = Partial<
   OmitByTypeRecursive<Omit<T, "__dirty" | "Events" | "__type" | "__types" | "_new" | "context">, Function>
 >;
-
-export type ModelClass<T extends Model = Model> = Repository<T> & T & {
-  Metadata: ModelMetadata
-};

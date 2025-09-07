@@ -1,7 +1,8 @@
 import { IStore } from "./icore";
-import { AbstractService } from "../internal/iapplication";
+import { AbstractService, Reflection } from "../internal/iapplication";
 import { createCoreHook } from "./instancestorage";
 import pkg from "node-machine-id";
+import type { Model, ModelClass, Repository } from "@webda/models";
 //import { machineIdSync } from "node-machine-id";
 const { machineIdSync } = pkg;
 
@@ -13,8 +14,21 @@ export function useService<T = AbstractService>(name: string): T {
   return <T>useCore().getService(name);
 }
 
-export function useModelStore(name: string): IStore {
+/**
+ * Use model store
+ * @param name 
+ * @returns 
+ */
+export function useModelStore<T extends Model>(name: string | T | ModelClass<T>): IStore {
   return useCore().getModelStore(name);
+}
+
+export function useModelRepository<T extends Model>(name: string | T | ModelClass<T>): Repository<ModelClass<T>> {
+  return useModelStore(name) as unknown as Repository<ModelClass<T>>;
+}
+
+export function useModelMetadata(name: string | Model | ModelClass<Model>): Reflection {
+  return {} as Reflection;
 }
 
 /**

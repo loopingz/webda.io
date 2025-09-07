@@ -99,6 +99,7 @@ export class SerializerContext {
    * Contains all the registered serializers per type
    */
   protected serializers: { [key: string]: StoredSerializer };
+
   /**
    * Contains all the registered serializer for each constructor
    */
@@ -159,7 +160,7 @@ export class SerializerContext {
    */
   public registerSerializer(type: string, methods: Serializer, overwrite: boolean = false): this {
     if (!overwrite && this.serializers[type]) {
-      throw new Error(`Serializer for type ${type} already registered`);
+      throw new Error(`Serializer for type '${type}' already registered for a different class`);
     }
     const info: StoredSerializer = methods as StoredSerializer;
     if (!info.serializer) {
@@ -206,8 +207,8 @@ export class SerializerContext {
     if (serializer) {
       return serializer;
     }
-    // If the serializer is not found, throw an errorqc
-    throw new Error(`Serializer for type ${typeof type === "string" ? type : type.name} not found`);
+    // If the serializer is not found, throw an error
+    throw new Error(`Serializer for type '${typeof type === "string" ? type : type.name}' not found`);
   }
 
   /**
@@ -298,6 +299,13 @@ export class SerializerContext {
       return this.staticSerializer("undefined");
     } else if (typeof obj === "object" && this.typeSerializer.has(obj.constructor)) {
       serializer = this.typeSerializer.get(obj.constructor)!;
+    } else if (typeof obj === "object" && obj.constructor && typeof obj.constructor["deserialize"] === "function") {
+      // If two objects have same class name without being the same constructor it will fail
+      this.registerSerializer(obj.constructor.name, {
+        constructorType: obj.constructor,
+        deserializer: (o: any, metadata: any, context: SerializerContext) => obj.constructor["deserialize"](o),
+      });
+      serializer = this.typeSerializer.get(obj.constructor)!;
     } else if (typeof obj === "object") {
       serializer = this.serializers["object"];
     } else if (typeof obj === "number") {
@@ -308,7 +316,7 @@ export class SerializerContext {
       return { value: obj };
     }
 
-    const { value, metadata } = serializer?.serializer(obj, this);
+    const { value, metadata } = serializer.serializer(obj, this);
     if (serializer.type === "object" && metadata == undefined) {
       return { value };
     }

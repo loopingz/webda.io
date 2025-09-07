@@ -8,7 +8,8 @@ import {
   deserialize,
   ObjectSerializer,
   serializeRaw,
-  deserializeRaw
+  deserializeRaw,
+  Constructor
 } from "./serializer";
 
 class Test {
@@ -38,6 +39,27 @@ class Test {
     };
   }
 }
+
+class Test2 {
+  name: string;
+  static deserialize<T extends (...args: any[]) => any>(this: Constructor<T>, json: any) {
+    console.log("Deserialize Test2", this, json);
+    const instance = new this();
+    Object.assign(instance, json);
+    return instance;
+  }
+}
+
+class Test3 extends Test2 {
+  count: number;
+}
+
+class TestInvalid {
+  static deserialize() {
+    throw new Error("Invalid deserialize");
+  }
+}
+
 @suite
 class Serializer {
   @test
@@ -76,6 +98,7 @@ class Serializer {
     console.log("Serialized:", serialized);
     console.log("Deserialized:", deserialized);
     assert.deepStrictEqual(source, deserialized);
+    assert.throws(() => new SerializerContext().getSerializer("undefined2"), /Serializer for type 'undefined2' not found/);
   }
 
   @test
@@ -282,5 +305,48 @@ class Serializer {
       () => serializer.deserialize(`{"$serializer":{"type":"test2"}}`),
       /Serializer for type 'test2' not found/
     );
+  }
+
+  @test
+  testAutoRegister() {
+    const test = new Test2();
+    test.name = "test";
+    const serialized = serialize(test);
+    const { $serializer } = JSON.parse(serialized);
+    // Check that the serialized object has the correct type
+    assert.deepStrictEqual(
+      $serializer,
+      {
+        type: "Test2"
+      },
+      "Serialized object should have a simple type"
+    );
+    const deserialized = deserialize(serialized);
+    assert.deepStrictEqual(test, deserialized);
+    assert.ok(deserialized instanceof Test2);
+
+    const test3 = new Test3();
+    test3.name = "test3";
+    const serialized3 = serialize(test3);
+    const { $serializer: $serializer3 } = JSON.parse(serialized3);
+    // Check that the serialized object has the correct type
+    assert.deepStrictEqual(
+      $serializer3,
+      {
+        type: "Test3"
+      },
+      "Serialized object should have a simple type"
+    );
+    const deserialized3 = deserialize(serialized3);
+    assert.deepStrictEqual(test3, deserialized3);
+    assert.ok(deserialized3 instanceof Test3);
+
+    // Fake another class with same name but different constructor
+    registerSerializer("TestInvalid", {
+      constructorType: Test3,
+      deserializer: Test2.deserialize
+    });
+    const testInvalid = new TestInvalid();
+    assert.throws(() => serialize(testInvalid), /Serializer for type 'TestInvalid' already registered for a different class/);
   }
 }

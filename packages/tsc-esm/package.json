@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "tsc && chmod +x lib/bin.js",
+    "build:watch": "tsc --watch",
     "format": "prettier --check src/**/*",
     "lint": "eslint",
     "lint:fix": "eslint --fix",

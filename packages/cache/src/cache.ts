@@ -27,7 +27,7 @@ class CacheStorage extends Map<string, { value: any; timestamp: number }> {
   }
   getCachedMethod(key: string) {
     const cached = this.get(key);
-    return cached ? cached.value : undefined;
+    return cached?.value;
   }
 
   deleteCachedMethod(key: string) {
@@ -88,6 +88,7 @@ class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
 
 function getSource(provider: () => any, options: CacheOptions): CacheMap {
   const cache = provider();
+  // @ts-ignore
   cache.caches ??= new (options.cacheMap ?? CacheMap)(options);
   return cache.caches;
 }

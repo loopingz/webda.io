@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, realpathSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import { createPropertyDecorator } from "@webda/decorators";
 
@@ -224,6 +224,12 @@ export function getFileName(importMeta: ImportMeta): string {
  * @returns
  */
 export function isMainModule(importMeta: ImportMeta): boolean {
+  if (typeof process === "undefined") {
+    return false;
+  }
+  const mainModule = process.argv[1];
+  // mainModule can be a symbolic link so we need to resolve it
+  const realPath = realpathSync(mainModule);
   // @ts-ignore
-  return importMeta.url === (typeof process !== "undefined" ? `file://${process.argv[1]}` : undefined);
+  return importMeta.url === (typeof process !== "undefined" ? `file://${realPath}` : undefined);
 }

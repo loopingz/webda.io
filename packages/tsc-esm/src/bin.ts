@@ -5,7 +5,6 @@ import { writer, isMainModule } from "./lib.js";
 
 if (isMainModule(import.meta)) {
   const configFileName = path.join(process.cwd(), "tsconfig.json");
-
   if (process.argv.includes("--watch")) {
     const host = ts.createWatchCompilerHost(
       configFileName,

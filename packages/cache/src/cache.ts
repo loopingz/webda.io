@@ -1,6 +1,5 @@
 import { createMethodDecorator, MethodDecorator, getMetadata } from "@webda/decorators";
 import { createHash } from "node:crypto";
-import { Constructor } from "@webda/tsc-esm";
 
 /**
  * Storage for a single instance
@@ -96,8 +95,8 @@ function getSource(provider: () => any, options: CacheOptions): CacheMap {
 interface CacheOptions {
   keyGenerator?: (property: string, args: any[]) => string;
   ttl?: number; // milliseconds
-  cacheMap?: Constructor<CacheMap>;
-  cacheStorage?: Constructor<CacheStorage>;
+  cacheMap?: new (options: CacheOptions) => CacheMap;
+  cacheStorage?: new (options?: CacheOptions) => CacheStorage;
 }
 
 export function createCacheAnnotation(source: () => any, options: CacheOptions = {}) {
@@ -122,7 +121,7 @@ export function createCacheAnnotation(source: () => any, options: CacheOptions =
         if (cache.hasCachedMethod(this, key)) {
           return cache.getCachedMethod(this, key);
         }
-        const res = value(...args);
+        const res = value.apply(this, args);
         cache.setCachedMethod(this, key, args, res);
         return res;
       };

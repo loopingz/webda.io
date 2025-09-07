@@ -32,9 +32,12 @@ function processKey(property: string, args: any[]) {
  * Test the cache
  */
 class MyObject {
+  localCount = 0;
+
   @InstanceCache()
   method(argument1: string, argument2: any) {
     callCount++;
+    this.localCount++;
     return callCount;
   }
 
@@ -47,12 +50,14 @@ class MyObject {
   @ProcessCache(processKey)
   processCachedMethod(argument1: string, argument2: any) {
     callCount++;
+    this.localCount++;
     return callCount;
   }
 
   @TTLCache()
   ttlCachedMethod(argument1: string, argument2: any) {
     callCount++;
+    this.localCount++;
     return callCount;
   }
 }

@@ -11,24 +11,34 @@ function runWithInstanceStorage(store, callback) {
   });
 }
 
+const ttlCache: { caches: Map<any, any> } = {} as any;
 const InstanceCache = createCacheAnnotation(() => storage.getStore());
+const TTLCache = createCacheAnnotation(() => ttlCache, { ttl: 100 });
 
 let callCount = 0;
-function processKey() {
-  return "test";
+/**
+ * We only care about the first argument for this test
+ * @param property
+ * @param args
+ * @returns
+ */
+function processKey(property: string, args: any[]) {
+  return `${property}$${args[0]}`;
 }
+
+//MyMethodDecorator.clear = function (target: any, propertyKey: string, ...args: any[]) {};
 
 /**
  * Test the cache
  */
 class MyObject {
-  @InstanceCache
+  @InstanceCache()
   method(argument1: string, argument2: any) {
     callCount++;
     return callCount;
   }
 
-  @InstanceCache
+  @InstanceCache()
   static method2(arg: string) {
     callCount++;
     return callCount;
@@ -36,6 +46,12 @@ class MyObject {
 
   @ProcessCache(processKey)
   processCachedMethod(argument1: string, argument2: any) {
+    callCount++;
+    return callCount;
+  }
+
+  @TTLCache()
+  ttlCachedMethod(argument1: string, argument2: any) {
     callCount++;
     return callCount;
   }
@@ -67,9 +83,34 @@ class CacheTest {
   processCache() {
     const obj = new MyObject();
     callCount = 0;
+    // This cache uses only the first argument to create the key
     assert.strictEqual(obj.processCachedMethod("test", 1), 1);
     assert.strictEqual(obj.processCachedMethod("test", 1), 1);
-    assert.strictEqual(obj.processCachedMethod("test", 2), 2);
-    assert.strictEqual(obj.processCachedMethod("test", 2), 2);
+    assert.strictEqual(obj.processCachedMethod("test", 2), 1);
+    assert.strictEqual(obj.processCachedMethod("test2", 2), 2);
+    assert.strictEqual(obj.processCachedMethod("test2", 2), 2);
+    // We clear only the "test2" key
+    ProcessCache.clear(obj, "processCachedMethod", "test2");
+    assert.strictEqual(obj.processCachedMethod("test2", 2), 3);
+    ProcessCache.clearAll(obj, "processCachedMethod");
+    assert.strictEqual(obj.processCachedMethod("test", 1), 4);
+    assert.strictEqual(obj.processCachedMethod("test2", 2), 5);
+  }
+
+  @test
+  async ttlCache() {
+    const obj = new MyObject();
+    callCount = 0;
+    assert.strictEqual(obj.ttlCachedMethod("test", 1), 1);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.strictEqual(obj.ttlCachedMethod("test", 1), 1);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.strictEqual(obj.ttlCachedMethod("test", 1), 2);
+    // Check that garbage collection works
+    assert.strictEqual(ttlCache.caches.get(obj).size, 1);
+    await new Promise(resolve => setTimeout(resolve, 120));
+    assert.strictEqual(ttlCache.caches.get(obj).size, 1);
+    TTLCache.garbageCollect();
+    assert.strictEqual(ttlCache.caches.get(obj).size, 0);
   }
 }

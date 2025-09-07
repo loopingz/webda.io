@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { createClassDecorator, createMethodDecorator, createPropertyDecorator } from "./decorator.js";
+import { createClassDecorator, createMethodDecorator, createPropertyDecorator, getMetadata } from "./decorator.js";
 import * as assert from "assert";
 
 const calls: any[] = [];
@@ -20,6 +20,8 @@ const MyPropertyDecorator = createPropertyDecorator(
   (value: any, context: ClassFieldDecoratorContext, options?: { name: string }) => {
     // Do nothing
     calls.push({ value, context, options });
+    context.metadata!["info"] ??= [];
+    (context.metadata!["info"] as Array<any>).push([context.kind, context.name] );
   }
 );
 
@@ -38,13 +40,14 @@ class Test2 {
   @MyPropertyDecorator({ name: "plop" })
   attr: string;
   @MyMethodDecorator({ name: "plop" })
-  method() {}
+  method() : number {
+    return 12;
+  }
 }
 
 describe("decorator", () => {
   it("should be defined", () => {
     //
-    console.log(calls);
     assert.deepStrictEqual(calls.length, 6);
     const classes = calls.filter(c => c.context.kind === "class");
     const fields = calls.filter(c => c.context.kind === "field");
@@ -57,5 +60,7 @@ describe("decorator", () => {
     assert.strictEqual(calls.filter(c => c.options?.name === "plop" && c.context.kind === "field").length, 1);
     assert.strictEqual(calls.filter(c => c.options?.name === "plop" && c.context.kind === "method").length, 1);
     assert.strictEqual(calls.filter(c => !c.options).length, 3);
+    const metadata = getMetadata(Test);
+    assert.deepStrictEqual(metadata?.info, [["field", "attr"]]);
   });
 });

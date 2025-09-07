@@ -11,8 +11,8 @@ export function createMethodDecorator<T extends AnyMethod, TArgs extends any[]>(
   implementation: (value: T, context: ClassMethodDecoratorContext, ...args: TArgs) => T | void
 ) {
   // Overloads: acts as a decorator OR as a decorator factory
-  function deco(value: T, context: ClassMethodDecoratorContext): T | void;
-  function deco(...args: TArgs): (value: T, context: ClassMethodDecoratorContext) => T | void;
+  function deco(value: T, context: ClassMethodDecoratorContext): T;
+  function deco(...args: TArgs): (value: T, context: ClassMethodDecoratorContext) => T;
 
   function deco(...all: unknown[]) {
     // If called directly as a decorator: @deco
@@ -96,3 +96,14 @@ export function createPropertyDecorator<V = unknown, TArgs extends any[] = []>(
 export type FieldDecorator = ReturnType<typeof createPropertyDecorator>;
 export type ClassDecorator = ReturnType<typeof createClassDecorator>;
 export type MethodDecorator = ReturnType<typeof createMethodDecorator>;
+
+/**
+ * Return decorator metadata
+ * @param target 
+ * @returns 
+ */
+export function getMetadata(target: AnyCtor): any {
+  const metaSym = Object.getOwnPropertySymbols(target).find(sym => sym.toString().includes("Symbol.metadata"));
+  // @ts-ignore
+  return target[metaSym];
+}

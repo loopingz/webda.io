@@ -1,109 +1,152 @@
-class CacheStorage extends Map<string, any> {
-  getKey(property: string, args: any[]) {
-    return property + "$" + JSON.stringify(args);
+import { createMethodDecorator, MethodDecorator, getMetadata } from "@webda/decorators";
+import { createHash } from "node:crypto";
+import { Constructor } from "@webda/tsc-esm";
+
+/**
+ * Storage for a single instance
+ */
+class CacheStorage extends Map<string, { value: any; timestamp: number }> {
+  constructor(private options?: CacheOptions) {
+    super();
   }
 
-  hasCachedMethod(property: string, args: any[]) {
-    return this.has(this.getKey(property, args));
+  hasCachedMethod(key: string) {
+    // Implement TTL check if needed
+    if (this.options?.ttl) {
+      const cached = this.get(key);
+      if (cached && Date.now() - cached.timestamp > this.options.ttl) {
+        this.delete(key);
+        return false;
+      }
+    }
+    return this.has(key);
   }
-  setCachedMethod(property: string, args: any[], value: any) {
-    this.set(this.getKey(property, args), value);
+  setCachedMethod(key: string, args: any[], value: any) {
+    // Might want to not use Date.now() on every set, but use a every N seconds tick instead
+    this.set(key, { value, timestamp: Date.now() });
   }
-  getCachedMethod(property: string, args: any[]) {
-    return this.get(this.getKey(property, args));
+  getCachedMethod(key: string) {
+    const cached = this.get(key);
+    return cached ? cached.value : undefined;
   }
 
-  deleteCachedMethod(property: string, args?: any[]) {
-    if (args === undefined) {
-      for (const key of this.keys()) {
-        if (key.startsWith(property + "$")) {
-          this.delete(key);
+  deleteCachedMethod(key: string) {
+    if (key.endsWith("$")) {
+      for (const k of this.keys()) {
+        if (k.startsWith(key)) {
+          this.delete(k);
         }
       }
     } else {
-      this.delete(this.getKey(property, args));
+      this.delete(key);
+    }
+  }
+
+  garbageCollect() {
+    if (this.options?.ttl) {
+      const now = Date.now();
+      for (const [key, { timestamp }] of this.entries()) {
+        if (now - timestamp > this.options.ttl) {
+          this.delete(key);
+        }
+      }
     }
   }
 }
 
-class CacheMap<T extends object = object> extends WeakMap<T, CacheStorage> {
-  getCachedMethod(target: T, propertyKey: string, args: any[]) {
-    if (this.has(target)) {
-      const cache = this.get(target);
-      return cache.getCachedMethod(propertyKey, args);
-    }
-    return undefined;
+class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
+  constructor(private options?: CacheOptions) {
+    super();
   }
 
-  hasCachedMethod(target: T, propertyKey: string, args: any[]) {
+  getCachedMethod(target: T, key: string) {
+    return this.get(target).getCachedMethod(key);
+  }
+
+  hasCachedMethod(target: T, key: string) {
     if (this.has(target)) {
       const cache = this.get(target);
-      return cache.hasCachedMethod(propertyKey, args);
+      return cache.hasCachedMethod(key);
     }
     return false;
   }
 
-  setCachedMethod(target: T, propertyKey: string, args: any[], value: any) {
+  setCachedMethod(target: T, key: string, args: any[], value: any) {
     if (!this.has(target)) {
-      this.set(target, new CacheStorage());
+      this.set(target, new (this.options.cacheStorage ?? CacheStorage)(this.options));
     }
     const cache = this.get(target);
-    cache.setCachedMethod(propertyKey, args, value);
+    cache.setCachedMethod(key, args, value);
+  }
+
+  garbageCollect() {
+    for (const [target, cache] of this.entries()) {
+      cache.garbageCollect();
+    }
   }
 }
 
-function getSource(provider: () => any): CacheMap {
+function getSource(provider: () => any, options: CacheOptions): CacheMap {
   const cache = provider();
-  cache.caches ??= new CacheMap();
+  cache.caches ??= new (options.cacheMap ?? CacheMap)(options);
   return cache.caches;
 }
 
-function defaultKeyGenerator(...args) {
-  return "default";
+interface CacheOptions {
+  keyGenerator?: (property: string, args: any[]) => string;
+  ttl?: number; // milliseconds
+  cacheMap?: Constructor<CacheMap>;
+  cacheStorage?: Constructor<CacheStorage>;
 }
 
-function annotatedMethod(
-  source: () => any,
-  keyProvider: (...args: any[]) => string,
-  target: any,
-  propertyKey: string,
-  descriptor: PropertyDescriptor
-) {
-  const originalMethod = descriptor.value;
-  descriptor.value = function cachedMethod(...args: any[]) {
-    // Generate a key based on the arguments
-    //const key = keyProvider(this, target, propertyKey, descriptor, ...args);
-    const cache = getSource(source);
-    if (cache.hasCachedMethod(this, propertyKey, args)) {
-      return cache.getCachedMethod(this, propertyKey, args);
-    }
-    const result = originalMethod.apply(this, args);
-    cache.setCachedMethod(this, propertyKey, args, result);
-    return result;
-  };
-  return descriptor;
-}
+export function createCacheAnnotation(source: () => any, options: CacheOptions = {}) {
+  options.keyGenerator ??= (property: string, args: any[]) =>
+    property + "$" + createHash("sha256").update(JSON.stringify(args)).digest("base64");
 
-export function createCacheAnnotation(source: () => any) {
-  const annotation = function annotationDecorator(...args: [(() => string)?] | [any, string, PropertyDescriptor]): any {
-    if (args.length === 3) {
-      return annotatedMethod(source, defaultKeyGenerator, ...args);
+  const annotation: MethodDecorator & {
+    garbageCollect: () => void;
+    clear: (target: object, propertyKey: string, ...args: any[]) => void;
+    clearAll: (target: object, propertyKey: string) => void;
+  } = createMethodDecorator(
+    (value: any, context: ClassMethodDecoratorContext, keyGenerator?: (property: string, args: any[]) => string) => {
+      if (keyGenerator) {
+        context.metadata["webda.cache.keyGenerator"] ??= {};
+        context.metadata["webda.cache.keyGenerator"][value.name] = keyGenerator;
+      }
+      // eslint-disable-next-line func-names -- required to keep 'this' context
+      return function (...args: any[]) {
+        const cache = getSource(source, options);
+        keyGenerator ??= options.keyGenerator;
+        const key = keyGenerator(value.name, args);
+        if (cache.hasCachedMethod(this, key)) {
+          return cache.getCachedMethod(this, key);
+        }
+        const res = value(...args);
+        cache.setCachedMethod(this, key, args, res);
+        return res;
+      };
     }
-    return function arged(target, propertyKey, descriptor) {
-      return annotatedMethod(source, args[0] ?? defaultKeyGenerator, target, propertyKey, descriptor);
-    };
-  };
+  );
+
   annotation.clear = function clearCache(target: any, propertyKey: string, ...args: any[]) {
-    const cache = getSource(source);
+    const cache = getSource(source, options);
+    const keyGenerator =
+      getMetadata(target.constructor ? target.constructor : target)?.["webda.cache.keyGenerator"]?.[propertyKey] ||
+      options.keyGenerator;
+    const key = keyGenerator(propertyKey, args);
     if (cache.has(target)) {
-      cache.get(target).deleteCachedMethod(propertyKey, args);
+      cache.get(target).deleteCachedMethod(key);
     }
   };
   annotation.clearAll = function clearAllCache(target: any, propertyKey: string) {
-    const cache = getSource(source);
+    const cache = getSource(source, options);
     if (cache.has(target)) {
-      cache.get(target).deleteCachedMethod(propertyKey);
+      cache.get(target).deleteCachedMethod(propertyKey + "$");
     }
+  };
+  annotation.garbageCollect = function garbageCollect() {
+    const cache = getSource(source, options);
+    cache.garbageCollect();
   };
   return annotation;
 }

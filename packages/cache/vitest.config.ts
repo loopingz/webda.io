@@ -11,7 +11,7 @@ export default defineConfig({
       exclude: ["src/*.spec.ts"],
       reporter: ["lcov", "html", "text"]
     },
-    setupFiles: ["./vitest.chdir.mts"],
+    //setupFiles: ["./vitest.chdir.mts"],
     reporters: "verbose",
     include: ["src/*.spec.ts"]
   }

@@ -6,10 +6,10 @@ import {
   ModelLinksSimpleArray,
   ModelMapLoaderImplementation
 } from "./relations";
-import { MemoryRepository } from "./repository";
+import { MemoryRepository } from "./repositories/memory";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { ConcreteStorable, PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PLURAL } from "./storable";
+import { PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PLURAL } from "./storable";
 import { TestModel } from "./model.spec";
 
 const mySymbol = Symbol("mySymbol");
@@ -32,7 +32,7 @@ TestSimpleModel.registerSerializer();
 class RelationsTest {
   @test
   async modelRef() {
-    const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
+    const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel();
     model.setPrimaryKey("test");
@@ -45,7 +45,7 @@ class RelationsTest {
 
   @test
   async modelLink() {
-    const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
+    const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel({ name: "Test", age: 10 });
     model.setPrimaryKey("test");
@@ -62,7 +62,7 @@ class RelationsTest {
 
   @test
   async modelMapImplementation() {
-    const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
+    const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
     const model = new TestSimpleModel();
     model.name = "Test";
     model.setPrimaryKey("test");
@@ -79,7 +79,7 @@ class RelationsTest {
 
   @test
   async modelLinksArray() {
-    const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
+    const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel({ name: "Test", age: 10, uuid: "test" });
     await repo.create(model);
@@ -158,7 +158,7 @@ class RelationsTest {
 
   @test
   async modelLinksSimpleArray() {
-    const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
+    const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel({ name: "Test", age: 10, uuid: "test" });
     model.setPrimaryKey("test");
@@ -201,7 +201,7 @@ class RelationsTest {
     // Might remove set method
     links.set();
 
-    const repo2 = new MemoryRepository<TestModel>(TestModel, ["id", "name"]);
+    const repo2 = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
     const links2 = new ModelLinksSimpleArray<TestModel>(repo2, []);
     links2.add({
       id: "test",
@@ -211,7 +211,7 @@ class RelationsTest {
 
   @test
   async modelLinksMap() {
-    const repo = new MemoryRepository<TestSimpleModel>(TestSimpleModel, ["uuid"]);
+    const repo = new MemoryRepository<typeof TestSimpleModel>(TestSimpleModel, ["uuid"]);
     TestSimpleModel.registerRepository(repo);
     const model = new TestSimpleModel({ name: "Test", age: 10 });
     model[WEBDA_DIRTY] = new Set();
@@ -246,7 +246,7 @@ class RelationsTest {
 
   @test
   async modelLinksMapWithCompositeId() {
-    const repo = new MemoryRepository<TestModel>(TestModel, ["id", "name"]);
+    const repo = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
     TestModel.registerRepository(repo);
     const model = new TestModel({ id: "test", name: "test" } as any);
     model[WEBDA_DIRTY] = new Set();

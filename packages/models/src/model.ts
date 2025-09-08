@@ -7,14 +7,14 @@ import {
   type PrimaryKeyType,
   type Storable,
   WEBDA_PRIMARY_KEY_SEPARATOR,
-  StorableClass,
+  StorableClass
 } from "./storable";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
 import { type ModelRefWithCreate, type ModelRef, assignNonSymbols } from "./relations";
 import { ExecutionContext, Exposable, WEBDA_ACTIONS, type ActionsEnum } from "./actionable";
 import type { Prototype } from "@webda/tsc-esm";
-import type { Repository } from "./repository";
+import type { Repository } from "./repositories/repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 
 /**
@@ -64,10 +64,7 @@ export function useRepository<T extends StorableClass>(arg: T): Repository<T> {
  * @param this
  * @param repository
  */
-export function registerRepository<T extends StorableClass>(
-  model: T,
-  repository: Repository<T>
-): void {
+export function registerRepository<T extends StorableClass>(model: T, repository: Repository<T>): void {
   Repositories.set(model, repository);
 }
 
@@ -89,12 +86,8 @@ export type ModelClass<T extends Model = Model> = {
    * @param key
    */
   ref<T extends StorableClass>(this: T, key: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
-  iterate<T extends StorableClass>(this: T, query: string) : Iterable<Promise<InstanceType<T>>>;
-  create<T extends StorableClass>(
-    this: T,
-    data: ConstructorParameters<T>[0],
-    save?: boolean
-  ): Promise<InstanceType<T>>;
+  iterate<T extends StorableClass>(this: T, query: string): Iterable<Promise<InstanceType<T>>>;
+  create<T extends StorableClass>(this: T, data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
   query<T extends StorableClass>(
     this: T,
     query: string
@@ -107,7 +100,6 @@ export type ModelClass<T extends Model = Model> = {
   registerSerializer<T extends StorableClass>(
     this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any }
   ): void;
-
 };
 
 export type ModelActions<
@@ -182,7 +174,9 @@ export abstract class Model implements Storable, Securable, Exposable {
    * K is inferred as the literal tuple type of `this.keyFields`,
    * so K[number] is the exact union of keys you wrote.
    */
-  getPrimaryKey<K extends readonly (keyof this)[]>(this: this & { [WEBDA_PRIMARY_KEY]: K, [WEBDA_PRIMARY_KEY_SEPARATOR]?: string }): PrimaryKeyType<this> {
+  getPrimaryKey<K extends readonly (keyof this)[]>(
+    this: this & { [WEBDA_PRIMARY_KEY]: K; [WEBDA_PRIMARY_KEY_SEPARATOR]?: string }
+  ): PrimaryKeyType<this> {
     const result = {} as Pick<this, K[number]>;
     if (this[WEBDA_PRIMARY_KEY].length === 1) {
       return this[this[WEBDA_PRIMARY_KEY][0]] as any;
@@ -247,7 +241,11 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param data
    * @returns
    */
-  static create<T extends StorableClass>(this: T, data: ConstructorParameters<T>[0], save: boolean = true): Promise<InstanceType<T>> {
+  static create<T extends StorableClass>(
+    this: T,
+    data: ConstructorParameters<T>[0],
+    save: boolean = true
+  ): Promise<InstanceType<T>> {
     return useRepository(this).create(data, save);
   }
 
@@ -273,7 +271,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param query
    * @returns
    */
-  static *iterate<T extends StorableClass>(this: T, query: string) : Iterable<Promise<InstanceType<T>>> {
+  static *iterate<T extends StorableClass>(this: T, query: string): Iterable<Promise<InstanceType<T>>> {
     return useRepository(this).iterate(query);
   }
 
@@ -314,7 +312,10 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param key
    * @returns
    */
-  static ref<T extends StorableClass>(this: T, key: PrimaryKeyType<InstanceType<T>> | string): ModelRefWithCreate<InstanceType<T>> {
+  static ref<T extends StorableClass>(
+    this: T,
+    key: PrimaryKeyType<InstanceType<T>> | string
+  ): ModelRefWithCreate<InstanceType<T>> {
     return Repositories.get(this).ref(key);
   }
 

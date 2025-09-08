@@ -1,7 +1,9 @@
 import { createCoreHook } from "../core/instancestorage";
-import { Model, Repository, ModelClass } from "@webda/models";
+import type { Model, ModelClass } from "@webda/models";
 /**
  * Hook to get the current application
+ * 
+ * We use a _ to be able to document the subhooks
  */
 const [_useApplication, _setApplication] = createCoreHook("application");
 
@@ -15,6 +17,7 @@ const useApplication = _useApplication;
  * @param application
  */
 const setApplication = _setApplication;
+
 export { useApplication, setApplication };
 
 // Subhooks - using the application to shortcut to a specific
@@ -48,5 +51,6 @@ export function useSchema(name: string) {
  * @returns The model identifier or undefined if not found, e.g. "User" or "Webda/User"
  */
 export function useModelId(object: any, full: boolean = false): string | undefined {
-  return useApplication().getModelId(object, full);
+  // TODO Check for full
+  return useApplication().getModelId(object);
 }

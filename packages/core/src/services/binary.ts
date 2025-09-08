@@ -13,7 +13,7 @@ import { IOperationContext } from "../contexts/icontext";
 import { IStore } from "../core/icore";
 import { MappingService } from "../stores/istore";
 import { Model, Storable } from "@webda/models";
-import { useModel } from "../application/hook";
+import { streamToBuffer } from "@webda/utils";
 
 /**
  * Represent basic EventBinary
@@ -711,12 +711,7 @@ export abstract class BinaryService<
    */
   static streamToBuffer(stream: Readable): Promise<Buffer> {
     // codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer
-    const chunks = [];
-    return new Promise((resolve, reject) => {
-      stream.on("data", chunk => chunks.push(Buffer.from(chunk)));
-      stream.on("error", err => reject(err));
-      stream.on("end", () => resolve(Buffer.concat(chunks)));
-    });
+    return streamToBuffer(stream);
   }
 
   /**

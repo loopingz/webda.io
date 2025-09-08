@@ -7,13 +7,16 @@ import { MemoryRepository, registerRepository, useRepository } from "@webda/mode
 
 @suite
 class UserTest extends WebdaApplicationTest {
-  repo: MemoryRepository<typeof SimpleUser>;
-  
+  simpleUserRepo: MemoryRepository<typeof SimpleUser>;
+  userRepo: MemoryRepository<typeof User>;
+
   async beforeAll(init?: boolean): Promise<void> {
     await super.beforeAll(init);
     console.log("Register SimpleUser repo");
-    this.repo = new MemoryRepository(SimpleUser, ["uuid"]);
-    registerRepository(SimpleUser, this.repo);
+    this.simpleUserRepo = new MemoryRepository(SimpleUser, ["uuid"]);
+    registerRepository(SimpleUser, this.simpleUserRepo);
+    this.userRepo = new MemoryRepository(User, ["uuid"]);
+    registerRepository(User, this.userRepo);
   }
 
   @test("Verify groups in user") async groupManagement() {
@@ -59,11 +62,6 @@ class UserTest extends WebdaApplicationTest {
 
   @test
   async emailGetter() {
-        this.repo = new MemoryRepository(SimpleUser, ["uuid"]);
-    registerRepository(SimpleUser, this.repo);
-    console.log("Emailgetter", SimpleUser);
-    console.log("useRepo", useRepository(SimpleUser));
-
     const user: SimpleUser = await SimpleUser.create({}, false);
     assert.strictEqual(user.getEmail(), undefined);
     const uuid = user.getUUID();

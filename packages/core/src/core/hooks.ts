@@ -3,6 +3,7 @@ import { AbstractService, Reflection } from "../internal/iapplication";
 import { createCoreHook } from "./instancestorage";
 import pkg from "node-machine-id";
 import type { Model, ModelClass, Repository } from "@webda/models";
+import { useApplication, useModelId } from "../application/hooks";
 //import { machineIdSync } from "node-machine-id";
 const { machineIdSync } = pkg;
 
@@ -28,7 +29,7 @@ export function useModelRepository<T extends Model>(name: string | T | ModelClas
 }
 
 export function useModelMetadata(name: string | Model | ModelClass<Model>): Reflection {
-  return {} as Reflection;
+  return useApplication().getModelMetadata(typeof name === "string" ? name : useModelId(name));
 }
 
 /**

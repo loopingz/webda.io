@@ -3,7 +3,8 @@ import * as assert from "assert";
 import { Model, ModelClass, UuidModel } from "./model";
 import { isStorable, PrimaryKeyEquals, SelfJSONed, Storable, StorableClass, WEBDA_PRIMARY_KEY } from "./storable";
 import { ExecutionContext, isExposable, isSecurable, Operation } from "./index";
-import { MemoryRepository, Repository } from "./repository";
+import { Repository } from "./repositories/repository";
+import { MemoryRepository } from "./repositories/memory";
 
 type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -97,7 +98,7 @@ class ModelTest {
       name: "Test",
       age: 10,
       email: "test@example.com"
-    })
+    });
   }
 
   @test

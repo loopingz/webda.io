@@ -42,7 +42,7 @@ export * from "./queues/memoryqueue";
 export * from "./index";
 export * from "./application/unpackedapplication";
 export * from "./application/application";
-export * from "./application/hook";
+export * from "./application/hooks";
 export * from "./events/asynceventemitter";
 export * from "./events/events";
 export * from "./services/oauth";
@@ -73,9 +73,7 @@ export * from "./rest/originfilter";
 export * from "./session/manager";
 export * from "./session/cookie";
 export * from "./session/session";
-export * from "./utils/misc";
-
-//import { GitInformation } from "./internal/iapplication";
+export * from "./templates/templates";
 
 export type {
   GitInformation,

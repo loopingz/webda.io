@@ -1,5 +1,5 @@
 import Ajv, { ErrorObject } from "ajv";
-import { useApplication, useModelId } from "../application/hook";
+import { useApplication, useModelId } from "../application/hooks";
 import { useCore } from "../core/hooks";
 import { Model } from "@webda/models";
 

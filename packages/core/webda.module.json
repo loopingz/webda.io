@@ -1266,6 +1266,52 @@
       ],
       "Identifier": "Webda/AbstractOwnerModel"
     },
+    "Webda/CoreModel": {
+      "Plural": "CoreModels",
+      "Import": "lib/models/coremodel:CoreModel",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schema": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "CoreModel"
+      },
+      "Actions": {
+        "create": {},
+        "get": {},
+        "update": {},
+        "delete": {},
+        "query": {}
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Updated"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/CoreModel"
+    },
     "Webda/Ident": {
       "Plural": "Idents",
       "Import": "lib/models/ident:Ident",

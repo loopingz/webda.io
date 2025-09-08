@@ -3,17 +3,19 @@ import type { ConfigurationProvider } from "../configurations/configuration";
 import * as WebdaError from "../errors/errors";
 import { Throttler } from "@webda/utils";
 
-import type { Model, ModelClass } from "@webda/models";
+import type { Model, ModelClass, Repository } from "@webda/models";
 import type { RawModel } from "../internal/iapplication";
 import { ServiceParameters } from "../interfaces";
 import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
 import { runAsSystem, useContext } from "../contexts/execution";
 import { MappingService } from "./istore";
-import { useApplication, useModel, useModelId } from "../application/hook";
+import { useApplication, useModel, useModelId } from "../application/hooks";
 import { useRegistry } from "../models/registry";
 import { useLog } from "../loggers/hooks";
 import { useModelMetadata } from "../core/hooks";
+import { RepositoryStoreAdapter } from "./repositoryadapter";
+import { InstanceCache } from "../cache/cache";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: string, storeName: string) {
@@ -272,7 +274,7 @@ export class StoreParameters extends ServiceParameters {
 
   default() {
     super.default();
-    this.model ??= "Webda/CoreModel";
+    this.model ??= "Webda/RegistryModel";
     this.strict ??= false;
     this.defaultModel ??= true;
     this.forceModel ??= false;
@@ -357,7 +359,13 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     super.computeParameters();
     const app = useApplication();
     this._model = useModel(this.parameters.model);
+    if (!this._model) {
+      throw new Error(`Model not found: ${this.parameters.model}`);
+    }
     this._modelMetadata = useModelMetadata(this._model);
+    if (!this._modelMetadata) {
+      throw new Error(`Model Metadata not found: ${this.parameters.model}`);
+    }
     useLog("TRACE", "METADATA", this._modelMetadata);
     this._modelType = this._modelMetadata.Identifier;
     if (!this.parameters.noCache) {
@@ -1552,6 +1560,11 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     itemWriteCondition: any,
     updateDate: Date
   ): Promise<any>;
+
+  @InstanceCache()
+  getRepository<T extends ModelClass>(model: T): Repository<T> {
+    return new RepositoryStoreAdapter<T>(this, model);
+  }
 }
 
 export { Store };

@@ -143,7 +143,7 @@ export interface Reflection {
   /**
    * Attributes that define the uuid of the model
    */
-  PrimaryKey: string | string[];
+  PrimaryKey: string[];
   /**
    * Separator for the primary key to serialize it
    */
@@ -187,7 +187,8 @@ export abstract class AbstractService<
     super();
     this.name = name;
     // TODO Remove to auto create based on service definition
-    this.parameters = !(params instanceof ServiceParameters) && this["loadParameters"] ? this["loadParameters"](params) : params;
+    this.parameters =
+      !(params instanceof ServiceParameters) && this["loadParameters"] ? this["loadParameters"](params) : params;
   }
 
   /**
@@ -219,7 +220,9 @@ export abstract class AbstractService<
   abstract getOpenApiReplacements(): { [key: string]: string };
 }
 
-export type Modda<T = AbstractService> = CustomConstructor<T, [name: string, params: any]> & {createConfiguration: (params: any) => any};
+export type Modda<T = AbstractService> = CustomConstructor<T, [name: string, params: any]> & {
+  createConfiguration: (params: any) => any;
+};
 
 /**
  * Application interface.
@@ -239,6 +242,11 @@ export interface IApplication {
    * Get an application model
    */
   getModel(name: string | object): any;
+  /**
+   * Get the metadata for a model
+   * @param name
+   */
+  getModelMetadata(name: string): Reflection | undefined;
 
   /**
    * Get Webda model name

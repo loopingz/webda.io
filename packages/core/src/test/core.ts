@@ -1,7 +1,7 @@
 import { afterEach, CallbackOptionallyAsync, testWrapper, getMetadata } from "@webda/test";
 import { ConsoleLogger, MemoryLogger, useLog, useWorkerOutput } from "@webda/workout";
 import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
-import { sanitizeFilename } from "../utils/misc";
+import { sanitizeFilename } from "@webda/utils";
 import { dirname } from "node:path";
 
 /**

@@ -1,28 +1,34 @@
-import { type WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import * as fs from "fs";
-import type { JSONSchema7 } from "json-schema";
-import * as path from "path";
-import * as WebdaError from "../errors/errors";
-import { FileUtils, getCommonJS } from "@webda/utils";
-const { __dirname } = getCommonJS(import.meta.url);
-import {
+import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import type {
+  AbstractService,
   CachedModule,
   Configuration,
   GitInformation,
-  IApplication,
-  WebdaModule,
+  Modda,
   PackageDescriptor,
+  ProjectInformation,
+  Reflection,
   Section,
   UnpackedConfiguration,
-  WebdaPackageDescriptor,
-  Reflection,
-  AbstractService,
-  Modda
+  WebdaModule,
+  WebdaPackageDescriptor
 } from "../internal/iapplication";
-import { Model, ModelClass } from "@webda/models";
-import { useInstanceStorage } from "../core/instancestorage";
 import { setLogContext } from "../loggers/hooks";
+import { FileUtils, State } from "@webda/utils";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { join, resolve, dirname, isAbsolute } from "node:path";
+import * as WebdaError from "../errors/errors";
 import { ServiceParameters } from "../interfaces";
+import { useInstanceStorage } from "../core/instancestorage";
+import { Model, ModelClass } from "@webda/models";
+import { JSONSchema7 } from "json-schema";
+import { InstanceCache } from "../cache/cache";
+import { getMachineId } from "../core/hooks";
+
+export type ApplicationState = "initial" | "loading" | "ready";
+
+// We should not be able to set initial from outside
+const ApplicationState: typeof State<Exclude<ApplicationState, "initial">> = State;
 
 /**
  * Map a Webda Application
@@ -37,7 +43,7 @@ import { ServiceParameters } from "../interfaces";
  *
  * @category CoreFeatures
  */
-export class Application implements IApplication {
+export class Application {
   /**
    * Get Application root path
    */
@@ -96,11 +102,6 @@ export class Application implements IApplication {
   protected workspacesPath: string = "";
 
   /**
-   * When the application got initiated
-   */
-  protected initTime: number;
-
-  /**
    * Configuration file
    */
   readonly configurationFile: string;
@@ -118,33 +119,34 @@ export class Application implements IApplication {
     useInstanceStorage().application = this;
     this.logger = logger || new WorkerOutput();
     setLogContext(this.logger);
-    this.initTime = Date.now();
     // If configuration is a programmatic object (usually for tests)
     if (typeof file !== "string") {
       this.baseConfiguration = { parameters: {}, ...file };
       this.appPath = process.cwd();
       return;
     }
-    if (!fs.existsSync(file)) {
+    if (!existsSync(file)) {
       throw new WebdaError.CodeError(
         "NO_WEBDA_FOLDER",
         `Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting ${file}`
       );
     }
     // Check if file is a file or folder
-    if (fs.lstatSync(file).isDirectory()) {
-      file = path.join(file, "webda.config.jsonc");
-      if (!fs.existsSync(file)) {
+    if (lstatSync(file).isDirectory()) {
+      file = join(file, "webda.config.jsonc");
+      if (!existsSync(file)) {
         file = file.substring(0, file.length - 1);
       }
     }
     this.configurationFile = file;
-    this.appPath = path.resolve(path.dirname(file));
+    this.appPath = resolve(dirname(file));
   }
 
   /**
    * Import all required modules
    */
+  @ApplicationState({ start: "loading", end: "ready" })
+  @InstanceCache()
   async load(): Promise<this> {
     await this.loadConfiguration(this.configurationFile);
     await this.loadModule(this.baseConfiguration.cachedModules);
@@ -173,7 +175,7 @@ export class Application implements IApplication {
         Subclasses: info.Subclasses.map(c => this.models[c]).filter(m => m),
         Relations: info.Relations,
         Schema: this.getSchema(model),
-        Reflection: info.Reflection || {},
+        Reflection: info.Reflection || {}
       };
       // @ts-ignore
       this.models[model].Metadata = Object.freeze(metadata);
@@ -189,7 +191,7 @@ export class Application implements IApplication {
    */
   async loadConfiguration(file: string): Promise<void> {
     // Check if file is a file or folder
-    if (file && !fs.existsSync(file)) {
+    if (file && !existsSync(file)) {
       throw new WebdaError.CodeError(
         "NO_WEBDA_FOLDER",
         `Not a webda application folder or webda.config.jsonc or webda.config.json file: ${file}`
@@ -197,23 +199,74 @@ export class Application implements IApplication {
     }
     try {
       this.baseConfiguration ??= file ? FileUtils.load(file) : {};
-      this.baseConfiguration.parameters ??= {};
-      this.baseConfiguration.parameters.defaultStore ??= "Registry";
-
-      // Init default values for configuration
-      this.baseConfiguration.parameters.apiUrl ??= "http://localhost:18080";
-      this.baseConfiguration.parameters.metrics ??= {};
-      if (this.baseConfiguration.parameters.metrics) {
-        this.baseConfiguration.parameters.metrics.labels ??= {};
-        this.baseConfiguration.parameters.metrics.config ??= {};
-        this.baseConfiguration.parameters.metrics.prefix ??= "";
-      }
-      this.baseConfiguration.services ??= {};
+      this.ensureDefaultConfiguration(this.baseConfiguration);
       if (this.baseConfiguration.version !== 4) {
         this.log("ERROR", "Your configuration file should use version 4, see https://docs.webda.io/");
       }
     } catch (err) {
       throw new WebdaError.CodeError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
+    }
+  }
+
+  /**
+   * Ensure default parameters are set on our application
+   * Creating the default services if they do not exist
+   *
+   * Might want to have only this in unpackaged application as Application should
+   * have a perfectly valid configuration
+   * @param configuration
+   */
+  ensureDefaultConfiguration(configuration: Configuration) {
+    configuration.services ??= {};
+    configuration.parameters ??= {};
+    configuration.parameters.apiUrl ??= "http://localhost:18080";
+    configuration.parameters.metrics ??= {};
+    if (configuration.parameters.metrics) {
+      configuration.parameters.metrics.labels ??= {};
+      configuration.parameters.metrics.config ??= {};
+      configuration.parameters.metrics.prefix ??= "";
+    }
+    configuration.parameters.configurationService ??= "Configuration";
+    configuration.parameters.defaultStore ??= "Registry";
+    const autoRegistry = configuration.services["Registry"] === undefined;
+
+    configuration.services["Router"] ??= {
+      type: "Webda/Router"
+    };
+
+    // Registry by default
+    configuration.services["Registry"] ??= {
+      type: "Webda/MemoryStore",
+      persistence: {
+        path: ".registry",
+        key: getMachineId()
+      }
+    };
+
+    // CryptoService by default
+    configuration.services["CryptoService"] ??= {
+      type: "Webda/CryptoService",
+      autoRotate: autoRegistry ? 30 : undefined,
+      autoCreate: true
+    };
+
+    // By default use CookieSessionManager
+    configuration.services["SessionManager"] ??= {
+      type: "Webda/CookieSessionManager"
+    };
+
+    // Ensure type is set to default
+    for (const serviceName in configuration.services) {
+      if (configuration.services[serviceName].type !== undefined) {
+        continue;
+      }
+      if (this.moddas[this.completeNamespace(serviceName)]) {
+        configuration.services[serviceName].type = this.completeNamespace(serviceName);
+        continue;
+      }
+      if (!serviceName.includes("/") && this.moddas[`Webda/${serviceName}`]) {
+        configuration.services[serviceName].type = `Webda/${serviceName}`;
+      }
     }
   }
 
@@ -299,10 +352,10 @@ export class Application implements IApplication {
    */
   getAppPath(subpath: string = undefined): string {
     if (subpath && subpath !== "") {
-      if (path.isAbsolute(subpath)) {
+      if (isAbsolute(subpath)) {
         return subpath;
       }
-      return path.join(this.appPath, subpath);
+      return join(this.appPath, subpath);
     }
     return this.appPath;
   }
@@ -461,9 +514,10 @@ export class Application implements IApplication {
    * Get the model name from a model or a constructor
    *
    * @param model
+   * @paramn full if true always include the namespace, default is false e.g Webda/
    * @returns longId for a model
    */
-  getModelId<T extends Model = Model>(model: ModelClass<T> | T): string | undefined {
+  getModelId<T extends Model = Model>(model: ModelClass<T> | T, full?: boolean): string | undefined {
     if (model instanceof Model) {
       return this.getModelFromInstance(model);
     }
@@ -499,13 +553,45 @@ export class Application implements IApplication {
         Ancestors: [],
         Subclasses: [],
         Relations: {},
-        PrimaryKey: "id",
+        PrimaryKey: ["id"],
         Events: [],
         Schema: {},
         Actions: {}
       });
     }
     return this;
+  }
+
+  /* SERIALIZATION */
+  /**
+   *
+   * @param this
+   * @param json
+   * @returns
+   */
+  static deserialize<T extends Application>(this: new (...args: any[]) => T, json: any): T {
+    const instance = new this();
+    instance.baseConfiguration = json.baseConfiguration;
+    instance.currentDeployment = json.currentDeployment;
+    instance.appModule = json.appModule;
+    return instance;
+  }
+
+  toJSON() {
+    return {
+      baseConfiguration: this.baseConfiguration,
+      currentDeployment: this.currentDeployment,
+      appModule: this.appModule
+    };
+  }
+
+  /**
+   * Get the metadata for a model
+   * @param name
+   * @returns
+   */
+  getModelMetadata(name: string): Reflection | undefined {
+    return this.modelsMetadata[name];
   }
 
   /**
@@ -515,7 +601,7 @@ export class Application implements IApplication {
    * @since 0.4.0
    */
   getWebdaVersion(): string {
-    return JSON.parse(fs.readFileSync(__dirname + "/../package.json").toString()).version;
+    return JSON.parse(readFileSync(__dirname + "/../../package.json").toString()).version;
   }
 
   /**
@@ -529,96 +615,11 @@ export class Application implements IApplication {
   }
 
   /**
-   * Allow variable inside of string
-   *
-   * @param templateString to copy
-   * @param replacements additional replacements to run
+   * Retrieve the project information
+   * @returns
    */
-  protected stringParameter(templateString: string, replacements: any = {}) {
-    // Optimization if no parameter is found just skip the costy function
-    if (templateString.indexOf("${") < 0) {
-      return templateString;
-    }
-
-    let scan = templateString;
-    let index;
-    let i = 0;
-    while ((index = scan.indexOf("${")) >= 0) {
-      // Add escape sequence
-      if (index > 0 && scan.substring(index - 1, 1) === "\\") {
-        scan = scan.substring(scan.indexOf("}", index));
-        continue;
-      }
-      const next = scan.indexOf("}", index);
-      const variable = scan.substring(index + 2, next);
-      scan = scan.substring(next);
-      if (variable.match(/[|&;<>\\{]/)) {
-        throw new Error(`Variable cannot use every javascript features found ${variable}`);
-      }
-      if (i++ > 10) {
-        throw new Error("Too many variables");
-      }
-    }
-    return new Function(
-      "return `" + (" " + templateString).replace(/([^\\])\$\{([^}{]+)}/g, "$1${this.$2}").substring(1) + "`;"
-    ).call({
-      ...this.baseConfiguration.cachedModules.project,
-      now: this.initTime,
-      ...replacements
-    });
-  }
-
-  /**
-   * Allow variable inside object strings
-   *
-   * Example
-   * ```js
-   * replaceVariables({
-   *  myobj: "${test.replace}"
-   * }, {
-   *  test: {
-   *    replace: 'plop'
-   *  }
-   * })
-   * ```
-   * will return
-   * ```
-   * {
-   *  myobj: 'plop'
-   * }
-   * ```
-   *
-   * By default the replacements map contains
-   * ```
-   * {
-   *  git: GitInformation,
-   *  package: 'package.json content',
-   *  deployment: string,
-   *  now: number,
-   *  ...replacements
-   * }
-   * ```
-   *
-   * See: {@link GitInformation}
-   *
-   * @param object a duplicated object with replacement done
-   * @param replacements additional replacements to run
-   */
-  replaceVariables(object: any, replacements: any = {}) {
-    if (typeof object === "string") {
-      return this.stringParameter(object, replacements);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const app = this;
-    return JSON.parse(
-      // eslint-disable-next-line func-names
-      JSON.stringify(object, function (key: string, value: any) {
-        if (typeof this[key] === "string") {
-          return app.stringParameter(value, replacements);
-        }
-        return value;
-      })
-    );
+  getProjectInfo(): ProjectInformation | undefined {
+    return this.baseConfiguration.cachedModules.project;
   }
 
   /**
@@ -695,8 +696,8 @@ export class Application implements IApplication {
    * Load local module
    */
   async loadLocalModule() {
-    const moduleFile = path.join(process.cwd(), "webda.module.json");
-    if (fs.existsSync(moduleFile)) {
+    const moduleFile = join(process.cwd(), "webda.module.json");
+    if (existsSync(moduleFile)) {
       await this.loadModule(FileUtils.load(moduleFile), process.cwd());
     }
   }
@@ -709,7 +710,7 @@ export class Application implements IApplication {
   getImplementations<T extends AbstractService>(object: T): { [key: string]: Modda<T> } {
     const res: any = {};
     for (const key in this.moddas) {
-      if (object instanceof this.moddas[key]) {
+      if (this.moddas[key] && object instanceof this.moddas[key]) {
         res[key] = this.moddas[key];
       }
     }
@@ -729,16 +730,24 @@ export class Application implements IApplication {
     const info: Omit<CachedModule, "project"> = module;
     const sectionLoader = async (section: Section) => {
       for (const key in info[section]) {
-        this[section][key] ??= await this.importFile(path.join(parent, info[section][key].Import));
+        this[section][key] ??= await this.importFile(join(parent, info[section][key].Import));
         if (!this[section][key]) {
-          this.log("ERROR", `Cannot load ${section.substring(0, section.length - 1)} ${key} from ${path.join(parent, info[section][key].Import)}`);
+          this.log(
+            "ERROR",
+            `Cannot load ${section.substring(0, section.length - 1)} ${key} from ${join(parent, info[section][key].Import)}`
+          );
           continue;
         }
         if (section === "beans" || section === "moddas") {
           // Load the parameters automatically
-          const configurationClass = info[section][key].Configuration ? await this.importFile(path.join(parent, info[section][key].Configuration)) : ServiceParameters;
+          const configurationClass = info[section][key].Configuration
+            ? await this.importFile(join(parent, info[section][key].Configuration))
+            : ServiceParameters;
           if (!configurationClass) {
-            this.log("ERROR", `Cannot load configuration for ${section.substring(0, section.length - 1)} ${key} from ${path.join(parent, info[section][key].Configuration)}`);
+            this.log(
+              "ERROR",
+              `Cannot load configuration for ${section.substring(0, section.length - 1)} ${key} from ${join(parent, info[section][key].Configuration)}`
+            );
             continue;
           }
           this[section][key].createConfiguration = (params: any) => {
@@ -753,7 +762,7 @@ export class Application implements IApplication {
               Object.assign(filteredParams, params);
             }
             return new (configurationClass ?? ServiceParameters)().load(filteredParams);
-          }
+          };
         }
       }
     };
@@ -776,7 +785,7 @@ export class Application implements IApplication {
         })
         .map(f => {
           this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
-          return this.importFile(path.join(parent, info.beans[f].Import), false).catch(this.log.bind(this, "WARN"));
+          return this.importFile(join(parent, info.beans[f].Import), false).catch(this.log.bind(this, "WARN"));
         })
     ]);
   }

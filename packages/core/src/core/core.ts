@@ -6,7 +6,7 @@ import jsonpath from "jsonpath";
 import { Application } from "../application/application";
 import { Configuration } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
-import { Model, ModelClass, Storable } from "@webda/models";
+import { Model, ModelClass, registerRepository, Storable } from "@webda/models";
 import { Router } from "../rest/router";
 import { useCrypto } from "../services/cryptoservice";
 import * as WebdaError from "../errors/errors";
@@ -16,7 +16,7 @@ import { Logger } from "../loggers/ilogger";
 import type { ConfigurationService } from "../configurations/configuration";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
-import { getUuid, JSONUtils } from "@webda/utils";
+import { getUuid, JSONUtils, State, StateOptions } from "@webda/utils";
 import {
   ICore,
   AbstractService,
@@ -27,13 +27,18 @@ import {
 } from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
-import { useApplication, useModel, useModelId } from "../application/hook";
+import { useApplication, useModel, useModelId } from "../application/hooks";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { useRouter } from "../rest/hooks";
 import { RegistryModel } from "../models/registry";
 import { Modda } from "../internal/iapplication";
 import { Prototype } from "@webda/tsc-esm";
-import { ProcessCache } from "@webda/cache";
+import { InstanceCache } from "../cache/cache";
+import { Service } from "../services/service";
+
+export type CoreStates = "initial" | "loading" | "initializing" | "reinitializing" | "ready" | "stopping" | "stopped";
+
+const CoreState = (options: StateOptions<CoreStates>) => State(options);
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -57,17 +62,14 @@ export class Core implements ICore {
   protected router: Router = new Router("RESTService", <any>{});
   /**
    * If Core is already initiated
+   * @deprecated
    */
   protected _initiated: boolean = false;
   /**
    * Services who failed to create or initialize
+   * @deprecated
    */
   protected failedServices: { [key: string]: any } = {};
-  /**
-   * Init promise to ensure, webda is initiated
-   * Used for init() method
-   */
-  protected _init: Promise<void>;
   /**
    * Configuration loaded from webda.config.json
    * @hidden
@@ -90,14 +92,6 @@ export class Core implements ICore {
 
   protected _configFile: string;
   /**
-   * Contains the current initialization process
-   */
-  protected _initPromise: Promise<void>;
-  /**
-   * When the Core was initialized
-   */
-  protected _initTime: number;
-  /**
    * Console logger
    * @hidden
    */
@@ -116,16 +110,6 @@ export class Core implements ICore {
    * Contains all operations defined by services
    */
   protected operations: { [key: string]: OperationDefinitionInfo } = {};
-  /**
-   * Cache for model to store resolution
-   * @deprecated use ProcessCache instead
-   */
-  private _modelStoresCache: Map<Prototype<Storable>, Store> = new Map<Prototype<Storable>, Store>();
-  /**
-   * Cache for model to store resolution
-   * @deprecated use ProcessCache instead
-   */
-  private _modelBinariesCache: Map<string, BinaryService> = new Map<string, BinaryService>();
 
   /**
    * True if the dual import warning has been sent
@@ -166,7 +150,6 @@ export class Core implements ICore {
     this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
     this.application = application || new UnpackedApplication(".");
-    this._initTime = new Date().getTime();
     // Schema validations
     this._ajv = new Ajv();
     this._ajv.addKeyword("$generated");
@@ -204,8 +187,8 @@ export class Core implements ICore {
    * @param model
    * @returns
    */
-  @ProcessCache()
-  private getModelStoreCached<T extends Model>(model: T | ModelClass<T>): Store {
+  @InstanceCache()
+  private getModelStoreCached<T extends Model>(model: ModelClass<T>): Store {
     // @ts-ignore
     const stores: { [key: string]: Store } = useApplication().getImplementations(Store);
     let actualScore: number;
@@ -230,22 +213,22 @@ export class Core implements ICore {
    * @param attribute
    * @returns
    */
-  getBinaryStore<T extends Model>(
-    modelOrConstructor: ModelClass<T> | T | string,
-    attribute: string
-  ): AbstractService {
+  getBinaryStore<T extends Model>(modelOrConstructor: ModelClass<T> | T | string, attribute: string): AbstractService {
+    return this.getBinaryStoreCached(
+      typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor, true),
+      attribute
+    );
+  }
+
+  @InstanceCache()
+  protected getBinaryStoreCached<T extends Model>(model: string, attribute: string): BinaryService {
     const binaries: { [key: string]: BinaryService } = <any>useApplication().getImplementations(<any>BinaryService);
-    const model = typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor, true);
     let actualScore: number = -1;
     let actualService: BinaryService;
-    const setCache = store => {
-      this._modelBinariesCache.set(model, store);
-    };
     for (const binary in binaries) {
       const score = binaries[binary].handleBinary(model, attribute);
       // As 0 mean exact match we stop there
       if (score === 2) {
-        setCache(binaries[binary]);
         return binaries[binary];
       } else if (score >= 0 && (actualService === undefined || actualScore > score)) {
         actualScore = score;
@@ -255,7 +238,6 @@ export class Core implements ICore {
     if (!actualService) {
       throw new Error("No binary store found for " + model + " " + attribute);
     }
-    setCache(actualService);
     return actualService;
   }
 
@@ -335,6 +317,8 @@ export class Core implements ICore {
    *
    * It will resolve Services init method and autolink
    */
+  @CoreState({ start: "initializing", end: "ready" })
+  @InstanceCache()
   async init() {
     if (
       this.configuration.parameters.configurationService &&
@@ -380,42 +364,42 @@ export class Core implements ICore {
     // Init the other services
     this.initStatics();
     // Reset the model cache
-    this._modelStoresCache.clear();
-    this._modelBinariesCache.clear();
+    InstanceCache.clear(this, "getModelStoreCached");
+    InstanceCache.clear(this, "getModelBinaryCached");
 
     this.log("TRACE", "Create Webda init promise");
-    this._init = (async () => {
-      await this.initService("Router");
-      await this.initService("Registry");
-      // By pass the store checks
-      Model["Store"] = <any>this.services["Registry"];
-      RegistryModel["Store"] = <any>this.services["Registry"];
 
-      await this.initService("CryptoService");
+    await this.initService("Router");
+    await this.initService("Registry");
+    // By pass the store checks
+    Model["Store"] = <any>this.services["Registry"];
+    RegistryModel["Store"] = <any>this.services["Registry"];
 
+    await this.initService("CryptoService");
+
+    const criticalServices: Service[] = [useCrypto(), useRouter(), <any>this.services["Registry"]];
+    if (criticalServices.some(s => s.getState() !== "running")) {
+      criticalServices
+        .filter(s => s.getState() !== "running")
+        .forEach(s => {
+          this.log("ERROR", "Service not running", s.getName());
+        });
+      throw new Error("Cannot init Webda core services (Router, Registry, CryptoService)");
+    }
+    // Init services
+    let service;
+    const inits = [];
+    for (service in this.services) {
       if (
-        useCrypto().getState() === "running" ||
-        useRouter().getState() === "running" ||
-        (<any>this.services["Registry"]).getState() === "running"
+        this.services[service].init !== undefined &&
+        !(<any>this.services[service])._createException &&
+        !(<any>this.services[service])._initTime
       ) {
-        throw new Error("Cannot init Webda core services (Router, Registry, CryptoService)");
+        inits.push(this.initService(service));
       }
-      // Init services
-      let service;
-      const inits = [];
-      for (service in this.services) {
-        if (
-          this.services[service].init !== undefined &&
-          !(<any>this.services[service])._createException &&
-          !(<any>this.services[service])._initTime
-        ) {
-          inits.push(this.initService(service));
-        }
-      }
-      await Promise.all(inits);
-      await emitCoreEvent("Webda.Init.Services", this.services);
-    })();
-    return this._init;
+    }
+    await Promise.all(inits);
+    await emitCoreEvent("Webda.Init.Services", this.services);
   }
 
   /**
@@ -444,6 +428,7 @@ export class Core implements ICore {
    * Check for a service name and return the wanted singleton or undefined if none found
    *
    * @param {String} name The service name to retrieve
+   * @deprecated
    */
   getService<T = AbstractService>(name: string = ""): T {
     return <T>this.services[name];
@@ -452,6 +437,7 @@ export class Core implements ICore {
   /**
    * Return a map of defined services
    * @returns {{}}
+   * @deprecated
    */
   getServices(): { [key: string]: AbstractService } {
     return this.services;
@@ -483,6 +469,7 @@ export class Core implements ICore {
    * @param updates
    * @returns
    */
+  @CoreState({ start: "reinitializing", end: "ready" })
   public async reinit(updates: any): Promise<void> {
     const configuration = JSON.parse(JSON.stringify(this.configuration.services));
     for (const service in updates) {
@@ -592,12 +579,18 @@ export class Core implements ICore {
           this.log("ERROR", `Service(${s})`, err);
         }
       });
+
+    // Register all stores
+    Object.values(this.application.getModels()).forEach(model => {
+      registerRepository(model, this.getModelStoreCached(model).getRepository(model));
+    });
     emitCoreEvent("Webda.Create.Services", this.services);
   }
 
   /**
    * Stop all services
    */
+  @CoreState({ start: "stopping", end: "stopped" })
   async stop() {
     const services = this.getServices();
     await Promise.all([
@@ -632,7 +625,7 @@ export class Core implements ICore {
     if (!service) {
       throw new Error("Cannot create Registry service");
     }
-    this.application.addModel("Webda/Registry", RegistryModel);
+    this.application.addModel("Webda/RegistryModel", RegistryModel);
     RegistryModel["Store"] = <any>this.getService<Store>("Registry");
     service.resolve();
 
@@ -653,7 +646,6 @@ export class Core implements ICore {
 
     this.router.remapRoutes();
 
-    this._initiated = true;
     emitCoreEvent("Webda.Init", this.configuration);
   }
 
@@ -683,7 +675,7 @@ export class Core implements ICore {
 
   /**
    * @override
-   * @deprecated use ProcessCache instead and move to schemas/hooks.ts
+   * @deprecated use schemas hook instead and move to schemas/hooks.ts
    */
   validateSchema(
     webdaObject: Model | string,
@@ -716,5 +708,23 @@ export class Core implements ICore {
       return true;
     }
     throw new ValidationError(this._ajv.errors);
+  }
+
+  /**
+   * Allow serialization
+   */
+  toJSON() {
+    return {
+      configuration: this.configuration,
+      application: this.application
+    };
+  }
+
+  static deserialize(json: any): Core {
+    const core = new Core();
+    if (json.configuration) {
+      core.configuration = json.configuration;
+    }
+    return core;
   }
 }

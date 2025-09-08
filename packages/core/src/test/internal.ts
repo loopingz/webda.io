@@ -1,4 +1,4 @@
-import { useModel } from "../application/hook";
+import { useModel } from "../application/hooks";
 import {  UnpackedConfiguration } from "../internal/iapplication";
 import {  UuidModel } from "@webda/models";
 import { FileUtils } from "@webda/utils";

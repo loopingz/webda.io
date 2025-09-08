@@ -72,10 +72,10 @@ export class Profile extends Model {
 
 const profileRepository = new MemoryRepository(Profile, ["user"]);
 const slugRepository = new MemoryRepository(SlugModel, ["slug"]);
-registerRepository(Profile, profileRepository);
+Profile.registerRepository(profileRepository);
 registerRepository(SlugModel, slugRepository);
 registerRepository(Blog, slugRepository as unknown as Repository<Blog>);
-registerRepository(Section, slugRepository);
+Section.registerRepository(slugRepository as unknown as Repository<Section>);
 registerRepository(Group, new MemoryRepository(Group, ["name"]));
 registerRepository(User, new MemoryRepository(User, ["uuid"]));
 

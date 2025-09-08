@@ -4,7 +4,7 @@ import { OperationContext } from "../contexts/operationcontext";
 import * as WebdaError from "../errors/errors";
 import { ValidationError } from "../schemas/hooks";
 import { useInstanceStorage } from "./instancestorage";
-import { useModel } from "../application/hook";
+import { useModel } from "../application/hooks";
 import { useService } from "./hooks";
 import { emitCoreEvent } from "../events/events";
 

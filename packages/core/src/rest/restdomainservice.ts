@@ -4,7 +4,7 @@ import { DomainServiceParameters, ModelsOperationsService } from "../services/do
 import { OpenAPIWebdaDefinition } from "./irest";
 import * as WebdaError from "../errors/errors";
 import { useRouter } from "./hooks";
-import { useApplication } from "../application/hook";
+import { useApplication } from "../application/hooks";
 import { useCore, useModelMetadata } from "../core/hooks";
 import { callOperation } from "../core/operations";
 import { WebContext } from "../contexts/webcontext";

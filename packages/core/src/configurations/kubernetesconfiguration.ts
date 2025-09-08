@@ -3,7 +3,7 @@ import * as path from "path";
 import * as WebdaError from "../errors/errors";
 import { FileUtils } from "@webda/utils";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
-import { useApplication } from "../application/hook";
+import { useApplication } from "../application/hooks";
 import { useCore } from "../core/hooks";
 
 /**

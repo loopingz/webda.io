@@ -2,7 +2,7 @@ import { WorkerOutput, useLog } from "@webda/workout";
 import { Logger } from "./ilogger";
 import { AbstractService } from "../core/icore";
 import { Model } from "@webda/models";
-import { useModelId } from "../application/hook";
+import { useModelId } from "../application/hooks";
 
 /**
  * Default output

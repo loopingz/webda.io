@@ -1,8 +1,8 @@
 import { test, suite } from "@webda/test";
 import { MemoryRepository } from "./repository";
-import { SubClassModel, TestModel } from "./model.spec";
+import { SubClassModel, TestModel } from "../model.spec";
 import * as assert from "assert";
-import { PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "./storable";
+import { PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
 
 @suite
 class RepositoryTest {

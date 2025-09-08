@@ -8,27 +8,53 @@ import { HttpContext } from "./httpcontext";
 import { Session } from "../session/session";
 import { UnpackedConfiguration } from "../application/iapplication";
 import { SimpleOperationContext } from "./simplecontext";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaAsyncStorageTest } from "../test/asyncstorage";
+import { setApplication } from "../application/hooks";
+import { setCore } from "../core/hooks";
 
 export class WebContextMock extends WebContext {
-  constructor(httpContext: HttpContext, stream?: any) {
-    super(httpContext, stream);
+  constructor(httpContext: HttpContext) {
+    super(httpContext);
   }
 }
 
 export class OperationContextMock extends OperationContext {}
 
 @suite
-class ContextAppTest extends WebdaApplicationTest {
+class ContextAppTest extends WebdaAsyncStorageTest {
   @test
   async copyContext() {
-    const context = await this.newContext();
-    await SimpleOperationContext.fromContext(context);
+    const httpContext = new HttpContext("test.webda.io", "GET", "/");
+    httpContext.setBody(Buffer.from("Plop"));
+    const context = new WebContextMock(httpContext);
+    const newCtx = await SimpleOperationContext.fromContext(context);
+    assert.deepStrictEqual(newCtx.getSession(), context.getSession());
+    assert.strictEqual((await newCtx.getRawInput()).toString(), "Plop");
   }
 
   ctx: WebContext;
 
   async beforeEach() {
+    // Mocks
+    setApplication({
+      getCurrentConfiguration: () => { return this.getTestConfiguration(); }
+    } as any);
+    setCore({
+      getLocales: () => ["es-ES", "en", "fr-FR"],
+      getService: (name: string) => {
+        if (name === "SessionManager") {
+          return {
+            save: async () => {},
+            load: async () => {
+              return {
+                getProxy: () => {
+                }
+              }
+            }
+          }
+        }
+      }
+    } as any);
     this.ctx = new WebContextMock(new HttpContext("test.webda.io", "GET", "/"));
   }
 

@@ -1,4 +1,4 @@
-import { JSONUtils } from "@webda/utils";
+import { streamToBuffer } from "@webda/utils";
 import { Session } from "../session/session";
 import { OperationContext } from "./operationcontext";
 
@@ -16,7 +16,9 @@ export class SimpleOperationContext extends OperationContext {
   static async fromContext(context: OperationContext): Promise<SimpleOperationContext> {
     const ctx = new SimpleOperationContext(context["_webda"]);
     ctx.setSession(context.getSession());
-    ctx.setInput(Buffer.from(JSONUtils.stringify(await context.getInput())));
+    const stream = context.getRawStream();
+    console.log("Stream:", stream);
+    ctx.setInput(await streamToBuffer(stream));
     return ctx;
   }
 
@@ -24,6 +26,7 @@ export class SimpleOperationContext extends OperationContext {
    * Set the input
    */
   setInput(input: Buffer): this {
+    console.log("Setting input:", input.toString(), input.length);
     this.input = input;
     return this;
   }
@@ -42,6 +45,6 @@ export class SimpleOperationContext extends OperationContext {
    * @override
    */
   async getRawInput(limit: number = 1024 * 1024 * 10, _timeout: number = 60000): Promise<Buffer> {
-    return this.input.slice(0, limit);
+    return this.input.subarray(0, limit);
   }
 }

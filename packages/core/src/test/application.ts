@@ -16,7 +16,7 @@ import { HttpContext, HttpMethodType } from "../contexts/httpcontext";
 import { runWithContext, useContext } from "../contexts/execution";
 import { sleep } from "@webda/utils";
 import { DeepPartial } from "@webda/tsc-esm";
-import { useApplication } from "../application/hook";
+import { useApplication } from "../application/hooks";
 import { useRouter } from "../rest/hooks";
 import { useCore, useModelStore, useService } from "../core/hooks";
 import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects";
@@ -61,30 +61,6 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     app.addModda("WebdaTest/Mailer", DebugMailer);
     app.addModel("WebdaTest/Task", Task);
     app.addModel("WebdaTest/Ident", TestIdent);
-    // @ts-ignore
-    TestIdent.Metadata ??= {
-      Relations: {}
-    };
-    // @ts-ignore
-    TestIdent.Metadata.Relations.links = [
-      {
-        attribute: "_user",
-        model: "Webda/User",
-        type: "LINK"
-      }
-    ];
-    // @ts-ignore
-    Task.Metadata ??= {
-      Relations: {}
-    };
-    // @ts-ignore
-    Task.Metadata.Relations.links = [
-      {
-        attribute: "_user",
-        model: "Webda/User",
-        type: "LINK"
-      }
-    ];
   }
 
   /**

@@ -13,9 +13,9 @@ import {
   WEBDA_PRIMARY_KEY,
   WEBDA_DIRTY,
   SelfJSONed,
-  StorableClass,
+  StorableClass
 } from "./storable";
-import type { Repository } from "./repository";
+import type { Repository } from "./repositories/repository";
 
 const RelationParent = Symbol("RelationParent");
 const RelationKey = Symbol("RelationKey");

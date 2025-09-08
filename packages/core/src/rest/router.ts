@@ -2,7 +2,7 @@ import uriTemplates from "uri-templates";
 import { HttpMethodType } from "../contexts/httpcontext";
 import type { IRouter, RequestFilter, RouteInfo } from "./irest";
 
-import { useApplication, useModelId, useSchema } from "../application/hook";
+import { useApplication, useModelId, useSchema } from "../application/hooks";
 import { useLog } from "../loggers/hooks";
 import type { OpenAPIV3 } from "openapi-types";
 import { useConfiguration, useParameters } from "../core/instancestorage";
@@ -14,6 +14,7 @@ import { Service } from "../services/service";
 import { WebContext } from "../contexts/webcontext";
 import { ServiceParameters } from "../interfaces";
 import { Storable } from "@webda/models";
+import { templateVariables } from "../templates/templates";
 
 export class RouterParameters extends ServiceParameters {
   /**
@@ -132,7 +133,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       this.routes[finalUrl] = [info];
     }
 
-    if (this.state === "running") {
+    if (this.getState() === "running") {
       this.remapRoutes();
     }
   }
@@ -356,7 +357,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     const hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
     for (const i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
-        route.openapi = useApplication().replaceVariables(
+        route.openapi = templateVariables(
           route.openapi || {},
           useService(route.executor).getOpenApiReplacements()
         );

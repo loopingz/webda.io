@@ -11,7 +11,7 @@ import { runAsSystem, runWithContext } from "../contexts/execution";
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
 import * as WebdaError from "../errors/errors";
 import { ServiceParameters } from "../interfaces";
-import { useApplication, useModel } from "../application/hook";
+import { useApplication, useModel } from "../application/hooks";
 import { OperationDefinition } from "../core/icore";
 import { ModelGraphBinaryDefinition } from "../internal/iapplication";
 import { useCore, useModelMetadata } from "../core/hooks";

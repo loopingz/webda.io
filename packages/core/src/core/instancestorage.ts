@@ -1,12 +1,13 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { IApplication, Configuration } from "../internal/iapplication";
+import { Configuration } from "../internal/iapplication";
 import { OperationDefinitionInfo, ICore } from "./icore";
 import { ContextProvider } from "../contexts/icontext";
 import { IRouter } from "../rest/irest";
+import type { Application } from "../application/application";
 
 export type InstanceStorage = Partial<{
   // Used to store the application
-  application: IApplication;
+  application: Application;
   // Used to store the operations
   operations: { [key: string]: OperationDefinitionInfo };
   // Used to store the core

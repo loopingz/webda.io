@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { createCacheAnnotation, ProcessCache } from "./cache";
+import { createCacheAnnotation, ObjectCache, ProcessCache } from "./cache";
 import { AsyncLocalStorage } from "async_hooks";
 
 const storage = new AsyncLocalStorage();
@@ -60,6 +60,13 @@ class MyObject {
     this.localCount++;
     return callCount;
   }
+
+  @ObjectCache()
+  method4() {
+    callCount++;
+    this.localCount++;
+    return callCount;
+  }
 }
 
 @suite
@@ -81,6 +88,10 @@ class CacheTest {
       assert.strictEqual(callCount, 4);
       assert.strictEqual(obj2.method("test", 2), 5);
       assert.strictEqual(obj2.method("test", 2), 5);
+      obj1.method4();
+      assert.strictEqual(callCount, 6);
+      ObjectCache.garbageCollect();
+      InstanceCache.clearAll(obj2);
     });
   }
 

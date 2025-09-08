@@ -85,8 +85,11 @@ class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
   }
 }
 
-function getSource(provider: () => any, options: CacheOptions): CacheMap {
-  const cache = provider();
+function getSource(provider: (target: Object) => any, options: CacheOptions, target: Object): CacheMap {
+  const cache = provider(target);
+  if (cache === null) {
+    return null;
+  }
   // @ts-ignore
   cache.caches ??= new (options.cacheMap ?? CacheMap)(options);
   return cache.caches;
@@ -99,14 +102,14 @@ interface CacheOptions {
   cacheStorage?: new (options?: CacheOptions) => CacheStorage;
 }
 
-export function createCacheAnnotation(source: () => any, options: CacheOptions = {}) {
+export function createCacheAnnotation(source: (target: Object | null) => Object | null, options: CacheOptions = {}) {
   options.keyGenerator ??= (property: string, args: any[]) =>
     property + "$" + createHash("sha256").update(JSON.stringify(args)).digest("base64");
 
   const annotation: MethodDecorator & {
     garbageCollect: () => void;
     clear: (target: object, propertyKey: string, ...args: any[]) => void;
-    clearAll: (target: object, propertyKey: string) => void;
+    clearAll: (target: object, propertyKey?: string) => void;
   } = createMethodDecorator(
     (value: any, context: ClassMethodDecoratorContext, keyGenerator?: (property: string, args: any[]) => string) => {
       if (keyGenerator) {
@@ -115,7 +118,7 @@ export function createCacheAnnotation(source: () => any, options: CacheOptions =
       }
       // eslint-disable-next-line func-names -- required to keep 'this' context
       return function (...args: any[]) {
-        const cache = getSource(source, options);
+        const cache = getSource(source, options, this);
         keyGenerator ??= options.keyGenerator;
         const key = keyGenerator(value.name, args);
         if (cache.hasCachedMethod(this, key)) {
@@ -128,30 +131,44 @@ export function createCacheAnnotation(source: () => any, options: CacheOptions =
     }
   );
 
-  annotation.clear = function clearCache(target: any, propertyKey: string, ...args: any[]) {
-    const cache = getSource(source, options);
+  annotation.clear = function clearCache(target: Object, propertyKey: string, ...args: any[]) {
+    const cache = getSource(source, options, target);
     const keyGenerator =
-      getMetadata(target.constructor ? target.constructor : target)?.["webda.cache.keyGenerator"]?.[propertyKey] ||
-      options.keyGenerator;
+      getMetadata(target.constructor ?? target)?.["webda.cache.keyGenerator"]?.[propertyKey] || options.keyGenerator;
     const key = keyGenerator(propertyKey, args);
     if (cache.has(target)) {
       cache.get(target).deleteCachedMethod(key);
     }
   };
-  annotation.clearAll = function clearAllCache(target: any, propertyKey: string) {
-    const cache = getSource(source, options);
+  annotation.clearAll = function clearAllCache(target: Object, propertyKey?: string) {
+    const cache = getSource(source, options, target);
     if (cache.has(target)) {
-      cache.get(target).deleteCachedMethod(propertyKey + "$");
+      if (propertyKey === undefined) {
+        cache.delete(target);
+      } else {
+        cache.get(target).deleteCachedMethod(propertyKey + "$");
+      }
     }
   };
   annotation.garbageCollect = function garbageCollect() {
-    const cache = getSource(source, options);
-    cache.garbageCollect();
+    const cache = getSource(source, options, null);
+    if (cache) {
+      cache.garbageCollect();
+    }
   };
   return annotation;
 }
 
-process["webdaCaches"] ??= {};
-const ProcessCache = createCacheAnnotation(() => process["webdaCaches"]);
+const symbol = Symbol.for("webda.caches");
 
-export { ProcessCache };
+const ProcessCache = createCacheAnnotation(() => {
+  process[symbol] ??= {};
+  return process[symbol];
+});
+const ObjectCache = createCacheAnnotation(target => {
+  if (target === null) return null;
+  target[symbol] ??= {};
+  return target[symbol];
+});
+
+export { ProcessCache, ObjectCache };

@@ -7,10 +7,8 @@ const RegExpSerializer: Serializer = {
   },
   deserializer: (str: string) => {
     // If the string starts with a slash, it's a regex literal
-    const parts = str.slice(1).split("/");
-    const pattern = parts[0];
-    const flags = parts[1] || "";
-    return new RegExp(pattern, flags);
+    const matches = /^\/(?<pattern>.*?)\/(?<flags>[gimsuy]*)?$/.exec(str);
+    return new RegExp(matches.groups.pattern, matches.groups.flags);
   }
 };
 

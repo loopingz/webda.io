@@ -16,7 +16,7 @@ Package like `serialize-javascript` and `flatted` are great for serializing Java
 - Support for ArrayBuffer and TypedArray types.
 - Support for Buffer type.
 - Support for NaN and Infinity values.
-
+- Auto-registration with the `static deserializer(data: any)`
 
 ## Example
 

@@ -90,6 +90,7 @@ class Serializer {
         bigint: BigInt(12345678901234567890),
         regex: /hello/i,
         regex2: new RegExp("te?t"),
+        regex3: /test\/test/gi,
         url: new URL("https://example.com")
       }
     };

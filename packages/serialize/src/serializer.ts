@@ -314,8 +314,13 @@ export class SerializerContext {
       return { value: obj };
     } else if (typeof obj === "string" || typeof obj === "boolean") {
       return { value: obj };
+    } else if (typeof obj === "symbol" || typeof obj === "function") {
+      return { value: undefined };
     }
 
+    if (!serializer) {
+      throw new Error(`Serializer for type '${typeof obj}' not found`);
+    }
     const { value, metadata } = serializer.serializer(obj, this);
     if (serializer.type === "object" && metadata == undefined) {
       return { value };

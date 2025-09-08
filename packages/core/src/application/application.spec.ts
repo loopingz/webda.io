@@ -7,7 +7,7 @@ import { User } from "../models/user";
 import { WebdaInternalTest, TestInternalApplication } from "../test/internal";
 import { FileUtils, getCommonJS } from "@webda/utils";
 import { TestApplication } from "../test/objects";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
 const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
@@ -48,49 +48,10 @@ class SampleApplicationTest extends WebdaApplicationTest {
   }
 
   @test
-  testObjectParameter() {
-    assert.deepStrictEqual(
-      this.sampleApp.replaceVariables(
-        {
-          test: true,
-          bouzouf: {
-            yop: "${resources.replace}",
-            yop2: "\\${resources2.replace}"
-          }
-        },
-        {
-          resources: {
-            replace: "Plop"
-          }
-        }
-      ),
-      {
-        test: true,
-        bouzouf: {
-          yop: "Plop",
-          yop2: "${resources2.replace}"
-        }
-      }
-    );
-  }
-
-  @test
   configurationImports() {
     assert.strictEqual(this.sampleApp.getConfiguration().parameters!.import1, true);
     assert.strictEqual(this.sampleApp.getConfiguration().parameters!.import2, true);
     assert.strictEqual(this.sampleApp.getConfiguration().parameters!.import3, undefined);
-  }
-
-  @test
-  testStringParameter() {
-    assert.strictEqual(
-      this.sampleApp.replaceVariables("${resources.replace}", {
-        resources: {
-          replace: "Plop"
-        }
-      }),
-      "Plop"
-    );
   }
 
   @test
@@ -182,17 +143,6 @@ class ApplicationTest extends WebdaInternalTest {
     });
     assert.strictEqual(app.isCached(), true);
     assert.strictEqual(app.getCurrentDeployment(), "");
-    assert.strictEqual(app.replaceVariables("hello", {}), "hello");
-    assert.strictEqual(app.replaceVariables("hello ${test} ${test2}", {}), "hello undefined undefined");
-    assert.throws(
-      () => app.replaceVariables("hello ${now && process.exit(666)}", {}),
-      /Variable cannot use every javascript features/
-    );
-    assert.throws(
-      () => app.replaceVariables("hello ${test} ${{ test}", {}),
-      /Variable cannot use every javascript features/
-    );
-    assert.throws(() => app.replaceVariables("hello " + "${test}".repeat(12), {}), /Too many variables/);
 
     assert.strictEqual(app.getModelId(<any>CoreModel), "Webda/CoreModel");
     assert.strictEqual(app.getModelId(new CoreModel()), "Webda/CoreModel");
@@ -229,7 +179,12 @@ class ApplicationTest extends WebdaInternalTest {
             Subclasses: [],
             Relations: {},
             Schema: {},
-            Plural: "ReTests"
+            Plural: "ReTests",
+            Identifier: "WebdaDemo/ReTest",
+            PrimaryKey: ["uuid"],
+            Events: [],
+            Actions: {},
+            Reflection: {}
           }
         },
         schemas: {},

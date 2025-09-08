@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { suite, test } from "@webda/test";
 import { UnpackedApplication } from "./unpackedapplication";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
 import { join, resolve } from "path";
 import { getCommonJS } from "@webda/utils";
 

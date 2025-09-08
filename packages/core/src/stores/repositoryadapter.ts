@@ -18,7 +18,7 @@ export class RepositoryStoreAdapter<T extends ModelClass> extends AbstractReposi
     protected store: Store,
     model: T
   ) {
-    super(model, useModelMetadata(model).PrimaryKey, useModelMetadata(model).PrimaryKeySeparator);
+    super(model, useModelMetadata(model)?.PrimaryKey || ["uuid"], useModelMetadata(model)?.PrimaryKeySeparator || "_");
   }
 
   incrementAttributes<

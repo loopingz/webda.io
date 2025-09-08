@@ -581,9 +581,11 @@ export class Core implements ICore {
       });
 
     // Register all stores
-    Object.values(this.application.getModels()).forEach(model => {
-      registerRepository(model, this.getModelStoreCached(model).getRepository(model));
-    });
+    Object.values(this.application.getModels())
+      .filter(m => m)
+      .forEach(model => {
+        registerRepository(model, this.getModelStoreCached(model).getRepository(model));
+      });
     emitCoreEvent("Webda.Create.Services", this.services);
   }
 

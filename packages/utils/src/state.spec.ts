@@ -2,7 +2,7 @@ import * as assert from "assert";
 import { State } from "./state";
 import { suite, test } from "@webda/test";
 
-const MyState: typeof State<"running" | "initializing" | "resolved" | "resolving"> = State;
+const MyState: typeof State<"running" | "initializing" | "resolved" | "resolving" | "errored"> = State;
 
 class StateService {
     @MyState({ start: "resolving", end: "resolved" })
@@ -14,6 +14,11 @@ class StateService {
     async init() {
         // Initialization logic
         assert.strictEqual(this.getState(), "initializing");
+    }
+
+    @MyState({ start: "initializing", error: "errored", end: "running" })
+    async init2() {
+        throw new Error("Not implemented");
     }
 
     getState() {
@@ -32,5 +37,7 @@ class StatesTest {
         assert.strictEqual(service.getState(), "resolved");
         await service.init();
         assert.strictEqual(service.getState(), "running");
+        await assert.rejects(async () => service.init2());
+        assert.strictEqual(service.getState(), "errored");
     }
 }

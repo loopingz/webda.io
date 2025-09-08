@@ -1,9 +1,9 @@
-import { WebdaTest, suite, test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { RegExpStringValidator } from "./index";
 
 @suite
-class RegExpStringValidatorTest extends WebdaTest {
+class RegExpStringValidatorTest {
   @test
   async validate() {
     const validator = new RegExpStringValidator(["test1", "regex:test[2-3]+", "regex:^itest[4-5]b$", "test[1-9]+"]);

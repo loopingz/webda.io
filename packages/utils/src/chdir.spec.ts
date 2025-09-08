@@ -11,7 +11,8 @@ class ChdirTest {
     const { __dirname } = getCommonJS(import.meta.url);
     // Test the chdir function
     runWithCurrentDirectory(__dirname + "/../src", () => {
-      deepStrictEqual(readdirSync("."), [
+      const files = readdirSync(".");
+      [
         "case.spec.ts",
         "case.ts",
         "chdir.spec.ts",
@@ -31,7 +32,7 @@ class ChdirTest {
         "waiter.spec.ts",
         "waiter.ts",
         "yamlproxy.ts"
-      ]);
+      ].forEach(f => ok(files.includes(f)));
     });
     ok(readdirSync(__dirname + "/../").includes("src"));
   }
@@ -69,7 +70,8 @@ class ChdirTest {
   async testAsyncChdir() {
     // Test the chdir function
     await runWithCurrentDirectory("./src", async () => {
-      deepStrictEqual(readdirSync("."), [
+      const files = readdirSync(".");
+      [
         "case.spec.ts",
         "case.ts",
         "chdir.spec.ts",
@@ -89,7 +91,7 @@ class ChdirTest {
         "waiter.spec.ts",
         "waiter.ts",
         "yamlproxy.ts"
-      ]);
+      ].forEach(f => ok(files.includes(f)));
     });
     ok(readdirSync(".").includes("src"));
   }

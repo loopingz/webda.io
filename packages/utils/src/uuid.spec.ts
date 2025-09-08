@@ -1,9 +1,9 @@
 import assert from "assert";
-import { WebdaTest, suite, test } from "@webda/test";
+import { suite, test } from "@webda/test";
 import { getUuid } from "./uuid";
 
 @suite
-class UuidTest extends WebdaTest {
+class UuidTest  {
   @test
   normal() {
     let uuid = getUuid();

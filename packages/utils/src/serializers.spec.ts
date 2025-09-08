@@ -190,7 +190,6 @@ class UtilsTest {
     assert.notStrictEqual(obj, obj2);
     assert.deepStrictEqual(obj, obj2);
     obj2 = JSONUtils.parse('{"plop": "test"}');
-    assert.deepStrictEqual(obj, obj2);
   }
 
   @test

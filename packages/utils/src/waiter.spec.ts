@@ -1,7 +1,7 @@
-import { suite, test, WebdaTest } from "@webda/test";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { ConsoleLogger, Logger, MemoryLogger, WorkerLogger } from "@webda/workout";
+import {  Logger } from "@webda/workout";
 import {
   CancelableLoopPromise,
   CancelablePromise,
@@ -13,7 +13,7 @@ import {
 } from "./waiter";
 
 @suite
-class WaiterTest extends WebdaTest {
+class WaiterTest {
   @test
   async cancellablePromise() {
     let promise = new CancelablePromise();

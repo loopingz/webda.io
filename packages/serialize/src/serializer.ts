@@ -4,6 +4,7 @@ import BigIntSerializer from "./builtin/bigint.js";
 import BufferSerializer from "./builtin/buffer.js";
 import DateSerializer from "./builtin/date.js";
 import InfinitySerializer from "./builtin/infinity.js";
+import NegativeInfinitySerializer from "./builtin/neginf.js";
 import MapSerializer from "./builtin/map.js";
 import NaNSerializer from "./builtin/nan.js";
 import NullSerializer from "./builtin/null.js";
@@ -263,7 +264,7 @@ export class SerializerContext {
    * @param id – Identifier of the static type.
    * @returns The serialized form or undefined if not registered.
    */
-  private staticSerializer(id: "Infinity" | "null" | "undefined" | "NaN"): any {
+  private staticSerializer(id: "Infinity" | "-Infinity" | "null" | "undefined" | "NaN"): any {
     const entry = this.serializers[id];
     if (!entry) return undefined;
     const { value } = entry.serializer(undefined as any, this);
@@ -311,6 +312,7 @@ export class SerializerContext {
     } else if (typeof obj === "number") {
       if (Number.isNaN(obj)) return this.staticSerializer("NaN");
       if (obj === Infinity) return this.staticSerializer("Infinity");
+      if (obj === -Infinity) return this.staticSerializer("-Infinity");
       return { value: obj };
     } else if (typeof obj === "string" || typeof obj === "boolean") {
       return { value: obj };
@@ -500,6 +502,7 @@ registerSerializer("array", ArraySerializer);
 registerSerializer("object", new ObjectSerializer());
 registerSerializer("null", NullSerializer);
 registerSerializer("Infinity", InfinitySerializer);
+registerSerializer("-Infinity", NegativeInfinitySerializer);
 registerSerializer("NaN", NaNSerializer);
 registerSerializer("undefined", UndefinedSerializer);
 
@@ -517,6 +520,7 @@ export {
   ObjectStringified,
   NullSerializer,
   InfinitySerializer,
+  NegativeInfinitySerializer,
   NaNSerializer,
   UndefinedSerializer
 };

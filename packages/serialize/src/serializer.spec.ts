@@ -350,4 +350,97 @@ class Serializer {
     const testInvalid = new TestInvalid();
     assert.throws(() => serialize(testInvalid), /Serializer for type 'TestInvalid' already registered for a different class/);
   }
+
+  @test
+  async testSymbolAndFunction() {
+    // Test symbol serialization (should return undefined)
+    const symbolValue = Symbol("test");
+    const result = serialize(symbolValue);
+    assert.strictEqual(deserialize(result), undefined);
+
+    // Test function serialization (should return undefined)
+    const functionValue = () => "test";
+    const result2 = serialize(functionValue);
+    assert.strictEqual(deserialize(result2), undefined);
+  }
+
+  @test
+  async testInvalidRegexDeserialization() {
+    // Test invalid regex string that doesn't match the pattern
+    const context = new SerializerContext();
+    const regexSerializer = context.getSerializer("RegExp");
+    
+    assert.throws(
+      () => regexSerializer.deserializer("invalid-regex", {}, context),
+      /Invalid regex string: invalid-regex/
+    );
+  }
+
+  @test
+  async testMissingSerializer() {
+    // Test error when no serializer is found for a type
+    const context = new SerializerContext();
+    
+    // Create a scenario by temporarily removing the object serializer
+    const obj = { test: "value" };
+    context.unregisterSerializer("object");
+    
+    try {
+      assert.throws(() => {
+        context.serialize(obj);
+      }, /Serializer for type 'object' not found/);
+    } finally {
+      // Restore object serializer
+      context.registerSerializer("object", new ObjectSerializer());
+    }
+  }
+
+  @test
+  async testSerializerEdgeCases() {
+    // Test various edge cases to improve coverage
+    
+    // Test with -Infinity
+    const negInfinity = serialize(-Infinity);
+    assert.strictEqual(deserialize(negInfinity), -Infinity);
+    
+    // Test special numeric values that can be properly serialized
+    const specialNums = {
+      positiveZero: +0,
+      maxSafeInteger: Number.MAX_SAFE_INTEGER,
+      minSafeInteger: Number.MIN_SAFE_INTEGER
+    };
+    const serializedNums = serialize(specialNums);
+    const deserializedNums = deserialize(serializedNums);
+    assert.deepStrictEqual(deserializedNums, specialNums);
+    
+    // Test negative zero specifically (should become positive zero in JSON)
+    const negZero = serialize(-0);
+    assert.strictEqual(deserialize(negZero), 0); // -0 becomes 0 in JSON
+  }
+
+  @test
+  async testGetSerializerCoverage() {
+    // Test getting serializer by constructor function to cover line 204
+    const context = new SerializerContext();
+    
+    // Test getting serializer by constructor
+    const dateSerializer = context.getSerializer(Date);
+    assert.ok(dateSerializer);
+    assert.strictEqual(dateSerializer.constructorType, Date);
+    
+    // Test getting serializer by string for a constructor-based serializer
+    const dateSerializerByString = context.getSerializer("Date");
+    assert.ok(dateSerializerByString);
+    
+    // Test error when getting non-existent serializer by constructor function
+    class NonExistentClass {}
+    assert.throws(() => {
+      context.getSerializer(NonExistentClass);
+    }, /Serializer for type 'NonExistentClass' not found/);
+    
+    // Test getting ref serializer to cover edge cases
+    const refSerializer = context.getSerializer("ref");
+    assert.ok(refSerializer);
+    // The ref serializer is a special case that doesn't follow the normal Serializer interface
+  }
 }

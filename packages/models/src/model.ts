@@ -41,7 +41,7 @@ export type ModelEvents<T = any> = {
   Updated: { object_id: string; object: T; previous: T };
 };
 
-const Repositories = new WeakMap<Prototype<Storable>, Repository<any>>();
+const Repositories = new WeakMap<StorableClass, Repository<any>>();
 
 /**
  * Return a repository for a model

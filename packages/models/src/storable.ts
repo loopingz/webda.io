@@ -15,6 +15,7 @@ export const test = "123";
 export const WEBDA_PRIMARY_KEY_SEPARATOR: unique symbol = Symbol("Primary key separator");
 /**
  * Define the model plural key
+ * We might go back to a JSDoc @WebdaPlural annotation later
  * @default <modelName>s
  */
 export const WEBDA_PLURAL: unique symbol = Symbol("Plural definition");
@@ -83,7 +84,7 @@ export type StorableClass<T extends Storable = Storable> = {
 };
 
 /**
- * All storable need to have a constructor that take an object as argument 
+ * All storable need to have a constructor that take an object as argument
  */
 export type StorableConstructor<T extends new (arg: any) => any = any> = new (arg: ConstructorParameters<T>[0]) => T;
 

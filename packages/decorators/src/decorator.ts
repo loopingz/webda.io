@@ -14,7 +14,7 @@ export function createMethodDecorator<T extends AnyMethod, TArgs extends any[]>(
   function deco(value: T, context: ClassMethodDecoratorContext): T;
   function deco(...args: TArgs): (value: T, context: ClassMethodDecoratorContext) => T;
 
-  function deco(...all: unknown[]) {
+  function deco(...all: unknown[]): any {
     // If called directly as a decorator: @deco
     if (typeof all[0] === "function" && all[1] && typeof all[1] === "object") {
       const [value, context] = all as [T, ClassMethodDecoratorContext];
@@ -38,7 +38,7 @@ export function createClassDecorator<TArgs extends any[]>(
   function deco<C extends AnyCtor>(value: C, context: ClassDecoratorContext): C | void;
   function deco(...args: TArgs): <C extends AnyCtor>(value: C, context: ClassDecoratorContext) => C | void;
 
-  function deco(...all: unknown[]) {
+  function deco(...all: unknown[]): any {
     // Direct use: @deco
     if (
       typeof all[0] === "function" &&
@@ -70,7 +70,7 @@ export function createPropertyDecorator<V = unknown, TArgs extends any[] = []>(
     ...args: TArgs
   ): (initialValue: V, context: ClassFieldDecoratorContext) => ((initialValue: V) => V | void) | void;
 
-  function deco(...all: unknown[]) {
+  function deco(...all: unknown[]): any {
     // Direct use: @deco
     // In field decorators, the second arg is a context with kind === "field"
     if (all[1] && typeof all[1] === "object" && (all[1] as ClassFieldDecoratorContext).kind === "field") {

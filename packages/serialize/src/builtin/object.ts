@@ -5,15 +5,15 @@ import type { Constructor, Serializer, SerializerContext } from "../serializer";
  * It serializes the object as a plain object with its properties.
  * It does not serialize methods or prototype properties.
  */
-export class ObjectSerializer implements Serializer {
+export class ObjectSerializer implements Serializer<any> {
   constructor(
-    public constructorType: Constructor = null,
+    public constructorType: Constructor<any> | null = null,
     protected staticProperties: any = {}
   ) {}
 
   serializer(obj: any, context: SerializerContext) {
-    const newObj = {};
-    const objMetadata = {};
+    const newObj: { [key: string]: any } = {};
+    const objMetadata: { [key: string]: any } = {};
     for (const key in obj) {
       const data = context.prepareAttribute(key, obj[key]);
       if (!data) {
@@ -25,8 +25,9 @@ export class ObjectSerializer implements Serializer {
         objMetadata[key] = metadata;
       }
     }
-    return { value: newObj, metadata: Object.keys(objMetadata).length > 0 ? objMetadata : undefined };
+    return { value: newObj, metadata: Object.keys(objMetadata).length ? objMetadata : undefined };
   }
+
   deserializer(obj: any, metadata: any, context: SerializerContext) {
     const res = new (this.constructorType || Object)();
     Object.assign(res, obj);
@@ -57,9 +58,9 @@ export class ObjectSerializer implements Serializer {
  * It serializes the object as a string using its `toString` method.
  * It deserializes the object by calling its constructor with the string.
  */
-export class ObjectStringified {
+export class ObjectStringified implements Serializer<any> {
   constructor(
-    public constructorType: Constructor<{ toString: () => string }> = null,
+    public constructorType: Constructor<{ toString: () => string }> | null = null,
     protected staticProperties: any = {}
   ) {}
 
@@ -76,7 +77,7 @@ export class ObjectStringified {
    * @inheritdoc
    */
   deserializer(obj: any, metadata: any, context: SerializerContext) {
-    return new this.constructorType(obj);
+    return new this.constructorType!(obj);
   }
 }
 export default ObjectSerializer;

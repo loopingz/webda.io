@@ -11,7 +11,7 @@
     "lint:fix": "eslint --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "format": "prettier --check src/**/*",
     "format:fix": "prettier --write src/**/*",
     "deps:graph": "skott --no-trackTypeOnlyDependencies --showCircularDependencies --displayMode=raw -e .ts"

@@ -1,11 +1,11 @@
-import type { Serializer } from "../serializer";
+import type { Serializer, SerializerContext } from "../serializer";
 
-const BigIntSerializer: Serializer = {
+const BigIntSerializer: Serializer<bigint> = {
   constructorType: null,
   serializer: (obj: bigint) => {
     return { value: obj.toString() };
   },
-  deserializer: (str: string) => {
+  deserializer: (str: string, _metadata: any, _context: SerializerContext): bigint => {
     return BigInt(str);
   }
 };

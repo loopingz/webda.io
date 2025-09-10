@@ -9,11 +9,11 @@ import type { Serializer, SerializerContext } from "../serializer";
  * @param context The serializer context.
  * @returns The serialized array and metadata.
  */
-const ArraySerializer: Serializer = {
+const ArraySerializer: Serializer<any[]> = {
   constructorType: Array,
   serializer: (obj: any[], context: SerializerContext) => {
-    const objArray = [];
-    const metadata = {};
+    const objArray: any[] = [];
+    const metadata: { [key: string]: any } = {};
     obj.forEach((item, index) => {
       const { value, metadata: attrMetadata } = context.prepareAttribute(index.toString(), item);
       objArray.push(value);
@@ -23,8 +23,8 @@ const ArraySerializer: Serializer = {
     });
     return { value: objArray, metadata: Object.keys(metadata).length > 0 ? metadata : undefined };
   },
-  deserializer: (objArray: any, metadata: any, context: SerializerContext) => {
-    const array = [];
+  deserializer: (objArray: any[], metadata: any, context: SerializerContext): any[] => {
+    const array: any[] = [];
     for (let i = 0; i < objArray.length; i++) {
       let value = objArray[i];
       if (metadata[i]) {

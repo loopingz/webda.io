@@ -1,10 +1,10 @@
 import type { Serializer, SerializerContext } from "../serializer";
 
-const MapSerializer: Serializer = {
+const MapSerializer: Serializer<Map<any, any>> = {
   constructorType: Map,
   serializer: (obj: Map<any, any>, context: SerializerContext) => {
-    const objMap = {};
-    const metadata = {};
+    const objMap: { [key: string]: any } = {};
+    const metadata: { [key: string]: any } = {};
     obj.forEach((mapValue, key) => {
       const { value, metadata: attrMetadata } = context.prepareAttribute(key, mapValue);
       objMap[key] = value;
@@ -17,7 +17,7 @@ const MapSerializer: Serializer = {
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined
     };
   },
-  deserializer: (objMap: any, metadata: any, context: SerializerContext) => {
+  deserializer: (objMap: any, metadata: any, context: SerializerContext): Map<any, any> => {
     const map = new Map();
     for (const key in objMap) {
       let serializer;
@@ -29,7 +29,7 @@ const MapSerializer: Serializer = {
           // If reference, postpone deserialization
           continue;
         }
-        map.set(key, serializer.deserializer(objMap[key], metadata[key]));
+        map.set(key, serializer.deserializer(objMap[key], metadata[key], context));
       } else {
         map.set(key, objMap[key]);
       }

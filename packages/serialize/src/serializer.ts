@@ -27,7 +27,7 @@ export type Serializer<T = any> = {
    * Can be null if the serializer is for specific built-in types
    * (e.g. Date, Map, Set, etc. mainly used internally)
    */
-  constructorType: Constructor<T>;
+  constructorType: Constructor<T> | null;
   /**
    * Serializer function
    * @param obj
@@ -109,7 +109,7 @@ export class SerializerContext {
    * This is used to prevent circular references
    * and to create the $ref attribute value
    */
-  stack: string[];
+  stack: string[] = [];
   /**
    * Used to store the current resolvers
    * This is used to resolve references after the unserialization
@@ -119,7 +119,7 @@ export class SerializerContext {
    * Used to store the already serialized objects
    * This is used to prevent circular references
    */
-  objects: WeakMap<any, string>;
+  objects: WeakMap<any, string> = new WeakMap();
   /**
    * Used to store the current mode
    * This is used to prevent circular references
@@ -290,7 +290,7 @@ export class SerializerContext {
       /* ignore WeakMap errors */
     }
 
-    let serializer: StoredSerializer;
+    let serializer: StoredSerializer | undefined;
     if (typeof obj === "bigint") {
       serializer = this.serializers["bigint"];
     } else if (obj === null) {

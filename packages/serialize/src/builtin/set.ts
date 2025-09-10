@@ -1,10 +1,10 @@
 import type { Serializer, SerializerContext } from "../serializer";
 
-const SetSerializer: Serializer = {
+const SetSerializer: Serializer<Set<any>> = {
   constructorType: Set,
   serializer: (obj: Set<any>, context: SerializerContext) => {
-    const objSet = [];
-    const metadata = {};
+    const objSet: any[] = [];
+    const metadata: { [key: string]: any } = {};
     obj.forEach(setItem => {
       const { value, metadata: attrMetadata } = context.prepareAttribute(objSet.length.toString(), setItem);
       if (attrMetadata) {
@@ -14,7 +14,7 @@ const SetSerializer: Serializer = {
     });
     return { value: objSet, metadata: Object.keys(metadata).length > 0 ? metadata : undefined };
   },
-  deserializer: (objSet: any, metadata: any, context: SerializerContext) => {
+  deserializer: (objSet: any[], metadata: any, context: SerializerContext): Set<any> => {
     const set = new Set();
     let i = 0;
     for (let value of objSet) {

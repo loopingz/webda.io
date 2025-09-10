@@ -10,11 +10,14 @@ export class WebdaAsyncStorageTest extends WebdaTest {
     if (type === "beforeAll") {
       return <Promise<void>>runWithInstanceStorage(this.instanceStorage, async () => {
         await callback();
+        this.instanceStorage = useInstanceStorage();
       });
     } else if (type === "afterAll") {
       return <Promise<void>>runWithInstanceStorage(this.instanceStorage, callback);
     } else if (type === "test") {
-      return <Promise<void>>runWithInstanceStorage(this.instanceStorage, callback);
+      return <Promise<void>>runWithInstanceStorage(this.instanceStorage, async () => {
+        await callback();
+      });
     }
   }
 }

@@ -6,7 +6,7 @@ import { useApplication, useModelId, useSchema } from "../application/hooks";
 import { useLog } from "../loggers/hooks";
 import type { OpenAPIV3 } from "openapi-types";
 import { useConfiguration, useParameters } from "../core/instancestorage";
-import { useService } from "../core/hooks";
+import { useCore, useService } from "../core/hooks";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { IWebContext } from "../contexts/icontext";
@@ -15,6 +15,7 @@ import { WebContext } from "../contexts/webcontext";
 import { ServiceParameters } from "../interfaces";
 import { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates";
+import { useCoreEvents } from "../events/events";
 
 export class RouterParameters extends ServiceParameters {
   /**
@@ -55,6 +56,14 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    */
   registerModelUrl(model: string, url: string) {
     this.models.set(model, url);
+  }
+
+  resolve() {
+    // Remap route
+    useCoreEvents("Webda.Init", () => {
+      this.remapRoutes();
+    });
+    return super.resolve();
   }
 
   /**
@@ -357,10 +366,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     const hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
     for (const i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
-        route.openapi = templateVariables(
-          route.openapi || {},
-          useService(route.executor).getOpenApiReplacements()
-        );
+        route.openapi = templateVariables(route.openapi || {}, useService(route.executor).getOpenApiReplacements());
         if (route.openapi.hidden && skipHidden) {
           return;
         }

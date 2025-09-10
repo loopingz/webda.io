@@ -1,7 +1,14 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as path from "path";
-import { Application, UnpackedApplication, useApplication, validateSchema } from "../index";
+import {
+  Application,
+  UnpackedApplication,
+  useApplication,
+  useInstanceStorage,
+  validateModelSchema,
+  validateSchema
+} from "../index";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
 import { WebdaInternalTest, TestInternalApplication } from "../test/internal";
@@ -14,18 +21,20 @@ const { __dirname } = getCommonJS(import.meta.url);
 class SampleApplicationTest extends WebdaApplicationTest {
   sampleApp: TestApplication;
 
-  async beforeEach(): Promise<void> {
+  async beforeAll(): Promise<void> {
+    await super.beforeAll();
     this.sampleApp = useApplication();
   }
 
-  static getTestConfiguration() {
+  getTestConfiguration() {
     return path.join(__dirname, "..", "..", "..", "..", "sample-app");
   }
 
   @test
   validateSchemaWithEnum() {
+    console.log("validateEnum", new Date(), useApplication() !== undefined);
     assert.strictEqual(
-      validateSchema(
+      validateModelSchema(
         "WebdaDemo/Company",
         {
           permissions: ["PRODUCT_1", "PRODUCT_2"]
@@ -36,7 +45,7 @@ class SampleApplicationTest extends WebdaApplicationTest {
     );
     assert.throws(
       () =>
-        validateSchema(
+        validateModelSchema(
           "WebdaDemo/Company",
           {
             permissions: ["RANDOM", "PRODUCT_2"]
@@ -71,6 +80,10 @@ class SampleApplicationTest extends WebdaApplicationTest {
 
 @suite
 class ApplicationTest extends WebdaInternalTest {
+  async beforeAll(init?: boolean): Promise<void> {
+    await super.beforeAll(init);
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
   @test
   async cacheSchema() {
     const app = new Application(__dirname + "/../../test/config-cached.json");
@@ -147,10 +160,6 @@ class ApplicationTest extends WebdaInternalTest {
     assert.strictEqual(app.getModelId(<any>CoreModel), "Webda/CoreModel");
     assert.strictEqual(app.getModelId(new CoreModel()), "Webda/CoreModel");
     assert.strictEqual(app.getModelId(new User()), "Webda/User");
-
-    app.registerSchema("testor", {});
-    assert.deepStrictEqual(app.getSchema("testor"), {});
-    assert.throws(() => app.registerSchema("testor", {}), /Schema testor already registered/);
 
     unpackedApp = new UnpackedApplication(__dirname + "/../../test/schemas", undefined);
     await unpackedApp.load();

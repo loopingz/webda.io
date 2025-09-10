@@ -180,6 +180,25 @@ class CronService extends Service {
   }
 }
 
-const Cron = CronService.Annotation;
+export function Cron(cron: string, description = "", ...args: any[]) {
+  return function <T extends (this: Service, ...a: any[]) => Promise<any>>(
+    value: T,
+    context: ClassMethodDecoratorContext<Service, T>
+  ) {
+    // Store metadata on each instance when it's constructed
+    context.addInitializer(function (this: Service) {
+      // @ts-expect-error – attach private-ish field
+      (this.__crons ??= []).push({
+        method: String(context.name),
+        cron,
+        description,
+        args
+      } as CronDefinition);
+    });
 
-export { Cron, CronService };
+    // You can return the same method, or wrap it if you need
+    return value;
+  };
+}
+
+export { CronService };

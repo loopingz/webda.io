@@ -106,11 +106,6 @@ export interface ICore {
   getService(name: string): AbstractService;
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);
-  validateSchema(
-    webdaObject: Model | string,
-    object: any,
-    ignoreRequired?: boolean
-  ): NoSchemaResult | SchemaValidResult;
 }
 
 /**

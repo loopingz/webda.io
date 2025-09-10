@@ -1,14 +1,10 @@
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import Ajv, { ValidationError } from "ajv";
-import addFormats from "ajv-formats";
 import { deepmerge } from "deepmerge-ts";
 import jsonpath from "jsonpath";
 import { Application } from "../application/application";
 import { Configuration } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
-import { Model, ModelClass, registerRepository, Storable } from "@webda/models";
-import { Router } from "../rest/router";
-import { useCrypto } from "../services/cryptoservice";
+import { Model, ModelClass, registerRepository } from "@webda/models";
 import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
@@ -16,25 +12,16 @@ import { Logger } from "../loggers/ilogger";
 import type { ConfigurationService } from "../configurations/configuration";
 import { OperationContext } from "../contexts/operationcontext";
 import { WebContext } from "../contexts/webcontext";
-import { getUuid, JSONUtils, State, StateOptions } from "@webda/utils";
-import {
-  ICore,
-  AbstractService,
-  OperationDefinitionInfo,
-  ServiceConstructor,
-  SchemaValidResult,
-  NoSchemaResult
-} from "./icore";
+import { getUuid, State, StateOptions } from "@webda/utils";
+import { ICore, AbstractService, OperationDefinitionInfo } from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
 import { useApplication, useModel, useModelId } from "../application/hooks";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
-import { useRouter } from "../rest/hooks";
 import { RegistryModel } from "../models/registry";
 import { Modda } from "../internal/iapplication";
-import { Prototype } from "@webda/tsc-esm";
 import { InstanceCache } from "../cache/cache";
-import { Service } from "../services/service";
+import { ServiceParameters } from "../interfaces";
 
 export type CoreStates = "initial" | "loading" | "initializing" | "reinitializing" | "ready" | "stopping" | "stopped";
 
@@ -57,15 +44,6 @@ export class Core implements ICore {
    */
   protected application: Application;
   /**
-   * Router that will route http request in
-   */
-  protected router: Router = new Router("RESTService", <any>{});
-  /**
-   * If Core is already initiated
-   * @deprecated
-   */
-  protected _initiated: boolean = false;
-  /**
    * Services who failed to create or initialize
    * @deprecated
    */
@@ -75,20 +53,6 @@ export class Core implements ICore {
    * @hidden
    */
   protected configuration: Configuration;
-
-  /**
-   * JSON Schema validator instance
-   */
-  protected _ajv: Ajv;
-  /**
-   * JSON Schema registry
-   * Save if a schema was added to Ajv already
-   */
-  protected _ajvSchemas: { [key: string]: true };
-  /**
-   * Current executor
-   */
-  protected _currentExecutor: any;
 
   protected _configFile: string;
   /**
@@ -150,11 +114,6 @@ export class Core implements ICore {
     this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
     this.application = application || new UnpackedApplication(".");
-    // Schema validations
-    this._ajv = new Ajv();
-    this._ajv.addKeyword("$generated");
-    addFormats(this._ajv);
-    this._ajvSchemas = {};
 
     // Load the configuration and migrate
     this.configuration = useConfiguration();
@@ -302,12 +261,10 @@ export class Core implements ICore {
   protected async initService(service: string) {
     try {
       this.log("TRACE", "Initializing service", service);
-      (<any>this.services[service])._initTime = Date.now();
       await this.services[service].init();
     } catch (err) {
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
-      (<any>this.services[service])._initException = err.message;
       this.failedServices[service] = { _initException: err };
     }
   }
@@ -368,8 +325,6 @@ export class Core implements ICore {
     InstanceCache.clear(this, "getModelBinaryCached");
 
     this.log("TRACE", "Create Webda init promise");
-
-    await this.initService("Router");
     await this.initService("Registry");
     // By pass the store checks
     Model["Store"] = <any>this.services["Registry"];
@@ -377,13 +332,17 @@ export class Core implements ICore {
 
     await this.initService("CryptoService");
 
-    const criticalServices: Service[] = [useCrypto(), useRouter(), <any>this.services["Registry"]];
-    if (criticalServices.some(s => s.getState() !== "running")) {
-      criticalServices
-        .filter(s => s.getState() !== "running")
-        .forEach(s => {
-          this.log("ERROR", "Service not running", s.getName());
-        });
+    const criticalServices: string[] = ["CryptoService", "Registry"];
+    const criticalServicesStates: [string, string][] = criticalServices
+      .map(s => {
+        return [s, this.services[s]?.getState() || "undefined"] as [string, string];
+      })
+      .filter(([_, state]) => state !== "running");
+    if (criticalServicesStates.length) {
+      this.log(
+        "ERROR",
+        `Critical service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
+      );
       throw new Error("Cannot init Webda core services (Router, Registry, CryptoService)");
     }
     // Init services
@@ -516,7 +475,9 @@ export class Core implements ICore {
     }
 
     try {
-      const paramsClass = serviceConstructor.createConfiguration(params);
+      const paramsClass = serviceConstructor.createConfiguration
+        ? serviceConstructor.createConfiguration(params)
+        : new ServiceParameters().load(params);
       this.log("TRACE", "Constructing service", service);
       this.services[service] = new serviceConstructor(service, paramsClass);
     } catch (err) {
@@ -646,8 +607,6 @@ export class Core implements ICore {
       this.createServices(excludes);
     }
 
-    this.router.remapRoutes();
-
     emitCoreEvent("Webda.Init", this.configuration);
   }
 
@@ -673,43 +632,6 @@ export class Core implements ICore {
   registerContextProvider(provider: ContextProvider) {
     this.contextProviders ??= [];
     this.contextProviders.unshift(provider);
-  }
-
-  /**
-   * @override
-   * @deprecated use schemas hook instead and move to schemas/hooks.ts
-   */
-  validateSchema(
-    webdaObject: Model | string,
-    object: any,
-    ignoreRequired?: boolean
-  ): NoSchemaResult | SchemaValidResult {
-    let name = typeof webdaObject === "string" ? webdaObject : useModelId(webdaObject);
-    let cacheName = name;
-    if (name?.endsWith("?")) {
-      name = name.substring(0, name.length - 1);
-      ignoreRequired = true;
-    }
-    if (ignoreRequired) {
-      cacheName += "_noRequired";
-    }
-    if (!this._ajvSchemas[cacheName]) {
-      let schema = this.application.getSchema(name);
-      if (!schema) {
-        return null;
-      }
-      if (ignoreRequired) {
-        schema = JSONUtils.duplicate(schema);
-        schema.required = [];
-      }
-      this.log("TRACE", "Add schema for", name);
-      this._ajv.addSchema(schema, cacheName);
-      this._ajvSchemas[cacheName] = true;
-    }
-    if (this._ajv.validate(cacheName, object)) {
-      return true;
-    }
-    throw new ValidationError(this._ajv.errors);
   }
 
   /**

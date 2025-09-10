@@ -1,4 +1,4 @@
-import { afterEach, CallbackOptionallyAsync, testWrapper, getMetadata } from "@webda/test";
+import { afterEach, CallbackOptionallyAsync, testWrapper, getMetadata, beforeAll } from "@webda/test";
 import { ConsoleLogger, MemoryLogger, useLog, useWorkerOutput } from "@webda/workout";
 import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { sanitizeFilename } from "@webda/utils";
@@ -10,7 +10,6 @@ import { dirname } from "node:path";
 export class WebdaTest {
   cleanFiles: string[] = [];
 
-  
   async wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
     return callback();
   }
@@ -47,7 +46,13 @@ export class WebdaTest {
    * @param start
    * @returns
    */
-  static exportMemoryLogger(type: "beforeAll" | "test" | "afterAll" = "test", object, method: string, memory: MemoryLogger, start: number): string {
+  static exportMemoryLogger(
+    type: "beforeAll" | "test" | "afterAll" = "test",
+    object,
+    method: string,
+    memory: MemoryLogger,
+    start: number
+  ): string {
     let duration: number | string = Date.now() - start;
     if (duration > 1000) {
       duration = Math.round(duration / 10) / 100 + "s";
@@ -96,11 +101,23 @@ export class WebdaTest {
   }
 
   // Optional: keep no-op private hooks for parity (not used by the TS5 decorator wiring)
-  @afterEach
-  private async after() {
+  async afterEach() {
     try {
       this.cleanFiles.filter(existsSync).forEach(unlinkSync);
     } catch {}
     this.cleanFiles = [];
   }
+
+  /**
+   * Wait for x ms
+   * @param ms
+   */
+  async wait(ms: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, ms));
+  }
 }
+
+beforeAll(() => {
+  console.log("CLEANING LOGS");
+  WebdaTest.cleanLogs();
+});

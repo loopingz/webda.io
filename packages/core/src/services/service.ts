@@ -15,6 +15,7 @@ import { useLogger } from "../loggers/hooks";
 import { WEBDA_EVENTS } from "@webda/models";
 import { getMetadata } from "@webda/test";
 import { State, StateOptions } from "@webda/utils";
+import { ServiceState, ServiceStates } from "../internal/iapplication";
 
 /**
  * Represent a Inject annotation
@@ -94,10 +95,14 @@ class Injector {
  * Might consider to split into two annotations
  */
 export const Inject = createPropertyDecorator(
-  (value: Service, context: ClassFieldDecoratorContext, parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) => {
-
-  } 
-)
+  (
+    value: Service,
+    context: ClassFieldDecoratorContext,
+    parameterOrName?: string,
+    defaultValue?: string | boolean,
+    optional?: boolean
+  ) => {}
+);
 /*
 export function Inject(parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) {
   return (target: Service, context: ClassFieldDecoratorContext): void => {
@@ -115,13 +120,7 @@ export function Inject(parameterOrName?: string, defaultValue?: string | boolean
   };
 }
   */
-  
-export type ServiceStates = "initial" | "resolving" | "resolved" | "errored" | "initializing" | "running" | "stopping" | "stopped";
 
-/**
- * Define the service state for the application
- */
-export const ServiceState = (options: StateOptions<ServiceStates>) => State({error: "errored", ...options});
 /**
  * Use this object for representing a service in the application
  * A Service is a singleton in the application, that is init after all others services are created
@@ -145,7 +144,7 @@ abstract class Service<
   /**
    * Get the current state
    */
-  getState() : ServiceStates {
+  getState(): ServiceStates {
     return State.getCurrentState(this) as ServiceStates;
   }
 
@@ -187,7 +186,7 @@ abstract class Service<
   /**
    * Shutdown the current service if action need to be taken
    */
-  @ServiceState({start: "stopping", end: "stopped"})
+  @ServiceState({ start: "stopping", end: "stopped" })
   async stop(): Promise<void> {
     // Nothing to do
   }
@@ -203,7 +202,7 @@ abstract class Service<
    * Resolve parameters
    * Call initRoutes and initBeanRoutes
    */
-  @ServiceState({start: "resolving", end: "resolved"})
+  @ServiceState({ start: "resolving", end: "resolved" })
   resolve(): this {
     this.initMetrics();
     // Inject dependencies
@@ -394,7 +393,7 @@ abstract class Service<
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  @ServiceState({start: "initializing", end: "running"})
+  @ServiceState({ start: "initializing", end: "running" })
   async init(): Promise<this> {
     // Can be overriden by subclasses if needed
     return this;

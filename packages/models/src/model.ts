@@ -220,7 +220,7 @@ export abstract class Model implements Storable, Securable, Exposable {
       this[this[WEBDA_PRIMARY_KEY][0]] = value as any;
     } else {
       for (const k of this[WEBDA_PRIMARY_KEY]) {
-        this[k] = value[k as any];
+        (this as any)[k] = (value as any)[k as any];
       }
     }
     return this;
@@ -316,7 +316,7 @@ export abstract class Model implements Storable, Securable, Exposable {
     this: T,
     key: PrimaryKeyType<InstanceType<T>> | string
   ): ModelRefWithCreate<InstanceType<T>> {
-    return Repositories.get(this).ref(key);
+    return Repositories.get(this)!.ref(key);
   }
 
   toJSON(): SelfJSONed<this> {
@@ -342,7 +342,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param action
    * @returns
    */
-  async canAct(context: ExecutionContext, action: ActionsEnum<this>): Promise<boolean | string> {
+  async canAct(context: ExecutionContext, action: string): Promise<boolean | string> {
     return false;
   }
 
@@ -351,7 +351,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param action
    * @param context
    */
-  async checkAct(context: ExecutionContext, action: ActionsEnum<this>): Promise<void> {
+  async checkAct(context: ExecutionContext, action: string): Promise<void> {
     let canAct = await this.canAct(context, action);
     if (canAct === false) {
       canAct = `Action ${action} is not allowed`;
@@ -391,7 +391,7 @@ export abstract class Model implements Storable, Securable, Exposable {
     } else {
       const patch = {} as SelfJSONed<this & Storable>;
       for (const k of this[WEBDA_DIRTY]) {
-        patch[k] = this[k];
+        (patch as any)[k] = (this as any)[k];
       }
       await repo.patch(this.getPrimaryKey(), patch);
       this[WEBDA_DIRTY].clear();
@@ -409,7 +409,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @returns
    */
   isDeleted() {
-    return this[WEBDA_DELETED];
+    return (this as any)[WEBDA_DELETED];
   }
 
   /**
@@ -433,7 +433,7 @@ export abstract class Model implements Storable, Securable, Exposable {
       this.getPrimaryKey(),
       Object.keys(data).reduce(
         (acc, key) => {
-          acc[key] = this[key];
+          (acc as any)[key] = (this as any)[key];
           return acc;
         },
         {} as Partial<SelfJSONed<this & Storable>>

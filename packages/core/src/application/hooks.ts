@@ -2,7 +2,7 @@ import { createCoreHook } from "../core/instancestorage";
 import type { Model, ModelClass } from "@webda/models";
 /**
  * Hook to get the current application
- * 
+ *
  * We use a _ to be able to document the subhooks
  */
 const [_useApplication, _setApplication] = createCoreHook("application");
@@ -28,6 +28,9 @@ export { useApplication, setApplication };
  * @returns
  */
 export function useModel<T extends Model = Model>(name: string | T): ModelClass<T> {
+  if (name === undefined) {
+    throw new Error("Cannot call useModel with undefined");
+  }
   if (typeof name !== "string") {
     return <ModelClass<T>>useApplication().getModel(name.constructor as any);
   }

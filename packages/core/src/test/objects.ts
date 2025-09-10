@@ -319,6 +319,12 @@ export class TestApplication extends UnpackedApplication {
               path.relative(this.getAppPath(), path.dirname(moduleFile)),
               module[SectionEnum[p]][key].Import.replace(/^lib\//, "src/").replace(":", ".ts:")
             );
+            if (module[SectionEnum[p]][key].Configuration) {
+              module[SectionEnum[p]][key].Configuration = path.join(
+                path.relative(this.getAppPath(), path.dirname(moduleFile)),
+                module[SectionEnum[p]][key].Configuration.replace(/^lib\//, "src/").replace(":", ".ts:")
+              );
+            }
           }
         });
       return module;

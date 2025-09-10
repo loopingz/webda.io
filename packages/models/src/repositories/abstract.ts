@@ -71,7 +71,7 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
   /**
    * @inheritdoc
    */
-  getPrimaryKey(object: any, forceObject: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
+  getPrimaryKey(object: any, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
     const pkFields = (object[WEBDA_PRIMARY_KEY] || this.pks || []) as Array<keyof InstanceType<T>>;
     if (pkFields.length === 0) {
       throw new Error("No primary key defined on model");
@@ -204,7 +204,7 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
   >(
     uuid: PrimaryKeyType<InstanceType<T>>,
     attribute: K,
-    conditionField?: L,
+    conditionField?: L | null,
     condition?: InstanceType<T>[L] | JSONed<InstanceType<T>[L]>
   ): Promise<void>;
   abstract get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<InstanceType<T>>;
@@ -217,12 +217,12 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
   ): Promise<void>;
   abstract update<K extends StorableAttributes<InstanceType<T>>>(
     data: InstanceType<T> | SelfJSONed<InstanceType<T>>,
-    conditionField?: K,
+    conditionField?: K | null,
     condition?: InstanceType<T>[K]
   ): Promise<void>;
   abstract delete<K extends StorableAttributes<InstanceType<T>>>(
     uuid: PrimaryKeyType<InstanceType<T>>,
-    conditionField?: K,
+    conditionField?: K | null,
     condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
   ): Promise<void>;
   abstract exists(uuid: PrimaryKeyType<InstanceType<T>>): Promise<boolean>;

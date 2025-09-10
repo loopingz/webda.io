@@ -290,15 +290,6 @@ export class Application {
   }
 
   /**
-   * Check if a schema exists
-   * @param type
-   * @returns schema name if it exists
-   */
-  hasSchema(type: string): boolean {
-    return this.baseConfiguration.cachedModules.schemas[type] !== undefined;
-  }
-
-  /**
    * Check if application has cached modules
    *
    * When deployed the application contains cachedModules in the `webda.config.json`
@@ -370,18 +361,6 @@ export class Application {
     this.log("TRACE", "Registering service", name);
     this.moddas[name] = service;
     return this;
-  }
-
-  /**
-   * Register a new schema in the application
-   * @param name
-   * @param schema
-   */
-  registerSchema(name: string, schema: JSONSchema7): void {
-    if (this.hasSchema(name)) {
-      throw new Error(`Schema ${name} already registered`);
-    }
-    this.baseConfiguration.cachedModules.schemas[name] = schema;
   }
 
   /**
@@ -499,7 +478,7 @@ export class Application {
    * @param object
    */
   getModelFromInstance(object: Model): string | undefined {
-    return Object.keys(this.models).find(k => this.models[k] === object.constructor.prototype);
+    return Object.keys(this.models).find(k => this.models[k] === object.constructor);
   }
 
   /**
@@ -754,6 +733,7 @@ export class Application {
             const filteredParams = {};
             if (info[section][key].Schema) {
               // If schema is defined, filter the params
+              // We do not want to bloat the service with information it does not need
               for (const field of Object.keys(info[section][key].Schema.properties)) {
                 filteredParams[field] = params[field];
               }

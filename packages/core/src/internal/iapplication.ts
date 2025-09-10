@@ -16,6 +16,7 @@ import { ServiceParameters } from "../interfaces";
 
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 import { Model } from "@webda/models";
+import { State, StateOptions } from "@webda/utils";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
 export type Values<T> = T[keyof T];
@@ -171,6 +172,21 @@ export type ModelEmitter<T extends AsyncEventUnknown> = Pick<
   "on" | "emit" | "removeAllListeners" | "once" | "off"
 >;
 
+export type ServiceStates =
+  | "initial"
+  | "resolving"
+  | "resolved"
+  | "errored"
+  | "initializing"
+  | "running"
+  | "stopping"
+  | "stopped";
+
+/**
+ * Define the service state for the application
+ */
+export const ServiceState = (options: StateOptions<ServiceStates>) => State({ error: "errored", ...options });
+
 export type ServicePartialParameters<T extends ServiceParameters> = DeepPartial<Attributes<T>>;
 /**
  * Represent a Webda service
@@ -201,6 +217,10 @@ export abstract class AbstractService<
    * @returns
    */
   abstract resolve(): this;
+  /**
+   * Return the state of initialization
+   */
+  abstract getState(): string;
   /**
    * Get the name of the service
    * @returns

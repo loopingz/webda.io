@@ -17,6 +17,7 @@ import { ModelGraphBinaryDefinition } from "../internal/iapplication";
 import { useCore, useModelMetadata } from "../core/hooks";
 import { registerOperation } from "../core/operations";
 import { WebContext } from "../contexts/webcontext";
+import { hasSchema, registerSchema } from "../schemas/hooks";
 
 export class DomainServiceParameters extends ServiceParameters {
   /**
@@ -416,10 +417,10 @@ export abstract class DomainService<
 
     // Add default schemas - used for operation parameters
     for (const i in ModelsOperationsService.schemas) {
-      if (app.hasSchema(i)) {
+      if (hasSchema(i)) {
         continue;
       }
-      app.registerSchema(i, ModelsOperationsService.schemas[i]);
+      registerSchema(i, ModelsOperationsService.schemas[i]);
     }
 
     const models = app.getModels();

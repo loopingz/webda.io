@@ -9,7 +9,7 @@ import {
   WEBDA_EVENTS,
   WEBDA_PRIMARY_KEY
 } from "@webda/models";
-import { Store } from "./store";
+import type { Store } from "./store";
 import { ReadonlyKeys, ArrayElement } from "@webda/tsc-esm";
 import { useModelMetadata } from "../core/hooks";
 

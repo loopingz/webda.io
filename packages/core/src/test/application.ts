@@ -91,7 +91,6 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    *
    * @param init wait for the full init
    */
-  @beforeAll
   async beforeAll(init: boolean = true) {
     // Reset any prometheus
     // @ts-ignore
@@ -103,16 +102,14 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     if (init) {
       await core.init();
       // Prevent persistance for tests
-      (<MemoryStore>(useModelStore(RegistryModel))).persist = async () => {};
+      (<MemoryStore>useModelStore(RegistryModel)).persist = async () => {};
     }
   }
 
-  @beforeEach
   async beforeEach(): Promise<void> {
     this.webda = <Core>useCore();
   }
 
-  @afterAll
   async afterAll() {
     console.log("After all");
     //

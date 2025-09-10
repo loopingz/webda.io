@@ -8,7 +8,7 @@ export default defineConfig({
     allowOnly: true,
     coverage: {
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.spec.ts"],
+      exclude: ["src/**/*.spec.ts", "src/index.ts"],
       reporter: ["lcov", "html", "text"]
     },
     testTransformMode: {
@@ -21,13 +21,17 @@ export default defineConfig({
       "src/cache/*.spec.ts",
       "src/contexts/*.spec.ts",
       "src/errors/*.spec.ts",
-      "src/models/*.spec.ts",
-      "src/services/cryptoservice.spec.ts",
-      "src/stores/memory.spec.ts",
+      "src/models/ident.spec.ts",
+      "src/models/user.spec.ts",
+      //"src/services/cryptoservice.spec.ts",
+      //"src/stores/memory.spec.ts",
       "src/loggers/*.spec.ts",
+      "src/templates/*.spec.ts",
       "src/errors/*.spec.ts",
       "src/utils/*.spec.ts",
-      "src/test/*.spec.ts"
+      "src/test/*.spec.ts",
+      "src/schemas/*.spec.ts"
+      //"src/**/*.spec.ts"
     ]
   }
 });

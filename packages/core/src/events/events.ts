@@ -2,6 +2,7 @@ import { AbstractService, Configuration } from "../internal/iapplication";
 import { Context, ContextProviderInfo } from "../contexts/icontext";
 import { IWebContext } from "../contexts/icontext";
 import { OperationContext } from "../contexts/operationcontext";
+import { EventEmitter } from "stream";
 
 export type CoreEvents = {
   /**
@@ -54,19 +55,21 @@ export type CoreEvents = {
     context: OperationContext;
     operationId: string;
   };
-  [key: string]: unknown;
 };
 
 export class EventWithContext<T extends Context = Context> {
   context: T;
 }
 
+const emitter = new EventEmitter();
 /**
  * Emit a core event
  * @param event
  * @param data
  */
-export function emitCoreEvent<K extends keyof CoreEvents>(event: K, data: CoreEvents[K]) {}
+export function emitCoreEvent<K extends keyof CoreEvents>(event: K, data: CoreEvents[K]) {
+  emitter.emit(event, data);
+}
 
 /**
  * Add a listener to a core event
@@ -75,5 +78,9 @@ export function emitCoreEvent<K extends keyof CoreEvents>(event: K, data: CoreEv
  */
 export function useCoreEvents<K extends keyof CoreEvents>(
   event: K,
-  listener: (evt: CoreEvents[K]) => Promise<void> | void
-) {}
+  listener: (evt: CoreEvents[K]) => Promise<void> | void,
+  once: boolean = false
+): () => void {
+  emitter[once ? "once" : "on"](event, listener);
+  return () => emitter.off(event, listener);
+}

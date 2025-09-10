@@ -28,7 +28,7 @@ const RelationData = Symbol("RelationData");
  * @param target
  * @param source
  */
-export function assignNonSymbols(target, source) {
+export function assignNonSymbols(target: any, source: any) {
   Object.keys(source).forEach(key => {
     target[key] = source[key];
   });
@@ -49,9 +49,32 @@ export class ModelRef<T extends Storable> {
   }
 
   /**
+   * Get the repository and ensure it's initialized
+   */
+  protected getRepository(): Repository<StorableClass<T>> {
+    if (!this[RelationRepository]) {
+      throw new Error("Relation repository is not initialized");
+    }
+    return this[RelationRepository];
+  }
+
+  /**
+   * Get the primary key and ensure it's initialized
+   */
+  protected getKey(): PrimaryKeyType<T> {
+    if (!this[RelationKey]) {
+      throw new Error("Relation key is not initialized");
+    }
+    return this[RelationKey];
+  }
+
+  /**
    * Get the model
    */
   getPrimaryKey(): PrimaryKeyType<T> {
+    if (!this[RelationKey]) {
+      throw new Error("Relation key is not initialized");
+    }
     return this[RelationKey];
   }
 
@@ -60,7 +83,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   toJSON(): PrimaryKeyType<T> {
-    return <PrimaryKeyType<T>>this[RelationKey];
+    return this.getKey();
   }
 
   /**
@@ -70,22 +93,22 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   setAttribute<A extends UpdatableAttributes<T>>(attribute: A, value: JSONed<T[A]>): Promise<void> {
-    return this[RelationRepository].setAttribute(this[RelationKey], attribute, value as any);
+    return this.getRepository().setAttribute(this.getKey(), attribute, value as any);
   }
 
-  /**
+    /**
    * Patch the model
    * @param data
    * @param conditionField
    * @param condition
    * @returns
    */
-  patch<A extends StorableAttributes<T>>(
+  patch<K extends keyof T, A extends StorableAttributes<T>>(
     data: Partial<SelfJSONed<T>>,
     conditionField?: A,
-    condition?: T[A] | JSONed<T[A]>
+    condition?: T[A]
   ): Promise<void> {
-    return this[RelationRepository].patch(this[RelationKey], data, conditionField, condition);
+    return this.getRepository().patch(this.getKey(), data, conditionField, condition);
   }
 
   /**
@@ -96,7 +119,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   update<A extends StorableAttributes<T>>(data: SelfJSONed<T>, conditionField?: A, condition?: T[A]): Promise<void> {
-    return this[RelationRepository].update({ ...data, ...this[RelationKey] }, conditionField, condition);
+    return this.getRepository().update({ ...data, ...this.getKey() }, conditionField, condition);
   }
 
   /**
@@ -104,7 +127,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   get(): Promise<T> {
-    return this[RelationRepository].get(this[RelationKey]) as Promise<T>;
+    return this.getRepository().get(this.getKey()) as Promise<T>;
   }
 
   /**
@@ -117,7 +140,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   delete<A extends StorableAttributes<T, any>>(conditionField?: A, condition?: JSONed<T[A]> | T[A]): Promise<void> {
-    return this[RelationRepository].delete(this[RelationKey], conditionField, condition);
+    return this.getRepository().delete(this.getKey(), conditionField, condition);
   }
 
   /**
@@ -125,7 +148,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   exists(): Promise<boolean> {
-    return this[RelationRepository].exists(this[RelationKey]);
+    return this.getRepository().exists(this.getKey());
   }
 
   /**
@@ -142,7 +165,7 @@ export class ModelRef<T extends Storable> {
     conditionField?: StorableAttributes<T, any>,
     condition?: T[StorableAttributes<T, any>]
   ): Promise<void> {
-    return this[RelationRepository].incrementAttributes(this[RelationKey], info, conditionField, condition);
+    return this.getRepository().incrementAttributes(this.getKey(), info, conditionField, condition);
   }
   /**
    * Add an item to a collection
@@ -160,8 +183,8 @@ export class ModelRef<T extends Storable> {
     itemWriteConditionField?: ArrayElement<T[K]> extends object ? L : never,
     itemWriteCondition?: ArrayElement<T[K]> extends object ? ArrayElement<T[K]>[L] : ArrayElement<T[K]> | null
   ): Promise<void> {
-    return this[RelationRepository].upsertItemToCollection(
-      this[RelationKey],
+    return this.getRepository().upsertItemToCollection(
+      this.getKey(),
       collection,
       item,
       index,
@@ -186,8 +209,8 @@ export class ModelRef<T extends Storable> {
       T[StorableAttributes<T, any[]>]
     >]
   ): Promise<void> {
-    return this[RelationRepository].deleteItemFromCollection(
-      this[RelationKey],
+    return this.getRepository().deleteItemFromCollection(
+      this.getKey(),
       collection,
       index,
       itemWriteConditionField,
@@ -207,7 +230,7 @@ export class ModelRef<T extends Storable> {
     conditionField?: A,
     condition?: T[A]
   ): Promise<void> {
-    return this[RelationRepository].removeAttribute(this[RelationKey], attribute, conditionField, condition);
+    return this.getRepository().removeAttribute(this.getKey(), attribute, conditionField, condition);
   }
   /**
    * Increment only one attribute of the model
@@ -241,9 +264,9 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
    * @returns
    */
   upsert(data: Omit<JSONed<T>, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
-    return this[RelationRepository].upsert({
+    return this.getRepository().upsert({
       ...data,
-      ...this[RelationRepository].getPrimaryKey(this[RelationKey], true)
+      ...this.getRepository().getPrimaryKey(this.getKey(), true)
     });
   }
   /**
@@ -254,9 +277,9 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
    * @returns
    */
   create(data: Omit<AttributesArgument<T>, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
-    return this[RelationRepository].create({
+    return this.getRepository().create({
       ...data,
-      ...this[RelationRepository].getPrimaryKey(this[RelationKey], true)
+      ...this.getRepository().getPrimaryKey(this.getKey(), true)
     });
   }
 }
@@ -351,28 +374,42 @@ export class ModelLink<T extends Storable> implements ModelLinker {
   }
 
   async get(): Promise<T> {
+    if (!this[RelationKey]) {
+      throw new Error("Relation key is not initialized");
+    }
     return await this.model.get(this[RelationKey]);
   }
 
   set(id: PrimaryKeyType<T> | T | string) {
     this[RelationKey] = isStorable(id) ? id.getPrimaryKey() : typeof id === "string" ? this.model.parseUUID(id) : id;
     // Set dirty for parent
-    this[RelationParent]?.[WEBDA_DIRTY].add(
-      Object.keys(this[RelationParent])
-        .filter(k => this[RelationParent][k] === this)
-        .pop()!
-    );
+    if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
+      this[RelationParent][WEBDA_DIRTY].add(
+        Object.keys(this[RelationParent])
+          .filter(k => (this[RelationParent] as any)[k] === this)
+          .pop()!
+      );
+    }
   }
 
   toString(): string {
+    if (!this[RelationKey]) {
+      throw new Error("Relation key is not initialized");
+    }
     return this[RelationKey].toString();
   }
 
   toJSON(): PrimaryKeyType<T> {
+    if (!this[RelationKey]) {
+      throw new Error("Relation key is not initialized");
+    }
     return this[RelationKey];
   }
 
   getPrimaryKey(): PrimaryKeyType<T> {
+    if (!this[RelationKey]) {
+      throw new Error("Relation key is not initialized");
+    }
     return this[RelationKey];
   }
 }
@@ -457,7 +494,7 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
   /**
    * @inheritdoc
    */
-  pop(): ModelRef<T> {
+  pop(): ModelRef<T> | undefined {
     const result = super.pop();
     this.setDirty();
     return result;
@@ -466,7 +503,7 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
   /**
    * @inheritdoc
    */
-  shift(): ModelRef<T> {
+  shift(): ModelRef<T> | undefined {
     const result = super.shift();
     this.setDirty();
     return result;
@@ -494,13 +531,15 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
   setDirty() {
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
-          .filter(k => this[RelationParent][k] === this)
+          .filter(k => (this[RelationParent] as any)[k] === this)
           .pop()
       : undefined;
     if (!attrName) {
       return;
     }
-    this[RelationParent]?.[WEBDA_DIRTY].add(attrName);
+    if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
+      this[RelationParent][WEBDA_DIRTY].add(attrName);
+    }
   }
 
   remove(model: string | ModelRef<T> | PrimaryKeyType<T> | T) {
@@ -627,7 +666,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   /**
    * @inheritdoc
    */
-  pop(): ModelRefCustomProperties<T, K> {
+  pop(): ModelRefCustomProperties<T, K> | undefined {
     const result = super.pop();
     this.setDirty();
     return result;
@@ -636,7 +675,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   /**
    * @inheritdoc
    */
-  shift(): ModelRefCustomProperties<T, K> {
+  shift(): ModelRefCustomProperties<T, K> | undefined {
     const result = super.shift();
     this.setDirty();
     return result;
@@ -677,20 +716,22 @@ export class ModelLinksArray<T extends Storable, K extends object>
   setDirty() {
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
-          .filter(k => this[RelationParent][k] === this)
+          .filter(k => (this[RelationParent] as any)[k] === this)
           .pop()!
       : undefined;
     if (!attrName) {
       return;
     }
-    this[RelationParent]?.[WEBDA_DIRTY].add(attrName);
+    if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
+      this[RelationParent][WEBDA_DIRTY].add(attrName);
+    }
   }
 
   /**
    * @inheritdoc
    */
   remove(model: ModelRefCustomProperties<T, K> | PrimaryKeyType<T> | T) {
-    const uuid = typeof model["getPrimaryKey"] === "function" ? model["getPrimaryKey"]() : model;
+    const uuid = typeof (model as any)["getPrimaryKey"] === "function" ? (model as any)["getPrimaryKey"]() : model;
     const index = this.findIndex(m => PrimaryKeyEquals(m.getPrimaryKey(), uuid));
     if (index >= 0) {
       this.splice(index, 1);
@@ -720,7 +761,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
  * @deprecated Use ModelLinksArray instead
  * @see ModelLinksArray
  */
-export type ModelLinksMap<T extends Storable, K, L extends keyof T = undefined> = Readonly<{
+export type ModelLinksMap<T extends Storable, K, L extends keyof T = never> = Readonly<{
   [key: string]: ModelRefCustomProperties<T, K & { [key in L]: T[L] }>;
 }> &
   ModelCollectionManager<PrimaryKey<T> & K & { [key in L]: T[L] }> &
@@ -750,7 +791,7 @@ export function createModelLinksMap<T extends Storable = Storable, K extends obj
   const setDirty = () => {
     const attrName = parent
       ? Object.keys(parent)
-          .filter(k => parent[k] === result)
+          .filter(k => (parent as any)[k] === result)
           .pop()!
       : undefined;
     if (!attrName) {
@@ -762,15 +803,15 @@ export function createModelLinksMap<T extends Storable = Storable, K extends obj
     add: (model: JSONed<ModelRefCustomProperties<T, K>>) => {
       const uuid = repo.getUUID(model);
       const pk = repo.getPrimaryKey(model);
-      result[uuid] = new ModelRefCustomMap(pk, repo, repo.excludePrimaryKey(model), parent!);
+      (result as any)[uuid] = new ModelRefCustomMap(pk, repo, repo.excludePrimaryKey(model), parent!);
       setDirty();
     },
     remove: (model: ModelRefCustomProperties<T, any> | PrimaryKeyType<T>) => {
       const uuid = repo.getUUID(model);
-      if (!result[uuid]) {
+      if (!(result as any)[uuid]) {
         return;
       }
-      delete result[uuid];
+      delete (result as any)[uuid];
       setDirty();
     }
   };
@@ -822,7 +863,7 @@ export class ModelMapLoaderImplementation<T extends Storable, K = any> {
   /**
    * The uuid of the object
    */
-  public uuid: PrimaryKeyType<T>;
+  public uuid!: PrimaryKeyType<T>;
 
   constructor(model: Repository<StorableClass<T>>, data: PrimaryKey<T> & K, parent: T) {
     assignNonSymbols(this, data);
@@ -850,7 +891,7 @@ export type ModelMapLoader<T extends Storable, K extends keyof T> = ModelMapLoad
 export type ManyToOne<T extends Storable> = ModelLink<T>;
 export type OneToMany<T extends Storable> = ModelRelated<T>;
 export type OneToOne<T extends Storable> = ModelLink<T>;
-export type ManyToMany<T extends Storable, K extends object = null> = K extends object
+export type ManyToMany<T extends Storable, K extends object = {}> = K extends object
   ? ModelLinksArray<T, K>
   : ModelLinksSimpleArray<T>;
 

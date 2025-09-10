@@ -33,6 +33,7 @@ export * from "./models/registry";
 export * from "./models/deployment";
 export * from "./models/user";
 export * from "./models/basemodel";
+export * from "./models/coremodel";
 export * from "./models/ownermodel";
 export * from "./models/rolemodel";
 export * from "./schemas/hooks";

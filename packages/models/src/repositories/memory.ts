@@ -16,16 +16,28 @@ import { AbstractRepository } from "./abstract";
  * It is used for testing purposes only
  */
 export class MemoryRepository<T extends StorableClass> extends AbstractRepository<T> {
-  private storage = new Map<string, string>();
+  private storage: Map<string, string>;
   private events = new Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>>();
 
+  /**
+   *
+   * @param model
+   * @param pks
+   * @param separator
+   * @param map
+   */
+  constructor(model: T, pks: string[], separator?: string, map?: Map<string, string>) {
+    super(model, pks, separator);
+    this.storage = map || new Map<string, string>();
+  }
   /**
    * @inheritdoc
    */
   async get(
-    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>
+    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string
   ): Promise<InstanceType<T>> {
     const key = this.getPrimaryKey(primaryKey).toString();
+    console.log("GET", key, primaryKey, this.getPrimaryKey(primaryKey));
     const item = this.storage.get(key);
     if (!item) throw new Error(`Not found: ${key}`);
     return this.deserialize(item);
@@ -64,7 +76,7 @@ export class MemoryRepository<T extends StorableClass> extends AbstractRepositor
    * @inheritdoc
    */
   async patch<K extends StorableAttributes<InstanceType<T>, any>>(
-    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
+    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     data: Partial<SelfJSONed<InstanceType<T>>>,
     _conditionField?: K | null,
     _condition?: any

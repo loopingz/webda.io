@@ -62,10 +62,7 @@ export class ModelRef<T extends Storable> {
    * Get the primary key and ensure it's initialized
    */
   protected getKey(): PrimaryKeyType<T> {
-    if (!this[RelationKey]) {
-      throw new Error("Relation key is not initialized");
-    }
-    return this[RelationKey];
+    return this.getPrimaryKey();
   }
 
   /**
@@ -96,7 +93,7 @@ export class ModelRef<T extends Storable> {
     return this.getRepository().setAttribute(this.getKey(), attribute, value as any);
   }
 
-    /**
+  /**
    * Patch the model
    * @param data
    * @param conditionField
@@ -370,7 +367,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     parent?: Storable
   ) {
     this[RelationParent] = parent!;
-    this[RelationKey] = typeof uuid === "string" ? model.parseUUID(uuid) : uuid;
+    this[RelationKey] = typeof uuid === "string" ? model.parseUID(uuid) : uuid;
   }
 
   async get(): Promise<T> {
@@ -381,7 +378,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
   }
 
   set(id: PrimaryKeyType<T> | T | string) {
-    this[RelationKey] = isStorable(id) ? id.getPrimaryKey() : typeof id === "string" ? this.model.parseUUID(id) : id;
+    this[RelationKey] = isStorable(id) ? id.getPrimaryKey() : typeof id === "string" ? this.model.parseUID(id) : id;
     // Set dirty for parent
     if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
       this[RelationParent][WEBDA_DIRTY].add(
@@ -462,7 +459,7 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
   protected getModelRef(model: string | PrimaryKeyType<T> | ModelRef<T> | T) {
     let modelRef: ModelRef<T>;
     if (typeof model === "string") {
-      modelRef = new ModelRef<T>(this[RelationRepository].parseUUID(model), this[RelationRepository]);
+      modelRef = new ModelRef<T>(this[RelationRepository].parseUID(model), this[RelationRepository]);
     } else if (model instanceof ModelRef) {
       modelRef = model;
     } else if (isStorable(model)) {
@@ -801,13 +798,13 @@ export function createModelLinksMap<T extends Storable = Storable, K extends obj
   };
   const result = {
     add: (model: JSONed<ModelRefCustomProperties<T, K>>) => {
-      const uuid = repo.getUUID(model);
+      const uuid = repo.getUID(model);
       const pk = repo.getPrimaryKey(model);
       (result as any)[uuid] = new ModelRefCustomMap(pk, repo, repo.excludePrimaryKey(model), parent!);
       setDirty();
     },
     remove: (model: ModelRefCustomProperties<T, any> | PrimaryKeyType<T>) => {
-      const uuid = repo.getUUID(model);
+      const uuid = repo.getUID(model);
       if (!(result as any)[uuid]) {
         return;
       }
@@ -818,7 +815,7 @@ export function createModelLinksMap<T extends Storable = Storable, K extends obj
   Object.keys(data)
     .filter(k => k !== "__proto__")
     .forEach(key => {
-      data[key] = new ModelRefCustomMap(repo.parseUUID(key), repo, data[key], parent!);
+      data[key] = new ModelRefCustomMap(repo.parseUID(key), repo, data[key], parent!);
     });
   Object.defineProperty(result, "add", { enumerable: false });
   Object.defineProperty(result, "remove", { enumerable: false });

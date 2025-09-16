@@ -27,25 +27,25 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
 
   /**
    * Return a ref from the uuid
-   * @param uuid
+   * @param uid
    * @returns
    */
-  fromUUID(uuid: string): ModelRefWithCreate<InstanceType<T>> {
-    return this.ref(this.parseUUID(uuid));
+  fromUID(uid: string): ModelRefWithCreate<InstanceType<T>> {
+    return this.ref(this.parseUID(uid));
   }
 
   /**
    * @inheritdoc
    */
-  parseUUID(uuid: string, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
+  parseUID(uid: string, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
     if (this.pks.length === 1) {
       return forceObject
-        ? ({ [this.pks[0]]: uuid } as PrimaryKey<InstanceType<T>>)
-        : (uuid as PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>);
+        ? ({ [this.pks[0]]: uid } as PrimaryKey<InstanceType<T>>)
+        : (uid as PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>);
     }
-    const parts = uuid.split(this.separator);
+    const parts = uid.split(this.separator);
     if (parts.length !== this.pks.length) {
-      throw new Error(`Invalid UUID: ${uuid}`);
+      throw new Error(`Invalid UID: ${uid}`);
     }
     const result = {} as PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>;
     for (let i = 0; i < this.pks.length; i++) {
@@ -76,6 +76,10 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
     if (pkFields.length === 0) {
       throw new Error("No primary key defined on model");
     }
+    // Return the key if needed
+    if (pkFields.length === 1 && !forceObject && typeof object !== "object") {
+      return object as PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>;
+    }
     if (pkFields.some(f => object[f] === undefined)) {
       object = new this.model(object) as InstanceType<T>;
     }
@@ -104,7 +108,7 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
   /**
    * @inheritdoc
    */
-  getUUID(object: any): string {
+  getUID(object: any): string {
     return this.getPrimaryKey(object).toString();
   }
 
@@ -127,13 +131,13 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
     K extends StorableAttributes<InstanceType<T>, any>,
     L extends StorableAttributes<InstanceType<T>, any>
   >(
-    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
+    primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     attribute: K,
     value: InstanceType<T>[K],
     conditionField?: L | null,
     condition?: any
   ): Promise<void> {
-    return this.patch(primaryKey, { [attribute]: value } as any, conditionField, condition);
+    return this.patch(this.getPrimaryKey(primaryKey), { [attribute]: value } as any, conditionField, condition);
   }
 
   /**

@@ -37,6 +37,8 @@ class RelationsTest {
     const model = new TestSimpleModel();
     model.setPrimaryKey("test");
     await repo.create(model);
+    // @ts-ignore
+    console.log(model, repo.storage, model.ref());
     await model.ref().patch({ name: "Test" });
     assert.strictEqual((await model.ref().get()).name, "Test");
     assert.deepStrictEqual(model.ref().getPrimaryKey(), model.getPrimaryKey());

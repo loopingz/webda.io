@@ -195,7 +195,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @returns
    */
   getUUID(): string {
-    return this.getRepository().getUUID(this);
+    return this.getRepository().getUID(this);
   }
 
   /**

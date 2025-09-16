@@ -37,32 +37,50 @@ function doAfter(result: Function, callback: (err?: any) => void) {
   }
 }
 
+const ACTIVE_COUNTER = Symbol("__stateActiveCounter");
+const WRAPPED_FLAG = Symbol("__stateWrappedFlag");
+
 export function State<E extends string = string>(options?: StateOptions<E>) {
   return (value: any, context: ClassMemberDecoratorContext) => {
     context.addInitializer(function (this: any) {
-      // Ensure state map exists
-      State.getStateStatus(this);
-      // Wrap the original method
-      Object.defineProperty(this, context.name, {
-        value: (...args: any[]) => {
+      // If already wrapped on this instance, do nothing
+      const current = this[context.name];
+      if (current && current[WRAPPED_FLAG]) {
+        return;
+      }
+      // Capture the most-derived implementation at instantiation time (could be an override)
+      const original = current ?? value;
+      const wrapper = function (this: any, ...args: any[]) {
+        // Root call detection (only outermost invocation performs start/end transitions)
+        if (this[ACTIVE_COUNTER] === undefined) this[ACTIVE_COUNTER] = 0;
+        const isRoot = this[ACTIVE_COUNTER] === 0;
+        if (isRoot) {
           if (options?.start) {
-            let stateMap = State.getStateStatus(this);
+            const stateMap = State.getStateStatus(this);
             stateMap.updateState(options.start);
+          } else {
+            State.getStateStatus(this); // ensure initialized
           }
-          return doAfter(
-            () => value.call(this, ...args),
-            err => {
+        }
+        this[ACTIVE_COUNTER]++;
+        return doAfter(
+          () => original.apply(this, args),
+          err => {
+            this[ACTIVE_COUNTER]--;
+            if (isRoot) {
               if (err && options?.error) {
-                let stateMap = State.getStateStatus(this);
+                const stateMap = State.getStateStatus(this);
                 stateMap.updateState(options.error, err);
               } else if (options?.end) {
-                let stateMap = State.getStateStatus(this);
+                const stateMap = State.getStateStatus(this);
                 stateMap.updateState(options.end, err);
               }
             }
-          );
-        }
-      });
+          }
+        );
+      };
+      Object.defineProperty(wrapper, WRAPPED_FLAG, { value: true });
+      Object.defineProperty(this, context.name, { value: wrapper, configurable: true });
     });
   };
 }

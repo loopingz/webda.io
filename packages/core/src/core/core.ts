@@ -343,7 +343,9 @@ export class Core implements ICore {
         "ERROR",
         `Critical service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
       );
-      throw new Error("Cannot init Webda core services (Router, Registry, CryptoService)");
+      throw new Error(
+        `Cannot init Webda core service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
+      );
     }
     // Init services
     let service;

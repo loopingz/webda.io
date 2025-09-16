@@ -72,6 +72,7 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
    */
   resolve(): this {
     super.resolve();
+    console.log("resolve", this.parameters.senders);
     this.senders = this.parameters.senders.map(s => {
       const service = useService<NotificationService>(s);
       if (!service) {

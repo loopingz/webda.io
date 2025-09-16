@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { HttpContext, Ident, Store, UnpackedConfiguration, WebdaError } from "../";
 
 import { OAuthService, OAuthSession } from "./oauth";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
 import { TestApplication } from "../test/objects";
 
 class FakeOAuthService extends OAuthService {

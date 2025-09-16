@@ -2,20 +2,13 @@ import { suite, test, consumeAsyncIterator } from "@webda/test";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
-import {
-  Application,
-  Ident,
-  MemoryStore,
-  runWithContext,
-  useApplication,
-  useModel,
-  User
-} from "../index";
+import { Application, Ident, MemoryStore, runWithContext, useApplication, useModel, User } from "../index";
 import { FileUtils } from "@webda/utils";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import * as WebdaQL from "@webda/ql";
 import { WebdaApplicationTest } from "../test/application";
+import { Model, ModelClass } from "@webda/models";
 
 /**
  * Fake User for migration test
@@ -24,16 +17,13 @@ class DemoUser extends User {}
 
 @suite
 class MemoryStoreTest extends StoreTest<MemoryStore> {
-  userStore: MemoryStore;
-  identStore: MemoryStore;
-
-  async before() {
+  async beforeEach() {
     this.cleanFiles.push(".test.json");
-    return super.before();
+    return super.beforeEach();
   }
 
   async getIdentStore(): Promise<MemoryStore<any>> {
-    const identStore = new MemoryStore(this.webda, "Idents", { model: "WebdaTest/Ident" });
+    const identStore = new MemoryStore("Idents", { model: "WebdaTest/Ident" });
     // @ts-ignore
     const original = identStore._get.bind(identStore);
     // @ts-ignore
@@ -151,15 +141,15 @@ class MemoryStoreTest extends StoreTest<MemoryStore> {
 class AdditionalMemoryTest extends WebdaApplicationTest {
   @test
   async multiModelQuery() {
-    const Teacher = useModel<ModelDefinition & { name: string }>("Teacher");
-    const Project = useModel<ModelDefinition & { name: string }>("Project");
-    const SubProject = useModel<ModelDefinition & { name: string }>("SubProject");
-    const AnotherSubProject = useModel<ModelDefinition & { name: string }>("AnotherSubProject");
-    const SubSubProject = useModel<ModelDefinition & { name: string }>("SubSubProject");
+    const Teacher = useModel<Model & { name: string }>("Teacher");
+    const Project = useModel<Model & { name: string }>("Project");
+    const SubProject = useModel<Model & { name: string }>("SubProject");
+    const AnotherSubProject = useModel<Model & { name: string }>("AnotherSubProject");
+    const SubSubProject = useModel<Model & { name: string }>("SubSubProject");
 
     await Promise.all(
       [Teacher, Project, SubProject, AnotherSubProject, SubSubProject].map(model => {
-        const p = [];
+        const p: Promise<any>[] = [];
         for (let i = 1; i < 4; i++) {
           p.push(model.create({ name: `${model.name} ${i}` }));
         }

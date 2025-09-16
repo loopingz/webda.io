@@ -15,7 +15,7 @@ import { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
 
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
-import { Model } from "@webda/models";
+import { JSONed, Model } from "@webda/models";
 import { State, StateOptions } from "@webda/utils";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
@@ -199,7 +199,7 @@ export abstract class AbstractService<
   public readonly name: string;
   public readonly parameters: T;
 
-  constructor(name: string, params: T) {
+  constructor(name: string, params: T | JSONed<T>) {
     super();
     this.name = name;
     // TODO Remove to auto create based on service definition

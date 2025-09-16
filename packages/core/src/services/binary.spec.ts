@@ -1,17 +1,16 @@
-import { test } from "../test/core";
+import { test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
 import { User, WebContext } from "../index";
 import { CoreModel } from "../models/coremodel";
-import { Expose } from "../models/expose";
-import { TestApplication, WebdaSimpleTest } from "../test";
+import { TestApplication } from "../test/objects";
+
 import { Binaries, Binary, BinaryService, LocalBinaryFile, MemoryBinaryFile } from "./binary";
 import { pipeline } from "node:stream/promises";
 
 /**
  * Expose the image user
  */
-@Expose()
 export class ImageUser extends User {
   images: Binaries;
   profile: Binary;
@@ -34,6 +33,7 @@ export class TestBinaryService extends BinaryService {
   challenge(hash: string, challenge: string) {
     throw new Error("Method not implemented.");
   }
+  // @ts-ignore
   _get() {
     return null;
   }

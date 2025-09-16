@@ -23,14 +23,16 @@ export default defineConfig({
       "src/errors/*.spec.ts",
       "src/models/ident.spec.ts",
       "src/models/user.spec.ts",
+      "src/services/notificationservice.spec.ts",
       //"src/services/cryptoservice.spec.ts",
-      //"src/stores/memory.spec.ts",
+      //"src/stores/*.spec.ts",
       "src/loggers/*.spec.ts",
       "src/templates/*.spec.ts",
       "src/errors/*.spec.ts",
       "src/utils/*.spec.ts",
       "src/test/*.spec.ts",
       "src/schemas/*.spec.ts"
+      //"src/session/*.spec.ts"
       //"src/**/*.spec.ts"
     ]
   }

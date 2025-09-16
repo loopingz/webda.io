@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
-import { WebdaTest } from "../test";
+import { WebdaTest } from "../test/core";
 import { BinaryFile, BinaryMap, BinaryMetadata, CoreModelWithBinary } from "./binary";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 
@@ -18,6 +18,11 @@ class CloudBinaryFakeService extends CloudBinary {
    */
   async _cleanUsage(hash: string, uuid: string): Promise<void> {}
 
+  /**
+   * Return undefined
+   * @returns
+   */
+  // @ts-ignore
   async _get() {
     return undefined;
   }
@@ -38,7 +43,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
 
   @test
   async testDefaults() {
-    const service = new CloudBinaryFakeService(this.webda, "fake", {});
+    const service = new CloudBinaryFakeService("fake", {});
     const binaryMap: any = { hash: "test", size: 10 };
 
     await service.cascadeDelete(binaryMap, "plop");

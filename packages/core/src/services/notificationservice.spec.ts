@@ -1,9 +1,10 @@
-import { suite, test } from "@webda/test";
+import { beforeEach, suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Service } from "./service";
 import { User } from "../models/user";
-import { WebdaApplicationTest } from "../test/test";
-import { MultiNotificationService, NotificationService } from "./notificationservice";
+import { WebdaApplicationTest } from "../test/application";
+import { MultiNotificationParameters, MultiNotificationService, NotificationService } from "./notificationservice";
+import { ServiceParameters } from "../interfaces";
 
 class FakeNotification extends Service implements NotificationService {
   template: boolean = false;
@@ -39,11 +40,14 @@ class NotificationServiceTest extends WebdaApplicationTest {
 
   async beforeEach() {
     await super.beforeEach();
-    this.service = new MultiNotificationService("notif", {
-      senders: ["notifA", "notifB"]
-    });
-    this.fakeA = new FakeNotification("notifA", {});
-    this.fakeB = new FakeNotification("notifB", {});
+    this.service = new MultiNotificationService(
+      "notif",
+      new MultiNotificationParameters().load({
+        senders: ["notifA", "notifB"]
+      })
+    );
+    this.fakeA = new FakeNotification("notifA", new ServiceParameters()).resolve();
+    this.fakeB = new FakeNotification("notifB", new ServiceParameters()).resolve();
     this.registerService(this.fakeA);
     this.registerService(this.fakeB);
     this.registerService(this.service);
@@ -52,24 +56,24 @@ class NotificationServiceTest extends WebdaApplicationTest {
 
   @test
   async cov() {
-    assert.strictEqual(await this.service.handleNotificationFor(undefined), false);
-    assert.strictEqual(await this.service.hasNotification(undefined), false);
+    assert.strictEqual(await this.service.handleNotificationFor(undefined as any), false);
+    assert.strictEqual(await this.service.hasNotification(undefined as any), false);
 
     this.fakeB.user = true;
-    assert.strictEqual(await this.service.handleNotificationFor(undefined), true);
+    assert.strictEqual(await this.service.handleNotificationFor(undefined as any), true);
     this.fakeA.template = true;
-    assert.strictEqual(await this.service.hasNotification(undefined), true);
+    assert.strictEqual(await this.service.hasNotification(undefined as any), true);
 
-    await this.service.sendNotification(undefined, undefined, undefined);
+    await this.service.sendNotification(undefined as any, undefined as any, undefined as any);
     assert.strictEqual(this.fakeA.sent + this.fakeB.sent, 0);
     this.fakeA.user = true;
-    await this.service.sendNotification(undefined, undefined, undefined);
+    await this.service.sendNotification(undefined as any, undefined as any, undefined as any);
     assert.strictEqual(this.fakeA.sent + this.fakeB.sent, 1);
     this.fakeB.template = true;
-    await this.service.sendNotification(undefined, undefined, undefined);
+    await this.service.sendNotification(undefined as any, undefined as any, undefined as any);
     assert.strictEqual(this.fakeA.sent + this.fakeB.sent, 2);
     this.service.getParameters().multiple = true;
-    await this.service.sendNotification(undefined, undefined, undefined);
+    await this.service.sendNotification(undefined as any, undefined as any, undefined as any);
     assert.strictEqual(this.fakeA.sent + this.fakeB.sent, 4);
   }
 

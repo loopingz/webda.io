@@ -1,13 +1,11 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Model, ModelClass, UuidModel } from "./model";
+import { ExceptPartial, Model, ModelClass, UuidModel } from "./model";
 import { isStorable, PrimaryKeyEquals, SelfJSONed, Storable, StorableClass, WEBDA_PRIMARY_KEY } from "./storable";
 import { ExecutionContext, isExposable, isSecurable, Operation } from "./index";
 import { Repository } from "./repositories/repository";
 import { MemoryRepository } from "./repositories/memory";
 
-type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
-type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 export class TestModel extends Model {
   [WEBDA_PRIMARY_KEY] = ["id", "name"] as const;
   id: string;
@@ -50,7 +48,7 @@ export class SubClassModel extends UuidModel {
   collection: { name: string; type: string }[];
   createdAt: Date;
 
-  constructor(data: SelfJSONed<SubClassModel> = {} as any) {
+  constructor(data: SelfJSONed<ExceptPartial<SubClassModel, "createdAt">> = {} as any) {
     super(data);
     this.name = data.name;
     this.age = data.age;
@@ -59,7 +57,6 @@ export class SubClassModel extends UuidModel {
     }
     this.test = data.test || data.age * 4;
     this.collection = data.collection;
-    // @ts-ignore
     this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
   }
 }
@@ -117,7 +114,7 @@ class ModelTest {
     model2.uuid = "456";
     assert.strictEqual(model2.getPrimaryKey(), "456");
     assert.strictEqual(model2.getUUID(), "456");
-    assert.strictEqual(await model2.canAct(undefined as ExecutionContext, "" as never), false);
+    assert.strictEqual(await model2.canAct(undefined as unknown as ExecutionContext, "" as never), false);
     assert.strictEqual(model2.toProxy(), model2);
 
     if (isSecurable(model2)) {

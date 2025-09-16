@@ -15,6 +15,7 @@
     "checkJs": false,
     "moduleResolution": "Node16",
     "useDefineForClassFields": true,
+    "strictPropertyInitialization": false,
     "lib": ["ES2022"]
   },
   "include": ["src/**/*"],

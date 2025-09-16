@@ -123,7 +123,6 @@ const Operation = createMethodDecorator(
       // const ownerObj = context.static ? this.constructor : Object.getPrototypeOf(this);
       // const opts = OperationRegistry.get(ownerObj)?.get(methodName);
 
-      console.log(`Operation ${methodName} called with options:`, effectiveOptions);
       return value.apply(this, args);
     };
 

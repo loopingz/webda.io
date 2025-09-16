@@ -11,7 +11,8 @@
     "moduleResolution": "node",
     "skipLibCheck": true,
     "declarationMap": true,
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "strictPropertyInitialization": false
   },
   "include": ["src/**/*"],
   "exclude": ["**/node_modules", "src/**/*.spec.ts"]

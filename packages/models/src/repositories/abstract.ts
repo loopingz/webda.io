@@ -76,9 +76,16 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
     if (pkFields.length === 0) {
       throw new Error("No primary key defined on model");
     }
-    // Return the key if needed
-    if (pkFields.length === 1 && !forceObject && typeof object !== "object") {
-      return object as PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>;
+    // If non-composed it
+    if (pkFields.length === 1) {
+      if (forceObject) {
+        return typeof object === "object" ? object : ({ [pkFields[0]]: object } as PK<T, any>);
+      } else {
+        return typeof object === "object" ? object[pkFields[0]] : object;
+      }
+    }
+    if (typeof object === "string") {
+      object = this.parseUID(object);
     }
     if (pkFields.some(f => object[f] === undefined)) {
       object = new this.model(object) as InstanceType<T>;
@@ -86,12 +93,7 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
     if (pkFields.some(f => object[f] === undefined)) {
       throw new Error(`Missing primary key fields: ${pkFields.filter(f => object[f] === undefined).join(", ")}`);
     }
-    if (pkFields.length === 1) {
-      if (typeof object === "object") {
-        return object[pkFields[0]] as PK<T, any>;
-      }
-      return forceObject ? ({ [pkFields[0]]: object, toString: () => object.toString() } as PK<T, any>) : object;
-    }
+
     // composite key
     const key = pkFields.reduce((acc, field) => {
       (acc as any)[field] = object[field];
@@ -116,9 +118,9 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
    * @inheritdoc
    */
   async upsert(data: ConstructorParameters<T>[0]): Promise<InstanceType<T>> {
-    const key = this.getPrimaryKey(data).toString();
+    const key = this.getPrimaryKey(data);
     if (await this.exists(key)) {
-      await this.patch(this.getPrimaryKey(data), data);
+      await this.patch(key, data);
       return this.get(key);
     }
     return this.create(data);

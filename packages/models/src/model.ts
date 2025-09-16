@@ -17,6 +17,9 @@ import type { Prototype } from "@webda/tsc-esm";
 import type { Repository } from "./repositories/repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 
+export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
+export type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
 /**
  * Allow simulated delete
  */

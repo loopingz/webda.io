@@ -1,15 +1,74 @@
-import { test, suite } from "@webda/test";
+import { test, suite, beforeAll } from "@webda/test";
 import { MemoryRepository } from "./memory";
 import { SubClassModel, TestModel } from "../model.spec";
 import * as assert from "assert";
-import { PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
+import { PrimaryKeyEquals, SelfJSONed, StorableClass, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
+import { Model } from "../model";
+import { Repository, WEBDA_TEST } from "./repository";
+
+export class QueryDocument extends Model {
+  [WEBDA_PRIMARY_KEY] = ["id"] as const;
+
+  constructor(data: Partial<SelfJSONed<QueryDocument>> = {}) {
+    super();
+    Object.assign(this, data);
+  }
+  state: "CA" | "OR" | "NY" | "FL" = "CA";
+  states: ("CA" | "OR" | "NY" | "FL")[] = [];
+  order: number = 0;
+  team: { id: number } = { id: 0 };
+  role: number = 0;
+  id: number = 0;
+
+  static fill() {
+    const docs: QueryDocument[] = [];
+    for (let i = 0; i < 1000; i++) {
+      docs.push(
+        new QueryDocument({
+          state: ["CA", "OR", "NY", "FL"][i % 4] as QueryDocument["state"],
+          states: [["CA", "OR", "NY", "FL"][i % 4], ["CA", "OR", "NY", "FL"][(i + 1) % 4]] as QueryDocument["states"],
+          order: i,
+          team: {
+            id: i % 20
+          },
+          role: i % 10,
+          id: i
+        })
+      );
+    }
+    return docs;
+  }
+}
 
 @suite
-class RepositoryTest {
+export class RepositoryTest {
+  getRepository<T extends StorableClass>(model: InstanceType<T>, keys: string[]): Repository<T> {
+    return new MemoryRepository(model as any, keys) as Repository<T>;
+  }
+
+  async beforeAll() {
+    let repo = this.getRepository<typeof QueryDocument>(QueryDocument, ["id"]);
+    QueryDocument.registerRepository(repo);
+    let repoSub = this.getRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    SubClassModel.registerRepository(repoSub);
+    let repoTest = this.getRepository<typeof TestModel>(TestModel, ["id", "name"]);
+    TestModel.registerRepository(repoTest);
+
+    const docs = QueryDocument.fill();
+    for (const doc of docs) {
+      await repo.create(doc);
+    }
+  }
+
+  beforeEach() {
+    // We clear the repositories except QueryDocument
+    SubClassModel.getRepository()[WEBDA_TEST]?.clear();
+    TestModel.getRepository()[WEBDA_TEST]?.clear();
+  }
+
   @test
   async testModelCRUD() {
-    const repo = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
-    SubClassModel.registerRepository(repo);
+    const repo = SubClassModel.getRepository() as MemoryRepository<typeof SubClassModel>;
     assert.deepStrictEqual(repo.parseUID("test", true), {
       uuid: "test"
     });
@@ -124,19 +183,59 @@ class RepositoryTest {
     repo.off("test", listener);
     repo["emit"]("test", object);
     assert.strictEqual(count, 3);
+  }
 
-    await assert.rejects(async () => {
-      for await (it of repo.iterate()) {
-        // do nothing
-      }
-    }, /Not implemented/);
-    await assert.rejects(() => repo.query(), /Not implemented/);
+  @test async iterate() {
+    let count = 0;
+    for await (const doc of QueryDocument.iterate('state = "CA"')) {
+      assert.strictEqual(doc.state, "CA");
+      count++;
+    }
+    assert.strictEqual(count, 250);
+    count = 0;
+    // It will generate the pagination size
+    for await (const doc of QueryDocument.iterate('state = "CA" LIMIT 10')) {
+      assert.strictEqual(doc.state, "CA");
+      count++;
+    }
+    assert.strictEqual(count, 250);
+  }
+
+  @test
+  async query() {
+    const queries = {
+      'state = "CA"': 250,
+      "team.id > 15": 200,
+      "team.id >= 15": 250,
+      "team.id <= 14": 750,
+      'state IN ["CA", "NY"]': 500,
+      'state IN ["CA", "NY", "NV"]': 500,
+      'state = "CA" AND team.id > 15': 50,
+      "team.id < 5 OR team.id > 15": 450,
+      "role < 5 AND team.id > 10 OR team.id > 15": 400,
+      "role < 5 AND (team.id > 10 OR team.id > 15)": 200,
+      'state LIKE "C_"': 250,
+      'state LIKE "C__"': 0,
+      'state LIKE "C%"': 250,
+      'state != "CA"': 750,
+      'states CONTAINS "CA"': 500,
+      "role = 4": 100,
+      "": 1000,
+      'state = "CA" LIMIT 10': 10
+    };
+    for (const [query, expected] of Object.entries(queries)) {
+      const res = await QueryDocument.query(query);
+      assert.strictEqual(
+        res.results.length,
+        expected,
+        `Query: ${query}, Result: ${res.results.length}, Expected: ${expected}`
+      );
+    }
   }
 
   @test
   async upsert() {
-    const repo = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
-    TestModel.registerRepository(repo);
+    const repo = TestModel.getRepository() as MemoryRepository<typeof TestModel>;
     const test = await repo.upsert({
       id: "123",
       name: "Test",
@@ -165,8 +264,7 @@ class RepositoryTest {
       })
     );
     assert.ok(await repo.exists("124_Test"));
-    const repoSimple = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
-    SubClassModel.registerRepository(repoSimple);
+    const repoSimple = SubClassModel.getRepository() as MemoryRepository<typeof SubClassModel>;
     const test2 = await repoSimple.upsert({
       uuid: "uuid-123",
       name: "Test2",
@@ -188,8 +286,7 @@ class RepositoryTest {
 
   @test
   async testModelWithCompositeId() {
-    const repo = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
-    TestModel.registerRepository(repo);
+    const repo = TestModel.getRepository() as MemoryRepository<typeof TestModel>;
     const test = await repo.create({
       id: "123",
       name: "Test",

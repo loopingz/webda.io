@@ -11,6 +11,8 @@ import type {
 } from "../storable";
 import type { ModelRefWithCreate } from "../relations";
 
+export const WEBDA_TEST = Symbol("webda_test");
+
 /**
  * This represent the injected methods of Store into the Model
  */
@@ -252,4 +254,7 @@ export interface Repository<T extends StorableClass = StorableClass> {
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
   ): void;
+  [WEBDA_TEST]?: {
+    clear(): Promise<void>;
+  };
 }

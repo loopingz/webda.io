@@ -89,7 +89,7 @@ export type ModelClass<T extends Model = Model> = {
    * @param key
    */
   ref<T extends StorableClass>(this: T, key: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
-  iterate<T extends StorableClass>(this: T, query: string): Iterable<Promise<InstanceType<T>>>;
+  iterate<T extends StorableClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any>;
   create<T extends StorableClass>(this: T, data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
   query<T extends StorableClass>(
     this: T,
@@ -274,8 +274,10 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param query
    * @returns
    */
-  static *iterate<T extends StorableClass>(this: T, query: string): Iterable<Promise<InstanceType<T>>> {
-    return useRepository(this).iterate(query);
+  static async *iterate<T extends StorableClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any> {
+    for await (const item of useRepository(this).iterate(query)) {
+      yield item as InstanceType<T>;
+    }
   }
 
   /**

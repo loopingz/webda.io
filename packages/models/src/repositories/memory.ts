@@ -10,7 +10,30 @@ import type {
 } from "../storable";
 import { deserialize, serialize } from "@webda/serialize";
 import { AbstractRepository } from "./abstract";
+import { Repository, WEBDA_TEST } from "./repository";
 
+/**
+ * Redefine what we expect from the WebdaQL parser
+ */
+export type Query = {
+  limit: number;
+  orderBy?: { field: string; direction: "ASC" | "DESC" }[];
+  continuationToken?: string;
+  filter: {
+    eval: (item: any) => boolean;
+  };
+};
+
+// Lazy load WebdaQL
+let WebdaQL: any & {
+  parse: (query: string) => Query;
+} = null;
+
+export type FindResult<T> = {
+  results: T[];
+  continuationToken?: string;
+  filter: boolean;
+};
 /**
  * This is a simple in-memory repository implementation
  * It is used for testing purposes only
@@ -89,16 +112,6 @@ export class MemoryRepository<
   }
 
   /**
-   * @inheritdoc
-   */
-  async query(_q: string): Promise<{
-    results: InstanceType<T>[];
-    continuationToken?: string;
-  }> {
-    throw new Error("Not implemented");
-  }
-
-  /**
    * Serialize the object to a string
    *
    * This method is used to allow switching between different serialization methods
@@ -123,10 +136,117 @@ export class MemoryRepository<
   }
 
   /**
-   * @inheritdoc
+   * Add query support
+   * @param query
+   * @returns
    */
-  async *iterate(_q: string): AsyncGenerator<InstanceType<T>> {
-    throw new Error("Not implemented");
+  async query(query: string | Query): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
+    if (typeof query === "string") {
+      try {
+        WebdaQL ??= await import("@webda/ql");
+        query = WebdaQL.parse(query);
+      } catch (error) {
+        throw new Error(`Failed to parse query: ${error} - @webda/ql peer dependencies may be missing`);
+      }
+    }
+    return MemoryRepository.simulateFind(query as Query, [...this.storage.keys()], this);
+  }
+
+  /**
+   * Allow to simulate a find on a list of uuids
+   * It is static to be reusable by other repository like FileRepository
+   * @param query
+   * @param uuids
+   * @param repository
+   * @returns
+   */
+  static async simulateFind<T extends StorableClass>(
+    query: Query,
+    uuids: any[],
+    repository: Repository<T>
+  ): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
+    const result: FindResult<InstanceType<T>> = {
+      results: [],
+      continuationToken: undefined,
+      filter: true
+    };
+    let count = 0;
+    let limit = query.limit;
+    let offset = parseInt(query.continuationToken || "0");
+    const originalOffset = offset;
+
+    if (query.orderBy && query.orderBy.length) {
+      offset = 0;
+      // We need to retrieve everything to orderBy after
+      limit = Number.MAX_SAFE_INTEGER;
+    }
+    // Need to transfert to Array
+    for (const uuid of uuids) {
+      count++;
+      // Offset start
+      if (offset >= count) {
+        continue;
+      }
+      const obj = await repository.get(uuid as any);
+      if (obj && query.filter.eval(obj)) {
+        result.results.push(obj);
+        if (result.results.length >= limit) {
+          result.continuationToken = count.toString();
+          return result;
+        }
+      }
+    }
+
+    // Order by
+    if (query.orderBy && query.orderBy.length) {
+      // Sorting the results
+      result.results.sort((a, b) => {
+        let valA, valB;
+        for (const orderBy of query.orderBy!) {
+          const invert = orderBy.direction === "ASC" ? 1 : -1;
+          valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.field.split("."));
+          valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.field.split("."));
+          if (valA === valB) {
+            continue;
+          }
+          if (typeof valA === "string") {
+            return valA.localeCompare(valB) * invert;
+          }
+          return (valA < valB ? -1 : 1) * invert;
+        }
+        return -1;
+      });
+      result.results = result.results.slice(originalOffset, query.limit + originalOffset);
+      if (result.results.length >= query.limit) {
+        result.continuationToken = (query.limit + originalOffset).toString();
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Add iterater support
+   * @param query
+   */
+  async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
+    let q: Query;
+    try {
+      WebdaQL ??= await import("@webda/ql");
+      q = WebdaQL.parse(query); // Ensure it is valid
+      if (!q.limit) {
+        q.limit = 100; // Default pagination size
+      }
+    } catch (error) {
+      throw new Error(`Failed to parse query: ${error} - @webda/ql peer dependencies may be missing`);
+    }
+    do {
+      const res = await this.query(q);
+      for (const i of res.results) {
+        yield i as InstanceType<T>;
+      }
+      q.continuationToken = res.continuationToken;
+    } while (q.continuationToken);
   }
 
   /**
@@ -310,4 +430,10 @@ export class MemoryRepository<
   ): void {
     this.events.get(event)?.forEach(fn => fn(data));
   }
+
+  [WEBDA_TEST] = {
+    clear: async () => {
+      this.storage.clear();
+    }
+  };
 }

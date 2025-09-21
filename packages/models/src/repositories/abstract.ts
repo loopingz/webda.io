@@ -13,6 +13,8 @@ import { Repository } from "./repository";
 import type { ArrayElement, ReadonlyKeys } from "@webda/tsc-esm";
 
 export abstract class AbstractRepository<T extends StorableClass> implements Repository<T> {
+  protected events = new Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>>();
+
   constructor(
     protected model: T,
     protected pks: string[],
@@ -232,16 +234,52 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
     condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
   ): Promise<void>;
   abstract exists(uuid: PrimaryKeyType<InstanceType<T>>): Promise<boolean>;
-  abstract on<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+
+  /**
+   * @inheritdoc
+   */
+  on<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
-  ): void;
-  abstract once<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+  ): void {
+    if (!this.events.has(event)) {
+      this.events.set(event, new Set());
+    }
+    this.events.get(event)!.add(listener as any);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  once<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
-  ): void;
-  abstract off<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+  ): void {
+    const wrapper = (d: any) => {
+      listener(d);
+      this.off(event, wrapper as any);
+    };
+    this.on(event, wrapper as any);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  off<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
-  ): void;
+  ): void {
+    this.events.get(event)?.delete(listener as any);
+  }
+
+  // Optional: trigger events internally
+  protected async emit<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+    event: K,
+    data: InstanceType<T>[typeof WEBDA_EVENTS][K]
+  ): Promise<void> {
+    if (!this.events.has(event)) {
+      return;
+    }
+    await Promise.all([...this.events.get(event)!].map(fn => fn(data)));
+  }
 }

@@ -43,7 +43,6 @@ export class MemoryRepository<
   K extends Map<string, string> = Map<string, string>
 > extends AbstractRepository<T> {
   protected storage: K;
-  private events = new Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>>();
 
   /**
    *
@@ -384,51 +383,6 @@ export class MemoryRepository<
     const obj = await this.get(primaryKey);
     delete (obj as any)[attribute as string];
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
-  }
-
-  /**
-   * @inheritdoc
-   */
-  on<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
-    event: K,
-    listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
-  ): void {
-    if (!this.events.has(event)) {
-      this.events.set(event, new Set());
-    }
-    this.events.get(event)!.add(listener as any);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  once<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
-    event: K,
-    listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
-  ): void {
-    const wrapper = (d: any) => {
-      listener(d);
-      this.off(event, wrapper as any);
-    };
-    this.on(event, wrapper as any);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  off<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
-    event: K,
-    listener: (data: InstanceType<T>[typeof WEBDA_EVENTS][K]) => void
-  ): void {
-    this.events.get(event)?.delete(listener as any);
-  }
-
-  // Optional: trigger events internally
-  private emit<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
-    event: K,
-    data: InstanceType<T>[typeof WEBDA_EVENTS][K]
-  ): void {
-    this.events.get(event)?.forEach(fn => fn(data));
   }
 
   [WEBDA_TEST] = {

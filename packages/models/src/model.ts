@@ -37,11 +37,15 @@ export type ModelEvents<T = any> = {
   PartialUpdate: any;
   Delete: { object_id: string };
   Update: { object_id: string; object: T; previous: T };
+  Patch: { object_id: string; object: T; previous: T };
+  Query: { query: string };
   // Events sent after the change
   Created: { object_id: string; object: T };
   PartialUpdated: any;
   Deleted: { object_id: string };
+  Patched: { object_id: string; object: T; previous: T };
   Updated: { object_id: string; object: T; previous: T };
+  Queried: { query: string; results: T[]; continuationToken?: string };
 };
 
 const Repositories = new WeakMap<StorableClass, Repository<any>>();

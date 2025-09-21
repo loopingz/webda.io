@@ -42,8 +42,8 @@ export class QueryDocument extends Model {
 
 @suite
 export class RepositoryTest {
-  getRepository<T extends StorableClass>(model: InstanceType<T>, keys: string[]): Repository<T> {
-    return new MemoryRepository(model as any, keys) as Repository<T>;
+  getRepository<T extends StorableClass>(model: T, keys: string[]): Repository<T> {
+    return new MemoryRepository(model, keys) as Repository<T>;
   }
 
   async beforeAll() {
@@ -69,9 +69,11 @@ export class RepositoryTest {
   @test
   async testModelCRUD() {
     const repo = SubClassModel.getRepository() as MemoryRepository<typeof SubClassModel>;
+    console.log("Using repository:", repo.constructor.name);
     assert.deepStrictEqual(repo.parseUID("test", true), {
       uuid: "test"
     });
+    console.log("WILL CREATE");
     const object = await repo.ref("test").create({
       name: "Test",
       age: 30,
@@ -79,6 +81,7 @@ export class RepositoryTest {
       createdAt: new Date()
     });
     await object.save();
+    console.log("HAS CREATED");
     object.name = "Updated Test";
     object[WEBDA_DIRTY] = new Set(["name"]);
     await object.save();
@@ -176,12 +179,12 @@ export class RepositoryTest {
     const listener = () => count++;
     repo.on("test", listener);
     repo.once("test", () => count++);
-    repo["emit"]("test", object);
+    await repo["emit"]("test", object);
     assert.strictEqual(count, 2);
-    repo["emit"]("test", object);
+    await repo["emit"]("test", object);
     assert.strictEqual(count, 3);
     repo.off("test", listener);
-    repo["emit"]("test", object);
+    await repo["emit"]("test", object);
     assert.strictEqual(count, 3);
   }
 
@@ -286,7 +289,7 @@ export class RepositoryTest {
 
   @test
   async testModelWithCompositeId() {
-    const repo = TestModel.getRepository() as MemoryRepository<typeof TestModel>;
+    const repo = TestModel.getRepository() as Repository<typeof TestModel>;
     const test = await repo.create({
       id: "123",
       name: "Test",
@@ -316,7 +319,10 @@ export class RepositoryTest {
       /Already exists: 123_Test/
     );
   }
+}
 
+@suite
+export class CovRepositoryTest {
   @test
   cov() {
     let repo = new MemoryRepository<typeof TestModel>(TestModel, []);

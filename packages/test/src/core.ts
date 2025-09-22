@@ -230,14 +230,59 @@ export function getBag(metadata: Record<string | symbol, any>, key: string, fall
   return metadata[key];
 }
 
+/**
+ * Get the test metadata for a target, including inherited metadata
+ * @param target
+ * @returns
+ */
 export function getMetadata(target: AnyCtor): {
   "webda:suite"?: SuiteMeta;
   "webda:tests"?: TestMeta[];
   "webda:lifecycle"?: LifecycleMeta[];
 } {
-  const metaSym = Object.getOwnPropertySymbols(target).find(sym => sym.toString().includes("Symbol.metadata"));
-  // @ts-ignore
-  return target[metaSym];
+  let prototype = target;
+  let results = {
+    "webda:suite": undefined,
+    "webda:tests": undefined,
+    "webda:lifecycle": undefined
+  };
+  let prototypes = [];
+  while (prototype && prototype !== Object.prototype) {
+    prototypes.push(prototype);
+    prototype = Object.getPrototypeOf(prototype);
+  }
+  // Ensure configuration from current class overrides parent classes
+  prototypes.forEach(p => {
+    const metaSym = Object.getOwnPropertySymbols(p).find(sym => sym.toString().includes("Symbol.metadata"));
+    const meta = metaSym && (p as any)[metaSym];
+    if (meta && meta[META.TESTS]) {
+      results["webda:tests"] ??= [];
+      results["webda:tests"] = [
+        ...results["webda:tests"],
+        ...(meta[META.TESTS].filter(t => !results["webda:tests"].some((ot: TestMeta) => ot.fnKey === t.fnKey)) ?? [])
+      ];
+    }
+    if (meta && meta[META.LIFECYCLE]) {
+      results["webda:lifecycle"] ??= [];
+      results["webda:lifecycle"] = [
+        ...results["webda:lifecycle"],
+        ...(meta[META.LIFECYCLE].filter(
+          l => !results["webda:lifecycle"].some((ol: LifecycleMeta) => ol.fnKey === l.fnKey)
+        ) ?? [])
+      ];
+    }
+  });
+  // Ensure configuration from current class overrides parent classes
+  // so reverse the prototypes order
+  prototypes.reverse().forEach(p => {
+    const metaSym = Object.getOwnPropertySymbols(p).find(sym => sym.toString().includes("Symbol.metadata"));
+    const meta = metaSym && (p as any)[metaSym];
+    if (meta && meta[META.SUITE]) {
+      results["webda:suite"] ??= meta[META.SUITE];
+      results["webda:suite"] = { ...results["webda:suite"], ...meta[META.SUITE] };
+    }
+  });
+  return results;
 }
 
 /** ----------- public decorators ------------- */
@@ -277,9 +322,15 @@ export const suite: ReturnType<typeof createClassDecorator> & {
         const wrapper = suiteMeta.wrapper ? instance[suiteMeta.wrapper]?.bind(instance) : (type, cb: Function) => cb();
         // Register lifecycle beforeAll and afterAll
         lifecycles
-          .filter(l => ["beforeAll", "afterAll"].includes(l.phase))
+          .filter(l => ["beforeAll", "afterAll"].includes(l.phase) && l.fnKey !== l.phase)
           .forEach(l => {
             executers[l.phase](() => wrapper(l.phase, instance[l.fnKey].bind(instance)));
+          });
+        // Also register beforeAll and afterAll methods if any
+        ["beforeAll", "afterAll"]
+          .filter(phase => instance[phase])
+          .forEach(phase => {
+            executers[phase](() => wrapper(phase, instance[phase].bind(instance)));
           });
         const tests: TestMeta[] = getBag(context.metadata, META.TESTS, [] as TestMeta[]);
         tests.forEach(t => {
@@ -304,9 +355,19 @@ export const suite: ReturnType<typeof createClassDecorator> & {
            */
           const testExecutor = async () => {
             // TODO might want to allow sequential execution of multiple lifecycles
-            await Promise.all(lifecycles.filter(l => l.phase === "beforeEach").map(l => instance[l.fnKey]?.()));
+            await instance["beforeEach"]?.(t.fnKey); // beforeEach method are automatically called
+            await Promise.all(
+              lifecycles
+                .filter(l => l.phase === "beforeEach" && l.fnKey !== l.phase)
+                .map(l => instance[l.fnKey]?.(t.fnKey))
+            );
             await instance[t.fnKey]();
-            await Promise.all(lifecycles.filter(l => l.phase === "afterEach").map(l => instance[l.fnKey]?.()));
+            await Promise.all(
+              lifecycles
+                .filter(l => l.phase === "afterEach" && l.fnKey !== l.phase)
+                .map(l => instance[l.fnKey]?.(t.fnKey))
+            );
+            await instance["afterEach"]?.(t.fnKey); // afterEach method are automatically called
           };
           // Wrap the test executor if needed
           exec(t.name, async () => wrapper("test", testExecutor, instance));

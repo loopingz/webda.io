@@ -24,6 +24,9 @@
     "test:watch": "vitest",
     "test:debug": "vitest debug",
     "test:coverage": "vitest run --coverage",
+    "test:mocha": "mocha",
+    "test:jest": "jest",
+    "test:bun": "bun test",
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {

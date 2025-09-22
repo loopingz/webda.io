@@ -13,7 +13,7 @@ import { Repository } from "./repository";
 import type { ArrayElement, ReadonlyKeys } from "@webda/tsc-esm";
 
 export abstract class AbstractRepository<T extends StorableClass> implements Repository<T> {
-  protected events = new Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>>();
+  protected events: Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>>;
 
   constructor(
     protected model: T,

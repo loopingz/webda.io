@@ -13,7 +13,6 @@ import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
 import { type ModelRefWithCreate, type ModelRef, assignNonSymbols } from "./relations";
 import { ExecutionContext, Exposable, WEBDA_ACTIONS, type ActionsEnum } from "./actionable";
-import type { Prototype } from "@webda/tsc-esm";
 import type { Repository } from "./repositories/repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 
@@ -48,7 +47,7 @@ export type ModelEvents<T = any> = {
   Queried: { query: string; results: T[]; continuationToken?: string };
 };
 
-const Repositories = new WeakMap<StorableClass, Repository<any>>();
+export const Repositories = new WeakMap<StorableClass, Repository<any>>();
 
 /**
  * Return a repository for a model

@@ -1,9 +1,9 @@
-import { test, suite, beforeAll } from "@webda/test";
+import { test, suite } from "@webda/test";
 import { MemoryRepository } from "./memory";
 import { SubClassModel, TestModel } from "../model.spec";
 import * as assert from "assert";
 import { PrimaryKeyEquals, SelfJSONed, StorableClass, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
-import { Model } from "../model";
+import { Model, Repositories } from "../model";
 import { Repository, WEBDA_TEST } from "./repository";
 
 export class QueryDocument extends Model {
@@ -53,27 +53,27 @@ export class RepositoryTest {
     SubClassModel.registerRepository(repoSub);
     let repoTest = this.getRepository<typeof TestModel>(TestModel, ["id", "name"]);
     TestModel.registerRepository(repoTest);
-
+    assert.strictEqual(SubClassModel.getRepository(), repoSub);
+    assert.strictEqual(TestModel.getRepository(), repoTest);
+    assert.strictEqual(QueryDocument.getRepository(), repo);
     const docs = QueryDocument.fill();
     for (const doc of docs) {
       await repo.create(doc);
     }
   }
 
-  beforeEach() {
+  async beforeEach(_testMethod: string) {
     // We clear the repositories except QueryDocument
-    SubClassModel.getRepository()[WEBDA_TEST]?.clear();
-    TestModel.getRepository()[WEBDA_TEST]?.clear();
+    await SubClassModel.getRepository()[WEBDA_TEST]?.clear();
+    await TestModel.getRepository()[WEBDA_TEST]?.clear();
   }
 
   @test
   async testModelCRUD() {
     const repo = SubClassModel.getRepository() as MemoryRepository<typeof SubClassModel>;
-    console.log("Using repository:", repo.constructor.name);
     assert.deepStrictEqual(repo.parseUID("test", true), {
       uuid: "test"
     });
-    console.log("WILL CREATE");
     const object = await repo.ref("test").create({
       name: "Test",
       age: 30,
@@ -81,7 +81,6 @@ export class RepositoryTest {
       createdAt: new Date()
     });
     await object.save();
-    console.log("HAS CREATED");
     object.name = "Updated Test";
     object[WEBDA_DIRTY] = new Set(["name"]);
     await object.save();

@@ -16,7 +16,7 @@ import { WEBDA_TEST } from "./repository";
 /**
  * Add event emitter to repository
  */
-export class EventRepository<T extends StorableClass> extends AbstractRepository<T> {
+export class EventRepository<T extends StorableClass = any> extends AbstractRepository<T> {
   constructor(
     model: T,
     pks: string[],
@@ -243,10 +243,12 @@ export class EventRepository<T extends StorableClass> extends AbstractRepository
   }
 
   [WEBDA_TEST]: {
-    clear: () => Promise<void>;
+    clear: (excludeListeners?: boolean) => Promise<void>;
   } = {
-    clear: async () => {
-      this.events.clear();
+    clear: async excludeListeners => {
+      if (!excludeListeners) {
+        this.events.clear();
+      }
       // @ts-ignore
       this.repository[WEBDA_TEST].clear();
     }

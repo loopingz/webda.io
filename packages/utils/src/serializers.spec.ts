@@ -59,6 +59,7 @@ class UtilsTest {
   @test("LoadYAML Multiple Docs File")
   fileYaml() {
     assert.strictEqual(FileUtils.load(TEST_FOLDER + "mdocs.yaml").length, 2);
+    assert.strictEqual(FileUtils.loadConfigurationFile(TEST_FOLDER + "mdocs").length, 2);
   }
 
   @test("CircularJSON")

@@ -192,6 +192,8 @@ function getFormatFromFilename(filename: string): Format {
 export const FileUtils: StorageFinder & {
   save: (object: any, filename: string, format?: Format) => void;
   load: (filename: string, format?: Format) => any;
+  loadConfigurationFile: (filename: string) => any;
+  getConfigurationFile: (filename: string) => string;
   clean: (...files: string[]) => void;
   walkSync: (path: string, processor: (filepath: string) => void, options?: WalkerOptionsType, depth?: number) => void;
 } = {
@@ -301,6 +303,16 @@ export const FileUtils: StorageFinder & {
     await FileUtils.walk(currentPath, processor, options);
     return found;
   },
+  getConfigurationFile(filename) {
+    const file = ["yaml", "yml", "jsonc", "json"].find(v => existsSync(filename + `.${v}`));
+    if (file) {
+      return `${filename}.${file}`;
+    }
+    throw new Error("File not found " + filename + ".(ya?ml|jsonc?)");
+  },
+  loadConfigurationFile(filename) {
+    return FileUtils.load(FileUtils.getConfigurationFile(filename));
+  },
   /**
    * Load a YAML or JSON file based on its extension
    *
@@ -313,7 +325,7 @@ export const FileUtils: StorageFinder & {
     }
     let content;
     if (filename.endsWith(".gz")) {
-      content = gunzipSync(readFileSync(filename)).toString();
+      content = gunzipSync(readFileSync(filename) as Uint8Array).toString();
       filename = filename.slice(0, -3);
     } else {
       content = readFileSync(filename, "utf-8");

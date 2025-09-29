@@ -6,11 +6,11 @@ import { FileUtils } from "@webda/utils";
 
 // Separation on purpose to keep application import separated
 import { Service } from "../services/service";
-import { UnpackedConfiguration } from "../internal/iapplication";
+import { Reflection, UnpackedConfiguration } from "../internal/iapplication";
 import { Core } from "../core/core";
 import { DebugMailer } from "../services/debugmailer";
 import { MemoryStore } from "../stores/memory";
-import { RegistryModel } from "../models/registry";
+import { RegistryEntry } from "../models/registry";
 import { WebContext } from "../contexts/webcontext";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext";
 import { runWithContext, useContext } from "../contexts/execution";
@@ -56,11 +56,12 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @param app
    */
   async tweakApp(app: TestApplication) {
-    app.addModda("WebdaTest/VoidStore", VoidStore);
-    app.addModda("WebdaTest/FakeService", FakeService);
-    app.addModda("WebdaTest/Mailer", DebugMailer);
-    app.addModel("WebdaTest/Task", Task);
-    app.addModel("WebdaTest/Ident", TestIdent);
+    app
+      .addModda("WebdaTest/VoidStore", VoidStore)
+      .addModda("WebdaTest/FakeService", FakeService)
+      .addModda("WebdaTest/Mailer", DebugMailer)
+      .addModel("WebdaTest/Task", Task)
+      .addModel("WebdaTest/Ident", TestIdent);
   }
 
   /**
@@ -80,8 +81,6 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     const app = this.getApplication();
     await app.load();
     await this.tweakApp(app);
-    // Set the models metadata
-    app.setModelsMetadata();
 
     return new Core(app);
   }
@@ -102,7 +101,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     if (init) {
       await core.init();
       // Prevent persistance for tests
-      (<MemoryStore>useModelStore(RegistryModel)).persist = async () => {};
+      (<MemoryStore>useModelStore(RegistryEntry)).persist = async () => {};
     }
   }
 
@@ -111,7 +110,6 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
   }
 
   async afterAll() {
-    console.log("After all");
     //
     await useCore()?.stop();
   }
@@ -312,7 +310,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @param model
    * @param klass
    */
-  registerModel<T extends ModelClass>(model: T, name: string = model.constructor.name) {
-    useApplication<Application>().addModel(name, model);
+  registerModel<T extends ModelClass>(model: T, name: string = model.constructor.name, metadata?: Reflection) {
+    useApplication<Application>().addModel(name, model, metadata);
   }
 }

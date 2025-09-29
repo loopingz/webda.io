@@ -311,7 +311,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
     // Caching the answer
     if (!this.user || refresh) {
       await runAsSystem(async () => {
-        this.user = <IUser>(<unknown>await useModelRepository("User").fromUUID(this.getCurrentUserId()).get());
+        this.user = <IUser>(<unknown>await useModelRepository("User").fromUID(this.getCurrentUserId()).get());
       });
     }
     return <K>this.user;

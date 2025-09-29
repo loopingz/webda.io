@@ -96,12 +96,12 @@ export class UnpackedApplication extends Application {
     const imports = configuration.imports || [];
     const effectiveImports = [];
     for (const importFile of imports) {
-      if (!fs.existsSync(this.getAppPath(importFile))) {
+      if (!fs.existsSync(this.getApplicationPath(importFile))) {
         this.log("WARN", `Cannot import configuration '${importFile}'`);
         continue;
       }
       effectiveImports.push(importFile);
-      const includeConfiguration = FileUtils.load(this.getAppPath(importFile));
+      const includeConfiguration = FileUtils.load(this.getApplicationPath(importFile));
       if (includeConfiguration.imports?.length) {
         this.log("WARN", `Imported configuration '${importFile}' has nested imports that will be skipped`);
       }
@@ -222,13 +222,13 @@ export class UnpackedApplication extends Application {
       git: EmptyGitInformation,
       webda: {}
     };
-    let packageJson = join(this.appPath, "package.json");
+    let packageJson = join(this.applicationPath, "package.json");
     if (fs.existsSync(packageJson)) {
       info.package = FileUtils.load(packageJson);
     }
     info.git = this.getGitInformation(info.package?.name, info.package?.version);
     info.webda = info.package.webda || {};
-    let parent = join(this.appPath, "..");
+    let parent = join(this.applicationPath, "..");
     do {
       packageJson = join(parent, "package.json");
       if (fs.existsSync(packageJson)) {
@@ -314,17 +314,17 @@ export class UnpackedApplication extends Application {
    * Load any imported webda.module.json
    */
   async findModules(module: CachedModule): Promise<string[]> {
-    const appPath = this.getAppPath();
+    const appPath = this.getApplicationPath();
 
     // Modules should be cached on deploy
     const files = [];
-    const currentModule = this.getAppPath("webda.module.json");
+    const currentModule = this.getApplicationPath("webda.module.json");
     if (fs.existsSync(currentModule)) {
       files.push(currentModule);
     }
 
-    this.log("TRACE", "Searching for modules in", this.getAppPath("node_modules"));
-    files.push(...(await UnpackedApplication.findModulesFiles(this.getAppPath("node_modules"))));
+    this.log("TRACE", "Searching for modules in", this.getApplicationPath("node_modules"));
+    files.push(...(await UnpackedApplication.findModulesFiles(this.getApplicationPath("node_modules"))));
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
       this.log("TRACE", "Searching for modules in", join(module.project.webda.workspaces.path, "node_modules"));
@@ -370,13 +370,13 @@ export class UnpackedApplication extends Application {
       .filter(k => Number.isNaN(+k))
       .forEach(p => {
         // Do not keep Beans from other modules
-        if (this.getAppPath("webda.module.json") !== moduleFile && SectionEnum[p] === "beans") {
+        if (this.getApplicationPath("webda.module.json") !== moduleFile && SectionEnum[p] === "beans") {
           delete module[SectionEnum[p]];
           return;
         }
         for (const key in module[SectionEnum[p]]) {
           module[SectionEnum[p]][key].Import = join(
-            relative(this.getAppPath(), dirname(moduleFile)),
+            relative(this.getApplicationPath(), dirname(moduleFile)),
             module[SectionEnum[p]][key].Import
           );
         }
@@ -391,7 +391,7 @@ export class UnpackedApplication extends Application {
    */
   async mergeModules(configuration: Configuration) {
     const module: CachedModule = configuration.cachedModules;
-    const appModule = this.getAppPath("webda.module.json");
+    const appModule = this.getApplicationPath("webda.module.json");
     const files = await this.findModules(module);
     const value = files
       .map(f => {

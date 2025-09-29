@@ -652,7 +652,7 @@ class Authentication<
     const expire = Date.now() + interval;
     let user;
     if (typeof uuid === "string") {
-      user = await this.userModel.fromUUID(uuid).get();
+      user = await this.userModel.fromUID(uuid).get();
     } else {
       user = uuid;
     }

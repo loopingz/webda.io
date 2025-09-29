@@ -1,5 +1,6 @@
 import { createCoreHook } from "../core/instancestorage";
 import type { Model, ModelClass } from "@webda/models";
+import { ModelDefinition } from "../internal/iapplication";
 /**
  * Hook to get the current application
  *
@@ -27,14 +28,14 @@ export { useApplication, setApplication };
  * @param name
  * @returns
  */
-export function useModel<T extends Model = Model>(name: string | T): ModelClass<T> {
+export function useModel<T extends Model = Model>(name: string | T): ModelDefinition<T> {
   if (name === undefined) {
     throw new Error("Cannot call useModel with undefined");
   }
   if (typeof name !== "string") {
-    return <ModelClass<T>>useApplication().getModel(name.constructor as any);
+    return <ModelDefinition<T>>useApplication().getModel(name.constructor as any);
   }
-  return <ModelClass<T>>useApplication().getModel(name);
+  return <ModelDefinition<T>>useApplication().getModel(name);
 }
 
 /**

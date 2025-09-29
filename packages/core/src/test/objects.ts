@@ -9,7 +9,16 @@ import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
 import { FileUtils } from "@webda/utils";
-import { ModelEvents, ModelActions, WEBDA_ACTIONS, ActionsEnum } from "@webda/models";
+import {
+  ModelEvents,
+  ModelActions,
+  WEBDA_ACTIONS,
+  ActionsEnum,
+  PrimaryKey,
+  ModelClass,
+  Repository,
+  MemoryRepository
+} from "@webda/models";
 import { ServiceParameters } from "../interfaces";
 import { IOperationContext } from "../contexts/icontext";
 
@@ -95,10 +104,10 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
   find(_query: Query): Promise<StoreFindResult<any>> {
     throw new Error("Method not implemented.");
   }
-  _exists(_uid: string): Promise<boolean> {
+  _exists(_uid: PrimaryKey<any>): Promise<boolean> {
     throw new Error("Method not implemented.");
   }
-  getAll(_list?: string[]): Promise<any[]> {
+  getAll(_list?: PrimaryKey<any>[]): Promise<any[]> {
     throw new Error("Method not implemented.");
   }
   static createConfiguration(params: any): any {
@@ -113,7 +122,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     throw new Error("Method not implemented.");
   }
   protected _removeAttribute(
-    _uuid: string,
+    _uuid: PrimaryKey<any>,
     _attribute: string,
     _itemWriteCondition?: any,
     _itemWriteConditionField?: string
@@ -121,14 +130,14 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     throw new Error("Method not implemented.");
   }
   protected _incrementAttributes(
-    _uid: string,
+    _uid: PrimaryKey<any>,
     _params: { property: string; value: number }[],
     _updateDate: Date
   ): Promise<any> {
     throw new Error("Method not implemented.");
   }
   protected _upsertItemToCollection(
-    _uid: string,
+    _uid: PrimaryKey<any>,
     _prop: string,
     _item: any,
     _index: number,
@@ -139,7 +148,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     throw new Error("Method not implemented.");
   }
   protected _deleteItemFromCollection(
-    _uid: string,
+    _uid: PrimaryKey<any>,
     _prop: string,
     _index: number,
     _itemWriteCondition: any,
@@ -187,7 +196,7 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     return Promise.resolve([]);
   }
 
-  async _create(_uid: string, object: any) {
+  async _create(_uid: PrimaryKey<any>, object: any) {
     return object;
   }
 
@@ -201,6 +210,10 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
 
   async _get(_uid) {
     return {};
+  }
+
+  getRepository<T extends ModelClass>(model: T): Repository<T> {
+    return new MemoryRepository(model, ["id"]);
   }
 }
 
@@ -288,7 +301,7 @@ export class TestApplication extends UnpackedApplication {
     // exec typescript
     this.log("DEBUG", "Compiling application");
     try {
-      execSync(`tsc -p ${this.appPath}`);
+      execSync(`tsc -p ${this.applicationPath}`);
     } catch (err) {
       (err.stdout.toString() + err.stderr.toString())
         .split("\n")
@@ -316,12 +329,12 @@ export class TestApplication extends UnpackedApplication {
         .forEach(p => {
           for (const key in module[SectionEnum[p]]) {
             module[SectionEnum[p]][key].Import = path.join(
-              path.relative(this.getAppPath(), path.dirname(moduleFile)),
+              path.relative(this.getApplicationPath(), path.dirname(moduleFile)),
               module[SectionEnum[p]][key].Import.replace(/^lib\//, "src/").replace(":", ".ts:")
             );
             if (module[SectionEnum[p]][key].Configuration) {
               module[SectionEnum[p]][key].Configuration = path.join(
-                path.relative(this.getAppPath(), path.dirname(moduleFile)),
+                path.relative(this.getApplicationPath(), path.dirname(moduleFile)),
                 module[SectionEnum[p]][key].Configuration.replace(/^lib\//, "src/").replace(":", ".ts:")
               );
             }

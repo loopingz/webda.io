@@ -64,10 +64,10 @@ class SampleApplicationTest extends WebdaApplicationTest {
   }
 
   @test
-  getAppPath() {
-    assert.strictEqual(this.sampleApp.getAppPath(), path.join(__dirname, "..", "..", "..", "..", "sample-app"));
+  getApplicationPath() {
+    assert.strictEqual(this.sampleApp.getApplicationPath(), path.join(__dirname, "..", "..", "..", "..", "sample-app"));
     assert.strictEqual(
-      this.sampleApp.getAppPath("lib"),
+      this.sampleApp.getApplicationPath("lib"),
       path.join(__dirname, "..", "..", "..", "..", "sample-app", "lib")
     );
   }
@@ -80,10 +80,6 @@ class SampleApplicationTest extends WebdaApplicationTest {
 
 @suite
 class ApplicationTest extends WebdaInternalTest {
-  async beforeAll(init?: boolean): Promise<void> {
-    await super.beforeAll(init);
-    await new Promise(resolve => setTimeout(resolve, 200));
-  }
   @test
   async cacheSchema() {
     const app = new Application(__dirname + "/../../test/config-cached.json");

@@ -37,7 +37,8 @@ class EventRepositoryTest extends RepositoryTest {
       Queried: 18,
       Query: 18
     },
-    iterate: {}
+    iterate: {},
+    uuidModel: {}
   };
 
   getRepository<T extends StorableClass>(model: T, keys: string[]): Repository<T> {
@@ -76,7 +77,7 @@ class EventRepositoryTest extends RepositoryTest {
     this[testMethod] = async () => {
       this.events = {};
       await origin();
-      assert.deepStrictEqual(this.events, this.testExpectations[testMethod], "Events does not match expectactions");
+      assert.deepStrictEqual(this.events, this.testExpectations[testMethod], "Events does not match expectations");
     };
   }
 }

@@ -5,6 +5,7 @@ import type {
   Configuration,
   GitInformation,
   Modda,
+  ModelDefinition,
   PackageDescriptor,
   ProjectInformation,
   Reflection,
@@ -24,6 +25,7 @@ import { Model, ModelClass } from "@webda/models";
 import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache";
 import { getMachineId } from "../core/hooks";
+import type { Service } from "../services/service";
 
 export type ApplicationState = "initial" | "loading" | "ready";
 
@@ -47,7 +49,7 @@ export class Application {
   /**
    * Get Application root path
    */
-  readonly appPath: string;
+  readonly applicationPath: string;
   /**
    * Base configuration loaded from webda.config.json
    */
@@ -67,11 +69,6 @@ export class Application {
   };
 
   /**
-   * Contains already loaded modules
-   */
-  protected _loaded: string[] = [];
-
-  /**
    * Deployers type registry
    */
   protected deployers: { [key: string]: any } = {};
@@ -84,12 +81,7 @@ export class Application {
   /**
    * Models type registry
    */
-  protected models: { [key: string /* LongId */]: ModelClass } = {};
-
-  /**
-   * Models metadata
-   */
-  protected modelsMetadata: { [key: string]: Reflection } = {};
+  protected models: { [key: string /* LongId */]: ModelDefinition } = {};
 
   /**
    * Class Logger
@@ -122,7 +114,7 @@ export class Application {
     // If configuration is a programmatic object (usually for tests)
     if (typeof file !== "string") {
       this.baseConfiguration = { parameters: {}, ...file };
-      this.appPath = process.cwd();
+      this.applicationPath = process.cwd();
       return;
     }
     if (!existsSync(file)) {
@@ -139,7 +131,7 @@ export class Application {
       }
     }
     this.configurationFile = file;
-    this.appPath = resolve(dirname(file));
+    this.applicationPath = resolve(dirname(file));
   }
 
   /**
@@ -150,37 +142,7 @@ export class Application {
   async load(): Promise<this> {
     await this.loadConfiguration(this.configurationFile);
     await this.loadModule(this.baseConfiguration.cachedModules);
-    this.setModelsMetadata();
     return this;
-  }
-
-  /**
-   * Set the models metadata on each known model
-   */
-  setModelsMetadata() {
-    for (const model in this.models) {
-      if (!this.models[model]) {
-        this.log("ERROR", `Model ${model} is not defined`);
-        continue;
-      }
-      const info = this.baseConfiguration.cachedModules.models[model] || {
-        Ancestors: [],
-        Subclasses: [],
-        Relations: {},
-        Reflection: {}
-      };
-      const metadata = {
-        Identifier: model,
-        Ancestors: info.Ancestors.map(a => this.models[a]).filter(m => m),
-        Subclasses: info.Subclasses.map(c => this.models[c]).filter(m => m),
-        Relations: info.Relations,
-        Schema: this.getSchema(model),
-        Reflection: info.Reflection || {}
-      };
-      // @ts-ignore
-      this.models[model].Metadata = Object.freeze(metadata);
-      this.log("TRACE", `Set metadata for ${model}`, metadata);
-    }
   }
 
   /**
@@ -251,6 +213,7 @@ export class Application {
     };
 
     // By default use CookieSessionManager
+    // TODO Should not be added here as it is only for HTTP
     configuration.services["SessionManager"] ??= {
       type: "Webda/CookieSessionManager"
     };
@@ -341,14 +304,14 @@ export class Application {
    *
    * @param subpath to append to
    */
-  getAppPath(subpath: string = undefined): string {
+  getApplicationPath(subpath: string = undefined): string {
     if (subpath && subpath !== "") {
       if (isAbsolute(subpath)) {
         return subpath;
       }
-      return join(this.appPath, subpath);
+      return join(this.applicationPath, subpath);
     }
-    return this.appPath;
+    return this.applicationPath;
   }
 
   /**
@@ -442,7 +405,7 @@ export class Application {
    *
    * @param name model to retrieve
    */
-  getModel<T extends Model = Model>(name: string): ModelClass<T> {
+  getModel<T extends Model = Model>(name: string): ModelDefinition<T> {
     return this.getWebdaObject("models", name);
   }
 
@@ -450,27 +413,9 @@ export class Application {
    * Get all models definitions
    */
   getModels(): {
-    [key: string]: ModelClass<any>;
+    [key: string]: ModelDefinition<any>;
   } {
     return this.models;
-  }
-
-  /**
-   * Return models that do not have parents
-   * @returns
-   */
-  getRootModels(): string[] {
-    return [];
-  }
-
-  /**
-   * Return models that do not have parents and are exposed
-   * Or specifically set as root via the Expose.root parameter
-   * @returns
-   */
-  getRootExposedModels(): string[] {
-    // TODO Redefine this
-    return [];
   }
 
   /**
@@ -486,6 +431,7 @@ export class Application {
    * @param object
    */
   getModelFromConstructor<T extends Model>(model: ModelClass<T>): string | undefined {
+    // @ts-ignore
     return Object.keys(this.models).find(k => this.models[k] === model);
   }
 
@@ -517,7 +463,20 @@ export class Application {
    * @param model
    * @param dynamic class is dynamic so recompute the hierarchy
    */
-  addModel(name: string, model: any, dynamic: boolean = true): this {
+  addModel(
+    name: string,
+    model: any,
+    metadata: Reflection = {
+      Identifier: name,
+      Ancestors: [],
+      Subclasses: [],
+      Relations: {},
+      PrimaryKey: ["id"],
+      Events: [],
+      Schema: {},
+      Actions: {}
+    }
+  ): this {
     name = this.completeNamespace(name);
     this.log("TRACE", "Registering model", name);
     if (!model) {
@@ -525,18 +484,10 @@ export class Application {
       return this;
     }
     this.models[name] = model;
-    if (dynamic) {
+    if (metadata) {
+      // Get ancestor?
       const superClass = Object.getPrototypeOf(model);
-      model.Metadata = this.modelsMetadata[name] = Object.freeze({
-        Identifier: name,
-        Ancestors: [],
-        Subclasses: [],
-        Relations: {},
-        PrimaryKey: ["id"],
-        Events: [],
-        Schema: {},
-        Actions: {}
-      });
+      model.Metadata = Object.freeze(metadata);
     }
     return this;
   }
@@ -562,15 +513,6 @@ export class Application {
       currentDeployment: this.currentDeployment,
       appModule: this.appModule
     };
-  }
-
-  /**
-   * Get the metadata for a model
-   * @param name
-   * @returns
-   */
-  getModelMetadata(name: string): Reflection | undefined {
-    return this.modelsMetadata[name];
   }
 
   /**
@@ -648,7 +590,7 @@ export class Application {
    */
   protected async importFile(info: string, withExport: boolean = true): Promise<any> {
     if (info.startsWith(".")) {
-      info = this.getAppPath(info);
+      info = this.getApplicationPath(info);
     }
     try {
       this.log("TRACE", "Load file", info);
@@ -686,7 +628,7 @@ export class Application {
    * @param object
    * @returns
    */
-  getImplementations<T extends AbstractService>(object: T): { [key: string]: Modda<T> } {
+  getImplementations<T extends Service>(object: T): { [key: string]: Modda<T> } {
     const res: any = {};
     for (const key in this.moddas) {
       if (this.moddas[key] && object instanceof this.moddas[key]) {
@@ -702,7 +644,7 @@ export class Application {
    * @protected
    * @ignore Useless for documentation
    */
-  async loadModule(module: WebdaModule, parent: string = this.appPath) {
+  async loadModule(module: WebdaModule, parent: string = this.applicationPath) {
     if (!module) {
       return;
     }
@@ -717,7 +659,13 @@ export class Application {
           );
           continue;
         }
-        if (section === "beans" || section === "moddas") {
+        // Might want to move this to specific methods
+        if (section === "models") {
+          this.log("INFO", "Add Model", key, info[section][key]);
+          this.addModel(key, this[section][key], info[section][key]);
+          // Call registerSerializer
+          this.models[key]["registerSerializer"]?.();
+        } else if (section === "beans" || section === "moddas") {
           // Load the parameters automatically
           const configurationClass = info[section][key].Configuration
             ? await this.importFile(join(parent, info[section][key].Configuration))

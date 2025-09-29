@@ -12,7 +12,7 @@ import { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
 import { OperationContext } from "../contexts/operationcontext";
 import { Route } from "../rest/irest";
-import { useRegistry } from "../models/registry";
+import { RegistryEntry, useRegistry } from "../models/registry";
 
 export class SecretString {
   constructor(
@@ -121,13 +121,6 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<T>): T {
-    return <T>new CryptoServiceParameters().load(params);
-  }
-
-  /**
-   * @override
-   */
   async init(): Promise<this> {
     await super.init();
     CryptoService.encrypters["self"] = this;
@@ -172,11 +165,19 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Load keys from registry
    */
   async load(): Promise<boolean> {
-    const load = await useRegistry().get<KeysRegistry>("keys");
+    let load;
+    console.log("load crypto?");
+    try {
+      load = await useRegistry().get<KeysRegistry>("keys");
+    } catch (err) {
+      // We dont want to fail if cannot get the key
+      console.log("Cannot find KeysRegistry", err);
+    }
     if (!load || !load.current) {
       return false;
     }
     this.keys = {};
+    console.log("Loading keys", Object.keys(load));
     Object.keys(load)
       .filter(k => k.startsWith("key_"))
       .forEach(k => {
@@ -213,7 +214,16 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   async getCurrentKeys(): Promise<{ id: string; keys: KeysDefinition }> {
     if (!this.keys || !this.current || !this.keys[this.current]) {
-      throw new Error("CryptoService not initialized");
+      let msg = "";
+      if (!this.keys) {
+        msg = ": No keys";
+      } else if (!this.current) {
+        msg = ": No current key";
+      } else if (!this.keys[this.current]) {
+        msg = ": Current key does not match";
+        msg += " (current=" + this.current + ", keys=[" + Object.keys(this.keys).join(",") + "])";
+      }
+      throw new Error("CryptoService not initialized" + msg);
     }
     return { keys: this.keys[this.current], id: this.current };
   }
@@ -279,6 +289,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     if (!this.keys[keyId]) {
       // Key is more recent than current one so try to reload
       if (parseInt(keyId, 36) > this.age) {
+        console.log("Should reload keys");
         await this.load();
       }
       // Key is still not found
@@ -293,11 +304,13 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Get JWT key based on kid
    */
   public async getJWTKey(header, callback) {
+    console.log("Loading getJWTKey", header?.kid);
     if (!header.kid) {
       callback(new Error("Unknown key"));
       return;
     }
     const keyId = header.kid.substring(1);
+    console.log("CheckKey", keyId);
     if (!(await this.checkKey(keyId))) {
       callback(new Error("Unknown key"));
       return;
@@ -443,6 +456,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   async rotate() {
     const { age, id } = this.getNextId();
+    const registry = useRegistry();
     const next: KeysRegistry = {
       current: id,
       rotationInstance: useCore().getInstanceId()
@@ -451,12 +465,16 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
       ...this.generateAsymetricKeys(),
       symetric: this.generateSymetricKey()
     };
-    if (!(await useRegistry().exists("keys"))) {
+    if (!(await registry.exists("keys"))) {
       this.current = `init-${useCore().getInstanceId()}`;
-      await useRegistry().put("keys", { current: this.current });
+      useLog("INFO", `Putting keys`, this.current);
+      await registry.put("keys", { current: this.current });
+      useLog("INFO", `Should be`, { uuid: "keys", current: this.current });
+      useLog("INFO", `Puted keys`, RegistryEntry.getRepository()["storage"]);
+      useLog("INFO", `Object`, await RegistryEntry.get("keys"));
     }
     try {
-      await useRegistry().patch("keys", next, "current", this.current);
+      await registry.patch("keys", next, "current", this.current);
       this.keys ??= {};
       this.keys[id] = next[`key_${id}`];
       this.current = id;

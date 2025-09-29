@@ -1,27 +1,27 @@
-import { PrimaryKeyType, SelfJSONed, useRepository, UuidModel } from "@webda/models";
+import { Model, PrimaryKeyType, Repository, SelfJSONed, useRepository, UuidModel } from "@webda/models";
+import { useLog } from "@webda/workout";
 
 /**
  * Specific type for registry
  */
-export class RegistryModel extends UuidModel {
-  toJSON(): undefined {
-    return undefined;
-  }
+export class RegistryEntry extends UuidModel {
   toDTO(): undefined {
     return undefined;
   }
   fromDTO(): this {
     return this;
   }
-}
+  toJSON(): SelfJSONed<this> {
+    useLog("TRACE", "RegistryEntry toJSON");
+    console.log("toJSON, RegistryEntry");
+    return this as SelfJSONed<this>;
+  }
 
-/**
- * Type helper for registry entry
- */
+  deserialize(data: Partial<SelfJSONed<Model>>): this {
+    Object.assign(this, data);
+    return this;
+  }
 
-//export type RegistryEntry<T = any> = RegistryModel & T;
-
-export class RegistryEntry {
   /**
    * Remove an attribute from the registry
    * @param uuid
@@ -30,18 +30,18 @@ export class RegistryEntry {
    */
   static async removeAttribute(uuid: string, attribute: string) {
     // @ts-ignore
-    return await RegistryModel.ref(uuid).removeAttribute(<any>attribute);
+    return await RegistryEntry.ref(uuid).removeAttribute(<any>attribute);
   }
+
   /**
-   * Helper for upsert
+   * Set an attribute from the registry
    * @param uuid
-   * @param data
+   * @param attribute
    * @returns
    */
-  static async get<K = any>(uuid: string, data?: K): Promise<RegistryModel & K> {
-    return data
-      ? <any>await RegistryModel.ref(uuid).upsert(<any>data)
-      : <K & RegistryModel>await RegistryModel.ref(uuid).get();
+  static async setAttribute(uuid: string, attribute: string, value: any) {
+    // @ts-ignore
+    return await RegistryEntry.ref(uuid).setAttribute(<any>attribute, value);
   }
 
   /**
@@ -50,16 +50,29 @@ export class RegistryEntry {
    * @param data
    * @returns
    */
-  static async put<K = any>(uuid: string, data: K): Promise<K & RegistryModel> {
-    return <any>await RegistryModel.ref(uuid).upsert(<any>data);
+  static async get<K = any>(uuid: string, data?: K): Promise<RegistryEntry & K> {
+    console.log("Repository", uuid, data, RegistryEntry.getRepository());
+    return data
+      ? <any>await RegistryEntry.ref(uuid).upsert(<any>data)
+      : <K & RegistryEntry>await RegistryEntry.ref(uuid).get();
+  }
+
+  /**
+   * Helper for upsert
+   * @param uuid
+   * @param data
+   * @returns
+   */
+  static async put<K = any>(uuid: string, data: K): Promise<K & RegistryEntry> {
+    return <any>await RegistryEntry.ref(uuid).upsert(<any>data);
   }
 
   static async delete(uuid: string) {
-    return await RegistryModel.ref(uuid).delete();
+    return await RegistryEntry.ref(uuid).delete();
   }
 
   static exists(uuid: string) {
-    return RegistryModel.ref(uuid).exists();
+    return RegistryEntry.ref(uuid).exists();
   }
 
   /**
@@ -72,7 +85,7 @@ export class RegistryEntry {
    */
   static patch(uuid: string, patch: any, conditionField: string, conditionValue: any) {
     // @ts-ignore
-    return RegistryModel.ref(uuid).patch(patch, <any>conditionField, conditionValue);
+    return RegistryEntry.ref(uuid).patch(patch, <any>conditionField, conditionValue);
   }
 }
 

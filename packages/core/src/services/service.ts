@@ -13,8 +13,7 @@ import { useService } from "../core/hooks";
 import { AbstractService } from "../core/icore";
 import { useLogger } from "../loggers/hooks";
 import { WEBDA_EVENTS } from "@webda/models";
-import { getMetadata } from "@webda/test";
-import { State, StateOptions } from "@webda/utils";
+import { State } from "@webda/utils";
 import { ServiceState, ServiceStates } from "../internal/iapplication";
 
 /**
@@ -171,6 +170,7 @@ abstract class Service<
 
   /**
    * Used to compute or derivate input parameter to attribute
+   * @deprecated
    */
   computeParameters(): void {
     // Can be overriden by subclasses if needed
@@ -342,6 +342,7 @@ abstract class Service<
 
   /**
    * Init the routes
+   * @deprecated
    */
   initRoutes() {
     // @ts-ignore

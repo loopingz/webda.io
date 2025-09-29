@@ -13,7 +13,7 @@ import { Repository } from "./repository";
 import type { ArrayElement, ReadonlyKeys } from "@webda/tsc-esm";
 
 export abstract class AbstractRepository<T extends StorableClass> implements Repository<T> {
-  protected events: Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>>;
+  protected events: Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>> = new Map();
 
   constructor(
     protected model: T,
@@ -76,14 +76,16 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
   getPrimaryKey(object: any, forceObject?: boolean): PrimaryKeyType<InstanceType<T>> | PrimaryKey<InstanceType<T>> {
     const pkFields = (object[WEBDA_PRIMARY_KEY] || this.pks || []) as Array<keyof InstanceType<T>>;
     if (pkFields.length === 0) {
-      throw new Error("No primary key defined on model");
+      throw new Error("No primary key defined on model " + this.model.name);
     }
     // If non-composed it
     if (pkFields.length === 1) {
       if (forceObject) {
-        return typeof object === "object" ? object : ({ [pkFields[0]]: object } as PK<T, any>);
+        return typeof object === "object"
+          ? object
+          : ({ [pkFields[0]]: object, toString: () => object.toString() } as PK<T, any>);
       } else {
-        return typeof object === "object" ? object[pkFields[0]] : object;
+        return typeof object === "object" ? (new this.model(object) as any)[pkFields[0]] : object;
       }
     }
     if (typeof object === "string") {

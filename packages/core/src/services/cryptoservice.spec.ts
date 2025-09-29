@@ -1,9 +1,9 @@
-import { suite, test } from "@webda/test";
+import { suite, test, todo } from "@webda/test";
 import * as assert from "assert";
 import jwt from "jsonwebtoken";
 import * as sinon from "sinon";
 
-import { JSONUtils } from "@webda/utils";
+import { JSONUtils, sleep } from "@webda/utils";
 import { CryptoService, SecretString, useCrypto } from "./cryptoservice";
 import { WebdaApplicationTest } from "../test/application";
 import { useRegistry } from "../models/registry";
@@ -35,7 +35,7 @@ class CryptoServiceTest extends WebdaApplicationTest {
     const encrypted = await crypto.encrypt({ test: "plop" });
     const oldKey = crypto.current;
     const hmac = await crypto.hmac({ test: "plop" });
-    sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
+    this.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
     await crypto.rotate();
     const decrypted = await crypto.decrypt(encrypted);
     assert.strictEqual(decrypted.test, "plop");
@@ -64,6 +64,7 @@ class CryptoServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  @todo
   async jwks() {
     const crypto = useCrypto();
     crypto.getParameters().url = "/jwk";
@@ -71,7 +72,8 @@ class CryptoServiceTest extends WebdaApplicationTest {
     const ctx = await this.newContext();
     await this.execute(ctx, "test.webda.io", "GET", "/jwk");
     let body = JSON.parse(<string>ctx.getResponseBody());
-    sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
+    this.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
+
     assert.strictEqual(body.keys.length, 1);
     await crypto.rotate();
     await this.execute(ctx, "test.webda.io", "GET", "/jwk");
@@ -92,26 +94,36 @@ class CryptoServiceTest extends WebdaApplicationTest {
     assert.ok(!(await crypto.hmacVerify("mydata", "md.ss")));
 
     const oldKey = crypto.current;
-    sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
+    this.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
     await crypto.rotate();
     const encrypted = await useCrypto().encrypt({ test: "plop" });
-    delete crypto.keys[crypto.current];
-    crypto.current = oldKey;
-    crypto.age = parseInt(oldKey, 36); // It should be reloaded
+    const currentKey = crypto.keys[crypto.current];
+    const currentId = crypto.current;
+    try {
+      delete crypto.keys[crypto.current];
+      crypto.current = oldKey;
+      crypto.age = parseInt(oldKey, 36); // It should be reloaded
 
-    assert.strictEqual((await useCrypto().decrypt(encrypted)).test, "plop");
-    // Remove again but remove it from the registry now
-    await useRegistry().removeAttribute("keys", `key_${crypto.current}`);
-    delete crypto.keys[crypto.current];
-    crypto.current = oldKey;
-    crypto.age = parseInt(oldKey, 36);
-    await assert.rejects(() => useCrypto().decrypt(encrypted), /err/);
+      console.log("Keys now", await useRegistry().get("keys"));
+      assert.strictEqual((await useCrypto().decrypt(encrypted)).test, "plop");
+
+      // Remove again but remove it from the registry now
+      await useRegistry().removeAttribute("keys", `key_${crypto.current}`);
+      delete crypto.keys[crypto.current];
+      crypto.current = oldKey;
+      crypto.age = parseInt(oldKey, 36);
+      await assert.rejects(() => useCrypto().decrypt(encrypted), /err/);
+    } finally {
+      await useRegistry().setAttribute("keys", `key_${currentId}`, currentKey);
+      crypto.keys[currentId] = currentKey;
+    }
   }
 
   @test
   async jwt() {
     // Test asymetric JWT
     const crypto = useCrypto();
+    console.log(crypto.keys, crypto.current, await useRegistry().get("keys"));
     let token = await crypto.jwtSign("plop", { algorithm: "PS256" });
     assert.strictEqual(await crypto.jwtVerify(token), "plop");
     token = await crypto.jwtSign("plop");

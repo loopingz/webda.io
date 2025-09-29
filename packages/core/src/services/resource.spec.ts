@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as WebdaError from "../errors/errors";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test";
 import { ResourceService, ResourceServiceParameters } from "./resource";
 import { UnpackedConfiguration } from "../application/iapplication";
 

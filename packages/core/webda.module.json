@@ -1256,10 +1256,14 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
-        "Updated"
+        "Patched",
+        "Updated",
+        "Queried"
       ],
       "PrimaryKey": [
         "uuid"
@@ -1302,10 +1306,14 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
-        "Updated"
+        "Patched",
+        "Updated",
+        "Queried"
       ],
       "PrimaryKey": [
         "uuid"
@@ -1437,10 +1445,14 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
-        "Updated"
+        "Patched",
+        "Updated",
+        "Queried"
       ],
       "PrimaryKey": [
         "uuid"
@@ -1510,19 +1522,23 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
-        "Updated"
+        "Patched",
+        "Updated",
+        "Queried"
       ],
       "PrimaryKey": [
         "uuid"
       ],
       "Identifier": "Webda/OwnerModel"
     },
-    "Webda/RegistryModel": {
-      "Plural": "RegistryModels",
-      "Import": "lib/models/registry:RegistryModel",
+    "Webda/RegistryEntry": {
+      "Plural": "RegistryEntries",
+      "Import": "lib/models/registry:RegistryEntry",
       "Relations": {},
       "Ancestors": [],
       "Subclasses": [],
@@ -1543,7 +1559,7 @@
         ],
         "description": "Specific type for registry",
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "RegistryModel"
+        "title": "RegistryEntry"
       },
       "Actions": {
         "create": {},
@@ -1557,15 +1573,19 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
-        "Updated"
+        "Patched",
+        "Updated",
+        "Queried"
       ],
       "PrimaryKey": [
         "uuid"
       ],
-      "Identifier": "Webda/RegistryModel"
+      "Identifier": "Webda/RegistryEntry"
     },
     "Webda/RoleModel": {
       "Plural": "RoleModels",
@@ -1592,13 +1612,79 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
-        "Updated"
+        "Patched",
+        "Updated",
+        "Queried"
       ],
       "PrimaryKey": [],
       "Identifier": "Webda/RoleModel"
+    },
+    "Webda/SessionModel": {
+      "Plural": "SessionModels",
+      "Import": "lib/session/manager:SessionModel",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "ttl": {
+          "type": "number"
+        },
+        "session": {
+          "type": "any"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schema": {
+        "type": "object",
+        "properties": {
+          "uuid": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "number"
+          },
+          "session": {}
+        },
+        "required": [
+          "session",
+          "ttl",
+          "uuid"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "SessionModel"
+      },
+      "Actions": {
+        "create": {},
+        "get": {},
+        "update": {},
+        "delete": {},
+        "query": {}
+      },
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/SessionModel"
     },
     "Webda/SimpleUser": {
       "Plural": "SimpleUsers",
@@ -1740,10 +1826,14 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
+        "Patched",
         "Updated",
+        "Queried",
         "Login",
         "Logout"
       ],
@@ -1827,10 +1917,14 @@
         "PartialUpdate",
         "Delete",
         "Update",
+        "Patch",
+        "Query",
         "Created",
         "PartialUpdated",
         "Deleted",
+        "Patched",
         "Updated",
+        "Queried",
         "Login",
         "Logout"
       ],

@@ -10,6 +10,7 @@ import { ServiceParameters } from "../interfaces";
 import { Session } from "./session";
 import { DeepPartial } from "@webda/tsc-esm";
 import { ServicePartialParameters } from "../internal/iapplication";
+import { ModelClass, Repository, UuidModel } from "@webda/models";
 
 /**
  * Manage load and save of sessions
@@ -26,6 +27,16 @@ export abstract class SessionManager<T extends ServiceParameters = ServiceParame
    * @param session
    */
   abstract save(context: Context, session: Session): Promise<void>;
+}
+
+export class SessionModel extends UuidModel {
+  ttl: number;
+  session: any;
+  constructor(data: any) {
+    super(data);
+    this.ttl = data.ttl || 0;
+    this.session = data.session || {};
+  }
 }
 
 export class CookieSessionParameters extends ServiceParameters {
@@ -59,7 +70,7 @@ export class CookieSessionManager<
   cryptoService: CryptoService;
 
   @Inject("SessionStore", true)
-  sessionStore: Store;
+  sessionModel: Repository<typeof SessionModel>;
 
   /**
    * @override
@@ -77,9 +88,9 @@ export class CookieSessionManager<
     }
     const session = new Session();
     const cookie = await SecureCookie.load(this.parameters.cookie.name, session, context, this.parameters.jwt);
-    if (this.sessionStore) {
+    if (this.sessionModel) {
       if (cookie.sub) {
-        Object.assign(session, (await this.sessionStore.get(cookie.sub))?.session);
+        Object.assign(session, (await this.sessionModel.get(cookie.sub))?.session);
         session.uuid = cookie.sub;
       }
       session.uuid ??= getUuid("base64");
@@ -97,15 +108,15 @@ export class CookieSessionManager<
       return;
     }
     // If store is found session info are stored in db
-    if (this.sessionStore) {
-      if (this.sessionStore.exists(session.uuid)) {
-        await this.sessionStore.update(session.uuid, {
+    if (this.sessionModel) {
+      if (this.sessionModel.exists(session.uuid)) {
+        await this.sessionModel.update({
           uuid: session.uuid,
           session,
           ttl: Date.now() + this.parameters.cookie.maxAge * 1000
         });
       } else {
-        await this.sessionStore.create(session.uuid, {
+        await this.sessionModel.create({
           uuid: session.uuid,
           session,
           ttl: Date.now() + this.parameters.cookie.maxAge * 1000

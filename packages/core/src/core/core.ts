@@ -4,7 +4,7 @@ import jsonpath from "jsonpath";
 import { Application } from "../application/application";
 import { Configuration } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
-import { Model, ModelClass, registerRepository } from "@webda/models";
+import { Model, ModelClass } from "@webda/models";
 import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
@@ -18,7 +18,7 @@ import { emitCoreEvent } from "../events/events";
 import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
 import { useApplication, useModel, useModelId } from "../application/hooks";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
-import { RegistryModel } from "../models/registry";
+import { RegistryEntry } from "../models/registry";
 import { Modda } from "../internal/iapplication";
 import { InstanceCache } from "../cache/cache";
 import { ServiceParameters } from "../interfaces";
@@ -230,7 +230,7 @@ export class Core implements ICore {
    * @returns
    */
   getAppPath(subpath: string = ""): string {
-    return this.application.getAppPath(subpath);
+    return this.application.getApplicationPath(subpath);
   }
 
   /**
@@ -327,8 +327,6 @@ export class Core implements ICore {
     this.log("TRACE", "Create Webda init promise");
     await this.initService("Registry");
     // By pass the store checks
-    Model["Store"] = <any>this.services["Registry"];
-    RegistryModel["Store"] = <any>this.services["Registry"];
 
     await this.initService("CryptoService");
 
@@ -343,21 +341,17 @@ export class Core implements ICore {
         "ERROR",
         `Critical service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
       );
+      criticalServicesStates.forEach(s => {
+        this.log("WARN", s[0], State.getStateStatus(this.services[s[0]]));
+      });
       throw new Error(
         `Cannot init Webda core service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
       );
     }
     // Init services
-    let service;
     const inits = [];
-    for (service in this.services) {
-      if (
-        this.services[service].init !== undefined &&
-        !(<any>this.services[service])._createException &&
-        !(<any>this.services[service])._initTime
-      ) {
-        inits.push(this.initService(service));
-      }
+    for (const service in this.services) {
+      inits.push(this.initService(service));
     }
     await Promise.all(inits);
     await emitCoreEvent("Webda.Init.Services", this.services);
@@ -391,8 +385,8 @@ export class Core implements ICore {
    * @param {String} name The service name to retrieve
    * @deprecated
    */
-  getService<T = AbstractService>(name: string = ""): T {
-    return <T>this.services[name];
+  getService<T = AbstractService>(name: string | number | symbol = ""): T {
+    return <T>this.services[name as string];
   }
 
   /**
@@ -543,12 +537,6 @@ export class Core implements ICore {
         }
       });
 
-    // Register all stores
-    Object.values(this.application.getModels())
-      .filter(m => m)
-      .forEach(model => {
-        registerRepository(model, this.getModelStoreCached(model).getRepository(model));
-      });
     emitCoreEvent("Webda.Create.Services", this.services);
   }
 
@@ -590,8 +578,6 @@ export class Core implements ICore {
     if (!service) {
       throw new Error("Cannot create Registry service");
     }
-    this.application.addModel("Webda/RegistryModel", RegistryModel);
-    RegistryModel["Store"] = <any>this.getService<Store>("Registry");
     service.resolve();
 
     service = this.createService("CryptoService");
@@ -616,6 +602,7 @@ export class Core implements ICore {
    * Get a context based on the info
    * @param info
    * @returns
+   * @TODO Move to the HttpServer service
    */
   async newContext<T extends Context>(info: ContextProviderInfo, noInit: boolean = false): Promise<Context> {
     let context: Context;
@@ -630,6 +617,7 @@ export class Core implements ICore {
   /**
    * Register a new context provider
    * @param provider
+   * @TODO Move to the HttpServer service
    */
   registerContextProvider(provider: ContextProvider) {
     this.contextProviders ??= [];

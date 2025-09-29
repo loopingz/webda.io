@@ -3,7 +3,7 @@ import { MemoryRepository } from "./memory";
 import { SubClassModel, TestModel } from "../model.spec";
 import * as assert from "assert";
 import { PrimaryKeyEquals, SelfJSONed, StorableClass, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
-import { Model, Repositories } from "../model";
+import { Model, Repositories, UuidModel } from "../model";
 import { Repository, WEBDA_TEST } from "./repository";
 
 export class QueryDocument extends Model {
@@ -317,6 +317,14 @@ export class RepositoryTest {
         } as any),
       /Already exists: 123_Test/
     );
+  }
+
+  @test
+  async uuidModel() {
+    const repo = new MemoryRepository<typeof UuidModel>(UuidModel, ["uuid"]);
+    UuidModel.registerRepository(repo);
+    const model = await UuidModel.create({});
+    assert.ok(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(model.getUUID()) !== null);
   }
 }
 

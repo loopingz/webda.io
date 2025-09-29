@@ -15,7 +15,7 @@ import { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
 
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
-import { JSONed, Model } from "@webda/models";
+import { JSONed, Model, ModelClass } from "@webda/models";
 import { State, StateOptions } from "@webda/utils";
 export type { PackageDescriptor, WebdaPackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 
@@ -240,9 +240,17 @@ export abstract class AbstractService<
   abstract getOpenApiReplacements(): { [key: string]: string };
 }
 
-export type Modda<T = AbstractService> = CustomConstructor<T, [name: string, params: any]> & {
-  createConfiguration: (params: any) => any;
+/**
+ * Define a Modda: Service constructor
+ */
+export type Modda<T extends AbstractService = AbstractService> = CustomConstructor<T, [name: string, params: any]> & {
+  createConfiguration: (params: any) => T["parameters"];
 };
+
+/**
+ * Add the @webda/core metadata on models
+ */
+export type ModelDefinition<T extends Model = Model> = ModelClass<T> & { Metadata: Reflection };
 
 /**
  * Application interface.

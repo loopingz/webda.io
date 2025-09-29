@@ -263,12 +263,16 @@ export abstract class DomainService<
     super.resolve();
     this.app = <Application>(<any>useApplication());
     // Add all routes per model
-    this.app.getRootExposedModels().forEach(name => {
-      const model = <ModelClass>(<unknown>this.app.getModel(name));
+    this.getRootExposedModels().forEach(model => {
       this.walkModel(model);
     });
 
     return this;
+  }
+
+  getRootExposedModels() {
+    // By default any models that have no parent
+    return Object.values(this.app.getModels()).filter(m => !m.Metadata.Relations.parent);
   }
 
   /**

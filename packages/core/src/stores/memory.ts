@@ -4,9 +4,10 @@ import { open } from "node:fs/promises";
 import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
 import { GunzipConditional } from "@webda/utils";
-import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
-import * as WebdaQL from "@webda/ql";
-import { ServicePartialParameters } from "../internal/iapplication";
+import { Store, StoreParameters } from "./store";
+import { MemoryRepository, ModelClass, Repository } from "@webda/models";
+import { InstanceCache } from "../cache/cache";
+import { useModelMetadata } from "../core/hooks";
 
 export interface StorageMap {
   [key: string]: string;
@@ -63,9 +64,9 @@ class LDJSONMemoryStreamWriter extends Readable {
   private data: any[];
   private index: number = 0;
 
-  constructor(protected storage: any) {
+  constructor(protected storage: MemoryModelMap) {
     super();
-    this.data = Object.keys(storage);
+    this.data = [...storage.keys()];
   }
 
   _read() {
@@ -74,7 +75,7 @@ class LDJSONMemoryStreamWriter extends Readable {
       return;
     }
     const key = this.data[this.index++];
-    this.push(key + "\t" + this.storage[key] + "\n");
+    this.push(key + "\t" + this.storage.get(key) + "\n");
   }
 }
 
@@ -131,6 +132,15 @@ class LDJSONMemoryStreamReader extends Writable {
   }
 }
 
+class MemoryModelMap extends Map<string, string> {
+  persistence: () => void;
+  set(key: string, object: string) {
+    super.set(key, object);
+    this.persistence?.();
+    return this;
+  }
+}
+
 /**
  * Store in Memory
  *
@@ -141,7 +151,7 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
   /**
    * Inmemory storage
    */
-  storage: StorageMap = {};
+  storage: MemoryModelMap = new MemoryModelMap();
   /**
    * Persistence timeout id
    */
@@ -159,6 +169,9 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
    * Persist inmemory storage to file
    *
    * Called every this.parameters.persistence.delay ms
+   *
+   * We use stream to avoid consuming high memory
+   * The objects are already in memory the JSON.parse/stringify would duplicate memory
    */
   async persist() {
     if (this.persistenceTimeout) {
@@ -235,35 +248,43 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
       }
       try {
         if (existsSync(this.parameters.persistence.path)) {
-          this.storage = {};
           await this.load();
         }
       } catch (err) {
         this.log("INFO", "Cannot loaded persisted memory data", err);
-        this.storage = {};
       }
-      // Set a proxy if we need to delay the persistence
-      if (this.parameters.persistence.delay > 0) {
-        this.storage = new Proxy(this.storage, {
-          set: (target: StorageMap, p: string, value: any): boolean => {
-            target[p] = value;
-            const timeout = async () => {
-              // If we are already persisting, wait for it to finish
-              if (this.persistencePromise) {
-                this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
-                return;
-              }
-              this.persistencePromise = this.persist();
-              await this.persistencePromise;
-              this.persistencePromise = null;
-            };
-            this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
-            return true;
-          }
-        });
-      }
+      this.setPersistence();
     }
     return super.init();
+  }
+
+  /**
+   * Set the persistence function if needed
+   */
+  setPersistence() {
+    // Set a proxy if we need to delay the persistence
+    if (this.parameters.persistence.delay > 0) {
+      // CustomMap
+      this.storage.persistence = () => {
+        const timeout = async () => {
+          // If we are already persisting, wait for it to finish
+          if (this.persistencePromise) {
+            this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
+            return;
+          }
+          this.persistencePromise = this.persist();
+          await this.persistencePromise;
+          this.persistencePromise = null;
+        };
+        this.persistenceTimeout ??= setTimeout(timeout, this.parameters.persistence.delay);
+      };
+      const originalSet = this.storage.set;
+      this.storage.set = (key: string, object: string) => {
+        const res = originalSet.call(this.storage, key, object);
+        this.storage.persistence();
+        return res;
+      };
+    }
   }
 
   /**
@@ -275,187 +296,9 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
     }
   }
 
-  /**
-   * @override
-   */
-  async _exists(uid) {
-    return this.storage[uid] !== undefined;
-  }
-
-  /**
-   * @override
-   */
-  async find(query: WebdaQL.Query): Promise<StoreFindResult<any>> {
-    return this.simulateFind(query, Object.keys(this.storage));
-  }
-
-  /**
-   * @override
-   */
-  async _create(uuid: string, object: any): Promise<any> {
-    if (this.storage[uuid]) {
-      throw new Error("Already exists");
-    }
-    return this.persistModel(uuid, object);
-  }
-
-  /**
-   * Persist the object in memory
-   * @param uuid
-   * @param object
-   * @returns
-   */
-  protected async persistModel(uuid: string, object: any) {
-    this.storage[uuid] = JSON.stringify(object);
-    return object;
-  }
-
-  /**
-   * @override
-   */
-  async _delete(uid: string): Promise<void> {
-    delete this.storage[uid];
-  }
-
-  /**
-   * @override
-   */
-  async _patch(object: any, uuid: string, writeConditionField?: any, writeCondition?: string): Promise<any> {
-    const obj = await this._get(uuid, true);
-    this.checkUpdateCondition(uuid, obj, writeConditionField, writeCondition);
-    for (const prop in object) {
-      obj[prop] = object[prop];
-    }
-    this.storage[uuid] = this.toStoredJSON(obj, true);
-    return this._getSync(uuid);
-  }
-
-  /**
-   * @override
-   */
-  async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
-    const obj = await this._get(uid, true);
-    this.checkUpdateCondition(uid, obj, writeConditionField, writeCondition);
-    return this.persistModel(uid, object);
-  }
-
-  /**
-   * @override
-   */
-  async getAll(uids?: string[]): Promise<any> {
-    if (!uids) {
-      return Object.keys(this.storage).map(key => {
-        return this._getSync(key);
-      });
-    }
-    const result = [];
-    for (const i in uids) {
-      if (this.storage[uids[i]]) {
-        result.push(this._getSync(uids[i]));
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Retrieve the object as model
-   *
-   * @param uid
-   * @returns
-   */
-  _getSync(uid: string, raiseIfNotFound: boolean = false): any {
-    if (this.storage[uid]) {
-      try {
-        return JSON.parse(this.storage[uid]);
-      } catch (err) {
-        return null;
-      }
-    } else if (raiseIfNotFound) {
-      throw new StoreNotFoundError(uid, this.getName());
-    }
-    return null;
-  }
-
-  /**
-   * @override
-   */
-  async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
-    const res = await this._get(uuid, true);
-    this.checkUpdateCondition(res, writeConditionField, writeCondition);
-    delete res[attribute];
-    this.persistModel(uuid, res);
-  }
-
-  /**
-   * @override
-   */
-  async _get(uid, raiseIfNotFound: boolean = false) {
-    if (!this.storage[uid]) {
-      if (raiseIfNotFound) {
-        throw new StoreNotFoundError(uid, this.getName());
-      }
-      return;
-    }
-    return this._getSync(uid);
-  }
-
-  /**
-   * @override
-   */
-  async __clean() {
-    this.storage = {};
-  }
-
-  /**
-   * @override
-   */
-  async _incrementAttributes(uid, params: { property: string; value: number }[], updateDate: Date) {
-    const res = await this._get(uid, true);
-    params.forEach(({ property: prop, value }) => {
-      if (!res[prop]) {
-        res[prop] = 0;
-      }
-      res[prop] += value;
-    });
-    res._lastUpdate = updateDate;
-    return this.persistModel(uid, res);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async _upsertItemToCollection(
-    uid: string,
-    prop: string,
-    item: any,
-    index: number,
-    itemWriteCondition: any,
-    itemWriteConditionField: string,
-    updateDate: Date
-  ) {
-    return this.simulateUpsertItemToCollection(
-      uid,
-      this._getSync(uid, true),
-      <any>prop,
-      item,
-      updateDate,
-      index,
-      itemWriteCondition,
-      itemWriteConditionField
-    );
-  }
-
-  /**
-   * @override
-   */
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
-    const res = await this._get(uid, true);
-    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
-    }
-    res[prop].splice(index, 1);
-    res._lastUpdate = updateDate;
-    return this.persistModel(uid, res);
+  @InstanceCache()
+  getRepository<T extends ModelClass>(model: T): Repository<T> {
+    // Use our own storage to allow persistence
+    return new MemoryRepository<T>(model, useModelMetadata(model).PrimaryKey, undefined, this.storage);
   }
 }
-

@@ -2,13 +2,22 @@ import { suite, test, consumeAsyncIterator } from "@webda/test";
 import * as assert from "assert";
 import { existsSync } from "fs";
 import sinon from "sinon";
-import { Application, Ident, MemoryStore, runWithContext, useApplication, useModel, User } from "../index";
+import {
+  Application,
+  Ident,
+  MemoryStore,
+  MemoryWithQueryRepository,
+  runWithContext,
+  useApplication,
+  useModel,
+  User
+} from "../index";
 import { FileUtils } from "@webda/utils";
 import { StoreNotFoundError } from "./store";
 import { PermissionModel, StoreTest } from "./store.spec";
 import * as WebdaQL from "@webda/ql";
 import { WebdaApplicationTest } from "../test/application";
-import { Model, ModelClass } from "@webda/models";
+import { Model, ModelClass, SelfJSONed, UuidModel, WEBDA_PRIMARY_KEY } from "@webda/models";
 
 /**
  * Fake User for migration test

@@ -2,6 +2,9 @@ import { QueryValidator } from "@webda/ql";
 import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { AbstractService } from "../internal/iapplication";
 import { Model, ModelClass } from "@webda/models";
+import { Service } from "../services/service";
+import { Store } from "../stores/store";
+import CryptoService from "../services/cryptoservice";
 export { AbstractService };
 /**
  * Define an operation within webda app
@@ -103,7 +106,16 @@ export interface ICore {
    * @returns
    */
   getModelStore<T extends Model>(item: ModelClass<T> | T | string): AbstractService;
-  getService(name: string): AbstractService;
+  getService<
+    T extends keyof K,
+    K = {
+      Registry: Store;
+      CryptoService: CryptoService;
+      [key: string]: Service;
+    }
+  >(
+    name: T
+  ): K[T];
   getInstanceId(): string;
   registerContextProvider(provider: ContextProvider);
 }

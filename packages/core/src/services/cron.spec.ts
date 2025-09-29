@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Cron, CronDefinition, CronService, Service } from "../index";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test";
 
 class MyService extends Service {
   @Cron("0/15 * * * *", "plop")

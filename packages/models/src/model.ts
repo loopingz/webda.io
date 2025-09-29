@@ -59,7 +59,10 @@ export function useRepository<T extends StorableClass>(arg: T): Repository<T> {
   while (!Repositories.has(clazz)) {
     clazz = Object.getPrototypeOf(clazz);
     if (clazz === Model) {
-      throw new Error(`No repository found for ${arg.prototype.constructor.name}`);
+      if (!Repositories.has(clazz)) {
+        throw new Error(`No repository found for ${arg.prototype.constructor.name}`);
+      }
+      break;
     }
   }
   return Repositories.get(clazz) as Repository<T>;
@@ -301,8 +304,14 @@ export abstract class Model implements Storable, Securable, Exposable {
     registerRepository(this, repository);
   }
 
+  /**
+   * Register Model custom serializer
+   * @param this
+   * @param overwrite
+   */
   static registerSerializer<T extends StorableClass>(
-    this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any }
+    this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any },
+    overwrite: boolean = true
   ): void {
     const clazz: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any } = this;
     if (!clazz.getStaticProperties) {
@@ -310,7 +319,8 @@ export abstract class Model implements Storable, Securable, Exposable {
     }
     registerSerializer(
       `@webda/models/${this.prototype.constructor.name}`,
-      new ObjectSerializer(clazz as any, clazz.getStaticProperties())
+      new ObjectSerializer(clazz as any, clazz.getStaticProperties()),
+      overwrite
     );
   }
 

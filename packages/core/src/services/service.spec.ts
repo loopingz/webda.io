@@ -13,7 +13,8 @@ import {
   useWorkerOutput,
   WebdaError
 } from "../index";
-import { WebdaApplicationTest } from "../test/test";
+// Updated to use barrel index from test folder
+import { WebdaApplicationTest } from "../test";
 import { TestApplication } from "../test/objects";
 import { OperationContext } from "../contexts/operationcontext";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";

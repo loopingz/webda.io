@@ -1,14 +1,22 @@
-import { afterEach, CallbackOptionallyAsync, testWrapper, getMetadata, beforeAll } from "@webda/test";
+import { CallbackOptionallyAsync, testWrapper, getMetadata, beforeAll } from "@webda/test";
 import { ConsoleLogger, MemoryLogger, useLog, useWorkerOutput } from "@webda/workout";
 import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { sanitizeFilename } from "@webda/utils";
 import { dirname } from "node:path";
+import sinon, { SinonStub } from "sinon";
 
 /**
  * Define a test suite
  */
 export class WebdaTest {
+  /**
+   * Files to clean at the end of the test
+   */
   cleanFiles: string[] = [];
+  /**
+   * Stubs to restore at the end of the test
+   */
+  stubs: { restore: () => void }[] = [];
 
   async wrap(type: "beforeAll" | "test" | "afterAll", callback: CallbackOptionallyAsync) {
     return callback();
@@ -106,6 +114,26 @@ export class WebdaTest {
       this.cleanFiles.filter(existsSync).forEach(unlinkSync);
     } catch {}
     this.cleanFiles = [];
+    try {
+      this.stubs.forEach(s => s.restore());
+    } catch {}
+    this.stubs = [];
+  }
+
+  /**
+   * Wrap stub to auto-register it
+   * @param obj
+   * @param method
+   */
+  stub<T, K extends keyof T>(
+    obj: T,
+    method: K
+  ): T[K] extends (...args: infer TArgs) => infer TReturnValue ? SinonStub<TArgs, TReturnValue> : SinonStub;
+  stub<T>(obj: T): SinonStub;
+  stub(obj: any, method?: any): SinonStub {
+    const stub = sinon.stub(obj, method);
+    this.stubs.push(stub);
+    return stub;
   }
 
   /**
@@ -118,6 +146,5 @@ export class WebdaTest {
 }
 
 beforeAll(() => {
-  console.log("CLEANING LOGS");
   WebdaTest.cleanLogs();
 });

@@ -2,10 +2,9 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";
 import { CookieOptions, SecureCookie, WebContext } from "../index";
-import { WebdaSimpleTest } from "../test";
-import { SimpleOperationContext } from "./context";
-import { WebContextMock } from "./context.spec";
-import { HttpContext } from "./httpcontext";
+import { SimpleOperationContext } from "../contexts/simplecontext";
+import { WebContextMock } from "../contexts/context.spec";
+import { HttpContext } from "../contexts/httpcontext";
 import { Session } from "./session";
 import { WebdaInternalSimpleTest } from "../test/internal";
 

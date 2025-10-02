@@ -20,6 +20,7 @@ export class MemoryQueueParameters extends QueueParameters {
     super.default();
     this.expire ??= 30;
     this.expire *= 1000;
+    return this;
   }
 }
 

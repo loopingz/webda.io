@@ -16,7 +16,7 @@ export class SimpleService extends Service {}
 interface MyInterfaceParam {
   test: string;
 }
-class AnotherServiceParameters extends ServiceParameters {
+export class AnotherServiceParameters extends ServiceParameters {
   anotherParameter: string;
   /**
    * The Partial will generate a new $ref
@@ -24,7 +24,7 @@ class AnotherServiceParameters extends ServiceParameters {
   interfaceParam: Partial<MyInterfaceParam>;
 }
 
-class FourthServiceParameters extends AnotherServiceParameters {
+export class FourthServiceParameters extends AnotherServiceParameters {
   /**
    * @minimum 100
    * @maximum 1000

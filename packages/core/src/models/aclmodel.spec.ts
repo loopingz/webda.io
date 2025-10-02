@@ -12,7 +12,7 @@ import {
   WebContext,
   WebdaError
 } from "../index";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
 
 @suite
 class AclModelTest extends WebdaApplicationTest {

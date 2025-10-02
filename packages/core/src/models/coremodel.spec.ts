@@ -12,11 +12,11 @@ import {
   useConfiguration
 } from "../index";
 import { Task } from "../test/objects";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
 import { Constructor } from "@webda/tsc-esm";
 import { CoreModel } from "./coremodel";
-import { Action } from "../deprecated";
 import {
+  Action,
   ModelLink,
   ModelLinksArray,
   ModelLinksMap,

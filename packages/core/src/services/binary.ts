@@ -478,6 +478,7 @@ export class BinaryParameters extends ServiceParameters {
       "*": ["*"]
     };
     this.maxFileSize ??= 10 * 1024 * 1024;
+    return this;
   }
 }
 

@@ -80,6 +80,7 @@ export function State<E extends string = string>(options?: StateOptions<E>) {
         );
       };
       Object.defineProperty(wrapper, WRAPPED_FLAG, { value: true });
+      // We should still allow monkey patching
       Object.defineProperty(this, context.name, { value: wrapper, configurable: true });
     });
   };

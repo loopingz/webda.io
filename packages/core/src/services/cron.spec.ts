@@ -5,13 +5,14 @@ import { WebdaApplicationTest } from "../test";
 
 class MyService extends Service {
   @Cron("0/15 * * * *", "plop")
-  test() {
+  async test() {
     // Empty one
   }
 
   @Cron("0/25 * * * *", undefined, "myArg")
-  test2(myArg: string) {}
+  async test2(myArg: string) {}
 }
+
 @suite
 class CronServiceTest extends WebdaApplicationTest {
   @test
@@ -28,15 +29,23 @@ class CronServiceTest extends WebdaApplicationTest {
         cb();
       } catch (err) {}
     };
+    const catchCancelled = (err: any) => {
+      if (err !== "Cancelled") {
+        throw err;
+      }
+    };
     try {
       let promise = service.work();
+      promise.catch(catchCancelled);
       promise.cancel();
       service.enable = false;
       service.schedule("* * * * *", () => {}, "mine");
       service.crons[0].context = undefined;
       promise = service.run();
+      promise.catch(catchCancelled);
       promise.cancel();
       promise = service.run(false);
+      promise.catch(catchCancelled);
       promise.cancel();
     } finally {
     }

@@ -10,6 +10,7 @@ import {
   ServiceParameters,
   setLogContext,
   setWorkerOutput,
+  useApplication,
   useWorkerOutput,
   WebdaError
 } from "../index";
@@ -43,6 +44,10 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
       }
     }
     return this;
+  }
+
+  static createConfiguration(params: any) {
+    return new FakeServiceParameters().load(params);
   }
 
   // Set to undefined to ensure fallback on method name
@@ -101,7 +106,7 @@ class ServiceTest extends WebdaApplicationTest {
   }
 
   async tweakApp(app: TestApplication): Promise<void> {
-    app.addService("Webda/FakeService", FakeService);
+    app.addModda("Webda/FakeService", FakeService);
     FakeService.catchInjector = true;
   }
 
@@ -123,9 +128,8 @@ class ServiceTest extends WebdaApplicationTest {
     assert.rejects(() => callOperation(ctx, "MyOperation2"));
     const service = await this.registerService(new FakeService("plop", { bean: "Authentication" }));
     service.initOperations();
-    // @ts-ignore
-    const schemaRegistry = useApplication().baseConfiguration.cachedModules.schemas;
-    schemaRegistry["plop.myoperation.input"] = {
+    const schemaRegistry = useApplication()?.["baseConfiguration"].cachedModules!.schemas;
+    schemaRegistry!["plop.myoperation.input"] = {
       properties: {
         output: {
           type: "string",
@@ -134,7 +138,7 @@ class ServiceTest extends WebdaApplicationTest {
       },
       required: ["output"]
     };
-    schemaRegistry["plop.myOperation.input"] = schemaRegistry["plop.myoperation.input"];
+    schemaRegistry!["plop.myOperation.input"] = schemaRegistry!["plop.myoperation.input"];
     // TODO Fix this
     //this.webda["operations"]["Plop.MyOperation"].input = "plop.myoperation.input";
 

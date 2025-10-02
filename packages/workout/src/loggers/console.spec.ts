@@ -50,6 +50,11 @@ class ConsoleLoggerTest {
         null
     );
     ConsoleLogger.format(new WorkerMessage("title.set", undefined, { title: "plop" }));
+    msg.context = { line: 10, function: "plopFunction", file: "plop.ts", column: 5 };
+    assert.strictEqual(
+      ConsoleLogger.format(msg, "[%(ff)s(%(f)s:%(ll)d:%(c)d)]"),
+      "[plopFunction(plop.ts:10:5)]"
+    );
   }
 
   @test

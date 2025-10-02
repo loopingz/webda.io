@@ -1,5 +1,6 @@
 import { createMethodDecorator, MethodDecorator, getMetadata } from "@webda/decorators";
 import { createHash } from "node:crypto";
+import * as util from "node:util";
 
 /**
  * Storage for a single instance
@@ -96,36 +97,98 @@ function getSource(provider: (target: Object) => any, options: CacheOptions, tar
 }
 
 interface CacheOptions {
-  keyGenerator?: (property: string, args: any[]) => string;
+  /**
+   * Define how to cache the method call
+   * If undefined is returned then no caching is done
+   *
+   * @param property
+   * @param args
+   * @returns
+   */
+  methodKeyGenerator?: (property: string, args: any[]) => string | undefined;
+  classKeyGenerator?: (instance: object) => any;
+  /**
+   * Define how long the cache should be kept
+   */
   ttl?: number; // milliseconds
   cacheMap?: new (options: CacheOptions) => CacheMap;
   cacheStorage?: new (options?: CacheOptions) => CacheStorage;
 }
 
+export function argumentsHash(args: any[]): string {
+  const hash = createHash("sha256");
+  for (const arg of args) {
+    if (arg === null) {
+      hash.update("null");
+    } else if (arg === undefined) {
+      hash.update("undefined");
+    } else if (arg.toString) {
+      hash.update(arg.toString());
+    } else if (arg.toJSON){
+      hash.update(JSON.stringify(arg));
+    } else {
+      // We cannot find a representation for the object so we won't be able to cache it
+      return undefined;
+    }
+  }
+  return hash.digest("base64");
+}
+
+var cacheLogger: (...args: any[]) => void = (...args: any[]) => {
+};
+export function registerCacheLogger(logger: (...args: any[]) => void) {
+   cacheLogger = logger;
+}
+
 export function createCacheAnnotation(source: (target: Object | null) => Object | null, options: CacheOptions = {}) {
-  options.keyGenerator ??= (property: string, args: any[]) =>
-    property + "$" + createHash("sha256").update(JSON.stringify(args)).digest("base64");
+  options.methodKeyGenerator ??= (property: string, args: any[]) => {
+    const hash = argumentsHash(args);
+    return hash ? property + "$" + hash : undefined;
+  }
+    
+  options.classKeyGenerator ??= (instance: object) => instance;
+  const globalOptions = options;
 
   const annotation: MethodDecorator & {
     garbageCollect: () => void;
     clear: (target: object, propertyKey: string, ...args: any[]) => void;
     clearAll: (target: object, propertyKey?: string) => void;
   } = createMethodDecorator(
-    (value: any, context: ClassMethodDecoratorContext, keyGenerator?: (property: string, args: any[]) => string) => {
-      if (keyGenerator) {
-        context.metadata["webda.cache.keyGenerator"] ??= {};
-        context.metadata["webda.cache.keyGenerator"][value.name] = keyGenerator;
+    (
+      value: any,
+      context: ClassMethodDecoratorContext,
+      options?: {
+        methodKeyGenerator?: CacheOptions["methodKeyGenerator"];
+        classKeyGenerator?: CacheOptions["classKeyGenerator"];
       }
+    ) => {
+      options = { ...globalOptions, ...options };
+      if (options.methodKeyGenerator) {
+        context.metadata["webda.cache.methodKeyGenerator"] ??= {};
+        context.metadata["webda.cache.methodKeyGenerator"][value.name] = options.methodKeyGenerator;
+      }
+      if (options.classKeyGenerator) {
+        context.metadata["webda.cache.classKeyGenerator"] ??= {};
+        context.metadata["webda.cache.classKeyGenerator"][value.name] = options.classKeyGenerator;
+      }
+      options.methodKeyGenerator ??= globalOptions.methodKeyGenerator;
+      options.classKeyGenerator ??= globalOptions.classKeyGenerator;
+
       // eslint-disable-next-line func-names -- required to keep 'this' context
       return function (...args: any[]) {
         const cache = getSource(source, options, this);
-        keyGenerator ??= options.keyGenerator;
-        const key = keyGenerator(value.name, args);
-        if (cache.hasCachedMethod(this, key)) {
-          return cache.getCachedMethod(this, key);
+        const key = options.methodKeyGenerator(value.name, args);
+        const instanceKey = options.classKeyGenerator(this);
+        if (key && instanceKey && cache.hasCachedMethod(instanceKey, key)) {
+          return cache.getCachedMethod(instanceKey, key);
         }
         const res = value.apply(this, args);
-        cache.setCachedMethod(this, key, args, res);
+        if (key && instanceKey) {
+          cache.setCachedMethod(instanceKey, key, args, res);
+        } else {
+          // Cannot log
+          cacheLogger("WARN", "Cache cannot be stored, no key generated", this, value.name, args);
+        }
         return res;
       };
     }
@@ -134,19 +197,28 @@ export function createCacheAnnotation(source: (target: Object | null) => Object 
   annotation.clear = function clearCache(target: Object, propertyKey: string, ...args: any[]) {
     const cache = getSource(source, options, target);
     const keyGenerator =
-      getMetadata(target.constructor ?? target)?.["webda.cache.keyGenerator"]?.[propertyKey] || options.keyGenerator;
+      getMetadata(target.constructor ?? target)?.["webda.cache.methodKeyGenerator"]?.[propertyKey] ||
+      options.methodKeyGenerator;
+    const instanceKey = (
+      getMetadata(target.constructor ?? target)?.["webda.cache.classKeyGenerator"]?.[propertyKey] ||
+      options.classKeyGenerator
+    )(target);
     const key = keyGenerator(propertyKey, args);
-    if (cache.has(target)) {
-      cache.get(target).deleteCachedMethod(key);
+    if (cache.has(instanceKey)) {
+      cache.get(instanceKey).deleteCachedMethod(key);
     }
   };
   annotation.clearAll = function clearAllCache(target: Object, propertyKey?: string) {
+    const instanceKey = (
+      getMetadata(target.constructor ?? target)?.["webda.cache.classKeyGenerator"]?.[propertyKey] ||
+      options.classKeyGenerator
+    )(target);
     const cache = getSource(source, options, target);
-    if (cache.has(target)) {
+    if (cache.has(instanceKey)) {
       if (propertyKey === undefined) {
-        cache.delete(target);
+        cache.delete(instanceKey);
       } else {
-        cache.get(target).deleteCachedMethod(propertyKey + "$");
+        cache.get(instanceKey).deleteCachedMethod(propertyKey + "$");
       }
     }
   };

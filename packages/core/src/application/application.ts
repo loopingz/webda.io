@@ -1,6 +1,5 @@
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import type {
-  AbstractService,
   CachedModule,
   Configuration,
   GitInformation,
@@ -15,17 +14,19 @@ import type {
   WebdaPackageDescriptor
 } from "../internal/iapplication";
 import { setLogContext } from "../loggers/hooks";
-import { FileUtils, State } from "@webda/utils";
+import { CancelablePromise, FileUtils, State } from "@webda/utils";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, resolve, dirname, isAbsolute } from "node:path";
 import * as WebdaError from "../errors/errors";
 import { ServiceParameters } from "../interfaces";
-import { useInstanceStorage } from "../core/instancestorage";
+import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage";
 import { Model, ModelClass } from "@webda/models";
 import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache";
 import { getMachineId } from "../core/hooks";
 import type { Service } from "../services/service";
+import { ModelMetadata } from "@webda/compiler";
+import { Core } from "../core/core";
 
 export type ApplicationState = "initial" | "loading" | "ready";
 
@@ -108,12 +109,12 @@ export class Application {
    * @param {Logger} logger
    */
   constructor(file: string | UnpackedConfiguration, logger: WorkerOutput = undefined) {
-    useInstanceStorage().application = this;
     this.logger = logger || new WorkerOutput();
     setLogContext(this.logger);
     // If configuration is a programmatic object (usually for tests)
     if (typeof file !== "string") {
       this.baseConfiguration = { parameters: {}, ...file };
+      // Still want to ensure default configuration
       this.applicationPath = process.cwd();
       return;
     }
@@ -132,6 +133,25 @@ export class Application {
     }
     this.configurationFile = file;
     this.applicationPath = resolve(dirname(file));
+  }
+
+  /**
+   * Run the application
+   * @returns
+   */
+  async run() {
+    return runWithInstanceStorage({}, async () => {
+      useInstanceStorage().application = this;
+      await this.load();
+      const core = new Core(this);
+      process.on("SIGINT", async () => {
+        console.log("Received SIGINT. Cancelling all interuptables.");
+        await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
+        await core.stop();
+        process.exit(0);
+      });
+      await core.init();
+    });
   }
 
   /**
@@ -161,75 +181,11 @@ export class Application {
     }
     try {
       this.baseConfiguration ??= file ? FileUtils.load(file) : {};
-      this.ensureDefaultConfiguration(this.baseConfiguration);
       if (this.baseConfiguration.version !== 4) {
         this.log("ERROR", "Your configuration file should use version 4, see https://docs.webda.io/");
       }
     } catch (err) {
       throw new WebdaError.CodeError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
-    }
-  }
-
-  /**
-   * Ensure default parameters are set on our application
-   * Creating the default services if they do not exist
-   *
-   * Might want to have only this in unpackaged application as Application should
-   * have a perfectly valid configuration
-   * @param configuration
-   */
-  ensureDefaultConfiguration(configuration: Configuration) {
-    configuration.services ??= {};
-    configuration.parameters ??= {};
-    configuration.parameters.apiUrl ??= "http://localhost:18080";
-    configuration.parameters.metrics ??= {};
-    if (configuration.parameters.metrics) {
-      configuration.parameters.metrics.labels ??= {};
-      configuration.parameters.metrics.config ??= {};
-      configuration.parameters.metrics.prefix ??= "";
-    }
-    configuration.parameters.configurationService ??= "Configuration";
-    configuration.parameters.defaultStore ??= "Registry";
-    const autoRegistry = configuration.services["Registry"] === undefined;
-
-    configuration.services["Router"] ??= {
-      type: "Webda/Router"
-    };
-
-    // Registry by default
-    configuration.services["Registry"] ??= {
-      type: "Webda/MemoryStore",
-      persistence: {
-        path: ".registry",
-        key: getMachineId()
-      }
-    };
-
-    // CryptoService by default
-    configuration.services["CryptoService"] ??= {
-      type: "Webda/CryptoService",
-      autoRotate: autoRegistry ? 30 : undefined,
-      autoCreate: true
-    };
-
-    // By default use CookieSessionManager
-    // TODO Should not be added here as it is only for HTTP
-    configuration.services["SessionManager"] ??= {
-      type: "Webda/CookieSessionManager"
-    };
-
-    // Ensure type is set to default
-    for (const serviceName in configuration.services) {
-      if (configuration.services[serviceName].type !== undefined) {
-        continue;
-      }
-      if (this.moddas[this.completeNamespace(serviceName)]) {
-        configuration.services[serviceName].type = this.completeNamespace(serviceName);
-        continue;
-      }
-      if (!serviceName.includes("/") && this.moddas[`Webda/${serviceName}`]) {
-        configuration.services[serviceName].type = `Webda/${serviceName}`;
-      }
     }
   }
 
@@ -304,7 +260,7 @@ export class Application {
    *
    * @param subpath to append to
    */
-  getApplicationPath(subpath: string = undefined): string {
+  getPath(subpath: string = undefined): string {
     if (subpath && subpath !== "") {
       if (isAbsolute(subpath)) {
         return subpath;
@@ -442,7 +398,7 @@ export class Application {
    * @paramn full if true always include the namespace, default is false e.g Webda/
    * @returns longId for a model
    */
-  getModelId<T extends Model = Model>(model: ModelClass<T> | T, full?: boolean): string | undefined {
+  getModelId<T extends Model = Model>(model: ModelClass<T> | T): string | undefined {
     if (model instanceof Model) {
       return this.getModelFromInstance(model);
     }
@@ -590,7 +546,7 @@ export class Application {
    */
   protected async importFile(info: string, withExport: boolean = true): Promise<any> {
     if (info.startsWith(".")) {
-      info = this.getApplicationPath(info);
+      info = this.getPath(info);
     }
     try {
       this.log("TRACE", "Load file", info);
@@ -659,13 +615,7 @@ export class Application {
           );
           continue;
         }
-        // Might want to move this to specific methods
-        if (section === "models") {
-          this.log("INFO", "Add Model", key, info[section][key]);
-          this.addModel(key, this[section][key], info[section][key]);
-          // Call registerSerializer
-          this.models[key]["registerSerializer"]?.();
-        } else if (section === "beans" || section === "moddas") {
+        if (section === "beans" || section === "moddas") {
           // Load the parameters automatically
           const configurationClass = info[section][key].Configuration
             ? await this.importFile(join(parent, info[section][key].Configuration))
@@ -716,6 +666,29 @@ export class Application {
           return this.importFile(join(parent, info.beans[f].Import), false).catch(this.log.bind(this, "WARN"));
         })
     ]);
+    // Set metadata on models - need to be done after all models are loaded
+    this.setModelMetadata(info.models);
+  }
+
+  /**
+   * Set object Metadata
+   * Need to be done after all models are loaded to resolve Ancestors and Subclasses
+   * @param info
+   */
+  protected setModelMetadata(info: { [key: string]: ModelMetadata }) {
+    // Might want to move this to specific methods
+    for (let m in this.models) {
+      if (!this.models[m]) {
+        continue;
+      }
+      // Register serializer
+      this.models[m].registerSerializer();
+      this.models[m].Metadata = Object.freeze({
+        ...info[m],
+        Ancestors: info[m].Ancestors.map(s => this.models[s]),
+        Subclasses: info[m].Subclasses.map(s => this.models[s])
+      });
+    }
   }
 
   /**

@@ -14,6 +14,49 @@ They are close to a `POJO` but when attached to a Store, they are not truely POJ
 
 They also define the relations between different models.
 
+## PrimaryKey, UID and UUID
+
+To allow all options, we are defining the 3 concepts
+
+### PrimaryKey
+
+It can be one field or a composite of several fields.
+
+It is defined with the [WEBDA_PRIMARY_KEY]
+
+```
+class User {
+  email: string;
+  [WEBDA_PRIMARY_KEY] = ["email"] as const;
+}
+```
+
+```
+class ComposedModel {
+  id: string;
+  timestamp: number;
+  [WEBDA_PRIMARY_KEY] = ["id", "timestamp"] as const;
+}
+```
+
+### UID
+
+The UID is the concatenation of the PrimaryKey with a defined Separator. It is used by the REST API.
+
+- `user@webda.io` would be a UID for our `User` model
+- `myid_19082934343` would be a UID for our `ComposedModel`
+
+### UUID
+
+The UUID is a application unique identifier, it contains the model name plus the UID.
+`User$user@webda.io` could be a UUID for our `User` model and `ComposedModel$myid_19082934343` for our composed model
+
+You can use our method:
+
+```
+async getModelFromUUID(uuid: string)
+```
+
 ## Attributes
 
 Every attribute starting with a `_` is not modifiable by the HTTP APIs.

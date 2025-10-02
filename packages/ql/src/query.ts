@@ -852,3 +852,12 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 export function unsanitize(query: string): string {
   return query.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
+
+/**
+ * Parse a query string into a Query object
+ * @param query
+ * @returns
+ */
+export function parse(query: string): Query {
+  return new QueryValidator(query).getQuery();
+}

@@ -53,7 +53,7 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   private excludedModels: string[];
 
-  default(): void {
+  default(): this {
     super.default();
     // Init default here
     this.operations ??= true;
@@ -65,6 +65,7 @@ export class DomainServiceParameters extends ServiceParameters {
     if (this.models.length === this.excludedModels.length) {
       this.models = ["*"];
     }
+    return this;
   }
 
   /**

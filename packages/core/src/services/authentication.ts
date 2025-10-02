@@ -199,6 +199,7 @@ export class AuthenticationParameters extends ServiceParameters {
       this.email.delay ??= 3600000 * 4;
       this.email.failedLoginBeforeDelay ??= 3;
     }
+    return this;
   }
 }
 
@@ -1062,9 +1063,8 @@ class Authentication<
     if (await this.identModel.ref(`${identId}_${provider}`).exists()) {
       throw new Error("Ident is already known");
     }
-    const ctx = <WebContext>await useCore().newContext({ http: new HttpContext("fake", "GET", "/") });
     // Pretend we logged in with the ident
-    await this.onIdentLogin(ctx, provider, identId, profile);
+    await this.onIdentLogin(undefined, provider, identId, profile);
   }
 }
 

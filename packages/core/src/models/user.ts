@@ -139,4 +139,8 @@ export class User extends UuidModel {
     }
     return true;
   }
+
+  toString() {
+    return `User[${this.getUUID()}]`;
+  }
 }

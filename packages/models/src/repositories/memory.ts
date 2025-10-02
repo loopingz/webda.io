@@ -76,7 +76,6 @@ export class MemoryRepository<
       throw new Error(`Already exists: ${key}`);
     }
     const item: InstanceType<T> = new this.model(data) as InstanceType<T>;
-    // @ts-ignore
     if (save !== false) {
       this.storage.set(key, this.serialize(item));
     }

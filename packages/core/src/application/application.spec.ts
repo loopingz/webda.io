@@ -65,9 +65,9 @@ class SampleApplicationTest extends WebdaApplicationTest {
 
   @test
   getApplicationPath() {
-    assert.strictEqual(this.sampleApp.getApplicationPath(), path.join(__dirname, "..", "..", "..", "..", "sample-app"));
+    assert.strictEqual(this.sampleApp.getPath(), path.join(__dirname, "..", "..", "..", "..", "sample-app"));
     assert.strictEqual(
-      this.sampleApp.getApplicationPath("lib"),
+      this.sampleApp.getPath("lib"),
       path.join(__dirname, "..", "..", "..", "..", "sample-app", "lib")
     );
   }

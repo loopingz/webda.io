@@ -4,6 +4,7 @@ import { UnpackedApplication } from "./unpackedapplication";
 import { WebdaApplicationTest } from "../test/application";
 import { join, resolve } from "path";
 import { getCommonJS } from "@webda/utils";
+import { useApplication } from "./hooks";
 
 @suite
 class UnpackedApplicationTest extends WebdaApplicationTest {
@@ -11,6 +12,15 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
   cachedModule() {
     const { __dirname } = getCommonJS(import.meta.url);
     new UnpackedApplication(join(__dirname, "..", "..", "test/config-cached.json"));
+  }
+
+  @test
+  defaultConfiguration() {
+    assert.strictEqual(
+      useApplication()!.getCurrentConfiguration().services["Authentication"]?.type,
+      "Webda/Authentication",
+      "Type should be auto-guessed based on the service name"
+    );
   }
 
   @test

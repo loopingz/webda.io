@@ -7,6 +7,10 @@ export class LoggerServiceParameters extends ServiceParameters {
    * Specify the log level of this service
    */
   logLevel: WorkerLogLevel;
+  /**
+   * Add file and line number of the log producer (if possible)
+   */
+  addLogProducerLine?: boolean;
 
   /**
    * @inheritdoc
@@ -18,6 +22,7 @@ export class LoggerServiceParameters extends ServiceParameters {
       useLog("WARN", "Invalid log level", this.logLevel, "fallback to INFO");
       this.logLevel = "INFO";
     }
+    return this;
   }
 }
 

@@ -1,5 +1,5 @@
 import { createCoreHook } from "../core/instancestorage";
-import type { Model, ModelClass } from "@webda/models";
+import type { Model } from "@webda/models";
 import { ModelDefinition } from "../internal/iapplication";
 /**
  * Hook to get the current application
@@ -39,22 +39,12 @@ export function useModel<T extends Model = Model>(name: string | T): ModelDefini
 }
 
 /**
- *
- * @param name
- * @returns
- */
-export function useSchema(name: string) {
-  return useApplication().getSchemas()[name];
-}
-
-/**
  * Get the model id for an object in the application
  *
  * @param object instance or class
- * @param full if true always include the namespace, default is false e.g Webda/
  * @returns The model identifier or undefined if not found, e.g. "User" or "Webda/User"
  */
-export function useModelId(object: any, full: boolean = false): string | undefined {
+export function useModelId(object: any): string | undefined {
   // TODO Check for full
   return useApplication().getModelId(object);
 }

@@ -54,6 +54,83 @@ export class UnpackedApplication extends Application {
   }
 
   /**
+   * Ensure default configuration after load
+   * @returns
+   */
+  async load() {
+    await super.load();
+    // Ensuring default configuration after loadModule as we do auto-type guess and needs the Modda
+    // We only do it in UnpackedApplication as Application should be optimized for startup
+    // Application should have a webda.config.json optimized by the builder
+    // webda config > webda.config.json
+    this.ensureDefaultConfiguration(this.baseConfiguration);
+    return this;
+  }
+
+  /**
+   * Ensure default parameters are set on our application
+   * Creating the default services if they do not exist
+   *
+   * Might want to have only this in unpackaged application as Application should
+   * have a perfectly valid configuration
+   * @param configuration
+   */
+  ensureDefaultConfiguration(configuration: Configuration) {
+    configuration.services ??= {};
+    configuration.parameters ??= {};
+    configuration.parameters.apiUrl ??= "http://localhost:18080";
+    configuration.parameters.metrics ??= {};
+    if (configuration.parameters.metrics) {
+      configuration.parameters.metrics.labels ??= {};
+      configuration.parameters.metrics.config ??= {};
+      configuration.parameters.metrics.prefix ??= "";
+    }
+    configuration.parameters.configurationService ??= "Configuration";
+    configuration.parameters.defaultStore ??= "Registry";
+    const autoRegistry = configuration.services["Registry"] === undefined;
+
+    configuration.services["Router"] ??= {
+      type: "Webda/Router"
+    };
+
+    // Registry by default
+    configuration.services["Registry"] ??= {
+      type: "Webda/MemoryStore",
+      persistence: {
+        path: ".registry",
+        key: getMachineId()
+      }
+    };
+
+    // CryptoService by default
+    configuration.services["CryptoService"] ??= {
+      type: "Webda/CryptoService",
+      autoRotate: autoRegistry ? 30 : undefined,
+      autoCreate: true
+    };
+
+    // By default use CookieSessionManager
+    // TODO Should not be added here as it is only for HTTP
+    configuration.services["SessionManager"] ??= {
+      type: "Webda/CookieSessionManager"
+    };
+
+    // Ensure type is set to default
+    for (const serviceName in configuration.services) {
+      if (configuration.services[serviceName].type !== undefined) {
+        continue;
+      }
+      if (this.moddas[this.completeNamespace(serviceName)]) {
+        configuration.services[serviceName].type = this.completeNamespace(serviceName);
+        continue;
+      }
+      if (!serviceName.includes("/") && this.moddas[`Webda/${serviceName}`]) {
+        configuration.services[serviceName].type = `Webda/${serviceName}`;
+      }
+    }
+  }
+
+  /**
    * Load full configuration
    *
    * webda.config.json and complete the cachedModule
@@ -96,79 +173,20 @@ export class UnpackedApplication extends Application {
     const imports = configuration.imports || [];
     const effectiveImports = [];
     for (const importFile of imports) {
-      if (!fs.existsSync(this.getApplicationPath(importFile))) {
+      if (!fs.existsSync(this.getPath(importFile))) {
         this.log("WARN", `Cannot import configuration '${importFile}'`);
         continue;
       }
       effectiveImports.push(importFile);
-      const includeConfiguration = FileUtils.load(this.getApplicationPath(importFile));
+      const includeConfiguration = FileUtils.load(this.getPath(importFile));
       if (includeConfiguration.imports?.length) {
         this.log("WARN", `Imported configuration '${importFile}' has nested imports that will be skipped`);
       }
       configuration = deepmerge(includeConfiguration, configuration);
     }
     configuration.imports = effectiveImports;
-    this.ensureDefaultConfiguration(configuration);
     // Ensure default values
     return configuration;
-  }
-
-  /**
-   * Ensure default parameters are set on our application
-   * Creating the default services if they do not exist
-   * @param configuration
-   */
-  ensureDefaultConfiguration(configuration: Configuration) {
-    configuration.services ??= {};
-    configuration.parameters ??= {};
-    configuration.parameters.metrics ??= {};
-    if (configuration.parameters.metrics) {
-      configuration.parameters.metrics.labels ??= {};
-      configuration.parameters.metrics.config ??= {};
-      configuration.parameters.metrics.prefix ??= "";
-    }
-    configuration.parameters.configurationService ??= "Configuration";
-    configuration.parameters.defaultStore ??= "Registry";
-    const autoRegistry = configuration.services["Registry"] === undefined;
-
-    configuration.services["Router"] ??= {
-      type: "Webda/Router"
-    };
-
-    // Registry by default
-    configuration.services["Registry"] ??= {
-      type: "Webda/MemoryStore",
-      persistence: {
-        path: ".registry",
-        key: getMachineId()
-      }
-    };
-
-    // CryptoService by default
-    configuration.services["CryptoService"] ??= {
-      type: "Webda/CryptoService",
-      autoRotate: autoRegistry ? 30 : undefined,
-      autoCreate: true
-    };
-
-    // By default use CookieSessionManager
-    configuration.services["SessionManager"] ??= {
-      type: "Webda/CookieSessionManager"
-    };
-
-    // Ensure type is set to default
-    for (const serviceName in configuration.services) {
-      if (configuration.services[serviceName].type !== undefined) {
-        continue;
-      }
-      if (this.moddas[this.completeNamespace(serviceName)]) {
-        configuration.services[serviceName].type = this.completeNamespace(serviceName);
-        continue;
-      }
-      if (!serviceName.includes("/") && this.moddas[`Webda/${serviceName}`]) {
-        configuration.services[serviceName].type = `Webda/${serviceName}`;
-      }
-    }
   }
 
   /**
@@ -314,17 +332,17 @@ export class UnpackedApplication extends Application {
    * Load any imported webda.module.json
    */
   async findModules(module: CachedModule): Promise<string[]> {
-    const appPath = this.getApplicationPath();
+    const appPath = this.getPath();
 
     // Modules should be cached on deploy
     const files = [];
-    const currentModule = this.getApplicationPath("webda.module.json");
+    const currentModule = this.getPath("webda.module.json");
     if (fs.existsSync(currentModule)) {
       files.push(currentModule);
     }
 
-    this.log("TRACE", "Searching for modules in", this.getApplicationPath("node_modules"));
-    files.push(...(await UnpackedApplication.findModulesFiles(this.getApplicationPath("node_modules"))));
+    this.log("TRACE", "Searching for modules in", this.getPath("node_modules"));
+    files.push(...(await UnpackedApplication.findModulesFiles(this.getPath("node_modules"))));
     // Search workspace for webda.module.json
     if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
       this.log("TRACE", "Searching for modules in", join(module.project.webda.workspaces.path, "node_modules"));
@@ -370,13 +388,13 @@ export class UnpackedApplication extends Application {
       .filter(k => Number.isNaN(+k))
       .forEach(p => {
         // Do not keep Beans from other modules
-        if (this.getApplicationPath("webda.module.json") !== moduleFile && SectionEnum[p] === "beans") {
+        if (this.getPath("webda.module.json") !== moduleFile && SectionEnum[p] === "beans") {
           delete module[SectionEnum[p]];
           return;
         }
         for (const key in module[SectionEnum[p]]) {
           module[SectionEnum[p]][key].Import = join(
-            relative(this.getApplicationPath(), dirname(moduleFile)),
+            relative(this.getPath(), dirname(moduleFile)),
             module[SectionEnum[p]][key].Import
           );
         }
@@ -391,7 +409,7 @@ export class UnpackedApplication extends Application {
    */
   async mergeModules(configuration: Configuration) {
     const module: CachedModule = configuration.cachedModules;
-    const appModule = this.getApplicationPath("webda.module.json");
+    const appModule = this.getPath("webda.module.json");
     const files = await this.findModules(module);
     const value = files
       .map(f => {

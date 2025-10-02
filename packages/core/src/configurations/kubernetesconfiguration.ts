@@ -24,7 +24,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
         "Need a source for KubernetesConfigurationService"
       );
     }
-    this.parameters.source = useApplication().getApplicationPath(this.parameters.source);
+    this.parameters.source = useApplication().getPath(this.parameters.source);
     if (!fs.existsSync(this.parameters.source)) {
       throw new WebdaError.CodeError(
         "KUBE_CONFIGURATION_SOURCE_MISSING",

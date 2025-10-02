@@ -308,6 +308,8 @@ export abstract class Model implements Storable, Securable, Exposable {
    * Register Model custom serializer
    * @param this
    * @param overwrite
+   *
+   * TODO Might want to move to deserialize static function
    */
   static registerSerializer<T extends StorableClass>(
     this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any },

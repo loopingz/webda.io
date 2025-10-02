@@ -6,7 +6,7 @@
     "strict": false,
     "sourceMap": true,
     "declaration": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
@@ -18,5 +18,10 @@
   "exclude": [
     "**/node_modules",
     "**/*.spec.ts"
-  ]
+  ],
+  "ts-node": {
+    "compilerOptions": {
+      "experimentalDecorators": false
+    }
+  }
 }

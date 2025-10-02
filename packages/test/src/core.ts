@@ -361,13 +361,23 @@ export const suite: ReturnType<typeof createClassDecorator> & {
                 .filter(l => l.phase === "beforeEach" && l.fnKey !== l.phase)
                 .map(l => instance[l.fnKey]?.(t.fnKey))
             );
-            await instance[t.fnKey]();
+            let testError = undefined;
+            try {
+              await instance[t.fnKey]();
+            } catch (err) {
+              testError = err;
+            }
+            // We might want to try catch also on the afterEach
             await Promise.all(
               lifecycles
                 .filter(l => l.phase === "afterEach" && l.fnKey !== l.phase)
                 .map(l => instance[l.fnKey]?.(t.fnKey))
             );
             await instance["afterEach"]?.(t.fnKey); // afterEach method are automatically called
+            // If the test failed keep the failure
+            if (testError) {
+              throw testError;
+            }
           };
           // Wrap the test executor if needed
           exec(t.name, async () => wrapper("test", testExecutor, instance));

@@ -4,6 +4,8 @@ import { Service } from "./service";
 import { CancelablePromise } from "@webda/utils";
 import { useCore, useService } from "../core/hooks";
 
+
+export const CronSymbol = Symbol("WebdaCron");
 /**
  * Cron item
  */
@@ -89,17 +91,11 @@ class CronService extends Service {
   static loadAnnotations(services): CronDefinition[] {
     const cronsResult: CronDefinition[] = [];
     for (const i in services) {
-      const props = Object.getOwnPropertyDescriptors(services[i].constructor.prototype);
-      for (const method in props) {
-        // @ts-ignore
-        const crons: CronDefinition[] = props[method].value?.cron;
-        if (crons) {
-          crons.forEach(cron => {
-            cron.method = method;
-            cron.serviceName = i;
-            cronsResult.push(cron);
-          });
-        }
+      if (services[i][CronSymbol]) {
+        services[i][CronSymbol].forEach((cron: CronDefinition) => {
+          cron.serviceName = i;
+          cronsResult.push(cron);
+        });
       }
     }
     return cronsResult;
@@ -187,13 +183,7 @@ export function Cron(cron: string, description = "", ...args: any[]) {
   ) {
     // Store metadata on each instance when it's constructed
     context.addInitializer(function (this: Service) {
-      // @ts-expect-error – attach private-ish field
-      (this.__crons ??= []).push({
-        method: String(context.name),
-        cron,
-        description,
-        args
-      } as CronDefinition);
+      (this[CronSymbol] ??= []).push(new CronDefinition(cron, args, this.name, context.name as string, description));
     });
 
     // You can return the same method, or wrap it if you need

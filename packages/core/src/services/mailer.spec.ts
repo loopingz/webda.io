@@ -41,7 +41,7 @@ class MailerTest extends WebdaApplicationTest {
       return Promise.resolve();
     };
     // Mocking the logger
-    this.mailer._webda.log = (level, ...args) => {
+    this.mailer.log = (level, ...args) => {
       this.lastLevel = level;
       this.lastInfo = args;
     };
@@ -138,6 +138,7 @@ class MailerTest extends WebdaApplicationTest {
     let stub = sinon.stub(this.mailer, "send").callsFake(async () => {});
     try {
       const user = new User();
+      user.toString = () => "user";
       assert.rejects(
         () => this.mailer.sendNotification(user, "", undefined, undefined),
         /Cannot find a valid email for user/

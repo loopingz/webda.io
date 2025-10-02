@@ -47,7 +47,9 @@ class MyObject {
     return callCount;
   }
 
-  @ProcessCache(processKey)
+  @ProcessCache({
+    methodKeyGenerator: processKey
+  })
   processCachedMethod(argument1: string, argument2: any) {
     callCount++;
     this.localCount++;

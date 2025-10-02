@@ -10,18 +10,15 @@ import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
 import { Logger } from "../loggers/ilogger";
 import type { ConfigurationService } from "../configurations/configuration";
-import { OperationContext } from "../contexts/operationcontext";
-import { WebContext } from "../contexts/webcontext";
-import { getUuid, State, StateOptions } from "@webda/utils";
+import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
 import { ICore, AbstractService, OperationDefinitionInfo } from "./icore";
 import { emitCoreEvent } from "../events/events";
 import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
 import { useApplication, useModel, useModelId } from "../application/hooks";
-import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
-import { RegistryEntry } from "../models/registry";
 import { Modda } from "../internal/iapplication";
 import { InstanceCache } from "../cache/cache";
 import { ServiceParameters } from "../interfaces";
+import { CustomConstructor } from "@webda/tsc-esm";
 
 export type CoreStates = "initial" | "loading" | "initializing" | "reinitializing" | "ready" | "stopping" | "stopped";
 
@@ -44,28 +41,15 @@ export class Core implements ICore {
    */
   protected application: Application;
   /**
-   * Services who failed to create or initialize
-   * @deprecated
-   */
-  protected failedServices: { [key: string]: any } = {};
-  /**
    * Configuration loaded from webda.config.json
    * @hidden
    */
   protected configuration: Configuration;
-
-  protected _configFile: string;
   /**
    * Console logger
    * @hidden
    */
   protected logger: Logger;
-  /**
-   * Worker output
-   *
-   * @see @webda/workout
-   */
-  private workerOutput: WorkerOutput;
   /**
    * Store the instance id
    */
@@ -74,29 +58,6 @@ export class Core implements ICore {
    * Contains all operations defined by services
    */
   protected operations: { [key: string]: OperationDefinitionInfo } = {};
-
-  /**
-   * True if the dual import warning has been sent
-   */
-  private _dualImportWarn: boolean = false;
-  /**
-   * Registered context providers
-   */
-  private contextProviders: ContextProvider[] = [
-    {
-      getContext: (info: ContextProviderInfo) => {
-        // If http is defined, return a WebContext
-        if (info.http) {
-          return new WebContext(info.http, info.stream);
-        }
-        return new OperationContext(info.stream);
-      }
-    }
-  ];
-  /**
-   *
-   */
-  interuptables: { cancel: () => Promise<void> }[] = [];
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -108,11 +69,11 @@ export class Core implements ICore {
      */
     process.on("SIGINT", async () => {
       console.log("Received SIGINT. Cancelling all interuptables.");
+      await Promise.all([...CancelablePromise.promises].map(p => p.cancel()));
       await this.stop();
       process.exit(0);
     });
-    this.workerOutput = application.getWorkerOutput();
-    this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
+    this.logger = new Logger(application.getWorkerOutput(), {class: "@webda/core"});
     this.application = application || new UnpackedApplication(".");
 
     // Load the configuration and migrate
@@ -124,7 +85,7 @@ export class Core implements ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends Model>(modelOrConstructor: ModelClass<T> | T | string): Store {
+  getModelStore<T extends Model>(modelOrConstructor: CustomConstructor<T> | T | string): Store {
     let model: ModelClass<T>;
     if (typeof modelOrConstructor === "string") {
       model = useModel<T>(modelOrConstructor);
@@ -174,7 +135,7 @@ export class Core implements ICore {
    */
   getBinaryStore<T extends Model>(modelOrConstructor: ModelClass<T> | T | string, attribute: string): AbstractService {
     return this.getBinaryStoreCached(
-      typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor, true),
+      typeof modelOrConstructor === "string" ? modelOrConstructor : useModelId(modelOrConstructor),
       attribute
     );
   }
@@ -222,39 +183,6 @@ export class Core implements ICore {
   }
 
   /**
-   * Return application path with subpath
-   *
-   * Helper that redirect to this.application.getAppPath
-   *
-   * @param subpath
-   * @returns
-   */
-  getAppPath(subpath: string = ""): string {
-    return this.application.getApplicationPath(subpath);
-  }
-
-  /**
-   * Retrieve all detected modules definition
-   */
-  getModules() {
-    return this.application.getModules();
-  }
-
-  /**
-   * Return application definition
-   */
-  getApplication() {
-    return this.application;
-  }
-
-  /**
-   * Get WorkerOutput
-   */
-  getWorkerOutput() {
-    return this.workerOutput;
-  }
-
-  /**
    * Init one service
    * @param service
    */
@@ -265,7 +193,6 @@ export class Core implements ICore {
     } catch (err) {
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
-      this.failedServices[service] = { _initException: err };
     }
   }
 
@@ -342,7 +269,8 @@ export class Core implements ICore {
         `Critical service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
       );
       criticalServicesStates.forEach(s => {
-        this.log("WARN", s[0], State.getStateStatus(this.services[s[0]]));
+        const states = State.getStateStatus(this.services[s[0]]);
+        this.log("WARN", s[0], states.transitions[states.transitions.length - 1].exception);
       });
       throw new Error(
         `Cannot init Webda core service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
@@ -364,7 +292,7 @@ export class Core implements ICore {
    * @since 0.4.0
    */
   getVersion(): string {
-    return this.getApplication().getWebdaVersion();
+    return useApplication().getWebdaVersion();
   }
 
   /**
@@ -383,7 +311,6 @@ export class Core implements ICore {
    * Check for a service name and return the wanted singleton or undefined if none found
    *
    * @param {String} name The service name to retrieve
-   * @deprecated
    */
   getService<T = AbstractService>(name: string | number | symbol = ""): T {
     return <T>this.services[name as string];
@@ -392,7 +319,6 @@ export class Core implements ICore {
   /**
    * Return a map of defined services
    * @returns {{}}
-   * @deprecated
    */
   getServices(): { [key: string]: AbstractService } {
     return this.services;
@@ -478,8 +404,6 @@ export class Core implements ICore {
       this.services[service] = new serviceConstructor(service, paramsClass);
     } catch (err) {
       this.log("ERROR", "Cannot create service", service, err);
-      // @ts-ignore
-      this.failedServices[service] = { _createException: err };
     }
     return this.services[service];
   }
@@ -596,32 +520,6 @@ export class Core implements ICore {
     }
 
     emitCoreEvent("Webda.Init", this.configuration);
-  }
-
-  /**
-   * Get a context based on the info
-   * @param info
-   * @returns
-   * @TODO Move to the HttpServer service
-   */
-  async newContext<T extends Context>(info: ContextProviderInfo, noInit: boolean = false): Promise<Context> {
-    let context: Context;
-    this.contextProviders.find(provider => (context = <Context>provider.getContext(info)) !== undefined);
-    if (!noInit) {
-      await context.init();
-    }
-    await emitCoreEvent("Webda.NewContext", { context, info });
-    return <T>context;
-  }
-
-  /**
-   * Register a new context provider
-   * @param provider
-   * @TODO Move to the HttpServer service
-   */
-  registerContextProvider(provider: ContextProvider) {
-    this.contextProviders ??= [];
-    this.contextProviders.unshift(provider);
   }
 
   /**

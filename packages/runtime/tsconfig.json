@@ -10,7 +10,7 @@
     "strict": false,
     "declaration": true,
     "sourceMap": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": false,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
@@ -26,7 +26,7 @@
     "transpileOnly": true,
     "preferTsExts": true,
     "compilerOptions": {
-      "experimentalDecorators": true
+      "experimentalDecorators": false
     },
     "include": [
       "src/**/*.spec.ts"

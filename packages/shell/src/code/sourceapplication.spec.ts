@@ -1,6 +1,6 @@
-import { suite, test } from "@testdeck/mocha";
-import { CacheService, ConsoleLoggerService, Core, FileUtils, Module, getCommonJS } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
+import { suite, test } from "@webda/test";
+import { WebdaApplicationTest, ConsoleLoggerService, Core, FileUtils, Module, getCommonJS, InstanceCache } from "@webda/core";
+//import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { execSync } from "child_process";
 import fs from "fs-extra";
@@ -11,7 +11,7 @@ import { BuildSourceApplication, SourceApplication } from "./sourceapplication";
 const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
-class SourceApplicationTest extends WebdaTest {
+class SourceApplicationTest extends WebdaApplicationTest {
   sampleApp: SourceApplication;
 
   async before() {
@@ -87,14 +87,14 @@ class SourceApplicationTest extends WebdaTest {
       execSync("git add webda.config.json", options);
       execSync("git commit -n -m 'plop'", options);
       // Basic with no tags
-      CacheService.clearAllCache();
+      InstanceCache.clearAllCache();
       let infos = app.getGitInformation("badapp", "0.1.0");
       assert.ok(infos.branch.match(/(master)|(main)/) !== null);
       assert.strictEqual(infos.tag, "");
       assert.strictEqual(infos.tags.length, 0);
       assert.ok(infos.version.match(/0\.1\.1\+\d+/) !== null);
       execSync("git tag v0.1.0", options);
-      CacheService.clearAllCache();
+      InstanceCache.clearAllCache();
       // Basic with one tag v0.1.0
       infos = app.getGitInformation("badapp", "0.1.0");
       assert.strictEqual(infos.tag, "v0.1.0");
@@ -103,14 +103,14 @@ class SourceApplicationTest extends WebdaTest {
       assert.strictEqual(infos.version, "0.1.0");
       execSync("git tag badapp@0.1.0", options);
       // Basic with two tags badapp@0.1.0 and v0.1.0
-      CacheService.clearAllCache();
+      InstanceCache.clearAllCache();
       infos = app.getGitInformation("badapp", "0.1.0");
       assert.strictEqual(infos.tag, "badapp@0.1.0");
       assert.strictEqual(infos.tags.length, 2);
       assert.deepStrictEqual(infos.tags, ["badapp@0.1.0", "v0.1.0"]);
       assert.strictEqual(infos.version, "0.1.0");
       fs.emptyDirSync(app.getAppPath(".git"));
-      CacheService.clearAllCache();
+      InstanceCache.clearAllCache();
       // Running git on / should fail
       // @ts-ignore
       app.appPath = "/";

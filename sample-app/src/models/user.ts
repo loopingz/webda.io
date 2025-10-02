@@ -1,22 +1,12 @@
-import {
-  Binaries,
-  Binary,
-  CoreModel,
-  Expose,
-  ModelLink,
-  ModelParent,
-  ModelRelated,
-  ModelsMapped,
-  OperationContext,
-  User as WebdaUser
-} from "@webda/core";
+import { Binaries, Binary, CoreModel, OperationContext, User as WebdaUser } from "@webda/core";
+import { ModelLink, ModelParent, ModelRelated, ModelsMapped } from "@webda/models";
 import { Company } from "./company";
 import Contact from "./contact";
 
 /**
  *
  */
-@Expose()
+//@Expose()
 export class User extends WebdaUser {
   _company: ModelParent<Company>;
   name: string;
@@ -38,9 +28,9 @@ export class User extends WebdaUser {
 }
 
 /**
- * @WebdaModel
+ *
  */
-@Expose()
+//@Expose()
 export class Computer extends CoreModel {
   _user: ModelParent<User>;
   _loanTo: ModelLink<User>;

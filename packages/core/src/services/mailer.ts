@@ -109,6 +109,7 @@ export class MailerParameters extends ServiceParameters {
     this.emailTemplateOptions.juiceResources ??= {};
     this.emailTemplateOptions.juiceResources.webResources ??= {};
     this.emailTemplateOptions.juiceResources.webResources.relativeTo ??= path.resolve(this.templates);
+    return this;
   }
 }
 

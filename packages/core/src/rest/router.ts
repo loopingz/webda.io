@@ -2,11 +2,11 @@ import uriTemplates from "uri-templates";
 import { HttpMethodType } from "../contexts/httpcontext";
 import type { IRouter, RequestFilter, RouteInfo } from "./irest";
 
-import { useApplication, useModelId, useSchema } from "../application/hooks";
+import { useApplication, useModelId } from "../application/hooks";
 import { useLog } from "../loggers/hooks";
 import type { OpenAPIV3 } from "openapi-types";
 import { useConfiguration, useParameters } from "../core/instancestorage";
-import { useCore, useService } from "../core/hooks";
+import { useService } from "../core/hooks";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { IWebContext } from "../contexts/icontext";
@@ -570,7 +570,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         type: "object"
       };
       const modelName = model.name || i.split("/").pop();
-      const schema = useSchema(i);
+      const schema = useApplication().getSchema(i);
       if (schema) {
         for (const j in schema.definitions) {
           // @ts-ignore

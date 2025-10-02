@@ -8,9 +8,10 @@ import { BinaryMap, CoreModelWithBinary, BinaryParameters, BinaryService } from 
 export class CloudBinaryParameters extends BinaryParameters {
   prefix?: string;
 
-  default() {
+  default() : this {
     super.default();
     this.prefix ??= "";
+    return this;
   }
 }
 

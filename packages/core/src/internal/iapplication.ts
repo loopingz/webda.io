@@ -10,8 +10,8 @@ import type { OpenAPIV3 } from "openapi-types";
 import { AsyncEventEmitter, AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter";
 import { IContextAware } from "../contexts/icontext";
 
-import { HttpMethodType } from "../contexts/httpcontext";
-import { DeepPartial } from "@webda/tsc-esm";
+import type { HttpMethodType } from "../contexts/httpcontext";
+import type { DeepPartial } from "@webda/tsc-esm";
 import { ServiceParameters } from "../interfaces";
 
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
@@ -117,11 +117,11 @@ export interface Reflection {
    *
    * This is basically the prototype chain of the model
    */
-  Ancestors: Prototype<Model>[];
+  Ancestors: ModelDefinition[];
   /**
    * Subclasses of the model
    */
-  Subclasses: Prototype<Model>[];
+  Subclasses: ModelDefinition[];
   /**
    * Relations for the model
    *

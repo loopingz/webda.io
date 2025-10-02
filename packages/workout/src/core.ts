@@ -32,7 +32,24 @@ export function useWorkerOutput(output?: WorkerOutput): WorkerOutput {
  */
 export function useLog(...args: Parameters<Logger["log"]>) {
   moduleOutput ??= new WorkerOutput();
-  return moduleOutput.log(...args);
+  // We want to capture the caller line, so we use wrapWithStack
+  moduleOutput.log(...args);
+}
+
+/**
+ * Log a message with context
+ * @param level 
+ * @param context 
+ * @param args 
+ */
+export function useLogWithContext(level: WorkerLogLevel, context: any, ...args: any[]) {
+  moduleOutput ??= new WorkerOutput();
+  // Add file and line if needed
+  if (context.addLogProducerLine) {
+    context = {...context, ...getFileAndLine()};
+  }
+  // We want to capture the caller line, so we use wrapWithStack
+  moduleOutput.logWithContext(level, context, ...args);
 }
 
 /**
@@ -224,24 +241,30 @@ function getFullErrorStack(ex) {
 }
 
 /**
- * Get the caller line and filename
- * @returns 
+ * Get the file and lines from the current stack trace
+ * @returns An array of objects containing file, line, column, and function information
  */
-export function getFileAndLine(index: number = 1): { file: string; line: number; column?: number, function?: string } {
+export function getFileAndLines(): { file: string; line: number; column?: number, function?: string }[] {
   const err = new Error();
+  const stacks: { file: string; line: number; column?: number, function?: string }[] = [];
   const matches = err.stack.matchAll(/\s+at\s+(?<method>[^( ]+)([^(]+)?\((?<filename>.+):(?<line>\d+):(?<column>\d+)\)?$/gm);
   for (const match of matches) {
-    if (index-- > 0) {
-      continue;
-    }
-    return {
+    stacks.push({
       file: match.groups.filename,
       line: parseInt(match.groups.line),
       column: parseInt(match.groups.column),
       function: match.groups.method
-    };
+    });
   }
-  return { file: "unknown", line: 0 };
+  return stacks;
+}
+
+/**
+ * Get the caller line and filename
+ * @returns 
+ */
+export function getFileAndLine(): { file: string; line: number; column?: number, function?: string } {
+  return getFileAndLines().find(s => !s.file.includes("/workout/") && !s.function?.includes(".log")) || { file: "unknown", line: 0 };
 }
 
 /**
@@ -257,6 +280,7 @@ export class WorkerMessage {
   pid: number;
   [key: string]: any;
   input?: WorkerInput;
+  context?: { file?: string; line?: number; column?: number; function?: string };
 
   constructor(type: WorkerMessageType, workout: WorkerOutput, infos: any = {}) {
     this.type = type;
@@ -434,8 +458,7 @@ export class WorkerOutput extends EventEmitter {
   log(level: WorkerLogLevel, ...args: any[]): void {
     let context = undefined;
     if (this.addLogProducerLine) {
-      const line = getFileAndLine(2);
-      context = { file: line.file, line: line.line, column: line.column, function: line.function };
+      context = getFileAndLine();
     }
     this.logWithContext(level, context, ...args);
   }

@@ -1,6 +1,6 @@
 import { Service, ServiceParameters } from "@webda/core";
 
-class CustomReusableServiceParameters extends ServiceParameters {
+export class CustomReusableServiceParameters extends ServiceParameters {
   mandatoryField: string;
 }
 

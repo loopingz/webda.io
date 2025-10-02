@@ -15,11 +15,13 @@ interface WorkerLogMessage {
  */
 class ConsoleLogger extends WorkerLogger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
+  static defaultFormatWithLine = "%(d)s [%(l)s] %(m)s (%(f)s:%(ll)d:%(c)d %(ff)s)";
   format: string;
 
-  constructor(output: WorkerOutput, level?: WorkerLogLevel, format: string = ConsoleLogger.defaultFormat) {
+  constructor(output: WorkerOutput, level?: WorkerLogLevel, format?: string) {
     super(output, level);
-    this.format = format;
+
+    this.format = format || output.addLogProducerLine ? ConsoleLogger.defaultFormatWithLine : ConsoleLogger.defaultFormat;
   }
 
   /**
@@ -101,7 +103,11 @@ class ConsoleLogger extends WorkerLogger {
         .join(" "),
       l: msg.log.level.padStart(5),
       t: msg.timestamp,
-      d: () => new Date(msg.timestamp).toISOString()
+      d: () => new Date(msg.timestamp).toISOString(),
+      ll: msg.context?.line,
+      ff: msg.context?.function,
+      f: msg.context?.file,
+      c: msg.context?.column,
     };
     try {
       return sprintf(format, info);

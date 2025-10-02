@@ -1,6 +1,5 @@
 import {
   Bean,
-  Operation,
   OperationContext,
   RequestFilter,
   Route,
@@ -9,6 +8,7 @@ import {
   useRouter,
   WebContext
 } from "@webda/core";
+import { Operation } from "@webda/models";
 import { MyInterface } from "./compiler";
 
 /**
@@ -36,7 +36,7 @@ interface DefinedOutput {
   plop: boolean;
 }
 
-class CustomParameters extends ServiceParameters {
+export class CustomParameters extends ServiceParameters {
   introspection: Partial<ServiceParameters>;
 }
 

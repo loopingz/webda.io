@@ -22,7 +22,7 @@ export function setWorkerOutput(output: WorkerOutput) {
  * Logger default implementation
  */
 export class Logger implements WorkoutLogger {
-  clazz: string;
+  context: any = {};
   private _output: WorkerOutput;
 
   set output(output: WorkerOutput) {
@@ -33,20 +33,20 @@ export class Logger implements WorkoutLogger {
     return this._output || useWorkerOutput();
   }
 
-  constructor(output: WorkerOutput, clazz: string) {
+  constructor(output: WorkerOutput, context: any = {}) {
     this.output = output || useWorkerOutput();
-    this.clazz = clazz;
+    this.context = context;
   }
 
   log(level: WorkerLogLevel, ...args) {
-    this.logWithContext(level, { class: this.clazz }, ...args);
+    this.logWithContext(level, this.context, ...args);
   }
 
   logWithContext(level: WorkerLogLevel, context: any, ...args) {
     if (!context.class) {
-      context.class = this.clazz;
+      context.class = this.context.class;
     }
-    this.output?.logWithContext(level, context, ...args);
+    this.output?.logWithContext(level, {...this.context, ...context}, ...args);
   }
 
   logGroupOpen(name: string) {

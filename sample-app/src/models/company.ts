@@ -1,15 +1,18 @@
-import { CoreModel, Expose, ModelRelated, ModelsMapped, OperationContext } from "@webda/core";
+import { CoreModel, OperationContext } from "@webda/core";
+import { ModelRelated, ModelsMapped } from "@webda/models";
 import { NotEnumerable } from "@webda/tsc-esm";
 import { Project } from "./project";
 import { User } from "./user";
+import { WEBDA_PLURAL } from "@webda/models";
 
 export type Permission = "PRODUCT_1" | "PRODUCT_2" | "PRODUCT_3";
 
 /**
  * @WebdaPlural Companies
  */
-@Expose()
+//@Expose()
 export class Company extends CoreModel {
+  [WEBDA_PLURAL] = "Companies";
   _projects: ModelsMapped<Project, "_company", "name" | "type">;
   users: ModelRelated<User, "_company">;
   name: string;

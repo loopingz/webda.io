@@ -638,6 +638,9 @@
           "logLevel": {
             "$ref": "#/definitions/WorkerLogLevel"
           },
+          "addLogProducerLine": {
+            "type": "boolean"
+          },
           "format": {
             "type": "string"
           },
@@ -753,6 +756,9 @@
           },
           "logLevel": {
             "$ref": "#/definitions/WorkerLogLevel"
+          },
+          "addLogProducerLine": {
+            "type": "boolean"
           },
           "limit": {
             "type": "number"

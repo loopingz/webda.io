@@ -7,6 +7,7 @@ import { useInstanceStorage } from "./instancestorage";
 import { useModel } from "../application/hooks";
 import { useService } from "./hooks";
 import { emitCoreEvent } from "../events/events";
+import { createMethodDecorator } from "@webda/tsc-esm";
 
 /**
  * Check if an operation can be executed with the current context
@@ -156,3 +157,9 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
       }
     });
 }
+
+export const Operation = createMethodDecorator(
+  (value: any, context: ClassMethodDecoratorContext, options?: { name: string }) => {
+    // Do nothing
+  }
+);

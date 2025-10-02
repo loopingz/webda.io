@@ -3,7 +3,7 @@ import { AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitte
 
 import type { OpenAPIWebdaDefinition } from "../rest/irest";
 import type { HttpMethodType } from "../contexts/httpcontext";
-import { createPropertyDecorator, CustomConstructor, type Constructor } from "@webda/tsc-esm";
+import { createPropertyDecorator, CustomConstructor } from "@webda/tsc-esm";
 import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfiguration } from "../metrics/metrics";
 
 import type { Logger } from "../loggers/ilogger";

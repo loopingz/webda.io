@@ -8,18 +8,22 @@
     "declaration": true,
     "sourceMap": true,
     "esModuleInterop": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": false,
     "skipLibCheck": true,
     "moduleResolution": "node",
     "declarationMap": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules"
+  ],
   "ts-node": {
     "transpileOnly": true,
     "preferTsExts": true,
     "compilerOptions": {
-      "experimentalDecorators": true
+      "experimentalDecorators": false
     }
   }
 }

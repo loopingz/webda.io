@@ -1,12 +1,14 @@
-import { AclModel, Action, CoreModel, ModelParent, OperationContext, Store } from "@webda/core";
+import { Acls, CoreModel, OperationContext, Store } from "@webda/core";
 import { Company } from "./company";
+import { ModelParent, Action } from "@webda/models";
 
 /**
  * This file contains several empty methods to test our auto docs
  *
  * Abstract class should not be exported as model
  */
-export abstract class AbstractProject<T> extends AclModel {
+export abstract class AbstractProject<T> extends CoreModel {
+  acls: Acls;
   protected abstract method1(arg1: string, arg2: CoreModel, arg3: Store): Store;
 }
 

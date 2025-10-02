@@ -8,11 +8,9 @@ import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptose
 import { getMachineId, useCore, useService } from "../core/hooks";
 import { useLog } from "../loggers/hooks";
 import { Service } from "./service";
-import { DeepPartial } from "@webda/tsc-esm";
-import { ServiceParameters } from "../interfaces";
 import { OperationContext } from "../contexts/operationcontext";
 import { Route } from "../rest/irest";
-import { RegistryEntry, useRegistry } from "../models/registry";
+import { useRegistry } from "../models/registry";
 
 export class SecretString {
   constructor(
@@ -166,18 +164,14 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    */
   async load(): Promise<boolean> {
     let load;
-    console.log("load crypto?");
     try {
       load = await useRegistry().get<KeysRegistry>("keys");
     } catch (err) {
-      // We dont want to fail if cannot get the key
-      console.log("Cannot find KeysRegistry", err);
     }
     if (!load || !load.current) {
       return false;
     }
     this.keys = {};
-    console.log("Loading keys", Object.keys(load));
     Object.keys(load)
       .filter(k => k.startsWith("key_"))
       .forEach(k => {
@@ -289,7 +283,6 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     if (!this.keys[keyId]) {
       // Key is more recent than current one so try to reload
       if (parseInt(keyId, 36) > this.age) {
-        console.log("Should reload keys");
         await this.load();
       }
       // Key is still not found
@@ -304,13 +297,11 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
    * Get JWT key based on kid
    */
   public async getJWTKey(header, callback) {
-    console.log("Loading getJWTKey", header?.kid);
     if (!header.kid) {
       callback(new Error("Unknown key"));
       return;
     }
     const keyId = header.kid.substring(1);
-    console.log("CheckKey", keyId);
     if (!(await this.checkKey(keyId))) {
       callback(new Error("Unknown key"));
       return;
@@ -467,11 +458,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     };
     if (!(await registry.exists("keys"))) {
       this.current = `init-${useCore().getInstanceId()}`;
-      useLog("INFO", `Putting keys`, this.current);
       await registry.put("keys", { current: this.current });
-      useLog("INFO", `Should be`, { uuid: "keys", current: this.current });
-      useLog("INFO", `Puted keys`, RegistryEntry.getRepository()["storage"]);
-      useLog("INFO", `Object`, await RegistryEntry.get("keys"));
     }
     try {
       await registry.patch("keys", next, "current", this.current);

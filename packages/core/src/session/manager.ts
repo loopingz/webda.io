@@ -52,6 +52,7 @@ export class CookieSessionParameters extends ServiceParameters {
   default() {
     super.default();
     this.cookie = new CookieOptions(this.cookie || {});
+    return this;
   }
 }
 
@@ -71,13 +72,6 @@ export class CookieSessionManager<
 
   @Inject("SessionStore", true)
   sessionModel: Repository<typeof SessionModel>;
-
-  /**
-   * @override
-   */
-  loadParameters(params: ServicePartialParameters<T>): T {
-    return <T>new CookieSessionParameters().load(params);
-  }
 
   /**
    * @override

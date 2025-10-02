@@ -5,6 +5,11 @@ import { useLog } from "@webda/workout";
  * Specific type for registry
  */
 export class RegistryEntry extends UuidModel {
+  constructor(data?: Partial<RegistryEntry>) {
+    super(data);
+    Object.assign(this, data);
+  }
+
   toDTO(): undefined {
     return undefined;
   }
@@ -13,7 +18,6 @@ export class RegistryEntry extends UuidModel {
   }
   toJSON(): SelfJSONed<this> {
     useLog("TRACE", "RegistryEntry toJSON");
-    console.log("toJSON, RegistryEntry");
     return this as SelfJSONed<this>;
   }
 
@@ -51,7 +55,6 @@ export class RegistryEntry extends UuidModel {
    * @returns
    */
   static async get<K = any>(uuid: string, data?: K): Promise<RegistryEntry & K> {
-    console.log("Repository", uuid, data, RegistryEntry.getRepository());
     return data
       ? <any>await RegistryEntry.ref(uuid).upsert(<any>data)
       : <K & RegistryEntry>await RegistryEntry.ref(uuid).get();

@@ -280,6 +280,7 @@ export class StoreParameters extends ServiceParameters {
     this.slowQueryThreshold ??= 30000;
     this.modelAliases ??= {};
     this.additionalModels ??= [];
+    return this;
   }
 }
 
@@ -352,7 +353,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
       // Model can be null?
       if (!model) continue;
       if (!model.Metadata || !Array.isArray(model.Metadata.PrimaryKey)) {
-        useLog("WARN", `Model does not have Metadata or PrimaryKey defined`);
+        useLog("WARN", `${useModelId(model)} does not have Metadata or PrimaryKey defined`);
         continue;
       }
       let currentValue = -1;
@@ -366,12 +367,12 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         currentStore = store;
       }
       if (!currentStore) {
-        useLog("WARN", "STORE", `No store found for model ${useModelId(model)} fallback to Registry`);
+        useLog("TRACE", `${useModelId(model)} fallback to Registry store`);
         currentStore = registry;
       }
       // Register the repository
       model.registerRepository(currentStore.getRepository(model) as any);
-      useLog("TRACE", `Model ${useModelId(model)} is using store ${currentStore.getName()}`);
+      useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
     }
   }
 
@@ -473,7 +474,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    *
    */
   handleModel(model: ModelClass | Model): number {
-    const name = useModelId(model, true);
+    const name = useModelId(model);
     return this._modelsHierarchy[name] ?? -1;
   }
 

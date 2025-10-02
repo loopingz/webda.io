@@ -1,4 +1,4 @@
-import { useWorkerOutput, WorkerLogLevel } from "@webda/workout";
+import { ConsoleLogger, useWorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { register } from "prom-client";
 
 import { PrometheusService } from "../services/prometheus";
@@ -25,6 +25,7 @@ import { useLog } from "@webda/workout";
 import { WebdaAsyncStorageTest } from "./asyncstorage";
 import { afterAll, beforeAll, beforeEach } from "@webda/test";
 import { ModelClass, Repository } from "@webda/models";
+import { useInstanceStorage } from "../core/instancestorage";
 
 /**
  * Utility class for UnitTest
@@ -78,7 +79,13 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * Add a ConsoleLogger if addConsoleLogger is true
    */
   protected async buildWebda(): Promise<Core> {
+    if (process.env["WEBDA_TEST_LOG"]) {
+      useWorkerOutput().addLogProducerLine = true;
+      new ConsoleLogger(useWorkerOutput(), (process.env["WEBDA_TEST_LOG"] || "INFO") as WorkerLogLevel);
+    }
+    
     const app = this.getApplication();
+    useInstanceStorage().application = app;
     await app.load();
     await this.tweakApp(app);
 
@@ -143,7 +150,8 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @returns
    */
   async newWebContext<T extends WebContext>(httpContext: HttpContext): Promise<T> {
-    return <T>(<unknown>useCore().newContext<T>({ http: httpContext }));
+    // TODO Need to update this one
+    return new WebContext(httpContext) as T;
   }
 
   /**

@@ -35,6 +35,7 @@ export function useInstanceStorage(): InstanceStorage {
 }
 
 export function useConfiguration(): Configuration {
+  // TODO Move to Core
   return useInstanceStorage().application.getCurrentConfiguration();
 }
 

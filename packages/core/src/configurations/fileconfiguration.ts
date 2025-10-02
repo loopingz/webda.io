@@ -20,7 +20,7 @@ export class FileConfigurationService<
     }
 
     // Load it from where it should be
-    this.parameters.source = useApplication().getApplicationPath(this.parameters.source);
+    this.parameters.source = useApplication().getPath(this.parameters.source);
     if (!existsSync(this.parameters.source)) {
       throw new WebdaError.CodeError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
@@ -46,7 +46,7 @@ export class FileConfigurationService<
    * Read the file and store it
    */
   async initConfiguration(): Promise<{ [key: string]: any }> {
-    this.parameters.source = useApplication().getApplicationPath(this.parameters.source);
+    this.parameters.source = useApplication().getPath(this.parameters.source);
 
     /**
      * Auto-generate file if missing

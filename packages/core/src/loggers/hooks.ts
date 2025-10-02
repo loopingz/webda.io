@@ -28,11 +28,11 @@ export function useLogger(clazz: string | AbstractService | Model): Logger {
   let className = typeof clazz === "string" ? clazz : "";
   if (typeof clazz !== "string") {
     if (clazz instanceof Model) {
-      className = useModelId(clazz, true);
+      className = useModelId(clazz);
     } else {
       className = clazz.getName();
     }
     className ||= "Unknown";
   }
-  return new Logger(workerOutput, className);
+  return new Logger(workerOutput, {class: className});
 }

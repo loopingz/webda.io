@@ -52,6 +52,7 @@ export class MultiNotificationParameters extends ServiceParameters {
     super.default();
     this.senders ??= [];
     this.multiple ??= false;
+    return this;
   }
 }
 

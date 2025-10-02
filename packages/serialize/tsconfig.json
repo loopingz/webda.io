@@ -14,13 +14,8 @@
     "declarationMap": true,
     "useDefineForClassFields": false
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "**/node_modules",
-    "src/**/*.spec.ts"
-  ],
+  "include": ["src/**/*"],
+  "exclude": ["**/node_modules", "src/**/*.spec.ts"],
   "ts-node": {
     "compilerOptions": {
       "experimentalDecorators": false

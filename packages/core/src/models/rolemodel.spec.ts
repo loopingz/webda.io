@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Core, HttpContext, RoleModel, Session, SimpleUser, useCore, WebContext, WebdaError } from "../index";
-import { WebdaApplicationTest } from "../test/test";
+import { WebdaApplicationTest } from "../test/application";
 import { TestApplication } from "../test/objects";
 
 class RolePolicyModel extends RoleModel {

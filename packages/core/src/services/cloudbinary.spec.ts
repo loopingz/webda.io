@@ -5,6 +5,7 @@ import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test/core";
 import { BinaryFile, BinaryMap, BinaryMetadata, CoreModelWithBinary } from "./binary";
 import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
+import { MemoryRepository } from "@webda/models";
 
 class CloudBinaryFakeService extends CloudBinary {
   store(object: CoreModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void> {
@@ -58,12 +59,12 @@ export class FakeCloudBinaryTest extends WebdaTest {
     service.getParameters().prefix = "prefix";
     assert.strictEqual(service._getKey("hash", "plop"), "prefix/hash/plop");
 
-    assert.strictEqual(new CloudBinaryParameters({}, service).prefix, "");
+    assert.strictEqual(new CloudBinaryParameters().load({}).prefix, "");
 
     sinon.stub(service, "deleteSuccess").resolves();
     const model = new CoreModel();
-    // @ts-ignore
-    model.load({ plop: [{}, { hash: "fake" }] }, true);
+    CoreModel.registerRepository(new MemoryRepository(CoreModel, ["uuid"]));
+    model.deserialize({ plop: [{}, { hash: "fake" }] });
     await service.delete(<CoreModelWithBinary>model, "plop", 1);
     // Check called with "fake", 1
   }

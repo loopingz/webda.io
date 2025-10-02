@@ -4,8 +4,6 @@
 
 import {
   Action,
-  CoreModel,
-  Expose,
   ModelLink,
   ModelLinksArray,
   ModelLinksMap,
@@ -13,10 +11,10 @@ import {
   ModelParent,
   ModelRelated,
   ModelsMapped,
-  OperationContext,
   UuidModel
-} from "@webda/core";
+} from "@webda/models";
 
+import { CoreModel, OperationContext } from "@webda/core";
 /**
  * @WebdaIgnore
  */
@@ -29,7 +27,7 @@ class DefaultTestModel extends UuidModel {
   }
 }
 
-@Expose()
+// @Expose()
 class Student extends DefaultTestModel {
   email: string;
   firstName: string;
@@ -57,7 +55,6 @@ class Student extends DefaultTestModel {
   }
 }
 
-@Expose()
 class Teacher extends DefaultTestModel {
   uuid: string;
   courses: ModelsMapped<Course, "teacher", "name">;
@@ -70,7 +67,6 @@ class Teacher extends DefaultTestModel {
   anyArray: any[];
 }
 
-@Expose()
 class Course extends DefaultTestModel {
   uuid: string;
   name: string;
@@ -116,7 +112,7 @@ class Course extends DefaultTestModel {
     return event !== "test3";
   }
 }
-@Expose()
+
 class Classroom extends DefaultTestModel {
   uuid: string;
   name: string;
@@ -135,11 +131,11 @@ class Classroom extends DefaultTestModel {
   }
 }
 
-@Expose({ root: true })
+// @Expose({ root: true })
 class Hardware extends DefaultTestModel {
   classroom: ModelParent<Classroom>;
   name: string;
-  brands: ModelRelated<Brand, "name">;
+  brands: ModelRelated<Brand>; //, "name">;
 
   @Action()
   static async globalAction(context: OperationContext) {

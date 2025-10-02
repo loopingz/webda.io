@@ -1,18 +1,42 @@
 import { IStore } from "./icore";
-import { AbstractService, Reflection } from "../internal/iapplication";
 import { createCoreHook } from "./instancestorage";
 import pkg from "node-machine-id";
 import type { Model, ModelClass, Repository } from "@webda/models";
-import { useApplication, useModel, useModelId } from "../application/hooks";
-//import { machineIdSync } from "node-machine-id";
+import { CustomConstructor } from "@webda/tsc-esm";
+import { Service } from "../services/service";
+import type CryptoService from "../services/cryptoservice";
+import type { Store } from "../stores/store";
+import type { Reflection } from "../internal/iapplication";
+import { useModel } from "../application/hooks";
+import { ModelMetadata } from "@webda/compiler";
 const { machineIdSync } = pkg;
 
 const [useCore, setCore] = createCoreHook("core");
 
 export { useCore, setCore };
 
-export function useService<T = AbstractService>(name: string): T {
-  return <T>useCore().getService(name);
+/**
+ * Get a service by name
+ * @param name
+ * @returns
+ */
+export function useService<K extends Store = Store>(name: "Registry"): K;
+export function useService<K extends CryptoService = CryptoService>(name: "CryptoService"): K;
+export function useService<K = Service>(name: string): K;
+export function useService(name: string) {
+  return useCore().getService(name) as Service;
+}
+
+/**
+ * Get the metadata for a model
+ * @param object
+ * @returns
+ */
+export function useModelMetadata(name: string | Model | ModelClass<Model>): Reflection {
+  if (name["Metadata"]) {
+    return name["Metadata"];
+  }
+  return useModel(name as string | Model)?.Metadata;
 }
 
 /**
@@ -20,19 +44,14 @@ export function useService<T = AbstractService>(name: string): T {
  * @param name
  * @returns
  */
-export function useModelStore<T extends Model>(name: string | T | ModelClass<T>): IStore {
+export function useModelStore<T extends Model>(name: string | T | CustomConstructor<T>): IStore {
   return useCore().getModelStore(name);
 }
 
-export function useModelRepository<T extends Model>(name: string | T | ModelClass<T>): Repository<ModelClass<T>> {
+export function useModelRepository<T extends Model>(
+  name: string | T | CustomConstructor<T>
+): Repository<ModelClass<T>> {
   return useModelStore(name) as unknown as Repository<ModelClass<T>>;
-}
-
-export function useModelMetadata(name: string | Model | ModelClass<Model>): Reflection {
-  if (name["Metadata"]) {
-    return name["Metadata"];
-  }
-  return useModel(name as string | Model)?.Metadata;
 }
 
 /**

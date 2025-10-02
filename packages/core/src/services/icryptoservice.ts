@@ -90,6 +90,7 @@ export class CryptoServiceParameters extends ServiceParameters {
     this.asymetricOptions.publicKeyEncoding.type ??= "spki";
     this.jwt ??= {};
     this.jwt.algorithm ??= "HS256";
+    return this;
   }
 }
 

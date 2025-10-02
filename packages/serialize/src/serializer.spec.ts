@@ -99,7 +99,10 @@ class Serializer {
     console.log("Serialized:", serialized);
     console.log("Deserialized:", deserialized);
     assert.deepStrictEqual(source, deserialized);
-    assert.throws(() => new SerializerContext().getSerializer("undefined2"), /Serializer for type 'undefined2' not found/);
+    assert.throws(
+      () => new SerializerContext().getSerializer("undefined2"),
+      /Serializer for type 'undefined2' not found/
+    );
   }
 
   @test
@@ -348,7 +351,10 @@ class Serializer {
       deserializer: Test2.deserialize
     });
     const testInvalid = new TestInvalid();
-    assert.throws(() => serialize(testInvalid), /Serializer for type 'TestInvalid' already registered for a different class/);
+    assert.throws(
+      () => serialize(testInvalid),
+      /Serializer for type 'TestInvalid' already registered for a different class/
+    );
   }
 
   @test
@@ -369,7 +375,7 @@ class Serializer {
     // Test invalid regex string that doesn't match the pattern
     const context = new SerializerContext();
     const regexSerializer = context.getSerializer("RegExp");
-    
+
     assert.throws(
       () => regexSerializer.deserializer("invalid-regex", {}, context),
       /Invalid regex string: invalid-regex/
@@ -380,11 +386,11 @@ class Serializer {
   async testMissingSerializer() {
     // Test error when no serializer is found for a type
     const context = new SerializerContext();
-    
+
     // Create a scenario by temporarily removing the object serializer
     const obj = { test: "value" };
     context.unregisterSerializer("object");
-    
+
     try {
       assert.throws(() => {
         context.serialize(obj);
@@ -398,11 +404,11 @@ class Serializer {
   @test
   async testSerializerEdgeCases() {
     // Test various edge cases to improve coverage
-    
+
     // Test with -Infinity
     const negInfinity = serialize(-Infinity);
     assert.strictEqual(deserialize(negInfinity), -Infinity);
-    
+
     // Test special numeric values that can be properly serialized
     const specialNums = {
       positiveZero: +0,
@@ -412,7 +418,7 @@ class Serializer {
     const serializedNums = serialize(specialNums);
     const deserializedNums = deserialize(serializedNums);
     assert.deepStrictEqual(deserializedNums, specialNums);
-    
+
     // Test negative zero specifically (should become positive zero in JSON)
     const negZero = serialize(-0);
     assert.strictEqual(deserialize(negZero), 0); // -0 becomes 0 in JSON
@@ -422,22 +428,22 @@ class Serializer {
   async testGetSerializerCoverage() {
     // Test getting serializer by constructor function to cover line 204
     const context = new SerializerContext();
-    
+
     // Test getting serializer by constructor
     const dateSerializer = context.getSerializer(Date);
     assert.ok(dateSerializer);
     assert.strictEqual(dateSerializer.constructorType, Date);
-    
+
     // Test getting serializer by string for a constructor-based serializer
     const dateSerializerByString = context.getSerializer("Date");
     assert.ok(dateSerializerByString);
-    
+
     // Test error when getting non-existent serializer by constructor function
     class NonExistentClass {}
     assert.throws(() => {
       context.getSerializer(NonExistentClass);
     }, /Serializer for type 'NonExistentClass' not found/);
-    
+
     // Test getting ref serializer to cover edge cases
     const refSerializer = context.getSerializer("ref");
     assert.ok(refSerializer);

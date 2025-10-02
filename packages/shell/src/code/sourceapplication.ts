@@ -1,20 +1,20 @@
 import {
-  Cache,
+  InstanceCache,
   Configuration,
   Deployment,
-  FileUtils,
   GitInformation,
-  JSONUtils,
+  templateVariables,
   UnpackedApplication,
   WebdaError
 } from "@webda/core";
+import { FileUtils, JSONUtils } from "@webda/utils";
 import { execSync } from "child_process";
 import dateFormat from "dateformat";
 import * as fs from "fs";
 import * as merge from "merge";
 import * as path from "path";
 import semver from "semver";
-import { Compiler } from "./compiler";
+import { Compiler, WebdaProject } from "@webda/compiler";
 
 export class SourceApplication extends UnpackedApplication {
   /**
@@ -25,7 +25,7 @@ export class SourceApplication extends UnpackedApplication {
   protected compiler: Compiler;
 
   getCompiler(): Compiler {
-    this.compiler ??= new Compiler(this);
+    this.compiler ??= new Compiler(new WebdaProject(this.getAppPath(), this.getWorkerOutput()));
     return this.compiler;
   }
 
@@ -42,7 +42,7 @@ export class SourceApplication extends UnpackedApplication {
    * {@link GitInformation} for more details on how the information is gathered
    * @return the git information
    */
-  @Cache()
+  @InstanceCache()
   getGitInformation(packageName: string = "", version: string = ""): GitInformation {
     const options = {
       cwd: this.getAppPath()
@@ -107,7 +107,8 @@ export class SourceApplication extends UnpackedApplication {
       return false;
     }
     // Write module
-    FileUtils.save(this.getCompiler().generateModule(), this.getAppPath("webda.module.json"));
+    this.getCompiler().compile();
+    // FileUtils.save(this.getCompiler().compile(), this.getAppPath("webda.module.json"));
     return true;
   }
 
@@ -196,8 +197,8 @@ export class SourceApplication extends UnpackedApplication {
     }
     const config = JSONUtils.duplicate(this.baseConfiguration);
     const deploymentModel = this.getDeployment(deploymentName);
-    config.parameters = this.replaceVariables(merge.recursive(config.parameters, deploymentModel.parameters));
-    config.services = this.replaceVariables(merge.recursive(config.services, deploymentModel.services));
+    config.parameters = templateVariables(merge.recursive(config.parameters, deploymentModel.parameters));
+    config.services = templateVariables(merge.recursive(config.services, deploymentModel.services));
     return config;
   }
 

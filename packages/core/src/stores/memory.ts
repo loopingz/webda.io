@@ -57,6 +57,7 @@ export class MemoryStoreParameters extends StoreParameters {
     }
     // Memory store cannot be cached
     this.noCache = true;
+    return this;
   }
 }
 

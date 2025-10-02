@@ -3,6 +3,10 @@ import * as assert from "assert";
 import { InstanceCache, ProcessCache, SessionCache, ContextCache } from "./cache";
 import { runWithInstanceStorage } from "../core/instancestorage";
 import { runWithContext } from "../contexts/execution";
+import { ModelDefinition } from "../internal/iapplication";
+import { Ident } from "../models/ident";
+import { User } from "../models/user";
+import * as util from "util";
 
 let callCount = 0;
 function processKey(method: string, args: any[]) {
@@ -23,7 +27,20 @@ class MyObject {
     callCount++;
     return callCount;
   }
-  @ProcessCache(processKey)
+  @InstanceCache({
+    methodKeyGenerator: (method: string, args: any[]) => {
+      console.log("Return", util.inspect(args[0]));
+      return util.inspect(args[0]);
+    }
+  })
+  modelMethod(arg: ModelDefinition) {
+    console.log("modelMethod", JSON.stringify(arg), arg);
+    callCount++;
+    return callCount;
+  }
+  @ProcessCache({
+    methodKeyGenerator: processKey
+  })
   processCachedMethod(argument1: string, argument2: any) {
     callCount++;
     return callCount;
@@ -59,6 +76,22 @@ class CacheTest {
       assert.strictEqual(callCount, 4);
       assert.strictEqual(obj2.method("test", 2), 5);
       assert.strictEqual(obj2.method("test", 2), 5);
+    });
+  }
+
+  @test
+  async instanceCacheWithModel() {
+    return runWithInstanceStorage({}, async () => {
+      callCount = 0;
+      const obj1 = new MyObject();
+      obj1.modelMethod(Ident as any);
+      assert.strictEqual(callCount, 1);
+      obj1.modelMethod(Ident as any);
+      assert.strictEqual(callCount, 1);
+      obj1.modelMethod(Ident as any);
+      assert.strictEqual(callCount, 1);
+      obj1.modelMethod(User as any);
+      assert.strictEqual(callCount, 2);
     });
   }
 

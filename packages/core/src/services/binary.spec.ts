@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { User, WebContext } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { TestApplication } from "../test/objects";
+import { WebdaApplicationTest } from "../test/application";
 
 import { Binaries, Binary, BinaryService, LocalBinaryFile, MemoryBinaryFile } from "./binary";
 import { pipeline } from "node:stream/promises";
@@ -41,7 +42,7 @@ export class TestBinaryService extends BinaryService {
   async cascadeDelete() {}
 }
 
-abstract class BinaryTest<T extends BinaryService = BinaryService> extends WebdaSimpleTest {
+abstract class BinaryTest<T extends BinaryService = BinaryService> extends WebdaApplicationTest {
   abstract getBinary(): Promise<T>;
   binary: T;
 

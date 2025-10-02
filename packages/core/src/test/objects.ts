@@ -329,12 +329,12 @@ export class TestApplication extends UnpackedApplication {
         .forEach(p => {
           for (const key in module[SectionEnum[p]]) {
             module[SectionEnum[p]][key].Import = path.join(
-              path.relative(this.getApplicationPath(), path.dirname(moduleFile)),
+              path.relative(this.getPath(), path.dirname(moduleFile)),
               module[SectionEnum[p]][key].Import.replace(/^lib\//, "src/").replace(":", ".ts:")
             );
             if (module[SectionEnum[p]][key].Configuration) {
               module[SectionEnum[p]][key].Configuration = path.join(
-                path.relative(this.getApplicationPath(), path.dirname(moduleFile)),
+                path.relative(this.getPath(), path.dirname(moduleFile)),
                 module[SectionEnum[p]][key].Configuration.replace(/^lib\//, "src/").replace(":", ".ts:")
               );
             }

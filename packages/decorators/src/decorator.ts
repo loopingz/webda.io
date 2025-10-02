@@ -99,8 +99,8 @@ export type MethodDecorator = ReturnType<typeof createMethodDecorator>;
 
 /**
  * Return decorator metadata
- * @param target 
- * @returns 
+ * @param target
+ * @returns
  */
 export function getMetadata(target: AnyCtor): any {
   const metaSym = Object.getOwnPropertySymbols(target).find(sym => sym.toString().includes("Symbol.metadata"));

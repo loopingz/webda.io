@@ -1,10 +1,10 @@
 import { QueryValidator } from "@webda/ql";
-import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
 import { AbstractService } from "../internal/iapplication";
 import { Model, ModelClass } from "@webda/models";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import CryptoService from "../services/cryptoservice";
+import { CustomConstructor } from "@webda/tsc-esm";
 export { AbstractService };
 /**
  * Define an operation within webda app
@@ -87,12 +87,6 @@ export interface ICore {
    */
   stop(): Promise<void>;
   /**
-   * Get a context based on the info
-   * @param info
-   * @returns
-   */
-  newContext<T extends Context>(info: ContextProviderInfo, noInit?: boolean): Promise<Context>;
-  /**
    * Return if Webda is in debug mode
    */
   isDebug(): boolean;
@@ -105,19 +99,15 @@ export interface ICore {
    * @param model
    * @returns
    */
-  getModelStore<T extends Model>(item: ModelClass<T> | T | string): AbstractService;
-  getService<
-    T extends keyof K,
-    K = {
-      Registry: Store;
-      CryptoService: CryptoService;
-      [key: string]: Service;
-    }
-  >(
-    name: T
-  ): K[T];
+  getModelStore<T extends Model>(item: CustomConstructor<T> | T | string): AbstractService;
+  /**
+   * Return a service
+   * @param name
+   */
+  getService<T extends Service = Service>(name: string): T;
+  getService<T extends Store = Store>(name: "Registry"): T;
+  getService<T extends CryptoService = CryptoService>(name: "CryptoService"): T;
   getInstanceId(): string;
-  registerContextProvider(provider: ContextProvider);
 }
 
 /**

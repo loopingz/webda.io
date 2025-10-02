@@ -2,14 +2,7 @@ import * as ts from "typescript";
 import { Compiler } from "./compiler";
 import { useLog } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
-import {
-  getTagsName,
-  getParent,
-  isSymbolMapper,
-  SymbolMapper,
-  getTypeIdFromTypeNode,
-  getKeyKind
-} from "./utils";
+import { getTagsName, getParent, isSymbolMapper, SymbolMapper, getTypeIdFromTypeNode, getKeyKind } from "./utils";
 import { existsSync, readFileSync } from "node:fs";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { tsquery } from "@phenomnomnominal/tsquery";
@@ -22,7 +15,6 @@ import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
 
-
 /**
  * Found all objects from compiled source
  */
@@ -32,7 +24,7 @@ export type WebdaObjects = {
   moddas: WebdaSearchResults;
   deployers: WebdaSearchResults;
   beans: WebdaSearchResults;
-}
+};
 
 type ReplaceModelWith<T, L> = T extends object
   ? { [K in keyof T]: K extends "model" ? L : ReplaceModelWith<T[K], L> }
@@ -300,13 +292,15 @@ export class ModuleGenerator {
           }
           const classTree = this.getClassTree(type);
           if (!program.getRootFileNames().includes(sourceFile.fileName)) {
-            if (this.extends(classTree, "@webda/core", "CoreModel")) {
+            if (this.extends(classTree, "@webda/models", "Model")) {
               const name = this.getLibraryModelName(sourceFile.fileName, this.getExportedName(classNode));
               // This should not happen likely bad module not worth checking
               /* c8 ignore next 3 */
               if (!name) {
                 return;
               }
+              // TODO Ensure model is not abstract
+
               // @ts-ignore
               result["models"][name] = {
                 name,
@@ -432,36 +426,26 @@ export class ModuleGenerator {
 
     return undefined;
   }
-  
-getExportedSymbolFromModule(
-  moduleSpecifier: string,
-  exportName: string,
-): ts.Symbol | undefined {
-  const checker = this.typeChecker;
 
-  // Find the ambient module whose name matches the specifier
-  const ambientModule = checker
-    .getAmbientModules()
-    .find(m => m.name === `"${moduleSpecifier}"`);
-  checker
-    .getAmbientModules().forEach(m => {
-      console.log(m.escapedName)
+  getExportedSymbolFromModule(moduleSpecifier: string, exportName: string): ts.Symbol | undefined {
+    const checker = this.typeChecker;
+
+    // Find the ambient module whose name matches the specifier
+    const ambientModule = checker.getAmbientModules().find(m => m.name === `"${moduleSpecifier}"`);
+    checker.getAmbientModules().forEach(m => {
+      console.log(m.escapedName);
     });
-  if (!ambientModule) return undefined;
+    if (!ambientModule) return undefined;
 
+    // Step 2: Get the export symbol
+    const sym = checker.tryGetMemberInModuleExports(exportName, ambientModule);
 
-  // Step 2: Get the export symbol
-  const sym = checker.tryGetMemberInModuleExports(
-    exportName,
-    ambientModule
-  );
-
-  // Step 3: Resolve aliases, if any
-  if (sym && (sym.flags & ts.SymbolFlags.Alias)) {
-    return checker.getAliasedSymbol(sym);
+    // Step 3: Resolve aliases, if any
+    if (sym && sym.flags & ts.SymbolFlags.Alias) {
+      return checker.getAliasedSymbol(sym);
+    }
+    return sym;
   }
-  return sym;
-}
 
   /** True if `propSym` is declared with a computed name `[uniqueKeySym]`. */
   propertyIsKeyedBySymbol(propSym: ts.Symbol, packageName: string, symbolName: string): boolean {
@@ -469,7 +453,10 @@ getExportedSymbolFromModule(
       const name = (d as ts.NamedDeclaration).name;
       if (name && ts.isComputedPropertyName(name)) {
         const keyExprSym = this.resolveAliases(this.typeChecker.getSymbolAtLocation(name.expression));
-        if (keyExprSym.getName() === symbolName && this.getPackageFromType(this.typeChecker.getTypeAtLocation(keyExprSym.valueDeclaration)) === packageName) {
+        if (
+          keyExprSym.getName() === symbolName &&
+          this.getPackageFromType(this.typeChecker.getTypeAtLocation(keyExprSym.valueDeclaration)) === packageName
+        ) {
           return true;
         }
       }
@@ -859,8 +846,8 @@ getExportedSymbolFromModule(
       new ActionsMetadata(this),
       new EventsMetadata(this),
       new PrimaryKeyMetadata(this),
-      new PluralMetadata(this),
-    ]
+      new PluralMetadata(this)
+    ];
     plugins.forEach(plugin => {
       plugin.getMetadata(mod, objects);
     });
@@ -957,7 +944,9 @@ class WebdaSchemaResults {
               if (!exportName) {
                 throw new Error(`Cannot find exported name for ${className}, check that the class is exported`);
               }
-              let jsConfFile = moduleGenerator.getJSTargetFile(type.symbol.valueDeclaration.getSourceFile()).replace(/\.js$/, "");
+              const jsConfFile = moduleGenerator
+                .getJSTargetFile(type.symbol.valueDeclaration.getSourceFile())
+                .replace(/\.js$/, "");
               results[section][name].Configuration = `${jsConfFile}:${exportName}`;
             } catch (err) {
               console.log("Cannot guess export name for service configuration:", err);

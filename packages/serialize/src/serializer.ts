@@ -304,7 +304,7 @@ export class SerializerContext {
       // If two objects have same class name without being the same constructor it will fail
       this.registerSerializer(obj.constructor.name, {
         constructorType: obj.constructor,
-        deserializer: (o: any, metadata: any, context: SerializerContext) => obj.constructor["deserialize"](o),
+        deserializer: (o: any, metadata: any, context: SerializerContext) => obj.constructor["deserialize"](o)
       });
       serializer = this.typeSerializer.get(obj.constructor)!;
     } else if (typeof obj === "object") {

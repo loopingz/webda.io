@@ -233,4 +233,11 @@ class RouterTest extends WebdaTest {
     const url = this.webda.getRouter().getModelUrl(new ImageUser());
     assert.strictEqual(url, "/imageUsers");
   }
+
+  @test
+  covRemoveRoute() {
+    this.webda.removeRoute("/version");
+    const executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/version");
+    assert.strictEqual(executor, undefined);
+  }
 }

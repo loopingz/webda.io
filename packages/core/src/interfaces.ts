@@ -20,5 +20,7 @@ export class ServiceParameters {
     return this;
   }
 
-  default() {}
+  default() : this {
+    return this;
+  }
 }

@@ -1,6 +1,6 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { WorkerInput, WorkerInputType, WorkerOutput, WorkerProgress } from "./core";
+import { getFileAndLine, WorkerInput, WorkerInputType, WorkerOutput, WorkerProgress } from "./core";
 
 function mapper([msg]) {
   const res = {};
@@ -17,7 +17,7 @@ function mapper([msg]) {
 class WorkerOutputTest {
   output: WorkerOutput;
   calls: any[];
-  before() {
+  async beforeEach() {
     this.output = new WorkerOutput();
     this.calls = [];
     this.output.on("message", (...args) => {
@@ -31,6 +31,18 @@ class WorkerOutputTest {
     assert.deepStrictEqual(this.calls.map(mapper), [
       { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } }
     ]);
+  }
+
+  @test
+  async testLogWithLines() {
+    this.output.addLogProducerLine = true;
+    this.output.log("WARN", "Test", "plop", 1);
+    const ctx = this.calls[0][0].context;
+    assert.ok(ctx.file.endsWith("core.spec.ts"));
+    // Careful, line number might change
+    assert.strictEqual(ctx.line, 39);
+    assert.strictEqual(ctx.function, "_WorkerOutputTest.testLogWithLines");
+    this.output.addLogProducerLine = false;
   }
 
   @test
@@ -259,25 +271,25 @@ class WorkerOutputTest {
         type: "input.request",
         groups: [],
         progresses: {},
-        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", type: 0, validators: [{}] }
+        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", type: 0, validators: ["^\\d+$"] }
       },
       {
         type: "input.timeout",
         groups: [],
         progresses: {},
-        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", type: 0, validators: [{}] }
+        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", type: 0, validators: ["^\\d+$"] }
       },
       {
         type: "input.request",
         groups: [],
         progresses: {},
-        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", type: 0, validators: [{}] }
+        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", type: 0, validators: ["^\\d+$"] }
       },
       {
         type: "input.received",
         groups: [],
         progresses: {},
-        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", type: 0, validators: [{}] }
+        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", type: 0, validators: ["^\\d+$"] }
       }
     ];
     events.forEach(e => delete e.input.uuid);

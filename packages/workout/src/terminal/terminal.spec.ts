@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import chalk from "chalk";
 import { stdin } from "mock-stdin";
@@ -16,7 +16,7 @@ class TerminalTest {
   terminal: Terminal;
   stubs: { [key: string]: any } = {};
 
-  before() {
+  async beforeEach() {
     Terminal.refreshSpeed = 10;
     this.stubs["process.on"] = sinon.stub(process, "on");
     this.stubs["process.stdout.on"] = sinon.stub(process.stdout, "on");
@@ -27,7 +27,7 @@ class TerminalTest {
     this.stubs["clearScreen"] = sinon.stub(this.terminal, "clearScreen");
   }
 
-  after() {
+  async afterEach() {
     for (const i in this.stubs) {
       try {
         this.stubs[i].restore();

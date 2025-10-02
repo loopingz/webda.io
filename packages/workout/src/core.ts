@@ -224,6 +224,27 @@ function getFullErrorStack(ex) {
 }
 
 /**
+ * Get the caller line and filename
+ * @returns 
+ */
+export function getFileAndLine(index: number = 1): { file: string; line: number; column?: number, function?: string } {
+  const err = new Error();
+  const matches = err.stack.matchAll(/\s+at\s+(?<method>[^( ]+)([^(]+)?\((?<filename>.+):(?<line>\d+):(?<column>\d+)\)?$/gm);
+  for (const match of matches) {
+    if (index-- > 0) {
+      continue;
+    }
+    return {
+      file: match.groups.filename,
+      line: parseInt(match.groups.line),
+      column: parseInt(match.groups.column),
+      function: match.groups.method
+    };
+  }
+  return { file: "unknown", line: 0 };
+}
+
+/**
  * Represents a message emitted by WorkerOutput
  */
 export class WorkerMessage {
@@ -271,7 +292,7 @@ export class WorkerMessage {
 /**
  * This class allow you to abstract the output for your program
  *
- * You can sned output, ask for input and depending if you are in terminal
+ * You can send output, ask for input and depending if you are in terminal
  * It will show progress in the terminal, or send it via WebSockets or store it in a DB or in a logfile
  */
 export class WorkerOutput extends EventEmitter {
@@ -282,6 +303,7 @@ export class WorkerOutput extends EventEmitter {
   currentProgress?: string;
   interactive: boolean = false;
   inputs: { [key: string]: WorkerInputEmitter } = {};
+  addLogProducerLine: boolean = false;
 
   /**
    * Send an event with default informations
@@ -410,7 +432,12 @@ export class WorkerOutput extends EventEmitter {
    * @param args anything you want to log
    */
   log(level: WorkerLogLevel, ...args: any[]): void {
-    this.logWithContext(level, undefined, ...args);
+    let context = undefined;
+    if (this.addLogProducerLine) {
+      const line = getFileAndLine(2);
+      context = { file: line.file, line: line.line, column: line.column, function: line.function };
+    }
+    this.logWithContext(level, context, ...args);
   }
 
   /**

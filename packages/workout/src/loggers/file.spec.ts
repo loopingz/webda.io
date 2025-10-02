@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { readdirSync, unlinkSync, writeFileSync } from "fs";
 import { WorkerMessage, WorkerLog, WorkerOutput } from "../core";
@@ -9,7 +9,7 @@ import { FileLogger } from "./file";
 class FileConsoleTest {
   output: WorkerOutput;
   calls: any[];
-  before() {
+  beforeEach() {
     this.output = new WorkerOutput();
     this.clean();
   }

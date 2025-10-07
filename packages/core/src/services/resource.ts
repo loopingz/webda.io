@@ -4,7 +4,7 @@ import * as path from "path";
 import * as WebdaError from "../errors/errors";
 import type { IWebContext } from "../contexts/icontext";
 import { Service } from "./service";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 
 /**
  * ResourceService parameters

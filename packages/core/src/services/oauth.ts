@@ -6,7 +6,7 @@ import { RequestFilter } from "../rest/irest";
 import { WebContext } from "../contexts/webcontext";
 import { Counter } from "../metrics/metrics";
 import { RegExpStringValidator } from "@webda/utils";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { useService } from "../core/hooks";
 import { OperationContext } from "../contexts/operationcontext";
 import { EventWithContext } from "../events/events";

@@ -1,5 +1,5 @@
 import { Counter, Gauge, Histogram } from "../metrics/metrics";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { Service } from "../services/service";
 import { CancelablePromise } from "@webda/utils";
 

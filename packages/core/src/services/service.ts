@@ -8,7 +8,7 @@ import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfigu
 
 import type { Logger } from "../loggers/ilogger";
 import type { OperationContext } from "../contexts/operationcontext";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "./serviceparameters";
 import { useService } from "../core/hooks";
 import { AbstractService } from "../core/icore";
 import { useLogger } from "../loggers/hooks";
@@ -92,6 +92,7 @@ class Injector {
  * @param parameterOrName of the service to inject
  *
  * Might consider to split into two annotations
+ * TODO @webda/compiler could get all interfaces and ancestors classes to find the correct service
  */
 export const Inject = createPropertyDecorator(
   (

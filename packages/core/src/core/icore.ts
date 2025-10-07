@@ -80,6 +80,7 @@ export interface OperationDefinitionInfo extends OperationDefinition {
 
 /**
  * Useful interface to get the instance id
+ * @deprecated
  */
 export interface ICore {
   /**
@@ -91,7 +92,6 @@ export interface ICore {
    */
   isDebug(): boolean;
   getServices(): { [key: string]: AbstractService };
-  reinit(updates: any): void | Promise<void>;
   getBinaryStore(model: ModelClass | Model | string, attribute: string): AbstractService;
   getLocales(): string[];
   /**
@@ -108,6 +108,7 @@ export interface ICore {
   getService<T extends Store = Store>(name: "Registry"): T;
   getService<T extends CryptoService = CryptoService>(name: "CryptoService"): T;
   getInstanceId(): string;
+  updateConfiguration(newConfig: { [key: string]: any }): void;
 }
 
 /**

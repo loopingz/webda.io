@@ -8,6 +8,9 @@ import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 import { MemoryRepository } from "@webda/models";
 
 class CloudBinaryFakeService extends CloudBinary {
+  static createConfiguration?: (params: any) => any = (params: any) => {
+    return new CloudBinaryParameters().load(params);
+  };
   store(object: CoreModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void> {
     throw new Error("Method not implemented.");
   }

@@ -1,8 +1,6 @@
 import { randomUUID } from "crypto";
 import { JSONUtils } from "@webda/utils";
 import { type MessageReceipt, Queue, QueueParameters } from "./queueservice";
-import { ServiceParameters } from "../interfaces";
-import { ServicePartialParameters } from "../internal/iapplication";
 
 interface QueueMap {
   [key: string]: any;
@@ -15,12 +13,23 @@ export class MemoryQueueParameters extends QueueParameters {
    * @default 30
    */
   expire?: number;
+  /**
+   * Number of seconds to wait for receiving new message
+   */
+  timeout?: number;
 
-  default() {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     this.expire ??= 30;
-    this.expire *= 1000;
     return this;
+  }
+
+  get expireMs(): number {
+    return (this.expire || 30) * 1000;
+  }
+
+  get timeoutMs(): number {
+    return (this.timeout || 0) * 1000;
   }
 }
 
@@ -35,16 +44,6 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
    * Allow to cancel timeout
    */
   private pendingReads: (() => void)[] = [];
-
-  /**
-   * Load parameters
-   *
-   * @param params
-   * @ignore
-   */
-  loadParameters(params: ServicePartialParameters<K>): K {
-    return <K>new MemoryQueueParameters().load(params);
-  }
 
   /**
    * Return queue size
@@ -77,9 +76,10 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
    * @override
    */
   getItem<L>(proto?: { new (): L }): MessageReceipt<L>[] {
+    const time = Date.now();
     for (const i in this._queue) {
-      if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
-        this._queue[i].Claimed = new Date().getTime();
+      if (this._queue[i].Claimed < time - this.parameters.expireMs) {
+        this._queue[i].Claimed = time;
         return [
           {
             ReceiptHandle: this._queue[i].ReceiptHandle,
@@ -99,14 +99,18 @@ export class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueP
     if (items.length > 0) {
       return items;
     }
-    // We wait for 30s before returning an empty array or a message if interrupted
+    // We wait before returning an empty array or a message if interrupted
     await new Promise<void>(resolve => {
-      const timeout = setTimeout(() => {
-        this.pendingReads = this.pendingReads.filter(r => r !== resolve);
-        resolve();
-      }, 30000);
+      const timeout = this.parameters.timeoutMs
+        ? setTimeout(() => {
+            this.pendingReads = this.pendingReads.filter(r => r !== resolve);
+            resolve();
+          }, this.parameters.timeoutMs)
+        : undefined;
       this.pendingReads.push(() => {
-        clearTimeout(timeout);
+        if (timeout) {
+          clearTimeout(timeout);
+        }
         resolve();
       });
     });

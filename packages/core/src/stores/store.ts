@@ -1,19 +1,13 @@
 import { Counter, Histogram } from "../metrics/metrics";
-import type { ConfigurationProvider } from "../configurations/configuration";
 import * as WebdaError from "../errors/errors";
-import { Throttler } from "@webda/utils";
 
 import { type Model, type ModelClass, type PrimaryKey, type Repository } from "@webda/models";
-import type { RawModel } from "../internal/iapplication";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { Service } from "../services/service";
 import * as WebdaQL from "@webda/ql";
-import { runAsSystem, useContext } from "../contexts/execution";
-import { MappingService } from "./istore";
-import { useApplication, useModel, useModelId } from "../application/hooks";
-import { useRegistry } from "../models/registry";
+import { useApplication, useModelId } from "../application/hooks";
 import { useLog } from "../loggers/hooks";
-import { useCore, useModelMetadata } from "../core/hooks";
+import { useCore } from "../core/hooks";
 import { InstanceCache } from "../cache/cache";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
@@ -268,11 +262,7 @@ export class StoreParameters extends ServiceParameters {
       throw new Error("Expose is not supported anymore, use DomainService instead");
     }
     // END_REFACTOR
-    return super.load(params);
-  }
-
-  default() {
-    super.default();
+    super.load(params);
     this.model ??= "Webda/RegistryEntry";
     this.strict ??= false;
     this.defaultModel ??= true;
@@ -308,10 +298,10 @@ export type StoreEvents = {
  *
  * @category CoreServices
  */
-abstract class Store<K extends StoreParameters = StoreParameters, E extends StoreEvents = StoreEvents>
-  extends Service<K, E>
-  implements ConfigurationProvider
-{
+abstract class Store<K extends StoreParameters = StoreParameters, E extends StoreEvents = StoreEvents> extends Service<
+  K,
+  E
+> {
   /**
    * Contains the current model
    */
@@ -335,19 +325,13 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     queries: Histogram;
   };
 
-  resolve() {
-    super.resolve();
-    // We use the InstanceCache so calling it many times will not have an impact
-    Store.computeStores();
-    return this;
-  }
 
   @InstanceCache()
   static computeStores() {
     // Gather all stores and register Repository
     const stores = Object.values(useCore().getServices()).filter(s => s instanceof Store);
     const models = Object.values(useApplication().getModels());
-    const registry = useCore().getService("Registry");
+    const registry = useCore().getService<Store>("Registry");
     // Check each available models
     for (const model of models) {
       // Model can be null?
@@ -432,6 +416,15 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
+   * Initialize the store
+   * @returns 
+   */
+  async init(): Promise<this> {
+    Store.computeStores();
+    return super.init();
+  }
+
+  /**
    * @override
    */
   initMetrics(): void {
@@ -484,14 +477,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
    */
   checkKeys() {
     // TODO Implement
-  }
-
-  canTriggerConfiguration(id: string, callback: () => void): boolean {
-    return false;
-  }
-
-  async getConfiguration(id: string): Promise<{ [key: string]: any }> {
-    return {};
   }
 
   abstract getRepository<T extends ModelClass>(model: T): Repository<T>;

@@ -4,6 +4,8 @@ import { OperationDefinitionInfo, ICore } from "./icore";
 import { ContextProvider } from "../contexts/icontext";
 import { IRouter } from "../rest/irest";
 import type { Application } from "../application/application";
+import { useApplication } from "../application/hooks";
+import type { Core } from "./core";
 
 export type InstanceStorage = Partial<{
   // Used to store the application
@@ -11,7 +13,7 @@ export type InstanceStorage = Partial<{
   // Used to store the operations
   operations: { [key: string]: OperationDefinitionInfo };
   // Used to store the core
-  core: ICore;
+  core: Core;
   // Used to store the context providers
   contextProviders: ContextProvider[];
   // Used to store caches
@@ -32,24 +34,6 @@ export function useInstanceStorage(): InstanceStorage {
     throw new Error("Webda launched outside of a InstanceStorage context");
   }
   return store;
-}
-
-export function useConfiguration(): Configuration {
-  // TODO Move to Core
-  return useInstanceStorage().application.getCurrentConfiguration();
-}
-
-export function useParameters(name?: string): Configuration["parameters"] {
-  // TODO: Implement deepmerge
-  const configuration = useConfiguration();
-  if (configuration === undefined) {
-    throw new Error("Application not initialized: cannot useParameters");
-  }
-  const params = {
-    ...configuration.parameters,
-    ...(name ? configuration.services[name] || {} : {})
-  };
-  return params;
 }
 
 export function runWithInstanceStorage(instanceStorage: InstanceStorage = {}, fn) {
@@ -107,4 +91,8 @@ export function registerInteruptableProcess(process: { cancel: () => Promise<voi
 
 export function unregisterInteruptableProcess(process: { cancel: () => Promise<void> }) {
   useInstanceStorage().interruptables.delete(process);
+}
+
+export function useParameters(): Configuration["parameters"] {
+  return useApplication().getConfiguration().parameters;
 }

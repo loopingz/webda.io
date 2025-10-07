@@ -18,12 +18,11 @@ import { CancelablePromise, FileUtils, State } from "@webda/utils";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, resolve, dirname, isAbsolute } from "node:path";
 import * as WebdaError from "../errors/errors";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage";
 import { Model, ModelClass } from "@webda/models";
 import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache";
-import { getMachineId } from "../core/hooks";
 import type { Service } from "../services/service";
 import { ModelMetadata } from "@webda/compiler";
 import { Core } from "../core/core";
@@ -627,18 +626,20 @@ export class Application {
             );
             continue;
           }
-          this[section][key].createConfiguration = (params: any) => {
-            const filteredParams = {};
-            if (info[section][key].Schema) {
-              // If schema is defined, filter the params
-              // We do not want to bloat the service with information it does not need
-              for (const field of Object.keys(info[section][key].Schema.properties)) {
+          this[section][key].filterParameters = (params: any = {}) => {
+            if (!info[section][key].Schema) {
+              return params;
+            }
+            const filteredParams: any = {};
+            for (const field of Object.keys(info[section][key].Schema.properties)) {
+              if (params[field] !== undefined) {
                 filteredParams[field] = params[field];
               }
-            } else {
-              // If no schema we just use the params as is
-              Object.assign(filteredParams, params);
             }
+            return filteredParams;
+          };
+          this[section][key].createConfiguration = (params: any = {}) => {
+            const filteredParams = this[section][key].filterParameters(params);
             return new (configurationClass ?? ServiceParameters)().load(filteredParams);
           };
         }

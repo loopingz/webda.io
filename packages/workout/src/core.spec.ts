@@ -38,10 +38,11 @@ class WorkerOutputTest {
     this.output.addLogProducerLine = true;
     this.output.log("WARN", "Test", "plop", 1);
     const ctx = this.calls[0][0].context;
-    assert.ok(ctx.file.endsWith("core.spec.ts"));
+    // When @webda/test update this might change
+    assert.ok(ctx.file.endsWith("lib/core.js"));
     // Careful, line number might change
-    assert.strictEqual(ctx.line, 39);
-    assert.strictEqual(ctx.function, "_WorkerOutputTest.testLogWithLines");
+    assert.strictEqual(ctx.line, 239);
+    assert.strictEqual(ctx.function, "testExecutor");
     this.output.addLogProducerLine = false;
   }
 

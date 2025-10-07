@@ -1,6 +1,5 @@
-import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
-import jsonpath from "jsonpath";
 import { Application } from "../application/application";
 import { Configuration } from "../internal/iapplication";
 import { BinaryService } from "../services/binary";
@@ -9,20 +8,23 @@ import * as WebdaError from "../errors/errors";
 import { Store } from "../stores/store";
 import { UnpackedApplication } from "../application/unpackedapplication";
 import { Logger } from "../loggers/ilogger";
-import type { ConfigurationService } from "../configurations/configuration";
 import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
 import { ICore, AbstractService, OperationDefinitionInfo } from "./icore";
 import { emitCoreEvent } from "../events/events";
-import { useConfiguration, useInstanceStorage, useParameters } from "./instancestorage";
+import { useInstanceStorage } from "./instancestorage";
 import { useApplication, useModel, useModelId } from "../application/hooks";
 import { Modda } from "../internal/iapplication";
 import { InstanceCache } from "../cache/cache";
-import { ServiceParameters } from "../interfaces";
 import { CustomConstructor } from "@webda/tsc-esm";
+import { AsyncLocalStorage } from "node:async_hooks";
+import * as jsondiffpatch from "jsondiffpatch";
+import { ConfigurationService } from "../configurations/configuration";
 
 export type CoreStates = "initial" | "loading" | "initializing" | "reinitializing" | "ready" | "stopping" | "stopped";
 
 const CoreState = (options: StateOptions<CoreStates>) => State(options);
+
+const depsDetector = new AsyncLocalStorage<Set<string>>();
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -35,7 +37,12 @@ export class Core implements ICore {
    * Webda Services
    * @hidden
    */
-  protected services: { [key: string]: AbstractService } = {};
+  protected services: Record<string, AbstractService> = {};
+  /**
+   * Modda for services
+   * @hidden
+   */
+  protected moddas: Record<string, Modda> = {};
   /**
    * Application that generates this Core
    */
@@ -44,7 +51,7 @@ export class Core implements ICore {
    * Configuration loaded from webda.config.json
    * @hidden
    */
-  protected configuration: Configuration;
+  protected configuration: Record<string, any>;
   /**
    * Console logger
    * @hidden
@@ -58,6 +65,19 @@ export class Core implements ICore {
    * Contains all operations defined by services
    */
   protected operations: { [key: string]: OperationDefinitionInfo } = {};
+  /**
+   * Order of services initialization
+   */
+  initOrders: string[] = [];
+  /**
+   * Dependencies for each service
+   */
+  dependencies: Record<string, Set<string>> = {};
+  /**
+   * Configuration service name
+   */
+  configurationService?: string;
+  applicationConfiguration: Configuration;
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -73,11 +93,41 @@ export class Core implements ICore {
       await this.stop();
       process.exit(0);
     });
-    this.logger = new Logger(application.getWorkerOutput(), {class: "@webda/core"});
+    this.logger = new Logger(application.getWorkerOutput(), { class: "@webda/core" });
     this.application = application || new UnpackedApplication(".");
 
     // Load the configuration and migrate
-    this.configuration = useConfiguration();
+    this.configuration = {};
+    this.applicationConfiguration = this.application.getConfiguration();
+    for (const [key, value] of Object.entries(this.applicationConfiguration.services)) {
+      try {
+        this.moddas[key] = this.application.getModda(value.type || key);
+      } catch (err) {
+        this.log("ERROR", `Cannot load modda ${value.type || key} for service ${key}`, err);
+      }
+      this.configuration[key] = Object.freeze(
+        (this.moddas[key]?.filterParameters || (p => p))({
+          ...this.applicationConfiguration.parameters,
+          ...(value as object)
+        })
+      );
+    }
+    if (
+      this.applicationConfiguration.application?.configurationService &&
+      this.configuration[this.applicationConfiguration.application.configurationService]
+    ) {
+      this.configurationService = this.applicationConfiguration.application.configurationService;
+      // Freeze the configuration service parameters to avoid changes at runtime
+      Object.freeze(this.configuration[this.applicationConfiguration.application.configurationService]);
+    }
+  }
+
+  /**
+   * Get the configuration object
+   * @returns {Configuration}
+   */
+  getConfiguration() {
+    return this.configuration;
   }
 
   /**
@@ -113,7 +163,9 @@ export class Core implements ICore {
     const stores: { [key: string]: Store } = useApplication().getImplementations(Store);
     let actualScore: number;
 
-    let actualStore: Store = this.getService(useParameters().defaultStore || "Registry");
+    let actualStore: Store = this.getService(
+      this.applicationConfiguration?.application?.configurationService || "Registry"
+    );
     for (const store in stores) {
       const score = stores[store].handleModel(model);
       // As 0 mean exact match we stop there
@@ -189,7 +241,14 @@ export class Core implements ICore {
   protected async initService(service: string) {
     try {
       this.log("TRACE", "Initializing service", service);
+      const start = Date.now();
       await this.services[service].init();
+      const duration = Date.now() - start;
+      if (duration > 1000) {
+        this.log("WARN", `Service ${service} initialization took ${duration}ms`);
+      } else {
+        this.log("DEBUG", `Service ${service} initialized in ${duration}ms`);
+      }
     } catch (err) {
       this.log("ERROR", "Init service " + service + " failed: " + err.message);
       this.log("TRACE", err.stack);
@@ -204,84 +263,45 @@ export class Core implements ICore {
   @CoreState({ start: "initializing", end: "ready" })
   @InstanceCache()
   async init() {
-    if (
-      this.configuration.parameters.configurationService &&
-      this.configuration.services[this.configuration.parameters.configurationService]
-    ) {
-      try {
-        this.log("INFO", `Using ConfigurationService '${this.configuration.parameters.configurationService}'`);
-        // Create the configuration service
-        this.createService(this.configuration.parameters.configurationService);
-        const cfg = await this.getService<ConfigurationService>(
-          this.configuration.parameters.configurationService
-        ).initConfiguration();
-        if (cfg) {
-          this.configuration.parameters = deepmerge(this.configuration.parameters, cfg.parameters);
-          // Ensure beans are known too
-          Object.keys(this.getBeans())
-            .filter(
-              i =>
-                !(Array.isArray(this.configuration.parameters.ignoreBeans)
-                  ? this.configuration.parameters.ignoreBeans.includes(i)
-                  : this.configuration.parameters.ignoreBeans)
-            )
-            .forEach(bean => {
-              this.configuration.services[bean] ??= {
-                type: `Beans/${bean}`
-              };
-            });
-          // Merge services - for security reason we cannot add new services from configuration
-          for (const i in this.configuration.services) {
-            this.configuration.services[i] = {
-              ...deepmerge(this.configuration.services[i], cfg.services[i] || {}),
-              type: this.configuration.services[i].type
-            };
-          }
-        }
-        await this.getService<ConfigurationService>(this.configuration.parameters.configurationService).init();
-      } catch (err) {
-        this.log("ERROR", "Cannot use ConfigurationService", this.configuration.parameters.configurationService, err);
-        this.services = {};
+    // Create services
+    // First create the configuration service if defined
+    const initOrders = [];
+    if (this.configurationService) {
+      const service = this.createService(this.configurationService) as ConfigurationService;
+      if (!service) {
+        throw new Error(`Cannot create configuration service ${this.configurationService}`);
+      }
+      // Will update the configuration
+      await service.bootstrap(this);
+      this.getService(this.configurationService);
+      initOrders.push(...this.initOrders);
+      if (!initOrders.includes(this.configurationService)) {
+        initOrders.push(this.configurationService);
+      }
+      this.initOrders = [];
+      // Init all services defined in configuration
+      for (const service of initOrders) {
+        await this.initService(service);
       }
     }
-
-    // Init the other services
-    this.initStatics();
-    // Reset the model cache
-    InstanceCache.clear(this, "getModelStoreCached");
-    InstanceCache.clear(this, "getModelBinaryCached");
-
-    this.log("TRACE", "Create Webda init promise");
-    await this.initService("Registry");
-    // By pass the store checks
-
-    await this.initService("CryptoService");
-
-    const criticalServices: string[] = ["CryptoService", "Registry"];
-    const criticalServicesStates: [string, string][] = criticalServices
-      .map(s => {
-        return [s, this.services[s]?.getState() || "undefined"] as [string, string];
-      })
-      .filter(([_, state]) => state !== "running");
-    if (criticalServicesStates.length) {
-      this.log(
-        "ERROR",
-        `Critical service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
-      );
-      criticalServicesStates.forEach(s => {
-        const states = State.getStateStatus(this.services[s[0]]);
-        this.log("WARN", s[0], states.transitions[states.transitions.length - 1].exception);
-      });
-      throw new Error(
-        `Cannot init Webda core service${criticalServicesStates.length > 1 ? "s" : ""} '${criticalServicesStates.map(([name]) => name).join(", ")}' not running: ${criticalServicesStates.map(([_, state]) => state).join(", ")}`
-      );
+    // Create all services defined in configuration
+    for (const service in this.configuration) {
+      this.getService(service);
     }
-    // Init services
-    const inits = [];
-    for (const service in this.services) {
-      inits.push(this.initService(service));
+    this.initOrders = this.initOrders.filter(s => !initOrders.includes(s) && this.services[s]);
+    // Ensure stores are initialized first
+    this.initOrders.sort((a, b) => {
+      if (this.services[a] instanceof Store && !(this.services[b] instanceof Store)) {
+        return -1;
+      } else if (!(this.services[a] instanceof Store) && this.services[b] instanceof Store) {
+        return 1;
+      }
+      return 0;
+    });
+    this.log("DEBUG", "Services init order", [...initOrders, ...this.initOrders]);
+    for (const service of this.initOrders) {
+      await this.initService(service);
     }
-    await Promise.all(inits);
     await emitCoreEvent("Webda.Init.Services", this.services);
   }
 
@@ -312,8 +332,17 @@ export class Core implements ICore {
    *
    * @param {String} name The service name to retrieve
    */
-  getService<T = AbstractService>(name: string | number | symbol = ""): T {
-    return <T>this.services[name as string];
+  getService<T = AbstractService>(name: string = ""): T {
+    depsDetector.getStore()?.add(name);
+    // If not defined yet, create it and add it to the init order
+    if (this.services[name] === undefined) {
+      this.dependencies[name] ??= new Set<string>();
+      depsDetector.run(this.dependencies[name], () => {
+        this.services[name] = this.createService(name)?.resolve();
+      });
+      this.initOrders.push(name);
+    }
+    return <T>this.services[name];
   }
 
   /**
@@ -331,47 +360,6 @@ export class Core implements ICore {
   }
 
   /**
-   * Reinit one service
-   * @param service
-   */
-  protected async reinitService(service: string): Promise<void> {
-    try {
-      this.log("TRACE", "Re-Initializing service", service);
-      const serviceBean = this.services[service];
-      await serviceBean.parameters.load(useParameters(serviceBean.getName()));
-    } catch (err) {
-      this.log("ERROR", "Re-Init service " + service + " failed", err);
-      this.log("TRACE", err.stack);
-    }
-  }
-
-  /**
-   * Reinit all services with updated parameters
-   * @param updates
-   * @returns
-   */
-  @CoreState({ start: "reinitializing", end: "ready" })
-  public async reinit(updates: any): Promise<void> {
-    const configuration = JSON.parse(JSON.stringify(this.configuration.services));
-    for (const service in updates) {
-      jsonpath.value(configuration, service, updates[service]);
-    }
-    if (JSON.stringify(Object.keys(configuration)) !== JSON.stringify(Object.keys(this.configuration.services))) {
-      this.log("ERROR", "Configuration update cannot modify services");
-      throw new WebdaError.CodeError(
-        "REINIT_SERVICE_INJECTION",
-        "Configuration is not designed to add dynamically services"
-      );
-    }
-    this.configuration.services = configuration;
-    const inits: Promise<void>[] = [];
-    for (const service in this.services) {
-      inits.push(this.reinitService(service));
-    }
-    await Promise.all(inits);
-  }
-
-  /**
    * Log a message
    * @param level
    * @param args
@@ -381,27 +369,75 @@ export class Core implements ICore {
   }
 
   /**
+   * Update the configuration with new values
+   * @param updates
+   */
+  updateConfiguration(updates: any) {
+    updates.services ??= {};
+    updates.parameters ??= {};
+    const configuration = this.applicationConfiguration;
+    const newConfiguration = {};
+    for (const key in updates.services) {
+      if (!this.configuration[key]) {
+        delete updates.services[key];
+        this.log("WARN", `Cannot update configuration for unknown service ${key}`);
+        continue;
+      }
+      if (updates.services[key].type && updates.services[key].type !== this.configuration[key].type) {
+        delete updates.services[key];
+        this.log("WARN", `Cannot update type for service ${key}`);
+        continue;
+      }
+      newConfiguration[key] = (this.moddas[key].filterParameters || (p => p))(
+        deepmerge(configuration.parameters, updates.parameters, configuration[key], updates.services[key])
+      );
+    }
+    for (const key in this.configuration) {
+      newConfiguration[key] = (this.moddas[key]?.filterParameters || (p => p))(
+        deepmerge(
+          configuration.parameters || {},
+          updates.parameters || {},
+          configuration.services[key] || {},
+          updates.services[key] || {}
+        )
+      );
+      newConfiguration[key].type = this.configuration[key].type;
+    }
+    Object.freeze(newConfiguration);
+    const delta = jsondiffpatch.diff(this.configuration, newConfiguration);
+    if (!delta) {
+      this.log("DEBUG", "No configuration changes");
+      return;
+    }
+    emitCoreEvent("Webda.Configuration.Applying", { configuration: newConfiguration, delta });
+    for (const service in this.services) {
+      if (delta[service]) {
+        this.log("DEBUG", `Updating ${service} due to configuration change`);
+        this.services[service]?.parameters.load(newConfiguration[service]);
+      }
+    }
+    // Update the configuration
+    this.configuration = newConfiguration;
+    emitCoreEvent("Webda.Configuration.Applied", { configuration: newConfiguration, delta });
+  }
+
+  /**
    * Create a specific service
    * @param service
    * @returns
    */
   protected createService(service: string) {
-    const params = useParameters(service);
-    let serviceConstructor: Modda = undefined;
-    try {
-      serviceConstructor = this.application.getModda(params.type);
-    } catch (ex) {
-      this.log("ERROR", `Create service ${service}(${params.type}) failed ${ex.message}`);
-      this.log("TRACE", ex.stack);
+    const serviceConstructor = this.moddas[service];
+    if (!serviceConstructor) {
+      this.log("ERROR", `Create service ${service}(${this.configuration[service]?.type}) failed: unknown type`);
       return;
     }
-
     try {
-      const paramsClass = serviceConstructor.createConfiguration
-        ? serviceConstructor.createConfiguration(params)
-        : new ServiceParameters().load(params);
       this.log("TRACE", "Constructing service", service);
-      this.services[service] = new serviceConstructor(service, paramsClass);
+      this.services[service] = new serviceConstructor(
+        service,
+        serviceConstructor.createConfiguration(this.configuration[service])
+      );
     } catch (err) {
       this.log("ERROR", "Cannot create service", service, err);
     }
@@ -418,53 +454,6 @@ export class Core implements ICore {
   }
 
   /**
-   * @hidden
-   *
-   */
-  protected createServices(excludes: string[] = []): void {
-    const services = this.configuration.services;
-    let beans: { [key: string]: Modda } = this.getBeans();
-    if (this.configuration.parameters.ignoreBeans) {
-      if (Array.isArray(this.configuration.parameters.ignoreBeans)) {
-        this.configuration.parameters.ignoreBeans.forEach(bean => {
-          delete beans[bean];
-        });
-      } else {
-        beans = {};
-      }
-    }
-    this.log("DEBUG", "BEANS", beans, "IGNORING", this.configuration.parameters.ignoreBeans);
-    for (const i in beans) {
-      const name = beans[i].name;
-      if (!services[name]) {
-        services[name] = {};
-      }
-      // Force type to Bean
-      services[name].type = `Beans/${name}`;
-      // Register the type
-      this.application.addModda(`Beans/${name}`, beans[i]);
-    }
-
-    // Construct services
-    Object.keys(services)
-      .filter(s => !excludes.includes(s))
-      .forEach(s => this.createService(s));
-
-    // Call resolve on all services as all services now exist
-    Object.keys(this.services)
-      .filter(s => !excludes.includes(s))
-      .forEach(s => {
-        try {
-          this.services[s].resolve();
-        } catch (err) {
-          this.log("ERROR", `Service(${s})`, err);
-        }
-      });
-
-    emitCoreEvent("Webda.Create.Services", this.services);
-  }
-
-  /**
    * Stop all services
    */
   @CoreState({ start: "stopping", end: "stopped" })
@@ -476,50 +465,12 @@ export class Core implements ICore {
       // Stop all services
       ...Object.keys(services).map(async s => {
         try {
-          await services[s].stop();
+          await services[s]?.stop();
         } catch (err) {
           this.log("ERROR", `Cannot stop service ${s}`, err);
         }
       })
     ]);
-  }
-
-  /**
-   * Init services and Beans along with Routes
-   */
-  initStatics() {
-    // For all final models, call resolve so they can declare their operations
-    Object.values(this.application.getModels())
-      .filter(model => {
-        return model && this.application.isFinalModel(useModelId(model));
-      })
-      .forEach(model => {
-        //model.resolve();
-      });
-    // Init the registry
-
-    let service = this.createService("Registry");
-    if (!service) {
-      throw new Error("Cannot create Registry service");
-    }
-    service.resolve();
-
-    service = this.createService("CryptoService");
-    if (!service) {
-      throw new Error("Cannot create Cryptographic service");
-    }
-    service.resolve();
-
-    if (this.configuration.services !== undefined) {
-      const excludes = ["Registry", "CryptoService"];
-      if (this.configuration.parameters.configurationService) {
-        excludes.push(this.configuration.parameters.configurationService);
-      }
-      // Do not recreate the configuration services
-      this.createServices(excludes);
-    }
-
-    emitCoreEvent("Webda.Init", this.configuration);
   }
 
   /**

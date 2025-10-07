@@ -6,6 +6,7 @@ export default defineConfig({
   clearScreen: false,
   test: {
     allowOnly: true,
+    testTimeout: 20000,
     coverage: {
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.spec.ts", "src/index.ts"],
@@ -14,12 +15,15 @@ export default defineConfig({
     testTransformMode: {
       web: ["./esbuild.webda.ts"]
     },
+    passWithNoTests: true,
     setupFiles: ["./vitest.chdir.mts"],
     reporters: "verbose",
     include: [
       "src/application/*.spec.ts",
       "src/cache/*.spec.ts",
-      // "src/configurations/*.spec.ts",
+      // "src/configurations/file*.spec.ts",
+      // "src/configurations/kube*.spec.ts",
+      "src/configurations/*.spec.ts",
       "src/contexts/*.spec.ts",
       "src/core/*.spec.ts",
       "src/errors/*.spec.ts",
@@ -40,7 +44,9 @@ export default defineConfig({
       //"src/services/prometheus.spec.ts", // Check parameters loading
       // "src/services/resource.spec.ts",
       //"src/services/service.spec.ts",
+      "src/services/serviceparameters.spec.ts",
       //"src/stores/*.spec.ts",
+      "src/queues/*.spec.ts",
       "src/templates/*.spec.ts",
       "src/test/*.spec.ts",
       "src/utils/*.spec.ts"

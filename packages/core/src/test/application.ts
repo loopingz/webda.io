@@ -23,9 +23,9 @@ import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./obje
 import { Application } from "../application/application";
 import { useLog } from "@webda/workout";
 import { WebdaAsyncStorageTest } from "./asyncstorage";
-import { afterAll, beforeAll, beforeEach } from "@webda/test";
-import { ModelClass, Repository } from "@webda/models";
+import { ModelClass } from "@webda/models";
 import { useInstanceStorage } from "../core/instancestorage";
+import { ServiceParameters } from "../services/serviceparameters";
 
 /**
  * Utility class for UnitTest
@@ -57,6 +57,10 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @param app
    */
   async tweakApp(app: TestApplication) {
+    // Use MemoryStore for Registry without persistence
+    app.getCurrentConfiguration().services.Registry = {
+      type: "Webda/MemoryStore"
+    };
     app
       .addModda("WebdaTest/VoidStore", VoidStore)
       .addModda("WebdaTest/FakeService", FakeService)
@@ -83,7 +87,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
       useWorkerOutput().addLogProducerLine = true;
       new ConsoleLogger(useWorkerOutput(), (process.env["WEBDA_TEST_LOG"] || "INFO") as WorkerLogLevel);
     }
-    
+
     const app = this.getApplication();
     useInstanceStorage().application = app;
     await app.load();
@@ -107,8 +111,6 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     const core = await this.buildWebda();
     if (init) {
       await core.init();
-      // Prevent persistance for tests
-      (<MemoryStore>useModelStore(RegistryEntry)).persist = async () => {};
     }
   }
 
@@ -308,7 +310,12 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     params?: DeepPartial<ReturnType<P["getParameters"]>>,
     name?: string
   ): Promise<P> {
-    return this.registerService(new service(name || service.name, <any>params ?? {}))
+    const serviceConstructor: (new (name: string, params: any) => P) & { createConfiguration?: (params: any) => void } =
+      service;
+    const paramsObject = serviceConstructor.createConfiguration
+      ? serviceConstructor.createConfiguration(params)
+      : new ServiceParameters().load(params);
+    return this.registerService(new service(name || service.name, paramsObject))
       .resolve()
       .init();
   }

@@ -4,7 +4,7 @@ import { Service } from "./service";
 import { User } from "../models/user";
 import { WebdaApplicationTest } from "../test/application";
 import { MultiNotificationParameters, MultiNotificationService, NotificationService } from "./notificationservice";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 
 class FakeNotification extends Service implements NotificationService {
   template: boolean = false;

@@ -7,7 +7,7 @@ import * as WebdaError from "../errors/errors";
 import { Service } from "./service";
 import { NotEnumerable } from "@webda/tsc-esm";
 import { useCore, useModelMetadata } from "../core/hooks";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "./serviceparameters";
 import { Counter } from "../metrics/metrics";
 import { IOperationContext } from "../contexts/icontext";
 import { IStore } from "../core/icore";
@@ -471,8 +471,8 @@ export class BinaryParameters extends ServiceParameters {
    */
   maxFileSize?: number;
 
-  default() {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     // Store all models in it by default
     this.models ??= {
       "*": ["*"]

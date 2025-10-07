@@ -58,7 +58,7 @@ export * from "./services/authentication";
 export * from "./services/prometheus";
 export * from "./services/resource";
 export * from "./services/cryptoservice";
-export * from "./interfaces";
+export * from "./services/serviceparameters";
 export * from "./services/cron";
 export * from "./services/icryptoservice";
 export * from "./configurations/fileconfiguration";

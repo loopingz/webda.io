@@ -1,4 +1,4 @@
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "./serviceparameters";
 
 export class CryptoServiceParameters extends ServiceParameters {
   /**
@@ -76,7 +76,8 @@ export class CryptoServiceParameters extends ServiceParameters {
    */
   jwt?: JWTOptions;
 
-  default() {
+  load(params: any = {}): this {
+    super.load(params);
     this.symetricKeyLength ??= 256;
     this.symetricCipher ??= "aes-256-ctr";
     this.asymetricType ??= "rsa";

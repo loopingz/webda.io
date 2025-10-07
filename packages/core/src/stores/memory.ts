@@ -48,8 +48,8 @@ export class MemoryStoreParameters extends StoreParameters {
     compressionLevel?: number;
   };
 
-  default() {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     if (this.persistence) {
       this.persistence.delay ??= 1000;
       this.persistence.cipher ??= "aes-256-ctr";

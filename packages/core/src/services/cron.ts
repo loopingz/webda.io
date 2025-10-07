@@ -4,7 +4,6 @@ import { Service } from "./service";
 import { CancelablePromise } from "@webda/utils";
 import { useCore, useService } from "../core/hooks";
 
-
 export const CronSymbol = Symbol("WebdaCron");
 /**
  * Cron item
@@ -91,8 +90,8 @@ class CronService extends Service {
   static loadAnnotations(services): CronDefinition[] {
     const cronsResult: CronDefinition[] = [];
     for (const i in services) {
-      if (services[i][CronSymbol]) {
-        services[i][CronSymbol].forEach((cron: CronDefinition) => {
+      if (services[i]?.[CronSymbol]) {
+        services[i]?.[CronSymbol].forEach((cron: CronDefinition) => {
           cron.serviceName = i;
           cronsResult.push(cron);
         });

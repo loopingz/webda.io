@@ -7,7 +7,6 @@ import sanitize from "sanitize-html";
 import { JSONUtils } from "@webda/utils";
 import { useLog } from "../loggers/hooks";
 import { runAsSystem } from "./execution";
-import { useParameters } from "../core/instancestorage";
 import { IUser } from "../internal/iapplication";
 import { useModelRepository } from "../core/hooks";
 
@@ -179,7 +178,8 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
       return obj;
     };
     try {
-      const { requestLimit, requestTimeout } = useParameters();
+      // TODO define this
+      const { requestLimit, requestTimeout } = { requestLimit: 10 * 1024 * 1024, requestTimeout: 60000 };
       const data = await this.getRawInputAsString(requestLimit, requestTimeout);
       if (sanitizedOptions.raw === true) {
         return JSON.parse(data || sanitizedOptions.defaultValue);

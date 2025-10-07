@@ -1,14 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as path from "path";
-import {
-  Application,
-  UnpackedApplication,
-  useApplication,
-  useInstanceStorage,
-  validateModelSchema,
-  validateSchema
-} from "../index";
+import { Application, UnpackedApplication, useApplication, validateModelSchema } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
 import { WebdaInternalTest, TestInternalApplication } from "../test/internal";

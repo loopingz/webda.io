@@ -137,6 +137,12 @@
           "source": {
             "type": "string"
           },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "default": {},
           "openapi": {
             "type": "object",
@@ -145,8 +151,8 @@
         },
         "required": [
           "checkInterval",
-          "default",
           "source",
+          "sources",
           "type"
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -348,7 +354,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "CronService"
       },
-      "Configuration": "lib/interfaces:ServiceParameters"
+      "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
     "Webda/CryptoService": {
       "Import": "lib/services/cryptoservice:CryptoService",
@@ -594,7 +600,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "DebugMailer"
       },
-      "Configuration": "lib/interfaces:ServiceParameters"
+      "Configuration": "lib/services/serviceparameters:ServiceParameters"
     },
     "Webda/FileConfiguration": {
       "Import": "lib/configurations/fileconfiguration:FileConfigurationService",
@@ -610,6 +616,12 @@
           "source": {
             "type": "string"
           },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "default": {},
           "openapi": {
             "type": "object",
@@ -618,8 +630,8 @@
         },
         "required": [
           "checkInterval",
-          "default",
           "source",
+          "sources",
           "type"
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -692,6 +704,12 @@
           "source": {
             "type": "string"
           },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "default": {},
           "openapi": {
             "type": "object",
@@ -700,14 +718,15 @@
         },
         "required": [
           "checkInterval",
-          "default",
           "source",
+          "sources",
           "type"
         ],
+        "description": "Parameters for KubernetesConfigurationService Throw error if default is set",
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "KubernetesConfigurationService"
       },
-      "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
+      "Configuration": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationParameters"
     },
     "Webda/Mailer": {
       "Import": "lib/services/mailer:Mailer",
@@ -808,6 +827,9 @@
             "type": "number"
           },
           "expire": {
+            "type": "number"
+          },
+          "timeout": {
             "type": "number"
           },
           "openapi": {

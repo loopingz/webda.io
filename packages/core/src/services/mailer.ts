@@ -7,7 +7,7 @@ import { Service } from "./service";
 import { Counter } from "../metrics/metrics";
 import type { User } from "../models/user";
 import type { Ident } from "../models/ident";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { ServicePartialParameters } from "../internal/iapplication";
 
 interface IEmailTemplate {
@@ -99,7 +99,8 @@ export class MailerParameters extends ServiceParameters {
    */
   SES: any;
 
-  default() {
+  load(params: any = {}): this {
+    super.load(params);
     this.templates ??= "./templates";
     if (!this.templates.endsWith("/")) {
       this.templates += "/";

@@ -1,27 +1,22 @@
-import { createCoreHook } from "../core/instancestorage";
+import { useInstanceStorage } from "../core/instancestorage";
 import type { Model } from "@webda/models";
 import { ModelDefinition } from "../internal/iapplication";
-/**
- * Hook to get the current application
- *
- * We use a _ to be able to document the subhooks
- */
-const [_useApplication, _setApplication] = createCoreHook("application");
+import type { Application } from "./application";
 
 /**
  * Get the current application
  */
-const useApplication = _useApplication;
+export function useApplication<T extends Application = Application>(): T {
+  return useInstanceStorage().application as T; // Ensure we are in a instance storage context
+}
 /**
  * Set the current application
  *
  * @param application
  */
-const setApplication = _setApplication;
-
-export { useApplication, setApplication };
-
-// Subhooks - using the application to shortcut to a specific
+export function setApplication(application: Application) {
+  useInstanceStorage().application = application;
+}
 
 /**
  * Useful if you want to allow model override
@@ -45,6 +40,5 @@ export function useModel<T extends Model = Model>(name: string | T): ModelDefini
  * @returns The model identifier or undefined if not found, e.g. "User" or "Webda/User"
  */
 export function useModelId(object: any): string | undefined {
-  // TODO Check for full
   return useApplication().getModelId(object);
 }

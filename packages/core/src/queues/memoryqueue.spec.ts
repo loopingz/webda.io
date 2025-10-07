@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { register } from "prom-client";
 import { Queue } from "../index";
-import { MemoryQueue } from "./memoryqueue";
+import { MemoryQueue, MemoryQueueParameters } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";
 import { CancelablePromise } from "@webda/utils";
 
@@ -172,14 +172,13 @@ class MemoryQueueTest extends QueueTest {
   async basic() {
     const queue: MemoryQueue = <MemoryQueue>this.queue;
     // For coverage
-    assert.strictEqual(queue.getParameters().expire, 1000, "1s should be convert to ms");
-    queue.getParameters().expire = undefined;
-    await queue.init();
-    assert.strictEqual(queue.getParameters().expire, 30000, "default should be 30s");
-    queue.getParameters().expire = 1000;
+    assert.strictEqual(queue.getParameters().expire, 1, "1s");
+    assert.strictEqual(queue.getParameters().expireMs, 1000, "1s should be convert to ms");
+    assert.strictEqual(new MemoryQueueParameters().load().expire, 30, "default should be 30s");
     queue.__clean();
     // Should not have issue with unknown receipt
-    queue.deleteMessage("bouzouf");
+    await queue.deleteMessage("bouzouf");
+    this.stub(queue.getParameters(), "timeoutMs").get(() => 1);
     assert.strictEqual((await queue.receiveMessage()).length, 0);
     return this.simple(queue);
   }

@@ -28,7 +28,7 @@ export type CoreEvents = {
   /**
    * Emitted when Core is initialized
    */
-  "Webda.Init": Configuration;
+  "Webda.Init": Record<string, any>;
   /**
    * Emitted whenever a new Context is created
    */
@@ -55,6 +55,8 @@ export type CoreEvents = {
     context: OperationContext;
     operationId: string;
   };
+  "Webda.Configuration.Applying": { configuration: { [key: string]: any }; delta: { [key: string]: any } };
+  "Webda.Configuration.Applied": { configuration: { [key: string]: any }; delta: { [key: string]: any } };
 };
 
 export class EventWithContext<T extends Context = Context> {

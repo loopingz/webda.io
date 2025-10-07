@@ -2,7 +2,7 @@ import { useService } from "../core/hooks";
 import { AbstractService } from "../core/icore";
 import type { Ident } from "../models/ident";
 import type { User } from "../models/user";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { Service } from "./service";
 
 /**
@@ -48,8 +48,8 @@ export class MultiNotificationParameters extends ServiceParameters {
   /**
    * @override
    */
-  default() {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     this.senders ??= [];
     this.multiple ??= false;
     return this;

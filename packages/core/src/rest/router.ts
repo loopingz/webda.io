@@ -5,14 +5,14 @@ import type { IRouter, RequestFilter, RouteInfo } from "./irest";
 import { useApplication, useModelId } from "../application/hooks";
 import { useLog } from "../loggers/hooks";
 import type { OpenAPIV3 } from "openapi-types";
-import { useConfiguration, useParameters } from "../core/instancestorage";
+import { useParameters } from "../core/instancestorage";
 import { useService } from "../core/hooks";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { IWebContext } from "../contexts/icontext";
 import { Service } from "../services/service";
 import { WebContext } from "../contexts/webcontext";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { Storable } from "@webda/models";
 import { templateVariables } from "../templates/templates";
 import { useCoreEvents } from "../events/events";
@@ -545,7 +545,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         paths: {},
         tags: []
       },
-      useConfiguration().openapi || {}
+      useApplication().getCurrentConfiguration().openapi || {}
     );
     const app = useApplication();
     const models = app.getModels();

@@ -3,7 +3,6 @@ import * as WebdaError from "../errors/errors";
 import { FileUtils } from "@webda/utils";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 import { useApplication } from "../application/hooks";
-import { useCore } from "../core/hooks";
 
 /**
  * Allow for dynamic configuration from a file
@@ -12,49 +11,48 @@ import { useCore } from "../core/hooks";
 export class FileConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters
 > extends ConfigurationService<T> {
-  /** @ignore */
-  async init(): Promise<this> {
-    // Do not call super as we diverged
-    if (!this.parameters.source) {
-      throw new WebdaError.CodeError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
+  sourcePaths: Record<string, string> = {};
+
+  getFilePath(id: string): string {
+    // Allow .jsonc, .yaml, .yml, .json
+    if (/\.(jsonc?|ya?ml)$/.test(id)) {
+      this.sourcePaths[id] = useApplication().getPath(id);
+    } else {
+      try {
+        this.sourcePaths[id] = FileUtils.getConfigurationFile(useApplication().getPath(id));
+        this.log("DEBUG", `Using configuration file ${this.sourcePaths[id]}`);
+      } catch (error) {
+        // Default to yaml in case we create based on default value
+        this.sourcePaths[id] = useApplication().getPath(id + ".yaml");
+        this.log("DEBUG", `Using configuration file ${this.sourcePaths[id]} (defaulted to .yaml extension)`);
+      }
     }
-
-    // Load it from where it should be
-    this.parameters.source = useApplication().getPath(this.parameters.source);
-    if (!existsSync(this.parameters.source)) {
-      throw new WebdaError.CodeError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
+    if (!existsSync(this.sourcePaths[id])) {
+      if (!this.parameters.default) {
+        throw new WebdaError.CodeError(
+          "FILE_CONFIGURATION_SOURCE_MISSING",
+          "Configuration file not found: " + this.sourcePaths[id]
+        );
+      } else {
+        this.log("DEBUG", `Setting default value for file ${this.sourcePaths[id]}`);
+        FileUtils.save(this.parameters.default, this.sourcePaths[id]);
+      }
     }
+    return this.sourcePaths[id];
+  }
 
-    watchFile(this.parameters.source, this.checkUpdate.bind(this));
-
-    // Add webda info
-    this.watch("$.services", (updates: any) => useCore().reinit(updates));
-
-    await this.checkUpdate();
-    return this;
+  canTriggerConfiguration(id: string, callback: () => void, defaultValue?: any): boolean {
+    this.sourcePaths[id] ??= this.getFilePath(id);
+    watchFile(this.sourcePaths[id], callback);
+    return true;
   }
 
   /**
    * Load the JSON from source defined file
    * @override
    */
-  protected async loadConfiguration(): Promise<{ [key: string]: any }> {
-    return FileUtils.load(this.parameters.source);
-  }
-
-  /**
-   * Read the file and store it
-   */
-  async initConfiguration(): Promise<{ [key: string]: any }> {
-    this.parameters.source = useApplication().getPath(this.parameters.source);
-
-    /**
-     * Auto-generate file if missing
-     */
-    if (!existsSync(this.parameters.source) && this.parameters.default) {
-      FileUtils.save(this.parameters.default, this.parameters.source);
-    }
-
-    return this.loadAndStoreConfiguration();
+  getConfiguration(id: string): Promise<{ [key: string]: any }> {
+    this.sourcePaths[id] ??= this.getFilePath(id);
+    return FileUtils.load(this.sourcePaths[id]);
   }
 }

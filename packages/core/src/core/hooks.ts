@@ -1,5 +1,5 @@
 import { IStore } from "./icore";
-import { createCoreHook } from "./instancestorage";
+import { createCoreHook, useInstanceStorage } from "./instancestorage";
 import pkg from "node-machine-id";
 import type { Model, ModelClass, Repository } from "@webda/models";
 import { CustomConstructor } from "@webda/tsc-esm";
@@ -8,12 +8,24 @@ import type CryptoService from "../services/cryptoservice";
 import type { Store } from "../stores/store";
 import type { Reflection } from "../internal/iapplication";
 import { useModel } from "../application/hooks";
-import { ModelMetadata } from "@webda/compiler";
+import type { Core } from "./core";
 const { machineIdSync } = pkg;
 
-const [useCore, setCore] = createCoreHook("core");
+/**
+ * Get the current core
+ * @returns the current core
+ */
+export function useCore<T extends Core = Core>(): T {
+  return useInstanceStorage().core as T;
+}
 
-export { useCore, setCore };
+/**
+ * Set the current core
+ * @param core
+ */
+export function setCore(core: Core) {
+  useInstanceStorage().core = core;
+}
 
 /**
  * Get a service by name

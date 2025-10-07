@@ -19,7 +19,7 @@ import {
   Repository,
   MemoryRepository
 } from "@webda/models";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { IOperationContext } from "../contexts/icontext";
 
 export type TaskEvents<T> = ModelEvents<T> & {
@@ -111,7 +111,10 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
     throw new Error("Method not implemented.");
   }
   static createConfiguration(params: any): any {
-    return new StoreParameters().load(params).default();
+    return new StoreParameters().load(params);
+  }
+  static filterParameters(params: any): any {
+    return params;
   }
   protected _patch(
     _object: any,
@@ -223,7 +226,10 @@ export class VoidStore extends Store<StoreParameters & { brokenConstructor?: boo
  */
 export class FakeService extends Service {
   static createConfiguration(params: any): any {
-    return new ServiceParameters().load(params).default();
+    return new ServiceParameters().load(params);
+  }
+  static filterParameters(params: any): any {
+    return params;
   }
 }
 

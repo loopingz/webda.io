@@ -1,4 +1,4 @@
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import {
   CancelableLoopPromise,
   CancelablePromise,

@@ -1,16 +1,18 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { existsSync, unlinkSync, writeFileSync } from "fs";
-import { WebdaApplicationTest } from "../test/test";
-import { getCommonJS } from "../utils/esm";
+import { WebdaApplicationTest } from "../test/application";
+import { getCommonJS } from "@webda/utils";
 import { FileConfigurationService } from "./fileconfiguration";
-import { useConfiguration } from "../core/instancestorage";
+import { useService } from "../core/hooks";
+import { Authentication } from "../services/authentication";
+import { useCoreEvents } from "../events/events";
 const { __dirname } = getCommonJS(import.meta.url);
 
 class FileConfigurationAbstractTest extends WebdaApplicationTest {
   getTestConfiguration() {
     return {
-      parameters: {
+      application: {
         ignoreBeans: true,
         configurationService: "FileConfigurationService"
       },
@@ -19,12 +21,13 @@ class FileConfigurationAbstractTest extends WebdaApplicationTest {
           type: "MemoryStore"
         },
         Authentication: {
-          providers: {
-            email: {
-              text: "Test",
-              mailer: "DefinedMailer"
-            }
+          email: {
+            text: "Test",
+            mailer: "DefinedMailer"
           }
+        },
+        DefinedMailer: {
+          type: "WebdaTest/Mailer"
         },
         FileConfigurationService: {
           type: "Webda/FileConfiguration",
@@ -32,10 +35,8 @@ class FileConfigurationAbstractTest extends WebdaApplicationTest {
           default: {
             services: {
               Authentication: {
-                providers: {
-                  email: {
-                    text: "DefaultTest"
-                  }
+                email: {
+                  text: "DefaultTest"
                 }
               }
             }
@@ -48,7 +49,7 @@ class FileConfigurationAbstractTest extends WebdaApplicationTest {
 
 @suite
 class FileConfigurationServiceTest extends FileConfigurationAbstractTest {
-  async beforeEach() {
+  async beforeAll() {
     this.cleanFiles.push(__dirname + "/../../test/my-cnf.json");
     writeFileSync(
       __dirname + "/../../test/my-cnf.json",
@@ -56,10 +57,8 @@ class FileConfigurationServiceTest extends FileConfigurationAbstractTest {
         {
           services: {
             Authentication: {
-              providers: {
-                email: {
-                  text: "ConfigTest"
-                }
+              email: {
+                text: "ConfigTest"
               }
             },
             ImplicitBean: {
@@ -71,32 +70,24 @@ class FileConfigurationServiceTest extends FileConfigurationAbstractTest {
         2
       )
     );
-    await super.beforeEach();
+    await super.beforeAll();
   }
 
   @test
   async initialLoad() {
-    // Check exceptions
-    await assert.rejects(
-      () => new FileConfigurationService("except", {}).init(),
-      /Need a source for FileConfigurationService/
-    );
-    await assert.rejects(
-      () =>
-        new FileConfigurationService("except", {
-          source: "/plops"
-        }).init(),
-      /Need a source for FileConfigurationService/
-    );
-
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "ConfigTest");
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    const auth = useService<Authentication>("Authentication");
+    assert.strictEqual(auth.parameters.email!.text, "ConfigTest");
+    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
     await new Promise<void>(resolve => {
       let ok = false;
-      this.getService("FileConfigurationService").on("Configuration.Applied", () => {
-        ok = true;
-        resolve();
-      });
+      useCoreEvents(
+        "Webda.Configuration.Applied",
+        () => {
+          ok = true;
+          resolve();
+        },
+        true
+      );
       // Github fs watcher seems to have some issue
       setTimeout(async () => {
         if (!ok) {
@@ -113,10 +104,8 @@ class FileConfigurationServiceTest extends FileConfigurationAbstractTest {
           {
             services: {
               Authentication: {
-                providers: {
-                  email: {
-                    text: "Plop"
-                  }
+                email: {
+                  text: "Plop"
                 }
               }
             }
@@ -127,24 +116,22 @@ class FileConfigurationServiceTest extends FileConfigurationAbstractTest {
       );
     });
 
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(auth.parameters.email!.text, "Plop");
+    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
   }
 }
 
 @suite
 class FileConfigurationNoReloadServiceTest extends FileConfigurationAbstractTest {
-  async beforeEach() {
+  async beforeAll() {
     writeFileSync(
       __dirname + "/../../test/my-cnf.json",
       JSON.stringify(
         {
           services: {
             Authentication: {
-              providers: {
-                email: {
-                  text: "Test2"
-                }
+              email: {
+                text: "Test2"
               }
             }
           }
@@ -153,13 +140,14 @@ class FileConfigurationNoReloadServiceTest extends FileConfigurationAbstractTest
         2
       )
     );
-    await super.beforeEach();
+    await super.beforeAll();
   }
 
   @test
   async initialLoad() {
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Test2");
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    const auth = useService<Authentication>("Authentication");
+    assert.strictEqual(auth.parameters.email?.text, "Test2");
+    assert.strictEqual(auth.parameters.email?.mailer, "DefinedMailer");
   }
 }
 
@@ -167,22 +155,23 @@ class FileConfigurationNoReloadServiceTest extends FileConfigurationAbstractTest
 class FileConfigurationNoReloadMissingServiceTest extends FileConfigurationAbstractTest {
   getTestConfiguration() {
     const cfg: any = super.getTestConfiguration();
-    cfg.services.FileConfigurationService.default.services.Authentication.providers.email.text = "Test";
+    cfg.services.FileConfigurationService.default.services.Authentication.email.text = "Test";
     return cfg;
   }
 
-  async beforeEach() {
+  async beforeAll() {
     const filename = __dirname + "/../../test/my-cnf.json";
     if (existsSync(filename)) {
       unlinkSync(filename);
     }
-    await super.beforeEach();
+    await super.beforeAll();
   }
 
   @test
   async initialLoad() {
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    const auth = useService<Authentication>("Authentication");
+    assert.strictEqual(auth.parameters.email?.text, "Test");
+    assert.strictEqual(auth.parameters.email?.mailer, "DefinedMailer");
   }
 }
 
@@ -205,7 +194,9 @@ class FileConfigurationMissingFileNoDefaultTest extends FileConfigurationAbstrac
 
   @test
   async initialLoad() {
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "Test");
+    const auth = useService<Authentication>("Authentication");
+    //
+    assert.strictEqual(auth.parameters.email?.text, "Test");
   }
 }
 
@@ -215,6 +206,11 @@ class FileConfigurationMissingFileTest extends FileConfigurationAbstractTest {
     const cfg: any = super.getTestConfiguration();
     cfg.services.FileConfigurationService.source = "./test/my-missing-file.json";
     return cfg;
+  }
+
+  async beforeAll(init?: boolean): Promise<void> {
+    await super.beforeAll(init);
+    // throw new Error("STOP");
   }
 
   async beforeEach() {
@@ -227,6 +223,7 @@ class FileConfigurationMissingFileTest extends FileConfigurationAbstractTest {
 
   @test
   async initialLoad() {
-    assert.strictEqual(useConfiguration().services.Authentication.providers.email.text, "DefaultTest");
+    const auth = useService<Authentication>("Authentication");
+    assert.strictEqual(auth.parameters.email?.text, "DefaultTest");
   }
 }

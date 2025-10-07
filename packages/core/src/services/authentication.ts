@@ -6,13 +6,13 @@ import type { User } from "../models/user";
 import { Inject, Service } from "../services/service";
 import { Route } from "../rest/irest";
 import type { OperationContext } from "../contexts/operationcontext";
-import { HttpContext, type HttpMethodType } from "../contexts/httpcontext";
+import { type HttpMethodType } from "../contexts/httpcontext";
 import type { CryptoService } from "./cryptoservice";
 import type { Mailer } from "./mailer";
 import { runAsSystem } from "../contexts/execution";
 import { EventWithContext } from "../events/events";
-import { ServiceParameters } from "../interfaces";
-import { useCore, useService, useModelRepository } from "../core/hooks";
+import { ServiceParameters } from "./serviceparameters";
+import { useService, useModelRepository } from "../core/hooks";
 import { WebContext } from "../contexts/webcontext";
 import { Repository } from "@webda/models";
 
@@ -187,8 +187,8 @@ export class AuthenticationParameters extends ServiceParameters {
    */
   registerRedirect: string;
 
-  default() {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     this.identModel ??= "Webda/Ident";
     this.userModel ??= "Webda/User";
     this.url ??= "/auth";
@@ -271,13 +271,6 @@ class Authentication<
     recovered?: Counter;
     registration?: Counter;
   };
-
-  /**
-   * Load the parameters for a service
-   */
-  loadParameters(params: any): T {
-    return <T>new AuthenticationParameters().load(params);
-  }
 
   /**
    * Get user model

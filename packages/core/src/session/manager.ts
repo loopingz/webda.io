@@ -1,16 +1,13 @@
 import { CryptoService } from "../services/cryptoservice";
 import { JWTOptions } from "../services/icryptoservice";
 import { Inject, Service } from "../services/service";
-import { Store } from "../stores/store";
 
 import { CookieOptions, SecureCookie } from "./cookie";
 import { Context, isWebContext } from "../contexts/icontext";
 import { getUuid } from "@webda/utils";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { Session } from "./session";
-import { DeepPartial } from "@webda/tsc-esm";
-import { ServicePartialParameters } from "../internal/iapplication";
-import { ModelClass, Repository, UuidModel } from "@webda/models";
+import { Repository, UuidModel } from "@webda/models";
 
 /**
  * Manage load and save of sessions
@@ -49,8 +46,8 @@ export class CookieSessionParameters extends ServiceParameters {
    */
   cookie?: CookieOptions;
 
-  default() {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     this.cookie = new CookieOptions(this.cookie || {});
     return this;
   }

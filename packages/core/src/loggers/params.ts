@@ -1,5 +1,5 @@
 import { WorkerLogLevel } from "@webda/workout";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { useLog } from "./hooks";
 
 export class LoggerServiceParameters extends ServiceParameters {
@@ -15,7 +15,8 @@ export class LoggerServiceParameters extends ServiceParameters {
   /**
    * @inheritdoc
    */
-  default() {
+  load(params: any = {}): this {
+    super.load(params);
     this.logLevel ??= (process.env["LOG_LEVEL"] || "INFO").toUpperCase() as WorkerLogLevel;
     const levels: WorkerLogLevel[] = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"];
     if (!levels.includes(this.logLevel)) {

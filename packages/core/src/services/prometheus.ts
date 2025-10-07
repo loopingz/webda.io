@@ -1,7 +1,7 @@
 import * as http from "http";
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from "prom-client";
 import { Service } from "./service";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { useCoreEvents } from "../events/events";
 import { WebContext } from "../contexts/webcontext";
 
@@ -50,8 +50,8 @@ export class PrometheusParameters extends ServiceParameters {
    */
   prefix?: string;
 
-  default() {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     this.url ??= "/metrics";
     this.labels ??= {};
     this.includeNodeMetrics ??= true;

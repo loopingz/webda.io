@@ -6,11 +6,11 @@ import type { ModelAction } from "../internal/iapplication";
 import { JSONUtils } from "@webda/utils";
 import { OperationContext } from "../contexts/operationcontext";
 import type { ActionsEnum, Model, ModelClass } from "@webda/models";
-import { runAsSystem, runWithContext } from "../contexts/execution";
+import { runWithContext } from "../contexts/execution";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
 import * as WebdaError from "../errors/errors";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { useApplication, useModel } from "../application/hooks";
 import { OperationDefinition } from "../core/icore";
 import { ModelGraphBinaryDefinition } from "../internal/iapplication";
@@ -53,8 +53,8 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   private excludedModels: string[];
 
-  default(): this {
-    super.default();
+  load(params: any = {}): this {
+    super.load(params);
     // Init default here
     this.operations ??= true;
     this.nameTransfomer ??= "camelCase";
@@ -273,7 +273,7 @@ export abstract class DomainService<
 
   getRootExposedModels() {
     // By default any models that have no parent
-    return Object.values(this.app.getModels()).filter(m => !m.Metadata.Relations.parent);
+    return Object.values(this.app.getModels()).filter(m => m?.Metadata && !m.Metadata.Relations.parent);
   }
 
   /**
@@ -431,6 +431,9 @@ export abstract class DomainService<
     const models = app.getModels();
     for (const modelKey in models) {
       const model = models[modelKey];
+      if (!model) {
+        continue;
+      }
       const Metadata = useModelMetadata(model);
       if (!model) {
         continue;

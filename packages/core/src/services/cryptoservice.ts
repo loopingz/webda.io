@@ -166,8 +166,7 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     let load;
     try {
       load = await useRegistry().get<KeysRegistry>("keys");
-    } catch (err) {
-    }
+    } catch (err) {}
     if (!load || !load.current) {
       return false;
     }

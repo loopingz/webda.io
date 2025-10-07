@@ -12,7 +12,7 @@ import { IContextAware } from "../contexts/icontext";
 
 import type { HttpMethodType } from "../contexts/httpcontext";
 import type { DeepPartial } from "@webda/tsc-esm";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 import { JSONed, Model, ModelClass } from "@webda/models";
@@ -190,6 +190,8 @@ export const ServiceState = (options: StateOptions<ServiceStates>) => State({ er
 export type ServicePartialParameters<T extends ServiceParameters> = DeepPartial<Attributes<T>>;
 /**
  * Represent a Webda service
+ *
+ * TODO Move back to only Service and remove abstract
  */
 export abstract class AbstractService<
   T extends ServiceParameters = ServiceParameters,
@@ -199,12 +201,21 @@ export abstract class AbstractService<
   public readonly name: string;
   public readonly parameters: T;
 
+  /**
+   * Create configuration set by the application on load
+   */
+  static createConfiguration?: (params: any) => any;
+
+  /**
+   * Create configuration set by the application on load
+   */
+  static filterConfiguration?: (params: any) => any;
+
   constructor(name: string, params: T | JSONed<T>) {
     super();
     this.name = name;
     // TODO Remove to auto create based on service definition
-    this.parameters =
-      !(params instanceof ServiceParameters) && this["loadParameters"] ? this["loadParameters"](params) : params;
+    this.parameters = (this.constructor as typeof AbstractService).createConfiguration?.(params) || params;
   }
 
   /**
@@ -244,7 +255,22 @@ export abstract class AbstractService<
  * Define a Modda: Service constructor
  */
 export type Modda<T extends AbstractService = AbstractService> = CustomConstructor<T, [name: string, params: any]> & {
+  /**
+   * Create parameters for the service
+   *
+   * This is set by Application on load
+   * @param params
+   * @returns
+   */
   createConfiguration: (params: any) => T["parameters"];
+  /**
+   * Remove parameters that are not for this service
+   *
+   * This is set by Application on load
+   * @param params
+   * @returns
+   */
+  filterParameters: (params: any) => any;
 };
 
 /**
@@ -361,22 +387,13 @@ export type UnpackedConfiguration = {
   /**
    * Services configuration
    */
-  services?: any;
+  services?: Record<string, any>;
   /**
    * Global parameters
+   *
+   * Shared between all services if it matches the service parameters
    */
   parameters?: {
-    /**
-     * Trust this reverse proxies
-     */
-    trustedProxies?: string | string[];
-    /**
-     * Allowed origin for referer that match
-     * any of this regexp
-     *
-     * {@link OriginFilter}
-     */
-    csrfOrigins?: string[];
     /**
      * Allow you to authorize one or several websites
      * If you use "*" then the API is open to direct call and any origins
@@ -390,44 +407,9 @@ export type UnpackedConfiguration = {
      */
     static?: StaticWebsite;
     /**
-     * Read from the configuration service before init
-     *
-     * @default "ConfigurationService"
-     */
-    configurationService?: string;
-    /**
      * Define the api url
      */
     apiUrl?: string;
-    /**
-     * Will not try to parse request bigger than this
-     *
-     * This parameter can be overriden by a direct call to
-     * getHttpContext().getRawBody(xxx)
-     *
-     * @default 10Mb
-     */
-    requestLimit?: number;
-    /**
-     * Will not take more than this to read a request (unit: milliseconds)
-     *
-     * This parameter can be overriden by a direct call to
-     * getHttpContext().getRawBody(undefined, xxx)
-     *
-     * @default 60000
-     */
-    requestTimeout?: number;
-    /**
-     * Define the default store
-     */
-    defaultStore?: string;
-    /**
-     * Default headers to send to the client
-     *
-     * Having a Cache-Control: private will prevent caching for API
-     * If you overwrite this parameter, you will need to add it back
-     */
-    defaultHeaders?: { [key: string]: string };
     /**
      * Define metrics
      */
@@ -438,15 +420,6 @@ export type UnpackedConfiguration = {
           config?: { [key: string]: any };
           prefix?: string;
         };
-    /**
-     * Ignore beans
-     *
-     * If set to true, all beans are ignored
-     * If set to an array, only the beans in the array are ignored
-     *
-     * @default false
-     */
-    ignoreBeans?: boolean | string[];
     /**
      * Allow any other type of parameters
      */

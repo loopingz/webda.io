@@ -7,6 +7,7 @@ let workerOutput: WorkerOutput;
  * @returns
  */
 export function useWorkerOutput(): WorkerOutput {
+  workerOutput ??= new WorkerOutput();
   return workerOutput;
 }
 
@@ -46,7 +47,7 @@ export class Logger implements WorkoutLogger {
     if (!context.class) {
       context.class = this.context.class;
     }
-    this.output?.logWithContext(level, {...this.context, ...context}, ...args);
+    this.output?.logWithContext(level, { ...this.context, ...context }, ...args);
   }
 
   logGroupOpen(name: string) {

@@ -6,7 +6,7 @@ import { Readable, Writable } from "node:stream";
 import { SessionManager } from "../session/manager";
 import { WritableStreamBuffer } from "stream-buffers";
 import { useCore, useService } from "../core/hooks";
-import { useParameters } from "../core/instancestorage";
+
 /**
  * @category CoreFeatures
  */
@@ -311,10 +311,10 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(httpContext: HttpContext, stream: Writable = undefined) {
+  constructor(httpContext: HttpContext, stream: Writable = undefined, defaultHeaders: http.OutgoingHttpHeaders = undefined) {
     super(stream);
     this.setHttpContext(httpContext);
-    this._outputHeaders = useParameters().defaultHeaders || {
+    this._outputHeaders = defaultHeaders || {
       // Gotta Cache ‘em all: bending the rules of web cache exploitation
       // https://defcon.org/html/defcon-32/dc-32-speakers.html
       "Cache-Control": "private"

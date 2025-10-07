@@ -1,9 +1,9 @@
-import jsonpath from "jsonpath";
 import * as WebdaError from "../errors/errors";
 import { Service } from "../services/service";
-import { ServiceParameters } from "../interfaces";
+import { ServiceParameters } from "../services/serviceparameters";
 import { useCore, useService } from "../core/hooks";
-import { useParameters } from "../core/instancestorage";
+import { deepmerge } from "deepmerge-ts";
+import type { Core } from "../core/core";
 
 /**
  * Service that can store configuration
@@ -22,27 +22,62 @@ interface ConfigurationProvider {
    *
    * @param id of the source to check
    * @param callback to call if source has changed
+   * @param defaultValue if the source is not found
    */
-  canTriggerConfiguration(id: string, callback: () => void): boolean;
+  canTriggerConfiguration(id: string, callback: () => void, defaultValue?: any): boolean;
 }
 
 export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Check configuration every {checkInterval} seconds
+   * @default 3600 ( 1 hour )
    */
-  checkInterval: number = 3600;
+  checkInterval: number;
   /**
-   * Format sourceServiceName:sourceId
+   * Check interval in ms
+   */
+  get checkIntervalMs() {
+    return this.checkInterval * 1000;
+  }
+  /**
+   * Format sourceServiceName:sourceId or sourceId if source is this service
    */
   source: string;
   /**
-   * Default configuration to use
+   * List of sources to load and merge ( in order )
+   * Format sourceServiceName:sourceId or sourceId if source is this service
    */
-  default: any = {};
+  sources: string[];
+  /**
+   * Default configuration to use
+   * @default { services: {}, parameters: {} }
+   */
+  default?: any;
+
+  load(params: any) {
+    super.load(params);
+    this.default ??= {
+      services: {},
+      parameters: {}
+    };
+    if (this.sources && this.source) {
+      throw new WebdaError.CodeError(
+        "CONFIGURATION_SOURCE_BOTH",
+        "Cannot use both source and sources parameters in ConfigurationServiceParameters"
+      );
+    }
+    this.sources ??= [];
+    if (this.source) {
+      this.sources.push(this.source);
+      delete this.source;
+    }
+    this.checkInterval ??= 3600;
+    return this;
+  }
 }
 
 export type ConfigurationEvents = {
-  "Configuration.Applied": any;
+  "Configuration.Applied": Record<string, any>;
   "Configuration.Applying": any;
   "Configuration.Loaded": any;
 };
@@ -60,82 +95,97 @@ export type ConfigurationEvents = {
  * @WebdaModda
  */
 class ConfigurationService<
-  T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
-  E extends ConfigurationEvents = ConfigurationEvents
-> extends Service<T, E> {
+    T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
+    E extends ConfigurationEvents = ConfigurationEvents
+  >
+  extends Service<T, E>
+  implements ConfigurationProvider
+{
   protected serializedConfiguration: any;
   /**
    *
    */
   protected nextCheck: number;
   /**
-   * Service that will provide the information
+   * List of sources (service and id) to load and merge ( in order )
    */
-  protected sourceService: ConfigurationProvider;
-  /**
-   * Source id to retrieve
-   */
-  protected sourceId: string;
+  protected sources: { service: ConfigurationProvider; id: string }[] = [];
   /**
    * Interval between two checks
    */
   private interval: NodeJS.Timer | number;
-  /**
-   * Watchs for configuration update
-   */
-  protected watchs: any[] = [];
   /**
    * Current configuration
    */
   protected configuration: any;
 
   /**
-   * @inheritdoc
+   * Resolve the service
+   * @returns
    */
-  async init(): Promise<this> {
-    // Check interval by default every hour
-
-    if (!this.parameters.source) {
-      throw new WebdaError.CodeError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
+  resolve() {
+    super.resolve();
+    console.log("Resolving configuration service", this.parameters.sources);
+    for (const s of this.parameters.sources) {
+      let sourceService: ConfigurationProvider | undefined;
+      let sourceId: string | undefined;
+      if (s.includes(":")) {
+        const [service, id] = s.split(":");
+        console.log("Loading configuration source", service, id);
+        sourceService = useService(service);
+        sourceId = id;
+      } else {
+        sourceService = this;
+        sourceId = s;
+      }
+      if (!sourceService.getConfiguration) {
+        throw new WebdaError.CodeError(
+          "CONFIGURATION_SOURCE_INVALID",
+          `Service '${sourceService}' is not implementing ConfigurationProvider interface`
+        );
+      }
+      this.sources.push({ service: sourceService, id: sourceId });
     }
-    const source = this.parameters.source.split(":");
-    this.sourceService = <ConfigurationProvider>(<unknown>useService(source[0]));
-    if (!this.sourceService) {
-      throw new WebdaError.CodeError(
-        "CONFIGURATION_SOURCE_INVALID",
-        'Need a valid service for source ("sourceService:sourceId")'
-      );
-    }
-    this.sourceId = source[1];
-    if (!this.sourceId) {
-      throw new WebdaError.CodeError("CONFIGURATION_SOURCE_INVALID", 'Need a valid source ("sourceService:sourceId")');
-    }
-    if (!this.sourceService.getConfiguration) {
-      throw new WebdaError.CodeError(
-        "CONFIGURATION_SOURCE_INVALID",
-        `Service '${source[0]}' is not implementing ConfigurationProvider interface`
-      );
-    }
-    this.serializedConfiguration = JSON.stringify(this.parameters.default);
-    await this.checkUpdate();
-    if (!this.sourceService.canTriggerConfiguration(this.sourceId, this.checkUpdate.bind(this, true))) {
-      this.interval = setInterval(this.checkUpdate.bind(this), 1000);
-    }
-
-    // Add webda info
-    this.watch("$.services", (updates: any) => useCore().reinit(updates));
     return this;
   }
 
   /**
-   * Watch a specific configuration modification
-   *
-   * @param jsonPath JSON Path to the object to watch
-   * @param callback Method to call with the updated version
-   * @param defaultValue Default value of the jsonPath if it does not exist
+   * @inheritdoc
    */
-  watch(jsonPath: string, callback: (update: any) => void | Promise<void>, defaultValue: any = undefined) {
-    this.watchs.push({ path: jsonPath, callback, defaultValue });
+  async init(): Promise<this> {
+    // Check interval by default every hour
+    // Initialize sources
+    this.parameters.sources.forEach(source => {
+      if (source.includes(":")) {
+        const [serviceName, sourceId] = source.split(":");
+        this.sources.push({ service: useService(serviceName), id: sourceId });
+      } else {
+        this.sources.push({ service: this, id: source });
+      }
+    });
+    this.serializedConfiguration ??= JSON.stringify(this.parameters.default);
+    let allDynamic = true;
+    for (const source of this.sources) {
+      // Try to trigger configuration update
+      allDynamic &&= source.service.canTriggerConfiguration(
+        source.id,
+        this.checkUpdate.bind(this),
+        this.parameters.default
+      );
+    }
+    if (!allDynamic) {
+      this.interval = setInterval(this.checkUpdate.bind(this), this.parameters.checkIntervalMs);
+    }
+
+    return this;
+  }
+
+  /**
+   * Check if the configuration can be triggered
+   * @returns
+   */
+  canTriggerConfiguration(_id: string, _callback: () => void): boolean {
+    return false;
   }
 
   /**
@@ -153,18 +203,8 @@ class ConfigurationService<
    *
    * @returns current configuration
    */
-  getConfiguration() {
-    return this.configuration || {};
-  }
-
-  /**
-   * We cannot reinit the configurationService by itself
-   *
-   * @inheritdoc
-   */
-  async reinit(_config: any): Promise<this> {
-    // Need to prevent any reinit
-    return this;
+  async getConfiguration(_id: string): Promise<{ [key: string]: any }> {
+    throw new Error("ConfigurationService cannot be used as ConfigurationProvider");
   }
 
   /**
@@ -172,17 +212,19 @@ class ConfigurationService<
    * @returns
    */
   protected async loadConfiguration(): Promise<{ [key: string]: any }> {
-    return this.sourceService.getConfiguration(this.sourceId);
-  }
-
-  async initConfiguration(): Promise<{ [key: string]: any }> {
-    throw new Error("ConfigurationService with dependencies cannot be used");
+    let finalConfig: any = this.parameters.default || { services: {}, parameters: {} };
+    for (const source of this.sources) {
+      finalConfig = deepmerge(finalConfig, await source.service.getConfiguration(source.id));
+    }
+    // Prevent reconfiguring ourself
+    if (finalConfig.services[this.getName()]) {
+      delete finalConfig.services[this.getName()];
+    }
+    return finalConfig;
   }
 
   /**
    * Checking for configuration updates
-   *
-   * If configuration is updated, it will trigger all the watchs accordingly
    *
    * @returns
    */
@@ -193,33 +235,14 @@ class ConfigurationService<
     }
 
     this.log("DEBUG", "Refreshing configuration");
-    const newConfig = await this.loadGoodConfiguration();
+    const newConfig = await this.loadConfiguration();
     this.emit("Configuration.Loaded", newConfig);
     const serializedConfig = JSON.stringify(newConfig);
     if (serializedConfig !== this.serializedConfiguration) {
-      this.emit("Configuration.Applying", newConfig);
       this.log("DEBUG", "Apply new configuration");
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
-      // Add the webda parameters logical
-      if (this.configuration && this.configuration.services) {
-        // Merge parameters with each service - cannot add new services for security
-        for (const i in this.configuration.services) {
-          if (useCore().getService(i)) {
-            this.configuration.services[i] = { ...useParameters(i), ...this.configuration.services[i] };
-          }
-        }
-      }
-      const promises = [];
-      this.watchs.forEach(w => {
-        this.log("TRACE", "Apply new configuration value", jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
-        const p = w.callback(jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
-        if (p) {
-          promises.push(p);
-        }
-      });
-      await Promise.all(promises);
-      this.emit("Configuration.Applied", newConfig);
+      useCore().updateConfiguration(newConfig);
     }
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this.interval) {
@@ -236,29 +259,30 @@ class ConfigurationService<
   }
 
   /**
-   * Complete the configuration
+   *
+   * @param core
    */
-  private completeConfiguration(cfg: any) {
-    cfg.parameters ??= {};
-    cfg.services ??= {};
-    return cfg;
-  }
-
-  /**
-   * Load the configuration and complete it
-   */
-  private async loadGoodConfiguration() {
-    return this.completeConfiguration((await this.loadConfiguration()) || this.parameters.default);
-  }
-
-  /**
-   * Read the file and store it
-   */
-  async loadAndStoreConfiguration(): Promise<{ [key: string]: any }> {
-    const res = await this.loadGoodConfiguration();
-    this.emit("Configuration.Loaded", res);
-    this.serializedConfiguration = JSON.stringify(res);
-    return res;
+  async bootstrap(core: Core): Promise<void> {
+    this.log("DEBUG", "Bootstrapping configuration service");
+    let configuration: any;
+    for (const source of this.parameters.sources) {
+      if (source.includes(":")) {
+        // We apply configuration if already existing
+        // So you can have a configuration that is from file, then from a service
+        // and the service configuration will be read from file too
+        if (configuration) {
+          core.updateConfiguration(configuration);
+        }
+        const [serviceName, sourceId] = source.split(":");
+        const service = core.getService<ConfigurationProvider & Service>(serviceName);
+        configuration = deepmerge(configuration || {}, await service.getConfiguration(sourceId));
+      } else {
+        configuration = deepmerge(configuration || {}, await this.getConfiguration(source));
+      }
+    }
+    // Store the configuration
+    this.serializedConfiguration = JSON.stringify(configuration);
+    core.updateConfiguration(configuration);
   }
 }
 

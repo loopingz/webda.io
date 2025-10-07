@@ -1,52 +1,69 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
-import { CoreModel } from "../models/coremodel";
-import { Store, StoreHelper } from "../stores/store";
-import { WebdaInternalSimpleTest } from "../test";
-import { ConfigurationService } from "./configuration";
+import { TestApplication, WebdaInternalSimpleTest } from "../test";
+import { ConfigurationProvider, ConfigurationService, ConfigurationServiceParameters } from "./configuration";
+import { UnpackedConfiguration } from "../internal/iapplication";
+import { useService } from "../core/hooks";
+import { Service } from "../services/service";
+import { ServiceParameters } from "../services/serviceparameters";
+import { Authentication } from "../services/authentication";
+import { useCoreEvents } from "../events/events";
+
+class TestConfigurationProvider extends Service implements ConfigurationProvider {
+  static createConfiguration = () => new ServiceParameters();
+  static filterParameters = (params: any) => params;
+  async getConfiguration(id: string): Promise<{ [key: string]: any }> {
+    return this.configurations[id] || this.defaults[id] || {};
+  }
+  canTriggerConfiguration(id: string, callback: () => void, defaultValue?: any): boolean {
+    this.callbacks[id] = callback;
+    this.defaults[id] = defaultValue;
+    return true;
+  }
+  setConfiguration(id: string, cfg: any) {
+    this.configurations[id] = cfg;
+    this.callbacks[id]?.();
+  }
+  configurations: Record<string, any> = {};
+  callbacks: Record<string, () => void> = {};
+  defaults: Record<string, any> = {};
+}
 
 @suite
-class ConfigurationServiceTest extends WebdaInternalSimpleTest {
-  getTestConfiguration() {
+class TestConfigurationService extends WebdaInternalSimpleTest {
+  async tweakApp(app: TestApplication): Promise<void> {
+    await super.tweakApp(app);
+    app.addModda("WebdaTest/ConfigurationProvider", TestConfigurationProvider);
+  }
+
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
     return {
-      parameters: {
-        ignoreBeans: true
+      application: {
+        ignoreBeans: true,
+        configurationService: "ConfigurationService"
       },
       services: {
         Authentication: {
           successRedirect: "https://webda.io/user.html",
           failureRedirect: "/login-error",
-          providers: {
-            facebook: {},
-            email: {
-              from: "",
-              subject: "",
-              html: "",
-              text: "Test",
-              mailer: "DefinedMailer",
-              postValidation: false
-            },
-            phone: {},
-            twitter: {},
-            google: {},
-            github: {}
+          email: {
+            from: "",
+            subject: "",
+            html: "",
+            text: "Test",
+            mailer: "DefinedMailer",
+            postValidation: false
           }
         },
         DefinedMailer: {
           type: "WebdaTest/Mailer"
         },
-        Users: {
-          type: "MemoryStore"
-        },
-        Idents: {
-          type: "MemoryStore"
-        },
-        ConfigurationStore: {
-          type: "MemoryStore"
+        ConfigurationProvider: {
+          type: "WebdaTest/ConfigurationProvider"
         },
         ConfigurationService: {
-          source: "ConfigurationStore:test",
+          source: "ConfigurationProvider:test",
           checkInterval: 2,
           default: {
             services: {
@@ -63,53 +80,37 @@ class ConfigurationServiceTest extends WebdaInternalSimpleTest {
       }
     };
   }
-
   @test
-  async init() {
-    const service = new ConfigurationService(this.webda, "name", {});
-    assert.deepStrictEqual(service.getConfiguration(), {});
-    // @ts-ignore
-    service.configuration = { test: "plop" };
-    assert.deepStrictEqual(service.getConfiguration(), { test: "plop" });
-    await assert.rejects(() => service.init(), /Need a source for ConfigurationService/);
-    service.getParameters().source = "none:plopId";
-    await assert.rejects(() => service.init(), /Need a valid service for source/);
-    service.getParameters().source = "DefinedMailer";
-    await assert.rejects(() => service.init(), /Need a valid source/);
-    service.getParameters().source = "DefinedMailer:none";
+  async getConfiguration() {
+    const service = new ConfigurationService("name", new ConfigurationServiceParameters().load({}));
     await assert.rejects(
-      () => service.init(),
-      /Service 'DefinedMailer' is not implementing ConfigurationProvider interface/
+      () => service.getConfiguration("id"),
+      /ConfigurationService cannot be used as ConfigurationProvider/
     );
-    await assert.rejects(() => service.initConfiguration(), /ConfigurationService with dependencies cannot be used/);
   }
 
   @test
   async initialLoad() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    const auth = useService<Authentication>("Authentication");
+    assert.strictEqual(auth.parameters.email!.text, "Test");
+    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
     const test = {
       uuid: "test",
       services: {
         Authentication: {
-          providers: {
-            email: {
-              text: "Plop"
-            }
+          email: {
+            text: "Plop"
           }
         }
       }
     };
-
-    const storeCollector: { Store: StoreHelper } = <any>{};
-    (<Store>this.webda.getService("ConfigurationStore"))["setCoreModelDefinitionHelper"](<any>storeCollector);
-    const store: StoreHelper = storeCollector.Store;
+    const configurationProvider = useService<TestConfigurationProvider>("ConfigurationProvider");
     await new Promise(async resolve => {
-      this.webda.getService("ConfigurationService").on("Configuration.Applied", resolve);
-      await store.create("test", test);
+      useCoreEvents("Webda.Configuration.Applied", resolve, true);
+      configurationProvider.setConfiguration("test", test);
     });
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(auth.parameters.email!.text, "Plop");
+    assert.strictEqual(auth.parameters.email!.mailer, "DefinedMailer");
     const service = this.webda.getService<ConfigurationService>("ConfigurationService");
     // @ts-ignore
     await service.checkUpdate();

@@ -1,20 +1,21 @@
 import type { WorkerLogLevel } from "@webda/workout";
-import { AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitter";
+import { AsyncEventUnknown, EventEmitterUtils } from "../events/asynceventemitter.js";
 
-import type { OpenAPIWebdaDefinition } from "../rest/irest";
-import type { HttpMethodType } from "../contexts/httpcontext";
+import type { OpenAPIWebdaDefinition } from "../rest/irest.js";
+import type { HttpMethodType } from "../contexts/httpcontext.js";
 import { createPropertyDecorator, CustomConstructor } from "@webda/tsc-esm";
-import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfiguration } from "../metrics/metrics";
+import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfiguration } from "../metrics/metrics.js";
 
-import type { Logger } from "../loggers/ilogger";
-import type { OperationContext } from "../contexts/operationcontext";
-import { ServiceParameters } from "./serviceparameters";
-import { useService } from "../core/hooks";
-import { AbstractService } from "../core/icore";
-import { useLogger } from "../loggers/hooks";
+import type { Logger } from "../loggers/ilogger.js";
+import type { OperationContext } from "../contexts/operationcontext.js";
+import { ServiceParameters } from "./serviceparameters.js";
+import { useService } from "../core/hooks.js";
+import { AbstractService } from "../core/icore.js";
+import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
 import { State } from "@webda/utils";
-import { ServiceState, ServiceStates } from "../internal/iapplication";
+import { ServiceState, ServiceStates } from "../internal/iapplication.js";
+import { DecoratorPropertyParameters, getMetadata } from "@webda/decorators";
 
 /**
  * Represent a Inject annotation
@@ -76,7 +77,9 @@ class Injector {
    * @param service to inject to
    */
   static resolveAll(service: Service) {
-    (Object.getPrototypeOf(service).Injectors || []).forEach(injector => injector.resolve(service));
+    getMetadata(service.constructor as any)?.["webda.inject"]?.forEach((injector: any) => {
+      injector.resolve(service);
+    });
   }
 }
 
@@ -94,15 +97,13 @@ class Injector {
  * Might consider to split into two annotations
  * TODO @webda/compiler could get all interfaces and ancestors classes to find the correct service
  */
-export const Inject = createPropertyDecorator(
-  (
-    value: Service,
-    context: ClassFieldDecoratorContext,
+export const Inject = createPropertyDecorator((context: ClassFieldDecoratorContext<Service, Service>,
     parameterOrName?: string,
     defaultValue?: string | boolean,
-    optional?: boolean
-  ) => {}
-);
+    optional?: boolean) => {
+      context.metadata!["webda.inject"] ??= [];
+      (context.metadata!["webda.inject"] as Injector[]).push(new Injector(context.name as string, parameterOrName || context.name as string, typeof defaultValue === "boolean" ? undefined : defaultValue, typeof defaultValue === "boolean" ? defaultValue : optional));
+});
 /*
 export function Inject(parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) {
   return (target: Service, context: ClassFieldDecoratorContext): void => {

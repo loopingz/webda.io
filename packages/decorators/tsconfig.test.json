@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "ES2022",
     "module": "ES2022",
     "strict": false,
     "downlevelIteration": true,

@@ -76,13 +76,6 @@ export class PostgresStore<
   /**
    * @override
    */
-  loadParameters(params: any) {
-    return new PostgresParameters(params, this);
-  }
-
-  /**
-   * @override
-   */
   async init(): Promise<this> {
     if (this.parameters.usePool) {
       this.client = new pg.Pool(this.parameters.postgresqlServer);

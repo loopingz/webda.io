@@ -1,9 +1,9 @@
-import { Service } from "./service";
-import { WebContext } from "../contexts/webcontext";
-import { OperationContext } from "../contexts/operationcontext";
-import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext";
-import { ServiceParameters } from "../services/serviceparameters";
-import { emitCoreEvent } from "../events/events";
+import { Service } from "./service.js";
+import { WebContext } from "../contexts/webcontext.js";
+import { OperationContext } from "../contexts/operationcontext.js";
+import { Context, ContextProvider, ContextProviderInfo } from "../contexts/icontext.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { emitCoreEvent } from "../events/events.js";
 
 class HttpServerParameters extends ServiceParameters {
   /**

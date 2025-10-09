@@ -1,8 +1,8 @@
 import { suite, test } from "@webda/test";
-import { templateVariables } from "./templates";
+import { templateVariables } from "./templates.js";
 import * as assert from "assert";
-import { WebdaAsyncStorageTest } from "../test/asyncstorage";
-import { setApplication } from "../application/hooks";
+import { WebdaAsyncStorageTest } from "../test/asyncstorage.js";
+import { setApplication } from "../application/hooks.js";
 
 @suite
 class Templates extends WebdaAsyncStorageTest {

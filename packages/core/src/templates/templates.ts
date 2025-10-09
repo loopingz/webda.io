@@ -1,4 +1,4 @@
-import { useApplication } from "../application/hooks";
+import { useApplication } from "../application/hooks.js";
 
 /**
  * Replace string parameters using ${param} syntax

@@ -21,15 +21,16 @@ export default defineConfig({
     include: [
       "src/application/*.spec.ts",
       "src/cache/*.spec.ts",
-      // "src/configurations/file*.spec.ts",
-      // "src/configurations/kube*.spec.ts",
       "src/configurations/*.spec.ts",
       "src/contexts/*.spec.ts",
       "src/core/*.spec.ts",
       "src/errors/*.spec.ts",
       "src/loggers/*.spec.ts",
+      //"src/models/ownermodel.spec.ts",
       "src/models/ident.spec.ts",
       "src/models/user.spec.ts",
+      "src/queues/*.spec.ts",
+      //"src/rest/*.spec.ts",
       "src/schemas/*.spec.ts",
       //"src/services/authentication.spec.ts", // Need refactor
       "src/services/cloudbinary.spec.ts",
@@ -37,19 +38,20 @@ export default defineConfig({
       "src/services/cryptoservice.spec.ts",
       "src/services/debugmailer.spec.ts",
       //"src/services/domainservice.spec.ts", // Need refactor
+      //"src/services/httpserver.spec.ts",
       "src/services/mailer.spec.ts",
       "src/services/notificationservice.spec.ts",
-      // "src/services/oauth.spec.ts", // Need small refactor
-      //"src/services/domainservice.spec.ts", // Need refactor
+      //"src/services/oauth.spec.ts", // Need small refactor
       //"src/services/prometheus.spec.ts", // Check parameters loading
-      // "src/services/resource.spec.ts",
-      //"src/services/service.spec.ts",
+      //"src/services/resource.spec.ts",
+      "src/services/service.spec.ts",
       "src/services/serviceparameters.spec.ts",
+      // "src/session/*.spec.ts",
       //"src/stores/*.spec.ts",
-      "src/queues/*.spec.ts",
       "src/templates/*.spec.ts",
       "src/test/*.spec.ts",
-      "src/utils/*.spec.ts"
+      "src/utils/*.spec.ts",
+      "src/test.spec.ts"
     ]
   }
 });

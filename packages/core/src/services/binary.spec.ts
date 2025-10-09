@@ -1,12 +1,12 @@
 import { test } from "@webda/test";
 import * as assert from "assert";
 import * as fs from "fs";
-import { User, WebContext } from "../index";
-import { CoreModel } from "../models/coremodel";
-import { TestApplication } from "../test/objects";
-import { WebdaApplicationTest } from "../test/application";
+import { User, WebContext } from "../index.js";
+import { CoreModel } from "../models/coremodel.js";
+import { TestApplication } from "../test/objects.js";
+import { WebdaApplicationTest } from "../test/application.js";
 
-import { Binaries, Binary, BinaryService, LocalBinaryFile, MemoryBinaryFile } from "./binary";
+import { Binaries, Binary, BinaryService, LocalBinaryFile, MemoryBinaryFile } from "./binary.js";
 import { pipeline } from "node:stream/promises";
 
 /**

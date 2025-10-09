@@ -1,12 +1,12 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { existsSync, unlinkSync, writeFileSync } from "fs";
-import { WebdaApplicationTest } from "../test/application";
+import { WebdaApplicationTest } from "../test/application.js";
 import { getCommonJS } from "@webda/utils";
-import { FileConfigurationService } from "./fileconfiguration";
-import { useService } from "../core/hooks";
-import { Authentication } from "../services/authentication";
-import { useCoreEvents } from "../events/events";
+import { FileConfigurationService } from "./fileconfiguration.js";
+import { useService } from "../core/hooks.js";
+import { Authentication } from "../services/authentication.js";
+import { useCoreEvents } from "../events/events.js";
 const { __dirname } = getCommonJS(import.meta.url);
 
 class FileConfigurationAbstractTest extends WebdaApplicationTest {

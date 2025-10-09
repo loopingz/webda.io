@@ -1,6 +1,6 @@
-import { Counter, Gauge, Histogram } from "../metrics/metrics";
-import { ServiceParameters } from "../services/serviceparameters";
-import { Service } from "../services/service";
+import { Counter, Gauge, Histogram } from "../metrics/metrics.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { Service } from "../services/service.js";
 import { CancelablePromise } from "@webda/utils";
 
 export default abstract class PubSubService<

@@ -1,6 +1,6 @@
 import { WorkerLogLevel } from "@webda/workout";
-import { ServiceParameters } from "../services/serviceparameters";
-import { useLog } from "./hooks";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { useLog } from "./hooks.js";
 
 export class LoggerServiceParameters extends ServiceParameters {
   /**

@@ -1,8 +1,8 @@
 import { existsSync, watchFile } from "fs";
-import * as WebdaError from "../errors/errors";
+import * as WebdaError from "../errors/errors.js";
 import { FileUtils } from "@webda/utils";
-import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
-import { useApplication } from "../application/hooks";
+import { ConfigurationService, ConfigurationServiceParameters } from "./configuration.js";
+import { useApplication } from "../application/hooks.js";
 
 /**
  * Allow for dynamic configuration from a file

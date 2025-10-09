@@ -2,9 +2,9 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { HttpContext, Ident, Store, UnpackedConfiguration, WebdaError } from "../";
 
-import { OAuthService, OAuthSession } from "./oauth";
-import { WebdaApplicationTest } from "../test/application";
-import { TestApplication } from "../test/objects";
+import { OAuthService, OAuthSession } from "./oauth.js";
+import { WebdaApplicationTest } from "../test/application.js";
+import { TestApplication } from "../test/objects.js";
 
 class FakeOAuthService extends OAuthService {
   getDefaultUrl() {

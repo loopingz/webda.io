@@ -1,4 +1,4 @@
-import { ServiceParameters } from "./serviceparameters";
+import { ServiceParameters } from "./serviceparameters.js";
 
 export class CryptoServiceParameters extends ServiceParameters {
   /**

@@ -1,8 +1,8 @@
 import { MemoryLogger } from "@webda/workout";
-import { useWorkerOutput } from "./ilogger";
-import { MemoryLoggerServiceParameters } from "./params";
-import { LoggerService } from "./logger";
-import { ServicePartialParameters } from "../internal/iapplication";
+import { useWorkerOutput } from "./ilogger.js";
+import { MemoryLoggerServiceParameters } from "./params.js";
+import { LoggerService } from "./logger.js";
+import { ServicePartialParameters } from "../internal/iapplication.js";
 
 /**
  * Store logs within memory

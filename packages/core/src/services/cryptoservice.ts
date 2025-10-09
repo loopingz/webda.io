@@ -4,13 +4,13 @@ import { pem2jwk } from "pem-jwk";
 import * as util from "util";
 import { JSONUtils } from "@webda/utils";
 
-import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice";
-import { getMachineId, useCore, useService } from "../core/hooks";
-import { useLog } from "../loggers/hooks";
-import { Service } from "./service";
-import { OperationContext } from "../contexts/operationcontext";
-import { Route } from "../rest/irest";
-import { useRegistry } from "../models/registry";
+import { CryptoServiceParameters, JWTOptions, KeysDefinition } from "./icryptoservice.js";
+import { getMachineId, useCore, useService } from "../core/hooks.js";
+import { useLog } from "../loggers/hooks.js";
+import { Service } from "./service.js";
+import { OperationContext } from "../contexts/operationcontext.js";
+import { Route } from "../rest/irest.js";
+import { useRegistry } from "../models/registry.js";
 
 export class SecretString {
   constructor(

@@ -4,9 +4,9 @@ import jwt from "jsonwebtoken";
 import * as sinon from "sinon";
 
 import { JSONUtils, sleep } from "@webda/utils";
-import { CryptoService, SecretString, useCrypto } from "./cryptoservice";
-import { WebdaApplicationTest } from "../test/application";
-import { useRegistry } from "../models/registry";
+import { CryptoService, SecretString, useCrypto } from "./cryptoservice.js";
+import { WebdaApplicationTest } from "../test/application.js";
+import { useRegistry } from "../models/registry.js";
 
 /**
  *

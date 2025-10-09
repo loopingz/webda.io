@@ -1,9 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Authentication, PasswordRecoveryInfos, Store, WebContext, WebdaError } from "../index";
-import { WebdaApplicationTest } from "../test/application";
-import { AuthenticationParameters } from "./authentication";
-import { DebugMailer } from "./debugmailer";
+import { Authentication, PasswordRecoveryInfos, Store, WebContext, WebdaError } from "../index.js";
+import { WebdaApplicationTest } from "../test/application.js";
+import { AuthenticationParameters } from "./authentication.js";
+import { DebugMailer } from "./debugmailer.js";
 
 const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^& ]+)(&user=([^ &]+))?/;
 let userId;

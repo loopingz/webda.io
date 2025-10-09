@@ -1,9 +1,9 @@
-import * as WebdaError from "../errors/errors";
-import { Service } from "../services/service";
-import { ServiceParameters } from "../services/serviceparameters";
-import { useCore, useService } from "../core/hooks";
+import * as WebdaError from "../errors/errors.js";
+import { Service } from "../services/service.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { useCore, useService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
-import type { Core } from "../core/core";
+import type { Core } from "../core/core.js";
 
 /**
  * Service that can store configuration

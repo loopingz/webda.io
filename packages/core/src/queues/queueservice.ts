@@ -1,4 +1,4 @@
-import { ServiceParameters } from "../services/serviceparameters";
+import { ServiceParameters } from "../services/serviceparameters.js";
 import {
   CancelableLoopPromise,
   CancelablePromise,
@@ -6,7 +6,7 @@ import {
   WaitDelayerDefinition,
   WaitDelayerFactories
 } from "@webda/utils";
-import { PubSubService } from "./pubsubservice";
+import { PubSubService } from "./pubsubservice.js";
 
 /**
  * Raw message from queue

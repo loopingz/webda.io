@@ -1,8 +1,8 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { MailerParameters, UnpackedConfiguration, User, useService, WebContext } from "../index";
-import { WebdaApplicationTest } from "../test/application";
+import { MailerParameters, UnpackedConfiguration, User, useService, WebContext } from "../index.js";
+import { WebdaApplicationTest } from "../test/application.js";
 
 @suite
 class MailerTest extends WebdaApplicationTest {

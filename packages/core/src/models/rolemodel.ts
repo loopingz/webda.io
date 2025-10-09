@@ -1,7 +1,7 @@
 import { Model } from "@webda/models";
-import type { IOperationContext } from "../contexts/icontext";
-import * as WebdaError from "../errors/errors";
-import { useContext } from "../contexts/execution";
+import type { IOperationContext } from "../contexts/icontext.js";
+import * as WebdaError from "../errors/errors.js";
+import { useContext } from "../contexts/execution.js";
 
 abstract class RoleModel extends Model {
   abstract getRolesMap(): { [key: string]: string };

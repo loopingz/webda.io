@@ -1,7 +1,7 @@
 import { WorkerOutput } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
 import * as fs from "fs";
-import { Application } from "./application";
+import { Application } from "./application.js";
 import {
   type CachedModule,
   type Configuration,
@@ -9,11 +9,11 @@ import {
   type ProjectInformation,
   SectionEnum,
   type UnpackedConfiguration
-} from "../internal/iapplication";
+} from "../internal/iapplication.js";
 import { FileUtils } from "@webda/utils";
-import { getMachineId } from "../core/hooks";
+import { getMachineId } from "../core/hooks.js";
 import { join, resolve, relative, dirname } from "path";
-import { ProcessCache } from "../cache/cache";
+import { ProcessCache } from "../cache/cache.js";
 
 /**
  * Empty git information

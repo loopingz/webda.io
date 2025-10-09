@@ -1,11 +1,11 @@
-import { OperationContext } from "./operationcontext";
+import { OperationContext } from "./operationcontext.js";
 import acceptLanguage from "accept-language";
 import * as http from "http";
-import { HttpContext } from "./httpcontext";
+import { HttpContext } from "./httpcontext.js";
 import { Readable, Writable } from "node:stream";
-import { SessionManager } from "../session/manager";
+import { SessionManager } from "../session/manager.js";
 import { WritableStreamBuffer } from "stream-buffers";
-import { useCore, useService } from "../core/hooks";
+import { useCore, useService } from "../core/hooks.js";
 
 /**
  * @category CoreFeatures
@@ -56,7 +56,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @param httpContext current http context
    */
   public setHttpContext(httpContext: HttpContext) {
-    this.extensions["http"] = httpContext;
+    this.setExtension("http", httpContext);
     this.reinit();
   }
 
@@ -311,7 +311,11 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(httpContext: HttpContext, stream: Writable = undefined, defaultHeaders: http.OutgoingHttpHeaders = undefined) {
+  constructor(
+    httpContext: HttpContext,
+    stream: Writable = undefined,
+    defaultHeaders: http.OutgoingHttpHeaders = undefined
+  ) {
     super(stream);
     this.setHttpContext(httpContext);
     this._outputHeaders = defaultHeaders || {

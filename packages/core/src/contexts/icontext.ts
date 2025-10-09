@@ -1,7 +1,7 @@
 // This file should not be exported in the library as it should only be used by CoreModel
 import { PipelineOptions, Writable } from "node:stream";
 
-import { HttpContext } from "./httpcontext";
+import { HttpContext } from "./httpcontext.js";
 import { NotEnumerable } from "@webda/tsc-esm";
 import { pipeline } from "node:stream/promises";
 

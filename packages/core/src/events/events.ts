@@ -1,7 +1,7 @@
-import { AbstractService, Configuration } from "../internal/iapplication";
-import { Context, ContextProviderInfo } from "../contexts/icontext";
-import { IWebContext } from "../contexts/icontext";
-import { OperationContext } from "../contexts/operationcontext";
+import { AbstractService, Configuration } from "../internal/iapplication.js";
+import { Context, ContextProviderInfo } from "../contexts/icontext.js";
+import { IWebContext } from "../contexts/icontext.js";
+import { OperationContext } from "../contexts/operationcontext.js";
 import { EventEmitter } from "stream";
 
 export type CoreEvents = {

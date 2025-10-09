@@ -1,12 +1,12 @@
-import { CryptoService } from "../services/cryptoservice";
-import { JWTOptions } from "../services/icryptoservice";
-import { Inject, Service } from "../services/service";
+import { CryptoService } from "../services/cryptoservice.js";
+import { JWTOptions } from "../services/icryptoservice.js";
+import { Inject, Service } from "../services/service.js";
 
-import { CookieOptions, SecureCookie } from "./cookie";
-import { Context, isWebContext } from "../contexts/icontext";
+import { CookieOptions, SecureCookie } from "./cookie.js";
+import { Context, isWebContext } from "../contexts/icontext.js";
 import { getUuid } from "@webda/utils";
-import { ServiceParameters } from "../services/serviceparameters";
-import { Session } from "./session";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { Session } from "./session.js";
 import { Repository, UuidModel } from "@webda/models";
 
 /**
@@ -67,7 +67,6 @@ export class CookieSessionManager<
   @Inject("CryptoService")
   cryptoService: CryptoService;
 
-  @Inject("SessionStore", true)
   sessionModel: Repository<typeof SessionModel>;
 
   /**

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Core, HttpContext, RoleModel, Session, SimpleUser, useCore, WebContext, WebdaError } from "../index";
+import { Core, HttpContext, RoleModel, Session, SimpleUser, useCore, WebContext, WebdaError } from "../index.js";
 import { WebdaApplicationTest } from "../test/application";
 import { TestApplication } from "../test/objects";
 

@@ -1,10 +1,10 @@
 import * as assert from "assert";
 import { suite, test } from "@webda/test";
-import { UnpackedApplication } from "./unpackedapplication";
-import { WebdaApplicationTest } from "../test/application";
+import { UnpackedApplication } from "./unpackedapplication.js";
+import { WebdaApplicationTest } from "../test/application.js";
 import { join, resolve } from "path";
 import { getCommonJS } from "@webda/utils";
-import { useApplication } from "./hooks";
+import { useApplication } from "./hooks.js";
 
 @suite
 class UnpackedApplicationTest extends WebdaApplicationTest {

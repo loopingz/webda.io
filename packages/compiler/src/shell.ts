@@ -82,7 +82,6 @@ Fork(
       });
       project.on("compilationError", () => {
         useWorkerOutput().stopActivity("error", "Error during compilation");
-
         if (!argv.watch) {
           process.exit(1);
         }

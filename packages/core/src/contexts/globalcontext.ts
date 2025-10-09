@@ -1,5 +1,5 @@
 import { Writable } from "stream";
-import { Context } from "./icontext";
+import { Context } from "./icontext.js";
 
 /**
  * Global Context is used as system context

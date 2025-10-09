@@ -1,8 +1,8 @@
 import { WorkerOutput, useLog } from "@webda/workout";
-import { Logger } from "./ilogger";
-import { AbstractService } from "../core/icore";
+import { Logger } from "./ilogger.js";
+import { AbstractService } from "../core/icore.js";
 import { Model } from "@webda/models";
-import { useModelId } from "../application/hooks";
+import { useModelId } from "../application/hooks.js";
 
 /**
  * Default output
@@ -34,5 +34,5 @@ export function useLogger(clazz: string | AbstractService | Model): Logger {
     }
     className ||= "Unknown";
   }
-  return new Logger(workerOutput, {class: className});
+  return new Logger(workerOutput, { class: className });
 }

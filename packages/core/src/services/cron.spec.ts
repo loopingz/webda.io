@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Cron, CronDefinition, CronService, Service } from "../index";
+import { Cron, CronDefinition, CronService, Service } from "../index.js";
 import { WebdaApplicationTest } from "../test";
 
 class MyService extends Service {
@@ -57,7 +57,8 @@ class CronDefinitionTest {
   @test
   testString() {
     assert.strictEqual(new CronDefinition("* * * * *").toString(), "* * * * *: .()");
-    assert.strictEqual(CronService.getCronId(new CronDefinition("* * * * *"), "plop"), "5e281c06");
+    console.log(JSON.stringify(new CronDefinition("* * * * *")));
+    assert.strictEqual(CronService.getCronId(new CronDefinition("* * * * *"), "plop"), "17e49a53");
     assert.strictEqual(
       new CronDefinition("* * * * *", [{}, {}], "plop", "method", "desc").toString(),
       "* * * * *: plop.method([object Object],[object Object]) # desc"

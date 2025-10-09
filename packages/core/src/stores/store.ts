@@ -1,14 +1,14 @@
-import { Counter, Histogram } from "../metrics/metrics";
-import * as WebdaError from "../errors/errors";
+import { Counter, Histogram } from "../metrics/metrics.js";
+import * as WebdaError from "../errors/errors.js";
 
 import { type Model, type ModelClass, type PrimaryKey, type Repository } from "@webda/models";
-import { ServiceParameters } from "../services/serviceparameters";
-import { Service } from "../services/service";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { Service } from "../services/service.js";
 import * as WebdaQL from "@webda/ql";
-import { useApplication, useModelId } from "../application/hooks";
-import { useLog } from "../loggers/hooks";
-import { useCore } from "../core/hooks";
-import { InstanceCache } from "../cache/cache";
+import { useApplication, useModelId } from "../application/hooks.js";
+import { useLog } from "../loggers/hooks.js";
+import { useCore } from "../core/hooks.js";
+import { InstanceCache } from "../cache/cache.js";
 
 export class StoreNotFoundError extends WebdaError.CodeError {
   constructor(uuid: PrimaryKey<any>, storeName: string) {
@@ -325,7 +325,6 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     queries: Histogram;
   };
 
-
   @InstanceCache()
   static computeStores() {
     // Gather all stores and register Repository
@@ -417,7 +416,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
 
   /**
    * Initialize the store
-   * @returns 
+   * @returns
    */
   async init(): Promise<this> {
     Store.computeStores();

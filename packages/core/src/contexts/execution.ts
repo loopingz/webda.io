@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { GlobalContext } from "./globalcontext";
-import { Context, IContextAware, setContextUpdate } from "./icontext";
+import { GlobalContext } from "./globalcontext.js";
+import { Context, IContextAware, setContextUpdate } from "./icontext.js";
 
 const globalContext = new GlobalContext();
 // Test are transpiling and creating several instances of 'instancestorage.ts'

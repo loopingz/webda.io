@@ -1,9 +1,7 @@
-//import { UuidModel } from "./uuid";
+//import { UuidModel } from "./uuid.js";
 import { ActionsEnum, ModelLink, PrimaryKeyType, UuidModel } from "@webda/models";
-import { User } from "./user";
-import { IOperationContext } from "../contexts/icontext";
-import { useContext } from "../contexts/execution";
-import { Context } from "mocha";
+import { User } from "./user.js";
+import { IOperationContext } from "../contexts/icontext.js";
 
 /**
  * Abstract class to define an object with an owner
@@ -47,10 +45,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     return this._user;
   }
 
-  async canAct(
-    context: IOperationContext,
-    action: ActionsEnum<this>
-  ): Promise<string | boolean> {
+  async canAct(context: IOperationContext, action: ActionsEnum<this>): Promise<string | boolean> {
     // Object is public
     if (this.public && (action === "get" || action === "get_binary")) {
       return true;

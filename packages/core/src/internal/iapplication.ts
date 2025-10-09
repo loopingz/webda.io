@@ -7,12 +7,12 @@
 import type { Attributes, CustomConstructor, OmitByTypeRecursive, Prototype } from "@webda/tsc-esm";
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
-import { AsyncEventEmitter, AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter";
-import { IContextAware } from "../contexts/icontext";
+import { AsyncEventEmitter, AsyncEventEmitterImpl, AsyncEventUnknown } from "../events/asynceventemitter.js";
+import { IContextAware } from "../contexts/icontext.js";
 
-import type { HttpMethodType } from "../contexts/httpcontext";
+import type { HttpMethodType } from "../contexts/httpcontext.js";
 import type { DeepPartial } from "@webda/tsc-esm";
-import { ServiceParameters } from "../services/serviceparameters";
+import { ServiceParameters } from "../services/serviceparameters.js";
 
 import type { ModelGraph, PackageDescriptor, ProjectInformation, WebdaModule } from "@webda/compiler";
 import { JSONed, Model, ModelClass } from "@webda/models";

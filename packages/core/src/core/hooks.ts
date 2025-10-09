@@ -1,14 +1,14 @@
-import { IStore } from "./icore";
-import { createCoreHook, useInstanceStorage } from "./instancestorage";
+import { IStore } from "./icore.js";
+import { createCoreHook, useInstanceStorage } from "./instancestorage.js";
 import pkg from "node-machine-id";
 import type { Model, ModelClass, Repository } from "@webda/models";
 import { CustomConstructor } from "@webda/tsc-esm";
-import { Service } from "../services/service";
-import type CryptoService from "../services/cryptoservice";
-import type { Store } from "../stores/store";
-import type { Reflection } from "../internal/iapplication";
-import { useModel } from "../application/hooks";
-import type { Core } from "./core";
+import { Service } from "../services/service.js";
+import type CryptoService from "../services/cryptoservice.js";
+import type { Store } from "../stores/store.js";
+import type { Reflection } from "../internal/iapplication.js";
+import { useModel } from "../application/hooks.js";
+import type { Core } from "./core.js";
 const { machineIdSync } = pkg;
 
 /**

@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { hasSchema, registerSchema, validateSchema } from "./hooks";
+import { hasSchema, registerSchema, validateSchema } from "./hooks.js";
 import * as assert from "assert";
 
 @suite

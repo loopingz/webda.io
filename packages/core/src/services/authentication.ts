@@ -1,19 +1,19 @@
 import bcrypt from "bcryptjs";
-import { Counter } from "../metrics/metrics";
-import * as WebdaError from "../errors/errors";
-import { Ident } from "../models/ident";
-import type { User } from "../models/user";
-import { Inject, Service } from "../services/service";
-import { Route } from "../rest/irest";
-import type { OperationContext } from "../contexts/operationcontext";
-import { type HttpMethodType } from "../contexts/httpcontext";
-import type { CryptoService } from "./cryptoservice";
-import type { Mailer } from "./mailer";
-import { runAsSystem } from "../contexts/execution";
-import { EventWithContext } from "../events/events";
-import { ServiceParameters } from "./serviceparameters";
-import { useService, useModelRepository } from "../core/hooks";
-import { WebContext } from "../contexts/webcontext";
+import { Counter } from "../metrics/metrics.js";
+import * as WebdaError from "../errors/errors.js";
+import { Ident } from "../models/ident.js";
+import type { User } from "../models/user.js";
+import { Inject, Service } from "../services/service.js";
+import { Route } from "../rest/irest.js";
+import type { OperationContext } from "../contexts/operationcontext.js";
+import { type HttpMethodType } from "../contexts/httpcontext.js";
+import type { CryptoService } from "./cryptoservice.js";
+import type { Mailer } from "./mailer.js";
+import { runAsSystem } from "../contexts/execution.js";
+import { EventWithContext } from "../events/events.js";
+import { ServiceParameters } from "./serviceparameters.js";
+import { useService, useModelRepository } from "../core/hooks.js";
+import { WebContext } from "../contexts/webcontext.js";
 import { Repository } from "@webda/models";
 
 /**
@@ -263,7 +263,7 @@ class Authentication<
    */
   providers: Set<string> = new Set<string>();
 
-  metrics: {
+  declare metrics: {
     login: Counter;
     logout: Counter;
     loginFailed?: Counter;

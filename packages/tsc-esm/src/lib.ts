@@ -131,14 +131,13 @@ export type OmitFirstArg<F> = F extends (x: any, ...args: infer P) => infer R ? 
  * This property will not be saved in the store
  * Nor will it be exposed in the API
  */
-export const NotEnumerable = createPropertyDecorator((value: any, context) => {
+export const NotEnumerable = createPropertyDecorator((context) => {
   if (context.kind === "field") {
     context.addInitializer(function (this: any) {
       Object.defineProperty(this, context.name, {
         enumerable: false,
         configurable: true,
         writable: true,
-        value
       });
     });
   }

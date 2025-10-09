@@ -1,4 +1,15 @@
 export type AnyMethod = (...args: any[]) => any;
+/**
+ * Polyfill the metadata symbol to allow metadata
+ */
+(Symbol as any).metadata ??= Symbol.for("Symbol.metadata");
+
+type SkipFirst<T extends any[]> = T extends [any, ...infer Rest] ? Rest : never;
+
+/**
+ * Get the parameters of a function, excluding the first one
+ */
+export type DecoratorPropertyParameters<T extends (context: ClassFieldDecoratorContext<any, any> , ...args: any[]) => any> = SkipFirst<Parameters<T>>;
 
 /**
  * Create a method decorator than can be typed
@@ -61,34 +72,34 @@ export function createClassDecorator<TArgs extends any[]>(
 }
 
 // Matches TS 5.x / TC39 "field" decorators (class properties, not accessors/methods)
-export function createPropertyDecorator<V = unknown, TArgs extends any[] = []>(
-  impl: (initialValue: V, context: ClassFieldDecoratorContext, ...args: TArgs) => ((initialValue: V) => V | void) | void
+export function createPropertyDecorator<TArgs extends any[], C extends ClassFieldDecoratorContext>(
+  impl: (context: C, ...args: TArgs) => ((target: undefined, context: C) => void) | void
 ) {
   // Overloads: direct decorator OR decorator factory
-  function deco(initialValue: V, context: ClassFieldDecoratorContext): ((initialValue: V) => V | void) | void;
+  function deco(target: undefined, context: C): void;
   function deco(
     ...args: TArgs
-  ): (initialValue: V, context: ClassFieldDecoratorContext) => ((initialValue: V) => V | void) | void;
+  ): (target: undefined, context: C) => (target: undefined, context: C) => void;
 
   function deco(...all: unknown[]): any {
     // Direct use: @deco
     // In field decorators, the second arg is a context with kind === "field"
-    if (all[1] && typeof all[1] === "object" && (all[1] as ClassFieldDecoratorContext).kind === "field") {
-      const [initialValue, context] = all as [V, ClassFieldDecoratorContext];
+    if (all[1] && typeof all[1] === "object" && (all[1] as C).kind === "field") {
+      const [initialValue, context] = all as [undefined, C];
       // No extra args were provided in direct mode
-      return impl(initialValue, context, ...([] as unknown as TArgs));
+      return impl(context, ...([] as unknown as TArgs));
     }
 
     // Factory use: @deco(...args)
     const args = all as TArgs;
-    return (initialValue: V, context: ClassFieldDecoratorContext) => {
-      return impl(initialValue, context, ...args);
+    return (_: undefined, context: C) => {
+      return impl(context, ...args);
     };
   }
 
   return deco as {
-    (initialValue: V, context: ClassFieldDecoratorContext): ((initialValue: V) => V | void) | void;
-    (...args: TArgs): (initialValue: V, context: ClassFieldDecoratorContext) => ((initialValue: V) => V | void) | void;
+    (initialValue: undefined, context: C): void;
+    (...args: TArgs): (initialValue: undefined, context: C) => void;
   };
 }
 
@@ -103,7 +114,6 @@ export type MethodDecorator = ReturnType<typeof createMethodDecorator>;
  * @returns
  */
 export function getMetadata(target: AnyCtor): any {
-  const metaSym = Object.getOwnPropertySymbols(target).find(sym => sym.toString().includes("Symbol.metadata"));
   // @ts-ignore
-  return target[metaSym];
+  return target[Symbol.metadata];
 }

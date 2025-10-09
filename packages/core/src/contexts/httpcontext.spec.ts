@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Readable } from "stream";
-import { HttpContext } from "./httpcontext";
+import { HttpContext } from "./httpcontext.js";
 
 export class FakeReadable extends Readable {
   _read() {}

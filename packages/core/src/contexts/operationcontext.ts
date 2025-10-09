@@ -1,14 +1,14 @@
-import { IOperationContext } from "./icontext";
+import { IOperationContext } from "./icontext.js";
 import { Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
-import { Session } from "../session/session";
+import { Session } from "../session/session.js";
 import { NotEnumerable } from "@webda/tsc-esm";
 import sanitize from "sanitize-html";
 import { JSONUtils } from "@webda/utils";
-import { useLog } from "../loggers/hooks";
-import { runAsSystem } from "./execution";
-import { IUser } from "../internal/iapplication";
-import { useModelRepository } from "../core/hooks";
+import { useLog } from "../loggers/hooks.js";
+import { runAsSystem } from "./execution.js";
+import { IUser } from "../internal/iapplication.js";
+import { useModelRepository } from "../core/hooks.js";
 
 /**
  * OperationInput

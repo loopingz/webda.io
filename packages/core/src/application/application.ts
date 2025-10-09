@@ -12,20 +12,20 @@ import type {
   UnpackedConfiguration,
   WebdaModule,
   WebdaPackageDescriptor
-} from "../internal/iapplication";
-import { setLogContext } from "../loggers/hooks";
+} from "../internal/iapplication.js";
+import { setLogContext } from "../loggers/hooks.js";
 import { CancelablePromise, FileUtils, State } from "@webda/utils";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join, resolve, dirname, isAbsolute } from "node:path";
-import * as WebdaError from "../errors/errors";
-import { ServiceParameters } from "../services/serviceparameters";
-import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage";
+import * as WebdaError from "../errors/errors.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { Model, ModelClass } from "@webda/models";
 import { JSONSchema7 } from "json-schema";
-import { InstanceCache } from "../cache/cache";
-import type { Service } from "../services/service";
+import { InstanceCache } from "../cache/cache.js";
+import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
-import { Core } from "../core/core";
+import { Core } from "../core/core.js";
 
 export type ApplicationState = "initial" | "loading" | "ready";
 

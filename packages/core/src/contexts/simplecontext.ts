@@ -1,6 +1,6 @@
 import { streamToBuffer } from "@webda/utils";
-import { Session } from "../session/session";
-import { OperationContext } from "./operationcontext";
+import { Session } from "../session/session.js";
+import { OperationContext } from "./operationcontext.js";
 
 /**
  * Simple Operation Context with custom input

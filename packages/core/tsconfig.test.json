@@ -4,7 +4,7 @@
     "module": "ES2022",
     "strict": false,
     "downlevelIteration": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": false,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
@@ -16,7 +16,8 @@
     "checkJs": false,
     "moduleResolution": "Node16",
     "useDefineForClassFields": true,
-    "lib": ["ES2022"]
+    "strictPropertyInitialization": false,
+    "lib": ["ES2022", "ESNext.Decorators"]
   },
   "include": ["src/**/*"],
   "exclude": ["**/node_modules", "src/**/*.spec.ts", "**/*.d.ts"]

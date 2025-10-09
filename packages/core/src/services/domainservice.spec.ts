@@ -1,14 +1,14 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as crypto from "crypto";
-import * as WebdaError from "../errors/errors";
-import { WebdaTest } from "../test";
-import { DomainServiceParameters, ModelsOperationsService } from "./domainservice";
-import { RESTDomainService } from "../rest/restdomainservice";
-import { SimpleOperationContext } from "../utils/context";
-import { CoreModel } from "../models/coremodel";
-import { User } from "../models/user";
-import { runWithContext } from "../hooks";
+import * as WebdaError from "../errors/errors.js";
+import { WebdaTest } from "../test/index.js";
+import { DomainServiceParameters, ModelsOperationsService } from "./domainservice.js";
+import { RESTDomainService } from "../rest/restdomainservice.js";
+import { SimpleOperationContext } from "../utils/context.js";
+import { CoreModel } from "../models/coremodel.js";
+import { User } from "../models/user.js";
+import { runWithContext } from "../hooks.js";
 
 @suite
 class DomainServiceTest extends WebdaTest {

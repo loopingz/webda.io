@@ -1,11 +1,11 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { InstanceCache, ProcessCache, SessionCache, ContextCache } from "./cache";
-import { runWithInstanceStorage } from "../core/instancestorage";
-import { runWithContext } from "../contexts/execution";
-import { ModelDefinition } from "../internal/iapplication";
-import { Ident } from "../models/ident";
-import { User } from "../models/user";
+import { InstanceCache, ProcessCache, SessionCache, ContextCache } from "./cache.js";
+import { runWithInstanceStorage } from "../core/instancestorage.js";
+import { runWithContext } from "../contexts/execution.js";
+import { ModelDefinition } from "../internal/iapplication.js";
+import { Ident } from "../models/ident.js";
+import { User } from "../models/user.js";
 import * as util from "util";
 
 let callCount = 0;

@@ -8,9 +8,9 @@
  */
 
 import { ConsoleLogger } from "@webda/workout";
-import { LoggerService } from "./logger";
-import { ConsoleLoggerServiceParameters } from "./params";
-import { useWorkerOutput } from "./ilogger";
+import { LoggerService } from "./logger.js";
+import { ConsoleLoggerServiceParameters } from "./params.js";
+import { useWorkerOutput } from "./ilogger.js";
 
 export class ConsoleLoggerService<
   T extends ConsoleLoggerServiceParameters = ConsoleLoggerServiceParameters

@@ -2,11 +2,11 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import axios from "axios";
 import { Histogram } from "prom-client";
-import { WebdaApplicationTest } from "../test/application";
-import { HttpContext } from "../contexts/httpcontext";
-import { UnpackedConfiguration } from "../internal/iapplication";
-import { WebdaInternalTest } from "../test/internal";
-import { emitCoreEvent } from "../events/events";
+import { WebdaApplicationTest } from "../test/application.js";
+import { HttpContext } from "../contexts/httpcontext.js";
+import { UnpackedConfiguration } from "../internal/iapplication.js";
+import { WebdaInternalTest } from "../test/internal.js";
+import { emitCoreEvent } from "../events/events.js";
 
 @suite
 class PrometheusTest extends WebdaApplicationTest {

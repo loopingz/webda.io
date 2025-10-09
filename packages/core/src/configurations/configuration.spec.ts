@@ -1,14 +1,14 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
-import { TestApplication, WebdaInternalSimpleTest } from "../test";
-import { ConfigurationProvider, ConfigurationService, ConfigurationServiceParameters } from "./configuration";
-import { UnpackedConfiguration } from "../internal/iapplication";
-import { useService } from "../core/hooks";
-import { Service } from "../services/service";
-import { ServiceParameters } from "../services/serviceparameters";
-import { Authentication } from "../services/authentication";
-import { useCoreEvents } from "../events/events";
+import { TestApplication, WebdaInternalSimpleTest } from "../test/index.js";
+import { ConfigurationProvider, ConfigurationService, ConfigurationServiceParameters } from "./configuration.js";
+import { UnpackedConfiguration } from "../internal/iapplication.js";
+import { useService } from "../core/hooks.js";
+import { Service } from "../services/service.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { Authentication } from "../services/authentication.js";
+import { useCoreEvents } from "../events/events.js";
 
 class TestConfigurationProvider extends Service implements ConfigurationProvider {
   static createConfiguration = () => new ServiceParameters();

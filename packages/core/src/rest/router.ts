@@ -1,21 +1,21 @@
 import uriTemplates from "uri-templates";
-import { HttpMethodType } from "../contexts/httpcontext";
-import type { IRouter, RequestFilter, RouteInfo } from "./irest";
+import { HttpMethodType } from "../contexts/httpcontext.js";
+import type { IRouter, RequestFilter, RouteInfo } from "./irest.js";
 
-import { useApplication, useModelId } from "../application/hooks";
-import { useLog } from "../loggers/hooks";
+import { useApplication, useModelId } from "../application/hooks.js";
+import { useLog } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
-import { useParameters } from "../core/instancestorage";
-import { useService } from "../core/hooks";
+import { useParameters } from "../core/instancestorage.js";
+import { useService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
-import { IWebContext } from "../contexts/icontext";
-import { Service } from "../services/service";
-import { WebContext } from "../contexts/webcontext";
-import { ServiceParameters } from "../services/serviceparameters";
+import { IWebContext } from "../contexts/icontext.js";
+import { Service } from "../services/service.js";
+import { WebContext } from "../contexts/webcontext.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
 import { Storable } from "@webda/models";
-import { templateVariables } from "../templates/templates";
-import { useCoreEvents } from "../events/events";
+import { templateVariables } from "../templates/templates.js";
+import { useCoreEvents } from "../events/events.js";
 
 export class RouterParameters extends ServiceParameters {
   /**

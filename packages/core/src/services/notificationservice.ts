@@ -1,9 +1,9 @@
-import { useService } from "../core/hooks";
-import { AbstractService } from "../core/icore";
-import type { Ident } from "../models/ident";
-import type { User } from "../models/user";
-import { ServiceParameters } from "../services/serviceparameters";
-import { Service } from "./service";
+import { useService } from "../core/hooks.js";
+import { AbstractService } from "../core/icore.js";
+import type { Ident } from "../models/ident.js";
+import type { User } from "../models/user.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { Service } from "./service.js";
 
 /**
  * Define a service that can notify a user based on his info

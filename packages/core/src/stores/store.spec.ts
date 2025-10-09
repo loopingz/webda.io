@@ -2,11 +2,11 @@ import { test } from "@webda/test";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { randomUUID } from "crypto";
-import { TestIdent } from "../test/objects";
-import { Ident, OperationContext, Store, User } from "../index";
-import { CoreModel } from "../models/coremodel";
-import { WebdaApplicationTest } from "../test/application";
-import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
+import { TestIdent } from "../test/objects.js";
+import { Ident, OperationContext, Store, User } from "../index.js";
+import { CoreModel } from "../models/coremodel.js";
+import { WebdaApplicationTest } from "../test/application.js";
+import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store.js";
 import { UuidModel } from "@webda/models";
 
 /**

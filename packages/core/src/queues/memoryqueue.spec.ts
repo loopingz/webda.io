@@ -1,9 +1,9 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { register } from "prom-client";
-import { Queue } from "../index";
-import { MemoryQueue, MemoryQueueParameters } from "./memoryqueue";
-import { QueueTest } from "./queue.spec";
+import { Queue } from "../index.js";
+import { MemoryQueue, MemoryQueueParameters } from "./memoryqueue.js";
+import { QueueTest } from "./queue.spec.js";
 import { CancelablePromise } from "@webda/utils";
 
 class Title {

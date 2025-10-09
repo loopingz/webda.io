@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import * as WebdaError from "./errors";
+import * as WebdaError from "./errors.js";
 
 @suite
 class ErrorsTest {

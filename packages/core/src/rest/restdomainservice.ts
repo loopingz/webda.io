@@ -1,14 +1,14 @@
 import { QueryValidator } from "@webda/ql";
-import type { ModelAction } from "../internal/iapplication";
-import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice";
-import { OpenAPIWebdaDefinition } from "./irest";
-import * as WebdaError from "../errors/errors";
-import { useRouter } from "./hooks";
-import { useApplication } from "../application/hooks";
-import { useCore, useModelMetadata } from "../core/hooks";
-import { callOperation } from "../core/operations";
-import { WebContext } from "../contexts/webcontext";
-import { hasSchema } from "../schemas/hooks";
+import type { ModelAction } from "../internal/iapplication.js";
+import { DomainServiceParameters, ModelsOperationsService } from "../services/domainservice.js";
+import { OpenAPIWebdaDefinition } from "./irest.js";
+import * as WebdaError from "../errors/errors.js";
+import { useRouter } from "./hooks.js";
+import { useApplication } from "../application/hooks.js";
+import { useCore, useModelMetadata } from "../core/hooks.js";
+import { callOperation } from "../core/operations.js";
+import { WebContext } from "../contexts/webcontext.js";
+import { hasSchema } from "../schemas/hooks.js";
 import type { ModelClass } from "@webda/models";
 
 /**
@@ -126,7 +126,7 @@ export class RESTDomainService<
     const actionsName = Object.keys(actions);
 
     // Register the model url
-    useRouter().registerModelUrl(app.getModelId(model), prefix);
+    useRouter()?.registerModelUrl(app.getModelId(model), prefix);
 
     let openapi: OpenAPIWebdaDefinition = {
       [this.parameters.queryMethod.toLowerCase()]: {

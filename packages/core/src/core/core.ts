@@ -1,24 +1,24 @@
 import { WorkerLogLevel } from "@webda/workout";
 import { deepmerge } from "deepmerge-ts";
-import { Application } from "../application/application";
-import { Configuration } from "../internal/iapplication";
-import { BinaryService } from "../services/binary";
+import { Application } from "../application/application.js";
+import { Configuration } from "../internal/iapplication.js";
+import { BinaryService } from "../services/binary.js";
 import { Model, ModelClass } from "@webda/models";
-import * as WebdaError from "../errors/errors";
-import { Store } from "../stores/store";
-import { UnpackedApplication } from "../application/unpackedapplication";
-import { Logger } from "../loggers/ilogger";
+import * as WebdaError from "../errors/errors.js";
+import { Store } from "../stores/store.js";
+import { UnpackedApplication } from "../application/unpackedapplication.js";
+import { Logger } from "../loggers/ilogger.js";
 import { CancelablePromise, getUuid, State, StateOptions } from "@webda/utils";
-import { ICore, AbstractService, OperationDefinitionInfo } from "./icore";
-import { emitCoreEvent } from "../events/events";
-import { useInstanceStorage } from "./instancestorage";
-import { useApplication, useModel, useModelId } from "../application/hooks";
-import { Modda } from "../internal/iapplication";
-import { InstanceCache } from "../cache/cache";
+import { ICore, AbstractService, OperationDefinitionInfo } from "./icore.js";
+import { emitCoreEvent } from "../events/events.js";
+import { useInstanceStorage } from "./instancestorage.js";
+import { useApplication, useModel, useModelId } from "../application/hooks.js";
+import { Modda } from "../internal/iapplication.js";
+import { InstanceCache } from "../cache/cache.js";
 import { CustomConstructor } from "@webda/tsc-esm";
 import { AsyncLocalStorage } from "node:async_hooks";
 import * as jsondiffpatch from "jsondiffpatch";
-import { ConfigurationService } from "../configurations/configuration";
+import { ConfigurationService } from "../configurations/configuration.js";
 
 export type CoreStates = "initial" | "loading" | "initializing" | "reinitializing" | "ready" | "stopping" | "stopped";
 

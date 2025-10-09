@@ -11,12 +11,12 @@ import {
   useApplication,
   useModel,
   User
-} from "../index";
+} from "../index.js";
 import { FileUtils } from "@webda/utils";
-import { StoreNotFoundError } from "./store";
-import { PermissionModel, StoreTest } from "./store.spec";
+import { StoreNotFoundError } from "./store.js";
+import { PermissionModel, StoreTest } from "./store.spec.js";
 import * as WebdaQL from "@webda/ql";
-import { WebdaApplicationTest } from "../test/application";
+import { WebdaApplicationTest } from "../test/application.js";
 import { Model, ModelClass, SelfJSONed, UuidModel, WEBDA_PRIMARY_KEY } from "@webda/models";
 
 /**

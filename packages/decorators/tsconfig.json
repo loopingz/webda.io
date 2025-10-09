@@ -1,24 +1,18 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "ES2022",
+    "target": "ES2022",
+    "module": "nodenext",
     "outDir": "./lib",
     "strict": true,
     "declaration": true,
     "sourceMap": true,
     "isolatedModules": true,
-    "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "skipLibCheck": true,
     "declarationMap": true,
     "useDefineForClassFields": true
   },
   "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "src/**/*.spec.ts"],
-  "ts-node": {
-    "compilerOptions": {
-      "experimentalDecorators": false
-    }
-  }
+  "exclude": ["**/node_modules", "src/**/*.spec.ts"]
 }

@@ -1,6 +1,6 @@
-import { IWebContext } from "../contexts/icontext";
+import { IWebContext } from "../contexts/icontext.js";
 import { RegExpValidator } from "@webda/utils";
-import { RequestFilter } from "./irest";
+import { RequestFilter } from "./irest.js";
 
 /**
  * Filter request based on their origin

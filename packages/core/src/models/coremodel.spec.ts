@@ -10,11 +10,11 @@ import {
   getAttributeLevelProxy,
   runWithContext,
   useConfiguration
-} from "../index";
-import { Task } from "../test/objects";
-import { WebdaApplicationTest } from "../test/application";
+} from "../index.js";
+import { Task } from "../test/objects.js";
+import { WebdaApplicationTest } from "../test/application.js";
 import { Constructor } from "@webda/tsc-esm";
-import { CoreModel } from "./coremodel";
+import { CoreModel } from "./coremodel.js";
 import {
   Action,
   ModelLink,

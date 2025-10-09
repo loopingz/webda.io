@@ -1,9 +1,9 @@
 import { type CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
-import type { JWTOptions } from "../services/icryptoservice";
-import type { HttpContext } from "../contexts/httpcontext";
-import { isWebContext, IWebContext } from "../contexts/icontext";
-import { useCrypto } from "../services/cryptoservice";
-import { useLog } from "../loggers/hooks";
+import type { JWTOptions } from "../services/icryptoservice.js";
+import type { HttpContext } from "../contexts/httpcontext.js";
+import { isWebContext, IWebContext } from "../contexts/icontext.js";
+import { useCrypto } from "../services/cryptoservice.js";
+import { useLog } from "../loggers/hooks.js";
 
 /**
  * Cookie cannot be more than 4096, so we split them by this constant

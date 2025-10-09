@@ -1,13 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as path from "path";
-import { Application, UnpackedApplication, useApplication, validateModelSchema } from "../index";
-import { CoreModel } from "../models/coremodel";
-import { User } from "../models/user";
-import { WebdaInternalTest, TestInternalApplication } from "../test/internal";
+import { Application, UnpackedApplication, useApplication, validateModelSchema } from "../index.js";
+import { CoreModel } from "../models/coremodel.js";
+import { User } from "../models/user.js";
+import { WebdaInternalTest, TestInternalApplication } from "../test/internal.js";
 import { FileUtils, getCommonJS } from "@webda/utils";
-import { TestApplication } from "../test/objects";
-import { WebdaApplicationTest } from "../test/application";
+import { TestApplication } from "../test/objects.js";
+import { WebdaApplicationTest } from "../test/application.js";
 const { __dirname } = getCommonJS(import.meta.url);
 
 @suite

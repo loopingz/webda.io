@@ -1,11 +1,11 @@
 import { AsyncLocalStorage } from "async_hooks";
-import { Configuration } from "../internal/iapplication";
-import { OperationDefinitionInfo, ICore } from "./icore";
-import { ContextProvider } from "../contexts/icontext";
-import { IRouter } from "../rest/irest";
-import type { Application } from "../application/application";
-import { useApplication } from "../application/hooks";
-import type { Core } from "./core";
+import { Configuration } from "../internal/iapplication.js";
+import { OperationDefinitionInfo, ICore } from "./icore.js";
+import { ContextProvider } from "../contexts/icontext.js";
+import { IRouter } from "../rest/irest.js";
+import type { Application } from "../application/application.js";
+import { useApplication } from "../application/hooks.js";
+import type { Core } from "./core.js";
 
 export type InstanceStorage = Partial<{
   // Used to store the application

@@ -1,4 +1,4 @@
-import { useLog } from "../loggers/hooks";
+import { useLog } from "../loggers/hooks.js";
 
 /**
  * Interface to specify the Service parameters

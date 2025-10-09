@@ -1,23 +1,23 @@
 import type { DeepPartial } from "@webda/tsc-esm";
 import { TransformCase, TransformCaseType } from "@webda/utils";
-import { Service } from "./service";
-import { Application } from "../application/application";
-import type { ModelAction } from "../internal/iapplication";
+import { Service } from "./service.js";
+import { Application } from "../application/application.js";
+import type { ModelAction } from "../internal/iapplication.js";
 import { JSONUtils } from "@webda/utils";
-import { OperationContext } from "../contexts/operationcontext";
+import { OperationContext } from "../contexts/operationcontext.js";
 import type { ActionsEnum, Model, ModelClass } from "@webda/models";
-import { runWithContext } from "../contexts/execution";
+import { runWithContext } from "../contexts/execution.js";
 
-import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary";
-import * as WebdaError from "../errors/errors";
-import { ServiceParameters } from "../services/serviceparameters";
-import { useApplication, useModel } from "../application/hooks";
-import { OperationDefinition } from "../core/icore";
-import { ModelGraphBinaryDefinition } from "../internal/iapplication";
-import { useCore, useModelMetadata } from "../core/hooks";
-import { registerOperation } from "../core/operations";
-import { WebContext } from "../contexts/webcontext";
-import { hasSchema, registerSchema } from "../schemas/hooks";
+import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary.js";
+import * as WebdaError from "../errors/errors.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { useApplication, useModel } from "../application/hooks.js";
+import { OperationDefinition } from "../core/icore.js";
+import { ModelGraphBinaryDefinition } from "../internal/iapplication.js";
+import { useCore, useModelMetadata } from "../core/hooks.js";
+import { registerOperation } from "../core/operations.js";
+import { WebContext } from "../contexts/webcontext.js";
+import { hasSchema, registerSchema } from "../schemas/hooks.js";
 
 export class DomainServiceParameters extends ServiceParameters {
   /**

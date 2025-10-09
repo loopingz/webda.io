@@ -11,7 +11,7 @@ import {
   User,
   WebContext,
   WebdaError
-} from "../index";
+} from "../index.js";
 import { WebdaApplicationTest } from "../test/application";
 
 @suite

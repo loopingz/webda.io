@@ -1,9 +1,9 @@
-import { useModel } from "../application/hooks";
-import {  UnpackedConfiguration } from "../internal/iapplication";
-import {  UuidModel } from "@webda/models";
+import { useModel } from "../application/hooks.js";
+import { UnpackedConfiguration } from "../internal/iapplication.js";
+import { UuidModel } from "@webda/models";
 import { FileUtils } from "@webda/utils";
-import { TestApplication } from "./objects";
-import { WebdaApplicationTest } from "./application";
+import { TestApplication } from "./objects.js";
+import { WebdaApplicationTest } from "./application.js";
 
 export class TestInternalApplication extends TestApplication {
   loadProjectInformation() {
@@ -28,11 +28,17 @@ export class WebdaInternalTest extends WebdaApplicationTest {
    */
   async createGraphObjects() {
     const Teacher = useModel<TeacherType>("Teacher");
-    const Course = useModel<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>("Course");
+    const Course = useModel<UuidModel & { name: string; classroom: string; teacher: string; students: any[] }>(
+      "Course"
+    );
     const Classroom = useModel<UuidModel & { name: string; courses: any; hardwares: any }>("Classroom");
-    const Student = useModel<UuidModel & { order: number; email: string; firstName: string; lastName: string }>("Student");
+    const Student = useModel<UuidModel & { order: number; email: string; firstName: string; lastName: string }>(
+      "Student"
+    );
     const Hardware = useModel<UuidModel & { name: string; classroom: string }>("Hardware");
-    const ComputerScreen = useModel<UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }>("ComputerScreen");
+    const ComputerScreen = useModel<
+      UuidModel & { name: string; classroom: string; modelId: string; serialNumber: string }
+    >("ComputerScreen");
     const Company = useModel<UuidModel & { name: string; uuid: string }>("Company");
     const User = useModel<UuidModel & { name: string; _company: string }>("User");
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { JSONUtils } from "@webda/utils";
-import { type MessageReceipt, Queue, QueueParameters } from "./queueservice";
+import { type MessageReceipt, Queue, QueueParameters } from "./queueservice.js";
 
 interface QueueMap {
   [key: string]: any;

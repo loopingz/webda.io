@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { ServiceParameters } from "./serviceparameters";
+import { ServiceParameters } from "./serviceparameters.js";
 import * as assert from "assert";
 
 @suite
@@ -9,6 +9,7 @@ class ServiceParametersTest {
     let patch = 0;
     const perms: any = new ServiceParameters().load({
       permissions: ["RANDOM", "PRODUCT_1"],
+      random: true,
       value: 123
     });
     perms.with((params: any) => {

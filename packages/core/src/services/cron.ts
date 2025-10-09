@@ -1,8 +1,8 @@
 import { createHash } from "crypto";
 import { schedule } from "node-cron";
-import { Service } from "./service";
+import { Service } from "./service.js";
 import { CancelablePromise } from "@webda/utils";
-import { useCore, useService } from "../core/hooks";
+import { useCore, useService } from "../core/hooks.js";
 
 export const CronSymbol = Symbol("WebdaCron");
 /**

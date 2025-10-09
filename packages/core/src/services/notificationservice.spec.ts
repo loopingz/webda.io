@@ -1,10 +1,10 @@
 import { beforeEach, suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Service } from "./service";
-import { User } from "../models/user";
-import { WebdaApplicationTest } from "../test/application";
-import { MultiNotificationParameters, MultiNotificationService, NotificationService } from "./notificationservice";
-import { ServiceParameters } from "../services/serviceparameters";
+import { Service } from "./service.js";
+import { User } from "../models/user.js";
+import { WebdaApplicationTest } from "../test/application.js";
+import { MultiNotificationParameters, MultiNotificationService, NotificationService } from "./notificationservice.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
 
 class FakeNotification extends Service implements NotificationService {
   template: boolean = false;

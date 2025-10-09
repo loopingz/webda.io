@@ -1,5 +1,5 @@
-import { Context } from "../contexts/icontext";
-import { Service } from "./service";
+import { Context } from "../contexts/icontext.js";
+import { Service } from "./service.js";
 
 /**
  * Authentication service interface

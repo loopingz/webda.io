@@ -1,6 +1,6 @@
 import * as assert from "assert";
-import { WebdaApplicationTest } from "../test/test";
-import { Store, Ident, User, WebdaError } from "../index";
+import { WebdaApplicationTest } from "../test/test.js";
+import { Store, Ident, User, WebdaError } from "../index.js";
 
 class RESTDomainServiceTest extends WebdaApplicationTest {
   async httpCRUD(url: string = "/users") {

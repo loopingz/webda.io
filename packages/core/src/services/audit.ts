@@ -1,5 +1,5 @@
-import { Inject, Service } from "../services/service";
-import { Store } from "../stores/store";
+import { Inject, Service } from "../services/service.js";
+import { Store } from "../stores/store.js";
 
 /**
  * Define audit entry

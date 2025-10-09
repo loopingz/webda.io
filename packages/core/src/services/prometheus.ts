@@ -1,9 +1,9 @@
 import * as http from "http";
 import { collectDefaultMetrics, Counter, Gauge, Histogram, register } from "prom-client";
-import { Service } from "./service";
-import { ServiceParameters } from "../services/serviceparameters";
-import { useCoreEvents } from "../events/events";
-import { WebContext } from "../contexts/webcontext";
+import { Service } from "./service.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { useCoreEvents } from "../events/events.js";
+import { WebContext } from "../contexts/webcontext.js";
 
 interface PrometheusExtension {
   timer: (labels?: Partial<Record<string, string | number>> | undefined) => number;
@@ -158,65 +158,66 @@ export class PrometheusService<T extends PrometheusParameters = PrometheusParame
    */
   resolve() {
     super.resolve();
-    register.setDefaultLabels(this.parameters.labels);
-    if (!this.parameters.portNumber) {
-      this.addRoute(this.parameters.url || "/metrics", ["GET"], this.serveMetrics);
-    } else {
-      this.log(
-        "INFO",
-        `Listening for prometheus scraper on ${this.parameters.bind || ""}:${this.parameters.portNumber}`
-      );
-      this.http ??= http
-        .createServer(async (req, res) => {
-          if (req.method === "GET" && req.url === this.parameters.url) {
-            res.writeHead(200, { "Content-Type": register.contentType });
-            res.write(await register.metrics());
-          } else {
-            res.writeHead(404);
+    this.parameters.with(parameters => {
+      register.setDefaultLabels(parameters.labels);
+      if (!parameters.portNumber) {
+        this.addRoute(parameters.url || "/metrics", ["GET"], this.serveMetrics);
+      } else {
+        this.log("INFO", `Listening for prometheus scraper on ${parameters.bind || ""}:${parameters.portNumber}`);
+        // Close previous server if any
+        this.http?.close();
+        this.http = http
+          .createServer(async (req, res) => {
+            if (req.method === "GET" && req.url === parameters.url) {
+              res.writeHead(200, { "Content-Type": register.contentType });
+              res.write(await register.metrics());
+            } else {
+              res.writeHead(404);
+            }
+            res.end();
+          })
+          .listen(parameters.portNumber, parameters.bind);
+      }
+      // Only register on events if we need to get metrics
+      if (parameters.includeRequestMetrics) {
+        useCoreEvents("Webda.Request", ({ context }) => {
+          if (context.getHttpContext().getRelativeUri() === parameters.url) {
+            return;
           }
-          res.end();
-        })
-        .listen(this.parameters.portNumber, this.parameters.bind);
-    }
-    // Only register on events if we need to get metrics
-    if (this.parameters.includeRequestMetrics) {
-      useCoreEvents("Webda.Request", ({ context }) => {
-        if (context.getHttpContext().getRelativeUri() === this.parameters.url) {
-          return;
-        }
-        this.metrics.http_request_in_flight.inc();
-        context.setExtension("prometheus", <PrometheusExtension>{
-          timer: this.metrics.http_request_duration_milliseconds.startTimer()
+          this.metrics.http_request_in_flight.inc();
+          context.setExtension("prometheus", <PrometheusExtension>{
+            timer: this.metrics.http_request_duration_milliseconds.startTimer()
+          });
         });
-      });
-      useCoreEvents("Webda.Result", ({ context }) => {
-        if (context.getHttpContext().getRelativeUri() === this.parameters.url) {
-          return;
-        }
-        const staticLabels = this.parameters.labels || {};
-        const labels = {
-          handler: context.getHttpContext().getRelativeUri(),
-          method: context.getHttpContext().getMethod(),
-          statuscode: context.statusCode,
-          ...staticLabels
-        };
-        context
-          .getExtension<PrometheusExtension>("prometheus")
-          .timer(this.parameters.partitionHistogram ? labels : staticLabels);
-        this.metrics.http_request_total.inc(labels, 1);
-        if (["PUT", "POST", "PATCH"].includes(context.getHttpContext().getMethod())) {
-          this.metrics.http_request_sizes.observe(
-            this.parameters.partitionHistogram ? labels : staticLabels,
-            Number.parseInt(context.getHttpContext().getHeaders()["content-length"] || "0")
-          );
-          this.metrics.http_response_sizes.observe(
-            this.parameters.partitionHistogram ? labels : staticLabels,
-            Number.parseInt(context.getResponseHeaders["content-length"] || "0")
-          );
-        }
-        this.metrics.http_request_in_flight.dec(staticLabels, 1);
-      });
-    }
+        useCoreEvents("Webda.Result", ({ context }) => {
+          if (context.getHttpContext().getRelativeUri() === parameters.url) {
+            return;
+          }
+          const staticLabels = parameters.labels || {};
+          const labels = {
+            handler: context.getHttpContext().getRelativeUri(),
+            method: context.getHttpContext().getMethod(),
+            statuscode: context.statusCode,
+            ...staticLabels
+          };
+          context
+            .getExtension<PrometheusExtension>("prometheus")
+            .timer(this.parameters.partitionHistogram ? labels : staticLabels);
+          this.metrics.http_request_total.inc(labels, 1);
+          if (["PUT", "POST", "PATCH"].includes(context.getHttpContext().getMethod())) {
+            this.metrics.http_request_sizes.observe(
+              this.parameters.partitionHistogram ? labels : staticLabels,
+              Number.parseInt(context.getHttpContext().getHeaders()["content-length"] || "0")
+            );
+            this.metrics.http_response_sizes.observe(
+              this.parameters.partitionHistogram ? labels : staticLabels,
+              Number.parseInt(context.getResponseHeaders["content-length"] || "0")
+            );
+          }
+          this.metrics.http_request_in_flight.dec(staticLabels, 1);
+        });
+      }
+    });
     return this;
   }
 

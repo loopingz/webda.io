@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { WebdaApplicationTest } from "../test/application";
+import { WebdaApplicationTest } from "../test/application.js";
 
 class QueueItemTest {
   type: number;

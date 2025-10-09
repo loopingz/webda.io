@@ -1,10 +1,10 @@
 import { Query } from "@webda/ql";
-import { OwnerModel } from "../models/ownermodel";
-import { Store, StoreFindResult, StoreParameters } from "../stores/store";
-import { Service } from "../services/service";
-import { Ident as WebdaIdent } from "../models/ident";
-import { UnpackedApplication } from "../application/unpackedapplication";
-import { CachedModule, SectionEnum, UnpackedConfiguration } from "../internal/iapplication";
+import { OwnerModel } from "../models/ownermodel.js";
+import { Store, StoreFindResult, StoreParameters } from "../stores/store.js";
+import { Service } from "../services/service.js";
+import { Ident as WebdaIdent } from "../models/ident.js";
+import { UnpackedApplication } from "../application/unpackedapplication.js";
+import { CachedModule, SectionEnum, UnpackedConfiguration } from "../internal/iapplication.js";
 import { WorkerOutput } from "@webda/workout";
 import { execSync } from "node:child_process";
 import path from "node:path";
@@ -19,8 +19,8 @@ import {
   Repository,
   MemoryRepository
 } from "@webda/models";
-import { ServiceParameters } from "../services/serviceparameters";
-import { IOperationContext } from "../contexts/icontext";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { IOperationContext } from "../contexts/icontext.js";
 
 export type TaskEvents<T> = ModelEvents<T> & {
   Done: { task: T };

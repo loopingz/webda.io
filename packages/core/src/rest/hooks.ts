@@ -1,5 +1,5 @@
-import { useService } from "../core/hooks";
-import { Router } from "./router";
+import { useService } from "../core/hooks.js";
+import { Router } from "./router.js";
 
 /**
  * Return the Router service

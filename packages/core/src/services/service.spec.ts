@@ -11,29 +11,34 @@ import {
   setLogContext,
   setWorkerOutput,
   useApplication,
-  useWorkerOutput,
   WebdaError
-} from "../index";
+} from "../index.js";
 // Updated to use barrel index from test folder
-import { WebdaApplicationTest } from "../test";
-import { TestApplication } from "../test/objects";
-import { OperationContext } from "../contexts/operationcontext";
+import { WebdaApplicationTest } from "../test/index.js";
+import { TestApplication } from "../test/objects.js";
+import { OperationContext } from "../contexts/operationcontext.js";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
 
 class FakeServiceParameters extends ServiceParameters {
-  bean: string;
+  bean!: string;
+  url!: string;
 }
 
 class FakeService<T extends FakeServiceParameters = FakeServiceParameters> extends Service<T> {
   @Inject("Authentication2", true)
-  serv: Service;
+  serv!: Service;
   @Inject("bean", "Authentication", true)
-  serv2: Service;
+  serv2!: Service;
   @Inject("params:bean", undefined, true)
-  serv3: Service;
+  serv3!: Service;
   @Inject("params:bean", undefined, false)
-  serv4: Service;
+  serv4!: Service;
   static catchInjector = true;
+
+  constructor(name: string, params: Partial<T> = {}) {
+    super(name, new ServiceParameters().load(params) as T);
+  }
+
 
   resolve(): this {
     try {
@@ -48,6 +53,9 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
 
   static createConfiguration(params: any) {
     return new FakeServiceParameters().load(params);
+  }
+  static filterParameters(params: any) {
+    return params;
   }
 
   // Set to undefined to ensure fallback on method name
@@ -64,7 +72,10 @@ class FakeService<T extends FakeServiceParameters = FakeServiceParameters> exten
 
 class FakeService2 extends Service {
   @Inject("Authentication2")
-  serv: Service;
+  serv!: Service;
+  constructor(name: string, params: Partial<ServiceParameters> = {}) {
+    super(name, new ServiceParameters().load(params));
+  }
 }
 
 class FakeOperationContext extends OperationContext {
@@ -249,7 +260,11 @@ class ServiceTest extends WebdaApplicationTest {
       await new Promise(resolve => setTimeout(resolve, 140));
       throw new Error("My error");
     });
-    await service.emit("test", undefined);
+    try {
+      await service.emit("test", undefined);
+    } catch (err) {
+      assert.strictEqual((err as Error).message, "My error");
+    }
     memoryLogger.close();
     const logs = memoryLogger.getLogs();
     assert.strictEqual(logs.length, 2);

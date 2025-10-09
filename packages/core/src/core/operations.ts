@@ -1,12 +1,12 @@
 import { QueryValidator } from "@webda/ql";
-import { OperationDefinition } from "./icore";
-import { OperationContext } from "../contexts/operationcontext";
-import * as WebdaError from "../errors/errors";
-import { ValidationError } from "../schemas/hooks";
-import { useInstanceStorage } from "./instancestorage";
-import { useModel } from "../application/hooks";
-import { useService } from "./hooks";
-import { emitCoreEvent } from "../events/events";
+import { OperationDefinition } from "./icore.js";
+import { OperationContext } from "../contexts/operationcontext.js";
+import * as WebdaError from "../errors/errors.js";
+import { ValidationError } from "../schemas/hooks.js";
+import { useInstanceStorage } from "./instancestorage.js";
+import { useApplication, useModel } from "../application/hooks.js";
+import { useService } from "./hooks.js";
+import { emitCoreEvent } from "../events/events.js";
 import { createMethodDecorator } from "@webda/tsc-esm";
 
 /**
@@ -152,7 +152,7 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
   ["input", "output"]
     .filter(key => operations[operationId][key])
     .forEach(key => {
-      if (!this.getApplication().hasSchema(operations[operationId][key])) {
+      if (!useApplication().getSchema(operations[operationId][key])) {
         delete operations[operationId][key];
       }
     });

@@ -1,4 +1,4 @@
-import { IOperationContext } from "../contexts/icontext";
+import { IOperationContext } from "../contexts/icontext.js";
 import { ModelEvents, SelfJSONed, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {

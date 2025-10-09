@@ -4,10 +4,10 @@ import { open } from "node:fs/promises";
 import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
 import { GunzipConditional } from "@webda/utils";
-import { Store, StoreParameters } from "./store";
+import { Store, StoreParameters } from "./store.js";
 import { MemoryRepository, ModelClass, Repository } from "@webda/models";
-import { InstanceCache } from "../cache/cache";
-import { useModelMetadata } from "../core/hooks";
+import { InstanceCache } from "../cache/cache.js";
+import { useModelMetadata } from "../core/hooks.js";
 
 export interface StorageMap {
   [key: string]: string;

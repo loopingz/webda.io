@@ -1,12 +1,12 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";
-import { CookieOptions, SecureCookie, WebContext } from "../index";
-import { SimpleOperationContext } from "../contexts/simplecontext";
-import { WebContextMock } from "../contexts/context.spec";
-import { HttpContext } from "../contexts/httpcontext";
-import { Session } from "./session";
-import { WebdaInternalSimpleTest } from "../test/internal";
+import { CookieOptions, SecureCookie, WebContext } from "../index.js";
+import { SimpleOperationContext } from "../contexts/simplecontext.js";
+import { WebContextMock } from "../contexts/context.spec.js";
+import { HttpContext } from "../contexts/httpcontext.js";
+import { Session } from "./session.js";
+import { WebdaInternalSimpleTest } from "../test/internal.js";
 
 const SECRET =
   "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";

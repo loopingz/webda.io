@@ -1,6 +1,6 @@
 import { SelfJSONed } from "@webda/models";
-import { OwnerModel } from "./ownermodel";
-import type { User } from "./user";
+import { OwnerModel } from "./ownermodel.js";
+import type { User } from "./user.js";
 
 export class IdentTokens {
   refresh: string;

@@ -1,15 +1,15 @@
-import * as WebdaError from "../errors/errors";
-import type { Authentication } from "./authentication";
-import { Service } from "./service";
+import * as WebdaError from "../errors/errors.js";
+import type { Authentication } from "./authentication.js";
+import { Service } from "./service.js";
 import { getUuid } from "@webda/utils";
-import { RequestFilter } from "../rest/irest";
-import { WebContext } from "../contexts/webcontext";
-import { Counter } from "../metrics/metrics";
+import { RequestFilter } from "../rest/irest.js";
+import { WebContext } from "../contexts/webcontext.js";
+import { Counter } from "../metrics/metrics.js";
 import { RegExpStringValidator } from "@webda/utils";
-import { ServiceParameters } from "../services/serviceparameters";
-import { useService } from "../core/hooks";
-import { OperationContext } from "../contexts/operationcontext";
-import { EventWithContext } from "../events/events";
+import { ServiceParameters } from "../services/serviceparameters.js";
+import { useService } from "../core/hooks.js";
+import { OperationContext } from "../contexts/operationcontext.js";
+import { EventWithContext } from "../events/events.js";
 
 export interface EventOAuthToken extends EventWithContext {
   /**
@@ -86,13 +86,14 @@ export class OAuthServiceParameters extends ServiceParameters {
    */
   authenticationService: string;
 
-  constructor(params: any) {
-    super();
+  load(params: any) {
+    super.load(params);
     this.scope ??= ["email"];
     this.exposeScope ??= false;
     this.authenticationService ??= "Authentication";
     this.authorized_uris ??= [];
     this.no_referer ??= false;
+    return this;
   }
 }
 
@@ -162,21 +163,6 @@ export abstract class OAuthService<
   }
 
   /**
-   * Load parameters
-   *
-   * @param params
-   */
-  loadParameters(params: any): T {
-    const result = new OAuthServiceParameters(params);
-    if (result.authorized_uris === undefined) {
-      this.log("WARN", "Not defining authorized_uris is a security risk");
-    } else {
-      this.authorized_uris = new RegExpStringValidator(result.authorized_uris);
-    }
-    return <T>result;
-  }
-
-  /**
    * Allow callback referer to access this url no matter what
    * @param context
    * @returns
@@ -206,7 +192,17 @@ export abstract class OAuthService<
    */
   resolve(): this {
     super.resolve();
-    this._authenticationService = useService<Authentication>(this.parameters.authenticationService);
+    this.parameters.with(params => {
+      if (params.url === undefined) {
+        params.url = this.getDefaultUrl();
+      }
+      if (params.authorized_uris === undefined) {
+        this.log("WARN", "Not defining authorized_uris is a security risk");
+      } else {
+        this.authorized_uris = new RegExpStringValidator(params.authorized_uris);
+      }
+      this._authenticationService = useService<Authentication>(this.parameters.authenticationService);
+    });
     return this;
   }
 

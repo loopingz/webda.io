@@ -1,31 +1,29 @@
 import { ConsoleLogger, useWorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { register } from "prom-client";
 
-import { PrometheusService } from "../services/prometheus";
+import { PrometheusService } from "../services/prometheus.js";
 import { FileUtils } from "@webda/utils";
 
 // Separation on purpose to keep application import separated
-import { Service } from "../services/service";
-import { Reflection, UnpackedConfiguration } from "../internal/iapplication";
-import { Core } from "../core/core";
-import { DebugMailer } from "../services/debugmailer";
-import { MemoryStore } from "../stores/memory";
-import { RegistryEntry } from "../models/registry";
-import { WebContext } from "../contexts/webcontext";
-import { HttpContext, HttpMethodType } from "../contexts/httpcontext";
-import { runWithContext, useContext } from "../contexts/execution";
+import { Service } from "../services/service.js";
+import { Reflection, UnpackedConfiguration } from "../internal/iapplication.js";
+import { Core } from "../core/core.js";
+import { DebugMailer } from "../services/debugmailer.js";
+import { WebContext } from "../contexts/webcontext.js";
+import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
+import { runWithContext, useContext } from "../contexts/execution.js";
 import { sleep } from "@webda/utils";
 import { DeepPartial } from "@webda/tsc-esm";
-import { useApplication } from "../application/hooks";
-import { useRouter } from "../rest/hooks";
-import { useCore, useModelStore, useService } from "../core/hooks";
-import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects";
-import { Application } from "../application/application";
+import { useApplication } from "../application/hooks.js";
+import { useRouter } from "../rest/hooks.js";
+import { useCore, useModelStore, useService } from "../core/hooks.js";
+import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects.js";
+import { Application } from "../application/application.js";
 import { useLog } from "@webda/workout";
-import { WebdaAsyncStorageTest } from "./asyncstorage";
+import { WebdaAsyncStorageTest } from "./asyncstorage.js";
 import { ModelClass } from "@webda/models";
-import { useInstanceStorage } from "../core/instancestorage";
-import { ServiceParameters } from "../services/serviceparameters";
+import { useInstanceStorage } from "../core/instancestorage.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
 
 /**
  * Utility class for UnitTest
@@ -223,10 +221,7 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
     if (params.context) {
       params.context.resetResponse();
     } else {
-      params.context = useContext();
-      if (params.context.isGlobalContext()) {
-        params.context = undefined;
-      }
+      params.context = useContext() as any;
     }
     params.context ??= await this.newContext();
     params.method ??= "GET";

@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
-import * as WebdaError from "../errors/errors";
-import type { IWebContext } from "../contexts/icontext";
-import { Service } from "./service";
-import { ServiceParameters } from "../services/serviceparameters";
+import * as WebdaError from "../errors/errors.js";
+import type { IWebContext } from "../contexts/icontext.js";
+import { Service } from "./service.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
 
 /**
  * ResourceService parameters
@@ -103,19 +103,15 @@ class ResourceService<T extends ResourceServiceParameters = ResourceServiceParam
   fileOnly: boolean;
 
   /**
-   * Load the parameters for a service
-   */
-  loadParameters(params: any): T {
-    return <T>new ResourceServiceParameters(params);
-  }
-
-  /**
    * Resolve resource folder
    */
-  computeParameters() {
-    super.computeParameters();
-    this._resolved = path.resolve(this.parameters.folder);
-    this.fileOnly = !fs.lstatSync(this._resolved).isDirectory();
+  resolve() {
+    super.resolve();
+    this.parameters.with(({ folder }) => {
+      this._resolved = path.resolve(folder);
+      this.fileOnly = !fs.lstatSync(this._resolved).isDirectory();
+    });
+    return this;
   }
 
   /**

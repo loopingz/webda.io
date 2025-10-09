@@ -1,7 +1,7 @@
-import { useInstanceStorage } from "../core/instancestorage";
+import { useInstanceStorage } from "../core/instancestorage.js";
 import type { Model } from "@webda/models";
-import { ModelDefinition } from "../internal/iapplication";
-import type { Application } from "./application";
+import { ModelDefinition } from "../internal/iapplication.js";
+import type { Application } from "./application.js";
 
 /**
  * Get the current application

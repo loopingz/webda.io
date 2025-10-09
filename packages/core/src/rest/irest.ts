@@ -1,8 +1,8 @@
 import type { JSONSchema7 } from "json-schema";
 import type { OpenAPIV3 } from "openapi-types";
-import { HttpMethodType } from "../contexts/httpcontext";
-import { createPropertyDecorator, DeepPartial } from "@webda/tsc-esm";
-import { IWebContext } from "../contexts/icontext";
+import { HttpMethodType } from "../contexts/httpcontext.js";
+import { createMethodDecorator, createPropertyDecorator, DeepPartial } from "@webda/tsc-esm";
+import { IWebContext } from "../contexts/icontext.js";
 import { Repository } from "@webda/models";
 
 /**
@@ -38,8 +38,8 @@ export interface OpenAPIWebdaDefinition extends DeepPartial<OpenAPIV3.PathItemOb
  * @returns
  * @deprecated use @Operation instead
  */
-export const Route = createPropertyDecorator(
-  (value: any, context: ClassFieldDecoratorContext, route: string, methods: HttpMethodType | HttpMethodType[] = ["GET"], openapi: OpenAPIWebdaDefinition = {}) => {
+export const Route = createMethodDecorator(
+  (value: any, context: ClassMemberDecoratorContext, route: string, methods: HttpMethodType | HttpMethodType[] = ["GET"], openapi: OpenAPIWebdaDefinition = {}) => {
     context.metadata["webda.route"] ??= {};
     context.metadata["webda.route"][route] ??= [];
     context.metadata["webda.route"][route].push({

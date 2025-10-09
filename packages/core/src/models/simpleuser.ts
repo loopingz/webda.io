@@ -1,6 +1,6 @@
-import type { Ident } from "./ident";
+import type { Ident } from "./ident.js";
 import { SelfJSONed,  type ModelsMapped } from "@webda/models";
-import { User } from "./user";
+import { User } from "./user.js";
 
 /**
  * Simple user offers groups and roles management

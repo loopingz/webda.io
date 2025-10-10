@@ -1,6 +1,6 @@
 {
   "name": "@webda/kubernetes",
-  "version": "3.6.0",
+  "version": "3.6.1",
   "description": "Kubernetes Helpers",
   "main": "lib/index.js",
   "scripts": {

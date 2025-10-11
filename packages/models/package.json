@@ -49,7 +49,8 @@
     "@webda/serialize": "^4.0.0-beta.1",
     "@webda/test": "^4.0.0-beta.1",
     "@webda/tsc-esm": "^4.0.0-beta.2",
-    "skott": "^0.35.4"
+    "skott": "^0.35.4",
+    "type-fest": "^5.0.1"
   },
   "type": "module",
   "engines": {

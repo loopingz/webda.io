@@ -9,7 +9,9 @@ type SkipFirst<T extends any[]> = T extends [any, ...infer Rest] ? Rest : never;
 /**
  * Get the parameters of a function, excluding the first one
  */
-export type DecoratorPropertyParameters<T extends (context: ClassFieldDecoratorContext<any, any> , ...args: any[]) => any> = SkipFirst<Parameters<T>>;
+export type DecoratorPropertyParameters<
+  T extends (context: ClassFieldDecoratorContext<any, any>, ...args: any[]) => any
+> = SkipFirst<Parameters<T>>;
 
 /**
  * Create a method decorator than can be typed
@@ -18,26 +20,36 @@ export type DecoratorPropertyParameters<T extends (context: ClassFieldDecoratorC
  * @param implementation
  * @returns
  */
-export function createMethodDecorator<T extends AnyMethod, TArgs extends any[]>(
-  implementation: (value: T, context: ClassMethodDecoratorContext, ...args: TArgs) => T | void
-) {
+export function createMethodDecorator<
+  T extends AnyMethod,
+  C extends ClassMethodDecoratorContext<any, any>,
+  TArgs extends any[]
+>(
+  implementation: (value: T, context: C, ...args: TArgs) => T | void
+): {
+  (value: T, context: C): T | void;
+  (...args: TArgs): (value: T, context: C) => T | void;
+} {
   // Overloads: acts as a decorator OR as a decorator factory
-  function deco(value: T, context: ClassMethodDecoratorContext): T;
-  function deco(...args: TArgs): (value: T, context: ClassMethodDecoratorContext) => T;
+  function deco(value: T, context: C): T;
+  function deco(...args: TArgs): (value: T, context: C) => T;
 
   function deco(...all: unknown[]): any {
     // If called directly as a decorator: @deco
     if (typeof all[0] === "function" && all[1] && typeof all[1] === "object") {
-      const [value, context] = all as [T, ClassMethodDecoratorContext];
+      const [value, context] = all as [T, C];
       // No extra args were provided
       return implementation(value, context, ...([] as unknown as TArgs));
     }
     // Otherwise it’s a factory: @deco(...args)
     const args = all as TArgs;
-    return (value: AnyMethod, context: ClassMethodDecoratorContext) => implementation(value as T, context, ...args);
+    return (value: AnyMethod, context: C) => implementation(value as T, context, ...args);
   }
 
-  return deco;
+  return deco as {
+    (value: T, context: C): T | void;
+    (...args: TArgs): (value: T, context: C) => T | void;
+  };
 }
 
 export type AnyCtor<T = unknown> = abstract new (...args: any[]) => T;
@@ -77,9 +89,7 @@ export function createPropertyDecorator<TArgs extends any[], C extends ClassFiel
 ) {
   // Overloads: direct decorator OR decorator factory
   function deco(target: undefined, context: C): void;
-  function deco(
-    ...args: TArgs
-  ): (target: undefined, context: C) => (target: undefined, context: C) => void;
+  function deco(...args: TArgs): (target: undefined, context: C) => (target: undefined, context: C) => void;
 
   function deco(...all: unknown[]): any {
     // Direct use: @deco

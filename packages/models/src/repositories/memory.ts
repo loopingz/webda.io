@@ -1,13 +1,6 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type {
-  JSONed,
-  SelfJSONed,
-  PK,
-  StorableAttributes,
-  WEBDA_EVENTS,
-  WEBDA_PRIMARY_KEY,
-  StorableClass
-} from "../storable";
+import type { PK, StorableAttributes, WEBDA_EVENTS, WEBDA_PRIMARY_KEY, ModelClass } from "../storable";
+import type { Helpers, JSONed, SelfJSONed } from "../types";
 import { deserialize, serialize } from "@webda/serialize";
 import { AbstractRepository } from "./abstract";
 import { Repository, WEBDA_TEST } from "./repository";
@@ -39,7 +32,7 @@ export type FindResult<T> = {
  * It is used for testing purposes only
  */
 export class MemoryRepository<
-  T extends StorableClass,
+  T extends ModelClass,
   K extends Map<string, string> = Map<string, string>
 > extends AbstractRepository<T> {
   protected storage: K;
@@ -60,17 +53,17 @@ export class MemoryRepository<
    */
   async get(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string
-  ): Promise<InstanceType<T>> {
+  ): Promise<Helpers<InstanceType<T>>> {
     const key = this.getPrimaryKey(primaryKey).toString();
     const item = this.storage.get(key);
     if (!item) throw new Error(`Not found: ${key}`);
-    return this.deserialize(item);
+    return this.deserialize(item) as Helpers<InstanceType<T>>;
   }
 
   /**
    * @inheritdoc
    */
-  async create(data: ConstructorParameters<T>[0], save: boolean = true): Promise<InstanceType<T>> {
+  async create(data: Helpers<InstanceType<T>>, save: boolean = true): Promise<InstanceType<T>> {
     const key = this.getPrimaryKey(data).toString();
     if (this.storage.has(key)) {
       throw new Error(`Already exists: ${key}`);
@@ -86,26 +79,42 @@ export class MemoryRepository<
    * @inheritdoc
    */
   async update<K extends StorableAttributes<InstanceType<T>, any>>(
-    data: SelfJSONed<InstanceType<T>> | InstanceType<T>,
-    _conditionField?: K | null,
-    _condition?: InstanceType<T>[K]
+    data: Helpers<InstanceType<T>>,
+    conditionField?: K | null,
+    condition?: InstanceType<T>[K]
   ): Promise<void> {
-    const item = await this.get(this.getPrimaryKey(data));
-    Object.assign(item, data as any);
-    this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(item));
+    const item = await this.get(this.getPrimaryKey(data)) as InstanceType<T>;
+    this.checkCondition(item, conditionField, condition);
+    this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new this.model(data) as InstanceType<T>));
   }
 
+  protected checkCondition<K extends StorableAttributes<InstanceType<T>>>(
+    item: InstanceType<T>,
+    conditionField?: K | null,
+    condition?: InstanceType<T>[K]
+  ) {
+    if (conditionField) {
+      if (item[conditionField] !== condition) {
+        throw new Error(`Condition failed: ${conditionField as string} !== ${condition}`);
+      }
+    }
+  }
   /**
    * @inheritdoc
    */
   async patch<K extends StorableAttributes<InstanceType<T>, any>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
-    data: Partial<SelfJSONed<InstanceType<T>>>,
-    _conditionField?: K | null,
-    _condition?: any
+    data: Partial<InstanceType<T>>,
+    conditionField?: K | null,
+    condition?: any
   ): Promise<void> {
-    const item = await this.get(primaryKey);
-    Object.assign(item, data as any);
+    const item = await this.get(primaryKey)as InstanceType<T>;
+    this.checkCondition(item, conditionField, condition);
+    // @ts-ignore
+    console.log('patch', item.createdAt);
+    item.load(data);
+    // @ts-ignore
+    console.log('patch', item.createdAt);
     this.storage.set(item.getPrimaryKey().toString(), this.serialize(item));
   }
 
@@ -158,7 +167,7 @@ export class MemoryRepository<
    * @param repository
    * @returns
    */
-  static async simulateFind<T extends StorableClass>(
+  static async simulateFind<T extends ModelClass>(
     query: Query,
     uuids: any[],
     repository: Repository<T>
@@ -185,7 +194,7 @@ export class MemoryRepository<
       if (offset >= count) {
         continue;
       }
-      const obj = await repository.get(uuid as any);
+      const obj = await repository.get(uuid as any) as InstanceType<T>;
       if (obj && query.filter.eval(obj)) {
         result.results.push(obj);
         if (result.results.length >= limit) {
@@ -279,7 +288,7 @@ export class MemoryRepository<
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void> {
-    const item = await this.get(primaryKey);
+    const item = await this.get(primaryKey) as InstanceType<T>;
     if (Array.isArray(info)) {
       for (const entry of info) {
         const prop = typeof entry === "string" ? entry : (entry as any).property;
@@ -323,7 +332,7 @@ export class MemoryRepository<
     itemWriteConditionField?: any,
     itemWriteCondition?: any
   ): Promise<void> {
-    const obj = await this.get(primaryKey);
+    const obj = await this.get(primaryKey) as InstanceType<T>;
     (obj as any)[collection] ??= [];
     this.checkItemWriteCondition(
       obj[collection] as Array<any>,
@@ -353,7 +362,7 @@ export class MemoryRepository<
     itemWriteConditionField?: any,
     itemWriteCondition?: any
   ): Promise<void> {
-    const obj = await this.get(primaryKey);
+    const obj = await this.get(primaryKey) as InstanceType<T>;
     const arr = (obj as any)[collection] as Array<any>;
     this.checkItemWriteCondition(
       obj[collection] as Array<any>,
@@ -379,7 +388,7 @@ export class MemoryRepository<
     _conditionField?: L | null,
     _condition?: any
   ): Promise<void> {
-    const obj = await this.get(primaryKey);
+    const obj = await this.get(primaryKey) as InstanceType<T>;
     delete (obj as any)[attribute as string];
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
   }

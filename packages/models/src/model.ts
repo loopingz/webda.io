@@ -2,19 +2,21 @@ import {
   WEBDA_DIRTY,
   WEBDA_EVENTS,
   WEBDA_PRIMARY_KEY,
-  type SelfJSONed,
   type PK,
   type PrimaryKeyType,
   type Storable,
   WEBDA_PRIMARY_KEY_SEPARATOR,
-  StorableClass
+  ModelClass
 } from "./storable";
+import type { Helpers, SelfJSONed } from "./types";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
-import { type ModelRefWithCreate, type ModelRef, assignNonSymbols } from "./relations";
-import { ExecutionContext, Exposable, WEBDA_ACTIONS, type ActionsEnum } from "./actionable";
+import { type ModelRefWithCreate, type ModelRef } from "./relations";
+//import { ExecutionContext, Exposable } from "./actionable";
 import type { Repository } from "./repositories/repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
+import { Deserializers, LoadParameters } from "./types";
+import { RepositoryStorageClassMixIn, useRepository } from "./repositories/hooks";
 
 export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -23,6 +25,7 @@ export type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K
  * Allow simulated delete
  */
 export const WEBDA_DELETED = "__deleted";
+
 /**
  * Event sent by models
  *
@@ -47,121 +50,12 @@ export type ModelEvents<T = any> = {
   Queried: { query: string; results: T[]; continuationToken?: string };
 };
 
-export const Repositories = new WeakMap<StorableClass, Repository<any>>();
-
-/**
- * Return a repository for a model
- * @param arg
- * @returns
- */
-export function useRepository<T extends StorableClass>(arg: T): Repository<T> {
-  let clazz: any = arg;
-  while (!Repositories.has(clazz)) {
-    clazz = Object.getPrototypeOf(clazz);
-    if (clazz === Model) {
-      if (!Repositories.has(clazz)) {
-        throw new Error(`No repository found for ${arg.prototype.constructor.name}`);
-      }
-      break;
-    }
-  }
-  return Repositories.get(clazz) as Repository<T>;
-}
-
-/**
- * Register a repository
- * @param this
- * @param repository
- */
-export function registerRepository<T extends StorableClass>(model: T, repository: Repository<T>): void {
-  Repositories.set(model, repository);
-}
-
-/**
- * Model Constructor
- */
-export type ModelClass<T extends Model = Model> = {
-  /**
-   * Create a new model
-   */
-  new (data: any): T;
-  /**
-   * Prototype
-   */
-  prototype: T;
-  /**
-   * Reference
-   * @param this
-   * @param key
-   */
-  ref<T extends StorableClass>(this: T, key: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
-  iterate<T extends StorableClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any>;
-  create<T extends StorableClass>(this: T, data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
-  query<T extends StorableClass>(
-    this: T,
-    query: string
-  ): Promise<{
-    results: InstanceType<T>[];
-    continuationToken?: string;
-  }>;
-  getRepository<T extends StorableClass>(this: T): Repository<T>;
-  registerRepository<T extends StorableClass>(this: T, repository: Repository<T>): void;
-  registerSerializer<T extends StorableClass>(
-    this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any }
-  ): void;
-};
-
-export type ModelActions<
-  T extends "create" | "get" | "update" | "query" | "delete" = "create" | "get" | "update" | "query" | "delete"
-> = {
-  /**
-   * Create a new instance
-   */
-  create: T extends "create"
-    ? {}
-    : {
-        disabled: true;
-      };
-  /**
-   * Get an instance
-   */
-  get: T extends "get"
-    ? {}
-    : {
-        disabled: true;
-      };
-  /**
-   * Update an instance
-   */
-  update: T extends "update"
-    ? {}
-    : {
-        disabled: true;
-      };
-  /**
-   * Delete an instance
-   */
-  delete: T extends "delete"
-    ? {}
-    : {
-        disabled: true;
-      };
-  /**
-   * Query instances
-   */
-  query: T extends "query"
-    ? {}
-    : {
-        disabled: true;
-      };
-};
-
 /**
  * Model object definition
  *
  * This is the core of many application
  */
-export abstract class Model implements Storable, Securable, Exposable {
+export abstract class Model extends RepositoryStorageClassMixIn(Object) implements Storable, Securable {
   /**
    * Model events
    */
@@ -171,10 +65,6 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @private
    */
   [WEBDA_DIRTY]?: Set<string>;
-  /**
-   * Define actions for the model
-   */
-  [WEBDA_ACTIONS]?: ModelActions;
 
   /** Non-abstract class need to define their PrimaryKey */
   public abstract [WEBDA_PRIMARY_KEY]: readonly (keyof this)[];
@@ -211,7 +101,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * Get object reference
    * @returns
    */
-  ref(): ModelRef<this & Storable> {
+  ref(): ModelRef<this> {
     return this.getRepository().ref(this.getPrimaryKey()) as any;
   }
 
@@ -237,71 +127,10 @@ export abstract class Model implements Storable, Securable, Exposable {
 
   /**
    * Get the repository of the model
-   * @param this
    * @returns
    */
-  static getRepository<T extends StorableClass>(this: T): Repository<T> {
-    return useRepository(this);
-  }
-
-  /**
-   * Create the object directly
-   * @param this
-   * @param data
-   * @returns
-   */
-  static create<T extends StorableClass>(
-    this: T,
-    data: ConstructorParameters<T>[0],
-    save: boolean = true
-  ): Promise<InstanceType<T>> {
-    return useRepository(this).create(data, save);
-  }
-
-  /**
-   * Query the object directly
-   * @param this
-   * @param query
-   * @returns
-   */
-  static query<T extends StorableClass>(
-    this: T,
-    query: string
-  ): Promise<{
-    results: InstanceType<T>[];
-    continuationToken?: string;
-  }> {
-    return useRepository(this).query(query);
-  }
-
-  /**
-   * Iterate through all objects
-   * @param this
-   * @param query
-   * @returns
-   */
-  static async *iterate<T extends StorableClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any> {
-    for await (const item of useRepository(this).iterate(query)) {
-      yield item as InstanceType<T>;
-    }
-  }
-
-  /**
-   * Get the repository of the model
-   * @returns
-   */
-  getRepository(): Repository {
+  getRepository(): Repository<ModelClass<this>> {
     return (this.constructor as any).getRepository();
-  }
-
-  /**
-   * Register a repository for the model
-   *
-   * @param this
-   * @param repository
-   */
-  static registerRepository<T extends StorableClass>(this: T, repository: Repository<T>): void {
-    registerRepository(this, repository);
   }
 
   /**
@@ -311,7 +140,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    *
    * TODO Might want to move to deserialize static function
    */
-  static registerSerializer<T extends StorableClass>(
+  static registerSerializer<T extends ModelClass>(
     this: T & { fromJSON?: (data: any) => InstanceType<T>; getStaticProperties?: () => any },
     overwrite: boolean = true
   ): void {
@@ -326,59 +155,8 @@ export abstract class Model implements Storable, Securable, Exposable {
     );
   }
 
-  /**
-   * Get a reference to the model
-   * @param this
-   * @param key
-   * @returns
-   */
-  static ref<T extends StorableClass>(
-    this: T,
-    key: PrimaryKeyType<InstanceType<T>> | string
-  ): ModelRefWithCreate<InstanceType<T>> {
-    return Repositories.get(this)!.ref(key);
-  }
-
   toJSON(): SelfJSONed<this> {
     return <SelfJSONed<this>>this;
-  }
-
-  toDTO() {
-    return this.toJSON();
-  }
-
-  /**
-   * Read from a DTO
-   * @param dto
-   */
-  fromDTO(dto: any): this {
-    return this;
-  }
-
-  /**
-   * Validate actions on the model
-   *
-   * This method always return false
-   * @param action
-   * @returns
-   */
-  async canAct(context: ExecutionContext, action: string): Promise<boolean | string> {
-    return false;
-  }
-
-  /**
-   * Ensure action is allowed
-   * @param action
-   * @param context
-   */
-  async checkAct(context: ExecutionContext, action: string): Promise<void> {
-    let canAct = await this.canAct(context, action);
-    if (canAct === false) {
-      canAct = `Action ${action} is not allowed`;
-    }
-    if (canAct !== true) {
-      throw new Error(canAct);
-    }
   }
 
   /**
@@ -407,9 +185,9 @@ export abstract class Model implements Storable, Securable, Exposable {
     const repo = this.getRepository();
     const concreteThis: this & Storable = this as any;
     if (!this[WEBDA_DIRTY]) {
-      await repo.upsert(concreteThis);
+      await repo.upsert(concreteThis as Helpers<this>);
     } else {
-      const patch = {} as SelfJSONed<this & Storable>;
+      const patch = {} as Partial<this>;
       for (const k of this[WEBDA_DIRTY]) {
         (patch as any)[k] = (this as any)[k];
       }
@@ -419,8 +197,55 @@ export abstract class Model implements Storable, Securable, Exposable {
     return this;
   }
 
-  deserialize(data: Partial<SelfJSONed<Model>>): this {
-    assignNonSymbols(this, data);
+  /**
+   * Custom deserializers for the model
+   */
+  static getDeserializers<T extends ModelClass>(this: T) : Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined {
+    return undefined;
+  }
+
+  static DefaultDeserializer = {
+    Date: (value: string | number | Date | undefined) => (value ? new Date(value) : new Date())
+  }
+
+  /**
+   * Deserialize the model
+   * @param this 
+   * @param data 
+   * @param instance 
+   * @returns 
+   */
+  static deserialize<T extends ModelClass, K extends object = InstanceType<T>>(this: T, data: any, instance?: K): K {
+    if (!instance) {
+      instance = new (this as any)(data);
+      return instance as K;
+    }
+    // Deserialize with custom deserializers if any
+    let deserializers = (this as any).getDeserializers ? (this as any).getDeserializers() : undefined;
+    let info: any = deserializers ? {} : data;   
+    if (deserializers) {
+      for (const key in data) {
+        if (deserializers[key]) {
+          info[key] = deserializers[key](data[key]);
+        } else {
+          info[key] = data[key];
+        }
+      }
+    } else {
+      info = data;
+    }
+    Object.assign(instance, info);
+    return instance;
+  }
+
+  /**
+   * Allow to load from Storage, Dto and helper formats
+   * @param params
+   * @returns
+   */
+  load(params: LoadParameters<this>): this {
+    // @ts-ignore
+    this.constructor.deserialize(params, this);
     return this;
   }
 
@@ -447,7 +272,7 @@ export abstract class Model implements Storable, Securable, Exposable {
    * @param data
    */
   async patch(data: Partial<SelfJSONed<this>>): Promise<this> {
-    this.deserialize(data);
+    this.load(data as any);
     const repo = this.getRepository();
     await repo.patch(
       this.getPrimaryKey(),
@@ -456,7 +281,7 @@ export abstract class Model implements Storable, Securable, Exposable {
           (acc as any)[key] = (this as any)[key];
           return acc;
         },
-        {} as Partial<SelfJSONed<this & Storable>>
+        {} as Partial<this>
       )
     );
     return this;

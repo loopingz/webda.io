@@ -1,7 +1,7 @@
 import { Counter, Histogram } from "../metrics/metrics.js";
 import * as WebdaError from "../errors/errors.js";
 
-import { type Model, type ModelClass, type PrimaryKey, type Repository } from "@webda/models";
+import { registerRepository, type Model, type ModelClass, type PrimaryKey, type Repository } from "@webda/models";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Service } from "../services/service.js";
 import * as WebdaQL from "@webda/ql";
@@ -354,7 +354,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         currentStore = registry;
       }
       // Register the repository
-      model.registerRepository(currentStore.getRepository(model) as any);
+      registerRepository(model, currentStore.getRepository(model) as any);
       useLog("DEBUG", `${useModelId(model)} using store ${currentStore.getName()}`);
     }
   }

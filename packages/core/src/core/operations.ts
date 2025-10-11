@@ -7,7 +7,13 @@ import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
-import { createMethodDecorator } from "@webda/tsc-esm";
+import { isGeneratorFunction } from "node:util/types";
+import { AnyMethod } from "@webda/decorators";
+import { Service } from "../services/service.js";
+import { Model } from "@webda/models";
+import { Behavior } from "../models/behavior.js";
+import { useContext } from "../contexts/execution.js";
+import { useLog } from "@webda/workout";
 
 /**
  * Check if an operation can be executed with the current context
@@ -72,7 +78,7 @@ async function checkOperation(context: OperationContext, operationId: string) {
  */
 export async function callOperation(context: OperationContext, operationId: string): Promise<void> {
   const operations = useInstanceStorage().operations;
-  this.log("DEBUG", "Call operation", operationId);
+  useLog("DEBUG", "Call operation", operationId);
   try {
     context.setExtension("operation", operationId);
     await checkOperation(context, operationId);
@@ -158,8 +164,116 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
     });
 }
 
-export const Operation = createMethodDecorator(
-  (value: any, context: ClassMethodDecoratorContext, options?: { name: string }) => {
-    // Do nothing
+export interface RestParameters {
+  rest?:
+    | false
+    | {
+        method: "get" | "post" | "put" | "delete" | "patch";
+        path: string;
+        responses?: {
+          [statusCode: string]: {
+            description?: string;
+            content?: {
+              [mediaType: string]: any;
+            };
+          };
+        };
+      };
+}
+export interface GrpcParameters {
+  grpc?:
+    | false
+    | {
+        streaming?: "none" | "client" | "server" | "bidi";
+      };
+}
+export interface GraphQLParameters {
+  graphql?:
+    | false
+    | {
+        query?: string;
+        mutation?: string;
+        subscription?: string;
+      };
+}
+
+
+/**
+ * Wrapper concept for an operation
+ * 
+ * Wrapper will launch the operation but they can wrap it with additional logic
+ * It allows to set some asyncStorage
+ * 
+ * Logging configuration per Operation
+ * Metrics, Tracing
+ * 
+ */
+
+interface OperationParameters {
+  /**
+   * A unique operation id
+   *
+   * If a . is present it will be considered as a unique operation
+   * If no . is present the operation will be prefixed with the Service name or the Model name
+   */
+  id?: string;
+  summary?: string;
+  description?: string;
+  tags?: string[];
+  hidden?: boolean;
+  deprecated?: boolean;
+  /**
+   * Permission query to check before executing the operation
+   */
+  permissionQuery?: string;
+}
+
+function Operation<T = {}>(
+  options?: T & OperationParameters
+): (
+  target: any,
+  context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>
+) => void;
+function Operation(
+  target: any,
+  context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>
+): void;
+function Operation(...args: any[]) {
+  const annotate = (
+    target: AnyMethod,
+    context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>,
+    options: any = {}
+  ) => {
+    context.metadata!["webda.operations"] ??= [];
+    (context.metadata!["webda.operations"] as any[]).push({
+      id: context.name,
+      ...options,
+      static: context.static,
+      generator: isGeneratorFunction(target)
+    });
+    return (...args) => {
+      // TODO Make sure if an Operation is called we launch it with Core to get listeners
+      // it would also enforce permission checks and audit logs
+      const executionContext = useContext() as OperationContext;
+      let currentOperation = executionContext.getExtension("operation");
+      if (!currentOperation) {
+        // How to get the operation name here ?
+        callOperation(executionContext, `Unknown.${context.name as string}`);
+        
+      }
+      const res = target(...args);
+      return res;
+    };
+  };
+  if (args.length === 2 && args[1] instanceof Object && args[1].kind === "method") {
+    return annotate(args[0], args[1]);
   }
-);
+  return (
+    target: any,
+    context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>
+  ) => {
+    return annotate(target, context, args[0]);
+  };
+}
+
+export { Operation };

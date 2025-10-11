@@ -11,14 +11,13 @@ export class FileLogger extends WorkerLogger {
   // File descriptor
   outputStream?: fs.WriteStream;
   outputCount: number = 0;
-  level: WorkerLogLevel;
   filepath: string;
   sizeLimit: number;
   format: string;
 
   constructor(
     output: WorkerOutput,
-    level: WorkerLogLevel,
+    level: WorkerLogLevel | (() => WorkerLogLevel) = "INFO",
     filepath: string,
     sizeLimit = 50 * 1024 * 1024, // 50Mb by default
     format = ConsoleLogger.defaultFormat
@@ -30,7 +29,6 @@ export class FileLogger extends WorkerLogger {
     }
     this.sizeLimit = sizeLimit;
     this.format = format;
-    this.level = level;
   }
 
   onMessage(msg: WorkerMessage) {
@@ -56,8 +54,8 @@ export class FileLogger extends WorkerLogger {
 
   filter(msg: WorkerMessage) {
     if (msg.type === "log") {
-      return LogFilter(msg.log.level, this.level);
-    } else if (msg.type === "title.set" && LogFilter("INFO", this.level)) {
+      return LogFilter(msg.log.level, this.level());
+    } else if (msg.type === "title.set" && LogFilter("INFO", this.level())) {
       return true;
     }
     return false;

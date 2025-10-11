@@ -5,6 +5,7 @@ import * as assert from "assert";
 import { PrimaryKeyEquals, SelfJSONed, StorableClass, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
 import { Model, Repositories, UuidModel } from "../model";
 import { Repository, WEBDA_TEST } from "./repository";
+import { registerRepository } from "./hooks";
 
 export class QueryDocument extends Model {
   [WEBDA_PRIMARY_KEY] = ["id"] as const;
@@ -48,11 +49,11 @@ export class RepositoryTest {
 
   async beforeAll() {
     let repo = this.getRepository<typeof QueryDocument>(QueryDocument, ["id"]);
-    QueryDocument.registerRepository(repo);
+    registerRepository(QueryDocument, repo);
     let repoSub = this.getRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
-    SubClassModel.registerRepository(repoSub);
+    registerRepository(SubClassModel, repoSub);
     let repoTest = this.getRepository<typeof TestModel>(TestModel, ["id", "name"]);
-    TestModel.registerRepository(repoTest);
+    registerRepository(TestModel, repoTest);
     assert.strictEqual(SubClassModel.getRepository(), repoSub);
     assert.strictEqual(TestModel.getRepository(), repoTest);
     assert.strictEqual(QueryDocument.getRepository(), repo);
@@ -322,7 +323,7 @@ export class RepositoryTest {
   @test
   async uuidModel() {
     const repo = new MemoryRepository<typeof UuidModel>(UuidModel, ["uuid"]);
-    UuidModel.registerRepository(repo);
+    registerRepository(UuidModel, repo);
     const model = await UuidModel.create({});
     assert.ok(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(model.getUUID()) !== null);
   }

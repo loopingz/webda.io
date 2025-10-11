@@ -129,7 +129,7 @@ class MailerTest extends WebdaApplicationTest {
   async handleNotificationFor() {
     const user = new User();
     assert.strictEqual(await this.mailer.handleNotificationFor(user), false);
-    user.deserialize({ email: "test@test.com" });
+    user.load({ email: "test@test.com" });
     assert.strictEqual(await this.mailer.handleNotificationFor(user), true);
   }
 
@@ -143,7 +143,7 @@ class MailerTest extends WebdaApplicationTest {
         () => this.mailer.sendNotification(user, "", undefined, undefined),
         /Cannot find a valid email for user/
       );
-      user.deserialize({ email: "test@test.com" });
+      user.load({ email: "test@test.com" });
       await this.mailer.sendNotification(user, "", undefined, undefined);
     } finally {
       stub.restore();
@@ -152,7 +152,7 @@ class MailerTest extends WebdaApplicationTest {
       throw new Error("Fake");
     });
     await assert.rejects(
-      () => this.mailer.sendNotification(new User().deserialize({ email: "test@test.com" }), "", undefined, undefined),
+      () => this.mailer.sendNotification(new User({ email: "test@test.com" }), "", undefined, undefined),
       /Fake/
     );
     stub.restore();

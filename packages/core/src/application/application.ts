@@ -15,12 +15,12 @@ import type {
 } from "../internal/iapplication.js";
 import { setLogContext } from "../loggers/hooks.js";
 import { CancelablePromise, FileUtils, State } from "@webda/utils";
-import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, Mode, readFileSync } from "node:fs";
 import { join, resolve, dirname, isAbsolute } from "node:path";
 import * as WebdaError from "../errors/errors.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
-import { Model, ModelClass } from "@webda/models";
+import { isModelClass, Model, ModelClass, Storable } from "@webda/models";
 import { JSONSchema7 } from "json-schema";
 import { InstanceCache } from "../cache/cache.js";
 import type { Service } from "../services/service.js";
@@ -344,7 +344,7 @@ export class Application {
    *
    * @param name
    */
-  getModda(name): Modda {
+  getModda(name: string): Modda {
     return this.getWebdaObject("moddas", name);
   }
 
@@ -377,7 +377,7 @@ export class Application {
    * Return the model name for a object
    * @param object
    */
-  getModelFromInstance(object: Model): string | undefined {
+  getModelFromInstance(object: Storable): string | undefined {
     return Object.keys(this.models).find(k => this.models[k] === object.constructor);
   }
 
@@ -385,7 +385,7 @@ export class Application {
    * Return the model name for a object
    * @param object
    */
-  getModelFromConstructor<T extends Model>(model: ModelClass<T>): string | undefined {
+  getModelFromConstructor(model: ModelClass): string | undefined {
     // @ts-ignore
     return Object.keys(this.models).find(k => this.models[k] === model);
   }
@@ -397,11 +397,11 @@ export class Application {
    * @paramn full if true always include the namespace, default is false e.g Webda/
    * @returns longId for a model
    */
-  getModelId<T extends Model = Model>(model: ModelClass<T> | T): string | undefined {
-    if (model instanceof Model) {
-      return this.getModelFromInstance(model);
+  getModelId(model: ModelClass | Storable): string | undefined {
+    if (isModelClass(model)) {
+      return this.getModelFromConstructor(model as ModelClass);
     }
-    return this.getModelFromConstructor(model);
+    return this.getModelFromInstance(model as Storable);
   }
 
   /**

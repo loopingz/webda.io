@@ -113,7 +113,9 @@ export type Constructor<T extends new (...args: any[]) => any = any> = new (...a
 /**
  * Define a constructor for abstract classes
  */
-export type AbstractConstructor<T extends abstract new (...args: any[]) => any = any> = abstract new (...args: ConstructorParameters<T>) => T;
+export type AbstractConstructor<T extends abstract new (...args: any[]) => any = any> = abstract new (
+  ...args: ConstructorParameters<T>
+) => T;
 
 /**
  * Any constructor
@@ -131,13 +133,13 @@ export type OmitFirstArg<F> = F extends (x: any, ...args: infer P) => infer R ? 
  * This property will not be saved in the store
  * Nor will it be exposed in the API
  */
-export const NotEnumerable = createPropertyDecorator((context) => {
+export const NotEnumerable = createPropertyDecorator(context => {
   if (context.kind === "field") {
     context.addInitializer(function (this: any) {
       Object.defineProperty(this, context.name, {
         enumerable: false,
         configurable: true,
-        writable: true,
+        writable: true
       });
     });
   }
@@ -244,3 +246,16 @@ export function isMainModule(importMeta: ImportMeta): boolean {
 
 // We might want to explore: https://github.com/sindresorhus/type-fest
 export type SetOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+/**
+ * Merge two objects
+ */
+export type Merge<T extends Object, U extends Object> = {
+  [K in keyof T | keyof U]: K extends keyof U
+    ? K extends keyof T
+      ? T[K] | U[K]
+      : U[K]
+    : K extends keyof T
+      ? T[K]
+      : never;
+};

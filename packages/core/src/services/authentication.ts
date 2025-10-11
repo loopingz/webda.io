@@ -14,7 +14,7 @@ import { EventWithContext } from "../events/events.js";
 import { ServiceParameters } from "./serviceparameters.js";
 import { useService, useModelRepository } from "../core/hooks.js";
 import { WebContext } from "../contexts/webcontext.js";
-import { Repository } from "@webda/models";
+import { ModelClass, Repository } from "@webda/models";
 
 /**
  * Emitted when the /me route is called
@@ -244,11 +244,11 @@ class Authentication<
   /**
    * Ident model to use
    */
-  protected identModel: Repository<typeof Ident>;
+  protected identModel: Repository<ModelClass<Ident>>;
   /**
    * User model to use
    */
-  protected userModel: Repository<typeof User>;
+  protected userModel: Repository<ModelClass<User>>;
   /**
    * Used for hmac
    */
@@ -295,7 +295,7 @@ class Authentication<
   computeParameters(): void {
     super.computeParameters();
 
-    this.identModel = <any>useModelRepository<Ident>(this.parameters.identModel);
+    this.identModel = useModelRepository<Ident>(this.parameters.identModel);
     this.userModel = useModelRepository<User>(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {

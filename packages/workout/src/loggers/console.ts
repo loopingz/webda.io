@@ -28,7 +28,7 @@ class ConsoleLogger extends WorkerLogger {
    * @override
    */
   onMessage(msg: WorkerMessage) {
-    ConsoleLogger.handleMessage(msg, this.level, this.format);
+    ConsoleLogger.handleMessage(msg, this.level(), this.format);
   }
 
   /**

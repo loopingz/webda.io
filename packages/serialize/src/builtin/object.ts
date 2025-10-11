@@ -8,7 +8,7 @@ import type { Constructor, Serializer, SerializerContext } from "../serializer";
 export class ObjectSerializer implements Serializer<any> {
   constructor(
     public constructorType: Constructor<any> | null = null,
-    protected staticProperties: any = {}
+    protected staticProperties: Record<string, {type: string} & any | ((value: any) => any)> = {}
   ) {}
 
   serializer(obj: any, context: SerializerContext) {
@@ -46,8 +46,12 @@ export class ObjectSerializer implements Serializer<any> {
       res[key] = serializer.deserializer(obj[key], metadata[key], context);
     }
     for (const key in this.staticProperties) {
-      const serializer = context.getSerializer(this.staticProperties[key].type);
-      res[key] = serializer.deserializer(obj[key], this.staticProperties[key], context);
+      if (typeof this.staticProperties[key] === "function") {
+        res[key] = (this.staticProperties[key] as (value: any) => any)(obj[key]);
+      } else {
+        const serializer = context.getSerializer(this.staticProperties[key].type);
+        res[key] = serializer.deserializer(obj[key], this.staticProperties[key], context);
+      }
     }
     return res;
   }

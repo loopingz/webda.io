@@ -1,6 +1,7 @@
 import {
   Bean,
   OperationContext,
+  Operation,
   RequestFilter,
   Route,
   Service,
@@ -8,7 +9,6 @@ import {
   useRouter,
   WebContext
 } from "@webda/core";
-import { Operation } from "@webda/models";
 import { MyInterface } from "./compiler";
 
 /**

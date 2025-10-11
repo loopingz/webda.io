@@ -1,5 +1,5 @@
 import { IOperationContext } from "../contexts/icontext.js";
-import { ModelEvents, SelfJSONed, UuidModel, WEBDA_EVENTS } from "@webda/models";
+import { LoadParameters, ModelEvents, SelfJSONed, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
@@ -12,13 +12,13 @@ export type UserEvents<T> = ModelEvents<T> & {
  */
 export class User extends UuidModel {
   [WEBDA_EVENTS]: UserEvents<this>;
-  constructor(data?: Partial<SelfJSONed<User>>) {
+  constructor(data?: LoadParameters<User>) {
     super(data);
-    this.deserialize(data || {});
+    this.load((data || {}) as LoadParameters<this>);
   }
 
-  deserialize(data: Partial<SelfJSONed<User>>): this {
-    super.deserialize(data);
+  load(data: Partial<LoadParameters<this>>): this {
+    super.load(data);
     this.displayName = data.displayName;
     this._lastPasswordRecovery = data._lastPasswordRecovery || 0;
     this._avatar = data._avatar;

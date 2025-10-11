@@ -1,7 +1,25 @@
-import { Acls, CoreModel, OperationContext, Store } from "@webda/core";
+import { Acls, Operation as Action, OperationContext, Store } from "@webda/core";
 import { Company } from "./company";
-import { ModelParent, Action } from "@webda/models";
+import { Helpers, MemoryRepository, Model, ModelParent, ModelRefWithCreate, WEBDA_PRIMARY_KEY } from "@webda/models";
 
+abstract class CoreModel extends Model {
+  /**
+   * Injected by Webda framework
+   * @param key 
+   * @returns 
+   */
+  // static $(key: string): ModelRefWithCreate<any> {
+  //   return undefined;
+  // }
+
+  toProxy(): any {
+    return this;
+  }
+
+  async canAct(action: string, context?: any): Promise<boolean> {
+    return true;
+  }
+}
 /**
  * This file contains several empty methods to test our auto docs
  *
@@ -27,12 +45,14 @@ export interface TestDoc2 {
  * @WebdaModel
  */
 export class Project extends AbstractProject<TestDoc2> implements Test, TestDoc2 {
+  [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
   _company: ModelParent<Company>;
   name: string;
   type: string;
   uuid: string;
   n: number;
   test2: string;
+  test: Date;
   constructor(private myparam?: string) {
     super();
   }
@@ -112,3 +132,25 @@ export class SubSubProject extends AnotherSubProject<Test, TestDoc2[]> {
   @Action()
   action6<T>(context: OperationContext<string>, toto: string) {}
 }
+/*
+(async () => {
+  const p2 = await Project.$("test").get();
+  Project.$("test").setAttribute("test", 123);
+
+  //const p2 = await Project.ref("test").get();
+  Project.$("test").patch({ test: 123 });
+  p2.ref().setAttribute("n", 123);
+  p2.test = new Date();
+  p2.test.toISOString();
+  p2.test = 123;
+  p2.test2 = "test";
+  p2.test.getDate();
+  p2.test = 12;
+  
+  const project = new Project().toProxy();
+  const project2 = new Project();
+  project.test = new Date();
+  project.test = 123;
+  project.test.toISOString();
+})();
+*/

@@ -44,7 +44,7 @@ export function useService(name: string) {
  * @param object
  * @returns
  */
-export function useModelMetadata(name: string | Model | ModelClass<Model>): Reflection {
+export function useModelMetadata(name: string | Model | ModelClass): Reflection {
   if (name["Metadata"]) {
     return name["Metadata"];
   }

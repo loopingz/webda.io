@@ -1,5 +1,5 @@
 import type { Ident } from "./ident.js";
-import { SelfJSONed,  type ModelsMapped } from "@webda/models";
+import { Helpers, SelfJSONed,  type ModelsMapped } from "@webda/models";
 import { User } from "./user.js";
 
 /**
@@ -11,16 +11,16 @@ import { User } from "./user.js";
 export class SimpleUser extends User {
   constructor(data?: Partial<SelfJSONed<SimpleUser>>) {
     super(data);
-    this.deserialize(data || {});
+    this.load(data || {});
   }
 
   /**
-   * Deserialize user data
+   * Load user data
    * @param data User data
    * @returns This instance
    */
-  deserialize(data: Partial<SelfJSONed<SimpleUser>>): this {
-    super.deserialize(data);
+  load(data: Partial<SelfJSONed<SimpleUser>>): this {
+    super.load(data as any);
     if (data._groups) {
       this._groups = data._groups;
     }

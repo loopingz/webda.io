@@ -7,7 +7,7 @@ import { Context, isWebContext } from "../contexts/icontext.js";
 import { getUuid } from "@webda/utils";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { Session } from "./session.js";
-import { Repository, UuidModel } from "@webda/models";
+import { ModelClass, Repository, UuidModel } from "@webda/models";
 
 /**
  * Manage load and save of sessions
@@ -67,7 +67,7 @@ export class CookieSessionManager<
   @Inject("CryptoService")
   cryptoService: CryptoService;
 
-  sessionModel: Repository<typeof SessionModel>;
+  sessionModel: Repository<ModelClass<SessionModel>>;
 
   /**
    * @override

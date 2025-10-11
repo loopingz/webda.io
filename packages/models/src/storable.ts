@@ -1,11 +1,11 @@
-import type { Attributes, FilterAttributes, FunctionArgs, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
-import type { ModelRelated } from "./relations";
+import type { Attributes, FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import type { ModelRefWithCreate, ModelRelated } from "./relations";
+import type { Deserializers, JSONed } from "./types";
 
 /**
  * Define the model primary key
  */
 export const WEBDA_PRIMARY_KEY: unique symbol = Symbol("Primary key");
-export const test = "123";
 /**
  * REST API and other system may require a string representation of the primary key
  * We concatenate the primary key fields with the separator '_'
@@ -42,11 +42,11 @@ export type Eventable = {
  * It has a primary key, a toJSON method and an Events object
  *
  */
-export interface Storable<T = any, K extends keyof T = any> extends Eventable {
+export interface Storable<T = any, PrimaryKeyProperties extends keyof T = any> extends Eventable {
   /**
    * Define the primary key for your model
    */
-  [WEBDA_PRIMARY_KEY]: readonly K[];
+  [WEBDA_PRIMARY_KEY]: readonly PrimaryKeyProperties[];
   /**
    * Define the separator to use when concatenating primary key fields (for UUID generation)
    */
@@ -62,7 +62,7 @@ export interface Storable<T = any, K extends keyof T = any> extends Eventable {
   /**
    * Return the primary key
    */
-  getPrimaryKey(): IsUnion<K> extends true ? Pick<T, K> : T[K];
+  getPrimaryKey(): IsUnion<PrimaryKeyProperties> extends true ? Pick<T, PrimaryKeyProperties> : T[PrimaryKeyProperties];
   /**
    * Return the string version of the primary key
    */
@@ -71,6 +71,14 @@ export interface Storable<T = any, K extends keyof T = any> extends Eventable {
    * Return the object as a POJO
    */
   toJSON(): any;
+  /**
+   * Load the serialized version of itself
+   */
+  load(params: any): this;
+  /**
+   * Return a proxy version of the object (used for validation and other stuff)
+   */
+  toProxy(): any;
 }
 
 /**
@@ -78,51 +86,36 @@ export interface Storable<T = any, K extends keyof T = any> extends Eventable {
  */
 export type ConcreteStorable<T = any, K extends keyof T = any> = Storable<T, K> & (new (arg: any) => any);
 
-export type StorableClass<T extends Storable = Storable> = {
-  new (arg: any): T;
-  prototype: T;
-};
+export interface ModelClass<S extends Storable = Storable> {
+  new (arg: any): S;
+  prototype: S;
+  ref<T extends ModelClass>(this: T, key: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
+  iterate<T extends ModelClass>(this: T, query: string): AsyncGenerator<InstanceType<T>, any, any>;
+  create<T extends ModelClass>(this: T, data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
+  query<T extends ModelClass>(
+    this: T,
+    query: string
+  ): Promise<{
+    results: InstanceType<T>[];
+    continuationToken?: string;
+  }>;
+  registerSerializer(): void;
+  getDeserializers<T extends ModelClass>(): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined;
+}
+
+/**
+ * Check if the object is a Model class
+ * @param object 
+ * @returns 
+ */
+export function isModelClass(object: any): object is ModelClass {
+  return typeof object === "function" && typeof object.prototype?.getPrimaryKey === "function" && typeof object.getDeserializers === "function";
+}
 
 /**
  * All storable need to have a constructor that take an object as argument
  */
 export type StorableConstructor<T extends new (arg: any) => any = any> = new (arg: ConstructorParameters<T>[0]) => T;
-
-/**
- * If object have a toJSON method take the return type of this method
- * otherwise return the object
- */
-export type JSONed<T> = T extends { toJSON: () => any }
-  ? ReturnType<T["toJSON"]>
-  : T extends Array<any>
-    ? T // TODO Recursive check for elements
-    : T extends object
-      ? Pick<T, Extract<Attributes<T>, string>>
-      : T;
-/**
- * Allow to use this type in a JSON context
- */
-export type SelfJSONed<T extends object> = {
-  [K in Extract<Attributes<T>, string>]: JSONed<T[K]>;
-};
-
-export type DTOed<T, U extends "in" | "out" = "out"> = T extends object
-  ? U extends "out"
-    ? T extends { toDTO: () => any }
-      ? ReturnType<T["toDTO"]>
-      : {
-          [K in Extract<Attributes<T>, string>]: DTOed<T[K], U>;
-        }
-    : T extends { fromDTO: (arg: infer Argument) => any }
-      ? Argument
-      : {
-          [K in Extract<Attributes<T>, string>]: DTOed<T[K], "in">;
-        }
-  : JSONed<T>;
-
-export type SelfDTOed<T extends object, U extends "in" | "out" = "out"> = {
-  [K in Extract<Attributes<T>, string>]: DTOed<T[K], U>;
-};
 
 // Helper to grab the first arg to a "set" method
 type FirstSetArg<X> = X extends { set: (...args: infer A) => any } ? A[0] : never;
@@ -152,9 +145,10 @@ export type AttributesArgument<T extends Storable> = {
 // };
 
 /**
- * Get the type of one key or a Pick of the object is multiple keys provided
+ * 
  */
 export type PK<K, T extends keyof K> = IsUnion<T> extends true ? Pick<K, T> : K[T];
+
 /**
  * Get the primary key type of the object
  *
@@ -206,17 +200,6 @@ export function PrimaryKeyEquals(a: PrimaryKeyType<any> | Storable, b: PrimaryKe
 }
 
 /**
- * Map type to only numeric properties
- */
-export type OnlyNumbers<T> = {
-  [K in keyof T as T[K] extends number ? K : never]: T[K];
-};
-
-export type Pojo<T extends object> = {
-  [P in Extract<keyof Omit<T, FilterAttributes<T, Function>>, string | number>]: JSONed<T[P]>;
-};
-
-/**
  * Check if the object is a Storable object
  * @param object
  * @returns
@@ -227,6 +210,9 @@ export function isStorable<T = any>(object: any): object is Storable<T> {
 
 //export type ReadonlyKeys<T> = { [P in keyof T]: "readonly" extends keyof T[P] ? P : never }[keyof T];
 
+type ExcludeSymbols<T> = {
+  [P in keyof T as P extends symbol ? never : P]: T[P];
+};
 /**
  * Get the model attributes without the internal properties
  *
@@ -234,7 +220,7 @@ export function isStorable<T = any>(object: any): object is Storable<T> {
  */
 export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
   Omit<
-    T,
+    ExcludeSymbols<T>,
     FilterAttributes<T, Function> | FilterAttributes<T, ModelRelated<any>> | ReadonlyKeys<T> | Extract<keyof T, symbol>
   >,
   U

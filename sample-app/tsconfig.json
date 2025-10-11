@@ -13,7 +13,8 @@
     "declarationMap": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    ".webda.d.ts"
   ],
   "exclude": [
     "**/node_modules",

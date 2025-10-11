@@ -1,42 +1,45 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { ExceptPartial, Model, ModelClass, UuidModel } from "./model";
-import { isStorable, PrimaryKeyEquals, SelfJSONed, Storable, StorableClass, WEBDA_PRIMARY_KEY } from "./storable";
-import { ExecutionContext, isExposable, isSecurable, Operation } from "./index";
-import { Repository } from "./repositories/repository";
+import { ExceptPartial, Model, UuidModel } from "./model";
+import { isStorable, PrimaryKeyEquals, ModelClass, WEBDA_PRIMARY_KEY } from "./storable";
+import { isSecurable } from "./index";
 import { MemoryRepository } from "./repositories/memory";
+import { SelfJSONed } from "./types";
+import { registerRepository } from "./repositories/hooks";
+import { Merge } from "@webda/tsc-esm";
 
 export class TestModel extends Model {
   [WEBDA_PRIMARY_KEY] = ["id", "name"] as const;
-  id: string;
-  name: string;
-  age: number;
-  email: string;
-  createdAt: Date;
-  updatedAt: Date;
+  id!: string;
+  name!: string;
+  age!: number;
+  email!: string;
+  createdAt!: Date;
+  updatedAt!: Date;
 
-  constructor(data?: ExceptPartial<SelfJSONed<TestModel>, "createdAt" | "updatedAt">) {
+  constructor(data?: Merge<SelfJSONed<TestModel>, TestModel>) {
     super();
-    this.deserialize(data || {});
+    data ??= {} as any;
+    data!.createdAt ??= new Date(data!.createdAt);
+    data!.updatedAt ??= new Date(data!.updatedAt);
+    this.load(data as any);
   }
 
-  deserialize(data: Partial<SelfJSONed<TestModel>>): this {
-    this.id = data.id || "";
-    this.name = data.name || "";
-    this.age = data.age || 0;
-    this.email = data.email || "";
-    this.createdAt = data.createdAt ? new Date(data.createdAt as any) : new Date();
-    this.updatedAt = data.updatedAt ? new Date(data.updatedAt as any) : new Date();
-    return this;
+  static getDeserializers<T extends ModelClass>(this: T): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined {
+    return {
+      createdAt: Model.DefaultDeserializer.Date,
+      updatedAt: Model.DefaultDeserializer.Date,
+    } as any;
   }
 
-  @Operation({
-    name: "testAction"
-  })
-  async action() {}
+  toProxy(): TestModelInterface {
+    return this as TestModelInterface;
+  }
+}
 
-  @Operation
-  async action2() {}
+interface TestModelInterface extends TestModel {
+  get createdAt(): Date;
+  set createdAt(value: number | string | Date);
 }
 
 TestModel.registerSerializer();
@@ -59,21 +62,26 @@ export class SubClassModel extends UuidModel {
     this.collection = data.collection;
     this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
   }
+
+  static getDeserializers<T extends ModelClass>(this: T): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined {
+    return {
+      createdAt: Model.DefaultDeserializer.Date,
+    } as any;
+  }
 }
 
 SubClassModel.registerSerializer();
 
-type Repo<T extends Storable> = Repository<StorableClass<T> & ModelClass<T>>;
 @suite
 class ModelTest {
   @test
   async repositories() {
     // Ensuring that the repositories are re  gistered correctly
-    const repo1: Repo<UuidModel> = new MemoryRepository(UuidModel, ["uuid"]);
+    const repo1 = new MemoryRepository(UuidModel, ["uuid"]);
     const repo2 = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
     assert.throws(() => UuidModel.getRepository(), /No repository found/);
-    UuidModel.registerRepository(repo1);
-    TestModel.registerRepository(repo2);
+    registerRepository(UuidModel, repo1);
+    registerRepository(TestModel, repo2);
     assert.strictEqual(UuidModel.getRepository(), repo1);
     assert.strictEqual(TestModel.getRepository(), repo2);
     assert.strictEqual(SubClassModel.getRepository(), repo1);
@@ -109,20 +117,17 @@ class ModelTest {
     assert.strictEqual(pk.name, "Test");
     assert.strictEqual(model.getUUID(), "123_Test");
     assert.strictEqual(pk.toString(), "123_Test");
+    assert.ok(model.createdAt instanceof Date);
+    assert.ok(model.updatedAt instanceof Date);
 
     const model2 = new UuidModel();
     model2.uuid = "456";
     assert.strictEqual(model2.getPrimaryKey(), "456");
     assert.strictEqual(model2.getUUID(), "456");
-    assert.strictEqual(await model2.canAct(undefined as unknown as ExecutionContext, "" as never), false);
     assert.strictEqual(model2.toProxy(), model2);
 
     if (isSecurable(model2)) {
       assert.ok(typeof model2.toProxy === "function");
-    }
-
-    if (isExposable(model2)) {
-      assert.ok(typeof model2.canAct === "function");
     }
 
     if (isStorable(model2)) {
@@ -143,8 +148,6 @@ class ModelTest {
 
     // toJSON return itself for now
     assert.deepStrictEqual(model4.toJSON(), model4);
-    // toDTO return itself for now
-    assert.deepStrictEqual(model4.toDTO(), model4);
 
     TestModel.ref({
       id: "123",
@@ -161,13 +164,37 @@ class ModelTest {
   @test
   async upsert() {
     const repo1 = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
-    SubClassModel.registerRepository(repo1);
+    registerRepository(SubClassModel, repo1);
     const model1 = await SubClassModel.ref("test").upsert({
       name: "Test",
       collection: [],
-      createdAt: "",
+      createdAt: "2025-01-01T00:00:00Z",
       age: 0,
       test: 123
     });
+    assert.strictEqual(model1.uuid, "test");
+    assert.strictEqual(model1.name, "Test");
+    assert.strictEqual(model1.age, 0);
+    assert.strictEqual(model1.test, 123);
+    assert.ok(model1.createdAt instanceof Date);
+    assert.strictEqual(model1.createdAt.toISOString(), "2025-01-01T00:00:00.000Z");
+  
+    // Retrieving again should not create a new one
+    const model2 = await SubClassModel.ref("test").upsert({
+      name: "Test2",
+      collection: [],
+      createdAt: "2025-01-01T00:00:00Z",
+      age: 1,
+      test: 123
+    });
+    assert.strictEqual(model2.uuid, "test");
+    assert.strictEqual(model2.name, "Test2");
+    assert.strictEqual(model2.age, 1);
+    assert.strictEqual(model2.test, 123);
+    console.log(model2.createdAt, typeof model2.createdAt);
+    assert.ok(model2.createdAt instanceof Date);
+    assert.strictEqual(model2.createdAt.toISOString(), "2025-01-01T00:00:00.000Z");
+  
+    assert.strictEqual((await repo1.query("")).results.length, 1);
   }
 }

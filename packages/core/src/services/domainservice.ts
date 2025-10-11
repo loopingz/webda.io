@@ -5,7 +5,7 @@ import { Application } from "../application/application.js";
 import type { ModelAction } from "../internal/iapplication.js";
 import { JSONUtils } from "@webda/utils";
 import { OperationContext } from "../contexts/operationcontext.js";
-import type { ActionsEnum, Model, ModelClass } from "@webda/models";
+import type { Model, ModelClass } from "@webda/models";
 import { runWithContext } from "../contexts/execution.js";
 
 import { BinaryFileInfo, BinaryMap, BinaryMetadata, BinaryService } from "./binary.js";
@@ -302,7 +302,8 @@ export abstract class DomainService<
   async modelCreate(context: OperationContext) {
     const { model } = context.getExtension<{ model: ModelClass<Model> }>("operationContext");
     await runWithContext(context, async () => {
-      const object = (await model.create({}, false)).fromDTO(await context.getInput());
+      //const object = (await model.create({}, false)).fromDTO(await context.getInput());
+      const object : any = {};
       await object.checkAct(context, "create");
       // Check for conflict
       // await object.validate(context, {});
@@ -323,10 +324,10 @@ export abstract class DomainService<
   async modelUpdate(context: OperationContext) {
     const object = await this.getModel(context);
     const input = await context.getInput();
-    await object.checkAct(context, "update");
+    //await object.checkAct(context, "update");
     // By pass load for now
     object["load"](input);
-    context.write((await object.save()).toDTO());
+    //context.write((await object.save()).toDTO());
   }
 
   /**
@@ -335,8 +336,8 @@ export abstract class DomainService<
    */
   async modelGet(context: OperationContext) {
     const object = await this.getModel(context);
-    await object.checkAct(context, "get");
-    context.write(object.toDTO());
+    //await object.checkAct(context, "get");
+    //context.write(object.toDTO());
   }
 
   /**
@@ -348,7 +349,7 @@ export abstract class DomainService<
     if (!object) {
       throw new WebdaError.NotFound("Object not found");
     }
-    await object.checkAct(context, "delete");
+    //await object.checkAct(context, "delete");
     // Object can decide to not delete but mark as deleted
     await object.delete();
   }
@@ -380,7 +381,7 @@ export abstract class DomainService<
   async modelPatch(context: OperationContext) {
     const object = await this.getModel(context);
     const input = await context.getInput();
-    await object.checkAct(context, "update");
+    //await object.checkAct(context, "update");
     await object.patch(input);
     context.write(object);
   }
@@ -399,7 +400,7 @@ export abstract class DomainService<
       if (!object || object.isDeleted()) {
         throw new WebdaError.NotFound("Object not found");
       }
-      await object.checkAct(context, action.name as ActionsEnum<Model>);
+      //await object.checkAct(context, action.name as ActionsEnum<Model>);
       const output = await object[action.name](context);
       context.write(output);
     } else {
@@ -617,7 +618,7 @@ export abstract class DomainService<
     if (this.checkBinaryAlreadyLinked(object[binary.attribute], body.hash)) {
       return;
     }
-    await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
+    //await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
     const url = await binaryStore.putRedirectUrl(object, binary.attribute, body, context);
     const base64String = Buffer.from(body.hash, "hex").toString("base64");
     context.write({
@@ -660,7 +661,7 @@ export abstract class DomainService<
     if (this.checkBinaryAlreadyLinked(object[binary.attribute], hash)) {
       return;
     }
-    await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
+    //await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
     await binaryStore.store(object, binary.attribute, file);
   }
 
@@ -685,7 +686,7 @@ export abstract class DomainService<
     if (!object || (Array.isArray(object[property]) && object[property].length <= index)) {
       throw new WebdaError.NotFound("Object does not exist or attachment does not exist");
     }
-    await object.checkAct(context, "get_binary" as ActionsEnum<Model>);
+    //await object.checkAct(context, "get_binary" as ActionsEnum<Model>);
     const file: BinaryMap = Array.isArray(object[property]) ? object[property][index] : object[property];
     const url = await binaryStore.getRedirectUrlFromObject(file, context);
     // No url, we return the file
@@ -736,7 +737,7 @@ export abstract class DomainService<
       throw new WebdaError.NotFound("Object does not exist");
     }
     if (action === "create") {
-      await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
+      //await object.checkAct(context, "attach_binary" as ActionsEnum<Model>);
       await binaryStore.store(object, binary.attribute, await binaryStore.getFile(context));
       return;
     }
@@ -747,10 +748,10 @@ export abstract class DomainService<
       throw new WebdaError.BadRequest("Hash does not match");
     }
     if (action === "delete") {
-      await object.checkAct(context, "detach_binary" as ActionsEnum<Model>);
+      //await object.checkAct(context, "detach_binary" as ActionsEnum<Model>);
       await binaryStore.delete(object, binary.attribute, index);
     } else if (action === "metadata") {
-      await object.checkAct(context, "update_binary_metadata" as ActionsEnum<Model>);
+      //await object.checkAct(context, "update_binary_metadata" as ActionsEnum<Model>);
       const metadata: BinaryMetadata = await context.getInput();
       // Limit metadata to 4kb
       if (JSON.stringify(metadata).length >= 4096) {

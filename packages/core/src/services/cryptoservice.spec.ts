@@ -47,7 +47,7 @@ class CryptoServiceTest extends WebdaApplicationTest {
   async failedRotation() {
     // Check failed rotate
     await useRegistry().put("keys", { current: "123" });
-    await useCrypto().rotate();
+    await assert.rejects(() => useCrypto().rotate(), /Current key does not match/);
   }
 
   /**

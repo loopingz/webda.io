@@ -4,7 +4,6 @@ import {
   PrimaryKeyType,
   Storable,
   StorableAttributes,
-  JSONed,
   PrimaryKey,
   PrimaryKeyEquals,
   AttributesArgument,
@@ -12,9 +11,9 @@ import {
   UpdatableAttributes,
   WEBDA_PRIMARY_KEY,
   WEBDA_DIRTY,
-  SelfJSONed,
-  StorableClass
+  ModelClass
 } from "./storable";
+import type { SelfJSONed, JSONed, Helpers } from "./types";
 import type { Repository } from "./repositories/repository";
 
 const RelationParent = Symbol("RelationParent");
@@ -40,9 +39,9 @@ export function assignNonSymbols(target: any, source: any) {
 export class ModelRef<T extends Storable> {
   [RelationParent]?: Storable;
   [RelationKey]?: PrimaryKeyType<T>;
-  [RelationRepository]?: Repository<StorableClass<T>>;
+  [RelationRepository]?: Repository<ModelClass<T>>;
 
-  constructor(key: PrimaryKeyType<T>, repository?: Repository<StorableClass<T>>, parent?: Storable) {
+  constructor(key: PrimaryKeyType<T>, repository?: Repository<ModelClass<T>>, parent?: Storable) {
     this[RelationParent] = parent;
     this[RelationKey] = key;
     this[RelationRepository] = repository;
@@ -51,7 +50,7 @@ export class ModelRef<T extends Storable> {
   /**
    * Get the repository and ensure it's initialized
    */
-  protected getRepository(): Repository<StorableClass<T>> {
+  protected getRepository(): Repository<ModelClass<T>> {
     if (!this[RelationRepository]) {
       throw new Error("Relation repository is not initialized");
     }
@@ -101,7 +100,7 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   patch<K extends keyof T, A extends StorableAttributes<T>>(
-    data: Partial<SelfJSONed<T>>,
+    data: Partial<Omit<T, PrimaryKeyAttributes<T>>>,
     conditionField?: A,
     condition?: T[A]
   ): Promise<void> {
@@ -115,8 +114,12 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  update<A extends StorableAttributes<T>>(data: SelfJSONed<T>, conditionField?: A, condition?: T[A]): Promise<void> {
-    return this.getRepository().update({ ...data, ...this.getKey() }, conditionField, condition);
+  update<A extends StorableAttributes<T>>(
+    data: Omit<Helpers<T>, PrimaryKeyAttributes<T>>,
+    conditionField?: A,
+    condition?: T[A]
+  ): Promise<void> {
+    return this.getRepository().update({ ...data, ...this.getKey() } as Helpers<T>, conditionField, condition);
   }
 
   /**
@@ -275,7 +278,7 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
    */
   create(data: Omit<AttributesArgument<T>, T[typeof WEBDA_PRIMARY_KEY][number]>): Promise<T> {
     return this.getRepository().create({
-      ...data,
+      ...(data as any),
       ...this.getRepository().getPrimaryKey(this.getKey(), true)
     });
   }
@@ -363,7 +366,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     /**
      * The repository of the object to link
      */
-    protected model: Repository<StorableClass<T>>,
+    protected model: Repository<ModelClass<T>>,
     parent?: Storable
   ) {
     this[RelationParent] = parent!;
@@ -374,7 +377,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     if (!this[RelationKey]) {
       throw new Error("Relation key is not initialized");
     }
-    return await this.model.get(this[RelationKey]);
+    return await this.model.get(this[RelationKey]) as T;
   }
 
   set(id: PrimaryKeyType<T> | T | string) {
@@ -447,9 +450,9 @@ type ModelCollectionManager<T> = {
 export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>> implements ModelLinker {
   [RelationRole]: "ModelLinker" = "ModelLinker" as const;
   private [RelationParent]: T;
-  protected [RelationRepository]: Repository<StorableClass<T>>;
+  protected [RelationRepository]: Repository<ModelClass<T>>;
 
-  constructor(repo: Repository<StorableClass<T>>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
+  constructor(repo: Repository<ModelClass<T>>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
     super();
     this[RelationRepository] = repo;
     content.forEach(c => this.push(c));
@@ -581,7 +584,7 @@ type ModelRefCustomProperties<T extends Storable, K extends object> = ModelRef<T
 class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
   protected [RelationData]: K;
 
-  constructor(key: PrimaryKeyType<T>, repo: Repository<StorableClass<T>>, data: K, parent?: Storable) {
+  constructor(key: PrimaryKeyType<T>, repo: Repository<ModelClass<T>>, data: K, parent?: Storable) {
     super(key, repo, parent);
     this[RelationData] = data;
     assignNonSymbols(this, data);
@@ -623,7 +626,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
   [RelationRole]: "ModelLinker" = "ModelLinker" as const;
   protected [RelationParent]?: T;
   constructor(
-    protected repo: Repository<StorableClass<T>>,
+    protected repo: Repository<ModelClass<T>>,
     content: (PrimaryKey<T> & K)[] = [],
     parentObject?: T
   ) {
@@ -781,7 +784,7 @@ export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, 
 }
 
 export function createModelLinksMap<T extends Storable = Storable, K extends object = object>(
-  repo: Repository<StorableClass<T>>,
+  repo: Repository<ModelClass<T>>,
   data: any = {},
   parent?: T
 ) {
@@ -855,14 +858,14 @@ export type ModelsMapped<
  * TODO Handle 1:1 map
  */
 export class ModelMapLoaderImplementation<T extends Storable, K = any> {
-  protected [RelationRepository]: Repository<StorableClass<T>>;
+  protected [RelationRepository]: Repository<ModelClass<T>>;
   protected [RelationParent]?: Storable;
   /**
    * The uuid of the object
    */
   public uuid!: PrimaryKeyType<T>;
 
-  constructor(model: Repository<StorableClass<T>>, data: PrimaryKey<T> & K, parent: T) {
+  constructor(model: Repository<ModelClass<T>>, data: PrimaryKey<T> & K, parent: T) {
     assignNonSymbols(this, data);
     this[RelationRepository] = model;
     this[RelationParent] = parent;
@@ -873,7 +876,7 @@ export class ModelMapLoaderImplementation<T extends Storable, K = any> {
    * @returns the model
    */
   async get(): Promise<T> {
-    return this[RelationRepository].get(this.uuid);
+    return this[RelationRepository].get(this.uuid) as Promise<T>;
   }
 }
 

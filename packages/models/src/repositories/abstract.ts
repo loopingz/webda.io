@@ -1,18 +1,18 @@
 import type {
-  JSONed,
-  SelfJSONed,
   PK,
   PrimaryKey,
+  PrimaryKeyAttributes,
   PrimaryKeyType,
   StorableAttributes,
-  StorableClass
+  ModelClass
 } from "../storable";
+import type { Helpers, JSONed, SelfJSONed } from "../types";
 import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS } from "../storable";
 import { ModelRefWithCreate } from "../relations";
 import { Repository } from "./repository";
 import type { ArrayElement, ReadonlyKeys } from "@webda/tsc-esm";
 
-export abstract class AbstractRepository<T extends StorableClass> implements Repository<T> {
+export abstract class AbstractRepository<T extends ModelClass> implements Repository<T> {
   protected events: Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>> = new Map();
 
   constructor(
@@ -49,7 +49,7 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
     if (parts.length !== this.pks.length) {
       throw new Error(`Invalid UID: ${uid}`);
     }
-    const result = {} as PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>;
+    const result = {} as PrimaryKey<InstanceType<T>>;
     for (let i = 0; i < this.pks.length; i++) {
       result[this.pks[i] as keyof InstanceType<T>] = parts[i] as any;
     }
@@ -121,11 +121,11 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
   /**
    * @inheritdoc
    */
-  async upsert(data: ConstructorParameters<T>[0]): Promise<InstanceType<T>> {
+  async upsert(data: Helpers<InstanceType<T>>): Promise<InstanceType<T>> {
     const key = this.getPrimaryKey(data);
     if (await this.exists(key)) {
-      await this.patch(key, data);
-      return this.get(key);
+      await this.patch(key, data as InstanceType<T>);
+      return this.get(key) as InstanceType<T>;
     }
     return this.create(data);
   }
@@ -217,16 +217,16 @@ export abstract class AbstractRepository<T extends StorableClass> implements Rep
     conditionField?: L | null,
     condition?: InstanceType<T>[L] | JSONed<InstanceType<T>[L]>
   ): Promise<void>;
-  abstract get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<InstanceType<T>>;
-  abstract create(data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
+  abstract get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<Helpers<InstanceType<T>>>;
+  abstract create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>>;
   abstract patch<K extends StorableAttributes<InstanceType<T>, any>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
-    data: Partial<SelfJSONed<InstanceType<T>>>,
+    data: Partial<InstanceType<T>>,
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void>;
   abstract update<K extends StorableAttributes<InstanceType<T>>>(
-    data: InstanceType<T> | SelfJSONed<InstanceType<T>>,
+    data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
     condition?: InstanceType<T>[K]
   ): Promise<void>;

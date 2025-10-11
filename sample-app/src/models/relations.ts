@@ -3,7 +3,6 @@
  */
 
 import {
-  Action,
   ModelLink,
   ModelLinksArray,
   ModelLinksMap,
@@ -14,7 +13,7 @@ import {
   UuidModel
 } from "@webda/models";
 
-import { CoreModel, OperationContext } from "@webda/core";
+import { CoreModel, OperationContext, Operation as Action } from "@webda/core";
 /**
  * @WebdaIgnore
  */

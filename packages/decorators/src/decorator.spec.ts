@@ -21,7 +21,7 @@ const MyPropertyDecorator = createPropertyDecorator(
     // Do nothing
     calls.push({ value, context, options });
     context.metadata!["info"] ??= [];
-    (context.metadata!["info"] as Array<any>).push([context.kind, context.name] );
+    (context.metadata!["info"] as Array<any>).push([context.kind, context.name]);
   }
 );
 
@@ -40,7 +40,7 @@ class Test2 {
   @MyPropertyDecorator({ name: "plop" })
   attr: string;
   @MyMethodDecorator({ name: "plop" })
-  method() : number {
+  method(): number {
     return 12;
   }
 }

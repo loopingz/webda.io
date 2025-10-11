@@ -11,9 +11,6 @@ import path from "node:path";
 import { FileUtils } from "@webda/utils";
 import {
   ModelEvents,
-  ModelActions,
-  WEBDA_ACTIONS,
-  ActionsEnum,
   PrimaryKey,
   ModelClass,
   Repository,
@@ -59,23 +56,13 @@ export class Task extends OwnerModel {
   side: string;
 
   _gotContext: boolean;
-  [WEBDA_ACTIONS]: ModelActions<"create" | "get" | "update" | "delete"> & {
-    actionable: {
-      rest: {
-        methods: ["GET"];
-      };
-    };
-    impossible: {};
-  } & {
-    create: RESTConfiguration<"POST", "/"> & GraphQLConfiguration;
-  };
 
   actionable() {}
 
   impossible() {}
 
-  async canAct(context: IOperationContext, actionArg: ActionsEnum<this>): Promise<boolean | string> {
-    const action: ActionsEnum<Task> = actionArg as ActionsEnum<Task>;
+  async canAct(context: IOperationContext, actionArg: string): Promise<boolean | string> {
+    const action: string = actionArg;
     if (action === "actionable") {
       return true;
     }

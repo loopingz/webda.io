@@ -1,5 +1,4 @@
-import { Actionable, WEBDA_ACTIONS } from "@webda/models";
-
+import { Behavior } from "./behavior.js";
 export type Acl = { [key: string]: string };
 
 /**
@@ -9,15 +8,7 @@ export type Acl = { [key: string]: string };
  * you can add it later on to existing models
  *
  */
-export class Acls implements Actionable {
-  [WEBDA_ACTIONS]: {
-    set: {
-      description: "Set the ACLs for the object";
-    };
-    get: {
-      description: "Get the ACLs for the object";
-    };
-  };
+export class Acls extends Behavior {
   toDTO() {
     throw new Error("Method not implemented.");
   }

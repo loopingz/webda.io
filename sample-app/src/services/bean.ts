@@ -1,5 +1,4 @@
-import { Bean, Cron, OperationContext, Service } from "@webda/core";
-import { Operation } from "@webda/models";
+import { Bean, Cron, OperationContext, Service, Operation } from "@webda/core";
 
 @Bean
 export class BeanService extends Service {

@@ -1,14 +1,5 @@
-import EventEmitter from "node:events";
-import {
-  JSONed,
-  PK,
-  PrimaryKeyType,
-  SelfJSONed,
-  StorableAttributes,
-  StorableClass,
-  WEBDA_EVENTS,
-  WEBDA_PRIMARY_KEY
-} from "../storable";
+import { PK, PrimaryKeyType, StorableAttributes, ModelClass, WEBDA_PRIMARY_KEY } from "../storable";
+import type { SelfJSONed, JSONed, Helpers } from "../types";
 import { AbstractRepository } from "./abstract";
 import { ArrayElement, ReadonlyKeys } from "@webda/tsc-esm";
 import { WEBDA_TEST } from "./repository";
@@ -16,7 +7,7 @@ import { WEBDA_TEST } from "./repository";
 /**
  * Add event emitter to repository
  */
-export class EventRepository<T extends StorableClass = any> extends AbstractRepository<T> {
+export class EventRepository<T extends ModelClass = any> extends AbstractRepository<T> {
   constructor(
     model: T,
     pks: string[],
@@ -199,11 +190,11 @@ export class EventRepository<T extends StorableClass = any> extends AbstractRepo
       }
     } as any);
   }
-  async get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<InstanceType<T>> {
+  async get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<Helpers<InstanceType<T>>> {
     const res = await this.repository.get(primaryKey);
     return res;
   }
-  async create(data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>> {
+  async create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>> {
     await this.emit("Create", { object_id: this.getPrimaryKey(data), object: data } as any);
     const res = await this.repository.create(data, save);
     await this.emit("Created", { object_id: this.getPrimaryKey(data), object: data } as any);
@@ -211,7 +202,7 @@ export class EventRepository<T extends StorableClass = any> extends AbstractRepo
   }
   async patch<K extends StorableAttributes<InstanceType<T>, any>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
-    data: Partial<SelfJSONed<InstanceType<T>>>,
+    data: Partial<InstanceType<T>>,
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void> {
@@ -220,7 +211,7 @@ export class EventRepository<T extends StorableClass = any> extends AbstractRepo
     await this.emit("Patched", { object_id: primaryKey, object: data } as any);
   }
   async update<K extends StorableAttributes<InstanceType<T>>>(
-    data: InstanceType<T> | SelfJSONed<InstanceType<T>>,
+    data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
     condition?: InstanceType<T>[K]
   ): Promise<void> {

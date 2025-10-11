@@ -1,14 +1,14 @@
 import type { ArrayElement } from "@webda/tsc-esm";
 import type {
-  JSONed,
-  SelfJSONed,
   PrimaryKey,
   PrimaryKeyType,
   StorableAttributes,
   UpdatableAttributes,
   WEBDA_EVENTS,
-  StorableClass
+  ModelClass,
+  PrimaryKeyAttributes
 } from "../storable";
+import type { Helpers, JSONed, SelfJSONed } from "../types";
 import type { ModelRefWithCreate } from "../relations";
 
 export const WEBDA_TEST = Symbol("webda_test");
@@ -16,7 +16,7 @@ export const WEBDA_TEST = Symbol("webda_test");
 /**
  * This represent the injected methods of Store into the Model
  */
-export interface Repository<T extends StorableClass = StorableClass> {
+export interface Repository<T extends ModelClass = ModelClass> {
   /**
    * Get the root model class for this repository
    * @returns
@@ -41,12 +41,12 @@ export interface Repository<T extends StorableClass = StorableClass> {
    * @param uid
    * @returns
    */
-  get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<InstanceType<T>>;
+  get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<Helpers<InstanceType<T>>>;
   /**
    * Refers to the object in the store
    * @param pk primary key
    */
-  ref(pk: PrimaryKeyType<InstanceType<T>> | string): ModelRefWithCreate<InstanceType<T>>;
+  ref(pk: PrimaryKeyType<InstanceType<T>>): ModelRefWithCreate<InstanceType<T>>;
   /**
    * Remove the primary key from the object
    * @param object
@@ -72,13 +72,13 @@ export interface Repository<T extends StorableClass = StorableClass> {
    * @param data
    * @returns
    */
-  create(data: ConstructorParameters<T>[0], save?: boolean): Promise<InstanceType<T>>;
+  create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>>;
   /**
    * Upsert data in the store, creating or updating the object
    * @param uid
    * @param data
    */
-  upsert(data: ConstructorParameters<T>[0]): Promise<InstanceType<T>>;
+  upsert(data: Helpers<InstanceType<T>>): Promise<InstanceType<T>>;
   /**
    * Update data in the store, replacing the object
    * @param uid
@@ -88,7 +88,7 @@ export interface Repository<T extends StorableClass = StorableClass> {
    * @returns
    */
   update<K extends StorableAttributes<InstanceType<T>>>(
-    data: SelfJSONed<InstanceType<T>> | InstanceType<T>,
+    data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
     condition?: InstanceType<T>[K]
   ): Promise<void>;
@@ -102,7 +102,7 @@ export interface Repository<T extends StorableClass = StorableClass> {
    */
   patch<K extends StorableAttributes<InstanceType<T>>>(
     uid: PrimaryKeyType<InstanceType<T>> | string,
-    data: Partial<SelfJSONed<InstanceType<T>>>,
+    data: Partial<Omit<InstanceType<T>, PrimaryKeyAttributes<InstanceType<T>>>>,
     conditionField?: K | null,
     condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
   ): Promise<void>;

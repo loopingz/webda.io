@@ -152,7 +152,7 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
       this.input?.cancel();
     } else if (msg.type.startsWith("progress.")) {
       this.onProgress(msg);
-    } else if (msg.type === "log" && LogFilter(msg.log.level, this.level)) {
+    } else if (msg.type === "log" && LogFilter(msg.log.level, this.level())) {
       this.spinner?.clear();
       ConsoleLogger.display(msg, this.format);
     }

@@ -1,4 +1,4 @@
-import { SelfJSONed } from "@webda/models";
+import { LoadParameters, SelfJSONed } from "@webda/models";
 import { OwnerModel } from "./ownermodel.js";
 import type { User } from "./user.js";
 
@@ -13,9 +13,9 @@ export class IdentTokens {
  * @WebdaModel
  */
 export class Ident extends OwnerModel {
-  constructor(data?: Partial<SelfJSONed<Ident>>) {
+  constructor(data?: LoadParameters<Ident>) {
     super(data);
-    this.deserialize(data || {});
+    this.load((data || {}) as LoadParameters<this>);
   }
   /**
    * Type of the ident
@@ -78,8 +78,8 @@ export class Ident extends OwnerModel {
     this.setOwner(typeof uuid === "string" ? uuid : uuid.getPrimaryKey());
   }
 
-  deserialize(data: Partial<SelfJSONed<Ident>>): this {
-    super.deserialize(data);
+  load(data: Partial<LoadParameters<this>>): this {
+    super.load(data);
     this._type = data._type || "";
     this.uid = data.uid || "";
     this.__profile = data.__profile;

@@ -1,5 +1,5 @@
 //import { UuidModel } from "./uuid.js";
-import { ActionsEnum, ModelLink, PrimaryKeyType, UuidModel } from "@webda/models";
+import { ModelLink, PrimaryKeyType, UuidModel } from "@webda/models";
 import { User } from "./user.js";
 import { IOperationContext } from "../contexts/icontext.js";
 
@@ -45,7 +45,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
     return this._user;
   }
 
-  async canAct(context: IOperationContext, action: ActionsEnum<this>): Promise<string | boolean> {
+  async canAct(context: IOperationContext, action: string): Promise<string | boolean> {
     // Object is public
     if (this.public && (action === "get" || action === "get_binary")) {
       return true;

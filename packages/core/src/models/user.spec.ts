@@ -72,9 +72,9 @@ class UserTest extends WebdaApplicationTest {
       email: undefined,
       uuid
     });
-    user.deserialize({ _idents: [{}, { email: "testIdent@test.com" }] });
+    user.load({ _idents: [{}, { email: "testIdent@test.com" }] });
     assert.strictEqual(user.getEmail(), "testIdent@test.com");
-    user.deserialize({ email: "test@test.com", displayName: "Top" });
+    user.load({ email: "test@test.com", displayName: "Top" });
     assert.strictEqual(user.getEmail(), "test@test.com");
     assert.strictEqual(user.getDisplayName(), "Top");
     assert.deepStrictEqual(user.toPublicEntry(), {

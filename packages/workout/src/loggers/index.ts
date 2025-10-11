@@ -4,12 +4,15 @@ import { WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
  * Abstract Logger class
  */
 export abstract class WorkerLogger {
-  level: WorkerLogLevel;
+  level: () => WorkerLogLevel;
+  /**
+   * Allow to do dynamic log level (function) or static (string)
+   */
   listener: (msg: WorkerMessage) => void;
   output: WorkerOutput;
 
-  constructor(output: WorkerOutput, level?: WorkerLogLevel) {
-    this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
+  constructor(output: WorkerOutput, level?: WorkerLogLevel | (() => WorkerLogLevel)) {
+    this.level = level ? typeof level === "function" ? level : () => level : () => <any>process.env.LOG_LEVEL || "INFO";
     this.listener = msg => {
       this.onMessage(msg);
     };

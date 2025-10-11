@@ -28,7 +28,7 @@ export class MemoryLogger extends WorkerLogger {
     if (!this.includeAll && msg.type !== "log") {
       return;
     }
-    if (msg.type === "log" && !LogFilter(msg.log.level, this.level)) {
+    if (msg.type === "log" && !LogFilter(msg.log.level, this.level())) {
       return;
     }
     this.messages.push(msg);
@@ -40,8 +40,8 @@ export class MemoryLogger extends WorkerLogger {
   /**
    * Set LogLevel
    */
-  setLogLevel(level: WorkerLogLevel) {
-    this.level = level;
+  setLogLevel(level: WorkerLogLevel | (() => WorkerLogLevel)) {
+    this.level = typeof level === "function" ? level : () => level;
   }
 
   /**

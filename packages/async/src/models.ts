@@ -54,7 +54,7 @@ export default class AsyncAction extends CoreModel {
   /**
    * Current status
    */
-  public status: "RUNNING" | "SUCCESS" | "ERROR" | "QUEUED" | "STARTING" | "TIMEOUT" | "SCHEDULED";
+  public status: "RUNNING" | "SUCCESS" | "ERROR" | "QUEUED" | "STARTING" | "TIMEOUT" | "SCHEDULED" | "CANCELLED";
 
   /**
    * Timestamp when the action was scheduled

@@ -487,8 +487,11 @@ export class Compiler {
    * @param absolutePath
    * @returns
    */
-  getJSTargetFile(sourceFile: ts.SourceFile, absolutePath: boolean = false) {
+  getJSTargetFile(sourceFile: ts.SourceFile, absolutePath: boolean = false): string {
     let filePath = ts.getOutputFileNames(this.configParseResult, sourceFile.fileName, true)[0];
+    if (!filePath) {
+      return "";
+    }
     if (absolutePath) {
       return filePath;
     }
@@ -641,7 +644,8 @@ export class Compiler {
       if (
         !this.tsProgram.isSourceFileDefaultLibrary(sourceFile) &&
         //this.tsProgram.getRootFileNames().includes(sourceFile.fileName) &&
-        !sourceFile.fileName.endsWith(".spec.ts")
+        !sourceFile.fileName.endsWith(".spec.ts") &&
+        !sourceFile.fileName.endsWith(".d.ts")
       ) {
         this.sourceFile = sourceFile;
         ts.forEachChild(sourceFile, (node: ts.Node) => {
@@ -689,7 +693,9 @@ export class Compiler {
             return;
           }
           const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
-
+          if (!importTarget) {
+            return;
+          }
           let section;
           let schemaNode;
           if (this.extends(classTree, "@webda/core", "CoreModel")) {

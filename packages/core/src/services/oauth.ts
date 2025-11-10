@@ -75,12 +75,26 @@ export class OAuthServiceParameters extends ServiceParameters {
    * @default Authentication
    */
   authenticationService: string;
+  /**
+   * Default headers to include in the OAuth requests
+   */
+  defaultHeaders: Record<string, string>;
 
   constructor(params: any) {
     super(params);
     this.scope ??= ["email"];
     this.exposeScope ??= false;
     this.authenticationService ??= "Authentication";
+    this.defaultHeaders ??= {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+      "X-XSS-Protection": "1; mode=block",
+      "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none';",
+    };
   }
 }
 
@@ -367,6 +381,7 @@ export abstract class OAuthService<
    */
   private async _token(context: WebContext) {
     const res = await this.handleToken(context);
+    this.addDefaultHeaders(context);
     await this.handleReturn(context, res.identId, res.profile);
     await this.emitSync("OAuth.Callback", <EventOAuthToken>{
       ...res,
@@ -378,6 +393,16 @@ export abstract class OAuthService<
   }
 
   /**
+   * Add default headers to the response
+   * @param ctx
+   */
+  addDefaultHeaders(ctx: WebContext) {
+    Object.entries(this.parameters.defaultHeaders).forEach(([key, value]) => {
+      ctx.setHeader(key, value);
+    });
+  }
+
+  /**
    * Handle a standard url callback
    *
    * This is private to avoid any override
@@ -385,6 +410,7 @@ export abstract class OAuthService<
    */
   private async _callback(ctx: WebContext) {
     const res = await this.handleCallback(ctx);
+    this.addDefaultHeaders(ctx);
     await this.handleReturn(ctx, res.identId, res.profile);
     await this.emitSync("OAuth.Callback", {
       ...res,

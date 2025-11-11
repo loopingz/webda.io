@@ -1,6 +1,6 @@
 {
   "name": "@webda/async",
-  "version": "3.9.1",
+  "version": "3.9.2",
   "description": "Async System",
   "main": "lib/index.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "package.json"
   ],
   "dependencies": {
-    "@webda/core": "^3.17.1",
+    "@webda/core": "^3.18.0",
     "@webda/workout": "^3.2.1",
     "axios": "^1.1.3",
     "json-schema": "^0.4.0",

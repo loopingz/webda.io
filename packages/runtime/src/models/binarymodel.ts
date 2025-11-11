@@ -64,7 +64,7 @@ export class BinaryModel<T = any> extends CoreModel {
     if (this.__data && !force) {
       return;
     }
-    this.__data = JSON.parse(gunzipSync(await this.__binary.getAsBuffer()).toString());
+    this.__data = JSON.parse(gunzipSync(await this.__binary.getAsBuffer() as Uint8Array<ArrayBuffer>).toString());
   }
 
   async save() {
@@ -78,7 +78,7 @@ export class BinaryModel<T = any> extends CoreModel {
       return;
     }
     await this.__binary.upload(
-      new MemoryBinaryFile(gzipSync(Buffer.from(JSON.stringify(this.__data))), {
+      new MemoryBinaryFile(gzipSync(Buffer.from(JSON.stringify(this.__data)) as Uint8Array<ArrayBuffer>), {
         name: `data.json.gz`
       })
     );

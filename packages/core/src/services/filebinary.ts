@@ -291,7 +291,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     let path = this._getPath(result.hash, "data");
     if (!fs.existsSync(path)) {
       // Save the data
-      fs.writeFileSync(path, body);
+      fs.writeFileSync(path, body as Uint8Array<ArrayBuffer>);
     }
     // Save the challenge
     this._touch(this._getPath(result.hash, "_" + result.challenge));

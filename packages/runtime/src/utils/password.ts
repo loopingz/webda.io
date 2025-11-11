@@ -11,8 +11,8 @@ let encryptPassword;
  * @param password
  * @returns
  */
-function getKey(password: string): Buffer {
-  return scryptSync(password, "Webda", 64).subarray(0, 32);
+function getKey(password: string): Uint8Array<ArrayBuffer> {
+  return scryptSync(password, "Webda", 64).subarray(0, 32) as Uint8Array<ArrayBuffer>;
 }
 
 async function requestPassword(): Promise<string> {
@@ -34,17 +34,17 @@ const encrypter: StringEncrypter = {
       password = encryptPassword;
     }
     // Derive key TODO replace by a true derivation function
-    let iv = randomBytes(16);
+    let iv = randomBytes(16) as Uint8Array<ArrayBuffer>;
     let cipher = createCipheriv("aes-256-ctr", getKey(password), iv);
-    return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
+    return Buffer.concat([iv, cipher.update(Buffer.from(data) as Uint8Array<ArrayBuffer>) as Uint8Array<ArrayBuffer>, cipher.final() as Uint8Array<ArrayBuffer>]).toString("base64");
   },
   decrypt: async (data: string, password?: string): Promise<string> => {
     if (!password) {
       encryptPassword ??= await requestPassword();
       password = encryptPassword;
     }
-    let input = Buffer.from(data, "base64");
-    let iv = input.subarray(0, 16);
+    let input = Buffer.from(data, "base64") as Uint8Array<ArrayBuffer>;
+    let iv = input.subarray(0, 16) as Uint8Array<ArrayBuffer>;
     let decipher = createDecipheriv("aes-256-ctr", getKey(password), iv);
     return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
   }

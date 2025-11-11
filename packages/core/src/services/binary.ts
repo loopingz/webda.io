@@ -169,7 +169,7 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
           resolve();
         });
         stream.on("data", chunk => {
-          let buffer = Buffer.from(chunk);
+          let buffer = Buffer.from(chunk) as Uint8Array<ArrayBuffer>;
           hash.update(buffer);
           challenge.update(buffer);
         });
@@ -976,7 +976,7 @@ export abstract class BinaryService<
    * @returns
    */
   async _getFile(req: WebContext): Promise<BinaryFile> {
-    let file = await req.getHttpContext().getRawBody(10 * 1024 * 1024);
+    let file = await req.getHttpContext().getRawBody(10 * 1024 * 1024) as Uint8Array<ArrayBuffer>;
     // TODO Check if we have other type
     return new MemoryBinaryFile(Buffer.from(file), {
       mimetype: req.getHttpContext().getUniqueHeader("Content-Type", "application/octet-stream"),

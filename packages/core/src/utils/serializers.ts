@@ -13,7 +13,7 @@ import * as jsonc from "jsonc-parser";
 import { join } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
-import { createGunzip, gunzipSync, gzipSync } from "zlib";
+import { createGunzip, gunzipSync, gzipSync, InputType } from "zlib";
 import { Core } from "../core";
 
 type WalkerOptionsType = {
@@ -253,7 +253,7 @@ export const FileUtils: StorageFinder & {
     }
     let content;
     if (filename.endsWith(".gz")) {
-      content = gunzipSync(readFileSync(filename)).toString();
+      content = gunzipSync(readFileSync(filename) as Uint8Array<ArrayBuffer>).toString();
       filename = filename.slice(0, -3);
     } else {
       content = readFileSync(filename, "utf-8");

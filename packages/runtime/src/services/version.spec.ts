@@ -14,6 +14,11 @@ class VersionTest extends WebdaSimpleTest {
     await service.version(ctx);
     //await this.getExecutor(ctx, "webda.io", "GET", "/version").execute(ctx);
     // Version within package.json of test/ folder
-    assert.ok(ctx.getResponseBody().toString().match(/\d+\.\d+\.\d+/) !== null);
+    assert.ok(
+      ctx
+        .getResponseBody()
+        .toString()
+        .match(/\d+\.\d+\.\d+/) !== null
+    );
   }
 }

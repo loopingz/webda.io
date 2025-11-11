@@ -39,7 +39,7 @@ export default class GCPPubSubService<
    */
   async sendMessage(event: T): Promise<void> {
     this.metrics.messages_sent.inc();
-    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(event)) });
+    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(event)) as Uint8Array<ArrayBuffer>});
   }
 
   async size() {

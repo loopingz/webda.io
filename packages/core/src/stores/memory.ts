@@ -155,7 +155,7 @@ class MemoryStore<
   /**
    * AES encryption key
    */
-  private key: Buffer;
+  private key: Uint8Array<ArrayBuffer>;
 
   /**
    * Persist inmemory storage to file
@@ -179,7 +179,7 @@ class MemoryStore<
 
     const dest = createWriteStream(this.parameters.persistence.path);
     if (this.key) {
-      let iv = crypto.randomBytes(16);
+      let iv = crypto.randomBytes(16) as Uint8Array<ArrayBuffer>;
       let cipher = crypto.createCipheriv(this.parameters.persistence.cipher, this.key, iv);
       pipeline = pipeline.pipe(cipher);
       dest.write(iv);
@@ -204,7 +204,7 @@ class MemoryStore<
     let pipeline: Readable;
     if (this.key) {
       let fh = await open(this.parameters.persistence.path, "r");
-      let iv = Buffer.alloc(16);
+      let iv = Buffer.alloc(16) as Uint8Array<ArrayBuffer>;
       await fh.read(iv, 0, 16);
       let decipher = crypto.createDecipheriv(this.parameters.persistence.cipher, this.key, iv);
       pipeline = fh.createReadStream({ start: 16 }).pipe(decipher);
@@ -240,7 +240,7 @@ class MemoryStore<
   async init(): Promise<this> {
     if (this.parameters.persistence) {
       if (this.parameters.persistence.key) {
-        this.key = crypto.createHash("sha256").update(this.parameters.persistence.key).digest();
+        this.key = crypto.createHash("sha256").update(this.parameters.persistence.key).digest() as Uint8Array<ArrayBuffer>;
       }
       try {
         if (existsSync(this.parameters.persistence.path)) {

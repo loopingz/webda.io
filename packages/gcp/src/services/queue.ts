@@ -87,7 +87,7 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
    * @param msg
    */
   async sendMessage(msg: T) {
-    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(msg)) });
+    await this.pubsub.topic(this.parameters.topic).publishMessage({ data: Buffer.from(JSON.stringify(msg)) as Uint8Array<ArrayBuffer> });
   }
 
   /**

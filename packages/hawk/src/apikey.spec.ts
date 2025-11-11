@@ -49,7 +49,7 @@ class ApiKeyTest extends WebdaSimpleTest {
     assert.ok(this.apikey.checkOrigin(this.context.getHttpContext()), "localhost should be granted");
 
     this.getExecutor(this.context, "test.webda.io", "PUT", "/origins", {}, { origin: "https://localhost:18080/" });
-    assert.ok(!await this.apikey.canRequest(this.context), "localhost https should be refused");
+    assert.ok(!(await this.apikey.canRequest(this.context)), "localhost https should be refused");
   }
 
   @test
@@ -79,7 +79,7 @@ class ApiKeyTest extends WebdaSimpleTest {
     this.apikey.load(<any>{ ...KEY, origins: undefined }, true);
 
     this.getExecutor(this.context, "test.webda.io", "POST", "/path");
-    assert.ok(!await this.apikey.canRequest(this.context), "POST should be false");
+    assert.ok(!(await this.apikey.canRequest(this.context)), "POST should be false");
 
     this.getExecutor(this.context, "test.webda.io", "PATCH", "/path/to/inferno");
     assert.ok(!(await this.apikey.canRequest(this.context)), "inferno should be false");

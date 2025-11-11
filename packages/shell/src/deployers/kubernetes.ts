@@ -156,9 +156,9 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);
 
       const k8sApi = this.getClient(k8s.BatchV1Api);
-      let currentJobs = (
-        await k8sApi.listNamespacedCronJob(resource.metadata.namespace || "default")
-      ).items.filter(i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId);
+      let currentJobs = (await k8sApi.listNamespacedCronJob(resource.metadata.namespace || "default")).items.filter(
+        i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId
+      );
       let currentJobsNamesMap = {};
       currentJobs.forEach(
         i =>
@@ -214,7 +214,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       try {
         // move to any
         // error TS2345: Argument of type 'KubernetesObject' is not assignable to parameter of type 'KubernetesObjectHeader<KubernetesObject>
-        let spec = (await this.client.read(<any>resource));
+        let spec = await this.client.read(<any>resource);
         for (let prop in resource.patch) {
           let path = prop;
           if (!prop.startsWith("$.")) {

@@ -489,9 +489,9 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   public async encrypt(data: any): Promise<string> {
     let key = await this.getCurrentKeys();
     // Initialization Vector
-    let iv = randomBytes(16);
-    let cipher = createCipheriv(this.parameters.symetricCipher, Buffer.from(key.keys.symetric, "base64"), iv);
-    let encrypted = Buffer.concat([iv, cipher.update(Buffer.from(JSON.stringify(data))), cipher.final()]).toString(
+    let iv = randomBytes(16) as Uint8Array<ArrayBuffer>;
+    let cipher = createCipheriv(this.parameters.symetricCipher, Buffer.from(key.keys.symetric, "base64") as Uint8Array<ArrayBuffer>, iv);
+    let encrypted = Buffer.concat([iv, cipher.update(Buffer.from(JSON.stringify(data)) as Uint8Array<ArrayBuffer>) as Uint8Array<ArrayBuffer>, cipher.final() as Uint8Array<ArrayBuffer>]).toString(
       "base64"
     );
     return this.jwtSign(encrypted, {
@@ -568,13 +568,13 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   public async decrypt(token: string): Promise<any> {
     let input = Buffer.from(await this.jwtVerify(token), "base64");
     let header = this.getJWTHeader(token);
-    let iv = input.subarray(0, 16);
+    let iv = input.subarray(0, 16) as Uint8Array<ArrayBuffer>;
     let decipher = createDecipheriv(
       this.parameters.symetricCipher,
-      Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64"),
+      Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64") as Uint8Array<ArrayBuffer>,
       iv
     );
-    return JSON.parse(decipher.update(input.subarray(16)).toString() + decipher.final().toString());
+    return JSON.parse(decipher.update(input.subarray(16) as Uint8Array<ArrayBuffer>).toString() + decipher.final().toString());
   }
 
   /**
@@ -621,17 +621,17 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
 CryptoService.registerEncrypter("local", {
   encrypt: async (data: string) => {
     // Initialization Vector
-    let iv = randomBytes(16);
-    const key = createHash("sha256").update(Core.getMachineId()).digest();
+    let iv = randomBytes(16) as Uint8Array<ArrayBuffer>;
+    const key = createHash("sha256").update(Core.getMachineId()).digest() as Uint8Array<ArrayBuffer>;
     let cipher = createCipheriv("aes-256-ctr", key, iv);
-    return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
+    return Buffer.concat([iv, cipher.update(Buffer.from(data) as Uint8Array<ArrayBuffer>) as Uint8Array<ArrayBuffer>, cipher.final() as Uint8Array<ArrayBuffer>]).toString("base64");
   },
   decrypt: async (data: string) => {
     let input = Buffer.from(data, "base64");
-    let iv = input.subarray(0, 16);
-    const key = createHash("sha256").update(Core.getMachineId()).digest();
+    let iv = input.subarray(0, 16) as Uint8Array<ArrayBuffer>;
+    const key = createHash("sha256").update(Core.getMachineId()).digest() as Uint8Array<ArrayBuffer>;
     let decipher = createDecipheriv("aes-256-ctr", key, iv);
-    return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
+    return decipher.update(input.subarray(16) as Uint8Array<ArrayBuffer>).toString() + decipher.final().toString();
   }
 });
 

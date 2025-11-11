@@ -12,46 +12,6 @@
     "reflections": {}
   },
   "schemas": {
-    "Webda/BinaryFile": {
-      "type": "object",
-      "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
-        "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
-        },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
-        },
-        "metadata": {
-          "description": "Metadatas stored along with the binary"
-        },
-        "originalname": {
-          "type": "string",
-          "description": "Original name"
-        }
-      },
-      "required": [
-        "mimetype",
-        "name",
-        "size"
-      ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
-    },
     "Webda/GoogleAuthentication": {
       "type": "object",
       "properties": {
@@ -97,6 +57,10 @@
           "type": "string",
           "description": "Name of the authentication service to use if exist",
           "default": "Authentication"
+        },
+        "defaultHeaders": {
+          "$ref": "#/definitions/Record%3Cstring%2Cstring%3E",
+          "description": "Default headers to include in the OAuth requests"
         },
         "client_id": {
           "type": "string",
@@ -153,12 +117,21 @@
         "authenticationService",
         "client_id",
         "client_secret",
+        "defaultHeaders",
         "no_referer",
         "redirects",
         "type"
       ],
       "description": "Credentials to manage Google Auth https://developers.google.com/identity/protocols/oauth2",
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Record<string,string>": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
       "title": "GoogleAuthentication"
     }
   }

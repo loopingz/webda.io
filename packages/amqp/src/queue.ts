@@ -12,8 +12,8 @@ export class AMQPQueueParameters extends QueueParameters {
  * @WebdaModda
  */
 export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueueParameters> extends Queue<T, K> {
-  channel: any;
-  conn: any;
+  channel: amqplib.Channel;
+  conn: amqplib.ChannelModel;
   /**
    * @override
    */
@@ -49,7 +49,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
     }
     return [
       {
-        ReceiptHandle: msg,
+        ReceiptHandle: msg as any,
         Message: this.unserialize(msg.content.toString(), proto)
       }
     ];
@@ -59,7 +59,7 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
    * @override
    */
   async deleteMessage(id: string): Promise<void> {
-    await this.channel.ack(id);
+    await this.channel.ack(id as any);
   }
 
   /**

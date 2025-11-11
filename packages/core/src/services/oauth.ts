@@ -93,7 +93,7 @@ export class OAuthServiceParameters extends ServiceParameters {
       "X-Content-Type-Options": "nosniff",
       "X-Robots-Tag": "noindex, nofollow, noarchive",
       "X-XSS-Protection": "1; mode=block",
-      "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none';",
+      "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none';"
     };
   }
 }

@@ -1,5 +1,5 @@
 import { Bean, Route, Service, ServiceParameters } from "@webda/core";
-
+import { Window } from "./module";
 /**
  * @WebdaModda
  */
@@ -44,7 +44,12 @@ class GoodBeanParameters extends ServiceParameters {
  * To verify that error are thrown when we cannot create schema
  */
 @Bean
-export class GoodBean extends Service<GoodBeanParameters> {}
+export class GoodBean extends Service<GoodBeanParameters> {
+  test() {
+    let w: Window = {};
+    w.location = { href: "http://example.com" };
+  }
+}
 
 export { LaterExportService };
 

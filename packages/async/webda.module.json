@@ -27,7 +27,7 @@
     "reflections": {
       "Webda/AsyncAction": {
         "uuid": "string",
-        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
+        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\" | \"CANCELLED\"",
         "scheduled": "number",
         "errorMessage": "string",
         "job": "Job",
@@ -51,7 +51,7 @@
       },
       "Webda/AsyncOperationAction": {
         "uuid": "string",
-        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
+        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\" | \"CANCELLED\"",
         "scheduled": "number",
         "errorMessage": "string",
         "job": "Job",
@@ -76,7 +76,7 @@
       "Webda/AsyncWebdaAction": {
         "logLevel": "WorkerLogLevel",
         "uuid": "string",
-        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\"",
+        "status": "\"RUNNING\" | \"SUCCESS\" | \"ERROR\" | \"QUEUED\" | \"STARTING\" | \"TIMEOUT\" | \"SCHEDULED\" | \"CANCELLED\"",
         "scheduled": "number",
         "errorMessage": "string",
         "job": "Job",
@@ -129,7 +129,8 @@
             "QUEUED",
             "STARTING",
             "TIMEOUT",
-            "SCHEDULED"
+            "SCHEDULED",
+            "CANCELLED"
           ],
           "description": "Current status"
         },
@@ -324,7 +325,8 @@
             "QUEUED",
             "STARTING",
             "TIMEOUT",
-            "SCHEDULED"
+            "SCHEDULED",
+            "CANCELLED"
           ],
           "description": "Current status"
         },
@@ -531,7 +533,8 @@
             "QUEUED",
             "STARTING",
             "TIMEOUT",
-            "SCHEDULED"
+            "SCHEDULED",
+            "CANCELLED"
           ],
           "description": "Current status"
         },
@@ -614,46 +617,6 @@
         }
       },
       "title": "AsyncWebdaAction"
-    },
-    "Webda/BinaryFile": {
-      "type": "object",
-      "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
-        "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
-        },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
-        },
-        "metadata": {
-          "description": "Metadatas stored along with the binary"
-        },
-        "originalname": {
-          "type": "string",
-          "description": "Original name"
-        }
-      },
-      "required": [
-        "mimetype",
-        "name",
-        "size"
-      ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
     },
     "Webda/LocalRunner": {
       "type": "object",

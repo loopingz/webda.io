@@ -19,7 +19,7 @@ const encrypter = {
         (
           await client.encrypt({
             name: key,
-            plaintext: Buffer.from(data)
+            plaintext: Buffer.from(data) as Uint8Array<ArrayBuffer>
           })
         )[0].ciphertext
       ).toString("base64")
@@ -36,7 +36,7 @@ const encrypter = {
     return <string>(
       await client.decrypt({
         name: `projects/${infos[0]}/locations/${infos[1]}/keyRings/${infos[2]}/cryptoKeys/${infos[3]}`,
-        ciphertext: Buffer.from(data.substring(data.indexOf(":") + 1), "base64")
+        ciphertext: Buffer.from(data.substring(data.indexOf(":") + 1), "base64") as Uint8Array<ArrayBuffer>
       })
     )[0].plaintext;
   }

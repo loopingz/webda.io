@@ -10,18 +10,14 @@
         "links": [
           {
             "attribute": "_user",
-            "model": "Webda/User",
+            "model": "unknown",
             "type": "LINK"
           }
         ]
       }
     },
     "tree": {
-      "Webda/UuidModel": {
-        "Webda/OwnerModel": {
-          "Webda/ApiKey": {}
-        }
-      }
+      "Webda/ApiKey": {}
     },
     "plurals": {},
     "list": {
@@ -147,46 +143,6 @@
       "description": "Api Key to use with hawk",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ApiKey"
-    },
-    "Webda/BinaryFile": {
-      "type": "object",
-      "properties": {
-        "hash": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content"
-        },
-        "challenge": {
-          "type": "string",
-          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'"
-        },
-        "size": {
-          "type": "number",
-          "description": "Size of the binary"
-        },
-        "name": {
-          "type": "string",
-          "description": "Current name"
-        },
-        "mimetype": {
-          "type": "string",
-          "description": "Mimetype of the binary"
-        },
-        "metadata": {
-          "description": "Metadatas stored along with the binary"
-        },
-        "originalname": {
-          "type": "string",
-          "description": "Original name"
-        }
-      },
-      "required": [
-        "mimetype",
-        "name",
-        "size"
-      ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BinaryFile"
     },
     "Webda/Hawk": {
       "type": "object",

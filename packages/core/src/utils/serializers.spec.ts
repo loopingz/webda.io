@@ -132,7 +132,7 @@ class UtilsTest {
       // Gzip
       file = path.join(TEST_FOLDER, "writeTest.json.gz");
       FileUtils.save({ test: "plop" }, file);
-      const buf = readFileSync(file);
+      const buf = readFileSync(file) as Uint8Array<ArrayBuffer>;
       assert.strictEqual(buf[0], 0x1f);
       assert.strictEqual(buf[1], 0x8b);
       assert.deepStrictEqual(JSON.parse(gunzipSync(buf).toString()), { test: "plop" });

@@ -1,0 +1,41 @@
+{
+  "name": "@webda/schema",
+  "version": "0.5.0",
+  "description": "TypeScript language-service powered JSON Schema generator",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "webda-schema-generator": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "generate": "node dist/cli.js",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "test": "vitest run",
+    "verify": "vitest run",
+    "test:watch": "vitest",
+    "presnapshots": "pnpm build",
+    "snapshots": "tsx test/update-snapshots.ts",
+    "test:fixture": "FIXTURE=$FIXTURE vitest run test/schema.test.ts"
+  },
+  "keywords": [
+    "typescript",
+    "json-schema",
+    "language-service"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "jsondiffpatch": "^0.7.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.7"
+  },
+  "dependencies": {
+    "@types/json-schema": "^7.0.15"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$ref": "#/definitions/Test",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Test": {
+      "additionalProperties": false,
+      "properties": {
+        "fakeSize": {
+          "type": "string",
+          "const": "id"
+        },
+        "primaryKey": {
+          "type": "array",
+          "const": ["id"]
+        }
+      },
+      "type": "object"
+    }
+  }
+}

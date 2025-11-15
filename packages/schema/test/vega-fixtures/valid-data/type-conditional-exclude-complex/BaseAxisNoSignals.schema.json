@@ -1,0 +1,21 @@
+{
+  "$ref": "#/definitions/BaseAxisNoSignals",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "BaseAxisNoSignals": {
+      "$ref": "#/definitions/OmitValueRef%3CBaseAxis%3CNumberValue%2C%20StringValue%3E%3E"
+    },
+    "OmitValueRef<BaseAxis<NumberValue, StringValue>>": {
+      "additionalProperties": false,
+      "properties": {
+        "minExtent": {
+          "type": "number"
+        },
+        "titleFont": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

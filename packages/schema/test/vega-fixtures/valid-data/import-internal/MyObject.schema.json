@@ -1,0 +1,61 @@
+{
+  "$ref": "#/definitions/MyObject",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ExposedSubType": {
+      "additionalProperties": false,
+      "properties": {
+        "internalAlias": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "internalAlias"
+      ],
+      "type": "object"
+    },
+    "InternalSubType": {
+      "additionalProperties": false,
+      "internal": true,
+      "properties": {
+        "exposedSubType": {
+          "$ref": "#/definitions/ExposedSubType"
+        },
+        "internalAlias": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "exposedSubType",
+        "text"
+      ],
+      "type": "object"
+    },
+    "MyObject": {
+      "additionalProperties": false,
+      "properties": {
+        "exposedSubType": {
+          "$ref": "#/definitions/ExposedSubType"
+        },
+        "internalAlias": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "internalSubType": {
+          "$ref": "#/definitions/InternalSubType"
+        }
+      },
+      "required": [
+        "exposedSubType",
+        "internalAlias",
+        "internalSubType"
+      ],
+      "type": "object"
+    }
+  }
+}

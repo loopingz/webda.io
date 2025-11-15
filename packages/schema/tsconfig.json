@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node", "vitest"]
+  },
+  "include": [
+    "src",
+    "test/fixtures/**/*.ts",
+    "test/vega-fixtures/valid-data/**/*.ts"
+  ],
+  "exclude": ["dist"]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { SchemaGenerator } from './generator';
+import { SchemaGenerator } from './generator.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

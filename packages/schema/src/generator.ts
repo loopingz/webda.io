@@ -1,9 +1,7 @@
 import ts from "typescript";
 import path, { join } from "path";
 import type { JSONSchema7, JSONSchema7TypeName } from "json-schema";
-import { readdirSync, readFileSync, writeFileSync } from "fs";
-import * as jsondiffpatch from "jsondiffpatch";
-import * as consoleFormatter from 'jsondiffpatch/formatters/console';
+
 
 export interface GenerateSchemaOptions {
     project?: string; // path to tsconfig directory or tsconfig file
@@ -11,6 +9,7 @@ export interface GenerateSchemaOptions {
     maxDepth?: number; // maximum recursion depth
     asRef?: boolean; // generate schema with $ref instead of inline definitions
     log?: (...args: any[]) => void; // logging function
+    program?: ts.Program; // existing TS Program to use
 }
 
 const Annotations = {
@@ -75,10 +74,9 @@ const Annotations = {
 }
 
 export class SchemaGenerator {
-    ls: ts.LanguageService;
     program: ts.Program;
     checker: ts.TypeChecker;
-    targetNode!: ts.InterfaceDeclaration | ts.ClassDeclaration | ts.TypeAliasDeclaration;
+    targetNode!: ts.Node | undefined;
     targetSymbol!: ts.Symbol | undefined;
     targetType!: ts.Type;
     currentOptions: Required<Pick<GenerateSchemaOptions, 'maxDepth' | 'asRef' | 'log'>> = {
@@ -89,10 +87,16 @@ export class SchemaGenerator {
     currentDefinitions: { [key: string]: JSONSchema7 } = {};
 
     constructor(private readonly options: GenerateSchemaOptions = {}) {
+        if (options.program && options.project) {
+            throw new Error('Cannot specify both program and project in SchemaGenerator options');
+        }
         options.maxDepth ??= 10;
-        options.project ??= process.cwd();
-        this.ls = this.createLanguageService(this.options.project!);
-        this.program = this.ls.getProgram()!;
+        options.project ??= options.program ? options.program.getCurrentDirectory() :process.cwd();
+        if (options.project) {
+            this.program = this.createLanguageService(this.options.project!).getProgram()!;
+        } else {
+            this.program = options.program!;
+        }
         if (!this.program) throw new Error('Failed to create TypeScript Program');
         this.checker = this.program.getTypeChecker();
     }
@@ -258,7 +262,7 @@ export class SchemaGenerator {
 
             // Process property
             const propType = this.checker.getTypeOfSymbolAtLocation(prop, this.targetNode!);
-            const propSchema: JSONSchema7 = {};
+            const propSchema: JSONSchema7 & Record<string, any>  = {};
             const propPath = join(path, prop.name);
             const propResult = this.schemaProperty(propType, propSchema, propPath);
             definition.properties ??= {};
@@ -675,6 +679,38 @@ export class SchemaGenerator {
         return "AnonymousFunction";
     }
 
+    createSchemaFromNodes(nodes: ts.Node[]): JSONSchema7 {
+        const result: JSONSchema7 = {
+            $schema: "http://json-schema.org/draft-07/schema#",
+        };
+        // Implementation to create schema from nodes
+        nodes.forEach(node => {
+            this.targetNode = node as ts.InterfaceDeclaration | ts.ClassDeclaration | ts.TypeAliasDeclaration;
+            let typeName = this.targetNode!.name!.getText();
+            this.targetSymbol = this.checker.getSymbolAtLocation(this.targetNode!.name!);
+            this.targetType = this.checker.getDeclaredTypeOfSymbol(this.targetSymbol!);
+
+            const defSchema: JSONSchema7 = {};
+            const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode);
+            if (res.rename) {
+                typeName = res.rename;
+            }
+            result.$ref ??= `#/definitions/${this.getDefinitionKey(typeName)}`;
+            result.definitions = {
+                ...this.currentDefinitions
+            };
+            result.definitions[typeName] ??= defSchema;
+        });
+        if (!this.currentOptions.asRef && result.$ref) {
+            // Inline definitions
+            Object.assign(result, result.definitions![decodeURI(result.$ref.replace('#/definitions/', ''))]);
+            delete result.definitions[result.$ref];
+            delete result.$ref;
+        }
+        // Sort keys alphabetically recursively
+        return this.sortKeys(result);
+    }
+
     getSchemaForType(typeName: string, file?: string, options: Partial<SchemaGenerator["currentOptions"]> = {}): JSONSchema7 {
         this.currentOptions = { maxDepth: options.maxDepth ?? this.options.maxDepth ?? 10, asRef: options.asRef ?? this.options.asRef ?? false, log: options.log ?? this.options.log ?? console.log };
         this.currentDefinitions = {};
@@ -682,30 +718,7 @@ export class SchemaGenerator {
         if (!this.targetNode) {
             throw new Error(`Type "${typeName}" not found${file ? ` in file "${file}"` : ''}`);
         }
-
-        this.targetSymbol = this.checker.getSymbolAtLocation(this.targetNode!.name!);
-        this.targetType = this.checker.getDeclaredTypeOfSymbol(this.targetSymbol!);
-
-        const result: JSONSchema7 = {
-            $schema: "http://json-schema.org/draft-07/schema#",
-        };
-
-        if (this.currentOptions.asRef) {
-            const defSchema: JSONSchema7 = {};
-            const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode);
-            if (res.rename) {
-                typeName = res.rename;
-            }
-            result.$ref = `#/definitions/${this.getDefinitionKey(typeName)}`;
-            result.definitions = {
-                ...this.currentDefinitions
-            };
-            result.definitions[typeName] ??= defSchema;
-        } else {
-            this.schemaProperty(this.targetType, result, "/", this.targetNode);
-        }
-        // Sort keys alphabetically recursively
-        return this.sortKeys(result);
+        return this.createSchemaFromNodes([this.targetNode]);
     }
 
     /**
@@ -781,95 +794,3 @@ export class SchemaGenerator {
         return { comment, tags };
     }
 }
-
-function stableSort(value: any): any {
-    if (Array.isArray(value)) return value.sort().map(stableSort);
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const keys = Object.keys(value).sort();
-        const out: Record<string, any> = {};
-        keys.forEach(key => {
-            out[key] = stableSort(value[key]);
-        });
-        return out;
-    }
-    return value;
-}
-
-const generator = new SchemaGenerator({ asRef: true });
-const testPath = "test/vega-fixtures/valid-data";
-const colors = {
-    reset: '\x1b[0m',
-    green: '\x1b[32m',
-    red: '\x1b[31m',
-    grey: '\x1b[90m'
-};
-let valid = 0;
-let total = 0;
-let invalid = 0;
-const working = "string-literals-null"; // set to a specific test folder to focus on it
-let regression = false;
-let foundWorking = false;
-const updateWorking = false;
-const passed: string[] = [];
-const filter = readFileSync('./working.txt', 'utf8').split('\n').filter(Boolean);
-let tests = readdirSync(testPath).sort();
-if (!updateWorking) {
-    tests = tests.filter(f => filter.includes(f));
-}
-if (working && !tests.includes(working)) {
-    tests.push(working); // always include working test
-}
-tests.forEach(d => {
-    let source;
-    const schemas: string[] = [];
-    readdirSync(join(testPath, d)).sort().forEach(f => {
-        if (f.endsWith('main.ts')) {
-            source = join(testPath, d, f);
-        } else if (f.endsWith('.schema.json')) {
-            schemas.push(join(testPath, d, f));
-        }
-    });
-    if (source) {
-        // Keep Processing folder line in default color (white/uncolored)
-        console.log(`Processing folder: ${d}`);
-        for (const schemaFile of schemas) {
-            total++;
-            if (d === working) {
-                foundWorking = true;
-            }
-            const typeName = path.basename(schemaFile).replace(/\.schema\.json$/, '');
-            try {
-                const schema = stableSort(generator.getSchemaForType(typeName, source, { asRef: true, log: d === working ? console.log : () => { } }));
-                console.log(`${colors.grey}Schema for ${typeName} in ${d}:${colors.reset}`);
-                const assertSchema = stableSort(JSON.parse(readFileSync(schemaFile, 'utf8')));
-                const patch = jsondiffpatch.diff(assertSchema, schema)
-                if (!patch) {
-                    console.log(`  ${colors.green}✔${colors.reset} ${colors.grey}${typeName} matches fixture${colors.reset}`);
-                    passed.push(d);
-                    valid++;
-                } else {
-                    if (!foundWorking) {
-                        console.log(`First failing test encountered, skipping further tests until fixed.`);
-                        regression = true;
-                        //return;
-                    }
-                    console.log(`  ${colors.red}✘${colors.reset} ${colors.grey}${typeName} does not match fixture${colors.reset}`);
-                    console.log(`Generated schema:\n${JSON.stringify(schema, null, 2)}\n`);
-                    consoleFormatter.log(patch);
-                    invalid++;
-                }
-            } catch (e) {
-                console.log(`  ${colors.red}✘${colors.reset} ${colors.grey}Error generating schema for ${typeName}: ${(e as Error).message}${colors.reset}`);
-                invalid++;
-            }
-        }
-    }
-});
-if (updateWorking) {
-    writeFileSync('./working.txt', passed.join('\n'), 'utf8');
-}
-console.log(`\n${colors.grey}Validation complete: ${valid} valid, ${invalid} invalid, out of ${total} total.${colors.reset}`);
-// const file = "test/vega-fixtures/valid-data/string-literals/main.ts";
-// const clazz = "MyObject";
-// const schema = generator.getSchemaForType(clazz, file);
-// console.log(JSON.stringify(schema, null, 2));

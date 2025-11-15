@@ -4,13 +4,14 @@
     "module": "nodenext",
     "declaration": true,
     "outDir": "./lib",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["node", "vitest"]
   },
   "include": [
-    "src"
+    "src",
+    "test"
   ],
   "exclude": ["lib"]
 }

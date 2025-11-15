@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SchemaGenerator } from "../src/Generator";
+import { SchemaGenerator } from "../src/generator";
 
 function stableSort(value: any): any {
   if (Array.isArray(value)) return value.sort().map(stableSort);
@@ -13,7 +13,7 @@ function stableSort(value: any): any {
   }
   return value;
 }
-const generator = new SchemaGenerator({log: () => {}}); // Initialize once
+const generator = new SchemaGenerator({log: () => {}, project: "./tsconfig.test.json"}); // Initialize once
 
 describe('schema generation', () => {
   

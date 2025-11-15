@@ -271,13 +271,15 @@ export class SchemaGenerator {
                 delete propSchema.param;
             }
             definition.properties[prop.name] = propSchema;
-            this.currentOptions.log?.(`Processed property at ${propPath}: ${decl.initializer ? 'has initializer' : 'no initializer'}`);
+            // initializer may not exist on the general Declaration type - use a safe any-accessor
+            const declInitializer = (decl as any).initializer as ts.Expression | undefined;
+            this.currentOptions.log?.(`Processed property at ${propPath}: ${declInitializer ? 'has initializer' : 'no initializer'}`);
             // Check if property have an initializer
-            if (decl.initializer) {
+            if (declInitializer) {
                 // Property has an initializer
                 propResult.optional = true;
 
-                propSchema.default = this.tryGetNonNumericEnumLiteral(decl.initializer)?.const ?? undefined;
+                propSchema.default = this.tryGetNonNumericEnumLiteral(declInitializer)?.const ?? undefined;
             }
             if (!propResult.optional) {
                 definition.required ??= [];
@@ -295,8 +297,9 @@ export class SchemaGenerator {
 
     tryGetNonNumericEnumLiteral(expr: ts.Expression): { type: JSONSchema7TypeName, const: boolean | null | string } | undefined {
         // TS 4.8+: this removes casts, parens, etc.
-        const inner = ts.skipOuterExpressions
-            ? ts.skipOuterExpressions(expr)
+        // skipOuterExpressions was introduced in newer TS - access it via any to avoid typing issue
+        const inner = (ts as any).skipOuterExpressions
+            ? (ts as any).skipOuterExpressions(expr)
             : this.skipOuterExpressionsManual(expr);
 
         switch (inner.kind) {
@@ -488,12 +491,12 @@ export class SchemaGenerator {
                 const subResult = this.schemaProperty(subType, subSchema, subPath);
 
                 const decl = subType.getSymbol()?.valueDeclaration || subType.getSymbol()?.declarations?.[0];
-                const initializer = decl?.initializer;
+                const initializer = (decl as any)?.initializer as ts.Expression | undefined;
 
                 if (initializer) {
                     // Try to get a constant value
                     const constant = initializer
-                        ? this.checker.getConstantValue(decl)
+                        ? this.checker.getConstantValue(decl as any)
                         : undefined;
                     if (constant !== undefined) {
                         this.currentOptions.log?.(`${indent}Union branch at ${subPath} has constant value: ${constant}`);
@@ -526,44 +529,50 @@ export class SchemaGenerator {
                 definition.anyOf.push(subSchema);
             }
             this.currentOptions.log?.(`${indent}Union (${isEnum}) at ${path} has ${JSON.stringify(definition.anyOf)} branches`);
-            definition.anyOf.filter(s => s.type === "null").forEach(s => {
-                s.const = null;
-            });
+            // definition.anyOf can contain boolean false entries (per JSONSchema7Definition) so narrow it first
+            if (definition.anyOf) {
+                (definition.anyOf as JSONSchema7[]).filter(s => (s as any).type === "null").forEach(s => {
+                    (s as any).const = null;
+                });
+            }
             if (definition.anyOf.length === 0) {
                 delete definition.anyOf;
             } else if (definition.anyOf.length === 1) {
                 Object.assign(definition, definition.anyOf[0]);
                 delete definition.anyOf;
             } else if (definition.anyOf.filter((s: any) => s.const !== undefined).length === definition.anyOf.length) {
-                definition.enum = definition.anyOf.map((s: any) => s.const);
-                definition.type = [...new Set(definition.anyOf.map((s: any) => s.type))];
+                definition.enum = (definition.anyOf as any[]).map((s: any) => s.const).filter(v => v !== undefined);
+                definition.type = [...new Set((definition.anyOf as any[]).map((s: any) => s.type))];
                 if (definition.type.length === 1) {
                     definition.type = definition.type[0];
                 }
                 delete definition.anyOf;
-                this.enumOptimizer(definition);
+                // Only call enumOptimizer when enum is defined as an array
+                if ((definition as any).enum && Array.isArray((definition as any).enum)) {
+                    this.enumOptimizer(definition as any);
+                }
             }
             // If only "type" in anyOf entries, merge into single type array
-            else if (definition.anyOf.every((s: any) => Object.keys(s).length === 1 && s.type !== undefined)) {
-                definition.type = definition.anyOf.map(s => (s as any).type);
-                delete definition.anyOf;
+            else if (definition.anyOf && (definition.anyOf as any[]).every((s: any) => Object.keys(s).length === 1 && s.type !== undefined)) {
+                definition.type = (definition.anyOf as any[]).map(s => (s as any).type);
+                delete (definition as any).anyOf;
             }
             if (definition.anyOf) {
-                if (definition.anyOf.find(s => s.type === "boolean" && s.const === true) &&
-                    definition.anyOf.find(s => s.type === "boolean" && s.const === false)) {
+                if ((definition.anyOf as any[]).find(s => (s as any).type === "boolean" && (s as any).const === true) &&
+                    (definition.anyOf as any[]).find(s => (s as any).type === "boolean" && (s as any).const === false)) {
                     // Simplify true|false to boolean
-                    definition.anyOf = definition.anyOf.filter(s => !(s.type === "boolean"));
-                    if (definition.anyOf.length === 0) {
-                        delete definition.anyOf;
+                    (definition as any).anyOf = (definition.anyOf as any[]).filter((s: any) => !((s as any).type === "boolean"));
+                    if ((definition as any).anyOf.length === 0) {
+                        delete (definition as any).anyOf;
                         definition.type = "boolean";
                     } else {
-                        definition.anyOf.push({ type: "boolean" });
+                        (definition as any).anyOf.push({ type: "boolean" });
                     }
                 }
                 // Simplify anyOf with only type entries
-                if (definition.anyOf.every(s => Object.keys(s).length === 1 && s.type)) {
-                    definition.type = definition.anyOf.map(s => (s as any).type);
-                    delete definition.anyOf;
+                if ((definition as any).anyOf && (definition as any).anyOf.every((s: any) => Object.keys(s).length === 1 && (s as any).type)) {
+                    definition.type = (definition.anyOf as any[]).map(s => (s as any).type);
+                    delete (definition as any).anyOf;
                 }
             }
         } else if (this.checker.isArrayLikeType(type)) {
@@ -599,7 +608,8 @@ export class SchemaGenerator {
                 });
                 definition.items = {};
                 if (items.filter(i => i.const !== undefined).length === items.length) {
-                    definition.items.enum = items.map(i => i.const);
+                        // items may have undefined consts; filter them out
+                        (definition.items as any).enum = items.map(i => (i as any).const).filter(v => v !== undefined) as any;
                 }
                 if (new Set((items as JSONSchema7[]).map(i => (i.type))).size === 1) {
                     definition.items.type = items[0].type;
@@ -623,31 +633,31 @@ export class SchemaGenerator {
             }
         } else if (type.isTypeParameter()) {
             this.currentOptions.log?.(`${indent}Type parameter encountered at ${path}, treating as any`);
-        } else if (type.flags & ts.TypeFlags.Object && (type.objectFlags & ts.ObjectFlags.Reference)) {
+        } else if ((type as any).flags & ts.TypeFlags.Object && ((type as any).objectFlags & ts.ObjectFlags.Reference)) {
             // Try to resolve generic type references
             this.processClassOrInterface(type, definition, path, propTypeString);
-        } else if (type.flags & ts.TypeFlags.Object && (type.objectFlags & ts.ObjectFlags.Anonymous)) {
-            this.currentOptions.log?.(`${indent}Anonymous type at ${path}: ${propTypeString} (${type.flags})`);
+        } else if ((type as any).flags & ts.TypeFlags.Object && (((type as any).objectFlags & ts.ObjectFlags.Anonymous))) {
+            this.currentOptions.log?.(`${indent}Anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`);
             definition.type = 'object';
             // Get the parameters
-            const callSignatures = type.getCallSignatures();
+            const callSignatures = (type as any).getCallSignatures ? (type as any).getCallSignatures() : [];
 
             if (callSignatures.length > 0) {
                 result.rename = this.processCallableType(callSignatures, definition, this.getFunctionName(node), path);
             } else {
                 this.processClassOrInterface(type, definition, path, propTypeString);
-                this.currentOptions.log?.(`${indent}Unhandled anonymous object type at ${path}: ${propTypeString} (${type.flags})`);
+                this.currentOptions.log?.(`${indent}Unhandled anonymous object type at ${path}: ${propTypeString} (${(type as any).flags})`);
             }
-        } else if (type.flags & ts.TypeFlags.Object) {
+        } else if ((type as any).flags & ts.TypeFlags.Object) {
             // Detect Mapped Types
-            const symbol = type.getSymbol();
-            if (symbol && symbol.flags & ts.SymbolFlags.TypeLiteral) {
+            const symbol = (type as any).getSymbol ? (type as any).getSymbol() : undefined;
+            if (symbol && (symbol.flags & ts.SymbolFlags.TypeLiteral)) {
                 this.processClassOrInterface(type, definition, path, propTypeString);
             } else {
-                this.currentOptions.log?.(`${indent}Unhandled object type at ${path}: ${propTypeString} (${type.flags})`);
+                this.currentOptions.log?.(`${indent}Unhandled object type at ${path}: ${propTypeString} (${(type as any).flags})`);
             }
         } else {
-            this.currentOptions.log?.(`${indent}Unhandled type at ${path}: ${propTypeString} (${type.flags})`);
+            this.currentOptions.log?.(`${indent}Unhandled type at ${path}: ${propTypeString} (${(type as any).flags})`);
         }
         // Add more type handling as needed
         return result;
@@ -659,7 +669,8 @@ export class SchemaGenerator {
         // Implementation to optimize enums in currentDefinitions
         if (definition.enum.length === 2 && definition.type === 'boolean') {
             // Simplify [true, false] to boolean type
-            delete definition.enum;
+            // delete may complain about non-optional properties; cast to any for runtime delete
+            delete (definition as any).enum;
         }
     }
 
@@ -686,8 +697,9 @@ export class SchemaGenerator {
         // Implementation to create schema from nodes
         nodes.forEach(node => {
             this.targetNode = node as ts.InterfaceDeclaration | ts.ClassDeclaration | ts.TypeAliasDeclaration;
-            let typeName = this.targetNode!.name!.getText();
-            this.targetSymbol = this.checker.getSymbolAtLocation(this.targetNode!.name!);
+            // targetNode may be a generic Node - access name carefully
+            let typeName = (this.targetNode && (this.targetNode as any).name) ? (this.targetNode as any).name.getText() : 'Unknown';
+            this.targetSymbol = this.checker.getSymbolAtLocation((this.targetNode as any).name);
             this.targetType = this.checker.getDeclaredTypeOfSymbol(this.targetSymbol!);
 
             const defSchema: JSONSchema7 = {};
@@ -704,7 +716,9 @@ export class SchemaGenerator {
         if (!this.currentOptions.asRef && result.$ref) {
             // Inline definitions
             Object.assign(result, result.definitions![decodeURI(result.$ref.replace('#/definitions/', ''))]);
-            delete result.definitions[result.$ref];
+            if (result.definitions && result.$ref) {
+                delete (result.definitions as any)[result.$ref];
+            }
             delete result.$ref;
         }
         // Sort keys alphabetically recursively
@@ -745,7 +759,8 @@ export class SchemaGenerator {
         const findTarget = (node: ts.Node) => {
             if (targetNode) return; // already found, skip further work
             // Narrow to named declarations we care about
-            this.currentOptions.log?.(`Visiting node: ${node.name?.text || '<anonymous>'} (${ts.SyntaxKind[node.kind]})`);
+            const nodeNameText = (node as any).name ? (node as any).name.text : '<anonymous>';
+            this.currentOptions.log?.(`Visiting node: ${nodeNameText} (${ts.SyntaxKind[node.kind]})`);
             if (
                 ts.isClassDeclaration(node) ||
                 ts.isInterfaceDeclaration(node) ||

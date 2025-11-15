@@ -1,5 +1,6 @@
 export class MyObject {
-    public required: string;
+    public required!: string;
     public optional?: number;
-    [name: string]: string|number;
+    // Allow undefined values because optional properties may be undefined
+    [name: string]: string|number|undefined;
 }

@@ -2,16 +2,16 @@
   "name": "@webda/schema",
   "version": "0.5.0",
   "description": "TypeScript language-service powered JSON Schema generator",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "type": "module",
   "bin": {
-    "webda-schema-generator": "dist/cli.js"
+    "webda-schema-generator": "lib/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
-    "generate": "node dist/cli.js",
+    "generate": "node lib/cli.js",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "vitest run",

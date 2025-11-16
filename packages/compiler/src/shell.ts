@@ -109,7 +109,7 @@ Fork(
     }
   },
   () => {
-    new InteractiveConsoleLogger(useWorkerOutput(), "WARN");
+    //new InteractiveConsoleLogger(useWorkerOutput(), "WARN");
   }
 ).catch(err => {
   process.exit(1);

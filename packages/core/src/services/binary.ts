@@ -676,7 +676,7 @@ export abstract class BinaryService<
     const readStream: any = await this._get(info);
     const writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
-      writeStream.on("finish", _src => {
+      writeStream.on("finish", () => {
         return resolve();
       });
       writeStream.on("error", src => {

@@ -584,7 +584,7 @@ export class WorkerOutput extends EventEmitter {
     if (event.input) {
       this.inputs[event.input.uuid] = event.input;
     }
-    this.emit("message", event);
+    this.emitMessage(event.type, event);
   }
 
   /**

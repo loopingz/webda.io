@@ -890,7 +890,7 @@ class Authentication<
     };
 
     if (typeof user == "object") {
-      event.userId = user.getPrimaryKey();
+      event.userId = user.getPrimaryKey().toString();
       event.user = user;
     } else {
       event.userId = user;
@@ -1027,7 +1027,7 @@ class Authentication<
             email: email
           } as any)
       );
-      newIdent.setUser(user.getPrimaryKey());
+      newIdent.setUser(user.getPrimaryKey().toString());
       if (validation) {
         newIdent._validation = validation;
       } else if (!mailConfig.skipEmailValidation) {

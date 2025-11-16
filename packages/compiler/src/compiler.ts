@@ -40,7 +40,6 @@ export class Compiler {
     let result = true;
     // https://convincedcoder.com/2019/01/19/Processing-TypeScript-using-TypeScript/
 
-    this.project.log("INFO", "Compiling...");
     let compilationStart = Date.now();
     this.createProgramFromApp();
     const check = this.tsProgram.getTypeChecker();
@@ -71,7 +70,6 @@ export class Compiler {
     compilationStart = Date.now() - compilationStart;
     const moduleGenerationStart = Date.now();
     this.project.emit("analyzing");
-    this.project.log("INFO", "Analyzing...");
     // Generate schemas
     generateModule(this);
     useLog(
@@ -146,7 +144,6 @@ export class Compiler {
           if (diagnostic.messageText.toString().startsWith("Found 0 errors")) {
             this.compiled = true;
             compilationStart = Date.now() - compilationStart;
-            useLog("INFO", "Analyzing...");
             this.project.emit("analyzing");
             if (this.watchProgram) {
               generateLocalModule();

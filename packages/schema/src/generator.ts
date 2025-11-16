@@ -1,6 +1,7 @@
 import ts from "typescript";
 import path, { join } from "path";
 import type { JSONSchema7, JSONSchema7TypeName } from "json-schema";
+import util from "util";
 
 
 export interface GenerateSchemaOptions {
@@ -265,6 +266,11 @@ export class SchemaGenerator {
             const propSchema: JSONSchema7 & Record<string, any>  = {};
             const propPath = join(path, prop.name);
             const propResult = this.schemaProperty(propType, propSchema, propPath);
+            // For some reason the getTypeOfSymbolAtLocation doesn't always reflect the optionality from declaration
+            if ((decl as ts.PropertyDeclaration | ts.PropertySignature).questionToken !== undefined ||
+                ((prop.valueDeclaration as ts.TypeAliasDeclaration)?.type?.kind === ts.SyntaxKind.UnionType && ((prop.valueDeclaration as ts.TypeAliasDeclaration).type as ts.UnionTypeNode).types.some((t: ts.TypeNode) => t.kind === ts.SyntaxKind.UndefinedKeyword ))) {
+                propResult.optional = true;
+            }
             definition.properties ??= {};
             this.processJsDoc(propSchema, prop);
             if (propSchema.hasOwnProperty('param')) {
@@ -273,6 +279,7 @@ export class SchemaGenerator {
             definition.properties[prop.name] = propSchema;
             // initializer may not exist on the general Declaration type - use a safe any-accessor
             const declInitializer = (decl as any).initializer as ts.Expression | undefined;
+            // @ts-ignore
             this.currentOptions.log?.(`Processed property at ${propPath}: ${declInitializer ? 'has initializer' : 'no initializer'}`);
             // Check if property have an initializer
             if (declInitializer) {
@@ -404,6 +411,7 @@ export class SchemaGenerator {
             definition.const = (type as ts.StringLiteralType).value;
         } else if (f & ts.TypeFlags.String) {
             definition.type = 'string';
+            this.currentOptions.log?.(`${indent}Type is string at ${path} ${type.isUnion()}`);
         } else if (f & ts.TypeFlags.NumberLiteral) {
             definition.type = 'number';
             definition.const = (type as ts.NumberLiteralType).value;
@@ -575,6 +583,7 @@ export class SchemaGenerator {
                     delete (definition as any).anyOf;
                 }
             }
+            return result;
         } else if (this.checker.isArrayLikeType(type)) {
             definition.type = 'array';
             // Check if readonly array

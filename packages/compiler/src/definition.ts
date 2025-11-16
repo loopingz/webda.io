@@ -535,7 +535,6 @@ export class WebdaProject {
   }
 
   log(level: WorkerLogLevel, ...args: any[]) {
-    console.log(level, ...args);
     this.output.log(level, ...args);
   }
 

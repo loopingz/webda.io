@@ -155,6 +155,7 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
     } else if (msg.type === "log" && LogFilter(msg.log.level, this.level())) {
       this.spinner?.clear();
       ConsoleLogger.display(msg, this.format);
+      this.spinner?.render();
     }
   }
 

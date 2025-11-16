@@ -50,7 +50,7 @@ export class SimpleUser extends User {
    * @returns
    */
   getIdents() {
-    return this._idents;
+    return this._idents as any;
   }
 
   /**

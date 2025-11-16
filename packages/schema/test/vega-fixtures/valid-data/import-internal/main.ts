@@ -1,4 +1,4 @@
-import { ExposedSubType, InternalAlias, InternalSubType } from "./module";
+import { ExposedSubType, InternalAlias, InternalSubType } from "./module.js";
 
 export interface MyObject {
     internalSubType: InternalSubType;

@@ -104,10 +104,10 @@ class ConsoleLogger extends WorkerLogger {
       l: msg.log.level.padStart(5),
       t: msg.timestamp,
       d: () => new Date(msg.timestamp).toISOString(),
-      ll: msg.context?.line,
-      ff: msg.context?.function,
-      f: msg.context?.file,
-      c: msg.context?.column,
+      ll: msg.context?.line ?? 0,
+      ff: msg.context?.function ?? "",
+      f: msg.context?.file ?? "",
+      c: msg.context?.column ?? 0,
     };
     try {
       return sprintf(format, info);
@@ -115,7 +115,7 @@ class ConsoleLogger extends WorkerLogger {
       if (err instanceof SyntaxError) {
         return "bad log format: " + format;
       }
-      return "";
+      return `Error: ${(err as Error).message} while formatting log with format: ` + format;
     }
   }
 }

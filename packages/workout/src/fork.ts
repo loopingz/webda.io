@@ -74,15 +74,3 @@ export async function Fork(
     });
   }
 }
-
-export class Forker {
-  constructor() {
-    process.on("message", msg => {
-      console.log("Forker: " + JSON.stringify(msg));
-    });
-  }
-
-  send(msg: WorkerMessage) {
-    process.send(msg);
-  }
-}

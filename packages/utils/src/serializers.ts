@@ -8,7 +8,7 @@ import {
   realpathSync,
   unlinkSync,
   writeFileSync
-} from "fs";
+} from "node:fs";
 import { join } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
@@ -398,9 +398,6 @@ export const JSONUtils = {
         if (replacer) {
           return replacer.bind(this, key, val)();
         }
-        if (val === null) {
-          return;
-        }
         return val;
       },
       space
@@ -426,9 +423,6 @@ export const JSONUtils = {
       }
       if (replacer) {
         return replacer.bind(this, key, val)();
-      }
-      if (val === null) {
-        return;
       }
       return val;
     };

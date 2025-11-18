@@ -10,20 +10,13 @@
     "experimentalDecorators": false,
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "types": ["node"],
+    "typeRoots": ["../../node_modules/@types"],
     "skipLibCheck": true,
     "declarationMap": true,
     "useDefineForClassFields": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "**/node_modules",
-    "src/**/*.spec.ts"
-  ],
-  "ts-node": {
-    "compilerOptions": {
-      "experimentalDecorators": false
-    }
-  }
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.spec.ts"],
+  "ts-node": { "compilerOptions": { "experimentalDecorators": false } }
 }

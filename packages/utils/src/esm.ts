@@ -1,5 +1,5 @@
-import * as path from "path";
-import * as url from "url";
+import * as path from "node:path";
+import * as url from "node:url";
 
 /**
  * Get commonjs info __filename and __dirname
@@ -12,8 +12,5 @@ import * as url from "url";
  */
 export function getCommonJS(urlInfo: string) {
   const __filename = url.fileURLToPath(urlInfo);
-  return {
-    __dirname: path.dirname(__filename),
-    __filename
-  };
+  return { __dirname: path.dirname(__filename), __filename };
 }

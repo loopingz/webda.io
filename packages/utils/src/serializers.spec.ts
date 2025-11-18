@@ -34,15 +34,9 @@ class UtilsTest {
   @test("LoadJSON File")
   fileJson() {
     const { __dirname } = getCommonJS(import.meta.url);
-    assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), {
-      test: "ok"
-    });
-    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.json").toJSON(), {
-      test: "ok"
-    });
-    assert.deepStrictEqual(FileUtils.load(TEST_FOLDER + "test.json"), {
-      test: "ok"
-    });
+    assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
+    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.json").toJSON(), { test: "ok" });
+    assert.deepStrictEqual(FileUtils.load(TEST_FOLDER + "test.json"), { test: "ok" });
     assert.throws(() => JSONUtils.loadFile("/none"), /File '\/none' does not exist/);
     assert.throws(() => JSONUtils.loadFile(__dirname + "/../vitest.config.ts"), /SyntaxError/);
     assert.throws(() => FileUtils.load(__dirname + "/../vitest.config.ts"), /Unknown format/);
@@ -64,17 +58,15 @@ class UtilsTest {
 
   @test("CircularJSON")
   circularJSON() {
-    const a: any = {
-      b: "test",
-      c: {},
-      __test: true,
-      n: null
-    };
+    const a: any = { b: "test", c: {}, __test: true, n: null };
     a.c.a = a;
-    assert.deepStrictEqual(JSONUtils.stringify(a), JSON.stringify({ b: "test", c: {}, __test: true }, undefined, 2));
+    assert.deepStrictEqual(
+      JSONUtils.stringify(a),
+      JSON.stringify({ b: "test", c: {}, __test: true, n: null }, undefined, 2)
+    );
     assert.deepStrictEqual(
       JSONUtils.safeStringify(a),
-      JSON.stringify({ b: "test", c: {}, __test: true }, undefined, 2)
+      JSON.stringify({ b: "test", c: {}, __test: true, n: null }, undefined, 2)
     );
     assert.deepStrictEqual(
       JSONUtils.stringify(
@@ -92,26 +84,11 @@ class UtilsTest {
 
   @test("DuplicateJSON")
   duplicatedJSON() {
-    const a: any = {
-      b: "test",
-      c: {
-        plop: "bouzouf"
-      },
-      __test: true
-    };
+    const a: any = { b: "test", c: { plop: "bouzouf" }, __test: true };
     a.d = a.c;
     assert.deepStrictEqual(
       JSONUtils.stringify(a),
-      JSON.stringify(
-        {
-          b: "test",
-          c: { plop: "bouzouf" },
-          __test: true,
-          d: { plop: "bouzouf" }
-        },
-        undefined,
-        2
-      )
+      JSON.stringify({ b: "test", c: { plop: "bouzouf" }, __test: true, d: { plop: "bouzouf" } }, undefined, 2)
     );
   }
 
@@ -197,7 +174,7 @@ class UtilsTest {
   audience() {
     assert.strictEqual(
       JSONUtils.stringify({ __dirname: "plop", me: null, test: "plop" }, undefined, 2, true),
-      '{\n  "test": "plop"\n}'
+      '{\n  "me": null,\n  "test": "plop"\n}'
     );
     assert.throws(
       () =>
@@ -285,10 +262,7 @@ plop: test
           .reduce((v, c) => v && c, true)
       );
       res = [];
-      FileUtils.walkSync(__dirname + "/../test", f => res.push(f), {
-        includeDir: true,
-        followSymlinks: true
-      });
+      FileUtils.walkSync(__dirname + "/../test", f => res.push(f), { includeDir: true, followSymlinks: true });
       assert.ok(res.filter(r => r.includes("PASSPORT_EMAIL_RECOVERY")).length > 0);
     } finally {
       FileUtils.clean("test/link");
@@ -405,10 +379,7 @@ plop: test
     obj.testArray.unshift(<any>1234);
     obj.testArray.push("rawType");
     obj.testArray.push(<any>["seq", 12]);
-    obj.testArray.push(<any>{
-      test: "map",
-      test2: true
-    });
+    obj.testArray.push(<any>{ test: "map", test2: true });
     obj.testMapRenamed = obj.testMap;
     obj.testMapRenamed2 = { ...obj.testMap };
     obj.testMap.plop = "unitTest";
@@ -425,36 +396,14 @@ plop: test
     assert.deepStrictEqual(t2, JSON.parse(JSON.stringify(obj)));
     assert.deepStrictEqual(t2, {
       test: "unitTest",
-      testArray: [
-        1234,
-        "plop",
-        "plop2",
-        true,
-        "rawType",
-        ["seq", 12],
-        {
-          test: "map",
-          test2: true
-        }
-      ],
-      testMap: {
-        test: "plop",
-        plop: "unitTest",
-        unitTest: "unitTest"
-      },
+      testArray: [1234, "plop", "plop2", true, "rawType", ["seq", 12], { test: "map", test2: true }],
+      testMap: { test: "plop", plop: "unitTest", unitTest: "unitTest" },
       testToAdd: "plop",
       testArray2: ["plop", "plop2"],
       testMapRenamed: autoClone
         ? { test: "plop", test2: "plop2" }
-        : {
-            test: "plop",
-            plop: "unitTest",
-            unitTest: "unitTest"
-          },
-      testMapRenamed2: {
-        test: "plop",
-        test2: "plop2"
-      }
+        : { test: "plop", plop: "unitTest", unitTest: "unitTest" },
+      testMapRenamed2: { test: "plop", test2: "plop2" }
     });
   }
 

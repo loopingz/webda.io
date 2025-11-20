@@ -7,11 +7,9 @@
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "strictNullChecks": true,
     "types": ["node", "vitest"]
   },
-  "include": [
-    "src",
-    "test"
-  ],
+  "include": ["src", "test"],
   "exclude": ["lib"]
 }

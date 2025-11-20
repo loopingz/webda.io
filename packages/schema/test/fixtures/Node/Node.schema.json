@@ -7,5 +7,35 @@
     {
       "$ref": "#/definitions/CountNode"
     }
-  ]
+  ],
+  "definitions": {
+    "CountNode": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "count",
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": ["kind", "value"],
+      "type": "object"
+    },
+    "TextNode": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "text",
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["kind", "value"],
+      "type": "object"
+    }
+  }
 }

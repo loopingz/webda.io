@@ -1,3 +1,22 @@
 {
-  "$ref": "#/definitions/Demo2"
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "attributes": {
+      "enum": ["key1", "key2"],
+      "type": "string"
+    },
+    "key1": {
+      "type": "string"
+    },
+    "key2": {
+      "type": "string"
+    },
+    "primaryKey": {
+      "const": ["key1", "key2"],
+      "type": "array"
+    }
+  },
+  "required": ["attributes", "key1", "key2"],
+  "type": "object"
 }

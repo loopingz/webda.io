@@ -6,6 +6,7 @@
       "additionalProperties": false,
       "properties": {
         "paramWithDefault": {
+          "default": "something",
           "type": "string"
         }
       },

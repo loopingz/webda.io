@@ -9,8 +9,6 @@
     "skipLibCheck": true,
     "types": ["node", "vitest"]
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "exclude": ["lib"]
 }

@@ -1,5 +1,5 @@
 class Foo {
-  static bar = "foo";
+  static bar = "foo" as const;
 }
 
 export type MyType = typeof Foo.bar;

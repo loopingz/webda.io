@@ -13,7 +13,7 @@ function stableSort(value: any): any {
   }
   return value;
 }
-const generator = new SchemaGenerator({ log: () => {}, project: "./tsconfig.test.json" }); // Initialize once
+const generator = new SchemaGenerator({ log: () => {}, project: "./tsconfig.test.json", disableBooleanDefaultToFalse: true }); // Initialize once
 
 describe("schema generation", () => {
   describe("snapshot fixtures", () => {
@@ -52,11 +52,20 @@ describe("schema generation", () => {
           )
             return;
           it(`matches fixture for ${typeName}`, () => {
+            let log = undefined;
+            if (process.env["npm_config_argv"]) {
+              try {
+                const npmArgv = JSON.parse(process.env["npm_config_argv"]);
+                if (npmArgv && npmArgv.original && npmArgv.original.includes("-t")) {
+                  log = console.log;
+                }
+              } catch {}
+            }
             const fixturePath = path.join(dirPath, schemaFile);
             expect(fs.existsSync(fixturePath)).toBe(true);
             const expected = stableSort(JSON.parse(fs.readFileSync(fixturePath, "utf8")));
             const fileRelative = path.join(relativeBase, dir, tsFile).replace(/\\/g, "/");
-            const actualRes = generator.getSchemaForType(typeName, fileRelative);
+            const actualRes = generator.getSchemaForType(typeName, fileRelative, { log });
             const actualSorted = stableSort(actualRes);
             expect(actualSorted).toEqual(expected);
           });

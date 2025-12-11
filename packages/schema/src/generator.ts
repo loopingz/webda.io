@@ -22,6 +22,10 @@ export interface GenerateSchemaOptions {
    */
   mapBuffer?: (definition: JSONSchema7, ctx: { type: ts.Type; path: string }) => void;
   /**
+   * Disable the behavior where a boolean property with no default value is set to false
+   */
+  disableBooleanDefaultToFalse?: boolean;
+  /**
    * Type of schema to generate
    * @default "input"
    */
@@ -100,11 +104,12 @@ export class SchemaGenerator {
   targetNode!: ts.Node | undefined;
   targetSymbol!: ts.Symbol | undefined;
   targetType!: ts.Type;
-  currentOptions: Required<Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "log" | "type">> = {
+  currentOptions: Required<Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "log" | "type" | "disableBooleanDefaultToFalse">> = {
     maxDepth: 10,
     asRef: false,
     log: console.log,
-    type: "input"
+    type: "input",
+    disableBooleanDefaultToFalse: false
   };
   currentDefinitions: { [key: string]: JSONSchema7 } = {};
 
@@ -269,9 +274,54 @@ export class SchemaGenerator {
    * @param path
    * @param propTypeString
    */
+  /**
+   * Converts a TypeScript class or interface type into a JSON Schema definition and registers it
+   * in the current definitions map, replacing the in-place `definition` object with a `$ref`.
+   *
+   * Behavior:
+   * - Emits an `object` schema for class/interface types.
+   * - If the type has a string index signature (`{ [key: string]: T }`), sets `additionalProperties`
+   *   to the schema for `T`; otherwise sets `additionalProperties` to `false`.
+   * - Iterates over the type's properties (each property is a `ts.Symbol`) and:
+   *   - Skips private/protected members.
+   *   - Skips method-like members and accessors depending on the current options (input/output).
+   *   - Resolves the effective property type from the symbol using the best available anchor node
+   *     (declaration or `targetNode` fallback).
+   *   - Determines optionality from symbol flags, a `?` question token on the declaration, union
+   *     types that include `undefined`, or the presence of an initializer.
+   *   - Populates `properties`, `required`, default values (for initializers), and JSDoc metadata.
+   * - Performs a compatibility cleanup for properties whose schema is exactly `(string | ArrayBuffer)`.
+   * - When no remaining properties exist after cleanup, removes `properties`, `required`,
+   *   `additionalProperties`, and `type` from the definition for a minimal schema.
+   * - Normalizes the definition key when `propTypeString` represents an inline or synthesized type,
+   *   then registers the completed definition and rewrites the original `definition` to a `$ref`.
+   *
+   * Logging:
+   * - Emits debug logs for processing stages, including index signatures, accessors, properties,
+   *   and initializer-derived defaults, when `currentOptions.log` is provided.
+   *
+   * Parameters:
+   * - type: The TypeScript type representing the class or interface to process.
+   * - definition: A mutable JSON Schema object to be populated and eventually replaced by a `$ref`.
+   * - path: The current schema path (e.g., "/MyType/prop") used for logging and definition keys.
+   * - propTypeString: A human-readable string of the processed type; may be normalized into a
+   *   definition key when the type is inline or synthesized.
+   *
+   * Notes:
+   * - Property iteration is driven by `checker.getPropertiesOfType(type)`, which returns `ts.Symbol`s.
+   *   Each property `prop` is a symbol; its declarations may be absent for mapped/renamed keys, in
+   *   which case the enclosing `targetNode` is used for type resolution.
+   * - Accessor handling:
+   *   - In output mode, get accessors are skipped; in input mode, set accessors are skipped.
+   *   - Setter parameter type is used as the property type when present; getter return type is logged.
+   * - Required properties are sorted alphabetically before finalization.
+   */
   processClassOrInterface(type: ts.Type, definition: JSONSchema7, path: string, propTypeString: string) {
     definition.type = "object";
     const stringIndexType = this.checker.getIndexTypeOfType(type, ts.IndexKind.String);
+    if (path.endsWith("/constructor")) {
+      return;
+    }
 
     if (stringIndexType) {
       // { [key: string]: T } => additionalProperties: <schema of T>
@@ -284,14 +334,37 @@ export class SchemaGenerator {
       definition.additionalProperties = false;
     }
     this.currentOptions.log?.(`Processing class/interface at ${path}: ${propTypeString}`);
-    let onlyBufferUnion = true;
-    let bufferUnionDetected = false;
     for (const prop of this.checker.getPropertiesOfType(type)) {
       const isOptional = (prop.getFlags() & ts.SymbolFlags.Optional) !== 0;
       // Check if property is public
       const decl: ts.Declaration | undefined = (prop.valueDeclaration || prop.declarations?.[0]) as
         | ts.Declaration
         | undefined;
+
+      // Detect if the property key is a Symbol (computed) or a plain string key
+      let isSymbolKey = false;
+      // Primary: declaration-based detection for computed property names
+      if (decl && (ts.isPropertyDeclaration(decl) || ts.isPropertySignature(decl) || ts.isMethodDeclaration(decl))) {
+        const nameNode = (decl as ts.NamedDeclaration).name;
+        if (nameNode && ts.isComputedPropertyName(nameNode)) {
+          const keyType = this.checker.getTypeAtLocation(nameNode.expression);
+          const keyFlags = keyType.flags;
+          isSymbolKey =
+            (keyFlags & ts.TypeFlags.ESSymbol) !== 0 || (keyFlags & ts.TypeFlags.UniqueESSymbol) !== 0;
+        }
+      }
+
+      // Fallback: symbol-like escapedName heuristic used by TS for well-known symbols (__@iterator, etc.)
+      if (!isSymbolKey) {
+        const escaped = (prop as any).escapedName as string | undefined;
+        if (typeof escaped === "string" && escaped.startsWith("__@")) {
+          isSymbolKey = true;
+        }
+      }
+      // Symbol keys are not JSONifiable so they should be skipped
+      if (isSymbolKey) {
+        continue; // skip symbol-keyed properties
+      }
       // Mapped type properties (e.g. template renamed keys) may have no declaration; still include them
       // If no declaration, we fallback to using the enclosing targetNode for type resolution
       const locationNode = decl || this.targetNode;
@@ -347,29 +420,23 @@ export class SchemaGenerator {
       if (decl && ts.isSetAccessorDeclaration(decl as ts.Node) && this.currentOptions.type !== "input") {
         continue;
       }
-      if (decl && ts.isSetAccessorDeclaration(decl as ts.Node)) {
-        // Get the type of the parameter
-        continue;
+      let setterParamType: ts.Type | undefined;
+      if (decl && ts.isSetAccessorDeclaration(decl as ts.SetAccessorDeclaration)) {
+        setterParamType = this.checker.getTypeFromTypeNode((decl as ts.SetAccessorDeclaration).parameters[0].type!);
+        this.currentOptions.log?.(`Processing setter accessor for property ${prop.name} at ${path}`);
       }
       if (decl && ts.isGetAccessorDeclaration(decl as ts.Node)) {
         // Get the return type
+        setterParamType = this.checker.getTypeFromTypeNode((decl as ts.GetAccessorDeclaration).type!);
+        this.currentOptions.log?.(`Processing getter accessor for property ${prop.name} at ${path}`);
         continue;
       }
-
+      this.currentOptions.log?.(`Processing property ${prop.name} at ${path}`);
       // Process property
-      const propType = this.checker.getTypeOfSymbolAtLocation(prop, locationNode);
+      const propType = setterParamType || this.checker.getTypeOfSymbolAtLocation(prop, locationNode);
       const propSchema: JSONSchema7 & Record<string, any> = {};
       const propPath = join(path, prop.name);
       const propResult = this.schemaProperty(propType, propSchema, propPath, decl);
-      // Detect specific legacy case: property exactly ArrayBuffer | string
-      if (prop.name === "buffer" && decl && (decl as any).type && ts.isUnionTypeNode((decl as any).type)) {
-        const u = (decl as any).type as ts.UnionTypeNode;
-        const hasString = u.types.some(t => t.kind === ts.SyntaxKind.StringKeyword);
-        const hasArrayBuffer = u.types.some(t => t.getText() === "ArrayBuffer");
-        if (hasString && hasArrayBuffer) {
-          bufferUnionDetected = true;
-        }
-      }
       // For some reason the getTypeOfSymbolAtLocation doesn't always reflect the optionality from declaration
       const hasQuestionToken = decl ? (decl as any).questionToken !== undefined : false;
       const unionHasUndefined =
@@ -395,46 +462,15 @@ export class SchemaGenerator {
         this.currentOptions.log?.(`Property ${prop.name} has initializer at ${propPath}, marking as optional`);
         propSchema.default = this.tryGetNonNumericEnumLiteral(declInitializer)?.const ?? undefined;
       }
-      if (!propResult.optional && !isOptional) {
+      if (propSchema.type === "boolean" && !this.currentOptions.disableBooleanDefaultToFalse && propSchema.default === undefined) {
+        propSchema.default = false;
+      }
+      if (!propResult.optional && !isOptional && propSchema.default === undefined) {
         definition.required ??= [];
         definition.required.push(prop.name);
       }
     }
     definition.required?.sort();
-    // If user wants Buffer mapping, apply strategy to buffer union now (ensure mapping applied even after simplification)
-    if (
-      bufferUnionDetected &&
-      definition.properties &&
-      definition.properties.buffer &&
-      (definition.properties.buffer as any).type === "string"
-    ) {
-      const bufferDef = definition.properties.buffer as any;
-      // Default to base64 string representation if no explicit strategy provided.
-      const strategy = this.options.bufferStrategy || "base64";
-      if (strategy === "array") {
-        bufferDef.type = "array";
-        bufferDef.items = { type: "integer", minimum: 0, maximum: 255 };
-        delete bufferDef.contentEncoding;
-        delete bufferDef.contentMediaType;
-      } else if (strategy === "hex") {
-        bufferDef.contentEncoding = "hex";
-        bufferDef.pattern = "^[0-9a-fA-F]+$";
-        bufferDef.contentMediaType = "application/octet-stream";
-      } else if (strategy === "binary") {
-        bufferDef.format = "binary";
-        bufferDef.contentMediaType = "application/octet-stream";
-      } else {
-        // base64 default
-        bufferDef.contentEncoding = "base64";
-        bufferDef.contentMediaType = "application/octet-stream";
-      }
-      // If this class only consists of the buffer property, trim structural wrappers to match minimal fixture expectations
-      if (definition.properties && Object.keys(definition.properties).length === 1) {
-        delete (definition as any).required;
-        delete (definition as any).additionalProperties;
-        delete (definition as any).type;
-      }
-    }
     if (propTypeString.startsWith("{") || propTypeString.endsWith('">')) {
       propTypeString = `${path.substring(1).replace(/\//g, "$")}`;
     }
@@ -443,6 +479,41 @@ export class SchemaGenerator {
       delete (definition as any)[key];
     });
     definition.$ref = `#/definitions/${this.getDefinitionKey(propTypeString)}`;
+  }
+
+  defineBufferMapping(definition: JSONSchema7, ctx: { type: ts.Type; path: string }) {
+    if (this.options.mapBuffer) {
+      this.options.mapBuffer(definition, ctx);
+      return;
+    }
+    const strategy = this.options.bufferStrategy || "base64";
+    switch (strategy) {
+      case "base64":
+        definition.type = "string";
+        definition.contentEncoding = "base64";
+        definition.contentMediaType = "application/octet-stream";
+        break;
+      case "binary":
+        definition.type = "string";
+        definition.format = "binary";
+        break;
+      case "hex":
+        definition.type = "string";
+        definition.contentEncoding = "hex";
+        definition.pattern = "^(?:[0-9a-fA-F]{2})*$";
+        definition.contentMediaType = "application/octet-stream";
+        break;
+      case "array":
+        definition.type = "array";
+        definition.items = {
+          type: "integer",
+          minimum: 0,
+          maximum: 255
+        };
+        break;
+      default:
+        throw new Error(`Unknown buffer strategy: ${strategy}`);
+    }
   }
 
   tryGetNonNumericEnumLiteral(
@@ -569,7 +640,41 @@ export class SchemaGenerator {
       return { optional: false };
     }
     this.currentOptions.log(`${indent}Processing property at ${path}: ${propTypeString} (${type.flags})`);
-    this.processJsDoc(definition, type.getSymbol());
+    // Capture JSDoc from multiple sources to merge annotations:
+    // - the property/type symbol
+    // - the alias symbol for primitive aliases (e.g., type ServiceName = string)
+    // - the symbol at the declaration node
+    const aliasSym: ts.Symbol | undefined = (type as any).aliasSymbol || undefined;
+    const nodeSym: ts.Symbol | undefined = node && (this.checker.getSymbolAtLocation as any)
+      ? (this.checker.getSymbolAtLocation(node as ts.Node) as ts.Symbol | undefined)
+      : undefined;
+    // Process in order: base type symbol, alias symbol, node symbol (closest override last)
+    this.processJsDoc(definition, type.getSymbol?.());
+    if (aliasSym) this.processJsDoc(definition, aliasSym);
+    if (nodeSym) this.processJsDoc(definition, nodeSym);
+
+    // If this string comes from a type alias reference (e.g., ServiceName = string),
+    // merge JSDoc from the alias declaration symbol as well.
+    if (node && ts.isPropertySignature(node) && node.type && ts.isTypeReferenceNode(node.type)) {
+      // We could add a blocker for inheritence
+      const typeNameNode = node.type.typeName;
+      const aliasSymbol = this.checker.getSymbolAtLocation(typeNameNode as ts.Node);
+      if (aliasSymbol) {
+        this.currentOptions.log?.(`${indent}Merging JSDoc from alias ${typeNameNode.getText()} at ${path}`);
+        const def: any = {};
+        this.processJsDoc(def, aliasSymbol);
+        this.currentOptions.log?.(`${indent}Merging JSDoc got ${JSON.stringify(def)}`);
+        if (def["schemaInherits"]) {
+          Object.keys(def).forEach((key: string) => {
+            if (key === "schemaInherits") {
+              return;
+            }
+            // @ts-ignore
+            definition[key] ??= def[key];
+          });
+        }
+      }
+    }
     const result: { optional: boolean; rename?: string } = { optional: false };
     const f = type.flags;
     // Implementation to fill in schema for a single property
@@ -1117,7 +1222,8 @@ export class SchemaGenerator {
       maxDepth: options.maxDepth ?? this.options.maxDepth ?? 10,
       asRef: options.asRef ?? this.options.asRef ?? false,
       log: options.log ?? this.options.log ?? console.log,
-      type: options.type ?? this.options.type ?? "input"
+      type: options.type ?? this.options.type ?? "input",
+      disableBooleanDefaultToFalse: options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false
     };
     this.currentDefinitions = {};
     const result: JSONSchema7 = { $schema: "http://json-schema.org/draft-07/schema#" };

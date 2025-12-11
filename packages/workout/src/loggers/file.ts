@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
+import { LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 import { WorkerLogger } from "./index";
 import { ConsoleLogger } from "./console";
 
@@ -68,10 +68,7 @@ export class FileLogger extends WorkerLogger {
           {
             ...msg,
             type: "log",
-            log: {
-              level: "INFO",
-              args: [msg.title]
-            }
+            log: new WorkerLog("INFO", [msg.title])
           },
           this.format
         ) + "\n"

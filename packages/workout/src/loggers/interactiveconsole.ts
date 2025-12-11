@@ -1,4 +1,4 @@
-import { LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
+import { isWorkerLogLevel, LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 import { ConsoleLogger } from "./console";
 import chalk from "yoctocolors";
 const isUnicodeSupported = process.platform !== "win32" || Boolean(process.env.WT_SESSION);
@@ -140,7 +140,7 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
   };
   spinner: SimpleProgress;
 
-  constructor(output: WorkerOutput, level: WorkerLogLevel = "INFO", format: string = ConsoleLogger.defaultFormat) {
+  constructor(output: WorkerOutput, level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO", format: string = ConsoleLogger.defaultFormat) {
     super(output, level, format);
     output.setInteractive(true);
   }

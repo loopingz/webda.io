@@ -194,6 +194,15 @@ export enum WorkerLogLevelEnum {
 export type WorkerLogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 
 /**
+ * Ensure a string is a valid WorkerLogLevel
+ * @param level 
+ * @returns 
+ */
+export function isWorkerLogLevel(level: string): level is WorkerLogLevel {
+  return ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"].includes(level);
+}
+
+/**
  * Represents a Log line
  */
 export class WorkerLog {

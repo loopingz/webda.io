@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { sprintf } from "sprintf-js";
 import * as util from "util";
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
+import { isWorkerLogLevel, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 import { WorkerLogger } from "./index";
 
 interface WorkerLogMessage {
@@ -18,10 +18,10 @@ class ConsoleLogger extends WorkerLogger {
   static defaultFormatWithLine = "%(d)s [%(l)s] %(m)s (%(f)s:%(ll)d:%(c)d %(ff)s)";
   format: string;
 
-  constructor(output: WorkerOutput, level?: WorkerLogLevel, format?: string) {
+  constructor(output: WorkerOutput, level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO", format?: string) {
     super(output, level);
 
-    this.format = format || output.addLogProducerLine ? ConsoleLogger.defaultFormatWithLine : ConsoleLogger.defaultFormat;
+    this.format = format || (output.addLogProducerLine ? ConsoleLogger.defaultFormatWithLine : ConsoleLogger.defaultFormat);
   }
 
   /**

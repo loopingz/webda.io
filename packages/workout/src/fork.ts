@@ -5,8 +5,32 @@ import { WorkerLogger } from "./loggers/index";
 const PREFIX = "ForkParentLogger:";
 
 export class ForkParentLogger extends WorkerLogger {
+  pending: number = 0;
   onMessage(msg: WorkerMessage): void {
-    process.send("ForkParentLogger: " + JSON.stringify(msg));
+    try {
+      this.pending++;
+      process.send("ForkParentLogger: " + JSON.stringify(msg), () => {
+        this.pending--;
+      });
+    } catch (err) {
+      console.error("Failed to send message to parent process", err);
+    }
+  }
+
+  flush(timeout: number = 30000): Promise<void> {
+    const start = Date.now();
+    return new Promise((resolve, reject) => {
+      const checkPending = () => {
+        if (this.pending === 0) {
+          resolve();
+        } else if (Date.now() - start > timeout) {
+          reject(new Error("Timeout waiting for pending messages to flush"));
+        } else {
+          setImmediate(checkPending);
+        }
+      };
+      checkPending();
+    });
   }
 }
 
@@ -36,25 +60,40 @@ export async function Fork(
         }
       }
     });
-    new ForkParentLogger(output);
+    const logger = new ForkParentLogger(output);
+    let exitCode = 0;
     try {
       await callback();
     } catch (err) {
       useLog("ERROR", "Fork catch", err, err.message);
-      process.exit(1);
+      exitCode = 1;
+    } finally {
+      await logger.flush();
     }
-    process.exit(0);
+    process.exit(exitCode);
   } else {
     output ??= useWorkerOutput();
     output.on("message", msg => {
       if (msg.type === "input.timeout" || msg.type === "input.received") {
         msg.pid ??= process.pid;
-        child.send(PREFIX + JSON.stringify(msg));
+        try {
+          child.send(PREFIX + JSON.stringify(msg));
+        } catch (err) {
+          output?.log("ERROR", "Failed to send message to child process", err);
+        }
       }
     });
     child.on("message", async msg => {
       if (typeof msg === "string" && msg.startsWith(PREFIX)) {
         output.forwardEvent(msg.substring(PREFIX.length));
+      }
+    });
+    child.on("error", err => {
+      output?.log("ERROR", "Child process error", err);
+    });
+    child.on("exit", code => {
+      if (code !== 0) {
+        output?.log("ERROR", `Child process exited with code ${code}`);
       }
     });
     process.on("exit", () => {

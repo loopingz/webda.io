@@ -104,7 +104,9 @@ export class SchemaGenerator {
   targetNode!: ts.Node | undefined;
   targetSymbol!: ts.Symbol | undefined;
   targetType!: ts.Type;
-  currentOptions: Required<Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "log" | "type" | "disableBooleanDefaultToFalse">> = {
+  currentOptions: Required<
+    Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "log" | "type" | "disableBooleanDefaultToFalse">
+  > = {
     maxDepth: 10,
     asRef: false,
     log: console.log,
@@ -128,7 +130,19 @@ export class SchemaGenerator {
     this.checker = this.program.getTypeChecker();
   }
 
-  // Create a Language Service for the given project
+  /**
+   * Return the TypeScript Program used by this generator
+   * @returns
+   */
+  getProgram(): ts.Program {
+    return this.program;
+  }
+
+  /**
+   * Create a TypeScript Language Service for the given project path
+   * @param projectPath
+   * @returns
+   */
   createLanguageService(projectPath: string) {
     let configFilePath = projectPath;
     const sys = ts.sys;
@@ -216,6 +230,12 @@ export class SchemaGenerator {
     return index >= minLength;
   }
 
+  /**
+   * Process JSDoc comments for a property and apply to definition
+   * @param definition
+   * @param prop
+   * @returns
+   */
   processJsDoc(definition: JSONSchema7, prop?: ts.Symbol) {
     if (!prop) return;
     const jsDoc = this.getJsDocForSymbol(prop, this.checker);
@@ -349,8 +369,7 @@ export class SchemaGenerator {
         if (nameNode && ts.isComputedPropertyName(nameNode)) {
           const keyType = this.checker.getTypeAtLocation(nameNode.expression);
           const keyFlags = keyType.flags;
-          isSymbolKey =
-            (keyFlags & ts.TypeFlags.ESSymbol) !== 0 || (keyFlags & ts.TypeFlags.UniqueESSymbol) !== 0;
+          isSymbolKey = (keyFlags & ts.TypeFlags.ESSymbol) !== 0 || (keyFlags & ts.TypeFlags.UniqueESSymbol) !== 0;
         }
       }
 
@@ -411,25 +430,22 @@ export class SchemaGenerator {
           ts.isFunctionTypeNode(decl as ts.Node))
       ) {
         // TODO Compatibility mode to include methods as $comment
+        this.currentOptions.log?.(`Skipping method property ${prop.name} at ${path}`);
         continue;
       }
-      // Check for accessor declarations (get/set)
-      if (decl && ts.isGetAccessorDeclaration(decl as ts.Node) && this.currentOptions.type !== "output") {
-        continue;
-      }
-      if (decl && ts.isSetAccessorDeclaration(decl as ts.Node) && this.currentOptions.type !== "input") {
-        continue;
-      }
+      // Check for accessors
       let setterParamType: ts.Type | undefined;
-      if (decl && ts.isSetAccessorDeclaration(decl as ts.SetAccessorDeclaration)) {
-        setterParamType = this.checker.getTypeFromTypeNode((decl as ts.SetAccessorDeclaration).parameters[0].type!);
-        this.currentOptions.log?.(`Processing setter accessor for property ${prop.name} at ${path}`);
-      }
-      if (decl && ts.isGetAccessorDeclaration(decl as ts.Node)) {
-        // Get the return type
-        setterParamType = this.checker.getTypeFromTypeNode((decl as ts.GetAccessorDeclaration).type!);
-        this.currentOptions.log?.(`Processing getter accessor for property ${prop.name} at ${path}`);
-        continue;
+      if (decl && ts.isGetAccessor(decl as ts.GetAccessorDeclaration)) {
+        this.currentOptions.log?.(
+          `Found getter accessor for property ${prop.name} at ${path} ${ts.isSetAccessorDeclaration(decl) ? "with" : "without"} setter / ${ts.isGetAccessorDeclaration(decl) ? "get" : ""} accessor`
+        );
+        if (this.currentOptions.type === "input") {
+          const setterDecl = prop.getDeclarations()?.find(d => ts.isSetAccessor(d as ts.SetAccessorDeclaration));
+          setterParamType = setterDecl
+            ? this.checker.getTypeAtLocation((setterDecl as ts.SetAccessorDeclaration).parameters[0])
+            : undefined;
+        }
+        this.currentOptions.log?.(`Processing accessor for property ${prop.name} at ${path}`);
       }
       this.currentOptions.log?.(`Processing property ${prop.name} at ${path}`);
       // Process property
@@ -462,7 +478,11 @@ export class SchemaGenerator {
         this.currentOptions.log?.(`Property ${prop.name} has initializer at ${propPath}, marking as optional`);
         propSchema.default = this.tryGetNonNumericEnumLiteral(declInitializer)?.const ?? undefined;
       }
-      if (propSchema.type === "boolean" && !this.currentOptions.disableBooleanDefaultToFalse && propSchema.default === undefined) {
+      if (
+        propSchema.type === "boolean" &&
+        !this.currentOptions.disableBooleanDefaultToFalse &&
+        propSchema.default === undefined
+      ) {
         propSchema.default = false;
       }
       if (!propResult.optional && !isOptional && propSchema.default === undefined) {
@@ -645,9 +665,10 @@ export class SchemaGenerator {
     // - the alias symbol for primitive aliases (e.g., type ServiceName = string)
     // - the symbol at the declaration node
     const aliasSym: ts.Symbol | undefined = (type as any).aliasSymbol || undefined;
-    const nodeSym: ts.Symbol | undefined = node && (this.checker.getSymbolAtLocation as any)
-      ? (this.checker.getSymbolAtLocation(node as ts.Node) as ts.Symbol | undefined)
-      : undefined;
+    const nodeSym: ts.Symbol | undefined =
+      node && (this.checker.getSymbolAtLocation as any)
+        ? (this.checker.getSymbolAtLocation(node as ts.Node) as ts.Symbol | undefined)
+        : undefined;
     // Process in order: base type symbol, alias symbol, node symbol (closest override last)
     this.processJsDoc(definition, type.getSymbol?.());
     if (aliasSym) this.processJsDoc(definition, aliasSym);
@@ -1217,13 +1238,67 @@ export class SchemaGenerator {
     return "AnonymousFunction";
   }
 
+  /**
+   * Get a schema from a TypeScript type
+   * @param type
+   * @param options
+   * @returns
+   */
+  getSchemaFromType(type: ts.Type, options: Partial<SchemaGenerator["currentOptions"]> = {}): JSONSchema7 {
+    this.currentOptions = {
+      maxDepth: options.maxDepth ?? this.options.maxDepth ?? 10,
+      asRef: options.asRef ?? this.options.asRef ?? false,
+      log: options.log ?? this.options.log ?? console.log,
+      type: options.type ?? this.options.type ?? "input",
+      disableBooleanDefaultToFalse:
+        options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false
+    };
+    this.currentDefinitions = {};
+    const result: JSONSchema7 = { $schema: "http://json-schema.org/draft-07/schema#" };
+    this.targetType = type;
+    const typeName = this.checker.typeToString(type);
+    const defSchema: JSONSchema7 = {};
+    this.currentOptions.log?.(`Generating schema for type "${typeName}"`);
+    const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode);
+    // Allow rename, unless it is a type `type X = ...;` declaration
+    if (res.rename && this.targetNode && this.targetNode.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
+      this.currentOptions.log?.(
+        `Renaming type from "${typeName}" to "${res.rename}" ${ts.SyntaxKind[this.targetNode.kind]}`
+      );
+    }
+    result.$ref = `#/definitions/${this.getDefinitionKey(typeName)}`;
+    result.definitions = { ...this.currentDefinitions };
+    result.definitions[typeName] = defSchema;
+    if (!this.currentOptions.asRef && result.$ref) {
+      // Inline definitions
+      const defKey = decodeURI(result.$ref.replace("#/definitions/", ""));
+      Object.assign(result, result.definitions![defKey]);
+      if (result.definitions && result.$ref) {
+        delete (result.definitions as any)[defKey];
+      }
+      if (Object.keys(result.definitions || {}).length === 0) {
+        delete result.definitions;
+      }
+      delete result.$ref;
+    }
+    // Sort keys alphabetically recursively
+    return this.sortKeys(result);
+  }
+
+  /**
+   * Get schema from a set of nodes
+   * @param nodes
+   * @param options
+   * @returns
+   */
   getSchemaFromNodes(nodes: ts.Node[], options: Partial<SchemaGenerator["currentOptions"]> = {}): JSONSchema7 {
     this.currentOptions = {
       maxDepth: options.maxDepth ?? this.options.maxDepth ?? 10,
       asRef: options.asRef ?? this.options.asRef ?? false,
       log: options.log ?? this.options.log ?? console.log,
       type: options.type ?? this.options.type ?? "input",
-      disableBooleanDefaultToFalse: options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false
+      disableBooleanDefaultToFalse:
+        options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false
     };
     this.currentDefinitions = {};
     const result: JSONSchema7 = { $schema: "http://json-schema.org/draft-07/schema#" };

@@ -1,0 +1,146 @@
+type FilterOutAttributes<T, U> = {
+  [K in keyof T]: T[K] extends U ? never : K;
+}[keyof T];
+
+type SelfSerialized<T> = T extends BigInt
+  ? string
+  : T extends Array<infer U>
+    ? Array<Serialized<U>>
+    : T extends Map<string, infer MV>
+      ? Record<string, Serialized<MV>>
+      : T extends Set<infer US>
+        ? Array<Serialized<US>>
+        : T extends RegExp
+          ? string
+          : T extends object
+            ? {
+                [K in Extract<FilterOutAttributes<T, Function>, string>]: T[K] extends BigInt
+                  ? string
+                  : T[K] extends Array<infer U>
+                    ? Array<Serialized<U>>
+                    : T[K] extends Map<string, infer MV>
+                      ? Record<string, Serialized<MV>>
+                      : T[K] extends Set<infer US>
+                        ? Array<Serialized<US>>
+                        : T[K] extends RegExp
+                          ? string
+                          : T[K] extends object
+                            ? Serialized<T[K]>
+                            : T[K];
+              }
+            : T;
+
+type Serialized<T> = T extends { toJSON: () => infer R } ? R : SelfSerialized<T>;
+
+type SelfDtoIn<T> = T extends Date
+  ? string | number | Date
+  : T extends BigInt
+    ? string | number | BigInt
+    : T extends Array<infer U>
+      ? Array<DtoIn<U>>
+      : T extends Map<string, infer MV>
+        ? Record<string, DtoIn<MV>>
+        : T extends Set<infer US>
+          ? Array<DtoIn<US>>
+          : T extends RegExp
+            ? string | RegExp
+            : T extends object
+              ? {
+                  [K in Extract<FilterOutAttributes<T, Function>, string>]: T[K] extends Date
+                    ? string | number | Date
+                    : T[K] extends BigInt
+                      ? string | number | BigInt
+                      : T[K] extends Array<infer U>
+                        ? Array<DtoIn<U>>
+                        : T[K] extends Map<string, infer MV>
+                          ? Record<string, DtoIn<MV>>
+                          : T[K] extends Set<infer US>
+                            ? Array<DtoIn<US>>
+                            : T[K] extends RegExp
+                              ? string | RegExp
+                              : T[K] extends object
+                                ? DtoIn<T[K]>
+                                : T[K];
+                }
+              : T;
+type DtoIn<T> = T extends { fromDto(value: infer D): void } ? D : SelfDtoIn<T>;
+
+type SelfDtoOut<T> =
+  T extends Array<infer U>
+    ? Array<DtoOut<U>>
+    : T extends Map<string, infer MV>
+      ? Record<string, DtoOut<MV>>
+      : T extends Set<infer US>
+        ? Array<DtoOut<US>>
+        : T extends object
+          ? {
+              [K in Extract<FilterOutAttributes<T, Function>, string>]: T[K] extends Date
+                ? string
+                : T[K] extends BigInt
+                  ? string
+                  : T[K] extends Array<infer U>
+                    ? Array<DtoOut<U>>
+                    : T[K] extends Map<string, infer MV>
+                      ? Record<string, DtoOut<MV>>
+                      : T[K] extends Set<infer US>
+                        ? Array<DtoOut<US>>
+                        : T[K] extends RegExp
+                          ? string
+                          : T[K] extends object
+                            ? DtoOut<T[K]>
+                            : T[K];
+            }
+          : T;
+type DtoOut<T> = T extends { toDto(): infer D } ? D : T extends { toJSON(): infer D } ? D : SelfDtoOut<T>;
+
+export class ModelA {
+  private _mfa: string = "";
+  date!: Date;
+  data!: string;
+  plop!: number;
+
+  get accessorDate(): Date {
+    return this.date;
+  }
+
+  set accessorDate(value: Date | string | number) {
+    if (typeof value === "string" || typeof value === "number") {
+      this.date = new Date(value);
+    } else {
+      this.date = value;
+    }
+  }
+
+  get mfa(): boolean {
+    return this._mfa !== "";
+  }
+
+  set mfa(value: string) {
+    this._mfa = value;
+  }
+
+  toDto(): SelfDtoOut<this> {
+    return {} as SelfDtoOut<this>;
+  }
+
+  fromDto(data: SelfDtoIn<this>) {}
+
+  toJSON(): SelfSerialized<this> {
+    return {
+      date: this.date.toISOString(),
+      data: this.data,
+      plop: this.plop
+    } as SelfSerialized<this>;
+  }
+}
+
+export class SubModelA extends ModelA {
+  extra!: string;
+  createdAt!: Date;
+}
+
+export class UndefinedModel {
+  date!: Date;
+  data!: string;
+  plop!: number;
+}

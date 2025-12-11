@@ -1,15 +1,23 @@
 import { createMethodDecorator, MethodDecorator, getMetadata } from "@webda/decorators";
 import { createHash } from "node:crypto";
-import * as util from "node:util";
 
 /**
- * Storage for a single instance
+ * Storage for cached method results for a single instance.
+ *
+ * Maintains an internal timestamp per entry to support TTL-based
+ * invalidation during reads and garbage collection.
+ *
+ * Keys are method-level cache keys produced by `methodKeyGenerator`.
  */
 class CacheStorage extends Map<string, { value: any; timestamp: number }> {
   constructor(private options?: CacheOptions) {
     super();
   }
 
+  /**
+   * Check whether a cached value exists and is still valid.
+   * Applies TTL: if an entry is expired, it is evicted and treated as missing.
+   */
   hasCachedMethod(key: string) {
     // Implement TTL check if needed
     if (this.options?.ttl) {
@@ -21,15 +29,27 @@ class CacheStorage extends Map<string, { value: any; timestamp: number }> {
     }
     return this.has(key);
   }
+  /**
+   * Store a cached value for the given method key.
+   *
+   * Note: `args` is accepted for potential future strategies but not used here.
+   */
   setCachedMethod(key: string, args: any[], value: any) {
     // Might want to not use Date.now() on every set, but use a every N seconds tick instead
     this.set(key, { value, timestamp: Date.now() });
   }
+  /**
+   * Retrieve the cached value for the given method key (without TTL re-check).
+   */
   getCachedMethod(key: string) {
     const cached = this.get(key);
     return cached?.value;
   }
 
+  /**
+   * Delete cache entries.
+   * If the key ends with `$`, all entries starting with the prefix are removed.
+   */
   deleteCachedMethod(key: string) {
     if (key.endsWith("$")) {
       for (const k of this.keys()) {
@@ -42,6 +62,9 @@ class CacheStorage extends Map<string, { value: any; timestamp: number }> {
     }
   }
 
+  /**
+   * Remove all expired entries based on TTL.
+   */
   garbageCollect() {
     if (this.options?.ttl) {
       const now = Date.now();
@@ -54,15 +77,26 @@ class CacheStorage extends Map<string, { value: any; timestamp: number }> {
   }
 }
 
+/**
+ * Cache map storing `CacheStorage` per instance key.
+ *
+ * The instance key is produced by `classKeyGenerator`.
+ */
 class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
   constructor(private options?: CacheOptions) {
     super();
   }
 
+  /**
+   * Get a cached value for a given instance and method key.
+   */
   getCachedMethod(target: T, key: string) {
     return this.get(target).getCachedMethod(key);
   }
 
+  /**
+   * Check if a cached value exists for the given instance and method key.
+   */
   hasCachedMethod(target: T, key: string) {
     if (this.has(target)) {
       const cache = this.get(target);
@@ -71,6 +105,9 @@ class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
     return false;
   }
 
+  /**
+   * Store a cached value for the given instance + method key.
+   */
   setCachedMethod(target: T, key: string, args: any[], value: any) {
     if (!this.has(target)) {
       this.set(target, new (this.options.cacheStorage ?? CacheStorage)(this.options));
@@ -79,6 +116,9 @@ class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
     cache.setCachedMethod(key, args, value);
   }
 
+  /**
+   * Trigger garbage collection on all instance stores.
+   */
   garbageCollect() {
     for (const [target, cache] of this.entries()) {
       cache.garbageCollect();
@@ -86,7 +126,14 @@ class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
   }
 }
 
-function getSource(provider: (target: Object) => any, options: CacheOptions, target: Object): CacheMap {
+/**
+ * Resolve and return the `CacheMap` from a cache provider.
+ *
+ * The provider is expected to return a host object on which `caches`
+ * will be lazily initialized to a `CacheMap`. If the provider returns
+ * `null`, caching is disabled and `null` is returned.
+ */
+function getSource(provider: (target: object) => any, options: CacheOptions, target: object): CacheMap {
   const cache = provider(target);
   if (cache === null) {
     return null;
@@ -96,6 +143,9 @@ function getSource(provider: (target: Object) => any, options: CacheOptions, tar
   return cache.caches;
 }
 
+/**
+ * Options controlling cache key generation and storage behavior.
+ */
 interface CacheOptions {
   /**
    * Define how to cache the method call
@@ -106,15 +156,30 @@ interface CacheOptions {
    * @returns
    */
   methodKeyGenerator?: (property: string, args: any[]) => string | undefined;
+  /**
+   * Generator for the instance-level cache key (e.g., per `this`).
+   */
   classKeyGenerator?: (instance: object) => any;
   /**
    * Define how long the cache should be kept
    */
   ttl?: number; // milliseconds
+  /**
+   * Custom `CacheMap` implementation constructor.
+   */
   cacheMap?: new (options: CacheOptions) => CacheMap;
+  /**
+   * Custom `CacheStorage` implementation constructor.
+   */
   cacheStorage?: new (options?: CacheOptions) => CacheStorage;
 }
 
+/**
+ * Compute a deterministic hash for a list of arguments.
+ *
+ * Returns a base64-encoded SHA-256 digest, or `undefined` if any
+ * argument cannot be serialized deterministically.
+ */
 export function argumentsHash(args: any[]): string {
   const hash = createHash("sha256");
   for (const arg of args) {
@@ -134,13 +199,25 @@ export function argumentsHash(args: any[]): string {
   return hash.digest("base64");
 }
 
-var cacheLogger: (...args: any[]) => void = (...args: any[]) => {
+let cacheLogger: (...args: any[]) => void = (...args: any[]) => {
 };
+/**
+ * Register a logger used by the cache system to report non-cacheable calls.
+ */
 export function registerCacheLogger(logger: (...args: any[]) => void) {
    cacheLogger = logger;
 }
 
-export function createCacheAnnotation(source: (target: Object | null) => Object | null, options: CacheOptions = {}) {
+/**
+ * Create a cache annotation (method decorator) bound to a given source provider.
+ *
+ * The returned decorator caches method results based on keys generated by
+ * `methodKeyGenerator` and `classKeyGenerator`. It also exposes utility methods:
+ * - `clear(target, propertyKey, ...args)`: Clear specific cache entry
+ * - `clearAll(target, propertyKey?)`: Clear all or method-prefixed entries
+ * - `garbageCollect()`: Run TTL-based cleanup
+ */
+export function createCacheAnnotation(source: (target: object | null) => object | null, options: CacheOptions = {}) {
   options.methodKeyGenerator ??= (property: string, args: any[]) => {
     const hash = argumentsHash(args);
     return hash ? property + "$" + hash : undefined;
@@ -194,7 +271,10 @@ export function createCacheAnnotation(source: (target: Object | null) => Object 
     }
   );
 
-  annotation.clear = function clearCache(target: Object, propertyKey: string, ...args: any[]) {
+  /**
+   * Clear a specific cached entry for a target method and arguments.
+   */
+  annotation.clear = function clearCache(target: object, propertyKey: string, ...args: any[]) {
     const cache = getSource(source, options, target);
     const keyGenerator =
       getMetadata(target.constructor ?? target)?.["webda.cache.methodKeyGenerator"]?.[propertyKey] ||
@@ -208,7 +288,12 @@ export function createCacheAnnotation(source: (target: Object | null) => Object 
       cache.get(instanceKey).deleteCachedMethod(key);
     }
   };
-  annotation.clearAll = function clearAllCache(target: Object, propertyKey?: string) {
+  /**
+   * Clear all cached entries for a target, or only those for a specific method.
+   *
+   * If `propertyKey` is provided, all entries with that method prefix are removed.
+   */
+  annotation.clearAll = function clearAllCache(target: object, propertyKey?: string) {
     const instanceKey = (
       getMetadata(target.constructor ?? target)?.["webda.cache.classKeyGenerator"]?.[propertyKey] ||
       options.classKeyGenerator
@@ -222,6 +307,9 @@ export function createCacheAnnotation(source: (target: Object | null) => Object 
       }
     }
   };
+  /**
+   * Run garbage collection on the underlying `CacheMap`.
+   */
   annotation.garbageCollect = function garbageCollect() {
     const cache = getSource(source, options, null);
     if (cache) {
@@ -233,10 +321,20 @@ export function createCacheAnnotation(source: (target: Object | null) => Object 
 
 const symbol = Symbol.for("webda.caches");
 
+/**
+ * Cache decorator using a process-level storage.
+ *
+ * Suitable for cross-instance caching within the same Node.js process.
+ */
 const ProcessCache = createCacheAnnotation(() => {
   process[symbol] ??= {};
   return process[symbol];
 });
+/**
+ * Cache decorator using an object-level storage (per instance).
+ *
+ * Suitable for encapsulated caches tied to specific objects.
+ */
 const ObjectCache = createCacheAnnotation(target => {
   if (target === null) return null;
   target[symbol] ??= {};

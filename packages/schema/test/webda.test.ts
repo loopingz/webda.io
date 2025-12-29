@@ -24,58 +24,71 @@ describe("webda schema generation", () => {
           const name = node.name?.text;
           if (name && name === "ModelA") {
             console.log("Generating schema for", name);
-            // Check for toJSON method
-            let hasToDto: ts.MethodDeclaration | undefined;
-            let hasFromDto: ts.MethodDeclaration | undefined;
+            // Discover methods (including inherited) via the TypeScript checker
+            const classType = generator.checker.getTypeAtLocation(node);
+            const getSignature = (methodName: string): ts.Signature | undefined => {
+              const apparent = generator.checker.getApparentType(classType);
+              const symbol = apparent.getProperty(methodName) || classType.getProperty(methodName);
+              if (!symbol) return undefined;
+              const methodType = generator.checker.getTypeOfSymbolAtLocation(symbol, node);
+              const sigs = generator.checker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
+              return sigs.length ? sigs[0] : undefined;
+            };
+            const toDtoSig = getSignature("toDto");
+            const fromDtoSig = getSignature("fromDto");
+            const toJSONSig = getSignature("toJSON");
             let hasToJSON: ts.MethodDeclaration | undefined;
-            // Check if toDto/fromDto/toJSON methods exist
-            node.members.forEach(member => {
+             node.members.forEach(member => {
               if (ts.isMethodDeclaration(member) && member.name && ts.isIdentifier(member.name)) {
-                if (member.name.text === "toDto" && ts.isMethodDeclaration(member)) {
-                  hasToDto = member;
-                } else if (member.name.text === "fromDto" && ts.isMethodDeclaration(member)) {
-                  hasFromDto = member;
-                } else if (member.name.text === "toJSON" && ts.isMethodDeclaration(member)) {
+                if (member.name.text === "toJSON" && ts.isMethodDeclaration(member)) {
                   hasToJSON = member;
                 }
               }
             });
             const schema = generator.getSchemaFromNodes([node], { type: "input", asRef: false });
             const schemaOutput = generator.getSchemaFromNodes([node], { type: "output", asRef: false });
-            if (hasToDto !== undefined) {
-              // Get the return type of toDto
-              const toDtoType = generator.checker.getReturnTypeOfSignature(
-                generator.checker.getSignatureFromDeclaration(hasToDto)!
+            if (toDtoSig) {
+              // Get the return type of toDto (inherited or local)
+              const toDtoType = generator.checker.getReturnTypeOfSignature(toDtoSig);
+              const schemaDtoOut = generator.getSchemaFromType(
+                toDtoType,
+                { type: "input", asRef: false }
               );
-              // Get the return type of toDto
-              const schemaDtoOut = generator.getSchemaFromType(generator.checker.getApparentType(toDtoType), { type: "input", asRef: false });
               console.log("Schema Output", JSON.stringify(schemaDtoOut, null, 2));
             } else {
-              console.log("No toDto method, skipping use 'output'");
+              console.log("No toDto method (including inherited), skipping use 'output'");
               console.log(JSON.stringify(schemaOutput, null, 2));
             }
-            if (hasFromDto) {
-              // Get the parameter type of fromDto
-              const fromDtoType = generator.checker.getTypeAtLocation(hasFromDto.parameters[0]);
-              const dtoIn = generator.getSchemaFromType(generator.checker.getApparentType(fromDtoType), { type: "input", asRef: false });
+            if (fromDtoSig) {
+              // Get the parameter type of fromDto's first param
+              const firstParam = fromDtoSig.parameters[0];
+              const paramDecl = (firstParam as any).valueDeclaration || firstParam.declarations?.[0];
+              const fromDtoParamType = paramDecl
+                ? generator.checker.getTypeAtLocation(paramDecl)
+                : generator.checker.getTypeOfSymbolAtLocation(firstParam, node);
+              const dtoIn = generator.getSchemaFromType(
+                fromDtoParamType,
+                { type: "input", asRef: false }
+              );
               console.log("Schema Input from fromDto param", JSON.stringify(dtoIn, null, 2));
             } else {
-              console.log("No fromDto method, skipping use 'input'");
+              console.log("No fromDto method (including inherited), skipping use 'input'");
               console.log(JSON.stringify(schema, null, 2));
             }
-            if (hasToJSON) {
-              // Get the return type of toDto
-              const toJsonType = generator.checker.getReturnTypeOfSignature(
-                generator.checker.getSignatureFromDeclaration(hasToJSON)!
+            if (toJSONSig) {
+              // Get the return type of toJSON (inherited or local)
+              const toJsonType = generator.checker.getReturnTypeOfSignature(toJSONSig);
+              const schemaJson = generator.getSchemaFromType(
+                toJsonType,
+                { type: "output", asRef: false }
               );
-              const schemaJson = generator.getSchemaFromType(generator.checker.getApparentType(toJsonType), { type: "output", asRef: false });
               console.log("Schema Stored", JSON.stringify(schemaJson, null, 2));
             } else {
-              console.log("No toJSON method, skipping use 'output'");
+              console.log("No toJSON method (including inherited), skipping use 'output'");
               console.log(JSON.stringify(schemaOutput, null, 2));
             }
-            console.log("Final Schema", JSON.stringify(schema, null, 2));
-            console.log("Final Schema Output", JSON.stringify(schemaOutput, null, 2));
+            //console.log("Final Schema", JSON.stringify(schema, null, 2));
+            //console.log("Final Schema Output", JSON.stringify(schemaOutput, null, 2));
             //expect(schema).toMatchSnapshot(name + " schema");
           }
         }

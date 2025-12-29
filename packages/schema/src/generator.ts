@@ -105,13 +105,18 @@ export class SchemaGenerator {
   targetSymbol!: ts.Symbol | undefined;
   targetType!: ts.Type;
   currentOptions: Required<
-    Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "log" | "type" | "disableBooleanDefaultToFalse">
-  > = {
+    Pick<
+      GenerateSchemaOptions,
+      "maxDepth" | "asRef" | "log" | "type" | "disableBooleanDefaultToFalse" | "bufferStrategy"
+    >
+  > &
+    Partial<Pick<GenerateSchemaOptions, "mapBuffer">> = {
     maxDepth: 10,
     asRef: false,
     log: console.log,
     type: "input",
-    disableBooleanDefaultToFalse: false
+    disableBooleanDefaultToFalse: false,
+    bufferStrategy: "base64"
   };
   currentDefinitions: { [key: string]: JSONSchema7 } = {};
 
@@ -453,6 +458,9 @@ export class SchemaGenerator {
       const propSchema: JSONSchema7 & Record<string, any> = {};
       const propPath = join(path, prop.name);
       const propResult = this.schemaProperty(propType, propSchema, propPath, decl);
+      if (propResult.rename === null) {
+        continue; // skip this property
+      }
       // For some reason the getTypeOfSymbolAtLocation doesn't always reflect the optionality from declaration
       const hasQuestionToken = decl ? (decl as any).questionToken !== undefined : false;
       const unionHasUndefined =
@@ -651,7 +659,7 @@ export class SchemaGenerator {
     definition: JSONSchema7,
     path: string,
     node?: ts.Node
-  ): { optional: boolean; rename?: string } {
+  ): { optional: boolean; rename?: string | null } {
     const propTypeString = this.checker.typeToString(type);
     // Count the number of / in path for indentation
     const indent = " ".repeat((path.match(/\//g) || []).length);
@@ -659,7 +667,9 @@ export class SchemaGenerator {
     if (indent.length > this.currentOptions.maxDepth) {
       return { optional: false };
     }
-    this.currentOptions.log(`${indent}Processing property at ${path}: ${propTypeString} (${type.flags})`);
+    this.currentOptions.log(
+      `${indent}Processing property at ${path}: ${propTypeString} (${type.flags}) ${this.isBufferType(type, propTypeString) ? "[BufferType]" : "[Non-BufferType]"}`
+    );
     // Capture JSDoc from multiple sources to merge annotations:
     // - the property/type symbol
     // - the alias symbol for primitive aliases (e.g., type ServiceName = string)
@@ -800,6 +810,9 @@ export class SchemaGenerator {
         const subSchema: JSONSchema7 = {};
         const subPath = `${path}#${i}`;
         const subResult = this.schemaProperty(subType, subSchema, subPath);
+        if (subResult.rename === null) {
+          continue; // skip this branch
+        }
 
         const decl = subType.getSymbol()?.valueDeclaration || subType.getSymbol()?.declarations?.[0];
         const initializer = (decl as any)?.initializer as ts.Expression | undefined;
@@ -842,19 +855,6 @@ export class SchemaGenerator {
       this.currentOptions.log?.(
         `${indent}Union (${isEnum}) at ${path} has ${JSON.stringify(definition.anyOf)} branches`
       );
-      // Legacy compatibility: simplify (string | ArrayBuffer) to just string and drop ArrayBuffer definition
-      if (definition.anyOf) {
-        const anyOfArr: any[] = definition.anyOf as any[];
-        const hasArrayBufferRef = anyOfArr.some(s => s.$ref && /ArrayBuffer/.test(s.$ref));
-        const hasStringType = anyOfArr.some(s => s.type === "string" && !s.$ref);
-        if (hasArrayBufferRef && hasStringType) {
-          definition.type = "string";
-          delete (definition as any).anyOf;
-          if (this.currentDefinitions["ArrayBuffer"]) {
-            delete this.currentDefinitions["ArrayBuffer"]; // remove unused definition
-          }
-        }
-      }
       // Deduplicate identical schemas in anyOf
       if (definition.anyOf) {
         const seen = new Set<string>();
@@ -969,7 +969,10 @@ export class SchemaGenerator {
               decl || this.targetNode || (p.declarations && p.declarations[0]) || p.valueDeclaration!
             );
             const pSchema: JSONSchema7 = {};
-            this.schemaProperty(pType, pSchema, join(subPath, p.name), decl);
+            const subResult = this.schemaProperty(pType, pSchema, join(subPath, p.name), decl);
+            if (subResult.rename === null) {
+              continue; // skip this branch
+            }
             this.processJsDoc(pSchema, p);
             (subSchema.properties ??= {})[p.name] = pSchema;
             const isOpt = (p.getFlags() & ts.SymbolFlags.Optional) !== 0;
@@ -1005,7 +1008,10 @@ export class SchemaGenerator {
               decl || this.targetNode || (p.declarations && p.declarations[0]) || p.valueDeclaration!
             );
             const pSchema: JSONSchema7 = {};
-            this.schemaProperty(pType, pSchema, join(subPath, p.name), decl);
+            const subResult = this.schemaProperty(pType, pSchema, join(subPath, p.name), decl);
+            if (subResult.rename === null) {
+              continue; // skip this branch
+            }
             this.processJsDoc(pSchema, p);
             (subSchema.properties ??= {})[p.name] = pSchema;
             const isOpt = (p.getFlags() & ts.SymbolFlags.Optional) !== 0;
@@ -1016,7 +1022,10 @@ export class SchemaGenerator {
           if (subSchema.required) subSchema.required.sort();
         } else {
           // Non-object constituent; cannot fully merge
-          this.schemaProperty(subType, subSchema, subPath);
+          const subResult = this.schemaProperty(subType, subSchema, subPath);
+          if (subResult.rename === null) {
+            continue; // skip this branch
+          }
           canFullyMerge = false;
         }
         subSchemas.push(subSchema);
@@ -1063,7 +1072,11 @@ export class SchemaGenerator {
         definition.minItems = elementTypes.length;
         elementTypes.forEach((elType, index) => {
           const itemSchema: JSONSchema7 = {};
-          this.schemaProperty(elType, itemSchema, `${path}[${index}]`);
+          const subResult = this.schemaProperty(elType, itemSchema, `${path}[${index}]`);
+          if (subResult.rename === null) {
+            definition.minItems!--;
+            return; // skip this branch
+          }
           if (this.isOptionalTupleElement(tupleType, index)) {
             definition.minItems!--;
           }
@@ -1114,7 +1127,10 @@ export class SchemaGenerator {
         const elementType = this.getArrayElementType(type)!;
         // mark readonly (readonly T[], ReadonlyArray<T>, readonly [..] tuple)
         definition.items = {};
-        this.schemaProperty(elementType, definition.items as JSONSchema7, path + "[]");
+        const subResult = this.schemaProperty(elementType, definition.items as JSONSchema7, path + "[]");
+        if (subResult.rename === null) {
+          delete definition.items;
+        }
       }
     } else if (type.isTypeParameter()) {
       this.currentOptions.log?.(`${indent}Type parameter encountered at ${path}, treating as any`);
@@ -1154,8 +1170,24 @@ export class SchemaGenerator {
       f & (ts as any).TypeFlags.NonPrimitive // for older TS where TypeFlags is just a value
     ) {
       definition.type = "object";
+    } else if (f & ts.TypeFlags.UniqueESSymbol || f & ts.TypeFlags.ESSymbol) {
+      // Handle Symbol type
+      this.currentOptions.log?.(`${indent}Symbol type at ${path}, treating as string`);
+      // Tell to delete property
+      return {
+        rename: null,
+        optional: true
+      };
     } else {
-      this.currentOptions.log?.(`${indent}Unhandled type at ${path}: ${propTypeString} (${(type as any).flags})`);
+      const apparentType = this.checker.getApparentType(type);
+      if (apparentType !== type) {
+        this.currentOptions.log?.(
+          `${indent}Trying apparent type at ${path}: ${this.checker.typeToString(apparentType)}`
+        );
+        return this.schemaProperty(apparentType, definition, path, node);
+      } else {
+        this.currentOptions.log?.(`${indent}Unhandled type at ${path}: ${propTypeString} (${(type as any).flags})`);
+      }
     }
     // Add more type handling as needed
     return result;
@@ -1167,7 +1199,7 @@ export class SchemaGenerator {
     if (!symbol) return false;
     const name = symbol.getName();
     // Only treat as special Buffer type if user requested a mapping strategy or custom mapper
-    const mappingEnabled = !!this.options.bufferStrategy || !!this.options.mapBuffer;
+    const mappingEnabled = !!this.currentOptions.bufferStrategy || !!this.currentOptions.mapBuffer;
     if (!mappingEnabled) return false;
     if (name === "Buffer" || typeString === "Buffer") return true;
     // Treat ArrayBuffer same as Buffer for serialization strategy to avoid noisy definitions
@@ -1251,7 +1283,8 @@ export class SchemaGenerator {
       log: options.log ?? this.options.log ?? console.log,
       type: options.type ?? this.options.type ?? "input",
       disableBooleanDefaultToFalse:
-        options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false
+        options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false,
+      bufferStrategy: options.bufferStrategy ?? this.options.bufferStrategy ?? "base64"
     };
     this.currentDefinitions = {};
     const result: JSONSchema7 = { $schema: "http://json-schema.org/draft-07/schema#" };
@@ -1298,7 +1331,8 @@ export class SchemaGenerator {
       log: options.log ?? this.options.log ?? console.log,
       type: options.type ?? this.options.type ?? "input",
       disableBooleanDefaultToFalse:
-        options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false
+        options.disableBooleanDefaultToFalse ?? this.options.disableBooleanDefaultToFalse ?? false,
+      bufferStrategy: options.bufferStrategy ?? this.options.bufferStrategy ?? "base64"
     };
     this.currentDefinitions = {};
     const result: JSONSchema7 = { $schema: "http://json-schema.org/draft-07/schema#" };

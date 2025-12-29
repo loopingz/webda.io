@@ -1,5 +1,8 @@
 export class RealCase {
-  buffer!: ArrayBuffer | string;
+  /**
+   * An ArrayBuffer property
+   */
+  buffer!: ArrayBuffer;
   get property(): number {
     return 3;
   }

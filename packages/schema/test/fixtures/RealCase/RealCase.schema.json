@@ -1,13 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
   "properties": {
     "buffer": {
       "type": "string",
       "contentEncoding": "base64",
-      "contentMediaType": "application/octet-stream"
+      "contentMediaType": "application/octet-stream",
+      "description": "An ArrayBuffer property"
     },
     "property": {
       "type": ["string", "number"]
     }
-  }
+  },
+  "required": ["buffer", "property"],
+  "type": "object"
 }

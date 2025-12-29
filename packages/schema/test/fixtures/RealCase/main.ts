@@ -1,4 +1,7 @@
 export class RealCase {
+  constructor() {
+    // do nothing
+  }
   /**
    * An ArrayBuffer property
    */
@@ -9,4 +12,9 @@ export class RealCase {
   set property(value: string | number) {
     // do nothing
   }
+
+  /**
+   * @SchemaIgnore
+   */
+  myProperty: string | number = "test";
 }

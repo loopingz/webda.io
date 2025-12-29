@@ -64,7 +64,7 @@ async function main() {
 
   try {
     const generator = new SchemaGenerator({ project: args.project, file: args.file});
-    const schema = generator.getSchemaForType(args.type);
+    const schema = generator.getSchemaForTypeName(args.type);
     const json = JSON.stringify(schema, null, args.pretty ? 2 : 0);
     if (args.out) {
       const outPath = path.resolve(process.cwd(), args.out);

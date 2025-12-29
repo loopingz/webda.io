@@ -69,7 +69,7 @@ describe("schema generation", () => {
             expect(fs.existsSync(fixturePath)).toBe(true);
             const expected = stableSort(JSON.parse(fs.readFileSync(fixturePath, "utf8")));
             const fileRelative = path.join(relativeBase, dir, tsFile).replace(/\\/g, "/");
-            const actualRes = generator.getSchemaForType(typeName, fileRelative, {
+            const actualRes = generator.getSchemaForTypeName(typeName, fileRelative, {
               log,
               bufferStrategy: "base64"
             });
@@ -173,7 +173,7 @@ describe("schema generation", () => {
                 }
               } catch {}
             }
-            const actualRes = stableSort(generator.getSchemaForType(typeName, fileRelative, { asRef: true, log }));
+            const actualRes = stableSort(generator.getSchemaForTypeName(typeName, fileRelative, { asRef: true, log }));
             if (log) {
               console.log("Generated schema:\n", JSON.stringify(actualRes, null, 2));
             }

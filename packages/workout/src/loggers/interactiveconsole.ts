@@ -142,10 +142,16 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
 
   constructor(output: WorkerOutput, level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO", format: string = ConsoleLogger.defaultFormat) {
     super(output, level, format);
-    output.setInteractive(true);
+    // Set interactive based on TTY status and --no-tty flag
+    output.setInteractive(process.stdout.isTTY && !process.argv.includes("--no-tty"));
   }
 
   onMessage(msg: WorkerMessage): void {
+    // If not interactive, fallback to normal console logger
+    if (!this.output.interactive) {
+      super.onMessage(msg);
+      return;
+    }
     if (msg.type === "input.request") {
       this.onInput(msg);
     } else if (msg.type === "input.timeout") {

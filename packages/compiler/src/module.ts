@@ -1041,10 +1041,9 @@ class WebdaSchemaResults {
 
         if (schemaNode) {
           results[section][name].Schema = moduleGenerator.generateSchema(schemaNode, title || name);
-          let jsFile = "",
-            exportName = "";
+          let exportName = "";
           try {
-            jsFile = moduleGenerator.getJSTargetFile(schemaNode.getSourceFile()).replace(/\.js$/, "");
+            useLog("INFO", `Generating configuration link for service ${name} ${schemaNode.getSourceFile().fileName}`);
             const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode);
             exportName = moduleGenerator.getExportedName(
               type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
@@ -1055,12 +1054,14 @@ class WebdaSchemaResults {
             if (!exportName) {
               throw new Error(`Cannot find exported name for ${className}, check that the class is exported`);
             }
+            useLog("INFO", `Found export name for service ${name}: ${exportName} in file ${type.symbol.valueDeclaration.getSourceFile().fileName}`);
             const jsConfFile = moduleGenerator
               .getJSTargetFile(type.symbol.valueDeclaration.getSourceFile())
               .replace(/\.js$/, "");
             results[section][name].Configuration = `${jsConfFile}:${exportName}`;
+            useLog("INFO", `Generated configuration link for service ${name}: ${results[section][name].Configuration}`);
           } catch (err) {
-            console.log("Cannot guess export name for service configuration:", err);
+            useLog("WARN", "Cannot guess export name for service configuration:", err.stack);
           }
           if (addOpenApi && results[section][name]) {
             results[section][name].Schema.properties ??= {};
@@ -1071,6 +1072,10 @@ class WebdaSchemaResults {
           }
         }
       });
+  }
+
+  getImportFile(filepath: string) {
+
   }
 
   add(

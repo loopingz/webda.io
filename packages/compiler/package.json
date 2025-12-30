@@ -30,11 +30,11 @@
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
+    "@webda/schema": "^4.0.0-beta.1",
     "@webda/utils": "^4.0.0-beta.1",
     "@webda/workout": "^4.0.0-beta.1",
     "accept-language": "^3.0.18",
     "diff": "^7.0.0",
-    "ts-json-schema-generator": "^2.3.0",
     "ts-morph": "^24.0.0",
     "yargs": "^17.7.2"
   },

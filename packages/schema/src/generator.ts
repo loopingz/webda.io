@@ -133,10 +133,10 @@ export class SchemaGenerator {
   currentOptions: Required<
     Pick<
       GenerateSchemaOptions,
-      "maxDepth" | "asRef" | "log" | "type" | "disableBooleanDefaultToFalse" | "bufferStrategy"
+      "maxDepth" | "asRef" | "type" | "disableBooleanDefaultToFalse" | "bufferStrategy"
     >
   > &
-    Partial<Pick<GenerateSchemaOptions, "mapBuffer">> = {
+    Partial<Pick<GenerateSchemaOptions, "mapBuffer"| "log">> = {
     maxDepth: 10,
     asRef: false,
     log: undefined,
@@ -170,10 +170,8 @@ export class SchemaGenerator {
     this.currentOptions = merged;
   }
 
-  private log(level: "debug" | "info" | "warn", message: string) {
-    if (this.currentOptions.log) {
-      this.currentOptions.log(`[${level}] ${message}`);
-    }
+  private log(...args: any[]): void {
+    this.currentOptions.log?.(...args);
   }
 
   private joinSchemaPath(base: string, segment: string): string {
@@ -181,6 +179,34 @@ export class SchemaGenerator {
     const b = base.replace(/\/+$/, "");
     const s = segment.replace(/^\/+/, "");
     return `${b}/${s}`;
+  }
+
+  private hasStringIndex(type: ts.Type): ts.Type | undefined {
+    return this.checker.getIndexTypeOfType(type, ts.IndexKind.String) || undefined;
+  }
+
+  private isAnonymousObject(type: ts.Type): boolean {
+    const anyT = type as any;
+    return !!(anyT.flags & ts.TypeFlags.Object) && !!(anyT.objectFlags & ts.ObjectFlags.Anonymous);
+  }
+
+  private isSymbolKey(decl: ts.Declaration | undefined, sym: ts.Symbol): boolean {
+    let isSymbol = false;
+    if (decl && (ts.isPropertyDeclaration(decl) || ts.isPropertySignature(decl) || ts.isMethodDeclaration(decl))) {
+      const nameNode = (decl as ts.NamedDeclaration).name;
+      if (nameNode && ts.isComputedPropertyName(nameNode)) {
+        const keyType = this.checker.getTypeAtLocation(nameNode.expression);
+        const keyFlags = keyType.flags;
+        isSymbol = (keyFlags & ts.TypeFlags.ESSymbol) !== 0 || (keyFlags & ts.TypeFlags.UniqueESSymbol) !== 0;
+      }
+    }
+    if (!isSymbol) {
+      const escaped = (sym as any).escapedName as string | undefined;
+      if (typeof escaped === "string" && escaped.startsWith("__@")) {
+        isSymbol = true;
+      }
+    }
+    return isSymbol;
   }
 
   private normalizeDefinitionKey(rawKey: string, path: string): string {
@@ -199,7 +225,7 @@ export class SchemaGenerator {
 
   private collectObjectShape(type: ts.Type, path: string): { schema: JSONSchema7 } {
     const schema: JSONSchema7 & Record<string, any> = { type: "object" };
-    const stringIndexType = this.checker.getIndexTypeOfType(type, ts.IndexKind.String);
+    const stringIndexType = this.hasStringIndex(type);
     if (stringIndexType) {
       const indexSchema: JSONSchema7 = {};
       const indexPath = this.joinSchemaPath(path, "[key: string]");
@@ -214,21 +240,7 @@ export class SchemaGenerator {
         | ts.Declaration
         | undefined;
 
-      let isSymbolKey = false;
-      if (decl && (ts.isPropertyDeclaration(decl) || ts.isPropertySignature(decl) || ts.isMethodDeclaration(decl))) {
-        const nameNode = (decl as ts.NamedDeclaration).name;
-        if (nameNode && ts.isComputedPropertyName(nameNode)) {
-          const keyType = this.checker.getTypeAtLocation(nameNode.expression);
-          const keyFlags = keyType.flags;
-          isSymbolKey = (keyFlags & ts.TypeFlags.ESSymbol) !== 0 || (keyFlags & ts.TypeFlags.UniqueESSymbol) !== 0;
-        }
-      }
-      if (!isSymbolKey) {
-        const escaped = (prop as any).escapedName as string | undefined;
-        if (typeof escaped === "string" && escaped.startsWith("__@")) {
-          isSymbolKey = true;
-        }
-      }
+      const isSymbolKey = this.isSymbolKey(decl, prop);
       if (isSymbolKey) continue;
 
       const locationNode = decl || this.targetNode;
@@ -245,7 +257,7 @@ export class SchemaGenerator {
           ts.isMethodSignature(decl as ts.Node) ||
           ts.isFunctionTypeNode(decl as ts.Node))
       ) {
-        this.currentOptions.log?.(`Skipping method property ${prop.name} at ${path}`);
+        this.log(`Skipping method property ${prop.name} at ${path}`);
         continue;
       }
 
@@ -270,7 +282,7 @@ export class SchemaGenerator {
         (path.match(/\//g) || []).length + 1
       );
       this.processJsDoc(propSchema, prop);
-      if (propResult.rename === null || propSchema["SchemaIgnore"] === true) {
+      if (propResult.decision === "skip" || propSchema["SchemaIgnore"] === true) {
         continue;
       }
       const hasQuestionToken = decl ? (decl as any).questionToken !== undefined : false;
@@ -518,7 +530,7 @@ export class SchemaGenerator {
     if (path.endsWith("/constructor")) {
       return;
     }
-    this.currentOptions.log?.(`Processing class/interface at ${path}: ${propTypeString}`);
+    this.log(`Processing class/interface at ${path}: ${propTypeString}`);
     const shape = this.collectObjectShape(type, path);
     // Merge any JSDoc/annotations already captured into the structural schema
     const source: JSONSchema7 = { ...(shape.schema as any), ...(definition as any) };
@@ -594,7 +606,7 @@ export class SchemaGenerator {
   processCallableType(sigs: readonly ts.Signature[], definition: JSONSchema7, callName: string, path: string): string {
     definition.type = "object";
     definition.additionalProperties = false;
-    this.currentOptions.log?.(`Processing callable type at ${path}: ${callName}`);
+    this.log(`Processing callable type at ${path}: ${callName}`);
     // getCallSignatures works on function types, not declarations
 
     definition.properties = {};
@@ -687,13 +699,13 @@ export class SchemaGenerator {
     path: string,
     node?: ts.Node,
     depth: number = 0
-  ): { optional: boolean; rename?: string | null } {
+  ): { optional: boolean; decision: "keep" | "rename" | "skip"; to?: string } {
     const propTypeString = this.checker.typeToString(type);
     const indent = " ".repeat(depth);
     if (depth > this.currentOptions.maxDepth) {
-      return { optional: false };
+      return { optional: false, decision: "keep" };
     }
-    this.currentOptions.log?.(
+    this.log(
       `${indent}Processing property at ${path}: ${propTypeString} (${type.flags})`
     );
     // Capture JSDoc from multiple sources to merge annotations:
@@ -717,10 +729,10 @@ export class SchemaGenerator {
       const typeNameNode = node.type.typeName;
       const aliasSymbol = this.checker.getSymbolAtLocation(typeNameNode as ts.Node);
       if (aliasSymbol) {
-        this.currentOptions.log?.(`${indent}Merging JSDoc from alias ${typeNameNode.getText()} at ${path}`);
+        this.log(`${indent}Merging JSDoc from alias ${typeNameNode.getText()} at ${path}`);
         const def: any = {};
         this.processJsDoc(def, aliasSymbol);
-        this.currentOptions.log?.(`${indent}Merging JSDoc got ${JSON.stringify(def)}`);
+        this.log(`${indent}Merging JSDoc got ${JSON.stringify(def)}`);
         if (def["schemaInherits"]) {
           Object.keys(def).forEach((key: string) => {
             if (key === "schemaInherits") {
@@ -733,7 +745,10 @@ export class SchemaGenerator {
       }
     }
 
-    const result: { optional: boolean; rename?: string } = { optional: false };
+    const result: { optional: boolean; decision: "keep" | "rename" | "skip"; to?: string } = {
+      optional: false,
+      decision: "keep"
+    };
     const f = type.flags;
     // Implementation to fill in schema for a single property
     if (f & ts.TypeFlags.StringLiteral) {
@@ -744,7 +759,7 @@ export class SchemaGenerator {
       // Check if string has a initializer with constant value
       // Reuse existing helper for literal-like initializers
       const initExpr = this.getInitializerForType(type, node);
-      this.currentOptions.log?.(`${indent}Checking initializer for string type at ${path} ${initExpr?.getText()}`);
+      this.log(`${indent}Checking initializer for string type at ${path} ${initExpr?.getText()}`);
       if (initExpr) {
         const literalInfo = this.tryGetNonNumericEnumLiteral(initExpr);
         if (literalInfo && literalInfo.type === "string") {
@@ -760,7 +775,7 @@ export class SchemaGenerator {
       definition.type = "number";
       // TODO How to map BigInt literal to JSON Schema?
     } else if (propTypeString === "Function") {
-      return { optional: false, rename: null }; // skip function types
+      return { optional: false, decision: "skip" }; // skip function types
     } else if (f & ts.TypeFlags.NumberLike) {
       definition.type = "number";
     } else if (f & ts.TypeFlags.BooleanLiteral) {
@@ -774,7 +789,7 @@ export class SchemaGenerator {
       definition.type = "null";
     } else if (f & ts.TypeFlags.Undefined || f & ts.TypeFlags.Void) {
       definition.not = {}; // JSON Schema uses 'null' type
-      return { optional: true };
+      return { optional: true, decision: "keep" };
     } else if (f & ts.TypeFlags.Never) {
       definition.not = {}; // matches nothing
     } else if (this.isBufferType(type, propTypeString)) {
@@ -804,7 +819,7 @@ export class SchemaGenerator {
           const initializer = node.initializer;
           if (initializer) {
             const initType = this.checker.getTypeAtLocation(initializer);
-            this.currentOptions.log?.(
+            this.log(
               `${indent}Type is any/unknown at ${path}, trying initializer type: ${this.checker.typeToString(initType)}`
             );
             return this.schemaProperty(initType, definition, path, node, depth + 1);
@@ -814,12 +829,13 @@ export class SchemaGenerator {
           definition.type = "object";
           // getCallSignatures works on function types, not declarations
           const sigs = this.checker.getSignaturesOfType(this.checker.getTypeAtLocation(node), ts.SignatureKind.Call);
-          result.rename = this.processCallableType(sigs, definition, this.getFunctionName(node), path);
+          result.decision = "rename";
+          result.to = this.processCallableType(sigs, definition, this.getFunctionName(node), path);
           return result;
         }
       }
       // leave type open
-      this.currentOptions.log?.(`${indent}Type is any/unknown at ${path}, leaving schema open`);
+      this.log(`${indent}Type is any/unknown at ${path}, leaving schema open`);
     } else if (type.isClassOrInterface()) {
       this.processClassOrInterface(type, definition, path, propTypeString);
     } else if (type.isUnion()) {
@@ -839,7 +855,7 @@ export class SchemaGenerator {
         const subSchema: JSONSchema7 = {};
         const subPath = `${path}#${i}`;
         const subResult = this.schemaProperty(subType, subSchema, subPath, undefined, depth + 1);
-        if (subResult.rename === null) {
+        if (subResult.decision === "skip") {
           continue; // skip this branch
         }
 
@@ -850,7 +866,7 @@ export class SchemaGenerator {
           // Try to get a constant value
           const constant = initializer ? this.checker.getConstantValue(decl as any) : undefined;
           if (constant !== undefined) {
-            this.currentOptions.log?.(`${indent}Union branch at ${subPath} has constant value: ${constant}`);
+            this.log(`${indent}Union branch at ${subPath} has constant value: ${constant}`);
             subSchema.const = constant;
             if (isEnum) {
               if (typeof constant === "number") {
@@ -876,12 +892,12 @@ export class SchemaGenerator {
           lastValue = (lastValue ?? 0) + 1;
           subSchema.const = lastValue;
         }
-        this.currentOptions.log?.(
+        this.log(
           `${indent}Union branch at ${subPath}: ${subResult.optional ? "optional" : "required"}`
         );
         definition.anyOf.push(subSchema);
       }
-      this.currentOptions.log?.(
+      this.log(
         `${indent}Union (${isEnum}) at ${path} has ${JSON.stringify(definition.anyOf)} branches`
       );
       // Deduplicate identical schemas in anyOf
@@ -960,7 +976,7 @@ export class SchemaGenerator {
       return result;
     } else if (type.isIntersection()) {
       // Handle intersection types: attempt to merge object/interface constituents
-      this.currentOptions.log?.(`${indent}Processing intersection at ${path}: ${propTypeString}`);
+      this.log(`${indent}Processing intersection at ${path}: ${propTypeString}`);
       const mergedProperties: Record<string, JSONSchema7> = {};
       const mergedRequired: Set<string> = new Set();
       let additionalPropsFalse = true; // default to false if all constituents disallow extras
@@ -971,112 +987,17 @@ export class SchemaGenerator {
         idx++;
         const subSchema: JSONSchema7 = {};
         const subPath = `${path}&${idx}`;
-        // For interfaces/classes, inline their properties instead of generating $ref definitions
-        if (subType.isClassOrInterface()) {
-          subSchema.type = "object";
-          // String index signature handling
-          const stringIndexType = this.checker.getIndexTypeOfType(subType, ts.IndexKind.String);
-          if (stringIndexType) {
-            const indexSchema: JSONSchema7 = {};
-            this.schemaProperty(
-              stringIndexType,
-              indexSchema,
-              this.joinSchemaPath(subPath, "[key: string]"),
-              undefined,
-              depth + 1
-            );
-            subSchema.additionalProperties = indexSchema;
-            // Presence of index signature means we cannot enforce strict additionalProperties
+        // For interfaces/classes or anonymous object types with properties, inline their properties
+        if (subType.isClassOrInterface() || this.checker.getPropertiesOfType(subType).length > 0) {
+          const shape = this.collectObjectShape(subType, subPath);
+          Object.assign(subSchema, shape.schema);
+          if (shape.schema.additionalProperties !== false) {
             additionalPropsFalse = false;
-          } else {
-            subSchema.additionalProperties = false;
           }
-          for (const p of this.checker.getPropertiesOfType(subType)) {
-            const decl: ts.Declaration | undefined = (p.valueDeclaration || p.declarations?.[0]) as
-              | ts.Declaration
-              | undefined;
-            // Skip non-public method/accessor
-            if (decl && (ts.isMethodDeclaration(decl) || ts.isMethodSignature(decl) || ts.isFunctionTypeNode(decl)))
-              continue;
-            if (decl && (ts.isGetAccessorDeclaration(decl) || ts.isSetAccessorDeclaration(decl))) continue;
-            const pType = this.checker.getTypeOfSymbolAtLocation(
-              p,
-              decl || this.targetNode || (p.declarations && p.declarations[0]) || p.valueDeclaration!
-            );
-            const pSchema: JSONSchema7 = {};
-            const subResult = this.schemaProperty(
-              pType,
-              pSchema,
-              this.joinSchemaPath(subPath, p.name),
-              decl,
-              depth + 1
-            );
-            if (subResult.rename === null) {
-              continue; // skip this branch
-            }
-            this.processJsDoc(pSchema, p);
-            (subSchema.properties ??= {})[p.name] = pSchema;
-            const isOpt = (p.getFlags() & ts.SymbolFlags.Optional) !== 0;
-            if (!isOpt) {
-              (subSchema.required ??= []).push(p.name);
-            }
-          }
-          if (subSchema.required) subSchema.required.sort();
-        } else if (
-          (subType as any).flags & ts.TypeFlags.Object &&
-          this.checker.getPropertiesOfType(subType).length > 0
-        ) {
-          // Inline anonymous/object literal properties
-          subSchema.type = "object";
-          const stringIndexType = this.checker.getIndexTypeOfType(subType, ts.IndexKind.String);
-          if (stringIndexType) {
-            const indexSchema: JSONSchema7 = {};
-            this.schemaProperty(
-              stringIndexType,
-              indexSchema,
-              this.joinSchemaPath(subPath, "[key: string]"),
-              undefined,
-              depth + 1
-            );
-            subSchema.additionalProperties = indexSchema;
-            additionalPropsFalse = false;
-          } else {
-            subSchema.additionalProperties = false;
-          }
-          for (const p of this.checker.getPropertiesOfType(subType)) {
-            const decl: ts.Declaration | undefined = (p.valueDeclaration || p.declarations?.[0]) as
-              | ts.Declaration
-              | undefined;
-            if (decl && (ts.isMethodDeclaration(decl) || ts.isMethodSignature(decl) || ts.isFunctionTypeNode(decl)))
-              continue;
-            if (decl && (ts.isGetAccessorDeclaration(decl) || ts.isSetAccessorDeclaration(decl))) continue;
-            const pType = this.checker.getTypeOfSymbolAtLocation(
-              p,
-              decl || this.targetNode || (p.declarations && p.declarations[0]) || p.valueDeclaration!
-            );
-            const pSchema: JSONSchema7 = {};
-            const subResult = this.schemaProperty(
-              pType,
-              pSchema,
-              this.joinSchemaPath(subPath, p.name),
-              decl,
-              depth + 1
-            );
-            if (subResult.rename === null) {
-              continue; // skip this branch
-            }
-            this.processJsDoc(pSchema, p);
-            (subSchema.properties ??= {})[p.name] = pSchema;
-            const isOpt = (p.getFlags() & ts.SymbolFlags.Optional) !== 0;
-            if (!isOpt) {
-              (subSchema.required ??= []).push(p.name);
-            }
-          }
-          if (subSchema.required) subSchema.required.sort();
         } else {
           // Non-object constituent; cannot fully merge
           const subResult = this.schemaProperty(subType, subSchema, subPath, undefined, depth + 1);
-          if (subResult.rename === null) {
+          if (subResult.decision === "skip") {
             continue; // skip this branch
           }
           canFullyMerge = false;
@@ -1126,7 +1047,7 @@ export class SchemaGenerator {
         elementTypes.forEach((elType, index) => {
           const itemSchema: JSONSchema7 = {};
           const subResult = this.schemaProperty(elType, itemSchema, `${path}[${index}]`, undefined, depth + 1);
-          if (subResult.rename === null) {
+          if (subResult.decision === "skip") {
             definition.minItems!--;
             return; // skip this branch
           }
@@ -1187,29 +1108,30 @@ export class SchemaGenerator {
           undefined,
           depth + 1
         );
-        if (subResult.rename === null) {
+        if (subResult.decision === "skip") {
           delete definition.items;
         }
       }
     } else if (type.isTypeParameter()) {
-      this.currentOptions.log?.(`${indent}Type parameter encountered at ${path}, treating as any`);
+      this.log(`${indent}Type parameter encountered at ${path}, treating as any`);
     } else if ((type as any).flags & ts.TypeFlags.Object && (type as any).objectFlags & ts.ObjectFlags.Reference) {
       // Try to resolve generic type references
       this.processClassOrInterface(type, definition, path, propTypeString);
     } else if ((type as any).flags & ts.TypeFlags.Object && (type as any).objectFlags & ts.ObjectFlags.Anonymous) {
-      this.currentOptions.log?.(`${indent}Anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`);
+      this.log(`${indent}Anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`);
       definition.type = "object";
       // Get the parameters
       const callSignatures = (type as any).getCallSignatures ? (type as any).getCallSignatures() : [];
 
       if (callSignatures.length > 0) {
-        result.rename = this.processCallableType(callSignatures, definition, this.getFunctionName(node), path);
-        this.currentOptions.log?.(
+        result.decision = "rename";
+        result.to = this.processCallableType(callSignatures, definition, this.getFunctionName(node), path);
+        this.log(
           `${indent}Processed callable anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`
         );
       } else {
         this.processClassOrInterface(type, definition, path, propTypeString);
-        this.currentOptions.log?.(
+        this.log(
           `${indent}Unhandled anonymous object type at ${path}: ${propTypeString} (${(type as any).flags})`
         );
       }
@@ -1219,7 +1141,7 @@ export class SchemaGenerator {
       if (symbol && symbol.flags & ts.SymbolFlags.TypeLiteral) {
         this.processClassOrInterface(type, definition, path, propTypeString);
       } else {
-        this.currentOptions.log?.(
+        this.log(
           `${indent}Unhandled object type at ${path}: ${propTypeString} (${(type as any).flags})`
         );
       }
@@ -1231,21 +1153,21 @@ export class SchemaGenerator {
       definition.type = "object";
     } else if (f & ts.TypeFlags.UniqueESSymbol || f & ts.TypeFlags.ESSymbol) {
       // Handle Symbol type
-      this.currentOptions.log?.(`${indent}Symbol type at ${path}, treating as string`);
+      this.log(`${indent}Symbol type at ${path}, treating as string`);
       // Tell to delete property
       return {
-        rename: null,
+        decision: "skip",
         optional: true
       };
     } else {
       const apparentType = this.checker.getApparentType(type);
       if (apparentType !== type) {
-        this.currentOptions.log?.(
+        this.log(
           `${indent}Trying apparent type at ${path}: ${this.checker.typeToString(apparentType)}`
         );
         return this.schemaProperty(apparentType, definition, path, node, depth + 1);
       } else {
-        this.currentOptions.log?.(`${indent}Unhandled type at ${path}: ${propTypeString} (${(type as any).flags})`);
+        this.log(`${indent}Unhandled type at ${path}: ${propTypeString} (${(type as any).flags})`);
       }
     }
     // Add more type handling as needed
@@ -1281,7 +1203,7 @@ export class SchemaGenerator {
    * @param path
    */
   private applyBufferMapping(definition: JSONSchema7 & Record<string, any>, type: ts.Type, path: string): void {
-    this.currentOptions.log?.(`Applying Buffer mapping at ${path}`);
+    this.log(`Applying Buffer mapping at ${path}`);
     if (this.options.mapBuffer) {
       this.options.mapBuffer(definition, { type, path });
       return;
@@ -1352,12 +1274,12 @@ export class SchemaGenerator {
     this.targetType = type;
     const typeName = this.checker.typeToString(type);
     const defSchema: JSONSchema7 = {};
-    this.currentOptions.log?.(`Generating schema for type "${typeName}"`);
-    const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode, 0);
+    this.log(`Generating schema for type "${typeName}"`);
+      const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode, 0);
     // Allow rename, unless it is a type `type X = ...;` declaration
-    if (res.rename && this.targetNode && this.targetNode.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
-      this.currentOptions.log?.(
-        `Renaming type from "${typeName}" to "${res.rename}" ${ts.SyntaxKind[this.targetNode.kind]}`
+    if (res.decision === "rename" && this.targetNode && this.targetNode.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
+      this.log(
+        `Renaming type from "${typeName}" to "${res.to}" ${ts.SyntaxKind[this.targetNode.kind]}`
       );
     }
     result.$ref = `#/definitions/${this.getDefinitionKey(typeName)}`;
@@ -1391,7 +1313,7 @@ export class SchemaGenerator {
     const result: JSONSchema7 = { $schema: "http://json-schema.org/draft-07/schema#" };
     // Implementation to create schema from nodes
     nodes.forEach(node => {
-      this.currentOptions.log?.(
+      this.log(
         `Processing target node: ${(node as any).name ? (node as any).name.getText() : "Unknown"} (${ts.SyntaxKind[node.kind]})`
       );
       this.targetNode = node as ts.InterfaceDeclaration | ts.ClassDeclaration | ts.TypeAliasDeclaration;
@@ -1399,14 +1321,14 @@ export class SchemaGenerator {
       this.targetType = this.checker.getTypeAtLocation(node);
       let typeName = nodeN.name ? nodeN.name.getText() : this.checker.typeToString(this.targetType);
       const defSchema: JSONSchema7 = {};
-      this.currentOptions.log?.(`Generating schema for type "${typeName}"`);
+      this.log(`Generating schema for type "${typeName}"`);
       const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode, 0);
       // Allow rename, unless it is a type `type X = ...;` declaration
-      if (res.rename && this.targetNode.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
-        this.currentOptions.log?.(
-          `Renaming type from "${typeName}" to "${res.rename}" ${ts.SyntaxKind[this.targetNode.kind]}`
+      if (res.decision === "rename" && this.targetNode.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
+        this.log(
+          `Renaming type from "${typeName}" to "${res.to}" ${ts.SyntaxKind[this.targetNode.kind]}`
         );
-        typeName = res.rename;
+        typeName = res.to!;
       }
       result.$ref ??= `#/definitions/${this.getDefinitionKey(typeName)}`;
       result.definitions = { ...this.currentDefinitions };
@@ -1468,7 +1390,7 @@ export class SchemaGenerator {
       if (targetNode) return; // already found, skip further work
       // Narrow to named declarations we care about
       const nodeNameText = (node as any).name ? (node as any).name.text : "<anonymous>";
-      this.currentOptions.log?.(`Visiting node: ${nodeNameText} (${ts.SyntaxKind[node.kind]})`);
+      this.log(`Visiting node: ${nodeNameText} (${ts.SyntaxKind[node.kind]})`);
       if (
         ts.isClassDeclaration(node) ||
         ts.isInterfaceDeclaration(node) ||

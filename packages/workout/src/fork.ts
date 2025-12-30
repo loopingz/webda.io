@@ -34,6 +34,28 @@ export class ForkParentLogger extends WorkerLogger {
   }
 }
 
+/**
+ * Launch a forked process to run the callback
+ * @param callback to run in the forked process
+ * @param parentCallback to run in the parent process
+ * @param output optional WorkerOutput instance for logging
+ * 
+ * @example
+ * ```ts
+ * import { Fork } from "@webda/workout";
+ * 
+ * await Fork(async () => {
+ *   // This code runs in the forked process
+ *   useLog("Hello from the forked process");
+ *   useWorkerOutput().startActivity("Test");
+ *   await new Promise(resolve => setTimeout(resolve, 2000));
+ *   useWorkerOutput().stopActivity("Test");
+ * }, () => {
+ *   // This code runs in the parent process
+ *   useLog("Hello from the parent process");
+ * });
+ * ```
+ */
 export async function Fork(
   callback: () => void | Promise<void>,
   parentCallback?: () => void | Promise<void>,

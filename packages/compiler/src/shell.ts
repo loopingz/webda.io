@@ -61,6 +61,7 @@ const { appPath } = argv;
 const targetDir = resolve(appPath || ".");
 const command = argv._[0];
 
+new InteractiveConsoleLogger(useWorkerOutput());
 Fork(
   async () => {
     if (isCodeCommand(argv)) {

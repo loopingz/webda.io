@@ -3,17 +3,16 @@ import { Compiler } from "./compiler";
 import { useLog } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
 import { getTagsName, getParent, isSymbolMapper, SymbolMapper, getTypeIdFromTypeNode, getKeyKind } from "./utils";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { tsquery } from "@phenomnomnominal/tsquery";
 import { dirname, join, relative } from "path";
-import { SchemaGenerator } from "ts-json-schema-generator";
 import { ModelMetadata, WebdaModule } from "./definition";
-import { createSchemaGenerator } from "./schemaparser";
 import { ActionsMetadata } from "./metadata/actions";
 import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
+import { SchemaGenerator } from "@webda/schema";
 
 /**
  * Found all objects from compiled source
@@ -60,28 +59,82 @@ export class ModuleGenerator {
   constructor(protected compiler: Compiler) {}
 
   /**
+   * Return the model schema
+   * @param modelNode
+   * @param title
+   * @returns
+   */
+  generateModelSchemas(
+    node: ts.Node,
+    title?: string
+  ): {
+    Input: JSONSchema7;
+    Output: JSONSchema7;
+    Stored: JSONSchema7;
+  } {
+    useLog("INFO", `Generating model schemas for ${title}`);
+    const res = {
+      Input: {},
+      Output: {},
+      Stored: {}
+    };
+    const classType = this.typeChecker.getTypeAtLocation(node);
+    const getSignature = (methodName: string): ts.Signature | undefined => {
+      const apparent = this.typeChecker.getApparentType(classType);
+      const symbol = apparent.getProperty(methodName) || classType.getProperty(methodName);
+      if (!symbol) return undefined;
+      const methodType = this.typeChecker.getTypeOfSymbolAtLocation(symbol, node);
+      const sigs = this.typeChecker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
+      return sigs.length ? sigs[0] : undefined;
+    };
+    const toDtoSig = getSignature("toDto");
+    const fromDtoSig = getSignature("fromDto");
+    const toJSONSig = getSignature("toJSON");
+    if (toDtoSig) {
+      // Get the return type of toDto (inherited or local)
+      const toDtoType = this.typeChecker.getReturnTypeOfSignature(toDtoSig);
+      res.Output = this.schemaGenerator.getSchemaFromType(toDtoType, { type: "output", asRef: false });
+    } else {
+      res.Output = this.schemaGenerator.getSchemaFromNodes([node], { type: "output", asRef: false });
+    }
+    if (fromDtoSig) {
+      // Get the parameter type of fromDto's first param
+      const firstParam = fromDtoSig.parameters[0];
+      const paramDecl = (firstParam as any).valueDeclaration || firstParam.declarations?.[0];
+      const fromDtoParamType = paramDecl
+        ? this.typeChecker.getTypeAtLocation(paramDecl) : this.typeChecker.getTypeOfSymbolAtLocation(firstParam, node);
+      res.Input = this.schemaGenerator.getSchemaFromType(fromDtoParamType, { type: "input", asRef: false });
+    } else {
+      res.Input = this.schemaGenerator.getSchemaFromNodes([node], { type: "input", asRef: false });
+    }
+    if (toJSONSig) {
+      // Get the return type of toJSON (inherited or local)
+      const toJsonType = this.typeChecker.getReturnTypeOfSignature(toJSONSig);
+      res.Stored = this.schemaGenerator.getSchemaFromType(toJsonType, { type: "output", asRef: false });
+    } else {
+      res.Stored = this.schemaGenerator.getSchemaFromNodes([node], { type: "output", asRef: false });
+    }
+    return res;
+  }
+
+  /**
    * Generate a single schema
    * @param schemaNode
    */
-  generateSchema(schemaNode: ts.Node, title?: string) {
-    let res;
+  generateSchema(schemaNode: ts.Node, title?: string): JSONSchema7 {
+    let res: JSONSchema7;
     try {
       useLog("INFO", "Generating schema for " + title);
-      const schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
-      const definitionName = decodeURI(schema.$ref.split("/").pop());
-      res = <JSONSchema7>schema.definitions[definitionName];
-      res.$schema = schema.$schema;
-      // Copy sub definition if needed
-      if (Object.keys(schema.definitions).length > 1) {
-        res.definitions = schema.definitions;
-        // Avoid cycle ref
-        delete res.definitions[definitionName];
-      }
+      res = this.schemaGenerator.getSchemaFromNodes([schemaNode], {
+        log: (...args: any) => {
+          useLog("DEBUG", ...args);
+        }
+      });
       if (title) {
         res.title = title;
       }
     } catch (err) {
-      useLog("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
+      useLog("WARN", `Cannot generate schema for ${schemaNode.getText().split("\n")[0]}`, err);
     }
     return res;
   }
@@ -492,7 +545,7 @@ export class ModuleGenerator {
         Ancestors: [],
         Subclasses: [],
         Reflection: {},
-        Schema: {},
+        Schemas: {},
         Actions: {},
         Events: [],
         PrimaryKey: [],
@@ -823,7 +876,10 @@ export class ModuleGenerator {
    */
   generate() {
     this.typeChecker = this.compiler.tsProgram.getTypeChecker();
-    this.schemaGenerator = createSchemaGenerator(this.compiler.tsProgram, this.typeChecker);
+    this.schemaGenerator = new SchemaGenerator({
+      program: this.compiler.tsProgram,
+      log: (...args) => useLog("DEBUG", ...args)
+    });
     const objects = this.searchForWebdaObjects();
     this.exploreModelsAction(objects.models, objects.schemas);
     this.exploreServices(objects.moddas, objects.schemas);
@@ -852,7 +908,52 @@ export class ModuleGenerator {
       plugin.getMetadata(mod, objects);
     });
     FileUtils.save(mod, this.compiler.project.getAppPath("webda.module.json"));
+    if (this.compiler.project.isApplication()) {
+      this.generateTypescriptLibrary(mod);
+    }
     return mod;
+  }
+
+  /**
+   * Generate TypeScript library for the module
+   * @param mod 
+   */
+  generateTypescriptLibrary(mod: WebdaModule) {
+    // Should generate typescript library file: .webda/webda.module.ts
+    // Read the webda.module.json and generate a type for ServiceName
+    // And for ModelName
+    // So we can have type safe access to services and models
+    const config = FileUtils.loadConfigurationFile(this.compiler.project.getAppPath("webda.config"));
+    let content = `// This file is autogenerated by Webda, do not edit\n\n`;
+    content += `export type WebdaServiceName =\n`;
+    Object.keys(mod.moddas)
+      .sort()
+      .forEach(name => {
+        content += `  | "${name}"\n`;
+      });
+    content += `;\n\n`;
+    content += `export type WebdaModelName = \n`;
+    Object.keys(mod.models)
+      .sort()
+      .forEach(name => {
+        content += `  | "${name}"\n`;
+      });
+    content += `;\n\n`;
+    if (config.generateModelInterfaces) {
+      content += `// Model Interfaces\n`;
+      Object.entries(mod.models)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .forEach(([name, model]) => {
+          content += `export interface ${name} extends import("${model.Import.split(":")[0]}").${
+            model.Import.split(":")[1]
+          } {}\n`;
+        });
+      content += `\n`;
+    }
+    const outPath = this.compiler.project.getAppPath(".webda/webda.module.ts");
+    mkdirSync(dirname(outPath), { recursive: true });
+    FileUtils.save(content, outPath);
+    useLog("INFO", `Generated TypeScript library at .webda/webda.module.ts`);
   }
 }
 
@@ -914,7 +1015,7 @@ class WebdaSchemaResults {
    * @param info
    */
   generateSchemas(moduleGenerator: ModuleGenerator, results: WebdaModule) {
-    const schemas = {};
+    useLog("INFO", "Generating schemas", Object.keys(this.store).length);
     Object.entries(this.store)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .forEach(([name, { schemaNode, link, title, addOpenApi, section }]) => {
@@ -923,34 +1024,43 @@ class WebdaSchemaResults {
           return;
         }
         if (section === "schemas") {
+          // @ts-ignore
           results[section][name] = schemaNode ? moduleGenerator.generateSchema(schemaNode, title || name) : link;
+          return;
+        }
+
+        if (section === "models") {
+          try {
+            // Generate Model schemas
+            results[section][name].Schemas = moduleGenerator.generateModelSchemas(schemaNode, title || name);
+          } catch (err) {
+            useLog("WARN", `Cannot generate schemas for model ${name}:`, err);
+          }
           return;
         }
 
         if (schemaNode) {
           results[section][name].Schema = moduleGenerator.generateSchema(schemaNode, title || name);
-          if (section !== "models") {
-            let jsFile = "",
-              exportName = "";
-            try {
-              jsFile = moduleGenerator.getJSTargetFile(schemaNode.getSourceFile()).replace(/\.js$/, "");
-              const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode);
-              exportName = moduleGenerator.getExportedName(
-                type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
-              );
-              const className = (
-                type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
-              ).name?.escapedText.toString();
-              if (!exportName) {
-                throw new Error(`Cannot find exported name for ${className}, check that the class is exported`);
-              }
-              const jsConfFile = moduleGenerator
-                .getJSTargetFile(type.symbol.valueDeclaration.getSourceFile())
-                .replace(/\.js$/, "");
-              results[section][name].Configuration = `${jsConfFile}:${exportName}`;
-            } catch (err) {
-              console.log("Cannot guess export name for service configuration:", err);
+          let jsFile = "",
+            exportName = "";
+          try {
+            jsFile = moduleGenerator.getJSTargetFile(schemaNode.getSourceFile()).replace(/\.js$/, "");
+            const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode);
+            exportName = moduleGenerator.getExportedName(
+              type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
+            );
+            const className = (
+              type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
+            ).name?.escapedText.toString();
+            if (!exportName) {
+              throw new Error(`Cannot find exported name for ${className}, check that the class is exported`);
             }
+            const jsConfFile = moduleGenerator
+              .getJSTargetFile(type.symbol.valueDeclaration.getSourceFile())
+              .replace(/\.js$/, "");
+            results[section][name].Configuration = `${jsConfFile}:${exportName}`;
+          } catch (err) {
+            console.log("Cannot guess export name for service configuration:", err);
           }
           if (addOpenApi && results[section][name]) {
             results[section][name].Schema.properties ??= {};
@@ -961,7 +1071,6 @@ class WebdaSchemaResults {
           }
         }
       });
-    return;
   }
 
   add(

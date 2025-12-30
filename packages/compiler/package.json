@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
+    "@webda/utils": "^4.0.0-beta.1",
     "@webda/workout": "^4.0.0-beta.1",
     "accept-language": "^3.0.18",
     "diff": "^7.0.0",

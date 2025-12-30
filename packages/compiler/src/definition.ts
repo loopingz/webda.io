@@ -1,3 +1,4 @@
+import { FileUtils } from "@webda/utils";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { existsSync, readFileSync } from "fs";
 import type { JSONSchema7 } from "json-schema";
@@ -107,9 +108,22 @@ export interface ModelMetadata {
    */
   Plural: string;
   /**
-   * Schema defining the model
+   * Schemas defining the model
    */
-  Schema?: JSONSchema7;
+  Schemas: {
+    /**
+     * Schema for input validation
+     */
+    Input?: JSONSchema7;
+    /**
+     * Schema for output validation
+     */
+    Output?: JSONSchema7;
+    /**
+     * Schema for stored data validation
+     */
+    Stored?: JSONSchema7;
+  }
   /**
    * If model have a short name
    */
@@ -518,6 +532,20 @@ export class WebdaProject {
     }
     this.namespace ??= "Webda";
   }
+
+
+  /**
+   * Check if the project is a webda application
+   */
+  isApplication(): boolean {
+    try {
+      FileUtils.getConfigurationFile(join(this.folder, "webda.config"));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
 
   on(event: string, listener: (...args: any[]) => void) {
     this.output.on(event, listener);

@@ -1,6 +1,8 @@
 /**
  * Represents a time duration that defaults to seconds but supports composite strings.
  *
+ * @type number | string
+ * 
  * Supported units:
  * - seconds: `s`, `sec`, `secs`, `second`, `seconds`
  * - minutes: `m`, `min`, `mins`, `minute`, `minutes`
@@ -24,7 +26,7 @@ export class Duration {
      * @param value Number of seconds or a string representing the duration.
      * @param start Optional start time reference for expiration, as `Date`, ms timestamp, or ISO string.
      */
-    constructor(value: number | string, protected start?: Date | number | string) {
+    constructor(value: number | string) {
         this._raw = value;
         this.seconds = Duration.parseToSeconds(this._raw);
     }
@@ -59,12 +61,8 @@ export class Duration {
      * @param start Optional start reference time.
      * @returns `true` if now - start >= duration; otherwise `false`.
      */
-    expired(start?: Date | number | string) : boolean {
-        start ??= this.start;
-        if (!start) {
-            throw new Error("Start date is required, if not provided in constructor");
-        }
-        const startMs = Duration.resolveToMs(start);
+    expired(start: Date | number | string) : boolean {
+        const startMs = new Date(start).getTime();
         const nowMs = Date.now();
         const durationMs = this.toMs();
         return nowMs - startMs >= durationMs;

@@ -25,7 +25,6 @@ import {
 } from "./serializers";
 import { Readable } from "node:stream";
 import { getCommonJS } from "../lib";
-import { YAMLProxy } from "./yamlproxy";
 
 const TEST_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../test/jsonutils/";
 const PACKAGE_FOLDER = path.dirname(fileURLToPath(import.meta.url)) + "/../";

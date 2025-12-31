@@ -190,6 +190,23 @@ function getFormatFromFilename(filename: string): Format {
  * Allow save/load of yaml or json file
  */
 export const FileUtils: StorageFinder & {
+  /**
+   * Save a YAML or JSON file based on its extension
+   * 
+   * You can compress files too if you add a .gz extension
+   *
+   * @param object to serialize
+   * @param filename to save
+   * @returns
+   * 
+   * @example
+   * ```ts
+   * FileUtils.save({ hello: "world" }, "test.json");
+   * FileUtils.save({ hello: "world" }, "test.yaml");
+   * FileUtils.save({ hello: "world" }, "test.json.gz");
+   * FileUtils.save({ hello: "world" }, "test.yaml.gz");
+   * ```
+   */
   save: (object: any, filename: string, format?: Format) => void;
   load: (filename: string, format?: Format) => any;
   loadConfigurationFile: (filename: string) => any;
@@ -340,13 +357,7 @@ export const FileUtils: StorageFinder & {
       return JSON.parse(content);
     }
   },
-  /**
-   * Save a YAML or JSON file based on its extension
-   *
-   * @param object to serialize
-   * @param filename to save
-   * @returns
-   */
+
   save: (object, filename = "", format?: Format) => {
     if (filename.endsWith(".gz")) {
       format ??= getFormatFromFilename(filename.slice(0, -3));
@@ -458,6 +469,15 @@ export const JSONUtils = {
   loadFile: (filename: string) => FileUtils.load(filename, "json"),
   /**
    * Helper to FileUtils.save
+   * 
+   * @param object to save
+   * @param filename where to save
+   * @returns
+   * 
+   * @example
+   * ```ts
+   * JSONUtils.saveFile({ hello: "world" }, "test.json");
+   * ```
    */
   saveFile: (object: any, filename: string) => FileUtils.save(object, filename, "json"),
 
@@ -490,6 +510,15 @@ export const YAMLUtils = {
   loadFile: (filename: string) => FileUtils.load(filename, "yaml"),
   /**
    * Helper to FileUtils.save
+   * 
+   * @param object to save
+   * @param filename where to save
+   * @returns
+   * 
+   * @example
+   * ```ts
+   * YAMLUtils.saveFile({ hello: "world" }, "test.yaml");
+   * ```
    */
   saveFile: (object: any, filename: string) => FileUtils.save(object, filename, "yaml"),
   /**

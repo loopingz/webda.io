@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "Acl": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "allow": {
+          "type": "boolean"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "allow",
+        "resource",
+        "user"
+      ],
+      "type": "object"
+    },
+    "acls[]": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "allow": {
+          "type": "boolean"
+        },
+        "resource": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "allow",
+        "resource",
+        "user"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "accessorDate": {
+      "type": "string"
+    },
+    "acl": {
+      "anyOf": [
+        {
+          "const": null,
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/Acl"
+        }
+      ]
+    },
+    "acls": {
+      "items": {
+        "$ref": "#/definitions/acls%5B%5D"
+      },
+      "type": "array"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "data": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "extra": {
+      "type": "string"
+    },
+    "mfa": {
+      "type": "boolean"
+    },
+    "plop": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "accessorDate",
+    "acl",
+    "acls",
+    "createdAt",
+    "data",
+    "date",
+    "extra",
+    "mfa",
+    "plop"
+  ],
+  "type": "object"
+}

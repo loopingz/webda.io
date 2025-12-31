@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "Acl": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "allow": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": ["action", "allow", "email"],
+      "type": "object"
+    },
+    "acls[]": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "allow": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": ["action", "allow", "email"],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "accessorDate": {
+      "type": "string"
+    },
+    "acl": {
+      "anyOf": [
+        {
+          "const": null,
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/Acl"
+        }
+      ]
+    },
+    "acls": {
+      "items": {
+        "$ref": "#/definitions/acls%5B%5D"
+      },
+      "type": "array"
+    },
+    "data": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "mfa": {
+      "type": "boolean"
+    },
+    "plop": {
+      "type": "number"
+    }
+  },
+  "required": ["accessorDate", "acl", "acls", "data", "date", "mfa", "plop"],
+  "type": "object"
+}

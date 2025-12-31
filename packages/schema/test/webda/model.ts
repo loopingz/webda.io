@@ -93,11 +93,39 @@ type SelfDtoOut<T> =
           : T;
 type DtoOut<T> = T extends { toDto(): infer D } ? D : T extends { toJSON(): infer D } ? D : SelfDtoOut<T>;
 
+class Acl {
+  resource!: string;
+  action!: string;
+  allow!: boolean;
+  user!: string;
+
+  fromDto(data: { action: string; allow: boolean; email: string }) {}
+
+  toDto() {
+    return {
+      action: this.action,
+      allow: this.allow,
+      email: this.user
+    };
+  }
+
+  toJSON() {
+    return {
+      resource: this.resource,
+      action: this.action,
+      allow: this.allow,
+      user: this.user
+    };
+  }
+}
+
 export class ModelA {
   private _mfa: string = "";
   date!: Date;
   data!: string;
   plop!: number;
+  acls!: Acl[];
+  acl: Acl | null = null;
 
   get accessorDate(): Date {
     return this.date;
@@ -123,7 +151,11 @@ export class ModelA {
     return {} as SelfDtoOut<this>;
   }
 
-  fromDto(data: SelfDtoIn<this>) {}
+  fromDto(data: Omit<SelfDtoIn<this>, "mfa"> & { mfa: string }) {}
+
+  async action(email: string, data: { info: string; test: string }): Promise<{ success: boolean; results: ModelA[] }> {
+    return { success: true, results: [] };
+  }
 
   toJSON(): SelfSerialized<this> {
     return {
@@ -143,4 +175,31 @@ export class UndefinedModel {
   date!: Date;
   data!: string;
   plop!: number;
+}
+
+export class ModelB {
+  plop!: string;
+  count!: number;
+
+  fromDto(data: { plopDTOIn: string; countDTOIn: string | number }): void {}
+
+  toDto(): {
+    plopDTO: string;
+    countDTO: string;
+  } {
+    return {
+      plopDTO: this.plop,
+      countDTO: this.count.toString()
+    };
+  }
+
+  toJSON(): {
+    plopJSON: string;
+    countJSON: Date;
+  } {
+    return {
+      plopJSON: this.plop,
+      countJSON: new Date(this.count)
+    };
+  }
 }

@@ -2,6 +2,14 @@ import ts from "typescript";
 import path from "path";
 import type { JSONSchema7, JSONSchema7TypeName } from "json-schema";
 
+export interface SchemaPropertyArguments {
+  type: ts.Type;
+  definition: JSONSchema7;
+  path: string;
+  node?: ts.Node;
+  depth: number;
+}
+
 export interface GenerateSchemaOptions {
   /**
    * path to tsconfig directory or tsconfig file
@@ -48,6 +56,12 @@ export interface GenerateSchemaOptions {
    * @default "input"
    */
   type?: "input" | "output";
+  /**
+   * Transformer function to modify options before generating schema
+   * @param options
+   * @returns
+   */
+  transformer?: (options: SchemaPropertyArguments) => SchemaPropertyArguments;
 }
 
 export function isOptional(type: ts.Type): boolean {
@@ -128,12 +142,13 @@ export class SchemaGenerator {
     log: undefined as undefined | ((...args: any[]) => void),
     type: "input" as const,
     disableBooleanDefaultToFalse: false,
-    bufferStrategy: "base64" as const
+    bufferStrategy: "base64" as const,
+    transformer: (options: SchemaPropertyArguments) => options
   });
   currentOptions: Required<
     Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "type" | "disableBooleanDefaultToFalse" | "bufferStrategy">
   > &
-    Partial<Pick<GenerateSchemaOptions, "mapBuffer" | "log">> = {
+    Partial<Pick<GenerateSchemaOptions, "mapBuffer" | "log" | "transformer">> = {
     maxDepth: 10,
     asRef: false,
     log: undefined,
@@ -275,7 +290,7 @@ export class SchemaGenerator {
         propType,
         propSchema,
         propPath,
-        decl,
+        locationNode,
         (path.match(/\//g) || []).length + 1
       );
       this.processJsDoc(propSchema, prop);
@@ -296,9 +311,14 @@ export class SchemaGenerator {
       schema.properties[prop.name] = propSchema;
 
       const declInitializer = (decl as any)?.initializer as ts.Expression | undefined;
-      if (declInitializer) {
+      if (declInitializer && decl && !ts.isPropertyAssignment(decl as ts.Node)) {
+        // Only treat declaration initializers as default/optional sources;
+        // object literal property assignments are value mappings, not defaults.
         propResult.optional = true;
-        propSchema.default = this.tryGetNonNumericEnumLiteral(declInitializer)?.const ?? undefined;
+        const literal = this.tryGetNonNumericEnumLiteral(declInitializer);
+        if (literal && literal.const !== undefined) {
+          propSchema.default = literal.const;
+        }
       }
       if (
         propSchema.type === "boolean" &&
@@ -703,6 +723,13 @@ export class SchemaGenerator {
       return { optional: false, decision: "keep" };
     }
     this.log(`${indent}Processing property at ${path}: ${propTypeString} (${type.flags})`);
+    ({ type, definition, path, node, depth } = this.currentOptions.transformer!({
+      type,
+      definition,
+      path,
+      node,
+      depth
+    }));
     // Capture JSDoc from multiple sources to merge annotations:
     // - the property/type symbol
     // - the alias symbol for primitive aliases (e.g., type ServiceName = string)
@@ -848,7 +875,9 @@ export class SchemaGenerator {
         }
         const subSchema: JSONSchema7 = {};
         const subPath = `${path}#${i}`;
-        const subResult = this.schemaProperty(subType, subSchema, subPath, undefined, depth + 1);
+        const subNode =
+          subType.getSymbol()?.valueDeclaration || subType.getSymbol()?.declarations?.[0] || this.targetNode;
+        const subResult = this.schemaProperty(subType, subSchema, subPath, subNode, depth + 1);
         if (subResult.decision === "skip") {
           continue; // skip this branch
         }
@@ -986,7 +1015,9 @@ export class SchemaGenerator {
           }
         } else {
           // Non-object constituent; cannot fully merge
-          const subResult = this.schemaProperty(subType, subSchema, subPath, undefined, depth + 1);
+          const subNode =
+            subType.getSymbol()?.valueDeclaration || subType.getSymbol()?.declarations?.[0] || this.targetNode;
+          const subResult = this.schemaProperty(subType, subSchema, subPath, subNode, depth + 1);
           if (subResult.decision === "skip") {
             continue; // skip this branch
           }
@@ -1036,7 +1067,8 @@ export class SchemaGenerator {
         definition.minItems = elementTypes.length;
         elementTypes.forEach((elType, index) => {
           const itemSchema: JSONSchema7 = {};
-          const subResult = this.schemaProperty(elType, itemSchema, `${path}[${index}]`, undefined, depth + 1);
+          const elNode = elType.getSymbol()?.valueDeclaration || elType.getSymbol()?.declarations?.[0] || this.targetNode;
+          const subResult = this.schemaProperty(elType, itemSchema, `${path}[${index}]`, elNode, depth + 1);
           if (subResult.decision === "skip") {
             definition.minItems!--;
             return; // skip this branch
@@ -1091,11 +1123,13 @@ export class SchemaGenerator {
         const elementType = this.getArrayElementType(type)!;
         // mark readonly (readonly T[], ReadonlyArray<T>, readonly [..] tuple)
         definition.items = {};
+        const elNode =
+          elementType.getSymbol()?.valueDeclaration || elementType.getSymbol()?.declarations?.[0] || this.targetNode;
         const subResult = this.schemaProperty(
           elementType,
           definition.items as JSONSchema7,
           path + "[]",
-          undefined,
+          elNode,
           depth + 1
         );
         if (subResult.decision === "skip") {

@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "&1$acls[]": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "allow": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "allow",
+        "email"
+      ],
+      "type": "object"
+    },
+    "Acl": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "allow": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "allow",
+        "email"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "accessorDate": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "format": "date-time",
+          "type": "string"
+        }
+      ]
+    },
+    "acl": {
+      "anyOf": [
+        {
+          "const": null,
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/Acl"
+        }
+      ]
+    },
+    "acls": {
+      "items": {
+        "$ref": "#/definitions/%261%24acls%5B%5D"
+      },
+      "type": "array"
+    },
+    "createdAt": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "format": "date-time",
+          "type": "string"
+        }
+      ]
+    },
+    "data": {
+      "type": "string"
+    },
+    "date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "format": "date-time",
+          "type": "string"
+        }
+      ]
+    },
+    "extra": {
+      "type": "string"
+    },
+    "mfa": {
+      "type": "string"
+    },
+    "plop": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "accessorDate",
+    "acl",
+    "acls",
+    "createdAt",
+    "data",
+    "date",
+    "extra",
+    "mfa",
+    "plop"
+  ],
+  "type": "object"
+}

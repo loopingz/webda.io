@@ -551,7 +551,15 @@ export class SchemaGenerator {
     const shape = this.collectObjectShape(type, path);
     // Merge any JSDoc/annotations already captured into the structural schema
     const source: JSONSchema7 = { ...(shape.schema as any), ...(definition as any) };
-    // register and replace definition with $ref
+    // At the root path, inline the schema instead of creating an empty "" definition key
+    // This avoids generating a definitions entry with an empty key when the top-level type
+    // is anonymous (e.g., "{ ... }"), and makes the schema root the actual object.
+    if (path === "/" && propTypeString.trim().startsWith("{")) {
+      Object.keys(definition).forEach(k => delete (definition as any)[k]);
+      Object.assign(definition as any, source as any);
+      return;
+    }
+    // Otherwise, register the definition and replace with a $ref
     this.ensureRef(propTypeString, source, definition, path);
   }
 
@@ -1301,7 +1309,7 @@ export class SchemaGenerator {
     result.definitions[typeName] = defSchema;
     if (!this.currentOptions.asRef && result.$ref) {
       // Inline definitions
-      const defKey = decodeURI(result.$ref.replace("#/definitions/", ""));
+      const defKey = decodeURIComponent(result.$ref.replace("#/definitions/", ""));
       Object.assign(result, result.definitions![defKey]);
       if (result.definitions && result.$ref) {
         delete (result.definitions as any)[defKey];
@@ -1348,7 +1356,7 @@ export class SchemaGenerator {
     });
     if (!this.currentOptions.asRef && result.$ref) {
       // Inline definitions
-      const defKey = decodeURI(result.$ref.replace("#/definitions/", ""));
+      const defKey = decodeURIComponent(result.$ref.replace("#/definitions/", ""));
       Object.assign(result, result.definitions![defKey]);
       if (result.definitions && result.$ref) {
         delete (result.definitions as any)[defKey];

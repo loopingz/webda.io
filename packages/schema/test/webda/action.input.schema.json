@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string"
+    },
+    "data": {
+      "additionalProperties": false,
+      "properties": {
+        "info": {
+          "type": "string"
+        },
+        "test": {
+          "type": "string"
+        }
+      },
+      "required": ["info", "test"],
+      "type": "object"
+    }
+  }
+}

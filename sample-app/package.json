@@ -26,11 +26,10 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@webda/aws": "^4.0.0-beta.1",
-    "@webda/compiler": "^4.0.0-beta.1",
     "@webda/core": "^4.0.0-beta.1",
     "deepmerge": "^4.2.2",
     "merge": "^2.1.1",
@@ -44,7 +43,7 @@
     "namespace": "WebdaDemo"
   },
   "devDependencies": {
-    "@types/node": "20.0.0",
+    "@types/node": "22.0.0",
     "tsx": "^4.17.0",
     "skott": "^0.35.3",
     "jscodeshift": "^17.0.0",

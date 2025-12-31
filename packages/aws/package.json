@@ -83,7 +83,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
     "@types/aws-lambda": "^8.10.97",
-    "@types/node": "20.0.0",
+    "@types/node": "22.0.0",
     "@webda/shell": "^4.0.0-beta.1",
     "aws-sdk-client-mock": "^4.0.0",
     "node-fetch": "^3.3.1",
@@ -95,7 +95,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "nx": {
     "implicitDependencies": [

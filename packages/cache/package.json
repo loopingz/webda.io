@@ -25,7 +25,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "22.0.0",
     "skott": "^0.35.3",
     "vitest": "^2.1.2",
     "jscodeshift": "^17.0.0",
@@ -57,6 +57,6 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   }
 }

@@ -62,7 +62,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
-    "@types/node": "20.0.0",
+    "@types/node": "22.0.0",
     "@webda/async": "^4.0.0-beta.1",
     "@webda/compiler": "^4.0.0-beta.2",
     "jscodeshift": "^17.0.0",
@@ -72,7 +72,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "nx": {
     "implicitDependencies": [

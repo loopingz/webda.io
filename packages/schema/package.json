@@ -29,13 +29,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^24.10.0",
+    "@types/node": "22.0.0",
     "@types/json-schema": "^7.0.15",
     "jsondiffpatch": "^0.7.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.7"
   },
-  "dependencies": {
+  "dependencies": {},
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

@@ -52,7 +52,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
     "@types/amqplib": "^0.10.0",
-    "@types/node": "20.0.0",
+    "@types/node": "22.0.0",
     "@webda/shell": "^4.0.0-beta.1",
     "sinon": "^19.0.2",
     "tsx": "^4.17.0",
@@ -68,7 +68,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "license": "LGPL-3.0-only"
 }

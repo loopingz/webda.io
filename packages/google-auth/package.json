@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.2",
-    "@types/node": "20.0.0",
+    "@types/node": "22.0.0",
     "@webda/shell": "^4.0.0-beta.1",
     "node-fetch": "^3.3.1",
     "sinon": "^19.0.2",
@@ -66,7 +66,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "nx": {
     "implicitDependencies": [

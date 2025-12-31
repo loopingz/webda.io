@@ -28,6 +28,11 @@ class ConsoleLoggerTest {
       this.output.log("DEBUG", "Testor");
       this.output.log("TRACE", "Testor");
       assert.strictEqual(log.callCount, 5);
+      this.output.log("INFO", new Error());
+      assert.strictEqual(log.callCount, 6);
+      console.error(log.getCall(5).args[0]);
+      assert.ok(log.getCall(5).args[0].includes("Error\n    at"));
+
     } finally {
       log.restore();
     }

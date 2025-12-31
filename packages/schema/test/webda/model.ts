@@ -2,7 +2,7 @@ type FilterOutAttributes<T, U> = {
   [K in keyof T]: T[K] extends U ? never : K;
 }[keyof T];
 
-type SelfSerialized<T> = T extends BigInt
+type SelfSerialized<T> = T extends bigint
   ? string
   : T extends Array<infer U>
     ? Array<Serialized<U>>
@@ -14,7 +14,7 @@ type SelfSerialized<T> = T extends BigInt
           ? string
           : T extends object
             ? {
-                [K in Extract<FilterOutAttributes<T, Function>, string>]: T[K] extends BigInt
+                [K in Extract<FilterOutAttributes<T, Function>, string>]: T[K] extends bigint
                   ? string
                   : T[K] extends Array<infer U>
                     ? Array<Serialized<U>>
@@ -34,8 +34,8 @@ type Serialized<T> = T extends { toJSON: () => infer R } ? R : SelfSerialized<T>
 
 type SelfDtoIn<T> = T extends Date
   ? string | number | Date
-  : T extends BigInt
-    ? string | number | BigInt
+  : T extends bigint
+    ? string | number | bigint
     : T extends Array<infer U>
       ? Array<DtoIn<U>>
       : T extends Map<string, infer MV>
@@ -48,8 +48,8 @@ type SelfDtoIn<T> = T extends Date
               ? {
                   [K in Extract<FilterOutAttributes<T, Function>, string>]: T[K] extends Date
                     ? string | number | Date
-                    : T[K] extends BigInt
-                      ? string | number | BigInt
+                    : T[K] extends bigint
+                      ? string | number | bigint
                       : T[K] extends Array<infer U>
                         ? Array<DtoIn<U>>
                         : T[K] extends Map<string, infer MV>
@@ -76,7 +76,7 @@ type SelfDtoOut<T> =
           ? {
               [K in Extract<FilterOutAttributes<T, Function>, string>]: T[K] extends Date
                 ? string
-                : T[K] extends BigInt
+                : T[K] extends bigint
                   ? string
                   : T[K] extends Array<infer U>
                     ? Array<DtoOut<U>>

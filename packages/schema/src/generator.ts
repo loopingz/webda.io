@@ -131,12 +131,9 @@ export class SchemaGenerator {
     bufferStrategy: "base64" as const
   });
   currentOptions: Required<
-    Pick<
-      GenerateSchemaOptions,
-      "maxDepth" | "asRef" | "type" | "disableBooleanDefaultToFalse" | "bufferStrategy"
-    >
+    Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "type" | "disableBooleanDefaultToFalse" | "bufferStrategy">
   > &
-    Partial<Pick<GenerateSchemaOptions, "mapBuffer"| "log">> = {
+    Partial<Pick<GenerateSchemaOptions, "mapBuffer" | "log">> = {
     maxDepth: 10,
     asRef: false,
     log: undefined,
@@ -687,11 +684,11 @@ export class SchemaGenerator {
 
   /**
    * Main implementation to fill in schema for a single property
-   * @param type 
-   * @param definition 
-   * @param path 
-   * @param node 
-   * @returns 
+   * @param type
+   * @param definition
+   * @param path
+   * @param node
+   * @returns
    */
   schemaProperty(
     type: ts.Type,
@@ -705,9 +702,7 @@ export class SchemaGenerator {
     if (depth > this.currentOptions.maxDepth) {
       return { optional: false, decision: "keep" };
     }
-    this.log(
-      `${indent}Processing property at ${path}: ${propTypeString} (${type.flags})`
-    );
+    this.log(`${indent}Processing property at ${path}: ${propTypeString} (${type.flags})`);
     // Capture JSDoc from multiple sources to merge annotations:
     // - the property/type symbol
     // - the alias symbol for primitive aliases (e.g., type ServiceName = string)
@@ -773,7 +768,6 @@ export class SchemaGenerator {
       definition.const = (type as ts.NumberLiteralType).value;
     } else if (f & ts.TypeFlags.BigIntLiteral) {
       definition.type = "number";
-      // TODO How to map BigInt literal to JSON Schema?
     } else if (propTypeString === "Function") {
       return { optional: false, decision: "skip" }; // skip function types
     } else if (f & ts.TypeFlags.NumberLike) {
@@ -892,14 +886,10 @@ export class SchemaGenerator {
           lastValue = (lastValue ?? 0) + 1;
           subSchema.const = lastValue;
         }
-        this.log(
-          `${indent}Union branch at ${subPath}: ${subResult.optional ? "optional" : "required"}`
-        );
+        this.log(`${indent}Union branch at ${subPath}: ${subResult.optional ? "optional" : "required"}`);
         definition.anyOf.push(subSchema);
       }
-      this.log(
-        `${indent}Union (${isEnum}) at ${path} has ${JSON.stringify(definition.anyOf)} branches`
-      );
+      this.log(`${indent}Union (${isEnum}) at ${path} has ${JSON.stringify(definition.anyOf)} branches`);
       // Deduplicate identical schemas in anyOf
       if (definition.anyOf) {
         const seen = new Set<string>();
@@ -1126,14 +1116,10 @@ export class SchemaGenerator {
       if (callSignatures.length > 0) {
         result.decision = "rename";
         result.to = this.processCallableType(callSignatures, definition, this.getFunctionName(node), path);
-        this.log(
-          `${indent}Processed callable anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`
-        );
+        this.log(`${indent}Processed callable anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`);
       } else {
         this.processClassOrInterface(type, definition, path, propTypeString);
-        this.log(
-          `${indent}Unhandled anonymous object type at ${path}: ${propTypeString} (${(type as any).flags})`
-        );
+        this.log(`${indent}Unhandled anonymous object type at ${path}: ${propTypeString} (${(type as any).flags})`);
       }
     } else if ((type as any).flags & ts.TypeFlags.Object) {
       // Detect Mapped Types
@@ -1141,9 +1127,7 @@ export class SchemaGenerator {
       if (symbol && symbol.flags & ts.SymbolFlags.TypeLiteral) {
         this.processClassOrInterface(type, definition, path, propTypeString);
       } else {
-        this.log(
-          `${indent}Unhandled object type at ${path}: ${propTypeString} (${(type as any).flags})`
-        );
+        this.log(`${indent}Unhandled object type at ${path}: ${propTypeString} (${(type as any).flags})`);
       }
     } else if (
       propTypeString === "object" ||
@@ -1162,9 +1146,7 @@ export class SchemaGenerator {
     } else {
       const apparentType = this.checker.getApparentType(type);
       if (apparentType !== type) {
-        this.log(
-          `${indent}Trying apparent type at ${path}: ${this.checker.typeToString(apparentType)}`
-        );
+        this.log(`${indent}Trying apparent type at ${path}: ${this.checker.typeToString(apparentType)}`);
         return this.schemaProperty(apparentType, definition, path, node, depth + 1);
       } else {
         this.log(`${indent}Unhandled type at ${path}: ${propTypeString} (${(type as any).flags})`);
@@ -1176,9 +1158,9 @@ export class SchemaGenerator {
 
   /**
    * Returns true if the given type is a Buffer or ArrayBuffer type
-   * @param type 
-   * @param typeString 
-   * @returns 
+   * @param type
+   * @param typeString
+   * @returns
    */
   private isBufferType(type: ts.Type, typeString: string): boolean {
     const symbol = type.getSymbol();
@@ -1197,7 +1179,7 @@ export class SchemaGenerator {
   }
 
   /**
-   *  Apply mapping for Buffer according to options 
+   *  Apply mapping for Buffer according to options
    * @param definition
    * @param type
    * @param path
@@ -1275,12 +1257,10 @@ export class SchemaGenerator {
     const typeName = this.checker.typeToString(type);
     const defSchema: JSONSchema7 = {};
     this.log(`Generating schema for type "${typeName}"`);
-      const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode, 0);
+    const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode, 0);
     // Allow rename, unless it is a type `type X = ...;` declaration
     if (res.decision === "rename" && this.targetNode && this.targetNode.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
-      this.log(
-        `Renaming type from "${typeName}" to "${res.to}" ${ts.SyntaxKind[this.targetNode.kind]}`
-      );
+      this.log(`Renaming type from "${typeName}" to "${res.to}" ${ts.SyntaxKind[this.targetNode.kind]}`);
     }
     result.$ref = `#/definitions/${this.getDefinitionKey(typeName)}`;
     result.definitions = { ...this.currentDefinitions };
@@ -1325,9 +1305,7 @@ export class SchemaGenerator {
       const res = this.schemaProperty(this.targetType, defSchema, "/", this.targetNode, 0);
       // Allow rename, unless it is a type `type X = ...;` declaration
       if (res.decision === "rename" && this.targetNode.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
-        this.log(
-          `Renaming type from "${typeName}" to "${res.to}" ${ts.SyntaxKind[this.targetNode.kind]}`
-        );
+        this.log(`Renaming type from "${typeName}" to "${res.to}" ${ts.SyntaxKind[this.targetNode.kind]}`);
         typeName = res.to!;
       }
       result.$ref ??= `#/definitions/${this.getDefinitionKey(typeName)}`;

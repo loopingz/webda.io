@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "data": {
+      "additionalProperties": false,
+      "properties": {
+        "info": {
+          "type": "string"
+        },
+        "test": {
+          "type": "string"
+        }
+      },
+      "required": ["info"],
+      "type": "object"
+    }
+  }
+}

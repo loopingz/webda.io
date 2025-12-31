@@ -1075,7 +1075,8 @@ export class SchemaGenerator {
         definition.minItems = elementTypes.length;
         elementTypes.forEach((elType, index) => {
           const itemSchema: JSONSchema7 = {};
-          const elNode = elType.getSymbol()?.valueDeclaration || elType.getSymbol()?.declarations?.[0] || this.targetNode;
+          const elNode =
+            elType.getSymbol()?.valueDeclaration || elType.getSymbol()?.declarations?.[0] || this.targetNode;
           const subResult = this.schemaProperty(elType, itemSchema, `${path}[${index}]`, elNode, depth + 1);
           if (subResult.decision === "skip") {
             definition.minItems!--;

@@ -86,71 +86,68 @@ describe("webda schema generation", () => {
               "dto-in": "fromDto"
             };
             if (name === "ModelA") {
-              // Check for action method
-              const actionType = program
-                .getTypeChecker()
-                .getApparentType(generator.checker.getTypeAtLocation(node))
-                .getProperty("action");
-              if (!actionType) {
-                assert.fail(`ModelA is missing action method`);
-              }
-              // Get the type of the action method
-              const actionMethodType = generator.checker.getTypeOfSymbolAtLocation(actionType, node) as ts.Type;
-              const signatures = generator.checker.getSignaturesOfType(actionMethodType, ts.SignatureKind.Call);
-              if (signatures.length === 0) {
-                assert.fail(`ModelA action method has no call signatures`);
-              }
-              console.log(`Generating schema for ModelA action method...`, signatures[0]);
-              // action(email: string, data: { info: string; test: string }): Promise<{ success: boolean; results: ModelA[] }>
-              const parametersSchema: any = {
-                type: "object",
-                properties: {}
-              };
-              for (const param of signatures[0]!.parameters) {
-                parametersSchema.properties![param.getName()] = generator.getSchemaFromType(
-                  generator.checker.getTypeOfSymbolAtLocation(param, node),
-                  {
-                    asRef: false,
-                    type: "input"
-                  }
-                );
-                delete parametersSchema.properties![param.getName()]["$schema"];
-              }
-              const returnType = generator.checker.getReturnTypeOfSignature(signatures[0]!);
-              // Ensure it is a Promise and get the resolved type
-              const returnTypeString = generator.checker.typeToString(returnType);
-              if (!returnTypeString.startsWith("Promise<")) {
-                assert.fail(`ModelA action method does not return a Promise, got: ${returnTypeString}`);
-              }
-              const promiseType = (returnType as ts.TypeReference).typeArguments?.[0];
-              if (!promiseType) {
-                assert.fail(`ModelA action method Promise has no type arguments`);
-              }
-              const resultSchema = generator.getSchemaFromType(promiseType, {
-                asRef: false,
-                type: "output"
-              });
+              for (const action of ["action", "action2", "action3"]) {
+                // Check for action method
+                const actionType = program
+                  .getTypeChecker()
+                  .getApparentType(generator.checker.getTypeAtLocation(node))
+                  .getProperty(action);
+                if (!actionType) {
+                  assert.fail(`ModelA is missing ${action} method`);
+                }
+                // Get the type of the action method
+                const actionMethodType = generator.checker.getTypeOfSymbolAtLocation(actionType, node) as ts.Type;
+                const signatures = generator.checker.getSignaturesOfType(actionMethodType, ts.SignatureKind.Call);
+                if (signatures.length === 0) {
+                  assert.fail(`ModelA ${action} method has no call signatures`);
+                }
+                console.log(`Generating schema for ModelA ${action} method...`, signatures[0]);
+                // action(email: string, data: { info: string; test: string }): Promise<{ success: boolean; results: ModelA[] }>
+                const parametersSchema: any = {
+                  type: "object",
+                  properties: {}
+                };
+                for (const param of signatures[0]!.parameters) {
+                  parametersSchema.properties![param.getName()] = generator.getSchemaFromType(
+                    generator.checker.getTypeOfSymbolAtLocation(param, node),
+                    {
+                      asRef: false,
+                      type: "input"
+                    }
+                  );
+                  delete parametersSchema.properties![param.getName()]["$schema"];
+                }
+                const returnType = generator.checker.getReturnTypeOfSignature(signatures[0]!);
+                const promiseType = (returnType as ts.TypeReference).typeArguments?.[0];
+                if (!promiseType) {
+                  assert.fail(`ModelA ${action} method Promise has no type arguments`);
+                }
+                const resultSchema = generator.getSchemaFromType(promiseType, {
+                  asRef: false,
+                  type: "output"
+                });
 
-              const schemas = {
-                output: resultSchema,
-                input: parametersSchema
-              };
-              for (const [stName, schema] of Object.entries(schemas)) {
-                subtype = stName as typeof subtype;
-                const schemaFile: string = `test/webda/action.${stName}.schema.json`;
-                const exists = existsSync(schemaFile);
-                if (process.env["UPDATE_FIXTURES"] || !exists) {
-                  writeFileSync(schemaFile, JSON.stringify(schema, null, 2), {
-                    encoding: "utf-8"
-                  });
-                  if (!exists && !process.env["UPDATE_FIXTURES"]) {
-                    assert.fail(
-                      `Schema fixture ${schemaFile} did not exist and has been created. Please verify its correctness.`
-                    );
+                const schemas = {
+                  output: resultSchema,
+                  input: parametersSchema
+                };
+                for (const [stName, schema] of Object.entries(schemas)) {
+                  subtype = stName as typeof subtype;
+                  const schemaFile: string = `test/webda/${action}.${stName}.schema.json`;
+                  const exists = existsSync(schemaFile);
+                  if (process.env["UPDATE_FIXTURES"] || !exists) {
+                    writeFileSync(schemaFile, JSON.stringify(schema, null, 2), {
+                      encoding: "utf-8"
+                    });
+                    if (!exists && !process.env["UPDATE_FIXTURES"]) {
+                      assert.fail(
+                        `Schema fixture ${schemaFile} did not exist and has been created. Please verify its correctness.`
+                      );
+                    }
+                  } else {
+                    const existing = JSON.parse(readFileSync(schemaFile, { encoding: "utf-8" }) || "{}");
+                    expect(schema, `Fail for ${name} with subtype ${subtype} ${schemaFile}`).toEqual(existing);
                   }
-                } else {
-                  const existing = JSON.parse(readFileSync(schemaFile, { encoding: "utf-8" }) || "{}");
-                  expect(schema, `Fail for ${name} with subtype ${subtype} ${schemaFile}`).toEqual(existing);
                 }
               }
             }

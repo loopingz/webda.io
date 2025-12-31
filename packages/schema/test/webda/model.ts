@@ -157,6 +157,14 @@ export class ModelA {
     return { success: true, results: [] };
   }
 
+  async action2(data?: { info: string; test?: string }): Promise<void> {
+    return;
+  }
+
+  async action3(email: string = "toto"): Promise<boolean> {
+    return true;
+  }
+
   toJSON(): SelfSerialized<this> {
     return {
       date: this.date.toISOString(),

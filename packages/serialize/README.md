@@ -28,10 +28,10 @@ With a sample object like this:
 {
     date: new Date("2023-10-01"),
     map: new Map<string, any>([
-    ["key", "value"],
-    ["key2", 12],
-    ["key3", true],
-    ["key4", new Date("2024-10-01")]
+        ["key", "value"],
+        ["key2", 12],
+        ["key3", true],
+        ["key4", new Date("2024-10-01")]
     ]),
     null: null,
     infinity: Infinity,
@@ -41,14 +41,15 @@ With a sample object like this:
     array: [1, 2, 3, "plop", { a: 1 }, new Date("2023-10-01")],
     arrayBuffer,
     subobject: {
-    buffer: Buffer.from("Hello, world!"),
-    regex: /hello/i,
-    url: new URL("https://example.com")
+        buffer: Buffer.from("Hello, world!"),
+        regex: /hello/i,
+        url: new URL("https://example.com")
     }
 }
 ```
 
 JSON.stringify would generate this outcome:
+
 ```
 {"date":"2023-10-01T00:00:00.000Z","map":{},"null":null,"infinity":null,"nan":null,"set":{},"array":[1,2,3,"plop",{"a":1},"2023-10-01T00:00:00.000Z"],"arrayBuffer":{},"subobject":{"buffer":{"type":"Buffer","data":[72,101,108,108,111,44,32,119,111,114,108,100,33]},"regex":{},"url":"https://example.com/"}}
 ```
@@ -70,18 +71,19 @@ With a sample object like this:
 
 ```javascript
 const obj = {
-    a: 1,
-    b: 2,
-    c: {
-        d: 3,
-        e: 4
-    }
+  a: 1,
+  b: 2,
+  c: {
+    d: 3,
+    e: 4
+  }
 };
 obj.c.f = obj;
 obj.c.g = obj.c;
 ```
 
 JSON.stringify would generate this outcome:
+
 ```
 TypeError: Converting circular structure to JSON
     --> starting at object with constructor 'Object'

@@ -13,22 +13,29 @@ import {
 } from "./serializer";
 
 class Test {
-  startDate: Date;
-  endDate: Date;
-  quantity: bigint;
+  startDate!: Date;
+  endDate!: Date;
+  quantity!: bigint;
 
-  constructor() {
-    this.startDate = new Date();
-    this.endDate = new Date();
-    this.quantity = BigInt(Math.floor(Math.random() * 1000000000000));
+  constructor(json?: any) {
+    this.unserialize(json);
   }
 
-  static fromJSON(json: any) {
-    const t = new Test();
-    t.startDate = new Date(json.startDate);
-    t.endDate = new Date(json.endDate);
-    t.quantity = BigInt(json.quantity);
-    return t;
+  unserialize(json?: any) : this {
+    if (json?.startDate || !this.startDate) {
+      this.startDate = new Date(json?.startDate || Date.now());
+    }
+    if (json?.endDate || !this.endDate) {
+      this.endDate = new Date(json?.endDate || Date.now());
+    }
+    if (json?.quantity || !this.quantity) {
+      this.quantity = BigInt(json?.quantity || "0");
+    }
+    return this;
+  }
+
+  static unserialize(json: any) : Test {
+    return new Test(json);
   }
 
   toJSON() {
@@ -127,7 +134,7 @@ class Serializer {
     try {
       registerSerializer("test", {
         constructorType: Test,
-        deserializer: Test.fromJSON
+        deserializer: Test.unserialize
       });
       const test = new Test();
       const serialized = serialize(test);

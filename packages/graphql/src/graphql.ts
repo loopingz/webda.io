@@ -801,12 +801,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       // We rely on the cache of the store to get the full object
       // We let the other listeners finish before returning the object
       await new Promise(resolve => nextTick(resolve));
-      return {
-        continuationToken: result.continuationToken,
-        results: await Promise.all(
-          result.results.map(r => (r.getUuid() === evt.object_id ? model.ref(evt.object_id).get() : r))
-        )
-      };
+      result.results =  await Promise.all(
+        result.results.map(r => (r.getUuid() === evt.object_id ? model.ref(evt.object_id).get() : r))
+      );
+      return result;
     };
     const events = {
       "Store.Updated": updatedCallback,

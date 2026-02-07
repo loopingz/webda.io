@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import chalk from "yoctocolors";
 import { sprintf } from "sprintf-js";
 import * as util from "util";
 import { isWorkerLogLevel, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
@@ -11,7 +11,15 @@ interface WorkerLogMessage {
   [key: string]: any;
 }
 /**
- * ConsoleLogger
+ * Console logger that outputs formatted and colored log messages to stdout
+ * Supports custom format strings using sprintf-style placeholders
+ *
+ * @example
+ * ```typescript
+ * const output = new WorkerOutput();
+ * new ConsoleLogger(output, "INFO");
+ * output.log("INFO", "Application started");
+ * ```
  */
 class ConsoleLogger extends WorkerLogger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
@@ -25,6 +33,8 @@ class ConsoleLogger extends WorkerLogger {
   }
 
   /**
+   * Process a WorkerOutput message
+   * @param msg - The message to handle
    * @override
    */
   onMessage(msg: WorkerMessage) {
@@ -32,8 +42,9 @@ class ConsoleLogger extends WorkerLogger {
   }
 
   /**
-   *
-   * @param level to get color from
+   * Get the color function for a given log level
+   * @param level - The log level to get color for
+   * @returns A function that applies the appropriate color to a string
    */
   static getColor(level: WorkerLogLevel): (s: string) => string {
     if (level === "ERROR") {
@@ -41,16 +52,16 @@ class ConsoleLogger extends WorkerLogger {
     } else if (level === "WARN") {
       return s => chalk.yellow(s);
     } else if (level === "DEBUG" || level === "TRACE") {
-      return s => chalk.grey(s);
+      return s => chalk.gray(s);
     }
     return s => s;
   }
 
   /**
-   * Commonly handle a message
-   * @param msg
-   * @param level
-   * @param format
+   * Handle log and title messages with level filtering
+   * @param msg - Message to process
+   * @param level - Current log level for filtering
+   * @param format - Format string for log output
    */
   static handleMessage(msg: WorkerMessage, level: WorkerLogLevel, format: string = ConsoleLogger.defaultFormat) {
     if (msg.type === "title.set" && LogFilter("INFO", level)) {
@@ -71,20 +82,20 @@ class ConsoleLogger extends WorkerLogger {
   }
 
   /**
-   * Display a message to the console
-   *
-   * @param msg
-   * @param format
+   * Display a formatted and colored log message to stdout
+   * @param msg - Message to display
+   * @param format - Format string for output
    */
   static display(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
     console.log(this.getColor(msg.log.level)(this.format(msg, format)));
   }
 
   /**
-   * Format a log based on format string
-   *
-   * @param msg
-   * @param format
+   * Format a log message using sprintf-style placeholders
+   * Supports: %(d)s (date), %(l)s (level), %(m)s (message), %(f)s (file), %(ll)d (line), %(c)d (column), %(ff)s (function)
+   * @param msg - Message to format
+   * @param format - Format string with placeholders
+   * @returns Formatted log string
    */
   static format(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat): string {
     if (!msg.log) {

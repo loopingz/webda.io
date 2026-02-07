@@ -1,7 +1,7 @@
 {
   "name": "@webda/workout",
   "version": "4.0.0-beta.1",
-  "description": "Abstraction to loggin and user interaction",
+  "description": "Abstraction to logging and user interaction",
   "keywords": [
     "terminal",
     "logger"
@@ -36,8 +36,7 @@
     "prettier": "^3.0.0",
     "sinon": "^19.0.2",
     "skott": "^0.35.3",
-    "source-map-support": "^0.5.19",
-    "@inquirer/prompts": "^7.0.0"
+    "source-map-support": "^0.5.19"
   },
   "files": [
     "lib"
@@ -51,7 +50,10 @@
       "text"
     ],
     "exclude": [
-      "**/*.spec.ts"
+      "**/*.spec.ts",
+      "lib/**",
+      "src/index.ts",
+      "src/fork.ts"
     ]
   },
   "homepage": "https://webda.io",

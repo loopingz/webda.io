@@ -14,41 +14,80 @@ import {
   WorkerProgress
 } from "../core";
 
-/*
-We could use terminal-kit to simplify
-*/
-
+/**
+ * Full-featured terminal UI with scrolling history, progress bars, and interactive input
+ * Provides a rich terminal interface with automatic screen updates and keyboard navigation
+ * Falls back to basic ConsoleLogger when not in a TTY environment
+ *
+ * @example
+ * ```typescript
+ * const output = new WorkerOutput();
+ * const terminal = new Terminal(output, "INFO");
+ * output.log("INFO", "Application started");
+ * output.startProgress("task", 100, "Processing");
+ * // Terminal displays logs with progress bars
+ * terminal.close(); // Cleanup when done
+ * ```
+ */
 export class Terminal {
+  /** Whether running in a TTY environment */
   tty: boolean;
+  /** WorkerOutput instance being displayed */
   wo: WorkerOutput;
+  /** Terminal height in rows */
   height: number = process.stdout.rows;
+  /** Terminal width in columns */
   width: number = process.stdout.columns;
+  /** Scrollable log history */
   history: string[] = [];
+  /** Maximum number of history lines to keep */
   historySize: number = 2000;
+  /** Current scroll position (-1 = bottom/no scroll) */
   scrollY: number = -1;
+  /** Log level filter */
   level: WorkerLogLevel;
+  /** Whether any progress bars are active */
   hasProgress: boolean = false;
+  /** Active progress trackers by ID */
   progresses: { [key: string]: WorkerProgress } = {};
+  /** Current title displayed at top of terminal */
   title: string = "";
+  /** Log format string */
   format?: string;
+  /** Pending input requests */
   inputs: WorkerInput[] = [];
+  /** Current user input value */
   inputValue: string = "";
+  /** Readline interface for input */
   rl?: readline.Interface;
+  /** Whether terminal has been reset */
   reset: boolean = false;
+  /** Whether current input passes validation */
   inputValid: boolean = true;
+  /** Current progress animation frame index */
   progressChar: number = 0;
+  /** Progress animation character frames */
   progressChars = ["\u287F", "\u28BF", "\u28FB", "\u28FD", "\u28FE", "\u28F7", "\u28EF", "\u28DF"].map(c =>
     chalk.bold(chalk.yellow(c))
   );
+  /** Logo lines to display */
   logo: string[] = [];
+  /** Width of the logo in characters */
   logoWidth: number = 0;
-  /**
-   * Contains the WorkerOutput listener
-   */
+  /** WorkerOutput message listener function */
   listener: (msg: WorkerMessage) => void;
+  /** Interval timer for screen refresh */
   _refresh?: NodeJS.Timeout;
+  /** Screen refresh rate in milliseconds */
   static refreshSpeed = 300;
 
+  /**
+   * Create a new terminal UI
+   * @param wo - WorkerOutput instance to display
+   * @param level - Log level filter (default: process.env.LOG_LEVEL or "INFO")
+   * @param format - Log format string (optional)
+   * @param tty - Whether running in TTY mode (default: process.stdout.isTTY)
+   */
   constructor(wo: WorkerOutput, level?: WorkerLogLevel, format?: string, tty: boolean = process.stdout.isTTY) {
     this.wo = wo;
     this.tty = tty;
@@ -95,6 +134,11 @@ export class Terminal {
     process.stdin.on("data", this.onData.bind(this));
   }
 
+  /**
+   * Handle keyboard input from stdin
+   * Manages scrolling (Up/Down/PageUp/PageDown), text input, and Ctrl+C
+   * @param data - Input data from stdin
+   */
   onData(data: Buffer | string): void {
     const str = data.toString();
     /* c8 ignore next 3 */
@@ -138,6 +182,10 @@ export class Terminal {
     this.displayScreen();
   }
 
+  /**
+   * Handle terminal resize events
+   * Updates height and width and refreshes display if progress is shown
+   */
   resize(): void {
     this.height = process.stdout.rows;
     this.width = process.stdout.columns;
@@ -146,6 +194,10 @@ export class Terminal {
     }
   }
 
+  /**
+   * Scroll the history view upward
+   * @param increment - Number of lines to scroll up
+   */
   scrollUp(increment: number): void {
     if (this.scrollY === -1) {
       this.scrollY = this.history.length - this.height;
@@ -156,6 +208,10 @@ export class Terminal {
     }
   }
 
+  /**
+   * Scroll the history view downward
+   * @param increment - Number of lines to scroll down
+   */
   scrollDown(increment: number): void {
     if (this.scrollY === -1) {
       this.scrollY = this.history.length - this.height;
@@ -166,10 +222,18 @@ export class Terminal {
     }
   }
 
+  /**
+   * Set the terminal title displayed at the top
+   * @param title - Title text to display
+   */
   setTitle(title: string = ""): void {
     this.title = title;
   }
 
+  /**
+   * Reset terminal to normal mode
+   * Restores cursor visibility and alternate screen buffer
+   */
   resetTerm(): void {
     if (this.reset) {
       return;
@@ -179,6 +243,10 @@ export class Terminal {
     process.stdout.write(this.displayHistory(this.height, false));
   }
 
+  /**
+   * Close the terminal UI and cleanup resources
+   * Stops refresh timer, resets terminal, and removes listeners
+   */
   close(): void {
     clearInterval(this._refresh);
     this.resetTerm();
@@ -189,6 +257,11 @@ export class Terminal {
     this.wo.removeListener("message", this.listener);
   }
 
+  /**
+   * Add a line to the scrollable history buffer
+   * Maintains history size limit by removing oldest entries
+   * @param line - Log line to add to history
+   */
   pushHistory(line: string): void {
     this.history.push(line);
     if (this.history.length > this.historySize) {
@@ -196,6 +269,10 @@ export class Terminal {
     }
   }
 
+  /**
+   * Route WorkerOutput messages to appropriate handlers
+   * @param msg - Message to process
+   */
   async router(msg: WorkerMessage): Promise<void> {
     switch (msg.type) {
       case "log":
@@ -223,12 +300,22 @@ export class Terminal {
     }
   }
 
+  /**
+   * Handle title set messages
+   * @param msg - Message containing the title
+   */
   handleTitleMessage(msg: WorkerMessage): void {
     this.title = msg.title;
     this.log(msg.groups, "INFO", [msg.title || ""]);
     this.displayScreen();
   }
 
+  /**
+   * Add a log message to history with formatting and colors
+   * @param groups - Log group hierarchy
+   * @param level - Log level
+   * @param args - Log message arguments
+   */
   log(groups: any[], level: WorkerLogLevel, ...args: any[]): void {
     if (!LogFilter(level, this.level)) {
       return;
@@ -250,6 +337,10 @@ export class Terminal {
     this.displayScreen();
   }
 
+  /**
+   * Calculate the height of the footer area (progress bars, title, input)
+   * @returns Number of rows needed for the footer
+   */
   getFooterSize(): number {
     let size = Object.keys(this.progresses).length + 1 + this.title ? 1 : 0;
     if (this.inputs.length) {
@@ -261,6 +352,13 @@ export class Terminal {
     return size;
   }
 
+  /**
+   * Strip or truncate a string with ANSI color codes
+   * Preserves color codes while limiting visible character count
+   * @param str - String with ANSI color codes
+   * @param limit - Maximum visible character length (-1 for no limit)
+   * @returns Processed string with color codes preserved
+   */
   stripColorString(str: string, limit: number = -1): string {
     let match;
     const regexp =
@@ -287,6 +385,12 @@ export class Terminal {
     return fullString;
   }
 
+  /**
+   * Format a string for display with proper width and padding
+   * @param str - String to display (may contain ANSI color codes)
+   * @param limit - Maximum width (default: terminal width)
+   * @returns Formatted string
+   */
   displayString(str: string, limit: number = this.width): string {
     const len = this.getTrueLength(str);
     if (len > limit) {
@@ -297,10 +401,21 @@ export class Terminal {
     return str.padEnd(limit);
   }
 
+  /**
+   * Get the visible length of a string excluding ANSI color codes
+   * @param str - String that may contain ANSI color codes
+   * @returns Visible character count
+   */
   getTrueLength(str: string): number {
     return str.replace(/(\u001b\[[\d;]+m)/gm, "").length;
   }
 
+  /**
+   * Create a visual progress bar string
+   * @param ratio - Progress ratio (0.0 to 1.0)
+   * @param barlen - Total bar length in characters
+   * @returns Formatted progress bar string with colors
+   */
   displayBar(ratio: number, barlen: number): string {
     let barFill = Math.floor(ratio * barlen);
     let barEmpty = Math.floor((1 - ratio) * barlen);
@@ -314,6 +429,12 @@ export class Terminal {
     return this.getBar(barFill, true) + this.getBar(barEmpty, false);
   }
 
+  /**
+   * Generate a portion of a progress bar
+   * @param size - Number of characters to generate
+   * @param complete - Whether this is the completed portion (true) or remaining portion (false)
+   * @returns Colored bar segment
+   */
   getBar(size: number, complete: boolean): string {
     if (complete) {
       return "[" + chalk.green("=".repeat(size));
@@ -322,6 +443,10 @@ export class Terminal {
     }
   }
 
+  /**
+   * Format the title for display with centered padding
+   * @returns Formatted title string with newline
+   */
   displayTitle() {
     let pads = (this.width - this.title.length - 4) / 2;
     if (pads < 0) {
@@ -330,6 +455,11 @@ export class Terminal {
     return `${" ".repeat(pads)}${chalk.bold(this.title)}${" ".repeat(pads)}\n`;
   }
 
+  /**
+   * Format a progress bar with percentage and count
+   * @param p - WorkerProgress instance to display
+   * @returns Formatted progress string with newline
+   */
   displayProgress(p: WorkerProgress) {
     const bar = this.displayBar(p.getRatio(), 40);
     // @ts-ignore
@@ -348,6 +478,10 @@ export class Terminal {
     return `${line}\n`;
   }
 
+  /**
+   * Generate the complete footer section with progress bars and title
+   * @returns Formatted footer string
+   */
   displayFooter() {
     // Separator
 
@@ -388,13 +522,20 @@ export class Terminal {
 
   /**
    * Retrieve current logo
-   *
-   * Usefull to add some versions
+   * Useful for modifying the logo (e.g., adding version information)
+   * @returns Array of logo lines
    */
   getLogo(): string[] {
     return this.logo;
   }
 
+  /**
+   * Render the scrollable history area
+   * Optionally overlays the logo on the right side
+   * @param lines - Number of lines to display
+   * @param complete - Whether to fill empty lines (default: true)
+   * @returns Formatted history string
+   */
   displayHistory(lines: number, complete: boolean = true) {
     let res = "";
     let start = this.scrollY < 0 ? this.history.length - lines : this.scrollY;
@@ -435,6 +576,10 @@ export class Terminal {
     return res;
   }
 
+  /**
+   * Render the complete terminal screen
+   * Updates history, footer, progress bars, and input prompt
+   */
   async displayScreen() {
     // Reset terminal
     let screen = ""; //"\x1Bc";
@@ -456,7 +601,10 @@ export class Terminal {
     }
   }
 
-  /* we do not want flickering on unit test */
+  /**
+   * Clear the entire terminal screen
+   * Used for testing - production code uses displayScreen() instead
+   */
   /* c8 ignore next 4 */
   clearScreen() {
     readline.cursorTo(process.stdout, 0, 0);

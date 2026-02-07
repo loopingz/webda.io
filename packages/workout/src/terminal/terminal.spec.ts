@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import chalk from "chalk";
+import chalk from "yoctocolors";
 import { stdin } from "mock-stdin";
 import { nextTick } from "process";
 import * as sinon from "sinon";
@@ -131,8 +131,14 @@ class TerminalTest {
   testDisplayString() {
     let test = this.terminal.displayString("Test" + "plop" + " " + "yep", 50);
     assert.strictEqual(test.length, 50);
-    test = this.terminal.displayString("Test" + chalk.yellow("plop") + " " + chalk.blue("yep"), 50);
-    assert.strictEqual(test.length, 70);
+    const coloredString = "Test" + chalk.yellow("plop") + " " + chalk.blue("yep");
+    test = this.terminal.displayString(coloredString, 50);
+    // The length depends on whether colors are enabled:
+    // - Without colors: 50 (just padding)
+    // - With yoctocolors: 60 (shorter escape codes than old chalk's 70)
+    // Test that it's at least 50 (minimum) and matches the actual colored string length
+    assert.ok(test.length >= 50);
+    assert.strictEqual(test.length, 50 + coloredString.length - 12); // 12 is visible text length
   }
 
   @test

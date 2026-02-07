@@ -3,6 +3,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import { WorkerLog, WorkerMessage, WorkerOutput } from "../core";
 import { ConsoleLogger } from "./console";
+import { WorkerLogger } from "./index";
 
 @suite
 class ConsoleLoggerTest {
@@ -66,5 +67,55 @@ class ConsoleLoggerTest {
   titleSet() {
     this.output = new WorkerOutput();
     ConsoleLogger.handleMessage(new WorkerMessage("title.set", this.output, {}), "TRACE");
+  }
+
+  @test
+  testWorkerLoggerStopStart() {
+    this.output = new WorkerOutput();
+    const logger = new ConsoleLogger(this.output, "INFO");
+
+    // Test stop (alias for close)
+    logger.stop();
+    assert.strictEqual(this.output.listeners("message").length, 0);
+
+    // Test start
+    logger.start();
+    assert.strictEqual(this.output.listeners("message").length, 1);
+
+    // Test start again (should not add duplicate)
+    logger.start();
+    assert.strictEqual(this.output.listeners("message").length, 1);
+
+    // Clean up
+    logger.close();
+  }
+
+  @test
+  testWorkerLoggerDynamicLevel() {
+    // Test that WorkerLogger can accept a function for dynamic log level
+    this.output = new WorkerOutput();
+    let currentLevel = "INFO" as import("../core").WorkerLogLevel;
+
+    // Create a minimal logger implementation to test the base class
+    class TestLogger extends WorkerLogger {
+      onMessage(msg: WorkerMessage) {
+        ConsoleLogger.handleMessage(msg, this.level(), ConsoleLogger.defaultFormat);
+      }
+    }
+
+    const logger = new TestLogger(this.output, () => currentLevel);
+
+    const log = sinon.spy(console, "log");
+    try {
+      this.output.log("DEBUG", "Should not show");
+      assert.strictEqual(log.callCount, 0);
+
+      currentLevel = "DEBUG";
+      this.output.log("DEBUG", "Should show");
+      assert.strictEqual(log.callCount, 1);
+    } finally {
+      log.restore();
+      logger.close();
+    }
   }
 }

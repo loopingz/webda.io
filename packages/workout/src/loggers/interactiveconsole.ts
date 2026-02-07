@@ -3,6 +3,11 @@ import { ConsoleLogger } from "./console";
 import chalk from "yoctocolors";
 const isUnicodeSupported = process.platform !== "win32" || Boolean(process.env.WT_SESSION);
 
+/**
+ * Convert milliseconds to a human-readable duration string
+ * @param millis - Duration in milliseconds
+ * @returns Formatted string like "1h 30m" or "45s 123ms"
+ */
 function humanizeDuration(millis) {
   const totalSeconds = Math.floor(millis / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -40,6 +45,10 @@ const defaultSpinner = {
   interval: 80
 };
 
+/**
+ * Simple progress indicator with spinner animation
+ * Used internally by InteractiveConsoleLogger for displaying progress
+ */
 class SimpleProgress {
   title: string;
   size: number = 40;
@@ -53,28 +62,53 @@ class SimpleProgress {
   started: number;
   stopped: number;
 
+  /**
+   * Create a new progress indicator
+   * @param stream - Output stream (default: process.stdout)
+   */
   constructor(protected stream = process.stdout) {}
 
+  /**
+   * Clear the current line on the terminal
+   */
   clear() {
     this.stream.write("\r\x1b[K");
   }
 
+  /**
+   * Display a status icon with the progress title
+   * @param status - Status type (info, success, warning, error)
+   */
   status(status: string) {
     this.stream.write(`${statuses[status] || "?"} ${this.title}\n`);
   }
 
+  /**
+   * Hide the terminal cursor
+   */
   hideCursor() {
     this.stream.write("\u001B[?25l");
   }
 
+  /**
+   * Show the terminal cursor
+   */
   showCursor() {
     this.stream.write("\u001B[?25h");
   }
 
+  /**
+   * Get the elapsed time since progress started
+   * @returns Elapsed time in milliseconds
+   */
   getElapsed() {
     return (this.stopped ?? Date.now()) - this.started;
   }
 
+  /**
+   * Start the progress animation
+   * Hides cursor and begins spinner interval
+   */
   start() {
     this.started ??= Date.now();
     this.hideCursor();
@@ -87,11 +121,19 @@ class SimpleProgress {
     }, defaultSpinner.interval);
   }
 
+  /**
+   * Update the progress value and re-render
+   * @param value - New progress value
+   */
   update(value) {
     this.current = value;
     this.render();
   }
 
+  /**
+   * Stop the progress animation
+   * Clears the interval, clears the line, and shows cursor
+   */
   stop() {
     clearInterval(this.interval);
     this.interval = undefined;
@@ -100,6 +142,10 @@ class SimpleProgress {
     this.stopped = Date.now();
   }
 
+  /**
+   * Render the current progress state to the terminal
+   * Handles both indeterminate (spinner only) and determinate (progress bar) modes
+   */
   render() {
     if (this.total === -1) {
       const str = chalk.yellow(defaultSpinner.frames[this.spinnerState]) + " " + this.title;
@@ -126,14 +172,28 @@ class SimpleProgress {
     for (let i = 0; i < this.lastValue.length && i < str.length; i++) {
       if (str[i] === this.lastValue[i]) {
         start++;
+      } else {
+        break;
       }
-      break;
     }
     this.stream.write(`\x1b[${this.lastValue.substring(start).length}D` + str.substring(start));
     this.lastValue = str;
   }
 }
 
+/**
+ * Interactive console logger with spinner animations and progress bars
+ * Automatically switches to basic ConsoleLogger when not in a TTY
+ *
+ * @example
+ * ```typescript
+ * const output = new WorkerOutput();
+ * new InteractiveConsoleLogger(output);
+ * output.startActivity("Processing");
+ * await doWork();
+ * output.stopActivity("success", "Done!");
+ * ```
+ */
 export class InteractiveConsoleLogger extends ConsoleLogger {
   input: Promise<string> & {
     cancel: () => void;
@@ -165,6 +225,11 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
     }
   }
 
+  /**
+   * Handle progress-related messages (start, update, stop)
+   * Manages spinner animation and displays completion status with duration
+   * @param msg - Progress message to handle
+   */
   async onProgress(msg: WorkerMessage) {
     if (msg.type === "progress.start") {
       this.spinner ??= new SimpleProgress();
@@ -196,24 +261,33 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
     }
   }
 
+  /**
+   * Handle input request messages using @inquirer/prompts
+   * Creates an interactive prompt with validation
+   * @param msg - Input request message
+   * @throws Error if @inquirer/prompts is not installed
+   */
   async onInput(msg: WorkerMessage) {
-    // @ts-ignore
-    const { input } = await import("@inquirer/prompts");
-    if (!input) {
+    try {
+      const inquirer = await import("@inquirer/prompts");
+      if (!inquirer.input) {
+        throw new Error("Inquirer is not available, please install it with npm install @inquirer/prompts");
+      }
+      this.input = inquirer.input({
+        message: msg.input.title,
+        validate: (value: string) => {
+          return msg.input.validate(value);
+        }
+      }) as any;
+      this.input
+        .then((value: string) => {
+          this.output.returnInput(msg.input.uuid, value);
+        })
+        .catch(err => {
+          // Ignore the error for now
+        });
+    } catch (err) {
       throw new Error("Inquirer is not available, please install it with npm install @inquirer/prompts");
     }
-    this.input = input({
-      message: msg.input.title,
-      validate: (value: string) => {
-        return msg.input.validate(value);
-      }
-    });
-    this.input
-      .then((value: string) => {
-        this.output.returnInput(msg.input.uuid, value);
-      })
-      .catch(err => {
-        // Ignore the error for now
-      });
   }
 }

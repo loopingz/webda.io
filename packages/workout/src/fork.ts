@@ -4,8 +4,18 @@ import { WorkerLogger } from "./loggers/index";
 
 const PREFIX = "ForkParentLogger:";
 
+/**
+ * Logger that forwards all messages to the parent process via IPC
+ * Used internally by Fork() to enable logging from forked child processes
+ */
 export class ForkParentLogger extends WorkerLogger {
+  /** Number of pending messages being sent to parent process */
   pending: number = 0;
+
+  /**
+   * Send a log message to the parent process via process.send()
+   * @param msg - The message to forward to the parent process
+   */
   onMessage(msg: WorkerMessage): void {
     try {
       this.pending++;
@@ -17,6 +27,11 @@ export class ForkParentLogger extends WorkerLogger {
     }
   }
 
+  /**
+   * Wait for all pending messages to be sent to the parent process
+   * @param timeout - Maximum time to wait in milliseconds (default: 30000)
+   * @returns Promise that resolves when all messages are sent or rejects on timeout
+   */
   flush(timeout: number = 30000): Promise<void> {
     const start = Date.now();
     return new Promise((resolve, reject) => {
@@ -36,10 +51,13 @@ export class ForkParentLogger extends WorkerLogger {
 
 /**
  * Launch a forked process to run the callback
- * @param callback to run in the forked process
- * @param parentCallback to run in the parent process
- * @param output optional WorkerOutput instance for logging
- * 
+ * Automatically forwards all logging and progress events between parent and child processes
+ *
+ * @param callback - Function to run in the forked child process
+ * @param parentCallback - Optional function to run in the parent process while child executes
+ * @param output - Optional WorkerOutput instance for logging (defaults to global instance)
+ * @returns Promise that resolves when the child process exits with code 0, rejects otherwise
+ *
  * @example
  * ```ts
  * import { Fork } from "@webda/workout";

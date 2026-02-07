@@ -27,8 +27,13 @@ export function useWorkerOutput(output?: WorkerOutput): WorkerOutput {
 }
 
 /**
- * Log a message
- * @returns
+ * Log a message using the global WorkerOutput instance
+ * @param args - Log level followed by message arguments
+ * @example
+ * ```typescript
+ * useLog("INFO", "Application started");
+ * useLog("ERROR", "Failed to connect:", error);
+ * ```
  */
 export function useLog(...args: Parameters<Logger["log"]>) {
   moduleOutput ??= new WorkerOutput();
@@ -37,10 +42,15 @@ export function useLog(...args: Parameters<Logger["log"]>) {
 }
 
 /**
- * Log a message with context
- * @param level 
- * @param context 
- * @param args 
+ * Log a message with additional context information
+ * @param level - The log level (ERROR, WARN, INFO, DEBUG, TRACE)
+ * @param context - Context object to attach to the log. If context.addLogProducerLine is true, adds file/line/function info
+ * @param args - Message arguments to log
+ * @example
+ * ```typescript
+ * useLogWithContext("INFO", { userId: 123 }, "User logged in");
+ * useLogWithContext("DEBUG", { addLogProducerLine: true }, "Debug info");
+ * ```
  */
 export function useLogWithContext(level: WorkerLogLevel, context: any, ...args: any[]) {
   moduleOutput ??= new WorkerOutput();
@@ -56,20 +66,32 @@ export function useLogWithContext(level: WorkerLogLevel, context: any, ...args: 
  * Represents a progress indicator
  */
 export class WorkerProgress {
+  /** Display title for the progress */
   title: string;
+  /** Log groups this progress belongs to */
   groups: string[] = [];
+  /** Unique identifier for this progress */
   uid: string;
   /**
-   * If -1 the progress is indeterminate
+   * Total number of units for this progress. If -1 the progress is indeterminate
    */
   total: number;
+  /** Current progress value */
   current: number = 0;
+  /** Whether the progress is still running */
   running: boolean = true;
   /**
-   * Status once done
+   * Status once done (success, error, warning, info)
    */
   status?: string;
 
+  /**
+   * Creates a new progress indicator
+   * @param uid - Unique identifier for this progress
+   * @param total - Total number of units (use -1 for indeterminate)
+   * @param groups - Log groups this progress belongs to
+   * @param title - Display title (defaults to uid if not provided)
+   */
   constructor(uid: string, total: number, groups: string[], title?: string) {
     this.uid = uid;
     this.total = total;
@@ -77,14 +99,26 @@ export class WorkerProgress {
     this.title = title || uid;
   }
 
+  /**
+   * Get the completion ratio (current/total)
+   * @returns A number between 0 and 1 representing completion percentage
+   */
   getRatio(): number {
     return this.current / this.total;
   }
 
+  /**
+   * Increment the progress by a specified amount
+   * @param inc - Amount to increment by
+   */
   incrementProgress(inc: number) {
     this.updateProgress(this.current + inc);
   }
 
+  /**
+   * Update the progress to a specific value
+   * @param current - New progress value
+   */
   updateProgress(current: number) {
     this.current = current;
     if ((this.current >= this.total && this.total > 0) || this.current === this.total) {
@@ -94,6 +128,17 @@ export class WorkerProgress {
   }
 }
 
+/**
+ * Filter log messages based on log level
+ * @param logLineLevel - The log level of the message being logged
+ * @param loggerLevel - The minimum log level configured for the logger
+ * @returns True if the message should be logged, false otherwise
+ * @example
+ * ```typescript
+ * LogFilter("DEBUG", "INFO") // false - DEBUG is lower priority than INFO
+ * LogFilter("ERROR", "INFO") // true - ERROR is higher priority than INFO
+ * ```
+ */
 export function LogFilter(logLineLevel: WorkerLogLevel, loggerLevel: WorkerLogLevel): boolean {
   return WorkerLogLevelEnum[logLineLevel] <= WorkerLogLevelEnum[loggerLevel];
 }
@@ -137,10 +182,18 @@ export class WorkerInput {
     this.type = type;
   }
 
+  /**
+   * Convert this input to a message format
+   * @returns The WorkerInput instance itself
+   */
   toMessage(): WorkerInput {
     return this;
   }
 
+  /**
+   * Serialize this input to JSON format
+   * @returns A plain object representation suitable for JSON serialization
+   */
   toJSON() {
     return {
       uuid: this.uuid,
@@ -154,6 +207,11 @@ export class WorkerInput {
     };
   }
 
+  /**
+   * Validate an input value against the configured validators
+   * @param input - The string value to validate
+   * @returns True if the input matches at least one validator, or if no validators are configured
+   */
   validate(input: string): boolean {
     if (!this.validators.length) {
       return true;
@@ -303,6 +361,11 @@ export class WorkerMessage {
     Object.assign(this, infos);
   }
 
+  /**
+   * Deserialize a WorkerMessage from JSON
+   * @param json - JSON string representation of a WorkerMessage
+   * @returns A fully reconstructed WorkerMessage instance with proper types
+   */
   static fromJSON(json: string): WorkerMessage {
     const obj = JSON.parse(json);
     let message;
@@ -473,8 +536,14 @@ export class WorkerOutput extends EventEmitter {
   }
 
   /**
-   *
-   * @returns
+   * Get a Bunyan-compatible logger interface
+   * @returns An object with Bunyan-style logging methods (info, trace, warn, debug, error, fatal)
+   * @example
+   * ```typescript
+   * const logger = output.getBunyanLogger();
+   * logger.info("App started");
+   * logger.error(err, "Request failed");
+   * ```
    */
   getBunyanLogger() {
     const bunyanFormatter = (level: WorkerLogLevel, ...args) => {
@@ -525,17 +594,18 @@ export class WorkerOutput extends EventEmitter {
   }
 
   /**
-   *
-   * @param interactive
+   * Log a message with additional context information
+   * @param level - The log level (ERROR, WARN, INFO, DEBUG, TRACE)
+   * @param context - Context object to attach to the log (can include file, line, column, function, etc.)
+   * @param args - Message arguments to log
    */
   logWithContext(level: WorkerLogLevel, context: any, ...args: any[]): void {
     this.emitMessage("log", { context, log: new WorkerLog(level, ...args) });
   }
 
   /**
-   * Indicate that some listeners allow input
-   *
-   * @param interactive
+   * Enable or disable interactive mode for user input
+   * @param interactive - True to allow user input, false to disable
    */
   setInteractive(interactive: boolean): void {
     this.interactive = interactive;
@@ -584,6 +654,10 @@ export class WorkerOutput extends EventEmitter {
     return uuid;
   }
 
+  /**
+   * Forward an event from another WorkerOutput (typically from a forked process)
+   * @param rawEvent - JSON string representation of a WorkerMessage
+   */
   forwardEvent(rawEvent: string) {
     const event = WorkerMessage.fromJSON(rawEvent);
     if (event.pid === process.pid) {

@@ -14,28 +14,91 @@ import SetSerializer from "./builtin/set.js";
 import UndefinedSerializer from "./builtin/undefined.js";
 
 /**
- * Define an object constructor type
+ * A constructor function type that can instantiate objects of type T.
+ *
+ * @template T The type of object this constructor creates
+ * @example
+ * ```typescript
+ * class MyClass {}
+ * const ctor: Constructor<MyClass> = MyClass;
+ * ```
  */
 export type Constructor<T = any> = new (...args: any[]) => T;
 
 /**
- * Define a serializer
+ * A constructor with a static `deserialize` method for custom deserialization logic.
+ *
+ * Classes implementing this interface can be registered without providing explicit
+ * deserializer functions - the static `deserialize` method will be used automatically.
+ *
+ * @template T The type of object this constructor creates
+ * @example
+ * ```typescript
+ * class MyClass {
+ *   static deserialize(obj: any, metadata: any, context: SerializerContext): MyClass {
+ *     return new MyClass(obj);
+ *   }
+ * }
+ * registerSerializer(MyClass);
+ * ```
+ */
+export type ConstructorWithDeserialize<T = any> = Constructor<T> & {
+  deserialize: (obj: any, metadata: any, context: SerializerContext) => T;
+};
+
+/**
+ * Defines the serialization and deserialization behavior for a specific type.
+ *
+ * Serializers transform objects into JSON-compatible values while preserving type information
+ * in metadata. During deserialization, the metadata is used to reconstruct the original object.
+ *
+ * @template T The type of object this serializer handles
+ *
+ * @example
+ * ```typescript
+ * const DateSerializer: Serializer<Date> = {
+ *   constructorType: Date,
+ *   serializer: (date) => ({ value: date.toISOString() }),
+ *   deserializer: (isoString) => new Date(isoString)
+ * };
+ * ```
  */
 export type Serializer<T = any> = {
   /**
-   * Constructor of the object to be serialized
+   * The constructor of the type being serialized.
    *
-   * Can be null if the serializer is for specific built-in types
-   * (e.g. Date, Map, Set, etc. mainly used internally)
+   * Set to `null` for primitive types (bigint, null, undefined, NaN, Infinity).
+   * When set, enables automatic constructor-based serializer lookup.
+   *
+   * @example
+   * ```typescript
+   * constructorType: Date  // For Date objects
+   * constructorType: null  // For primitive types
+   * ```
    */
-  constructorType: Constructor<T> | null;
+  constructorType:
+    | (Constructor<T> & { deserialize?: (obj: any, metadata: any, context: SerializerContext) => T })
+    | null;
   /**
-   * Serializer function
-   * @param obj
-   * @param context
-   * @returns {value: any, metadata?: any}
-   *  The value to be serialized and optional metadata
-   *  The metadata is used to store additional information about the object
+   * Converts an object to a JSON-compatible representation.
+   *
+   * Returns both the serialized value and optional metadata. Metadata is used during
+   * deserialization to restore the object's original type and structure.
+   *
+   * @param obj The object to serialize
+   * @param context The serializer context, used for handling nested objects and circular references
+   * @returns An object containing the serialized value and optional metadata
+   *
+   * @example
+   * ```typescript
+   * serializer: (map: Map<any, any>, context) => {
+   *   const entries = Array.from(map.entries());
+   *   return {
+   *     value: entries,
+   *     metadata: { size: map.size }
+   *   };
+   * }
+   * ```
    */
   serializer?: (
     obj: T,
@@ -45,99 +108,199 @@ export type Serializer<T = any> = {
     metadata?: any;
   };
   /**
-   * Deserializer function, receive the raw object from JSON.parse
-   * and the metadata from the serializer
-   * @param obj raw object returned by JSON.parse
-   * @param metadata returned by the serializer
-   * @param context
-   * @returns deserialized object
+   * Reconstructs the original object from its serialized representation.
+   *
+   * Receives the raw value from JSON.parse and the metadata produced by the serializer.
+   * Should reconstruct the object with proper type information and references.
+   *
+   * @param obj The raw value from JSON.parse
+   * @param metadata The metadata returned by the serializer
+   * @param context The serializer context, used for resolving nested objects and circular references
+   * @returns The reconstructed object
+   *
+   * @example
+   * ```typescript
+   * deserializer: (entries: any[], metadata, context) => {
+   *   return new Map(entries);
+   * }
+   * ```
    */
-  deserializer: (obj: any, metadata: any, context: SerializerContext) => T;
+  deserializer?: (obj: any, metadata: any, context: SerializerContext) => T;
 };
 
 /**
- * Define a stored serializer
- * This is used to store the serializer in the context
- * and to register it globally
+ * Internal representation of a registered serializer.
  *
- * It ensure serializer exists and has a type
+ * Unlike the public `Serializer` type, all optional fields are required here,
+ * and a unique `type` string identifier is added for metadata tracking.
+ *
+ * @internal
  */
 type StoredSerializer<T = any> = Required<Serializer<T>> & { type: string };
 
 /**
- * Register a serializer globally for a given type
+ * Register a serializer in the global context for a given type.
  *
- * @param type
- * @param methods
- * @param overwrite
+ * This function allows custom types to be serialized and deserialized. There are three ways to register:
+ *
+ * 1. **Constructor only** - For classes with a static `deserialize` method
+ * 2. **Type name + Constructor** - Explicitly name the type
+ * 3. **Type name + Serializer** - Full control with custom serializer/deserializer functions
+ *
+ * @param type The type name string or a constructor with a static deserialize method
+ * @param info Optional constructor or serializer implementation
+ * @param overwrite If true, replaces an existing serializer for this type (default: false)
+ * @throws Error if a serializer for this type is already registered and overwrite is false
+ *
+ * @example
+ * ```typescript
+ * // Method 1: Constructor with static deserialize
+ * class User {
+ *   static deserialize(obj: any) { return new User(obj); }
+ * }
+ * registerSerializer(User);
+ *
+ * // Method 2: Named constructor
+ * registerSerializer("User", User);
+ *
+ * // Method 3: Full serializer
+ * registerSerializer("User", {
+ *   constructorType: User,
+ *   serializer: (user) => ({ value: user.toJSON() }),
+ *   deserializer: (json) => new User(json)
+ * });
+ * ```
  */
-export function registerSerializer(type: string, methods: Serializer, overwrite: boolean = false): void {
-  SerializerContext.globalContext.registerSerializer(type, methods, overwrite);
+export function registerSerializer(type: ConstructorWithDeserialize): void;
+export function registerSerializer(type: string, clazz: ConstructorWithDeserialize): void;
+export function registerSerializer(type: string, methods: Serializer, overwrite?: boolean): void;
+export function registerSerializer(
+  type: string | ConstructorWithDeserialize,
+  info?: Serializer | ConstructorWithDeserialize,
+  overwrite: boolean = false
+): void {
+  // Delegate to the global context with the same overloads
+  SerializerContext.globalContext.registerSerializer(type as any, info as any, overwrite);
 }
 
 /**
- * Unregister a serializer globally for a given type
- * @param type
+ * Remove a serializer from the global context.
+ *
+ * @param type The type name string to unregister
+ *
+ * @example
+ * ```typescript
+ * unregisterSerializer("User");
+ * ```
  */
 export function unregisterSerializer(type: string): void {
   SerializerContext.globalContext.unregisterSerializer(type);
 }
 
 /**
- * Serializer context
- * This is used to store the serializers and the current state of the serialization
- * We rely on the mono-thread nature of JS to store the execution context
+ * Manages serialization and deserialization state for a set of registered serializers.
  *
- * It has a singleton in globalContext, instances can be created to keep a specific configuration
+ * The context tracks:
+ * - Registered serializers and their metadata
+ * - The current object path during serialization (for circular reference detection)
+ * - Pending reference resolvers during deserialization
+ * - Already serialized objects (to prevent infinite loops)
+ *
+ * A global singleton context is available via `SerializerContext.globalContext`,
+ * but you can create isolated contexts for specific use cases.
+ *
+ * @example
+ * ```typescript
+ * // Use the global context
+ * const json = serialize(myObject);
+ * const obj = deserialize(json);
+ *
+ * // Create an isolated context
+ * const ctx = new SerializerContext(false);
+ * ctx.registerSerializer("CustomType", mySerializer);
+ * const json = ctx.serialize(myObject);
+ * ```
  *
  * @see serialize
- * @see unserialize
+ * @see deserialize
  * @see registerSerializer
  * @see unregisterSerializer
  */
 export class SerializerContext {
   /**
-   * Contains all the registered serializers per type
+   * Map of type name to registered serializer.
+   * Keys are strings like "Date", "Map", "User", etc.
    */
   protected serializers: { [key: string]: StoredSerializer };
 
   /**
-   * Contains all the registered serializer for each constructor
+   * Map from constructor function to its serializer.
+   * Allows fast lookup when serializing objects by their constructor.
+   * Uses WeakMap to avoid preventing garbage collection of unused constructors.
    */
   protected typeSerializer: WeakMap<any, StoredSerializer>;
+
   /**
-   * Used to store the current path in the serialization
-   * This is used to prevent circular references
-   * and to create the $ref attribute value
+   * The current path during serialization, represented as an array of property names.
+   *
+   * Example: When serializing `{user: {posts: [...]}}`, the stack might be `["user", "posts", "0"]`.
+   * This is used to generate JSON-Pointer references like `#/user/posts/0` for circular references.
    */
   stack: string[] = [];
+
   /**
-   * Used to store the current resolvers
-   * This is used to resolve references after the unserialization
+   * Queue of deferred reference resolutions during deserialization.
+   *
+   * When encountering a `{$ref: "#/path"}` placeholder, the resolver is added here
+   * and executed after the full object graph is reconstructed.
    */
   resolvers?: { $ref: string; updater: (value: any) => void }[] = [];
+
   /**
-   * Used to store the already serialized objects
-   * This is used to prevent circular references
+   * Map from object instance to its JSON-Pointer path.
+   *
+   * Tracks objects encountered during serialization to detect circular references.
+   * When an object is seen again, a reference placeholder is emitted instead of re-serializing.
    */
   objects: WeakMap<any, string> = new WeakMap();
+
   /**
-   * Used to store the current mode
-   * This is used to prevent circular references
+   * Current operation mode: "serialize" or "deserialize".
+   *
+   * Used to enforce correct API usage (e.g., getReference only works during deserialization).
    */
   mode?: "serialize" | "deserialize";
 
   /**
-   * Global context
+   * The global singleton serializer context.
+   *
+   * This is used by the top-level `serialize()`, `deserialize()`, and `registerSerializer()`
+   * functions. All built-in types (Date, Map, Set, etc.) are pre-registered here.
+   *
+   * @example
+   * ```typescript
+   * SerializerContext.globalContext.registerSerializer("MyType", mySerializer);
+   * ```
    */
   static get globalContext(): SerializerContext {
     return globalContext;
   }
 
   /**
-   * Constructor a new serializer context
-   * @param inherit true to inherit the global context from the global context
-   * if you do not inherit, you will have to register all the serializers you need
+   * Create a new serializer context.
+   *
+   * @param inherit If true (default), copies all serializers from the global context.
+   *                If false, starts with an empty context requiring manual serializer registration.
+   *
+   * @example
+   * ```typescript
+   * // Inherit built-in serializers
+   * const ctx = new SerializerContext();
+   *
+   * // Start fresh (no built-in serializers)
+   * const emptyCtx = new SerializerContext(false);
+   * emptyCtx.registerSerializer("Date", DateSerializer);
+   * ```
    */
   constructor(inherit: boolean = true) {
     // Initialize the serializer context
@@ -152,34 +315,66 @@ export class SerializerContext {
   }
 
   /**
-   * Register a serializer for a given type in this context.
+   * Register a serializer in this context.
    *
-   * @param type – Unique string key for the serializer.
-   * @param methods – Serializer and deserializer implementations.
-   * @param overwrite – If true, replace any existing registration.
-   * @returns this context for chaining.
+   * See the global {@link registerSerializer} function for detailed usage examples.
+   *
+   * @param type The type name string or a constructor with a static deserialize method
+   * @param info Optional constructor or serializer implementation
+   * @param overwrite If true, replaces an existing serializer for this type
+   * @returns This context for method chaining
+   * @throws Error if a serializer for this type is already registered and overwrite is false
+   * @throws Error if no deserializer is provided and the constructor lacks a static deserialize method
    */
-  public registerSerializer(type: string, methods: Serializer, overwrite: boolean = false): this {
-    if (!overwrite && this.serializers[type]) {
-      throw new Error(`Serializer for type '${type}' already registered for a different class`);
+  public registerSerializer(type: ConstructorWithDeserialize): this;
+  public registerSerializer(type: string, clazz: ConstructorWithDeserialize): this;
+  public registerSerializer(type: string, methods: Serializer, overwrite?: boolean): this;
+  public registerSerializer(
+    type: string | ConstructorWithDeserialize,
+    info?: Serializer | ConstructorWithDeserialize,
+    overwrite: boolean = false
+  ): this {
+    // Handle overload resolution
+    const methods: Partial<Serializer> = typeof info === "object" && info !== null ? info : {};
+    const typeName = typeof type === "string" ? type : type.name;
+    if (typeof type !== "string") {
+      methods.constructorType = type;
+    } else if (typeof info === "function") {
+      methods.constructorType = info;
     }
-    const info: StoredSerializer = methods as StoredSerializer;
-    if (!info.serializer) {
-      info.serializer = o => ({ value: o.toJSON ? o.toJSON() : o });
+
+    // Validate and register
+    if (!overwrite && this.serializers[typeName]) {
+      throw new Error(
+        `Serializer for type '${typeName}' is already registered. ` +
+        `Use overwrite=true to replace it, or call unregisterSerializer('${typeName}') first.`
+      );
     }
-    info.type = type;
-    this.serializers[type] = info;
-    if (info.constructorType) {
-      this.typeSerializer.set(info.constructorType, info);
+    const info2: StoredSerializer = methods as StoredSerializer;
+    if (!info2.serializer) {
+      info2.serializer = o => ({ value: o.toJSON ? o.toJSON() : o });
+    }
+    if (!info2.deserializer) {
+      if (info2.constructorType && typeof info2.constructorType["deserialize"] === "function") {
+        info2.deserializer = (o: any, metadata: any, context: SerializerContext) =>
+          info2.constructorType!["deserialize"]!(o, metadata, context);
+      } else {
+        throw new Error(`Deserializer is required for type '${typeName}'`);
+      }
+    }
+    info2.type = typeName;
+    this.serializers[typeName] = info2;
+    if (info2.constructorType) {
+      this.typeSerializer.set(info2.constructorType, info2);
     }
     return this;
   }
 
   /**
-   * Unregister a serializer globally for a given type.
+   * Remove a serializer from this context.
    *
-   * @param type – The type key to remove.
-   * @returns this context for chaining.
+   * @param type The type name string to unregister
+   * @returns This context for method chaining
    */
   public unregisterSerializer(type: string): this {
     if (this.serializers[type]) {
@@ -190,33 +385,46 @@ export class SerializerContext {
   }
 
   /**
-   * Retrieve a serializer by type key or by constructor function.
+   * Retrieve a registered serializer by type name or constructor.
    *
-   * @param type – The string key or constructor to look up.
-   * @returns The matching Serializer.
-   * @throws If no serializer is found.
+   * @param type The string type name or constructor function to look up
+   * @returns The matching stored serializer
+   * @throws Error if no serializer is registered for this type
+   *
+   * @example
+   * ```typescript
+   * const dateSerializer = context.getSerializer("Date");
+   * const mapSerializer = context.getSerializer(Map);
+   * ```
    */
-  public getSerializer(type: string | Constructor): Serializer {
+  public getSerializer(type: string | Constructor): StoredSerializer {
     if (type === "ref") {
       return {
-        constructor: null,
+        constructorType: null,
         serializer: (obj: any) => ({ value: { $ref: obj } }),
+        deserializer: (obj: any) => obj, // Should never be called for ref placeholders
         type: "ref"
-      } as any;
+      };
     }
     const serializer = typeof type === "function" ? this.typeSerializer.get(type) : this.serializers[type];
     if (serializer) {
       return serializer;
     }
-    // If the serializer is not found, throw an error
-    throw new Error(`Serializer for type '${typeof type === "string" ? type : type.name}' not found`);
+    // If the serializer is not found, throw an error with helpful guidance
+    const typeName = typeof type === "string" ? type : type.name;
+    throw new Error(
+      `Serializer for type '${typeName}' not found. ` +
+      `Did you forget to call registerSerializer('${typeName}', ...)?`
+    );
   }
 
   /**
-   * Push a path segment on the serialization stack.
+   * Push a path segment onto the serialization stack.
    *
-   * @param key – The segment to push.
-   * @returns this context.
+   * Used internally to track the current location in the object graph.
+   *
+   * @param key The property name or array index to push
+   * @returns This context for method chaining
    */
   public push(key: string): this {
     this.stack.push(key);
@@ -224,18 +432,28 @@ export class SerializerContext {
   }
 
   /**
-   * Get the current JSON-Pointer–style path.
+   * Get the current path as a JSON-Pointer string.
    *
-   * @returns A string like "#/foo/bar".
+   * JSON-Pointer format (RFC 6901) uses slashes to separate path segments.
+   *
+   * @returns A JSON-Pointer string like "#/user/posts/0"
+   *
+   * @example
+   * ```typescript
+   * context.push("user").push("posts").push("0");
+   * context.path(); // Returns "#/user/posts/0"
+   * ```
    */
   public path(): string {
     return "#/" + this.stack.join("/");
   }
 
   /**
-   * Pop the last segment off the serialization stack.
+   * Remove the last segment from the serialization stack.
    *
-   * @returns this context.
+   * Used internally when exiting a nested object or array element.
+   *
+   * @returns This context for method chaining
    */
   public pop(): this {
     this.stack.pop();
@@ -243,11 +461,23 @@ export class SerializerContext {
   }
 
   /**
-   * Prepare a named attribute for serialization, managing stack.
+   * Serialize a nested object property, managing the path stack.
    *
-   * @param attribute – The key in the parent object.
-   * @param obj – The value to serialize.
-   * @returns The serialized form.
+   * This method is typically called by serializers when processing object properties
+   * to maintain correct path tracking for circular reference detection.
+   *
+   * @param attribute The property name in the parent object
+   * @param obj The value to serialize
+   * @returns The serialized representation with value and optional metadata
+   *
+   * @example
+   * ```typescript
+   * // Inside a custom serializer
+   * serializer: (obj, context) => {
+   *   const serializedName = context.prepareAttribute("name", obj.name);
+   *   return { value: { name: serializedName.value } };
+   * }
+   * ```
    */
   public prepareAttribute(attribute: string, obj: any): any {
     try {
@@ -259,10 +489,13 @@ export class SerializerContext {
   }
 
   /**
-   * Handle built-in scalar types (null, undefined, NaN, Infinity).
+   * Serialize special JavaScript values that cannot be represented in JSON.
    *
-   * @param id – Identifier of the static type.
-   * @returns The serialized form or undefined if not registered.
+   * Handles: null, undefined, NaN, Infinity, -Infinity
+   *
+   * @param id The identifier of the special value type
+   * @returns The serialized form with metadata, or undefined if not registered
+   * @internal
    */
   private staticSerializer(id: "Infinity" | "-Infinity" | "null" | "undefined" | "NaN"): any {
     const entry = this.serializers[id];
@@ -272,10 +505,19 @@ export class SerializerContext {
   }
 
   /**
-   * Core logic to decide which serializer to invoke based on runtime type.
+   * Determine the appropriate serializer for an object and serialize it.
    *
-   * @param obj – Any JS value to serialize.
-   * @returns An object with `value` and optional `metadata`.
+   * This is the core serialization logic that:
+   * 1. Detects circular references and emits `{$ref: "..."}` placeholders
+   * 2. Chooses the correct serializer based on the object's type
+   * 3. Handles primitives (string, number, boolean) directly
+   * 4. Returns symbols and functions as undefined
+   * 5. Throws an error if an object has a deserialize method but isn't registered
+   *
+   * @param obj Any JavaScript value to serialize
+   * @returns An object containing the serialized value and optional metadata
+   * @throws Error if a serializer is required but not found
+   * @internal
    */
   private prepareObject(obj: any): { value: any; metadata?: any } {
     // Handle circular references
@@ -287,8 +529,15 @@ export class SerializerContext {
     }
     try {
       this.objects.set(obj, this.path());
-    } catch {
-      /* ignore WeakMap errors */
+    } catch (error) {
+      // WeakMap throws TypeError for non-object keys (primitives like strings, numbers)
+      // This is expected and safe to ignore during serialization
+      if (error instanceof TypeError) {
+        // Silently ignore - primitives don't need circular reference tracking
+      } else {
+        // Re-throw unexpected errors (e.g., out of memory)
+        throw error;
+      }
     }
 
     let serializer: StoredSerializer | undefined;
@@ -302,11 +551,9 @@ export class SerializerContext {
       serializer = this.typeSerializer.get(obj.constructor)!;
     } else if (typeof obj === "object" && obj.constructor && typeof obj.constructor["deserialize"] === "function") {
       // If two objects have same class name without being the same constructor it will fail
-      this.registerSerializer(obj.constructor.name, {
-        constructorType: obj.constructor,
-        deserializer: (o: any, metadata: any, context: SerializerContext) => obj.constructor["deserialize"](o)
-      });
-      serializer = this.typeSerializer.get(obj.constructor)!;
+      throw new Error(
+        `Serializer for object with constructor '${obj.constructor.name}' not found but a deserializer exists, please use registerSerializer(${obj.constructor.name}) prior to serialization`
+      );
     } else if (typeof obj === "object") {
       serializer = this.serializers["object"];
     } else if (typeof obj === "number") {
@@ -331,11 +578,22 @@ export class SerializerContext {
   }
 
   /**
-   * Determine if an object is a reference placeholder and enqueue a resolver.
+   * Check if a value is a circular reference placeholder and queue it for resolution.
    *
-   * @param obj – Potential {$ref: "..."} object.
-   * @param updater – Function to replace the placeholder later.
-   * @returns True if a reference was recorded.
+   * During deserialization, when a `{$ref: "#/path"}` placeholder is encountered,
+   * this method records it for later resolution after the full object graph is built.
+   *
+   * @param obj The value to check (should be `{$ref: "..."}` for circular references)
+   * @param updater Callback to update the placeholder once the referenced object is available
+   * @returns True if this is a reference placeholder, false otherwise
+   *
+   * @example
+   * ```typescript
+   * // Inside a custom deserializer
+   * if (context.isReference(obj.parent, (value) => { obj.parent = value; })) {
+   *   // Parent is a circular reference, will be resolved later
+   * }
+   * ```
    */
   public isReference(obj: any, updater: (v: any) => void): boolean {
     if (!obj || !obj.$ref) return false;
@@ -344,19 +602,44 @@ export class SerializerContext {
   }
 
   /**
-   * Convert a JS value to a JSON string, keeping serializer metadata.
+   * Serialize a JavaScript value to a JSON string.
    *
-   * @param obj – Any JS object/value.
-   * @returns The JSON string representation.
+   * This method converts objects to JSON while preserving type information
+   * through metadata. Handles circular references, custom types, and special
+   * JavaScript values (undefined, NaN, Infinity, etc.).
+   *
+   * @param obj Any JavaScript value to serialize
+   * @returns A JSON string that can be passed to {@link deserialize}
+   *
+   * @example
+   * ```typescript
+   * const obj = {
+   *   date: new Date(),
+   *   map: new Map([["key", "value"]]),
+   *   bigint: 123n
+   * };
+   * const json = context.serialize(obj);
+   * ```
    */
   public serialize(obj: any): string {
     return JSON.stringify(this.serializeRaw(obj));
   }
 
   /**
-   * Serialize an object to a raw format, keeping serializer metadata.
-   * @param obj – Any JS object/value.
-   * @returns The raw serialized representation.
+   * Serialize an object to raw format without JSON.stringify.
+   *
+   * Useful for performance-sensitive scenarios or when you need to manipulate
+   * the serialized representation before converting to JSON.
+   *
+   * @param obj Any JavaScript value to serialize
+   * @returns An object containing `value` and `$serializer` metadata, or just the value for primitives
+   *
+   * @example
+   * ```typescript
+   * const raw = context.serializeRaw({ date: new Date() });
+   * // raw = { value: { date: "2024-01-01T00:00:00.000Z" }, $serializer: { ... } }
+   * const json = JSON.stringify(raw);
+   * ```
    */
   public serializeRaw(obj: any): { value: any; $serializer: any } {
     this.mode = "serialize";
@@ -375,37 +658,77 @@ export class SerializerContext {
   }
 
   /**
-   * Resolve a JSON-Pointer reference against the root object.
+   * Resolve a JSON-Pointer reference to its target object.
    *
-   * @param ref – A "#/path/..." string.
-   * @param object – The root object to navigate.
-   * @returns The target value.
+   * Follows RFC 6901 JSON-Pointer format to navigate the object graph.
+   * Only available during deserialization mode.
+   *
+   * @param ref A JSON-Pointer string like "#/user/posts/0"
+   * @param object The root object to navigate from
+   * @returns The value at the referenced path
+   * @throws Error if called outside deserialization mode
+   * @throws Error if the reference format is invalid
+   * @throws Error if the referenced path doesn't exist
+   *
+   * @example
+   * ```typescript
+   * const root = { user: { posts: ["Hello"] } };
+   * const value = context.getReference("#/user/posts/0", root);
+   * // value = "Hello"
+   * ```
    */
   public getReference(ref: string, object: any): any {
     if (this.mode !== "deserialize") {
       throw new Error("Cannot get reference in serialize mode");
     }
     if (!ref.startsWith("#/")) {
-      throw new Error(`Invalid reference '${ref}'`);
+      throw new Error(`Invalid reference '${ref}': must start with '#/'`);
     }
-    const steps = ref.slice(2).split("/");
+
+    // Split and filter out empty segments
+    const steps = ref.slice(2).split("/").filter(Boolean);
     let cur = object;
+
     for (const p of steps) {
-      if (!p) continue;
-      cur = cur[p];
+      // Decode JSON-Pointer escape sequences (RFC 6901)
+      // ~1 becomes /, ~0 becomes ~
+      const decoded = p.replace(/~1/g, '/').replace(/~0/g, '~');
+
+      // Check if current value is traversable
+      if (cur === null || cur === undefined) {
+        throw new Error(
+          `Reference '${ref}' failed: cannot traverse null/undefined at segment '${decoded}'`
+        );
+      }
+
+      cur = cur[decoded];
+
       if (cur === undefined) {
-        throw new Error(`Reference '${ref}' not found`);
+        throw new Error(
+          `Reference '${ref}' not found: property '${decoded}' does not exist`
+        );
       }
     }
     return cur;
   }
 
   /**
-   * Parse a JSON string and apply registered deserializers.
+   * Deserialize a JSON string to reconstruct the original JavaScript object graph.
    *
-   * @typeparam T – Expected return type.
-   * @param str – The JSON string produced by serialize().
-   * @returns The reconstructed object graph.
+   * Parses the JSON string and applies registered deserializers to restore
+   * proper types, circular references, and custom objects.
+   *
+   * @template T The expected return type
+   * @param str A JSON string produced by {@link serialize}
+   * @returns The reconstructed object with proper types
+   * @throws Error if a required serializer is not registered
+   *
+   * @example
+   * ```typescript
+   * const json = '{"value":{"date":"2024-01-01T00:00:00.000Z"},"$serializer":{...}}';
+   * const obj = context.deserialize<{ date: Date }>(json);
+   * // obj.date is a Date instance, not a string
+   * ```
    */
   public deserialize<T>(str: string): T {
     if (!str) {
@@ -415,11 +738,21 @@ export class SerializerContext {
   }
 
   /**
-   * Deserialize a raw object
-   * This is used to deserialize objects without the JSON.parse overhead
-   * It expects an object with the value and metadata
-   * @param info
-   * @returns
+   * Deserialize a raw object without JSON.parse.
+   *
+   * Useful when you already have a parsed object or need to avoid
+   * the JSON.parse overhead. Expects an object with `value` and `$serializer` metadata.
+   *
+   * @template T The expected return type
+   * @param info An object containing `value` and `$serializer` metadata
+   * @returns The reconstructed object with proper types
+   * @throws Error if a required serializer is not registered
+   *
+   * @example
+   * ```typescript
+   * const raw = { value: { date: "2024-01-01T00:00:00.000Z" }, $serializer: { type: "object", ... } };
+   * const obj = context.deserializeRaw<{ date: Date }>(raw);
+   * ```
    */
   public deserializeRaw<T>(info: { value: any; $serializer: any }): T {
     this.mode = "deserialize";
@@ -432,9 +765,9 @@ export class SerializerContext {
       if (!entry) {
         throw new Error(`Serializer for type '${info.$serializer.type}' not found`);
       }
-      const $serializer = info.$serializer;
-      delete info.$serializer; // Remove metadata before deserialization
-      const value = entry.deserializer(info.value, $serializer, this);
+      // Extract metadata without mutating the input object
+      const { $serializer, value: inputValue } = info;
+      const value = entry.deserializer(inputValue, $serializer, this);
       // Fix up circular references
       this.resolvers.forEach(r => {
         r.updater(this.getReference(r.$ref, value));
@@ -450,40 +783,94 @@ export class SerializerContext {
 const globalContext: SerializerContext = new SerializerContext(false);
 
 /**
- * Serialize an object into a string
- * @param obj
- * @returns
+ * Serialize a JavaScript value to a JSON string using the global context.
+ *
+ * This is a convenience wrapper around `SerializerContext.globalContext.serialize()`.
+ * All built-in types (Date, Map, Set, Buffer, etc.) are automatically supported.
+ *
+ * @param obj Any JavaScript value to serialize
+ * @returns A JSON string that can be passed to {@link deserialize}
+ *
+ * @example
+ * ```typescript
+ * const obj = {
+ *   date: new Date(),
+ *   map: new Map([["key", "value"]]),
+ *   nested: { bigint: 123n }
+ * };
+ * const json = serialize(obj);
+ * ```
+ *
+ * @see SerializerContext.serialize
  */
 export function serialize(obj: any): string {
   return SerializerContext.globalContext.serialize(obj);
 }
 
 /**
- * Return a raw serialized object
- * This is used to serialize objects without the JSON.stringify overhead
- * It returns an object with the value and metadata
- * @param obj
- * @returns
+ * Serialize an object to raw format without JSON.stringify using the global context.
+ *
+ * This is a convenience wrapper around `SerializerContext.globalContext.serializeRaw()`.
+ * Useful when you need to manipulate the serialized data before converting to JSON.
+ *
+ * @param obj Any JavaScript value to serialize
+ * @returns An object containing `value` and `$serializer` metadata, or just the value for primitives
+ *
+ * @example
+ * ```typescript
+ * const raw = serializeRaw({ date: new Date() });
+ * // Manipulate raw before stringifying
+ * const json = JSON.stringify(raw);
+ * ```
+ *
+ * @see SerializerContext.serializeRaw
  */
 export function serializeRaw(obj: any): any {
   return SerializerContext.globalContext.serializeRaw(obj);
 }
 
 /**
- * Deserialize a string into an object
- * @param str
- * @returns
+ * Deserialize a JSON string to reconstruct the original object using the global context.
+ *
+ * This is a convenience wrapper around `SerializerContext.globalContext.deserialize()`.
+ * Restores proper types for Date, Map, Set, and all registered custom types.
+ *
+ * @template T The expected return type
+ * @param str A JSON string produced by {@link serialize}
+ * @returns The reconstructed object with proper types
+ * @throws Error if a required serializer is not registered
+ *
+ * @example
+ * ```typescript
+ * const json = serialize({ date: new Date() });
+ * const obj = deserialize<{ date: Date }>(json);
+ * console.log(obj.date instanceof Date); // true
+ * ```
+ *
+ * @see SerializerContext.deserialize
  */
 export function deserialize<T>(str: string): T {
   return SerializerContext.globalContext.deserialize(str);
 }
 
 /**
- * Deserialize a raw object
- * This is used to deserialize objects without the JSON.parse overhead
- * It expects an object with the value and metadata
- * @param info
- * @returns
+ * Deserialize a raw object without JSON.parse using the global context.
+ *
+ * This is a convenience wrapper around `SerializerContext.globalContext.deserializeRaw()`.
+ * Useful when you already have a parsed object structure.
+ *
+ * @template T The expected return type
+ * @param info An object containing `value` and `$serializer` metadata
+ * @returns The reconstructed object with proper types
+ * @throws Error if a required serializer is not registered
+ *
+ * @example
+ * ```typescript
+ * const raw = serializeRaw({ date: new Date() });
+ * const obj = deserializeRaw<{ date: Date }>(raw);
+ * ```
+ *
+ * @see SerializerContext.deserializeRaw
  */
 export function deserializeRaw<T>(info: { value: any; $serializer: any }): T {
   return SerializerContext.globalContext.deserializeRaw(info);

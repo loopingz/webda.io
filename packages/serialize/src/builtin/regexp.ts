@@ -1,5 +1,21 @@
 import type { Serializer, SerializerContext } from "../serializer";
 
+/**
+ * Built-in serializer for RegExp objects.
+ *
+ * Serializes RegExp objects by converting them to their string representation
+ * (including pattern and flags). During deserialization, the string is parsed
+ * to extract the pattern and flags, then a new RegExp is constructed.
+ *
+ * @example
+ * ```typescript
+ * const obj = { pattern: /hello\s+world/gi };
+ * const json = serialize(obj);
+ * const restored = deserialize(json);
+ * console.log(restored.pattern instanceof RegExp); // true
+ * console.log(restored.pattern.test("Hello World")); // true
+ * ```
+ */
 const RegExpSerializer: Serializer<RegExp> = {
   constructorType: RegExp,
   serializer: (obj: RegExp) => {

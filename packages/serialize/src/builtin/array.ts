@@ -1,13 +1,20 @@
 import type { Serializer, SerializerContext } from "../serializer";
 
 /**
- * Serializer for arrays.
+ * Built-in serializer for Array objects.
  *
- * Ensure every sub-object is serialized with its own serializer.
+ * Serializes arrays by recursively serializing each element with its appropriate
+ * serializer. Metadata is tracked for complex elements to ensure proper deserialization.
+ * During deserialization, each element is restored using its original type.
  *
- * @param obj The array to serialize.
- * @param context The serializer context.
- * @returns The serialized array and metadata.
+ * @example
+ * ```typescript
+ * const obj = { items: [1, "text", new Date(), { nested: true }] };
+ * const json = serialize(obj);
+ * const restored = deserialize(json);
+ * console.log(Array.isArray(restored.items)); // true
+ * console.log(restored.items[2] instanceof Date); // true
+ * ```
  */
 const ArraySerializer: Serializer<any[]> = {
   constructorType: Array,
@@ -30,8 +37,7 @@ const ArraySerializer: Serializer<any[]> = {
       if (metadata[i]) {
         // If reference, postpone deserialization
         if (context.isReference(value, (val: any) => (array[i] = val))) {
-          // Keep the slot empty for now
-          // This is a reference, so we need to postpone deserialization
+          // Placeholder will be replaced by the resolver after full deserialization
           array.push(null);
           continue;
         }

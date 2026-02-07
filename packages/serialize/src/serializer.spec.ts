@@ -11,6 +11,7 @@ import {
   deserializeRaw,
   Constructor
 } from "./serializer";
+import DateSerializer from "./builtin/date";
 
 class Test {
   startDate!: Date;
@@ -21,7 +22,7 @@ class Test {
     this.unserialize(json);
   }
 
-  unserialize(json?: any) : this {
+  unserialize(json?: any): this {
     if (json?.startDate || !this.startDate) {
       this.startDate = new Date(json?.startDate || Date.now());
     }
@@ -34,7 +35,7 @@ class Test {
     return this;
   }
 
-  static unserialize(json: any) : Test {
+  static unserialize(json: any): Test {
     return new Test(json);
   }
 
@@ -319,48 +320,12 @@ class Serializer {
   }
 
   @test
-  testAutoRegister() {
+  testRegisterError() {
     const test = new Test2();
     test.name = "test";
-    const serialized = serialize(test);
-    const { $serializer } = JSON.parse(serialized);
-    // Check that the serialized object has the correct type
-    assert.deepStrictEqual(
-      $serializer,
-      {
-        type: "Test2"
-      },
-      "Serialized object should have a simple type"
-    );
-    const deserialized = deserialize(serialized);
-    assert.deepStrictEqual(test, deserialized);
-    assert.ok(deserialized instanceof Test2);
-
-    const test3 = new Test3();
-    test3.name = "test3";
-    const serialized3 = serialize(test3);
-    const { $serializer: $serializer3 } = JSON.parse(serialized3);
-    // Check that the serialized object has the correct type
-    assert.deepStrictEqual(
-      $serializer3,
-      {
-        type: "Test3"
-      },
-      "Serialized object should have a simple type"
-    );
-    const deserialized3 = deserialize(serialized3);
-    assert.deepStrictEqual(test3, deserialized3);
-    assert.ok(deserialized3 instanceof Test3);
-
-    // Fake another class with same name but different constructor
-    registerSerializer("TestInvalid", {
-      constructorType: Test3,
-      deserializer: Test2.deserialize
-    });
-    const testInvalid = new TestInvalid();
     assert.throws(
-      () => serialize(testInvalid),
-      /Serializer for type 'TestInvalid' already registered for a different class/
+      () => serialize(test),
+      /Serializer for object with constructor 'Test2' not found but a deserializer exists, please use registerSerializer\(Test2\) prior to serialization/
     );
   }
 
@@ -455,5 +420,459 @@ class Serializer {
     const refSerializer = context.getSerializer("ref");
     assert.ok(refSerializer);
     // The ref serializer is a special case that doesn't follow the normal Serializer interface
+  }
+
+  @test
+  async testCircularReferenceInArray() {
+    // Test fix for array circular reference bug (High Priority Issue #1)
+    const obj: any = { name: "root" };
+    const arr = [1, 2, obj, 4];
+    obj.arr = arr;
+
+    const serialized = serialize(obj);
+    const deserialized: any = deserialize(serialized);
+
+    // Verify structure
+    assert.strictEqual(deserialized.name, "root");
+    assert.ok(Array.isArray(deserialized.arr));
+    assert.strictEqual(deserialized.arr.length, 4);
+    assert.strictEqual(deserialized.arr[0], 1);
+    assert.strictEqual(deserialized.arr[1], 2);
+    assert.strictEqual(deserialized.arr[2], deserialized); // Circular ref
+    assert.strictEqual(deserialized.arr[3], 4);
+
+    // Test with multiple circular references in array
+    const parent: any = { type: "parent" };
+    const child: any = { type: "child", parent };
+    const items = [parent, child, parent]; // parent appears twice
+    parent.items = items;
+
+    const serialized2 = serialize(parent);
+    const deserialized2: any = deserialize(serialized2);
+
+    assert.strictEqual(deserialized2.type, "parent");
+    assert.strictEqual(deserialized2.items[0], deserialized2); // First reference
+    assert.strictEqual(deserialized2.items[1].parent, deserialized2); // Nested reference
+    assert.strictEqual(deserialized2.items[2], deserialized2); // Second reference
+  }
+
+  @test
+  async testGetSerializerTypeSafety() {
+    // Test fix for getSerializer type safety (High Priority Issue #2)
+    const context = new SerializerContext();
+
+    // Test that ref serializer has proper structure
+    const refSerializer = context.getSerializer("ref");
+    assert.ok(refSerializer.constructorType === null);
+    assert.ok(typeof refSerializer.serializer === "function");
+    assert.ok(typeof refSerializer.deserializer === "function");
+    assert.strictEqual(refSerializer.type, "ref");
+
+    // Verify it creates proper $ref structure
+    const result = refSerializer.serializer("test/path", context);
+    assert.deepStrictEqual(result, { value: { $ref: "test/path" } });
+
+    // Test improved error message
+    assert.throws(
+      () => context.getSerializer("NonExistentType"),
+      /Serializer for type 'NonExistentType' not found. Did you forget to call registerSerializer/
+    );
+  }
+
+  @test
+  async testJsonPointerDecoding() {
+    // Test fix for JSON-Pointer decoding (High Priority Issue #3)
+    const context = new SerializerContext();
+    context.mode = "deserialize";
+
+    // Test basic path
+    const obj1 = { user: { posts: ["Hello", "World"] } };
+    assert.strictEqual(context.getReference("#/user/posts/0", obj1), "Hello");
+    assert.strictEqual(context.getReference("#/user/posts/1", obj1), "World");
+
+    // Test escaped characters in property names (RFC 6901)
+    const obj2 = {
+      "a/b": { "c~d": "value" }
+    };
+    // ~1 encodes /, ~0 encodes ~
+    assert.strictEqual(context.getReference("#/a~1b/c~0d", obj2), "value");
+
+    // Test error when path doesn't exist
+    assert.throws(
+      () => context.getReference("#/nonexistent", obj1),
+      /Reference '#\/nonexistent' not found: property 'nonexistent' does not exist/
+    );
+
+    // Test error when traversing null
+    const obj3 = { a: null };
+    assert.throws(
+      () => context.getReference("#/a/b", obj3),
+      /Reference '#\/a\/b' failed: cannot traverse null\/undefined at segment 'b'/
+    );
+
+    // Test error when property value is undefined (caught by cur === undefined check)
+    const obj4 = { a: { b: undefined } };
+    assert.throws(
+      () => context.getReference("#/a/b", obj4),
+      /Reference '#\/a\/b' not found: property 'b' does not exist/
+    );
+
+    // Test error when trying to traverse deeper after hitting null/undefined
+    // Create object where we can actually traverse to a property that has null
+    const obj4b: any = { a: { b: null } };
+    assert.throws(
+      () => context.getReference("#/a/b/c", obj4b),
+      /Reference '#\/a\/b\/c' failed: cannot traverse null\/undefined at segment 'c'/
+    );
+
+    // Test invalid reference format
+    assert.throws(
+      () => context.getReference("invalid", obj1),
+      /Invalid reference 'invalid': must start with '#\/'/
+    );
+
+    // Test empty segments are filtered out
+    const obj5 = { a: { b: "value" } };
+    assert.strictEqual(context.getReference("#/a//b", obj5), "value");
+
+    // Test complex real-world scenario
+    const obj6 = {
+      "user/name": "Alice",
+      "data~info": { "level~1": { count: 42 } }
+    };
+    assert.strictEqual(context.getReference("#/user~1name", obj6), "Alice");
+    assert.strictEqual(context.getReference("#/data~0info/level~01/count", obj6), 42);
+  }
+
+  @test
+  async testCircularReferencesWithJsonPointer() {
+    // Integration test: circular references with proper JSON-Pointer handling
+    const root: any = {
+      "path/with/slashes": {
+        "name~with~tildes": "test"
+      }
+    };
+    root["path/with/slashes"].parent = root;
+
+    const serialized = serialize(root);
+    const deserialized: any = deserialize(serialized);
+
+    assert.strictEqual(deserialized["path/with/slashes"]["name~with~tildes"], "test");
+    assert.strictEqual(deserialized["path/with/slashes"].parent, deserialized);
+  }
+
+  @test
+  async testArrayWithComplexCircularReferences() {
+    // More comprehensive array circular reference tests
+    const grandparent: any = { level: "grandparent" };
+    const parent: any = { level: "parent", grandparent };
+    const child: any = { level: "child", parent };
+
+    // Create complex circular structure with arrays
+    grandparent.children = [parent];
+    parent.children = [child];
+    child.siblings = [child, parent, grandparent]; // Multiple circular refs
+
+    const serialized = serialize(grandparent);
+    const deserialized: any = deserialize(serialized);
+
+    // Verify structure
+    assert.strictEqual(deserialized.level, "grandparent");
+    assert.strictEqual(deserialized.children[0].level, "parent");
+    assert.strictEqual(deserialized.children[0].grandparent, deserialized);
+    assert.strictEqual(deserialized.children[0].children[0].level, "child");
+    assert.strictEqual(deserialized.children[0].children[0].parent, deserialized.children[0]);
+
+    // Verify circular refs in siblings array
+    const childNode = deserialized.children[0].children[0];
+    assert.strictEqual(childNode.siblings[0], childNode); // Self-reference
+    assert.strictEqual(childNode.siblings[1], deserialized.children[0]); // Parent ref
+    assert.strictEqual(childNode.siblings[2], deserialized); // Grandparent ref
+  }
+
+  @test
+  async testDeserializeRawDoesNotMutateInput() {
+    // Test fix for input mutation (Low Priority Issue #1)
+    const raw = {
+      value: { name: "test", count: 42 },
+      $serializer: { type: "object" }
+    };
+
+    // Keep a reference to verify no mutation
+    const originalSerializer = raw.$serializer;
+
+    const deserialized = deserializeRaw(raw);
+
+    // Verify the input object still has its $serializer property
+    assert.ok(raw.$serializer, "Input object should still have $serializer");
+    assert.strictEqual(raw.$serializer, originalSerializer, "$serializer should be unchanged");
+    assert.deepStrictEqual(deserialized, { name: "test", count: 42 });
+  }
+
+  @test
+  async testImprovedErrorMessages() {
+    // Test improved error messages (Low Priority Issues #3 & #4)
+    const context = new SerializerContext();
+
+    // Test improved duplicate registration error
+    assert.throws(
+      () => context.registerSerializer("Date", DateSerializer),
+      /Serializer for type 'Date' is already registered. Use overwrite=true to replace it, or call unregisterSerializer\('Date'\) first/
+    );
+
+    // Test improved not found error (already tested in testGetSerializerTypeSafety but verify again)
+    assert.throws(
+      () => context.getSerializer("UnknownType"),
+      /Serializer for type 'UnknownType' not found. Did you forget to call registerSerializer/
+    );
+  }
+
+  @test
+  async testSpecificErrorCatching() {
+    // Test that only expected errors are caught (Low Priority Issue #2)
+    const context = new SerializerContext();
+
+    // Serializing a string should not throw even though WeakMap.set will fail
+    const result = context.serializeRaw("test string");
+    assert.strictEqual(result, "test string");
+
+    // Serializing a number should not throw
+    const result2 = context.serializeRaw(123);
+    assert.strictEqual(result2, 123);
+
+    // Serializing a boolean should not throw
+    const result3 = context.serializeRaw(true);
+    assert.strictEqual(result3, true);
+
+    // All these work because TypeError from WeakMap is caught and ignored
+  }
+
+  @test
+  async testSerializerRegistrationEdgeCases() {
+    // Test coverage for lines 353-364 in serializer.ts
+    const context = new SerializerContext();
+
+    // Test registering a serializer without a serializer function (defaults to toJSON)
+    class CustomWithToJSON {
+      value: number;
+      constructor(val: number) {
+        this.value = val;
+      }
+      toJSON() {
+        return { customValue: this.value * 2 };
+      }
+    }
+
+    context.registerSerializer("CustomWithToJSON", {
+      constructorType: CustomWithToJSON,
+      deserializer: (obj: any) => {
+        const instance = new CustomWithToJSON(0);
+        instance.value = obj.customValue / 2;
+        return instance;
+      }
+    });
+
+    const obj = new CustomWithToJSON(5);
+    const serialized = context.serializeRaw(obj);
+    assert.deepStrictEqual(serialized, {
+      $serializer: { type: "CustomWithToJSON" },
+      value: { customValue: 10 }
+    });
+
+    // Test registering a serializer with a static deserialize method
+    class CustomWithDeserialize {
+      value: number;
+      constructor(val: number) {
+        this.value = val;
+      }
+      static deserialize(obj: any, _metadata: any, _context: SerializerContext) {
+        return new CustomWithDeserialize(obj.val);
+      }
+    }
+
+    context.registerSerializer("CustomWithDeserialize", {
+      constructorType: CustomWithDeserialize,
+      serializer: (obj: CustomWithDeserialize) => ({ value: { val: obj.value } })
+    });
+
+    const obj2 = new CustomWithDeserialize(42);
+    const serialized2 = context.serializeRaw(obj2);
+    const deserialized2 = context.deserializeRaw(serialized2);
+    assert.ok(deserialized2 instanceof CustomWithDeserialize);
+    assert.strictEqual(deserialized2.value, 42);
+
+    // Test that registering without deserializer and without static deserialize throws
+    assert.throws(
+      () =>
+        context.registerSerializer("BadSerializer", {
+          constructorType: class BadClass {},
+          serializer: (obj: any) => ({ value: obj })
+        }),
+      /Deserializer is required for type 'BadSerializer'/
+    );
+  }
+
+  @test
+  async testMapWithoutMetadata() {
+    // Test coverage for line 33 in map.ts (when metadata is empty)
+    const context = new SerializerContext();
+    const simpleMap = new Map<string, string | number>([
+      ["key1", "value1"],
+      ["key2", 123]
+    ]);
+
+    const serialized = context.serializeRaw(simpleMap);
+    // When all values are primitives, metadata should be undefined
+    assert.strictEqual(serialized.$serializer.metadata, undefined);
+    assert.deepStrictEqual(serialized.value, {
+      key1: "value1",
+      key2: 123
+    });
+  }
+
+  @test
+  async testSetWithoutMetadata() {
+    // Test coverage for line 31 in set.ts (when metadata is empty)
+    const context = new SerializerContext();
+    const simpleSet = new Set([1, 2, 3, "test"]);
+
+    const serialized = context.serializeRaw(simpleSet);
+    // When all values are primitives, metadata should be undefined
+    assert.strictEqual(serialized.$serializer.metadata, undefined);
+    assert.deepStrictEqual(serialized.value, [1, 2, 3, "test"]);
+  }
+
+  @test
+  async testSetMetadataEdgeCases() {
+    // Test coverage for line 43 in set.ts (metadata fallback with ||)
+    const context = new SerializerContext();
+    const setWithDate = new Set([new Date("2023-01-01")]);
+
+    const serialized = context.serializeRaw(setWithDate);
+    const deserialized = context.deserializeRaw(serialized);
+
+    assert.ok(deserialized instanceof Set);
+    const values = Array.from(deserialized);
+    assert.ok(values[0] instanceof Date);
+    assert.strictEqual(values[0].toISOString(), "2023-01-01T00:00:00.000Z");
+  }
+
+  @test
+  async testObjectStaticPropertiesWithFunction() {
+    // Test coverage for line 110 in object.ts (function-based static property)
+    const context = new SerializerContext();
+
+    class CustomObject {
+      name: string;
+      uppercaseName: string;
+
+      constructor() {
+        this.name = "";
+        this.uppercaseName = "";
+      }
+    }
+
+    const objectSerializer = new ObjectSerializer(CustomObject, {
+      uppercaseName: (value: string) => value.toUpperCase()
+    });
+
+    context.registerSerializer("CustomObject", objectSerializer);
+
+    const obj = Object.assign(new CustomObject(), {
+      name: "test",
+      uppercaseName: "test"
+    });
+
+    const serialized = context.serializeRaw(obj);
+    const deserialized = context.deserializeRaw(serialized);
+
+    assert.ok(deserialized instanceof CustomObject);
+    assert.strictEqual(deserialized.name, "test");
+    assert.strictEqual(deserialized.uppercaseName, "TEST");
+  }
+
+  @test
+  async testRegisterSerializerWithStringTypeName() {
+    // Test coverage for lines 341, 343-344 in serializer.ts
+    const context = new SerializerContext();
+
+    class MyCustomClass {
+      value: string;
+      constructor(val: string) {
+        this.value = val;
+      }
+      static deserialize(obj: any, _metadata: any, _context: SerializerContext) {
+        const instance = new MyCustomClass("");
+        instance.value = obj.value;
+        return instance;
+      }
+    }
+
+    // Register with string type name and constructor as second parameter (line 343-344)
+    context.registerSerializer("MyCustomType", MyCustomClass);
+
+    // This should use the default toJSON/deserialize behavior
+    const obj = Object.assign(new MyCustomClass("test"), { value: "test" });
+    const serialized = context.serializeRaw(obj);
+    assert.strictEqual(serialized.$serializer.type, "MyCustomType");
+
+    // Also test registering with constructor as type parameter (line 341)
+    class AnotherClass {
+      data: number;
+      constructor(d: number) {
+        this.data = d;
+      }
+      static deserialize(obj: any, _metadata: any, _context: SerializerContext) {
+        const instance = new AnotherClass(0);
+        instance.data = obj.data;
+        return instance;
+      }
+    }
+
+    context.registerSerializer(AnotherClass, {
+      serializer: (obj: AnotherClass) => ({ value: { data: obj.data } })
+    });
+
+    const obj2 = new AnotherClass(42);
+    const serialized2 = context.serializeRaw(obj2);
+    assert.strictEqual(serialized2.$serializer.type, "AnotherClass");
+    assert.deepStrictEqual(serialized2.value, { data: 42 });
+  }
+
+  @test
+  async testNonTypeErrorInPrepareObject() {
+    // Test coverage for lines 539-540 in serializer.ts (non-TypeError branch)
+    const context = new SerializerContext();
+
+    // Create a mock WeakMap that throws a non-TypeError
+    const originalSet = WeakMap.prototype.set;
+    WeakMap.prototype.set = function (key: any, value: any) {
+      if (key && typeof key === "object" && key.constructor?.name === "ErrorThrower") {
+        throw new Error("Custom error");
+      }
+      return originalSet.call(this, key, value);
+    };
+
+    class ErrorThrower {
+      value: number;
+      constructor(val: number) {
+        this.value = val;
+      }
+    }
+
+    context.registerSerializer("ErrorThrower", {
+      constructorType: ErrorThrower,
+      serializer: (obj: ErrorThrower) => ({ value: { val: obj.value } }),
+      deserializer: (obj: any) => new ErrorThrower(obj.val)
+    });
+
+    const obj = new ErrorThrower(42);
+
+    try {
+      assert.throws(() => context.serializeRaw(obj), /Custom error/);
+    } finally {
+      // Restore original WeakMap.set
+      WeakMap.prototype.set = originalSet;
+    }
   }
 }

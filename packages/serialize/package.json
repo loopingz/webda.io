@@ -34,9 +34,6 @@
     "url": "https://github.com/loopingz/webda.io/issues"
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
-  "dependencies": {
-    "@types/mocha": "^10.0.0"
-  },
   "c8": {
     "report-dir": "./reports",
     "reporter": [
@@ -54,8 +51,10 @@
     "access": "public"
   },
   "devDependencies": {
-    "@webda/test": "^4.0.0-beta.1",
+    "@types/mocha": "^10.0.0",
     "@types/node": "22.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@webda/test": "^4.0.0-beta.1",
     "typescript": "^5.8.3"
   },
   "type": "module",

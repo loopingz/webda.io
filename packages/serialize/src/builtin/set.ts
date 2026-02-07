@@ -1,5 +1,21 @@
 import type { Serializer, SerializerContext } from "../serializer";
 
+/**
+ * Built-in serializer for Set objects.
+ *
+ * Serializes Set objects by converting them to arrays with all elements
+ * recursively serialized. During deserialization, the array is converted
+ * back to a Set with all nested values properly restored.
+ *
+ * @example
+ * ```typescript
+ * const obj = { tags: new Set(["tag1", "tag2", "tag3"]) };
+ * const json = serialize(obj);
+ * const restored = deserialize(json);
+ * console.log(restored.tags instanceof Set); // true
+ * console.log(restored.tags.has("tag1")); // true
+ * ```
+ */
 const SetSerializer: Serializer<Set<any>> = {
   constructorType: Set,
   serializer: (obj: Set<any>, context: SerializerContext) => {

@@ -277,9 +277,11 @@ export class SchemaGenerator {
       if (decl && ts.isGetAccessor(decl as ts.GetAccessorDeclaration)) {
         if (this.currentOptions.type === "input") {
           const setterDecl = prop.getDeclarations()?.find(d => ts.isSetAccessor(d as ts.SetAccessorDeclaration));
-          setterParamType = setterDecl
-            ? this.checker.getTypeAtLocation((setterDecl as ts.SetAccessorDeclaration).parameters[0])
-            : undefined;
+          if (!setterDecl) {
+            this.log(`Skipping getter-only property ${prop.name} at ${path} for input schema`);
+            continue;
+          }
+          setterParamType = this.checker.getTypeAtLocation((setterDecl as ts.SetAccessorDeclaration).parameters[0]);
         }
       }
 
@@ -548,13 +550,33 @@ export class SchemaGenerator {
       return;
     }
     this.log(`Processing class/interface at ${path}: ${propTypeString}`);
-    const shape = this.collectObjectShape(type, path);
+    // For alias-based utility/mapped types (e.g., Partial<T>, Pick<T, K>, JSON-like wrappers),
+    // prefer the apparent structural type so we can enumerate concrete properties.
+    const tAny = type as any;
+    let structuralType: ts.Type = type;
+    try {
+      if (tAny.aliasSymbol || tAny.aliasTypeArguments) {
+        const apparent = this.checker.getApparentType(type);
+        const originalStr = this.checker.typeToString(type);
+        const apparentStr = this.checker.typeToString(apparent);
+        const origProps = this.checker.getPropertiesOfType(type).length;
+        const appProps = this.checker.getPropertiesOfType(apparent).length;
+        if (apparent && apparentStr !== originalStr && appProps >= origProps) {
+          this.log(`Using apparent structural type at ${path}: ${apparentStr}`);
+          structuralType = apparent;
+        }
+      }
+    } catch {
+      // Fallback quietly on any TS internal differences
+      structuralType = type;
+    }
+    const shape = this.collectObjectShape(structuralType, path);
     // Merge any JSDoc/annotations already captured into the structural schema
     const source: JSONSchema7 = { ...(shape.schema as any), ...(definition as any) };
     // At the root path, inline the schema instead of creating an empty "" definition key
     // This avoids generating a definitions entry with an empty key when the top-level type
     // is anonymous (e.g., "{ ... }"), and makes the schema root the actual object.
-    if (path === "/" && propTypeString.trim().startsWith("{")) {
+    if (path === "/" && (propTypeString.trim().startsWith("{") || this.isAnonymousObject(structuralType))) {
       Object.keys(definition).forEach(k => delete (definition as any)[k]);
       Object.assign(definition as any, source as any);
       return;
@@ -730,7 +752,9 @@ export class SchemaGenerator {
     if (depth > this.currentOptions.maxDepth) {
       return { optional: false, decision: "keep" };
     }
-    this.log(`${indent}Processing property at ${path}: ${propTypeString} (${type.flags})`);
+    this.log(
+      `${indent}Processing property at ${path}: ${propTypeString} (${type.flags}) ${this.isArrayLike(type) ? "[array]" : "NOT ARRAY"}`
+    );
     ({ type, definition, path, node, depth } = this.currentOptions.transformer!({
       type,
       definition,
@@ -1056,7 +1080,7 @@ export class SchemaGenerator {
         definition.allOf = subSchemas;
       }
       return result;
-    } else if (this.checker.isArrayLikeType(type)) {
+    } else if (this.isArrayLike(type)) {
       definition.type = "array";
       // Check if readonly array
       if (this.checker.isTupleType(type)) {
@@ -1129,7 +1153,11 @@ export class SchemaGenerator {
           delete definition.maxItems;
         }
       } else {
-        const elementType = this.getArrayElementType(type)!;
+        const elementType = this.getArrayElementType(type);
+        if (!elementType) {
+          this.log(`${indent}Could not determine array element type at ${path}, leaving items open`);
+          return result;
+        }
         // mark readonly (readonly T[], ReadonlyArray<T>, readonly [..] tuple)
         definition.items = {};
         const elNode =
@@ -1442,8 +1470,61 @@ export class SchemaGenerator {
   }
 
   getArrayElementType(type: ts.Type): ts.Type | undefined {
-    // If this returns something, the type is "array-like" (Array<T>, ReadonlyArray<T>, T[])
-    return this.checker.getIndexTypeOfType(type, ts.IndexKind.Number) ?? undefined;
+    // Primary: numeric index signature (works for T[], Array<T>, tuples)
+    const byIndex = this.checker.getIndexTypeOfType(type, ts.IndexKind.Number);
+    if (byIndex) return byIndex;
+
+    // Fallback 1: explicit Array/ReadonlyArray type reference with type arguments
+    if (type.flags & ts.TypeFlags.Object && (type as any).objectFlags & ts.ObjectFlags.Reference) {
+      try {
+        const ref = type as ts.TypeReference;
+        const args = this.checker.getTypeArguments(ref);
+        if (args && args.length > 0) return args[0];
+      } catch (_) {
+        // ignore and try other strategies
+      }
+      const refAny: any = type as any;
+      const target: any = refAny.target ?? refAny;
+      const targArgs: ts.Type[] | undefined = target?.typeArguments;
+      if (targArgs && targArgs.length > 0) return targArgs[0];
+    }
+
+    // Fallback 2: check symbol name for Array/ReadonlyArray and attempt to read typeParameters
+    const sym = (type as any).symbol || (type as any).aliasSymbol;
+    const name: string | undefined = sym?.escapedName ?? sym?.name;
+    if (name === "Array" || name === "ReadonlyArray") {
+      try {
+        const ref = type as ts.TypeReference;
+        const args = this.checker.getTypeArguments(ref);
+        if (args && args.length > 0) return args[0];
+      } catch (_) {}
+    }
+
+    return undefined;
+  }
+
+  private isArrayLike(type: ts.Type): boolean {
+    // Prefer the checker’s own detection when available
+    try {
+      if (this.checker.isArrayLikeType(type)) return true;
+    } catch (_) {
+      // Older TS versions may not have stable behavior; fall through
+    }
+    const anyChecker: any = this.checker as any;
+    if (typeof anyChecker.isArrayType === "function" && anyChecker.isArrayType(type)) return true;
+
+    // Numeric index signature implies array-like (covers Array<T>, T[], ReadonlyArray<T>, tuples)
+    if (this.checker.getIndexTypeOfType(type, ts.IndexKind.Number)) return true;
+
+    // Extra guard: explicit reference to Array/ReadonlyArray
+    if (type.flags & ts.TypeFlags.Object && (type as any).objectFlags & ts.ObjectFlags.Reference) {
+      const ref = type as ts.TypeReference;
+      const target: any = (ref as any).target ?? ref;
+      const sym = target?.symbol ?? (type as any).symbol;
+      const name: string | undefined = sym?.escapedName ?? sym?.name;
+      if (name === "Array" || name === "ReadonlyArray") return true;
+    }
+    return false;
   }
 
   getJsDocForSymbol(prop: ts.Symbol, checker: ts.TypeChecker) {

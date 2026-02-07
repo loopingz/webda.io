@@ -434,10 +434,10 @@ export type UnpackedConfiguration = {
   /**
    * Include other configuration.json
    *
-   * This allow you so share Store definition or parameters between different components
+   * This allow you to share Store definition or parameters between different components
    * The configuration is merged with `deepmerge(...imports, local)`
    */
-  imports?: string[];
+  $import?: string[] | string;
 };
 
 export type Configuration = UnpackedConfiguration & {

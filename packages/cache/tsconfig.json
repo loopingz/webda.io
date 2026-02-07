@@ -1,38 +1,26 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": [
-      "es2019",
-      "DOM"
-    ],
-    "module": "es2020",
+    "lib": ["es2019", "DOM"],
+    "module": "node16",
     "outDir": "./lib",
-    "strict": false,
+    "strict": true,
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": false,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "skipLibCheck": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "**/node_modules",
-    "src/**/*.spec.ts"
-  ],
+  "include": ["src/**/*"],
+  "exclude": ["**/node_modules", "src/**/*.spec.ts"],
   "ts-node": {
     "transpileOnly": true,
     "preferTsExts": true,
     "compilerOptions": {
       "experimentalDecorators": false
     },
-    "include": [
-      "src/**/*.spec.ts"
-    ],
-    "exclude": [
-      "src/models/**/*"
-    ]
+    "include": ["src/**/*.spec.ts"],
+    "exclude": ["src/models/**/*"]
   }
 }

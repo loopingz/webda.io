@@ -1,7 +1,7 @@
 {
   "$schema": "./.webda-config-schema.json",
+  "$import": ["./webda.import.jsonc", "./webda.import2.jsonc", "./webda.import4.jsonc"],
   "version": 3,
-  "imports": ["./webda.import.jsonc", "./webda.import2.jsonc", "./webda.import4.jsonc"],
   "services": {
     "memorylogger": {
       "type": "MemoryLogger"

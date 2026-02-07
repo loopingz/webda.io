@@ -104,7 +104,7 @@ Fork(
           compiler.watch(() => {});
           await new Promise(() => {});
         } else {
-          compiler.compile();
+          compiler.compile(true);
         }
       });
     }

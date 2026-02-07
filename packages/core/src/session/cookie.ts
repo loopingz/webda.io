@@ -4,6 +4,7 @@ import type { HttpContext } from "../contexts/httpcontext.js";
 import { isWebContext, IWebContext } from "../contexts/icontext.js";
 import { useCrypto } from "../services/cryptoservice.js";
 import { useLog } from "../loggers/hooks.js";
+import { Duration } from "@webda/utils";
 
 /**
  * Cookie cannot be more than 4096, so we split them by this constant
@@ -27,11 +28,21 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
    * When provided a domain is setting the cookie to be available to all subdomains
    */
   domain?: string | true;
+  
+  /**
+   * Duration storage
+   */
+  _maxAge?: Duration;
   /**
    * @minimum 1
-   * @default 86400 * 7
+   * @default 7d
    */
-  maxAge?: number;
+  set maxAge(value: string | number) {
+    this._maxAge = new Duration(value);
+  }
+  get maxAge() : number {
+    return this._maxAge?.toSeconds() ?? 86400 * 7;
+  }
   /**
    * @default /
    */
@@ -43,6 +54,7 @@ export class CookieOptions implements Omit<CookieSerializeOptions, "domain"> {
   /**
    * If not set will be true if https request and false otherwise
    * If defined it will be set to the value
+   * @default undefined
    */
   secure?: boolean;
   /**

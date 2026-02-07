@@ -1,7 +1,7 @@
 {
   "name": "@webda/cache",
   "version": "4.0.0-beta.1",
-  "description": "Discovery and Subscriptions for CloudEvents",
+  "description": "A flexible method-level caching library with decorator support, TTL expiration, and multiple storage strategies",
   "keywords": [
     "webda"
   ],
@@ -26,8 +26,9 @@
   "dependencies": {},
   "devDependencies": {
     "@types/node": "22.0.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "skott": "^0.35.3",
-    "vitest": "^2.1.2",
+    "vitest": "^2.1.9",
     "jscodeshift": "^17.0.0",
     "@webda/compiler": "^4.0.0-beta.2",
     "@webda/decorators": "^4.0.0-beta.1"

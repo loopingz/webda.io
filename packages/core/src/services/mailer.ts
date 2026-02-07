@@ -97,7 +97,7 @@ export class MailerParameters extends ServiceParameters {
   /**
    * SES AWS Bean if transport === "ses"
    */
-  SES: any;
+  SES?: any;
 
   load(params: any = {}): this {
     super.load(params);

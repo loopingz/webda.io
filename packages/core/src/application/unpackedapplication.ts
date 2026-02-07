@@ -170,7 +170,7 @@ export class UnpackedApplication extends Application {
    */
   completeConfiguration(configuration: Configuration): Configuration {
     // Only one level of includes is permitted
-    const imports = configuration.imports || [];
+    const imports = configuration.$import || [];
     const effectiveImports = [];
     for (const importFile of imports) {
       if (!fs.existsSync(this.getPath(importFile))) {
@@ -184,7 +184,7 @@ export class UnpackedApplication extends Application {
       }
       configuration = deepmerge(includeConfiguration, configuration);
     }
-    configuration.imports = effectiveImports;
+    configuration.$import = effectiveImports;
     // Ensure default values
     return configuration;
   }

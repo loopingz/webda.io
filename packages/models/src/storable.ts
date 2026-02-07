@@ -1,6 +1,6 @@
-import type { Attributes, FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
 import type { ModelRefWithCreate, ModelRelated } from "./relations";
-import type { Deserializers, JSONed } from "./types";
+import type { JSONed } from "./types";
 
 /**
  * Define the model primary key
@@ -67,10 +67,6 @@ export interface Storable<T = any, PrimaryKeyProperties extends keyof T = any> e
    * Return the string version of the primary key
    */
   getUUID(): string;
-  /**
-   * Return the object as a POJO
-   */
-  toJSON(): any;
   /**
    * Load the serialized version of itself
    */

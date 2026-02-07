@@ -1,10 +1,12 @@
 import ts from "typescript";
-import { dirname, relative } from "path";
+import { dirname } from "path";
 import { WebdaProject } from "./definition";
 
 import { writer } from "@webda/tsc-esm";
 import { useLog } from "@webda/workout";
 import { generateModule as generateModule } from "./module";
+import { existsSync, mkdirSync } from "node:fs";
+import { FileUtils } from "@webda/utils";
 
 /**
  * Compiler
@@ -28,12 +30,35 @@ export class Compiler {
    */
   constructor(public project: WebdaProject) {}
 
+
+  /**
+   * Add a system to recompile if needed
+   * @returns
+   */
+  requireCompilation(): boolean {
+    const f = this.project.getAppPath(".webda/cache");
+    if (!existsSync(this.project.getAppPath(".webda"))) {
+      mkdirSync(this.project.getAppPath(".webda"));
+    }
+    if (!existsSync(f)) {
+      return true;
+    }
+    const webdaCache: {
+      sourceDigest?: string;
+    } = FileUtils.load(f, "json");
+    if (webdaCache.sourceDigest == this.project.getDigest()) {
+      useLog("DEBUG", "Skipping compilation as nothing changed");
+      return false;
+    }
+    return true;
+  }
+
   /**
    * This is our main entry point
    * @param force
    */
   compile(force: boolean = false): boolean {
-    if (this.compiled && !force) {
+    if ((this.compiled || !this.requireCompilation()) && !force) {
       return true;
     }
     this.project.emit("compiling");
@@ -77,6 +102,13 @@ export class Compiler {
       `Took: Compilation - ${compilationStart}ms | Module generation - ${Date.now() - moduleGenerationStart}ms`
     );
     this.compiled = result;
+    // Save cache
+    const f = this.project.getAppPath(".webda/cache");
+    const webdaCache: {
+      sourceDigest?: string;
+    } = existsSync(f) ? FileUtils.load(f, "json") : {};
+    webdaCache.sourceDigest = this.project.getDigest();
+    FileUtils.save(webdaCache, f, "json");
     this.project.emit("done");
     return result;
   }

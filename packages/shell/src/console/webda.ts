@@ -1,13 +1,5 @@
-import {
-  CancelablePromise,
-  CryptoService,
-  FileUtils,
-  getCommonJS,
-  JSONUtils,
-  Logger,
-  PackageDescriptorAuthor,
-  Store
-} from "@webda/core";
+import { CryptoService, Logger, Store } from "@webda/core";
+import { FileUtils, JSONUtils, CancelablePromise, getCommonJS } from "@webda/utils";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
@@ -531,7 +523,7 @@ ${Object.keys(operationsExport.operations)
    * @returns
    */
   static requireCompilation(): boolean {
-    const f = this.app.getAppPath(".webda");
+    const f = this.app.getAppPath(".webda/sourceDigest");
     let webdaCache: WebdaCache = {};
     if (fs.existsSync(f)) {
       webdaCache = JSONUtils.loadFile(f);

@@ -12,7 +12,7 @@ import type { Mailer } from "./mailer.js";
 import { runAsSystem } from "../contexts/execution.js";
 import { EventWithContext } from "../events/events.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { useService, useModelRepository } from "../core/hooks.js";
+import { useService, useModelRepository, ServiceName } from "../core/hooks.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { ModelClass, Repository } from "@webda/models";
 
@@ -137,7 +137,7 @@ export class AuthenticationParameters extends ServiceParameters {
     /**
      * Mailer service name
      */
-    mailer?: string;
+    mailer?: ServiceName;
     /**
      * Allow user to create their account without validating their email first
      */
@@ -163,7 +163,7 @@ export class AuthenticationParameters extends ServiceParameters {
     /**
      * Password verifier Service name
      */
-    verifier?: string;
+    verifier?: ServiceName;
     /**
      * Regexp that password must check
      * @default "{8,}"
@@ -901,8 +901,12 @@ class Authentication<
     return this.emit("Authentication.Login", event);
   }
 
+  /**
+   * Get the mailer service
+   * @returns
+   */
   getMailMan(): Mailer {
-    return useService<Mailer>(this.parameters.email.mailer ? this.parameters.email.mailer : "Mailer");
+    return useService<Mailer>(this.parameters.email.mailer ? this.parameters.email.mailer : ("Mailer" as ServiceName));
   }
 
   /**

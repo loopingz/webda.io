@@ -50,8 +50,8 @@ export function validateModelSchema(
   object: any,
   ignoreRequired?: boolean
 ): NoSchemaResult | SchemaValidResult {
-  let name = typeof webdaObject === "string" ? webdaObject : useModelId(webdaObject);
-  let cacheName = `$WEBDA_${name}`;
+  const name = typeof webdaObject === "string" ? webdaObject : useModelId(webdaObject);
+  const cacheName = `$WEBDA_${name}`;
   const ajv = getAjv();
   if (!ajv.rawSchema[cacheName]) {
     const schema = useApplication()?.getSchema(name);

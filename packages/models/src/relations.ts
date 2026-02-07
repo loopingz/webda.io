@@ -377,7 +377,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     if (!this[RelationKey]) {
       throw new Error("Relation key is not initialized");
     }
-    return await this.model.get(this[RelationKey]) as T;
+    return (await this.model.get(this[RelationKey])) as T;
   }
 
   set(id: PrimaryKeyType<T> | T | string) {
@@ -442,70 +442,99 @@ type ModelCollectionManager<T> = {
 /**
  * Link to a collection of objects
  *
+ * Uses composition instead of extending Array for better maintainability,
+ * performance, and type safety.
+ *
  * This allows to do a n:m or 1:n relation between two models
  *
  * It does not require to have a symetric relation on the other side
  * The array contains uuid of the linked objects
  */
-export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>> implements ModelLinker {
+export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   [RelationRole]: "ModelLinker" = "ModelLinker" as const;
   private [RelationParent]: T;
   protected [RelationRepository]: Repository<ModelClass<T>>;
 
-  constructor(repo: Repository<ModelClass<T>>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
-    super();
-    this[RelationRepository] = repo;
-    content.forEach(c => this.push(c));
-    this[RelationParent] = parentObject!;
-  }
+  // COMPOSITION: Internal array instead of extending Array
+  private items: ModelRef<T>[] = [];
 
-  protected getModelRef(model: string | PrimaryKeyType<T> | ModelRef<T> | T) {
-    let modelRef: ModelRef<T>;
-    if (typeof model === "string") {
-      modelRef = new ModelRef<T>(this[RelationRepository].parseUID(model), this[RelationRepository]);
-    } else if (model instanceof ModelRef) {
-      modelRef = model;
-    } else if (isStorable(model)) {
-      modelRef = new ModelRef<T>(model.getPrimaryKey(), this[RelationRepository], this[RelationParent]);
-    } else {
-      modelRef = new ModelRef<T>(model, this[RelationRepository], this[RelationParent]);
-    }
-    return modelRef;
+  constructor(repo: Repository<ModelClass<T>>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
+    this[RelationRepository] = repo;
+    this[RelationParent] = parentObject!;
+    // Initialize internal array
+    this.items = content.map(c => this.getModelRef(c));
+
+    // Return a Proxy to support indexed access like an array
+    return new Proxy(this, {
+      get(target, prop) {
+        // Handle numeric indices
+        if (typeof prop === "string" && /^\d+$/.test(prop)) {
+          return target.items[parseInt(prop, 10)];
+        }
+        // Handle all other properties normally
+        return (target as any)[prop];
+      },
+      set(target, prop, value) {
+        // Handle numeric indices
+        if (typeof prop === "string" && /^\d+$/.test(prop)) {
+          target.items[parseInt(prop, 10)] = value;
+          return true;
+        }
+        // Handle all other properties normally
+        (target as any)[prop] = value;
+        return true;
+      }
+    });
   }
 
   /**
-   * @inheritdoc
+   * Add items to the end of the collection
    */
   push(...items: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): number {
-    const result = super.push(...items.map(i => this.getModelRef(i)));
+    const result = this.items.push(...items.map(i => this.getModelRef(i)));
     this.setDirty();
     return result;
   }
 
   /**
-   * @inheritdoc
+   * Add items to the beginning of the collection
    */
   unshift(...items: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): number {
-    const result = super.unshift(...items.map(i => this.getModelRef(i)));
+    const result = this.items.unshift(...items.map(i => this.getModelRef(i)));
     this.setDirty();
     return result;
   }
 
   /**
-   * @inheritdoc
+   * Remove and return the last item
    */
   pop(): ModelRef<T> | undefined {
-    const result = super.pop();
-    this.setDirty();
+    const result = this.items.pop();
+    if (result !== undefined) {
+      this.setDirty();
+    }
     return result;
   }
 
   /**
-   * @inheritdoc
+   * Remove and return the first item
    */
   shift(): ModelRef<T> | undefined {
-    const result = super.shift();
-    this.setDirty();
+    const result = this.items.shift();
+    if (result !== undefined) {
+      this.setDirty();
+    }
+    return result;
+  }
+
+  /**
+   * Remove/add items at specified index
+   */
+  splice(start: number, deleteCount?: number, ...rest: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): ModelRef<T>[] {
+    const result = this.items.splice(start, deleteCount as number, ...rest.map(i => this.getModelRef(i)));
+    if (result.length > 0 || rest.length > 0) {
+      this.setDirty();
+    }
     return result;
   }
 
@@ -524,11 +553,121 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
    * @param items
    */
   set(items?: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): void {
-    this.splice(0, this.length, ...(items?.map(i => this.getModelRef(i)) || []));
+    this.items = items?.map(i => this.getModelRef(i)) || [];
     this.setDirty();
   }
 
-  setDirty() {
+  /**
+   * Remove item by reference or primary key
+   */
+  remove(model: string | ModelRef<T> | PrimaryKeyType<T> | T): boolean {
+    const uuid = this.getModelRef(model).getPrimaryKey().toString();
+    const index = this.items.findIndex(m => m.getPrimaryKey().toString() === uuid);
+    if (index >= 0) {
+      this.items.splice(index, 1);
+      this.setDirty();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get the number of items
+   */
+  get length(): number {
+    return this.items.length;
+  }
+
+  /**
+   * Get item at index
+   */
+  at(index: number): ModelRef<T> | undefined {
+    return this.items[index];
+  }
+
+  /**
+   * Find item by predicate
+   */
+  find(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): ModelRef<T> | undefined {
+    return this.items.find(predicate);
+  }
+
+  /**
+   * Find index by predicate
+   */
+  findIndex(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): number {
+    return this.items.findIndex(predicate);
+  }
+
+  /**
+   * Map over items (does NOT mutate)
+   */
+  map<U>(callback: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => U): U[] {
+    return this.items.map(callback);
+  }
+
+  /**
+   * Filter items (does NOT mutate)
+   */
+  filter(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): ModelRef<T>[] {
+    return this.items.filter(predicate);
+  }
+
+  /**
+   * Execute callback for each item
+   */
+  forEach(callback: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => void): void {
+    this.items.forEach(callback);
+  }
+
+  /**
+   * Check if any item matches predicate
+   */
+  some(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): boolean {
+    return this.items.some(predicate);
+  }
+
+  /**
+   * Check if all items match predicate
+   */
+  every(predicate: (item: ModelRef<T>, index: number, array: ModelRef<T>[]) => boolean): boolean {
+    return this.items.every(predicate);
+  }
+
+  /**
+   * Convert to JSON
+   */
+  toJSON(): PrimaryKeyType<T>[] {
+    return this.items.map(m => m.getPrimaryKey());
+  }
+
+  /**
+   * Make the collection iterable (for...of loops)
+   */
+  [Symbol.iterator](): Iterator<ModelRef<T>> {
+    return this.items[Symbol.iterator]();
+  }
+
+  /**
+   * Support indexed access like an array
+   */
+  [index: number]: ModelRef<T>;
+
+  protected getModelRef(model: string | PrimaryKeyType<T> | ModelRef<T> | T): ModelRef<T> {
+    let modelRef: ModelRef<T>;
+    if (typeof model === "string") {
+      modelRef = new ModelRef<T>(this[RelationRepository].parseUID(model), this[RelationRepository]);
+    } else if (model instanceof ModelRef) {
+      modelRef = model;
+    } else if (isStorable(model)) {
+      modelRef = new ModelRef<T>(model.getPrimaryKey(), this[RelationRepository], this[RelationParent]);
+    } else {
+      modelRef = new ModelRef<T>(model, this[RelationRepository], this[RelationParent]);
+    }
+    return modelRef;
+  }
+
+  protected setDirty(): void {
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
           .filter(k => (this[RelationParent] as any)[k] === this)
@@ -540,23 +679,6 @@ export class ModelLinksSimpleArray<T extends Storable> extends Array<ModelRef<T>
     if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
       this[RelationParent][WEBDA_DIRTY].add(attrName);
     }
-  }
-
-  remove(model: string | ModelRef<T> | PrimaryKeyType<T> | T) {
-    const uuid = this.getModelRef(model).getPrimaryKey().toString();
-    const index = this.findIndex(m => m.getPrimaryKey() === uuid);
-    if (index >= 0) {
-      this.splice(index, 1);
-      this.setDirty();
-    }
-  }
-
-  /**
-   *
-   * @returns
-   */
-  toJSON(): PrimaryKeyType<T>[] {
-    return this.map(m => m.getPrimaryKey());
   }
 }
 
@@ -591,23 +713,22 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
     // We might want to explore moving data in sub-classes
   }
 
-  toJSON(): K & PrimaryKey<T> {
-    const res: any = {};
-    for (const i in this) {
-      if (i.startsWith("__WEBDA_")) {
-        continue;
-      }
-      res[i] = this[i];
-    }
-    return res;
+  /**
+   * Override toJSON to include custom properties along with primary key
+   */
+  toJSON(): any {
+    // Return the relation data which should already include the primary key
+    // along with any additional custom properties
+    return this[RelationData];
   }
 }
 
-// Your specific version
-export type CleanWebda<T> = OmitPrefixed<T, "__WEBDA_">;
-
 /**
  * Link to a collection of objects including some additional data
+ *
+ * Uses composition instead of extending Array for better maintainability,
+ * performance, and type safety. Provides array-like interface through
+ * explicit methods and iterators.
  *
  * It does not require to have a symetric relation on the other side
  * The array contains uuid of the linked objects and additional properties defined as K
@@ -619,27 +740,48 @@ export type CleanWebda<T> = OmitPrefixed<T, "__WEBDA_">;
  * }
  * ```
  */
-export class ModelLinksArray<T extends Storable, K extends object>
-  extends Array<ModelRefCustomProperties<T, K>>
-  implements ModelLinker
-{
+export class ModelLinksArray<T extends Storable, K extends object> implements ModelLinker {
   [RelationRole]: "ModelLinker" = "ModelLinker" as const;
   protected [RelationParent]?: T;
+
+  // COMPOSITION: Internal array instead of extending Array
+  private items: ModelRefCustomProperties<T, K>[] = [];
+
   constructor(
     protected repo: Repository<ModelClass<T>>,
     content: (PrimaryKey<T> & K)[] = [],
     parentObject?: T
   ) {
-    super();
     this[RelationParent] = parentObject!;
-    this.push(
-      ...content.map(
-        c =>
-          <ModelRefCustomProperties<T, K>>(
-            (<unknown>new ModelRefCustom<T, K>(repo.getPrimaryKey(c), repo, c, this[RelationParent]))
-          )
-      )
+    // Initialize internal array
+    this.items = content.map(
+      c =>
+        <ModelRefCustomProperties<T, K>>(
+          (<unknown>new ModelRefCustom<T, K>(repo.getPrimaryKey(c), repo, c, this[RelationParent]))
+        )
     );
+
+    // Return a Proxy to support indexed access like an array
+    return new Proxy(this, {
+      get(target, prop) {
+        // Handle numeric indices
+        if (typeof prop === "string" && /^\d+$/.test(prop)) {
+          return target.items[parseInt(prop, 10)];
+        }
+        // Handle all other properties normally
+        return (target as any)[prop];
+      },
+      set(target, prop, value) {
+        // Handle numeric indices
+        if (typeof prop === "string" && /^\d+$/.test(prop)) {
+          target.items[parseInt(prop, 10)] = value;
+          return true;
+        }
+        // Handle all other properties normally
+        (target as any)[prop] = value;
+        return true;
+      }
+    });
   }
 
   /**
@@ -655,33 +797,170 @@ export class ModelLinksArray<T extends Storable, K extends object>
   }
 
   /**
-   * @inheritdoc
+   * Add items to the end of the collection
    */
-  push(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]) {
-    const result = super.push(...items.map(i => this.getModelRef(i)));
+  push(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]): number {
+    const result = this.items.push(...items.map(i => this.getModelRef(i)));
     this.setDirty();
     return result;
   }
 
   /**
-   * @inheritdoc
+   * Remove and return the last item
    */
   pop(): ModelRefCustomProperties<T, K> | undefined {
-    const result = super.pop();
+    const result = this.items.pop();
+    if (result !== undefined) {
+      this.setDirty();
+    }
+    return result;
+  }
+
+  /**
+   * Remove and return the first item
+   */
+  shift(): ModelRefCustomProperties<T, K> | undefined {
+    const result = this.items.shift();
+    if (result !== undefined) {
+      this.setDirty();
+    }
+    return result;
+  }
+
+  /**
+   * Add items to the beginning of the collection
+   */
+  unshift(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]): number {
+    const result = this.items.unshift(...items.map(i => this.getModelRef(i)));
     this.setDirty();
     return result;
   }
 
   /**
-   * @inheritdoc
+   * Remove/add items at specified index
    */
-  shift(): ModelRefCustomProperties<T, K> | undefined {
-    const result = super.shift();
-    this.setDirty();
+  splice(
+    start: number,
+    deleteCount?: number,
+    ...rest: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]
+  ): ModelRefCustomProperties<T, K>[] {
+    const result = this.items.splice(start, deleteCount as number, ...rest.map(i => this.getModelRef(i)));
+    if (result.length > 0 || rest.length > 0) {
+      this.setDirty();
+    }
     return result;
   }
 
-  getModelRef(
+  /**
+   * Remove item by reference or primary key
+   */
+  remove(model: ModelRefCustomProperties<T, K> | PrimaryKeyType<T> | T): boolean {
+    const uuid = typeof (model as any)["getPrimaryKey"] === "function" ? (model as any)["getPrimaryKey"]() : model;
+    const index = this.items.findIndex(m => PrimaryKeyEquals(m.getPrimaryKey(), uuid));
+    if (index >= 0) {
+      this.items.splice(index, 1);
+      this.setDirty();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get the number of items
+   */
+  get length(): number {
+    return this.items.length;
+  }
+
+  /**
+   * Get item at index
+   */
+  at(index: number): ModelRefCustomProperties<T, K> | undefined {
+    return this.items[index];
+  }
+
+  /**
+   * Find item by predicate
+   */
+  find(
+    predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
+  ): ModelRefCustomProperties<T, K> | undefined {
+    return this.items.find(predicate);
+  }
+
+  /**
+   * Find index by predicate
+   */
+  findIndex(
+    predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
+  ): number {
+    return this.items.findIndex(predicate);
+  }
+
+  /**
+   * Check if item exists in collection
+   */
+  includes(search: ModelRefCustomProperties<T, K>, fromIndex?: number): boolean {
+    return this.items.includes(search, fromIndex);
+  }
+
+  /**
+   * Map over items (does NOT mutate)
+   */
+  map<U>(callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => U): U[] {
+    return this.items.map(callback);
+  }
+
+  /**
+   * Filter items (does NOT mutate)
+   */
+  filter(
+    predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
+  ): ModelRefCustomProperties<T, K>[] {
+    return this.items.filter(predicate);
+  }
+
+  /**
+   * Execute callback for each item
+   */
+  forEach(callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => void): void {
+    this.items.forEach(callback);
+  }
+
+  /**
+   * Check if any item matches predicate
+   */
+  some(predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean): boolean {
+    return this.items.some(predicate);
+  }
+
+  /**
+   * Check if all items match predicate
+   */
+  every(predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean): boolean {
+    return this.items.every(predicate);
+  }
+
+  /**
+   * Convert to JSON
+   */
+  toJSON(): JSONed<ModelRefCustomProperties<T, K>>[] {
+    return <any>this.items;
+  }
+
+  /**
+   * Make the collection iterable (for...of loops)
+   */
+  [Symbol.iterator](): Iterator<ModelRefCustomProperties<T, K>> {
+    return this.items[Symbol.iterator]();
+  }
+
+  /**
+   * Support indexed access like an array
+   */
+  [index: number]: ModelRefCustomProperties<T, K>;
+
+  protected getModelRef(
     model: ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>
   ): ModelRefCustomProperties<T, K> {
     return <any>(
@@ -691,29 +970,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
     );
   }
 
-  /**
-   * @inheritdoc
-   */
-  splice(
-    start: unknown,
-    deleteCount?: unknown,
-    ...rest: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]
-  ): ModelRefCustomProperties<T, K>[] {
-    const result = super.splice(start as number, deleteCount as number, ...rest.map(i => this.getModelRef(i)));
-    this.setDirty();
-    return result;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  unshift(...items: (ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>)[]): number {
-    const result = super.unshift(...items.map(i => this.getModelRef(i)));
-    this.setDirty();
-    return result;
-  }
-
-  setDirty() {
+  protected setDirty(): void {
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
           .filter(k => (this[RelationParent] as any)[k] === this)
@@ -726,50 +983,7 @@ export class ModelLinksArray<T extends Storable, K extends object>
       this[RelationParent][WEBDA_DIRTY].add(attrName);
     }
   }
-
-  /**
-   * @inheritdoc
-   */
-  remove(model: ModelRefCustomProperties<T, K> | PrimaryKeyType<T> | T) {
-    const uuid = typeof (model as any)["getPrimaryKey"] === "function" ? (model as any)["getPrimaryKey"]() : model;
-    const index = this.findIndex(m => PrimaryKeyEquals(m.getPrimaryKey(), uuid));
-    if (index >= 0) {
-      this.splice(index, 1);
-      this.setDirty();
-    }
-  }
-
-  /**
-   *
-   * @returns
-   */
-  toJSON(): JSONed<ModelRefCustomProperties<T, K>>[] {
-    return <any>this;
-  }
 }
-
-/**
- * Define 1:n or n:m relation with some sort of additional data or duplicated data
- *
- * The key of the map is the value of the FK
- * This is similar to ModelLinksArray but the key is used to store the data
- *
- * T is the target model
- * K is the additional data to store
- * L is the attribute to duplicate from the target model, it can be empty
- *
- * @deprecated Use ModelLinksArray instead
- * @see ModelLinksArray
- */
-export type ModelLinksMap<T extends Storable, K, L extends keyof T = never> = Readonly<{
-  [key: string]: ModelRefCustomProperties<T, K & { [key in L]: T[L] }>;
-}> &
-  ModelCollectionManager<PrimaryKey<T> & K & { [key in L]: T[L] }> &
-  ModelLinker & {
-    toJSON(): {
-      [key: string]: Omit<JSONed<ModelRefCustomProperties<T, K & { [key in L]: T[L] }>>, keyof PrimaryKey<T>>;
-    };
-  };
 
 /**
  * Define a ModelRef with custom properties for map
@@ -897,20 +1111,4 @@ export type ManyToMany<T extends Storable, K extends object = {}> = K extends ob
 
 export type BelongTo<T extends Storable> = ModelParent<T>;
 export type RelateTo<T extends Storable> = ModelLink<T>;
-export type Contains<T extends Storable> = ModelLinksSimpleArray<T> | ModelLinksArray<T, any> | ModelLinksMap<T, any>;
-
-export type OneToMany2<T extends Storable, K extends object | never = never> = K extends never
-  ? ModelRef<T>
-  : ModelRefCustom<T, K>[];
-
-export type ManyToMany2<T extends Storable, K extends object | never = never> = K extends never
-  ? ModelLinksSimpleArray<T>
-  : ModelLinksArray<T, K>;
-
-export type ManyToOne2<T extends Storable, K extends object | never = never> = K extends never
-  ? ModelLink<T>
-  : ModelRefCustom<T, K>;
-
-export type OneToOne2<T extends Storable, K extends object | never = never> = K extends never
-  ? ModelLink<T>
-  : ModelRefCustom<T, K>;
+export type Contains<T extends Storable> = ModelLinksSimpleArray<T> | ModelLinksArray<T, any>;

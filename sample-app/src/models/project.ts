@@ -1,6 +1,6 @@
 import { Acls, Operation as Action, OperationContext, Store } from "@webda/core";
 import { Company } from "./company";
-import { Helpers, MemoryRepository, Model, ModelParent, ModelRefWithCreate, WEBDA_PRIMARY_KEY } from "@webda/models";
+import { Model, ModelParent, WEBDA_PRIMARY_KEY } from "@webda/models";
 
 abstract class CoreModel extends Model {
   /**

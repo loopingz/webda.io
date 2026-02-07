@@ -518,6 +518,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
         }
       });
     });
+
     return this;
   }
 
@@ -890,16 +891,17 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     let result = await model.query(query, true);
     const queryInfo = new WebdaQL.QueryValidator(query);
     const updatedCallback = async evt => {
-      this.log("INFO", "Event from", evt.emitterId, evt.object_id);
+      this.log("TRACE", "Event from", evt.emitterId, evt.object_id);
       if (!result.results.find(e => evt.object_id === e.getUuid())) return;
       // We rely on the cache of the store to get the full object
       // We let the other listeners finish before returning the object
       await new Promise(resolve => nextTick(resolve));
+      result.results = await Promise.all(
+        result.results.map(r => (r.getUuid() === evt.object_id ? model.ref(evt.object_id).get() : r))
+      );
       return {
         continuationToken: result.continuationToken,
-        results: await Promise.all(
-          result.results.map(r => (r.getUuid() === evt.object_id ? model.ref(evt.object_id).get() : r))
-        )
+        results: result.results
       };
     };
     const events = {

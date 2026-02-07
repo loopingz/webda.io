@@ -16,7 +16,7 @@ export class PrimaryKeyMetadata extends MetadataPlugin {
       if (primarySymbol) {
         module.models[name].PrimaryKey ??= [];
         const node = primarySymbol.valueDeclaration.getChildren().find(c => ts.isTypeOperatorNode(c));
-        if (node.operator === ts.SyntaxKind.ReadonlyKeyword) {
+        if (node?.operator === ts.SyntaxKind.ReadonlyKeyword) {
           const inner = node.type;
           if (ts.isArrayTypeNode(inner)) {
             // keyof this would end up here, but that are abstract models

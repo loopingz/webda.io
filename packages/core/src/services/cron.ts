@@ -12,6 +12,7 @@ export class CronDefinition {
   /**
    * Cron definition
    * * * * 0 3
+   * @pattern ^(\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([01]?\d|2[0-3])) (\*|([0-6])) (\*|([0-6]))$
    */
   cron: string;
 

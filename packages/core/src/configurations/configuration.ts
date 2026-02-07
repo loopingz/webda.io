@@ -4,6 +4,7 @@ import { ServiceParameters } from "../services/serviceparameters.js";
 import { useCore, useService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import type { Core } from "../core/core.js";
+import { Duration } from "@webda/utils";
 
 /**
  * Service that can store configuration
@@ -30,14 +31,14 @@ interface ConfigurationProvider {
 export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Check configuration every {checkInterval} seconds
-   * @default 3600 ( 1 hour )
+   * @default 1h
    */
-  checkInterval: number;
+  checkInterval: Duration;
   /**
    * Check interval in ms
    */
   get checkIntervalMs() {
-    return this.checkInterval * 1000;
+    return this.checkInterval.toMs();
   }
   /**
    * Format sourceServiceName:sourceId or sourceId if source is this service
@@ -71,7 +72,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
       this.sources.push(this.source);
       delete this.source;
     }
-    this.checkInterval ??= 3600;
+    this.checkInterval = new Duration(params.checkInterval ?? "1h");
     return this;
   }
 }
@@ -255,7 +256,7 @@ class ConfigurationService<
    * Update the next check time
    */
   protected updateNextCheck() {
-    this.nextCheck = Date.now() + this.parameters.checkInterval * 1000;
+    this.nextCheck = Date.now() + this.parameters.checkIntervalMs;
   }
 
   /**

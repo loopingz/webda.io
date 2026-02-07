@@ -241,12 +241,12 @@ export function getMetadata(target: AnyCtor): {
   "webda:lifecycle"?: LifecycleMeta[];
 } {
   let prototype = target;
-  let results = {
+  const results = {
     "webda:suite": undefined,
     "webda:tests": undefined,
     "webda:lifecycle": undefined
   };
-  let prototypes = [];
+  const prototypes = [];
   while (prototype && prototype !== Object.prototype) {
     prototypes.push(prototype);
     prototype = Object.getPrototypeOf(prototype);
@@ -354,7 +354,6 @@ export const suite: ReturnType<typeof createClassDecorator> & {
            * Create a test executor that will call the beforeEach, the test and the afterEach
            */
           const testExecutor = async () => {
-            // TODO might want to allow sequential execution of multiple lifecycles
             await instance["beforeEach"]?.(t.fnKey); // beforeEach method are automatically called
             await Promise.all(
               lifecycles

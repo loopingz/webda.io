@@ -72,9 +72,8 @@ export class RESTDomainServiceParameters extends DomainServiceParameters {
    * https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js
    *
    * TODO Add renovatebot regex
-   * @default "5.28.0"
    */
-  swaggerVersion: string = "5.28.0";
+  swaggerVersion: string = "5.31.0";
   /**
    * When to query
    */

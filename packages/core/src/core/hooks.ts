@@ -28,14 +28,30 @@ export function setCore(core: Core) {
 }
 
 /**
+ * Services Map
+ */
+export interface ServicesMap {
+  Registry: Store;
+  CryptoService: CryptoService;
+}
+
+/**
+ * Represent a service name in webda
+ *
+ * Useful for referencing other services within the framework
+ * @serviceName
+ * @schemaInherits
+ */
+export type ServiceName = keyof ServicesMap;
+
+/**
  * Get a service by name
  * @param name
  * @returns
  */
-export function useService<K extends Store = Store>(name: "Registry"): K;
-export function useService<K extends CryptoService = CryptoService>(name: "CryptoService"): K;
-export function useService<K = Service>(name: string): K;
-export function useService(name: string) {
+export function useService<K extends keyof ServicesMap>(name: K): ServicesMap[K];
+//export function useService<T = Service>(name: ServiceName): T;
+export function useService(name: ServiceName) {
   return useCore().getService(name) as Service;
 }
 

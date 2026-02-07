@@ -1,5 +1,6 @@
 import { IOperationContext } from "../contexts/icontext.js";
 import { LoadParameters, ModelEvents, SelfJSONed, UuidModel, WEBDA_EVENTS } from "@webda/models";
+import { ServiceName } from "../services/authentication.js";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
@@ -53,6 +54,10 @@ export class User extends UuidModel {
    * Contain main user email if exists
    */
   email?: string;
+  /**
+   * TODO REMOVE
+   */
+  service?: ServiceName;
 
   /**
    * Return user email if known or guessable

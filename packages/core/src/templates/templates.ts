@@ -84,7 +84,7 @@ export function templateVariables(object: any, replacements: any = {}): any {
   if (typeof object === "string") {
     return stringParameter(object, replacements);
   }
-  // eslint-disable-next-line @typescript-eslint/no-this-alias
+   
   return JSON.parse(
     // eslint-disable-next-line func-names
     JSON.stringify(object, function (key: string, value: any) {

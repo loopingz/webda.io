@@ -29,10 +29,21 @@ export type Helpers<T extends object> = DefaultHelper<T>;
  */
 export type ProxiedHelpers<T extends object> = T;
 /**
+ * Define Webda fields on a class
+ * 
+ *  - Requires to have the .webda/module.d.ts file in your tsconfig "types" array
+ *  - Webda will automatically pick up the fields defined here for serialization, deserialization, validation, etc.
+ *
+ * @returns 
+ */
+export function WebdaFieldsMixIn<T extends object>(clazz: { new(...args: any[]): T }): { new(...args: any[]): T } {
+  return clazz;
+}
+/**
  *
  */
 export type LoadParameters<Model extends object, Helpers extends object = DefaultHelper<Model>> = Partial<
-  Merge<Merge<Model, SelfJSONed<Model>>, Helpers>
+  Merge<Merge<Model, SelfSerialized<Model>>, Helpers>
 >;
 
 /**
@@ -46,6 +57,38 @@ export type JSONed<T> = T extends { toJSON: () => any }
     : T extends object
       ? Pick<T, Extract<Attributes<T>, string>>
       : T;
+
+type FilterOutAttributes2<T, U> = {
+  [K in keyof T]: T[K] extends U ? K : never;
+}[keyof T];
+export type Serialized<T> = T extends { toJSON: () => infer R } ? R : SelfSerialized<T>;
+export type SelfSerialized<T> = T extends bigint
+  ? string
+  : T extends Array<infer U>
+    ? Array<SelfSerialized<U>>
+    : T extends Map<string, infer MV>
+      ? Record<string, SelfSerialized<MV>>
+      : T extends Set<infer US>
+        ? Array<SelfSerialized<US>>
+        : T extends RegExp
+          ? string
+          : T extends object
+            ? {
+                [K in Extract<FilterOutAttributes2<T, Function>, string>]: T[K] extends bigint
+                  ? string
+                  : T[K] extends Array<infer U>
+                    ? Array<SelfSerialized<U>>
+                    : T[K] extends Map<string, infer MV>
+                      ? Record<string, SelfSerialized<MV>>
+                      : T[K] extends Set<infer US>
+                        ? Array<SelfSerialized<US>>
+                        : T[K] extends RegExp
+                          ? string
+                          : T[K] extends object
+                            ? SelfSerialized<T[K]>
+                            : T[K];
+              }
+            : T;
 /**
  * Allow to use this type in a JSON context
  */
@@ -61,7 +104,7 @@ export type Deserializers<T extends { load: (data: T) => any }> = {
 };
 
 
-type NonFunctionPropertyNames<T extends Object> = {
+type NonFunctionPropertyNames<T extends object> = {
   [K in keyof T]: T[K] extends Function ? never : K;
 }[keyof T];
 export type IsAny<T> = 0 extends 1 & NoInfer<T> ? true : false;

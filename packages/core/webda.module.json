@@ -6,68 +6,98 @@
     "Webda/Authentication": {
       "Import": "lib/services/authentication:Authentication",
       "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "identModel": {
-            "type": "string"
-          },
-          "userModel": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
           "email": {
-            "type": "object",
+            "additionalProperties": false,
+            "description": "Enable the email authentication",
             "properties": {
-              "mailer": {
-                "type": "string"
-              },
-              "postValidation": {
-                "type": "boolean"
-              },
-              "skipEmailValidation": {
-                "type": "boolean"
-              },
               "delay": {
+                "default": "3600000 * 4",
+                "description": "Minimal delay between two password recovery or validation email",
                 "type": "number"
               },
               "failedLoginBeforeDelay": {
+                "default": 3,
+                "description": "When a delay is added between two attempt to authenticate",
                 "type": "number"
-              }
-            },
-            "required": [
-              "postValidation",
-              "skipEmailValidation",
-              "delay",
-              "failedLoginBeforeDelay"
-            ],
-            "description": "Enable the email authentication"
-          },
-          "password": {
-            "type": "object",
-            "properties": {
-              "verifier": {
+              },
+              "mailer": {
+                "description": "Mailer service name",
+                "serviceName": true,
                 "type": "string"
               },
+              "postValidation": {
+                "default": false,
+                "description": "Allow user to create their account without validating their email first",
+                "type": "boolean"
+              },
+              "skipEmailValidation": {
+                "default": false,
+                "description": "Do not even validate the email at all",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "password": {
+            "additionalProperties": false,
+            "properties": {
               "regexp": {
+                "default": "{8,}",
+                "description": "Regexp that password must check",
+                "type": "string"
+              },
+              "verifier": {
+                "description": "Password verifier Service name",
+                "serviceName": true,
                 "type": "string"
               }
-            }
-          },
-          "salt": {
-            "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "properties": {
+          "email": {
+            "$ref": "#/definitions/email",
+            "description": "Enable the email authentication"
           },
           "failureRedirect": {
+            "description": "Redirect to this page when email validation failed",
+            "type": "string"
+          },
+          "identModel": {
+            "default": "Webda/Ident",
+            "description": "Idents store for authentication identifiers",
+            "type": "string"
+          },
+          "password": {
+            "$ref": "#/definitions/password"
+          },
+          "registerRedirect": {
+            "description": "Redirect to this page once email is validate to finish the registration process",
+            "type": "string"
+          },
+          "salt": {
+            "description": "Number of salt iteration for bcrypt.hashSync",
             "type": "string"
           },
           "successRedirect": {
+            "description": "Redirect to this page when email validation succeed",
             "type": "string"
           },
-          "registerRedirect": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/auth",
+            "type": "string"
+          },
+          "userModel": {
+            "default": "Webda/User",
+            "description": "User store for authentication users",
             "type": "string"
           },
           "openapi": {
@@ -83,7 +113,7 @@
           "successRedirect",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "Authentication"
       },
       "Configuration": "lib/services/authentication:AuthenticationParameters"
@@ -91,23 +121,33 @@
     "Webda/Binary": {
       "Import": "lib/services/binary:BinaryService",
       "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
           "models": {
-            "type": "object",
             "additionalProperties": {
-              "type": "array",
               "items": {
                 "type": "string"
-              }
+              },
+              "type": "array"
             },
-            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name the string[] represent all valids attributes to store files in * indicates all attributes"
-          },
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes",
+            "type": "object"
+          }
+        },
+        "properties": {
           "maxFileSize": {
+            "default": "10 MB",
+            "description": "Define the maximum filesize to accept as direct upload",
             "type": "number"
+          },
+          "models": {
+            "$ref": "#/definitions/models",
+            "description": "Define the map of models\n* indicates all models\n\nkey is a Store name\nthe string[] represent all valids attributes to store files in * indicates all attributes"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -118,7 +158,7 @@
           "models",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "BinaryService"
       },
       "Configuration": "lib/services/binary:BinaryParameters"
@@ -126,36 +166,56 @@
     "Webda/ConfigurationService": {
       "Import": "lib/configurations/configuration:ConfigurationService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Duration": {
+            "additionalProperties": false,
+            "description": "Represents a time duration that defaults to seconds but supports composite strings.",
+            "type": "object"
+          }
+        },
         "properties": {
-          "type": {
-            "type": "string"
-          },
           "checkInterval": {
+            "$ref": "#/definitions/Duration",
+            "default": "1h",
+            "description": "Check configuration every {checkInterval} seconds"
+          },
+          "checkIntervalMs": {
+            "description": "Check interval in ms",
             "type": "number"
           },
+          "default": {
+            "default": "{ services: {}, parameters: {} }",
+            "description": "Default configuration to use"
+          },
           "source": {
+            "description": "Format sourceServiceName:sourceId or sourceId if source is this service",
             "type": "string"
           },
           "sources": {
-            "type": "array",
+            "description": "List of sources to load and merge ( in order )\nFormat sourceServiceName:sourceId or sourceId if source is this service",
             "items": {
               "type": "string"
-            }
+            },
+            "type": "array"
           },
-          "default": {},
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
         },
         "required": [
-          "checkInterval",
+          "checkIntervalMs",
           "source",
           "sources",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "ConfigurationService"
       },
       "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
@@ -163,57 +223,75 @@
     "Webda/CookieSessionManager": {
       "Import": "lib/session/manager:CookieSessionManager",
       "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "jwt": {
-            "$ref": "#/definitions/JWTOptions"
-          },
-          "cookie": {
-            "$ref": "#/definitions/CookieOptions"
-          },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "type"
-        ],
         "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "definitions": {
-          "JWTOptions": {
-            "type": "object",
+          "CookieOptions": {
+            "additionalProperties": false,
+            "description": "Cookie Options",
             "properties": {
-              "secretOrPublicKey": {
+              "_maxAge": {
+                "$ref": "#/definitions/Duration",
+                "description": "Duration storage"
+              },
+              "domain": {
                 "anyOf": [
                   {
                     "type": "string"
                   },
                   {
-                    "$ref": "#/definitions/global.Buffer"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "key": {
-                        "type": "string"
-                      },
-                      "passphrase": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "key",
-                      "passphrase"
-                    ]
+                    "const": true,
+                    "type": "boolean"
                   }
-                ]
+                ],
+                "description": "if true domain will be set to the request hostname\nif undefined no domain will be output (browser will use the current domain and only this one)\nif a string is provided it will be used as the domain\n\nWhen provided a domain is setting the cookie to be available to all subdomains"
               },
+              "httpOnly": {
+                "default": true,
+                "type": "boolean"
+              },
+              "maxAge": {
+                "default": "7d",
+                "minimum": 1,
+                "type": "number"
+              },
+              "name": {
+                "description": "Name of the cookie",
+                "type": "string"
+              },
+              "path": {
+                "default": "/",
+                "type": "string"
+              },
+              "sameSite": {
+                "default": "lax",
+                "enum": [
+                  "none",
+                  "strict",
+                  "lax"
+                ],
+                "type": "string"
+              },
+              "secure": {
+                "default": "undefined",
+                "description": "If not set will be true if https request and false otherwise\nIf defined it will be set to the value",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "Duration": {
+            "additionalProperties": false,
+            "description": "Represents a time duration that defaults to seconds but supports composite strings.",
+            "type": "object"
+          },
+          "JWTOptions": {
+            "additionalProperties": false,
+            "description": "JWT Options",
+            "properties": {
               "algorithm": {
-                "type": "string",
+                "default": "HS256",
+                "description": "Algorithm for JWT token",
                 "enum": [
                   "HS256",
                   "HS384",
@@ -227,119 +305,77 @@
                   "ES256",
                   "ES384",
                   "ES512"
-                ]
-              },
-              "expiresIn": {
-                "type": [
-                  "number",
-                  "string"
-                ]
+                ],
+                "see": "https://www.npmjs.com/package/jsonwebtoken",
+                "type": "string"
               },
               "audience": {
+                "description": "Audience for the jwt",
                 "type": "string"
+              },
+              "expiresIn": {
+                "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\").",
+                "type": [
+                  "string",
+                  "number"
+                ]
               },
               "issuer": {
+                "description": "Issuer of the token",
                 "type": "string"
+              },
+              "keyid": {},
+              "secretOrPublicKey": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/jwt%24secretOrPublicKey%233"
+                  }
+                ],
+                "description": "Secret to use with JWT"
               },
               "subject": {
+                "description": "Subject for JWT",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "jwt$secretOrPublicKey#3": {
+            "additionalProperties": false,
+            "properties": {
+              "key": {
                 "type": "string"
               },
-              "keyid": {}
-            },
-            "description": "JWT Options"
-          },
-          "global.Buffer": {
-            "type": "object",
-            "properties": {
-              "BYTES_PER_ELEMENT": {
-                "type": "number"
-              },
-              "buffer": {
-                "$ref": "#/definitions/ArrayBufferLike"
-              },
-              "byteLength": {
-                "type": "number"
-              },
-              "byteOffset": {
-                "type": "number"
-              },
-              "length": {
-                "type": "number"
+              "passphrase": {
+                "type": "string"
               }
             },
             "required": [
-              "BYTES_PER_ELEMENT",
-              "buffer",
-              "byteLength",
-              "byteOffset",
-              "length"
-            ]
-          },
-          "ArrayBufferLike": {
-            "anyOf": [
-              {
-                "$ref": "#/definitions/ArrayBuffer"
-              },
-              {}
-            ]
-          },
-          "ArrayBuffer": {
-            "type": "object",
-            "properties": {
-              "byteLength": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "byteLength"
-            ]
-          },
-          "CookieOptions": {
-            "type": "object",
-            "properties": {
-              "sameSite": {
-                "type": "string",
-                "enum": [
-                  "none",
-                  "strict",
-                  "lax"
-                ]
-              },
-              "domain": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              },
-              "maxAge": {
-                "type": "number"
-              },
-              "path": {
-                "type": "string"
-              },
-              "httpOnly": {
-                "type": "boolean"
-              },
-              "secure": {
-                "type": "boolean"
-              },
-              "name": {
-                "type": "string"
-              }
-            },
-            "description": "Cookie Options"
+              "key",
+              "passphrase"
+            ],
+            "type": "object"
           }
         },
-        "title": "CookieSessionManager"
-      },
-      "Configuration": "lib/session/manager:CookieSessionParameters"
-    },
-    "Webda/CronService": {
-      "Import": "lib/services/cron:CronService",
-      "Schema": {
-        "type": "object",
         "properties": {
+          "cookie": {
+            "$ref": "#/definitions/CookieOptions",
+            "description": "Cookie configuration for session"
+          },
+          "jwt": {
+            "$ref": "#/definitions/JWTOptions",
+            "description": "Options for issue JWT token"
+          },
           "type": {
+            "description": "Type of the service",
             "type": "string"
           },
           "openapi": {
@@ -350,8 +386,31 @@
         "required": [
           "type"
         ],
-        "description": "Interface to specify the Service parameters",
+        "type": "object",
+        "title": "CookieSessionManager"
+      },
+      "Configuration": "lib/session/manager:CookieSessionParameters"
+    },
+    "Webda/CronService": {
+      "Import": "lib/services/cron:CronService",
+      "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
+        "properties": {
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object",
         "title": "CronService"
       },
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
@@ -359,28 +418,161 @@
     "Webda/CryptoService": {
       "Import": "lib/services/cryptoservice:CryptoService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "JWTOptions": {
+            "additionalProperties": false,
+            "description": "JWT Options",
+            "properties": {
+              "algorithm": {
+                "default": "HS256",
+                "description": "Algorithm for JWT token",
+                "enum": [
+                  "HS256",
+                  "HS384",
+                  "HS512",
+                  "RS256",
+                  "RS384",
+                  "RS512",
+                  "PS256",
+                  "PS384",
+                  "PS512",
+                  "ES256",
+                  "ES384",
+                  "ES512"
+                ],
+                "see": "https://www.npmjs.com/package/jsonwebtoken",
+                "type": "string"
+              },
+              "audience": {
+                "description": "Audience for the jwt",
+                "type": "string"
+              },
+              "expiresIn": {
+                "description": "expressed in seconds or a string describing a time span zeit/ms.\n\nEg: 60, \"2 days\", \"10h\", \"7d\". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default (\"120\" is equal to \"120ms\").",
+                "type": [
+                  "string",
+                  "number"
+                ]
+              },
+              "issuer": {
+                "description": "Issuer of the token",
+                "type": "string"
+              },
+              "keyid": {},
+              "secretOrPublicKey": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "contentEncoding": "base64",
+                    "contentMediaType": "application/octet-stream",
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/jwt%24secretOrPublicKey%233"
+                  }
+                ],
+                "description": "Secret to use with JWT"
+              },
+              "subject": {
+                "description": "Subject for JWT",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "asymetricOptions": {
+            "additionalProperties": false,
+            "description": "Options for asymetric generation",
+            "properties": {
+              "modulusLength": {
+                "default": 2048,
+                "type": "number"
+              },
+              "namedCurve": {
+                "description": "Only if asymetricType \"ec\"",
+                "type": "string"
+              },
+              "privateKeyEncoding": {
+                "$ref": "#/definitions/asymetricOptions%24privateKeyEncoding"
+              },
+              "publicKeyEncoding": {
+                "$ref": "#/definitions/asymetricOptions%24publicKeyEncoding"
+              }
+            },
+            "type": "object"
+          },
+          "asymetricOptions$privateKeyEncoding": {
+            "additionalProperties": false,
+            "properties": {
+              "cipher": {
+                "type": "string"
+              },
+              "format": {
+                "const": "pem",
+                "type": "string"
+              },
+              "passphrase": {
+                "type": "string"
+              },
+              "type": {
+                "default": "pkcs8",
+                "description": "https://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_keyobject_export_options",
+                "enum": [
+                  "pkcs1",
+                  "pkcs8",
+                  "sec1"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "asymetricOptions$publicKeyEncoding": {
+            "additionalProperties": false,
+            "properties": {
+              "format": {
+                "const": "pem",
+                "type": "string"
+              },
+              "type": {
+                "default": "spki",
+                "enum": [
+                  "spki",
+                  "pkcs1"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "jwt$secretOrPublicKey#3": {
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "passphrase": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "passphrase"
+            ],
+            "type": "object"
+          }
+        },
         "properties": {
-          "type": {
-            "type": "string"
-          },
-          "keyActiveLifespan": {
-            "type": "number"
-          },
-          "keyLifespan": {
-            "type": "number"
-          },
-          "autoRotate": {
-            "type": "number"
-          },
-          "autoCreate": {
-            "type": "boolean"
-          },
-          "url": {
-            "type": "string"
+          "asymetricOptions": {
+            "$ref": "#/definitions/asymetricOptions",
+            "description": "Options for asymetric generation"
           },
           "asymetricType": {
-            "type": "string",
+            "description": "Type of asymetric key\n\nhttps://nodejs.org/api/crypto.html#cryptogeneratekeypairsynctype-options\nhttps://nodejs.org/docs/latest-v14.x/api/crypto.html#crypto_crypto_generatekeypairsync_type_options",
             "enum": [
               "rsa",
               "dsa",
@@ -390,67 +582,46 @@
               "x25519",
               "x448",
               "dh"
-            ]
+            ],
+            "type": "string"
           },
-          "asymetricOptions": {
-            "type": "object",
-            "properties": {
-              "modulusLength": {
-                "type": "number"
-              },
-              "namedCurve": {
-                "type": "string"
-              },
-              "publicKeyEncoding": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "spki",
-                      "pkcs1"
-                    ]
-                  },
-                  "format": {
-                    "type": "string",
-                    "const": "pem"
-                  }
-                }
-              },
-              "privateKeyEncoding": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "pkcs1",
-                      "pkcs8",
-                      "sec1"
-                    ]
-                  },
-                  "format": {
-                    "type": "string",
-                    "const": "pem"
-                  },
-                  "cipher": {
-                    "type": "string"
-                  },
-                  "passphrase": {
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "description": "Options for asymetric generation"
+          "autoCreate": {
+            "default": false,
+            "description": "Create first set of key if does not exist",
+            "type": "boolean"
           },
-          "symetricKeyLength": {
+          "autoRotate": {
+            "description": "Try to rotate keys when they expire in days",
+            "type": "number"
+          },
+          "jwt": {
+            "$ref": "#/definitions/JWTOptions",
+            "description": "Default JWT options"
+          },
+          "keyActiveLifespan": {
+            "description": "Number of hours a key should be used for encryption\n\nif auto-rotate is not set this",
+            "type": "number"
+          },
+          "keyLifespan": {
+            "description": "Number of hours allowed to decrypt data encrypted with this key",
             "type": "number"
           },
           "symetricCipher": {
+            "default": "aes-256-ctr",
             "type": "string"
           },
-          "jwt": {
-            "$ref": "#/definitions/JWTOptions"
+          "symetricKeyLength": {
+            "default": 256,
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "description": "To expose JWKS",
+            "see": "https://datatracker.ietf.org/doc/html/rfc7517",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -463,119 +634,7 @@
           "keyLifespan",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "definitions": {
-          "JWTOptions": {
-            "type": "object",
-            "properties": {
-              "secretOrPublicKey": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "$ref": "#/definitions/global.Buffer"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "key": {
-                        "type": "string"
-                      },
-                      "passphrase": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "key",
-                      "passphrase"
-                    ]
-                  }
-                ]
-              },
-              "algorithm": {
-                "type": "string",
-                "enum": [
-                  "HS256",
-                  "HS384",
-                  "HS512",
-                  "RS256",
-                  "RS384",
-                  "RS512",
-                  "PS256",
-                  "PS384",
-                  "PS512",
-                  "ES256",
-                  "ES384",
-                  "ES512"
-                ]
-              },
-              "expiresIn": {
-                "type": [
-                  "number",
-                  "string"
-                ]
-              },
-              "audience": {
-                "type": "string"
-              },
-              "issuer": {
-                "type": "string"
-              },
-              "subject": {
-                "type": "string"
-              },
-              "keyid": {}
-            },
-            "description": "JWT Options"
-          },
-          "global.Buffer": {
-            "type": "object",
-            "properties": {
-              "BYTES_PER_ELEMENT": {
-                "type": "number"
-              },
-              "buffer": {
-                "$ref": "#/definitions/ArrayBufferLike"
-              },
-              "byteLength": {
-                "type": "number"
-              },
-              "byteOffset": {
-                "type": "number"
-              },
-              "length": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "BYTES_PER_ELEMENT",
-              "buffer",
-              "byteLength",
-              "byteOffset",
-              "length"
-            ]
-          },
-          "ArrayBufferLike": {
-            "anyOf": [
-              {
-                "$ref": "#/definitions/ArrayBuffer"
-              },
-              {}
-            ]
-          },
-          "ArrayBuffer": {
-            "type": "object",
-            "properties": {
-              "byteLength": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "byteLength"
-            ]
-          }
-        },
+        "type": "object",
         "title": "CryptoService"
       },
       "Configuration": "lib/services/icryptoservice:CryptoServiceParameters"
@@ -583,9 +642,12 @@
     "Webda/DebugMailer": {
       "Import": "lib/services/debugmailer:DebugMailer",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Interface to specify the Service parameters",
         "properties": {
           "type": {
+            "description": "Type of the service",
             "type": "string"
           },
           "openapi": {
@@ -596,8 +658,7 @@
         "required": [
           "type"
         ],
-        "description": "Interface to specify the Service parameters",
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "DebugMailer"
       },
       "Configuration": "lib/services/serviceparameters:ServiceParameters"
@@ -605,36 +666,56 @@
     "Webda/FileConfiguration": {
       "Import": "lib/configurations/fileconfiguration:FileConfigurationService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Duration": {
+            "additionalProperties": false,
+            "description": "Represents a time duration that defaults to seconds but supports composite strings.",
+            "type": "object"
+          }
+        },
         "properties": {
-          "type": {
-            "type": "string"
-          },
           "checkInterval": {
+            "$ref": "#/definitions/Duration",
+            "default": "1h",
+            "description": "Check configuration every {checkInterval} seconds"
+          },
+          "checkIntervalMs": {
+            "description": "Check interval in ms",
             "type": "number"
           },
+          "default": {
+            "default": "{ services: {}, parameters: {} }",
+            "description": "Default configuration to use"
+          },
           "source": {
+            "description": "Format sourceServiceName:sourceId or sourceId if source is this service",
             "type": "string"
           },
           "sources": {
-            "type": "array",
+            "description": "List of sources to load and merge ( in order )\nFormat sourceServiceName:sourceId or sourceId if source is this service",
             "items": {
               "type": "string"
-            }
+            },
+            "type": "array"
           },
-          "default": {},
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
         },
         "required": [
-          "checkInterval",
+          "checkIntervalMs",
           "source",
           "sources",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "FileConfigurationService"
       },
       "Configuration": "lib/configurations/configuration:ConfigurationServiceParameters"
@@ -642,25 +723,40 @@
     "Webda/FileLogger": {
       "Import": "lib/loggers/file:FileLoggerService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "properties": {
-          "type": {
+          "addLogProducerLine": {
+            "default": false,
+            "description": "Add file and line number of the log producer (if possible)",
+            "type": "boolean"
+          },
+          "file": {
+            "description": "File to log into",
+            "type": "string"
+          },
+          "format": {
+            "description": "Format of the logs",
             "type": "string"
           },
           "logLevel": {
-            "$ref": "#/definitions/WorkerLogLevel"
-          },
-          "addLogProducerLine": {
-            "type": "boolean"
-          },
-          "format": {
-            "type": "string"
-          },
-          "file": {
+            "description": "Specify the log level of this service",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
             "type": "string"
           },
           "sizeLimit": {
+            "description": "Limit of the file",
             "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -672,20 +768,7 @@
           "logLevel",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "definitions": {
-          "WorkerLogLevel": {
-            "type": "string",
-            "enum": [
-              "ERROR",
-              "WARN",
-              "INFO",
-              "DEBUG",
-              "TRACE"
-            ],
-            "description": "LogLevel as intersection to compare with integer values"
-          }
-        },
+        "type": "object",
         "title": "FileLoggerService"
       },
       "Configuration": "lib/loggers/params:FileLoggerServiceParameters"
@@ -693,37 +776,57 @@
     "Webda/KubernetesConfigurationService": {
       "Import": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
+          "Duration": {
+            "additionalProperties": false,
+            "description": "Represents a time duration that defaults to seconds but supports composite strings.",
+            "type": "object"
+          }
+        },
+        "description": "Parameters for KubernetesConfigurationService\nThrow error if default is set",
         "properties": {
-          "type": {
-            "type": "string"
-          },
           "checkInterval": {
+            "$ref": "#/definitions/Duration",
+            "default": "1h",
+            "description": "Check configuration every {checkInterval} seconds"
+          },
+          "checkIntervalMs": {
+            "description": "Check interval in ms",
             "type": "number"
           },
+          "default": {
+            "default": "{ services: {}, parameters: {} }",
+            "description": "Default configuration to use"
+          },
           "source": {
+            "description": "Format sourceServiceName:sourceId or sourceId if source is this service",
             "type": "string"
           },
           "sources": {
-            "type": "array",
+            "description": "List of sources to load and merge ( in order )\nFormat sourceServiceName:sourceId or sourceId if source is this service",
             "items": {
               "type": "string"
-            }
+            },
+            "type": "array"
           },
-          "default": {},
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
         },
         "required": [
-          "checkInterval",
+          "checkIntervalMs",
           "source",
           "sources",
           "type"
         ],
-        "description": "Parameters for KubernetesConfigurationService Throw error if default is set",
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "KubernetesConfigurationService"
       },
       "Configuration": "lib/configurations/kubernetesconfiguration:KubernetesConfigurationParameters"
@@ -731,36 +834,47 @@
     "Webda/Mailer": {
       "Import": "lib/services/mailer:Mailer",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "properties": {
-          "type": {
+          "SES": {
+            "description": "SES AWS Bean if transport === \"ses\""
+          },
+          "emailTemplateOptions": {
+            "see": "https://www.npmjs.com/package/email-templates"
+          },
+          "sender": {
+            "description": "Define the default sender",
             "type": "string"
           },
           "templates": {
+            "default": "templates",
+            "description": "Specify which foldeer contains templates",
             "type": "string"
           },
           "templatesEngine": {
+            "default": "mustache",
+            "description": "Template engine to usee",
             "type": "string"
           },
-          "sender": {
-            "type": "string"
-          },
-          "emailTemplateOptions": {},
           "transport": {
+            "description": "Define the type of transport to use",
             "type": "string"
           },
-          "SES": {},
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
           "openapi": {
             "type": "object",
             "additionalProperties": true
           }
         },
         "required": [
-          "SES",
           "sender",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "Mailer"
       },
       "Configuration": "lib/services/mailer:MailerParameters"
@@ -768,19 +882,32 @@
     "Webda/MemoryLogger": {
       "Import": "lib/loggers/memory:MemoryLoggerService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "properties": {
-          "type": {
-            "type": "string"
-          },
-          "logLevel": {
-            "$ref": "#/definitions/WorkerLogLevel"
-          },
           "addLogProducerLine": {
+            "default": false,
+            "description": "Add file and line number of the log producer (if possible)",
             "type": "boolean"
           },
           "limit": {
+            "description": "Max size of the logs in memory",
             "type": "number"
+          },
+          "logLevel": {
+            "description": "Specify the log level of this service",
+            "enum": [
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -791,20 +918,7 @@
           "logLevel",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "definitions": {
-          "WorkerLogLevel": {
-            "type": "string",
-            "enum": [
-              "ERROR",
-              "WARN",
-              "INFO",
-              "DEBUG",
-              "TRACE"
-            ],
-            "description": "LogLevel as intersection to compare with integer values"
-          }
-        },
+        "type": "object",
         "title": "MemoryLoggerService"
       },
       "Configuration": "lib/loggers/params:MemoryLoggerServiceParameters"
@@ -812,45 +926,19 @@
     "Webda/MemoryQueue": {
       "Import": "lib/queues/memoryqueue:MemoryQueue",
       "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "workerDelayer": {
-            "$ref": "#/definitions/WaitDelayerDefinition"
-          },
-          "workerParallelism": {
-            "type": "boolean"
-          },
-          "maxConsumers": {
-            "type": "number"
-          },
-          "expire": {
-            "type": "number"
-          },
-          "timeout": {
-            "type": "number"
-          },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "maxConsumers",
-          "type",
-          "workerParallelism"
-        ],
         "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "definitions": {
           "WaitDelayerDefinition": {
-            "type": "object",
+            "additionalProperties": false,
+            "description": "WaitDelayer definition",
             "properties": {
               "interval": {
+                "description": "Interval",
                 "type": "number"
               },
               "type": {
+                "description": "Type of delayer registered in WaitDelayerFactoryRegistry",
                 "type": "string"
               }
             },
@@ -858,9 +946,53 @@
               "interval",
               "type"
             ],
-            "description": "WaitDelayer definition"
+            "type": "object"
           }
         },
+        "properties": {
+          "expire": {
+            "default": 30,
+            "description": "Number of seconds before droping message",
+            "type": "number"
+          },
+          "expireMs": {
+            "type": "number"
+          },
+          "maxConsumers": {
+            "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
+            "type": "number"
+          },
+          "timeout": {
+            "description": "Number of seconds to wait for receiving new message",
+            "type": "number"
+          },
+          "timeoutMs": {
+            "type": "number"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "workerDelayer": {
+            "$ref": "#/definitions/WaitDelayerDefinition",
+            "description": "Delayer between two failed attempts to process messages"
+          },
+          "workerParallelism": {
+            "default": true,
+            "description": "Define if worker should process multi message received in //",
+            "type": "boolean"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "expireMs",
+          "timeoutMs",
+          "type"
+        ],
+        "type": "object",
         "title": "MemoryQueue"
       },
       "Configuration": "lib/queues/memoryqueue:MemoryQueueParameters"
@@ -868,65 +1000,102 @@
     "Webda/MemoryStore": {
       "Import": "lib/stores/memory:MemoryStore",
       "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "additionalModels": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "strict": {
-            "type": "boolean"
-          },
-          "defaultModel": {
-            "type": "boolean"
-          },
-          "forceModel": {
-            "type": "boolean"
-          },
-          "slowQueryThreshold": {
-            "type": "number"
-          },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
           "modelAliases": {
-            "type": "object",
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Model Aliases to allow easier rename of Model"
-          },
-          "noCache": {
-            "type": "boolean"
+            "description": "Model Aliases to allow easier rename of Model",
+            "type": "object"
           },
           "persistence": {
-            "type": "object",
+            "additionalProperties": false,
+            "description": "Persist the data in a file",
             "properties": {
-              "path": {
-                "type": "string"
-              },
-              "key": {
-                "type": "string"
-              },
-              "delay": {
-                "type": "number"
-              },
               "cipher": {
+                "description": "cipher to use",
                 "type": "string"
               },
               "compressionLevel": {
+                "default": 9,
+                "description": "Compression level to use",
+                "max": 9,
+                "min": 0,
                 "type": "number"
+              },
+              "delay": {
+                "default": 1000,
+                "description": "By default only save once every 1s if modified",
+                "type": "number"
+              },
+              "key": {
+                "description": "Encryption key for AES encryption",
+                "type": "string"
+              },
+              "path": {
+                "description": "File path to save to",
+                "type": "string"
               }
             },
             "required": [
               "path"
             ],
+            "type": "object"
+          }
+        },
+        "description": "Memory store",
+        "properties": {
+          "additionalModels": {
+            "default": [],
+            "description": "Additional models\n\nAllow this store to manage other models",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "defaultModel": {
+            "default": true,
+            "description": "When __type model not found, use the model\nIf strict is setup this parameter is not used",
+            "type": "boolean"
+          },
+          "forceModel": {
+            "default": false,
+            "description": "If set, Store will ignore the __type",
+            "type": "boolean"
+          },
+          "model": {
+            "default": "Webda/CoreModel",
+            "description": "Webda model to use within the Store",
+            "type": "string"
+          },
+          "modelAliases": {
+            "$ref": "#/definitions/modelAliases",
+            "description": "Model Aliases to allow easier rename of Model"
+          },
+          "noCache": {
+            "default": false,
+            "description": "Disable default memory cache",
+            "type": "boolean"
+          },
+          "persistence": {
+            "$ref": "#/definitions/persistence",
             "description": "Persist the data in a file"
+          },
+          "slowQueryThreshold": {
+            "default": 30000,
+            "description": "Slow query threshold",
+            "type": "number"
+          },
+          "strict": {
+            "default": false,
+            "description": "Allow to load object that does not have the type data\n\nIf set to true, then the Store will only managed the defined _model and no\nmodel extending this one",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -934,11 +1103,9 @@
           }
         },
         "required": [
-          "slowQueryThreshold",
           "type"
         ],
-        "description": "Memory store",
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "MemoryStore"
       },
       "Configuration": "lib/stores/memory:MemoryStoreParameters"
@@ -946,42 +1113,22 @@
     "Webda/ModelsOperationsService": {
       "Import": "lib/services/domainservice:ModelsOperationsService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "properties": {
-          "type": {
-            "type": "string"
-          },
-          "operations": {
-            "type": "boolean"
-          },
-          "nameTransfomer": {
-            "$ref": "#/definitions/TransformCaseType"
-          },
-          "queryMethod": {
-            "type": "string",
-            "enum": [
-              "PUT",
-              "GET"
-            ]
-          },
           "models": {
-            "type": "array",
+            "default": [
+              "*"
+            ],
+            "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
             "items": {
               "type": "string"
-            }
+            },
+            "type": "array"
           },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "type"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "definitions": {
-          "TransformCaseType": {
-            "type": "string",
+          "nameTransfomer": {
+            "default": "camelCase",
+            "description": "Transform the name of the model to be used in the URL",
             "enum": [
               "none",
               "camelCase",
@@ -992,9 +1139,39 @@
               "UPPERCASE",
               "lowercase"
             ],
-            "description": "Transform the name of the model to be used in the URL"
+            "see": [
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go",
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go"
+            ],
+            "type": "string"
+          },
+          "operations": {
+            "default": true,
+            "description": "Expose objects as operations too",
+            "type": "boolean"
+          },
+          "queryMethod": {
+            "default": "PUT",
+            "description": "Method used for query objects",
+            "enum": [
+              "PUT",
+              "GET"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
           }
         },
+        "required": [
+          "type"
+        ],
+        "type": "object",
         "title": "ModelsOperationsService"
       },
       "Configuration": "lib/services/domainservice:DomainServiceParameters"
@@ -1002,19 +1179,25 @@
     "Webda/MultiNotificationService": {
       "Import": "lib/services/notificationservice:default",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "Parameters for multi notification service",
         "properties": {
-          "type": {
-            "type": "string"
+          "multiple": {
+            "default": false,
+            "description": "Define if it sends one or several notification per user",
+            "type": "boolean"
           },
           "senders": {
-            "type": "array",
+            "description": "Notification service that will send\nThe order of the array is important if multiple is false\nWhen multiple is `false` the first available NotificationService will\nbe used, otherwise every available NotificationService will be used",
             "items": {
               "type": "string"
-            }
+            },
+            "type": "array"
           },
-          "multiple": {
-            "type": "boolean"
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -1025,8 +1208,7 @@
           "senders",
           "type"
         ],
-        "description": "Parameters for multi notification service",
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "MultiNotificationService"
       },
       "Configuration": "lib/services/notificationservice:MultiNotificationParameters"
@@ -1034,37 +1216,55 @@
     "Webda/PrometheusService": {
       "Import": "lib/services/prometheus:PrometheusService",
       "Schema": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "portNumber": {
-            "type": "number"
-          },
-          "bind": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "includeNodeMetrics": {
-            "type": "boolean"
-          },
-          "includeRequestMetrics": {
-            "type": "boolean"
-          },
-          "partitionHistogram": {
-            "type": "boolean"
-          },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "definitions": {
           "labels": {
-            "type": "object",
             "additionalProperties": {
               "type": "string"
             },
+            "description": "Labels to add",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "bind": {
+            "description": "If defined along with portNumber used to bind specific address\nfor dedicated http server",
+            "type": "string"
+          },
+          "includeNodeMetrics": {
+            "default": true,
+            "description": "Include NodeJS engine metrics",
+            "type": "boolean"
+          },
+          "includeRequestMetrics": {
+            "default": true,
+            "description": "Include request served by Webda\n\nIt should generate common http_* metrics",
+            "type": "boolean"
+          },
+          "labels": {
+            "$ref": "#/definitions/labels",
             "description": "Labels to add"
           },
+          "partitionHistogram": {
+            "default": false,
+            "description": "Do not partition histogram with requests labels",
+            "type": "boolean"
+          },
+          "portNumber": {
+            "description": "If defined will launch another http server to serve the scaper",
+            "type": "number"
+          },
           "prefix": {
+            "description": "Prefix to add to metrics",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/metrics",
             "type": "string"
           },
           "openapi": {
@@ -1073,11 +1273,9 @@
           }
         },
         "required": [
-          "includeNodeMetrics",
-          "includeRequestMetrics",
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "PrometheusService"
       },
       "Configuration": "lib/services/prometheus:PrometheusParameters"
@@ -1085,54 +1283,27 @@
     "Webda/RESTDomainService": {
       "Import": "lib/rest/restdomainservice:RESTDomainService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "properties": {
-          "type": {
-            "type": "string"
-          },
-          "operations": {
+          "exposeOpenAPI": {
+            "default": true,
+            "description": "Expose the OpenAPI",
             "type": "boolean"
-          },
-          "nameTransfomer": {
-            "$ref": "#/definitions/TransformCaseType"
-          },
-          "queryMethod": {
-            "type": "string",
-            "enum": [
-              "PUT",
-              "GET"
-            ]
           },
           "models": {
-            "type": "array",
+            "default": [
+              "*"
+            ],
+            "description": "List of models to include\n\nIf model is prefixed with a ! it will be excluded",
             "items": {
               "type": "string"
-            }
+            },
+            "type": "array"
           },
-          "exposeOpenAPI": {
-            "type": "boolean"
-          },
-          "swaggerVersion": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "openapi": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "exposeOpenAPI",
-          "swaggerVersion",
-          "type",
-          "url"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "definitions": {
-          "TransformCaseType": {
-            "type": "string",
+          "nameTransfomer": {
+            "default": "camelCase",
+            "description": "Transform the name of the model to be used in the URL",
             "enum": [
               "none",
               "camelCase",
@@ -1143,9 +1314,49 @@
               "UPPERCASE",
               "lowercase"
             ],
-            "description": "Transform the name of the model to be used in the URL"
+            "see": [
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go",
+              "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go"
+            ],
+            "type": "string"
+          },
+          "operations": {
+            "default": true,
+            "description": "Expose objects as operations too",
+            "type": "boolean"
+          },
+          "queryMethod": {
+            "default": "PUT",
+            "description": "Method used for query objects",
+            "enum": [
+              "PUT",
+              "GET"
+            ],
+            "type": "string"
+          },
+          "swaggerVersion": {
+            "default": "5.31.0",
+            "description": "Swagger version to use\n\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js\nhttps://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js\n\nTODO Add renovatebot regex",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "/",
+            "description": "When to query",
+            "type": "string"
+          },
+          "openapi": {
+            "type": "object",
+            "additionalProperties": true
           }
         },
+        "required": [
+          "type"
+        ],
+        "type": "object",
         "title": "RESTDomainService"
       },
       "Configuration": "lib/rest/restdomainservice:RESTDomainServiceParameters"
@@ -1153,34 +1364,53 @@
     "Webda/ResourceService": {
       "Import": "lib/services/resource:ResourceService",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "description": "ResourceService parameters",
         "properties": {
-          "type": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "folder": {
-            "type": "string"
-          },
-          "rootRedirect": {
-            "type": "boolean"
-          },
-          "index": {
-            "type": "string"
-          },
-          "indexFallback": {
+          "allowHiddenFiles": {
+            "default": false,
+            "description": "Serve also . prefixed files\n. files usually have some secrets and should not be served",
             "type": "boolean"
           },
           "cacheControl": {
+            "default": "public, max-age=31536000",
+            "description": "Cache control header to set",
+            "type": "string"
+          },
+          "folder": {
+            "default": "\".\" + url",
+            "description": "Folder to server",
+            "type": "string"
+          },
+          "index": {
+            "default": "index.html",
+            "description": "Index file",
             "type": "string"
           },
           "indexCacheControl": {
+            "default": "no-cache, no-store, must-revalidate",
+            "description": "Cache control for index file\nSPA usually do not cache the index file",
             "type": "string"
           },
-          "allowHiddenFiles": {
+          "indexFallback": {
+            "default": true,
+            "description": "Return the index file for any unfound resource\nUseful for single page application",
             "type": "boolean"
+          },
+          "rootRedirect": {
+            "default": false,
+            "description": "Add the / root to redirect to /{url}",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
+          },
+          "url": {
+            "default": "resources",
+            "description": "URL on which to serve the content",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -1190,8 +1420,7 @@
         "required": [
           "type"
         ],
-        "description": "ResourceService parameters",
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "ResourceService"
       },
       "Configuration": "lib/services/resource:ResourceServiceParameters"
@@ -1199,13 +1428,17 @@
     "Webda/Router": {
       "Import": "lib/rest/router:Router",
       "Schema": {
-        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
         "properties": {
-          "type": {
-            "type": "string"
-          },
           "overrideWarning": {
+            "default": false,
+            "description": "Display a WARNING if a route is overriden",
             "type": "boolean"
+          },
+          "type": {
+            "description": "Type of the service",
+            "type": "string"
           },
           "openapi": {
             "type": "object",
@@ -1215,7 +1448,7 @@
         "required": [
           "type"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "title": "Router"
       },
       "Configuration": "lib/rest/router:RouterParameters"
@@ -1251,34 +1484,8 @@
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
-          },
-          "_user": {
-            "type": "string",
-            "readOnly": true
-          },
-          "public": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "uuid"
-        ],
-        "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object The owner can be changed by the owner",
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "AbstractOwnerModel"
-      },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Schemas": {},
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1309,26 +1516,40 @@
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
-          }
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object"
         },
-        "required": [
-          "uuid"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "CoreModel"
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1408,66 +1629,221 @@
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "class": true,
+          "definitions": {
+            "IdentTokens": {
+              "additionalProperties": false,
+              "properties": {
+                "access": {
+                  "type": "string"
+                },
+                "refresh": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "access",
+                "refresh"
+              ],
+              "type": "object"
+            },
+            "ModelLink<User>": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            }
           },
-          "_user": {
-            "type": "string",
-            "readOnly": true
+          "description": "First basic model for Ident",
+          "properties": {
+            "__profile": {
+              "description": "Provider profile"
+            },
+            "__tokens": {
+              "$ref": "#/definitions/IdentTokens",
+              "description": "Tokens for this ident"
+            },
+            "_failedLogin": {
+              "description": "If the ident is validated",
+              "type": "number"
+            },
+            "_lastUsed": {
+              "description": "Last time the ident was used",
+              "format": "date-time",
+              "type": "string"
+            },
+            "_lastValidationEmail": {
+              "description": "If EmailIdent",
+              "type": "number"
+            },
+            "_type": {
+              "description": "Type of the ident",
+              "type": "string"
+            },
+            "_user": {
+              "$ref": "#/definitions/ModelLink%3CUser%3E",
+              "description": "Default owner of the object"
+            },
+            "_validation": {
+              "description": "When the ident was validated",
+              "format": "date-time",
+              "type": "string"
+            },
+            "email": {
+              "description": "Email for this ident if it exist",
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider id",
+              "type": "string"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uid": {
+              "description": "Uid on the provider",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
           },
-          "public": {
-            "type": "boolean"
-          },
-          "_type": {
-            "type": "string",
-            "readOnly": true
-          },
-          "uid": {
-            "type": "string"
-          },
-          "_lastUsed": {
-            "type": "string",
-            "format": "date-time",
-            "readOnly": true
-          },
-          "_failedLogin": {
-            "type": "number",
-            "readOnly": true
-          },
-          "_lastValidationEmail": {
-            "type": "number",
-            "readOnly": true
-          },
-          "_validation": {
-            "type": "string",
-            "format": "date-time",
-            "readOnly": true
-          },
-          "email": {
-            "type": "string"
-          },
-          "provider": {
-            "type": "string"
-          }
+          "required": [
+            "__profile",
+            "__tokens",
+            "_type",
+            "_user",
+            "uid",
+            "uuid"
+          ],
+          "type": "object"
         },
-        "required": [
-          "uid",
-          "uuid"
-        ],
-        "description": "First basic model for Ident",
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "Ident"
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "class": true,
+          "definitions": {
+            "IdentTokens": {
+              "additionalProperties": false,
+              "properties": {
+                "access": {
+                  "type": "string"
+                },
+                "refresh": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "access",
+                "refresh"
+              ],
+              "type": "object"
+            },
+            "ModelLink<User>": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            }
+          },
+          "description": "First basic model for Ident",
+          "properties": {
+            "__profile": {
+              "description": "Provider profile"
+            },
+            "__tokens": {
+              "$ref": "#/definitions/IdentTokens",
+              "description": "Tokens for this ident"
+            },
+            "_failedLogin": {
+              "description": "If the ident is validated",
+              "type": "number"
+            },
+            "_lastUsed": {
+              "description": "Last time the ident was used",
+              "format": "date-time",
+              "type": "string"
+            },
+            "_lastValidationEmail": {
+              "description": "If EmailIdent",
+              "type": "number"
+            },
+            "_type": {
+              "description": "Type of the ident",
+              "type": "string"
+            },
+            "_user": {
+              "$ref": "#/definitions/ModelLink%3CUser%3E",
+              "description": "Default owner of the object"
+            },
+            "_validation": {
+              "description": "When the ident was validated",
+              "format": "date-time",
+              "type": "string"
+            },
+            "email": {
+              "description": "Email for this ident if it exist",
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider id",
+              "type": "string"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uid": {
+              "description": "Uid on the provider",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__profile",
+            "__tokens",
+            "_type",
+            "_user",
+            "uid",
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "definitions": {
+            "Pick<IdentTokens, Attributes<IdentTokens>>": {
+              "additionalProperties": false,
+              "description": "From T, pick a set of properties whose keys are in the union K",
+              "properties": {
+                "access": {
+                  "type": "string"
+                },
+                "refresh": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "access",
+                "refresh"
+              ],
+              "type": "object"
+            }
+          }
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1518,33 +1894,76 @@
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "ModelLink<User>": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            }
           },
-          "_user": {
-            "type": "string",
-            "readOnly": true
+          "properties": {
+            "_user": {
+              "$ref": "#/definitions/ModelLink%3CUser%3E",
+              "description": "Default owner of the object"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
           },
-          "public": {
-            "type": "boolean"
-          }
+          "required": [
+            "_user",
+            "uuid"
+          ],
+          "type": "object"
         },
-        "required": [
-          "uuid"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "OwnerModel"
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "definitions": {
+            "ModelLink<User>": {
+              "additionalProperties": false,
+              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "type": "object"
+            }
+          },
+          "properties": {
+            "_user": {
+              "$ref": "#/definitions/ModelLink%3CUser%3E",
+              "description": "Default owner of the object"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1575,27 +1994,42 @@
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
-          }
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Specific type for registry",
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object"
         },
-        "required": [
-          "uuid"
-        ],
-        "description": "Specific type for registry",
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "RegistryEntry"
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Specific type for registry",
+          "properties": {
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1622,19 +2056,22 @@
       "Ancestors": [],
       "Subclasses": [],
       "Reflection": {},
-      "Schema": {
-        "type": "object",
-        "properties": {},
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "RoleModel"
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1669,32 +2106,52 @@
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "session": {},
+            "ttl": {
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
           },
-          "ttl": {
-            "type": "number"
-          },
-          "session": {}
+          "required": [
+            "session",
+            "ttl",
+            "uuid"
+          ],
+          "type": "object"
         },
-        "required": [
-          "session",
-          "ttl",
-          "uuid"
-        ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "SessionModel"
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "properties": {
+            "session": {},
+            "ttl": {
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session",
+            "ttl",
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1755,7 +2212,7 @@
           "typeParameters": [
             "Ident",
             "\"_user\"",
-            "\"email\" | \"_type\" | \"uid\""
+            "\"_type\" | \"uid\" | \"email\""
           ]
         },
         "__password": {
@@ -1776,79 +2233,277 @@
         "email": {
           "type": "string"
         },
+        "service": {
+          "type": "ServiceName"
+        },
         "uuid": {
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "Repository<ModelClass<Ident>>": {
+              "additionalProperties": false,
+              "description": "This represent the injected methods of Store into the Model",
+              "type": "object"
+            },
+            "Storable<any, any>": {
+              "additionalProperties": false,
+              "description": "A Storable object is an object that can be stored in a database or anywhere else\nand can be retrieved later\n\nIt has a primary key, a toJSON method and an Events object",
+              "type": "object"
+            }
           },
-          "displayName": {
-            "type": "string"
-          },
-          "_lastPasswordRecovery": {
-            "type": "number",
-            "readOnly": true
-          },
-          "_avatar": {
-            "type": "string",
-            "readOnly": true
-          },
-          "locale": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "_groups": {
-            "type": "array",
-            "items": {
+          "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
               "type": "string"
             },
-            "readOnly": true
-          },
-          "_roles": {
-            "type": "array",
-            "items": {
+            "_avatar": {
+              "description": "Define the user avatar if exists",
               "type": "string"
             },
-            "readOnly": true
+            "_groups": {
+              "description": "Groups for a user",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "_idents": {
+              "description": "Normal ident",
+              "items": {
+                "additionalProperties": false,
+                "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array\nTODO Handle 1:1 map",
+                "properties": {
+                  "__@RelationParent@26036": {
+                    "$ref": "#/definitions/Storable%3Cany%2C%20any%3E"
+                  },
+                  "__@RelationRepository@26269": {
+                    "$ref": "#/definitions/Repository%3CModelClass%3CIdent%3E%3E"
+                  },
+                  "_type": {
+                    "description": "Type of the ident",
+                    "type": "string"
+                  },
+                  "email": {
+                    "description": "Email for this ident if it exist",
+                    "type": "string"
+                  },
+                  "uid": {
+                    "description": "Uid on the provider",
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object"
+                      }
+                    ],
+                    "description": "The uuid of the object"
+                  }
+                },
+                "required": [
+                  "__@RelationRepository@26269",
+                  "_type",
+                  "uid",
+                  "uuid"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "_roles": {
+              "description": "Roles of the user",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "service": {
+              "description": "TODO REMOVE",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
           },
-          "_idents": {
-            "type": "array",
-            "items": {
-              "type": "object",
+          "required": [
+            "displayName",
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "Repository<ModelClass<Ident>>": {
+              "additionalProperties": false,
+              "description": "This represent the injected methods of Store into the Model",
+              "type": "object"
+            },
+            "Storable<any, any>": {
+              "additionalProperties": false,
+              "description": "A Storable object is an object that can be stored in a database or anywhere else\nand can be retrieved later\n\nIt has a primary key, a toJSON method and an Events object",
+              "type": "object"
+            }
+          },
+          "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_groups": {
+              "description": "Groups for a user",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "_idents": {
+              "description": "Normal ident",
+              "items": {
+                "additionalProperties": false,
+                "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array\nTODO Handle 1:1 map",
+                "properties": {
+                  "__@RelationParent@26036": {
+                    "$ref": "#/definitions/Storable%3Cany%2C%20any%3E"
+                  },
+                  "__@RelationRepository@26269": {
+                    "$ref": "#/definitions/Repository%3CModelClass%3CIdent%3E%3E"
+                  },
+                  "_type": {
+                    "description": "Type of the ident",
+                    "type": "string"
+                  },
+                  "email": {
+                    "description": "Email for this ident if it exist",
+                    "type": "string"
+                  },
+                  "uid": {
+                    "description": "Uid on the provider",
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "type": "object"
+                      }
+                    ],
+                    "description": "The uuid of the object"
+                  }
+                },
+                "required": [
+                  "__@RelationRepository@26269",
+                  "_type",
+                  "uid",
+                  "uuid"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "_roles": {
+              "description": "Roles of the user",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "service": {
+              "description": "TODO REMOVE",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "displayName",
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "definitions": {
+            "Array<string>": {
+              "additionalProperties": false,
               "properties": {
-                "uuid": {
-                  "type": "string"
+                "length": {
+                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
+                  "type": "number"
                 }
               },
               "required": [
-                "uuid"
+                "length"
               ],
-              "additionalProperties": false
+              "type": "object"
             },
-            "readOnly": true
+            "Pick<ReadonlyArray<ModelMapLoader<Ident, \"_type\" | \"uid\" | \"email\">>, never>": {
+              "additionalProperties": false,
+              "description": "From T, pick a set of properties whose keys are in the union K",
+              "type": "object"
+            }
           }
-        },
-        "required": [
-          "displayName",
-          "uuid"
-        ],
-        "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no models",
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "SimpleUser"
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1897,49 +2552,115 @@
         "email": {
           "type": "string"
         },
+        "service": {
+          "type": "ServiceName"
+        },
         "uuid": {
           "type": "string"
         }
       },
-      "Schema": {
-        "type": "object",
-        "properties": {
-          "uuid": {
-            "type": "string"
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "class": true,
+          "description": "First basic model for User",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "service": {
+              "description": "TODO REMOVE",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
           },
-          "displayName": {
-            "type": "string"
-          },
-          "_lastPasswordRecovery": {
-            "type": "number",
-            "readOnly": true
-          },
-          "_avatar": {
-            "type": "string",
-            "readOnly": true
-          },
-          "locale": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          }
+          "required": [
+            "displayName",
+            "uuid"
+          ],
+          "type": "object"
         },
-        "required": [
-          "displayName",
-          "uuid"
-        ],
-        "description": "First basic model for User",
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "User"
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "class": true,
+          "description": "First basic model for User",
+          "properties": {
+            "__password": {
+              "description": "Password of the user if defined",
+              "type": "string"
+            },
+            "_avatar": {
+              "description": "Define the user avatar if exists",
+              "type": "string"
+            },
+            "_lastPasswordRecovery": {
+              "description": "Last time the password was recovered",
+              "type": "number"
+            },
+            "displayName": {
+              "Frontend": true,
+              "description": "Display name for this user",
+              "optional": true,
+              "type": "string"
+            },
+            "email": {
+              "description": "Contain main user email if exists",
+              "type": "string"
+            },
+            "locale": {
+              "description": "Contains the locale of the user if known",
+              "type": "string"
+            },
+            "service": {
+              "description": "TODO REMOVE",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "type": "string"
+            }
+          },
+          "required": [
+            "displayName",
+            "uuid"
+          ],
+          "type": "object"
+        },
+        "Stored": {
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
       },
-      "Actions": {
-        "create": {},
-        "get": {},
-        "update": {},
-        "delete": {},
-        "query": {}
-      },
+      "Actions": {},
       "Events": [
         "Create",
         "PartialUpdate",
@@ -1964,35 +2685,51 @@
   },
   "schemas": {
     "Webda/BinaryFile": {
-      "type": "object",
-      "properties": {
-        "hash": {
-          "type": "string"
-        },
-        "challenge": {
-          "type": "string"
-        },
-        "size": {
-          "type": "number"
-        },
-        "name": {
-          "type": "string"
-        },
-        "mimetype": {
-          "type": "string"
-        },
-        "metadata": {},
-        "originalname": {
-          "type": "string"
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "BinaryFile<T>": {
+          "WebdaSchema": true,
+          "additionalProperties": false,
+          "description": "Represent a file to store",
+          "properties": {
+            "0": {},
+            "challenge": {
+              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+              "type": "string"
+            },
+            "hash": {
+              "description": "Will be computed by the service\n\nhash of the content",
+              "type": "string"
+            },
+            "metadata": {
+              "description": "Metadatas stored along with the binary"
+            },
+            "mimetype": {
+              "description": "Mimetype of the binary",
+              "type": "string"
+            },
+            "name": {
+              "description": "Current name",
+              "type": "string"
+            },
+            "originalname": {
+              "description": "Original name",
+              "type": "string"
+            },
+            "size": {
+              "description": "Size of the binary",
+              "type": "number"
+            }
+          },
+          "required": [
+            "0",
+            "mimetype",
+            "name",
+            "size"
+          ],
+          "type": "object"
         }
       },
-      "required": [
-        "mimetype",
-        "name",
-        "size"
-      ],
-      "description": "Represent a file to store",
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BinaryFile"
     }
   }

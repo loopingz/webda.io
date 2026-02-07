@@ -7,7 +7,7 @@ import { JSONSchema7 } from "json-schema";
  * @param filename to save for
  * @param full to keep all required
  */
-function generateConfigurationSchemas(
+export function generateConfigurationSchemas(
   filename: string = ".webda/config-schema.json",
   deploymentFilename: string = ".webda/deployment-schema.json",
   full: boolean = false

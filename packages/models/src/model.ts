@@ -11,12 +11,12 @@ import {
 import type { Helpers, SelfJSONed } from "./types";
 import { randomUUID } from "crypto";
 import type { Securable } from "./securable";
-import { type ModelRefWithCreate, type ModelRef } from "./relations";
+import type { ModelRef } from "./relations";
 //import { ExecutionContext, Exposable } from "./actionable";
 import type { Repository } from "./repositories/repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
-import { Deserializers, LoadParameters } from "./types";
-import { RepositoryStorageClassMixIn, useRepository } from "./repositories/hooks";
+import { LoadParameters } from "./types";
+import { RepositoryStorageClassMixIn } from "./repositories/hooks";
 
 export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 export type ExceptPartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
@@ -155,15 +155,20 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
     );
   }
 
-  toJSON(): SelfJSONed<this> {
-    return <SelfJSONed<this>>this;
-  }
-
   /**
    * No proxy by default
    * @returns
    */
   toProxy(): this {
+    return this;
+  }
+
+  /**
+   * Serialize the model to JSON
+   * By default, returns the model itself
+   * @returns
+   */
+  toJSON(): this {
     return this;
   }
 
@@ -200,20 +205,22 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
   /**
    * Custom deserializers for the model
    */
-  static getDeserializers<T extends ModelClass>(this: T) : Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined {
+  static getDeserializers<T extends ModelClass>(
+    this: T
+  ): Partial<Record<keyof InstanceType<T>, (value: any) => any>> | undefined {
     return undefined;
   }
 
   static DefaultDeserializer = {
     Date: (value: string | number | Date | undefined) => (value ? new Date(value) : new Date())
-  }
+  };
 
   /**
    * Deserialize the model
-   * @param this 
-   * @param data 
-   * @param instance 
-   * @returns 
+   * @param this
+   * @param data
+   * @param instance
+   * @returns
    */
   static deserialize<T extends ModelClass, K extends object = InstanceType<T>>(this: T, data: any, instance?: K): K {
     if (!instance) {
@@ -221,8 +228,8 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
       return instance as K;
     }
     // Deserialize with custom deserializers if any
-    let deserializers = (this as any).getDeserializers ? (this as any).getDeserializers() : undefined;
-    let info: any = deserializers ? {} : data;   
+    const deserializers = (this as any).getDeserializers ? (this as any).getDeserializers() : undefined;
+    let info: any = deserializers ? {} : data;
     if (deserializers) {
       for (const key in data) {
         if (deserializers[key]) {
@@ -276,13 +283,10 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
     const repo = this.getRepository();
     await repo.patch(
       this.getPrimaryKey(),
-      Object.keys(data).reduce(
-        (acc, key) => {
-          (acc as any)[key] = (this as any)[key];
-          return acc;
-        },
-        {} as Partial<this>
-      )
+      Object.keys(data).reduce((acc, key) => {
+        (acc as any)[key] = (this as any)[key];
+        return acc;
+      }, {} as Partial<this>)
     );
     return this;
   }
@@ -298,6 +302,7 @@ export class UuidModel extends Model {
   public [WEBDA_PRIMARY_KEY] = ["uuid"] as const;
   /**
    * UUID of the model
+   * @format uuid
    */
   uuid: string;
 
@@ -318,3 +323,6 @@ export class UuidModel extends Model {
     return randomUUID();
   }
 }
+
+// Register serializer for UuidModel
+UuidModel.registerSerializer();

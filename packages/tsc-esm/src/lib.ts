@@ -250,7 +250,7 @@ export type SetOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 /**
  * Merge two objects
  */
-export type Merge<T extends Object, U extends Object> = {
+export type Merge<T extends object, U extends object> = {
   [K in keyof T | keyof U]: K extends keyof U
     ? K extends keyof T
       ? T[K] | U[K]

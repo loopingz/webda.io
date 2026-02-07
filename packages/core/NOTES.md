@@ -40,7 +40,6 @@
 [ ] @webda/graphql
 [ ] @webda/hawk
 [ ] @webda/helpers
-- utils?
 [ ] @webda/kubernetes
 [ ] @webda/memory
  - to remove?
@@ -61,12 +60,18 @@
 
 [X] @webda/test
 [X] @webda/tsc-esm
-  
-[ ] @webda/utils
- - unit tests to fix
+[X] @webda/utils
+[X] @webda/workout
 
-[ ] @webda/websockets
- - to remove?
 
-[ ] @webda/workout
- - seems good
+ ## TODO
+
+ [ ] Ensure @serviceName and @modelName works for schema generation (BinaryService parameters)
+ [ ] @type to override the JSON schema type detection
+ [ ] auto get/set 
+
+
+
+ # Marketing
+
+ Send information on forum where people wander how to modify JSONC or YAML while keeping comments

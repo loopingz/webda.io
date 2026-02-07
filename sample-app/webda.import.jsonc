@@ -1,6 +1,6 @@
 {
-    "parameters": {
-        "import1": true
-    },
-    "imports": ["./webda.import3.jsonc"]
+  "$import": ["./webda.import3.jsonc"],
+  "parameters": {
+    "import1": true
+  }
 }

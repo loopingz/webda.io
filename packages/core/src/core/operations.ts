@@ -255,7 +255,7 @@ function Operation(...args: any[]) {
       // TODO Make sure if an Operation is called we launch it with Core to get listeners
       // it would also enforce permission checks and audit logs
       const executionContext = useContext() as OperationContext;
-      let currentOperation = executionContext.getExtension("operation");
+      const currentOperation = executionContext.getExtension("operation");
       if (!currentOperation) {
         // How to get the operation name here ?
         callOperation(executionContext, `Unknown.${context.name as string}`);

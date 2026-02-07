@@ -19,8 +19,8 @@
     "webda.module.json"
   ],
   "scripts": {
-    "build": "webdac",
-    "build:watch": "webdac --watch",
+    "build": "webdac build && chmod +x ./lib/bin/webda.js",
+    "build:watch": "webdac build --watch",
     "pretest": "npm run build",
     "test": "c8 mocha --timeout=120000",
     "test:debug": "mocha --no-timeouts",

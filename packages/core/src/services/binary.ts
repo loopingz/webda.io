@@ -13,7 +13,7 @@ import { IOperationContext } from "../contexts/icontext.js";
 import { IStore } from "../core/icore.js";
 import { MappingService } from "../stores/istore.js";
 import { Model, Storable } from "@webda/models";
-import { streamToBuffer } from "@webda/utils";
+import { streamToBuffer, FileSize } from "@webda/utils";
 
 /**
  * Represent basic EventBinary
@@ -456,20 +456,29 @@ export type Binaries<T = any> = Readonly<Array<BinariesItem<T>>> & { upload: (fi
 
 export class BinaryParameters extends ServiceParameters {
   /**
+   * max file size
+   */
+  protected _maxFileSize: number;
+  /**
    * Define the map of models
    * * indicates all models
    *
    * key is a Store name
    * the string[] represent all valids attributes to store files in * indicates all attributes
    */
-  models: { [key: string]: string[] };
+  models: { [key: /** @serviceName */ string]: /** @modelName */ string[] };
 
   /**
    * Define the maximum filesize to accept as direct upload
    *
-   * @default 10*1024*1024
+   * @default 10 MB
    */
-  maxFileSize?: number;
+  set maxFileSize(value: number | string) {
+    this._maxFileSize = new FileSize(value).valueOf();
+  }
+  get maxFileSize(): number {
+    return this._maxFileSize;
+  }
 
   load(params: any = {}): this {
     super.load(params);
@@ -477,7 +486,7 @@ export class BinaryParameters extends ServiceParameters {
     this.models ??= {
       "*": ["*"]
     };
-    this.maxFileSize ??= 10 * 1024 * 1024;
+    this.maxFileSize = new FileSize(params.maxFileSize ?? "10 MB").valueOf();
     return this;
   }
 }

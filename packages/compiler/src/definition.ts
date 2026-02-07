@@ -1,6 +1,7 @@
 import { FileUtils } from "@webda/utils";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { existsSync, readFileSync } from "fs";
+import { BinaryLike, createHash } from "crypto";
+import { existsSync, globSync, readFileSync } from "fs";
 import type { JSONSchema7 } from "json-schema";
 import { join } from "path";
 
@@ -123,7 +124,7 @@ export interface ModelMetadata {
      * Schema for stored data validation
      */
     Stored?: JSONSchema7;
-  }
+  };
   /**
    * If model have a short name
    */
@@ -533,7 +534,6 @@ export class WebdaProject {
     this.namespace ??= "Webda";
   }
 
-
   /**
    * Check if the project is a webda application
    */
@@ -546,6 +546,39 @@ export class WebdaProject {
     }
   }
 
+  /**
+   * Compute digest of the source files
+   * @returns
+   */
+  getDigest(): string {
+    const current = createHash("md5");
+    const tsCfg = readFileSync(this.getAppPath("tsconfig.json"));
+    current.update(tsCfg as BinaryLike);
+    const ts = JSON.parse(tsCfg.toString());
+    // Maybe just use the mtime of tsconfig + all files?
+    globSync(ts.include || ["**/*"], {
+      exclude: ts.exclude,
+      withFileTypes: true
+    })
+      .filter(f => f.isFile())
+      .map(f => join(f.parentPath, f.name))
+      .sort()
+      .forEach(f => {
+        current.update(readFileSync(this.getAppPath(f)) as BinaryLike);
+      });
+    // We might want to consider doing the same with the output files?
+    return current.digest("hex");
+  }
+
+  /**
+   * Ensure a dependency is declared
+   * @param name
+   */
+  ensureDependency(name: string) {
+    if (!this.packageDescription.dependencies || !this.packageDescription.dependencies[name]) {
+      throw new Error(`Package ${name} is not declared as a dependency in package.json`);
+    }
+  }
 
   on(event: string, listener: (...args: any[]) => void) {
     this.output.on(event, listener);

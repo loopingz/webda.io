@@ -1,5 +1,9 @@
 import { Behavior } from "./behavior.js";
-export type Acl = { [key: string]: string };
+export type Ace = { 
+  action: string;
+  type: "GROUP" | "USER";
+  allow: boolean;
+};
 
 /**
  * Allow to define ACLs for the object
@@ -8,18 +12,33 @@ export type Acl = { [key: string]: string };
  * you can add it later on to existing models
  *
  */
-export class Acls extends Behavior {
-  toDTO() {
-    throw new Error("Method not implemented.");
+export class ResourceAcl extends Array<Ace> {
+
+  toDto(): Ace[] {
+    return this;
   }
-  fromDTO(dto: any): void {
-    throw new Error("Method not implemented.");
+
+  fromDto(dto: Ace[]): void {
+    this.length = 0;
+    for (const ace of dto) {
+      this.push(ace);
+    }
   }
 
   /**
    * ACLs for the object
    */
   async canAct(action: string, user?: any): Promise<string | boolean> {
-    return true;
+    for (const ace of this.filter(a => !a.allow)) {
+      if (ace.action === action) {
+        return "explicitly denied by resource ACL";
+      }
+    }
+    for (const ace of this.filter(a => a.allow)) {
+      if (ace.action === action) {
+        return true;
+      }
+    }
+    return "no matching ACE in resource ACL";
   }
 }

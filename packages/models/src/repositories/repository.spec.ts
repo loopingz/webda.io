@@ -41,6 +41,9 @@ export class QueryDocument extends Model {
   }
 }
 
+// Register serializer for QueryDocument
+QueryDocument.registerSerializer();
+
 @suite
 export class RepositoryTest {
   getRepository<T extends StorableClass>(model: T, keys: string[]): Repository<T> {
@@ -48,11 +51,11 @@ export class RepositoryTest {
   }
 
   async beforeAll() {
-    let repo = this.getRepository<typeof QueryDocument>(QueryDocument, ["id"]);
+    const repo = this.getRepository<typeof QueryDocument>(QueryDocument, ["id"]);
     registerRepository(QueryDocument, repo);
-    let repoSub = this.getRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    const repoSub = this.getRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
     registerRepository(SubClassModel, repoSub);
-    let repoTest = this.getRepository<typeof TestModel>(TestModel, ["id", "name"]);
+    const repoTest = this.getRepository<typeof TestModel>(TestModel, ["id", "name"]);
     registerRepository(TestModel, repoTest);
     assert.strictEqual(SubClassModel.getRepository(), repoSub);
     assert.strictEqual(TestModel.getRepository(), repoTest);

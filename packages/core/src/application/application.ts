@@ -120,15 +120,12 @@ export class Application {
     if (!existsSync(file)) {
       throw new WebdaError.CodeError(
         "NO_WEBDA_FOLDER",
-        `Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting ${file}`
+        `Not a webda application folder or webda.config.(ya?ml|jsonc?) file: unexisting ${file}`
       );
     }
     // Check if file is a file or folder
     if (lstatSync(file).isDirectory()) {
-      file = join(file, "webda.config.jsonc");
-      if (!existsSync(file)) {
-        file = file.substring(0, file.length - 1);
-      }
+      file = FileUtils.getConfigurationFile(join(file, "webda.config"))
     }
     this.configurationFile = file;
     this.applicationPath = resolve(dirname(file));
@@ -678,7 +675,7 @@ export class Application {
    */
   protected setModelMetadata(info: { [key: string]: ModelMetadata }) {
     // Might want to move this to specific methods
-    for (let m in this.models) {
+    for (const m in this.models) {
       if (!this.models[m]) {
         continue;
       }

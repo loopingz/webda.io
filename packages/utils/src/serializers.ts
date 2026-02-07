@@ -9,13 +9,14 @@ import {
   unlinkSync,
   writeFileSync
 } from "node:fs";
-import { join } from "path";
+import { join, resolve } from "path";
 import { Readable, Transform, TransformCallback, Writable } from "stream";
 import * as yaml from "yaml";
 import { createGunzip, gunzipSync, gzipSync } from "zlib";
 import { useLog } from "@webda/workout";
 import { YAMLProxy } from "./yamlproxy";
 import { JSONCParser as JSONC } from "./jsoncparser";
+import { dirname } from "node:path";
 
 type WalkerOptionsType = {
   followSymlinks?: boolean;
@@ -192,13 +193,13 @@ function getFormatFromFilename(filename: string): Format {
 export const FileUtils: StorageFinder & {
   /**
    * Save a YAML or JSON file based on its extension
-   * 
+   *
    * You can compress files too if you add a .gz extension
    *
    * @param object to serialize
    * @param filename to save
    * @returns
-   * 
+   *
    * @example
    * ```ts
    * FileUtils.save({ hello: "world" }, "test.json");
@@ -209,7 +210,7 @@ export const FileUtils: StorageFinder & {
    */
   save: (object: any, filename: string, format?: Format) => void;
   load: (filename: string, format?: Format) => any;
-  loadConfigurationFile: (filename: string) => any;
+  loadConfigurationFile: (filename: string, allowImports?: boolean) => any;
   getConfigurationFile: (filename: string) => string;
   clean: (...files: string[]) => void;
   walkSync: (path: string, processor: (filepath: string) => void, options?: WalkerOptionsType, depth?: number) => void;
@@ -327,8 +328,40 @@ export const FileUtils: StorageFinder & {
     }
     throw new Error("File not found " + filename + ".(ya?ml|jsonc?)");
   },
-  loadConfigurationFile(filename) {
-    return FileUtils.load(FileUtils.getConfigurationFile(filename));
+  /**
+   * Load a YAML or JSON configuration file based on its extension
+   * If allowImports is true, will also process any $import directive found in the file
+   * $import can be a single string or an array of strings
+   * @param filename
+   * @param allowImports
+   * @returns
+   */
+  loadConfigurationFile(filename, allowImports: boolean = true) {
+    const data = FileUtils.load(FileUtils.getConfigurationFile(filename));
+    if (allowImports && data && typeof data === "object") {
+      const processImport = (importItem: string) => {
+        const importFile = resolve(join(dirname(filename), importItem));
+        if (!importFile.endsWith(importItem)) {
+          useLog(
+            "WARN",
+            `FileUtils.loadConfigurationFile: Ignoring import with invalid path '${importItem}' in '${filename}'`
+          );
+          return;
+        }
+        Object.assign(data, FileUtils.loadConfigurationFile(importFile, true));
+      };
+      if (data.$import) {
+        if (Array.isArray(data.$import)) {
+          data.$import.forEach((importItem: string) => {
+            processImport(importItem);
+          });
+        } else if (typeof data.$import === "string") {
+          processImport(data.$import);
+        }
+        delete data.$import;
+      }
+    }
+    return data;
   },
   /**
    * Load a YAML or JSON file based on its extension
@@ -469,11 +502,11 @@ export const JSONUtils = {
   loadFile: (filename: string) => FileUtils.load(filename, "json"),
   /**
    * Helper to FileUtils.save
-   * 
+   *
    * @param object to save
    * @param filename where to save
    * @returns
-   * 
+   *
    * @example
    * ```ts
    * JSONUtils.saveFile({ hello: "world" }, "test.json");
@@ -510,11 +543,11 @@ export const YAMLUtils = {
   loadFile: (filename: string) => FileUtils.load(filename, "yaml"),
   /**
    * Helper to FileUtils.save
-   * 
+   *
    * @param object to save
    * @param filename where to save
    * @returns
-   * 
+   *
    * @example
    * ```ts
    * YAMLUtils.saveFile({ hello: "world" }, "test.yaml");

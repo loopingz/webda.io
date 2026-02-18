@@ -1,16 +1,20 @@
 import { Readable } from "node:stream";
 
 /**
- * Replace name by a sanitized version
- * @param name
- * @returns
+ * Replace every character in `name` that is not alphanumeric or `_` with `_`.
+ *
+ * @param name - The original string to sanitize.
+ * @returns A filename-safe version of `name`.
  */
 export function sanitizeFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9_]/g, "_");
 }
 
 /**
- * Convert a stream to a buffer
+ * Collect all chunks from a Readable stream and concatenate them into a single Buffer.
+ *
+ * @param stream - The Readable stream to consume.
+ * @returns A Promise that resolves with the concatenated Buffer, or rejects on stream error.
  */
 export function streamToBuffer(stream: Readable): Promise<Buffer> {
   // codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer

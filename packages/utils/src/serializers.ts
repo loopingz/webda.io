@@ -18,13 +18,20 @@ import { YAMLProxy } from "./yamlproxy";
 import { JSONCParser as JSONC } from "./jsoncparser";
 import { dirname } from "node:path";
 
+/** Options controlling directory traversal behaviour. */
 type WalkerOptionsType = {
+  /** Follow symlinks that point to a directory. */
   followSymlinks?: boolean;
+  /** When following symlinks, resolve to the real path before passing to the processor. */
   resolveSymlink?: boolean;
+  /** Include directory paths in the processor/results in addition to files. */
   includeDir?: boolean;
+  /** Skip entries whose name starts with `.`. */
   skipHidden?: boolean;
+  /** Maximum directory depth to traverse (default 100). */
   maxDepth?: number;
 };
+/** Options for {@link FileUtils.find}, extending {@link WalkerOptionsType} with filtering support. */
 type FinderOptionsType = WalkerOptionsType & { filterPattern?: RegExp; processor?: (filepath: string) => void };
 
 /**
@@ -34,11 +41,17 @@ export class NDJSONStream extends Readable {
   private data: any[];
   private index: number = 0;
 
+  /**
+   * @param data - Array of objects to serialize and stream as NDJSON.
+   */
   constructor(data: any[]) {
     super();
     this.data = data;
   }
 
+  /**
+   * Push the next JSON-serialized item (followed by `\n`) or signal end of stream.
+   */
   _read() {
     if (this.index >= this.data.length) {
       this.push(null);
@@ -49,10 +62,18 @@ export class NDJSONStream extends Readable {
 }
 
 /**
- * Read a NDJSON stream
+ * Writable stream that parses an NDJSON stream and emits a `"data"` event for each parsed object.
  */
 export class NDJSonReader extends Writable {
   current: string = "";
+
+  /**
+   * Buffer incoming chunks, split on newlines, and emit parsed JSON objects.
+   *
+   * @param chunk - Incoming data buffer.
+   * @param encoding - Buffer encoding (unused; data is converted to string).
+   * @param callback - Call when processing is complete.
+   */
   _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
     const res = chunk.toString().split("\n");
     res[0] = this.current + res[0];
@@ -65,7 +86,8 @@ export class NDJSonReader extends Writable {
 }
 
 /**
- * Use a buffer to store the stream
+ * Writable stream that accumulates all written chunks into a single `Buffer`.
+ * Use {@link BufferWritableStream.get} to retrieve the buffer after the stream closes.
  */
 export class BufferWritableStream extends Writable {
   chunks = [];
@@ -96,8 +118,9 @@ export class BufferWritableStream extends Writable {
   }
 
   /**
-   * Get the buffer
-   * @returns
+   * Wait for the stream to close and return the accumulated buffer.
+   *
+   * @returns A Promise that resolves with the concatenated buffer of all written chunks.
    */
   async get(): Promise<Buffer> {
     return this.ends;
@@ -105,12 +128,20 @@ export class BufferWritableStream extends Writable {
 }
 
 /**
- * Gunzip a stream only if it is gzipped
+ * Transform stream that transparently decompresses gzip data if the first chunk contains a gzip
+ * magic number (`0x1f 0x8b`), otherwise passes data through unchanged.
  */
 export class GunzipConditional extends Transform {
   first: boolean = true;
   zlib: Transform;
 
+  /**
+   * Detect gzip on the first chunk and either decompress or pass through subsequent chunks.
+   *
+   * @param chunk - Incoming data chunk.
+   * @param encoding - Encoding of the chunk.
+   * @param callback - Call when processing is complete.
+   */
   _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {
     // Check if the first chunk is a gzip header
     if (this.first && chunk[0] === 0x1f && chunk[1] === 0x8b) {
@@ -134,9 +165,10 @@ export class GunzipConditional extends Transform {
   }
 
   /**
-   * If end is called, we should end the zlib if exists
-   * @param args
-   * @returns
+   * End the stream. If a gunzip transform is active, delegates to it; otherwise ends the base Transform.
+   *
+   * @param args - Arguments forwarded to the underlying `end()` call.
+   * @returns `this`
    */
   end(...args): this {
     if (this.zlib) {
@@ -175,9 +207,11 @@ export interface StorageFinder {
 }
 
 /**
- * Guess format to use for a filename
- * @param filename
- * @returns
+ * Infer the serialization format from a filename's extension.
+ *
+ * @param filename - The filename to inspect (`.yaml`/`.yml` → `"yaml"`, `.json`/`.jsonc` → `"json"`).
+ * @returns The inferred format.
+ * @throws If the extension is not recognized.
  */
 function getFormatFromFilename(filename: string): Format {
   if (filename.match(/\.ya?ml$/i)) {
@@ -222,9 +256,20 @@ export const FileUtils: StorageFinder & {
     return createWriteStream(path);
   },
 
+  /**
+   * @override
+   */
   getReadStream: async (path: string) => {
     return createReadStream(path);
   },
+  /**
+   * Synchronously walk the directory tree and call `processor` for each file (or directory if `includeDir` is set).
+   *
+   * @param path - Root directory to start from.
+   * @param processor - Callback invoked with the absolute path of each found entry.
+   * @param options - Walker options (default: `{ maxDepth: 100 }`).
+   * @param depth - Current recursion depth (used internally).
+   */
   walkSync: (
     path: string,
     processor: (filepath: string) => void,
@@ -321,6 +366,13 @@ export const FileUtils: StorageFinder & {
     await FileUtils.walk(currentPath, processor, options);
     return found;
   },
+  /**
+   * Resolve the configuration file path by probing for `.yaml`, `.yml`, `.jsonc`, and `.json` extensions.
+   *
+   * @param filename - Base filename without extension.
+   * @returns The resolved filename with its extension.
+   * @throws If no matching file is found.
+   */
   getConfigurationFile(filename) {
     const file = ["yaml", "yml", "jsonc", "json"].find(v => existsSync(filename + `.${v}`));
     if (file) {
@@ -329,12 +381,14 @@ export const FileUtils: StorageFinder & {
     throw new Error("File not found " + filename + ".(ya?ml|jsonc?)");
   },
   /**
-   * Load a YAML or JSON configuration file based on its extension
-   * If allowImports is true, will also process any $import directive found in the file
-   * $import can be a single string or an array of strings
-   * @param filename
-   * @param allowImports
-   * @returns
+   * Load a YAML or JSON configuration file, optionally resolving `$import` directives.
+   *
+   * `$import` may be a single filename string or an array of filenames, each resolved relative
+   * to the configuration file's directory. Imported values are merged with `Object.assign`.
+   *
+   * @param filename - Base filename (without extension) to load.
+   * @param allowImports - When `true` (default), `$import` directives are processed recursively.
+   * @returns The parsed configuration object.
    */
   loadConfigurationFile(filename, allowImports: boolean = true) {
     const data = FileUtils.load(FileUtils.getConfigurationFile(filename));
@@ -364,10 +418,12 @@ export const FileUtils: StorageFinder & {
     return data;
   },
   /**
-   * Load a YAML or JSON file based on its extension
+   * Load and parse a YAML or JSON file (optionally gzip-compressed).
    *
-   * @param filename to load
-   * @returns
+   * @param filename - Absolute or relative path to the file (`.yaml`, `.yml`, `.json`, `.jsonc`, or any with `.gz`).
+   * @param format - Override the format instead of inferring it from the extension.
+   * @returns The parsed object.
+   * @throws If the file does not exist or the format cannot be determined.
    */
   load: (filename, format?: Format) => {
     if (!existsSync(filename)) {
@@ -409,8 +465,9 @@ export const FileUtils: StorageFinder & {
     writeFileSync(filename, res);
   },
   /**
-   * Delete files if exists
-   * @param files
+   * Delete files if they exist, silently skipping any that do not.
+   *
+   * @param files - Paths of files to delete.
    */
   clean: (...files: string[]) => {
     files.filter(f => existsSync(f)).forEach(f => unlinkSync(f));
@@ -422,13 +479,12 @@ export const FileUtils: StorageFinder & {
  */
 export const JSONUtils = {
   /**
-   * Safe Stringify stringify a object included circular object
-   * and also remove any attributes starting with a __
+   * Stringify a value, handling circular references by omitting duplicate object references.
    *
-   * @param value
-   * @param replacer
-   * @param space
-   * @returns
+   * @param value - The value to serialize.
+   * @param replacer - Optional replacer function applied to each key/value pair.
+   * @param space - Indentation: number of spaces or a string (default `2`).
+   * @returns The JSON string.
    */
   safeStringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
     const stringified = [];
@@ -448,12 +504,16 @@ export const JSONUtils = {
     );
   },
   /**
-   * See JSON.stringify
+   * Stringify a value similarly to `JSON.stringify`, with automatic fallback to
+   * `safeStringify` for circular structures.
    *
-   * @param value
-   * @param replacer
-   * @param space
-   * @returns
+   * When `publicAudience` is `true`, keys starting with `__` are omitted.
+   *
+   * @param value - The value to serialize.
+   * @param replacer - Optional replacer function applied to each key/value pair.
+   * @param space - Indentation: number of spaces or a string (default `2`).
+   * @param publicAudience - When `true`, strip private `__` prefixed keys (default `false`).
+   * @returns The JSON string.
    */
   stringify: (
     value,
@@ -491,21 +551,26 @@ export const JSONUtils = {
     return JSONC.parse(value);
   },
   /**
-   * Duplicate an object using serializer
+   * Deep-clone an object via JSON round-trip serialization.
+   *
+   * @param value - The object to clone.
+   * @returns A deep clone of the object.
    */
   duplicate: value => {
     return JSON.parse(JSONUtils.stringify(value));
   },
   /**
-   * Helper to FileUtils.save
+   * Load a JSON file. Shorthand for `FileUtils.load(filename, "json")`.
+   *
+   * @param filename - Path to the JSON file to load.
+   * @returns The parsed object.
    */
   loadFile: (filename: string) => FileUtils.load(filename, "json"),
   /**
-   * Helper to FileUtils.save
+   * Save an object as a JSON file. Shorthand for `FileUtils.save(object, filename, "json")`.
    *
-   * @param object to save
-   * @param filename where to save
-   * @returns
+   * @param object - The object to serialize.
+   * @param filename - Destination file path.
    *
    * @example
    * ```ts
@@ -515,9 +580,12 @@ export const JSONUtils = {
   saveFile: (object: any, filename: string) => FileUtils.save(object, filename, "json"),
 
   /**
-   * Sort object keys
-   * @param unordered
-   * @returns
+   * Return a new object with the same entries as `unordered` but with keys sorted alphabetically.
+   * An optional `transformer` can filter or transform each value (returning a falsy value omits the key).
+   *
+   * @param unordered - The source object whose keys should be sorted.
+   * @param transformer - Optional value transformer; return falsy to omit the key (default: identity).
+   * @returns A new object with sorted keys.
    */
   sortObject: (unordered: any, transformer: (obj: any) => any = a => a): any => {
     return Object.keys(unordered)
@@ -534,19 +602,21 @@ export const JSONUtils = {
 };
 
 /**
- * Expose basic YAML function
+ * Convenience wrappers around YAML file operations.
  */
 export const YAMLUtils = {
   /**
-   * Helper to FileUtils.save
+   * Load a YAML file. Shorthand for `FileUtils.load(filename, "yaml")`.
+   *
+   * @param filename - Path to the YAML file to load.
+   * @returns The parsed object.
    */
   loadFile: (filename: string) => FileUtils.load(filename, "yaml"),
   /**
-   * Helper to FileUtils.save
+   * Save an object as a YAML file. Shorthand for `FileUtils.save(object, filename, "yaml")`.
    *
-   * @param object to save
-   * @param filename where to save
-   * @returns
+   * @param object - The object to serialize.
+   * @param filename - Destination file path.
    *
    * @example
    * ```ts
@@ -572,10 +642,11 @@ export const YAMLUtils = {
     return res.map(d => d.toJSON());
   },
   /**
-   * YAML helper
-   * @param value to serialize
-   * @param options as defined by https://eemeli.org/yaml/v1/#yaml-stringify
-   * @returns
+   * Serialize a value to a YAML string.
+   *
+   * @param value - The value to serialize.
+   * @param options - Stringification options as defined by https://eemeli.org/yaml/v1/#yaml-stringify
+   * @returns The YAML string.
    */
   stringify: (value, options = undefined) => {
     return yaml.stringify(value, options);

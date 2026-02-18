@@ -1,10 +1,14 @@
 import * as process from "node:process";
 
 /**
+ * Run a callback with the current working directory temporarily changed to `dir`.
  *
- * @param dir
- * @param cb
- * @returns
+ * Restores the original working directory after the callback completes,
+ * whether it returns synchronously, returns a Promise, or throws.
+ *
+ * @param dir - The directory to switch to before invoking the callback
+ * @param cb - The callback to execute in the new directory
+ * @returns The return value of the callback (sync or Promise)
  */
 export function runWithCurrentDirectory(dir: string, cb: () => any) {
   const cwd = process.cwd();

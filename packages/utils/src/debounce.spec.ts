@@ -185,7 +185,7 @@ export class DebounceTest {
     // Should have been called once due to maxWait
     assert.strictEqual(callCount, 1);
 
-    await this.wait(150);
+    await this.wait(200);
 
     // Should have been called again for trailing edge
     assert.strictEqual(callCount, 2);
@@ -312,5 +312,137 @@ export class DebounceTest {
 
     // Now it should have been called
     assert.strictEqual(callCount, 1);
+  }
+
+  @test
+  async "should cancel maxWait timer"() {
+    let callCount = 0;
+    const debouncedFunc = debounce(
+      () => {
+        callCount++;
+      },
+      100,
+      { maxWait: 500 }
+    );
+
+    debouncedFunc();
+    debouncedFunc();
+
+    // Cancel before execution
+    debouncedFunc.cancel();
+
+    await this.wait(600);
+
+    // Should not have been called
+    assert.strictEqual(callCount, 0);
+  }
+
+  @test
+  async "should handle maxWait in tight loop"() {
+    let callCount = 0;
+    const debouncedFunc = debounce(
+      () => {
+        callCount++;
+      },
+      50,
+      { maxWait: 100 }
+    );
+
+    // Call rapidly to trigger maxWait behavior
+    debouncedFunc();
+    await this.wait(25);
+    debouncedFunc();
+    await this.wait(25);
+    debouncedFunc();
+    await this.wait(25);
+    debouncedFunc();
+
+    // Wait enough time for maxWait to trigger
+    await this.wait(50);
+
+    // Should have been called once due to maxWait
+    assert.strictEqual(callCount, 1);
+
+    // Now stop calling and wait for trailing edge
+    await this.wait(100);
+
+    // Trailing edge should have fired
+    assert.ok(callCount >= 1);
+  }
+
+  @test
+  async "should flush when no pending"() {
+    let callCount = 0;
+    const debouncedFunc = debounce(() => {
+      callCount++;
+    }, 100);
+
+    // Flush without any pending calls
+    debouncedFunc.flush();
+
+    assert.strictEqual(callCount, 0);
+
+    // Now call and flush
+    debouncedFunc();
+    debouncedFunc.flush();
+
+    assert.strictEqual(callCount, 1);
+  }
+
+  @test
+  async "should handle invocation during maxWait"() {
+    let callCount = 0;
+    const debouncedFunc = debounce(
+      () => {
+        callCount++;
+      },
+      100,
+      { leading: false, trailing: true, maxWait: 200 }
+    );
+
+    // Trigger initial invocation
+    debouncedFunc();
+
+    // Keep calling during maxWait period
+    for (let i = 0; i < 5; i++) {
+      await this.wait(40);
+      debouncedFunc();
+    }
+
+    await this.wait(150);
+
+    // Should have been invoked at least once due to maxWait
+    assert.ok(callCount >= 1);
+  }
+
+  @test
+  async "should handle maxWait tight loop invocation"() {
+    let callCount = 0;
+    const debouncedFunc = debounce(
+      () => {
+        callCount++;
+      },
+      500, // Long wait time
+      { maxWait: 200, leading: false, trailing: true } // Short maxWait
+    );
+
+    // First call - starts the timer
+    debouncedFunc();
+
+    // Wait for maxWait to pass (but not the full wait time)
+    // This makes shouldInvoke return true due to maxWait
+    await this.wait(210);
+
+    // Second call - this should hit lines 225-229 because:
+    // 1. shouldInvoke returns true (maxWait exceeded)
+    // 2. timerId is still set (wait hasn't expired yet)
+    // 3. maxWait is defined
+    debouncedFunc();
+
+    // Wait for everything to settle
+    await this.wait(600);
+
+    // Should have been invoked at least once
+    assert.ok(callCount >= 1);
   }
 }

@@ -98,7 +98,6 @@ export class Duration {
             case "day":
             case "days":
                 return 60 * 60 * 24;
-            case "M":
             case "mo":
             case "mon":
             case "month":
@@ -112,22 +111,6 @@ export class Duration {
             default:
                 throw new Error(`Unsupported duration unit: ${unit}`);
         }
-    }
-
-    /**
-     * Normalize a date-like input to milliseconds since epoch.
-     * @param value `Date`, ms timestamp, or date string.
-     * @returns Milliseconds since epoch.
-     */
-    private static resolveToMs(value: Date | number | string): number {
-        if (value instanceof Date) return value.getTime();
-        if (typeof value === "number") return value; // assume already ms if number start is provided
-        const d = new Date(value);
-        const t = d.getTime();
-        if (isNaN(t)) {
-            throw new Error(`Invalid start date: ${value}`);
-        }
-        return t;
     }
 
     /**

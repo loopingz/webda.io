@@ -8,7 +8,7 @@ export default defineConfig({
     allowOnly: true,
     coverage: {
       include: ["src/*.ts"],
-      exclude: ["src/*.spec.ts"],
+      exclude: ["src/*.spec.ts", "src/browser.ts"],
       reporter: ["lcov", "html", "text"]
     },
     setupFiles: ["./vitest.chdir.mts"],

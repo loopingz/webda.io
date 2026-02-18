@@ -76,6 +76,9 @@ export class FileSize {
 
     /**
      * Allow implicit conversion to string or number depending on the hint.
+     *
+     * @param hint - Coercion hint: `"string"` returns a formatted size string, otherwise returns the raw byte count.
+     * @returns A formatted string (e.g. `"1.23 MB"`) or the numeric byte count.
      */
     [Symbol.toPrimitive](hint: "number" | "string" | "default") {
         if (hint === "string") return this.toString();

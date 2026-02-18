@@ -67,4 +67,38 @@ class ThrottlerTest {
   async staticMethod() {
     await Throttler.run(<any>[async () => {}], 2);
   }
+
+  @test
+  async testToString() {
+    const t = new Throttler(1);
+    let resolver1: () => void;
+    let resolver2: () => void;
+
+    // Queue two promises with explicit resolvers
+    const p1 = t.queue(() => new Promise<void>(resolve => { resolver1 = resolve; }), "Task1");
+    const p2 = t.queue(() => new Promise<void>(resolve => { resolver2 = resolve; }), "Task2");
+
+    // Wait for first task to start executing
+    await new Promise(resolve => setImmediate(resolve));
+
+    // Get all items (both in-progress and queued)
+    const allItems = t.getInProgress();
+    assert.ok(allItems.length >= 1, "Should have at least one item");
+
+    // First item should be IN-PROGRESS
+    const inProgressString = allItems[0].toString();
+    assert.ok(inProgressString.includes("Task1"), "Should contain task name");
+    assert.ok(inProgressString.includes("IN-PROGRESS"), "Should show IN-PROGRESS status");
+
+    // Get the full queue to check queued items
+    const queueSize = t.getSize();
+    assert.ok(queueSize >= 2, "Should have 2 items in queue");
+
+    // Resolve all promises
+    resolver1!();
+    await new Promise(resolve => setImmediate(resolve));
+    resolver2!();
+
+    await Promise.all([p1, p2]);
+  }
 }

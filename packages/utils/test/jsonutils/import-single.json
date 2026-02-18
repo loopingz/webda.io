@@ -1,0 +1,5 @@
+{
+  "$import": "import-base",
+  "override": "modified",
+  "new": "value"
+}

@@ -11,8 +11,12 @@ const nodesMap = new WeakMap<any, any>();
  */
 export class YAMLProxy {
   /**
+   * Parse a YAML string into a comment-aware proxy object.
    *
-   * @returns
+   * Single-document strings return a single proxy; multi-document strings return an array of proxies.
+   *
+   * @param data - The YAML source string to parse.
+   * @returns A proxy object (or array of proxies for multi-document YAML) retaining comment/whitespace metadata.
    */
   static parse(data: string): any {
     const docs = yaml.parseAllDocuments(data);
@@ -23,9 +27,13 @@ export class YAMLProxy {
   }
 
   /**
+   * Serialize a value back to a YAML string.
    *
-   * @param obj
-   * @returns
+   * If `obj` is a `YAMLProxy` instance, its original formatting and comments are preserved.
+   * Arrays are joined with `\n---\n` (multi-document). Plain objects/values fall back to `yaml.stringify`.
+   *
+   * @param obj - The value to serialize.
+   * @returns The YAML string representation.
    */
   static stringify(obj: any): string {
     if (obj instanceof YAMLProxy) {
@@ -88,6 +96,10 @@ function setYAMLNodes(target, node) {
  * YAML Array Proxy
  */
 class YAMLArray<T> extends Array<T> implements YAMLProxies {
+  static get [Symbol.species]() {
+    return Array;
+  }
+
   constructor(doc: yaml.Pair) {
     super();
     nodesMap.set(this, doc);

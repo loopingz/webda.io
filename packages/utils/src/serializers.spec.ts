@@ -428,4 +428,65 @@ plop: test
     const file = readFileSync(getCommonJS(import.meta.url).__dirname + "/../test/jsonutils/comment2_update.jsonc");
     assert.strictEqual(data.toString(), file.toString());
   }
+
+  @test
+  importSingleFile() {
+    // Test $import with single string (covers lines 339, 343-352, 358-361)
+    const data = FileUtils.loadConfigurationFile(TEST_FOLDER + "import-single");
+    assert.strictEqual(data.base, "value");
+    assert.strictEqual(data.override, "original"); // Imported value overrides main file
+    assert.strictEqual(data.new, "value");
+    assert.strictEqual(data.$import, undefined); // $import should be deleted
+  }
+
+  @test
+  importArrayFiles() {
+    // Test $import with array (covers lines 354-357)
+    const data = FileUtils.loadConfigurationFile(TEST_FOLDER + "import-array");
+    assert.strictEqual(data.base, "value");
+    assert.strictEqual(data.second, "import");
+    assert.strictEqual(data.another, "value");
+    assert.strictEqual(data.final, "value");
+    assert.strictEqual(data.$import, undefined);
+  }
+
+  @test
+  importInvalidPath() {
+    // Test security check for invalid import path (covers lines 344-349)
+    const data = FileUtils.loadConfigurationFile(TEST_FOLDER + "import-invalid");
+    // Invalid import should be ignored, so only direct properties should exist
+    assert.strictEqual(data.data, "value");
+    assert.strictEqual(data.name, undefined); // Should not have imported package.json
+  }
+
+  @test
+  importWithoutAllowImports() {
+    // Test loading without processing imports (line 341)
+    const data = FileUtils.loadConfigurationFile(TEST_FOLDER + "import-single", false);
+    assert.strictEqual(data.$import, "import-base"); // $import should still exist
+    assert.strictEqual(data.base, undefined); // Should not have imported
+  }
+
+  @test
+  getConfigurationFileError() {
+    // Test error handling when configuration file is missing (line 338)
+    assert.throws(() => FileUtils.getConfigurationFile(TEST_FOLDER + "nonexistent"), /File not found .*/);
+  }
+
+  @test
+  fileSymbolicLink() {
+    const { __dirname } = getCommonJS(import.meta.url);
+    const linkPath = path.join(__dirname, "../test/filelink");
+    const targetPath = path.join(__dirname, "../test/jsonutils/test.json");
+    try {
+      symlinkSync(targetPath, linkPath);
+      const res: string[] = [];
+      FileUtils.walkSync(path.join(__dirname, "../test"), f => res.push(f), { followSymlinks: true });
+      assert.ok(res.some(r => r.includes("filelink")));
+    } finally {
+      if (existsSync(linkPath)) {
+        unlinkSync(linkPath);
+      }
+    }
+  }
 }

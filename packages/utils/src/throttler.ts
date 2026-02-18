@@ -11,6 +11,9 @@ class ThrottlerItem {
     public callbacks: ((res?: any) => void)[],
     public name: string
   ) {}
+  /**
+   * @returns A human-readable status string, e.g. `"myTask: IN-PROGRESS"` or `"myTask: QUEUED"`.
+   */
   toString() {
     return `${this.name}: ${this.promise ? "IN-PROGRESS" : "QUEUED"}`;
   }
@@ -46,8 +49,8 @@ export class Throttler {
   protected _failed: Error | null = null;
 
   /**
-   *
-   * @param concurrency max concurrent promise to execute
+   * @param concurrency - Maximum number of promises to execute concurrently (default `10`).
+   * @param failFast - When `true` (default), reject all pending items immediately on the first failure.
    */
   constructor(
     protected concurrency: number = 10,
@@ -55,10 +58,11 @@ export class Throttler {
   ) {}
 
   /**
-   * Run a Throttler without having to instanciate it
-   * @param method
-   * @param concurrency
-   * @returns
+   * Convenience method: create a one-shot Throttler, queue the given method(s), and wait for completion.
+   *
+   * @param method - A single executor function or an array of executor functions to queue.
+   * @param concurrency - Maximum concurrent executions (default `10`).
+   * @returns A Promise that resolves when all queued items complete.
    */
   static run(method: (() => Promise<any>) | (() => Promise<any>)[], concurrency: number = 10): Promise<void> {
     const t = new Throttler(concurrency);
@@ -67,12 +71,11 @@ export class Throttler {
   }
 
   /**
-   * Execute a new promise
+   * Alias for {@link queue}. Queue and execute one or more promise-returning functions.
    *
-   * Alias for queue
-   * @param method
-   * @param name
-   * @returns
+   * @param method - A single executor or an array of executors.
+   * @param name - Optional name for the task, useful with `getInProgress` (default: `Promise_N`).
+   * @returns A Promise (or `Promise.all`) linked to the queued item(s).
    */
   execute(
     method: (() => Promise<any>) | (() => Promise<any>)[],
@@ -82,11 +85,11 @@ export class Throttler {
   }
 
   /**
-   * Queue a new promise
+   * Queue one or more promise-returning functions for concurrent execution.
    *
-   * @param method executor that return the promise to queue
-   * @param name of the task, usefull when calling getInProgress
-   * @returns
+   * @param method - A single executor or an array of executors.
+   * @param name - Optional name for the task, useful with `getInProgress` (default: `Promise_N`).
+   * @returns A Promise linked to the queued item's resolution, or `Promise.all` for an array.
    */
   queue(
     method: (() => Promise<any>) | (() => Promise<any>)[],
@@ -126,24 +129,27 @@ export class Throttler {
   }
 
   /**
-   * Get inprogress items
-   * @returns
+   * Return all items that are currently executing (i.e. have an active Promise).
+   *
+   * @returns An array of in-progress `ThrottlerItem` instances.
    */
   getInProgress(): ThrottlerItem[] {
     return this._queue.filter(p => p.promise);
   }
 
   /**
-   * Get global queue size
-   * @returns
+   * Return the total number of items in the queue (both queued and in-progress).
+   *
+   * @returns The queue length.
    */
   getSize(): number {
     return this._queue.length;
   }
 
   /**
-   * Wait until every promise resolve
-   * @returns
+   * Wait until all queued and in-progress items have settled.
+   *
+   * @returns A Promise that resolves when the queue is empty, or rejects if `failFast` is enabled and any item failed.
    */
   async wait(): Promise<void> {
     if (this._failed && this.failFast) {
@@ -167,8 +173,8 @@ export class Throttler {
   }
 
   /**
-   * Internal manage the promise concurrency
-   * @returns
+   * Internal: attempt to start the next queued item if concurrency slots are available.
+   * Also resolves or rejects all waiters when the queue drains.
    */
   protected add() {
     if (this.current >= this.concurrency || (this._failed && this.failFast)) {

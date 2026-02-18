@@ -86,7 +86,6 @@ export function debounce<T extends (...args: any[]) => any>(
   options: DebounceOptions = {}
 ): DebouncedFunction<T> {
   let timerId: NodeJS.Timeout | undefined;
-  let maxTimerId: NodeJS.Timeout | undefined;
   let lastCallTime: number | undefined;
   let lastInvokeTime = 0;
   let lastArgs: Parameters<T> | undefined;
@@ -185,12 +184,9 @@ export function debounce<T extends (...args: any[]) => any>(
     if (timerId !== undefined) {
       clearTimeout(timerId);
     }
-    if (maxTimerId !== undefined) {
-      clearTimeout(maxTimerId);
-    }
 
     lastInvokeTime = 0;
-    lastArgs = lastCallTime = lastThis = timerId = maxTimerId = undefined;
+    lastArgs = lastCallTime = lastThis = timerId = undefined;
   }
 
   /**

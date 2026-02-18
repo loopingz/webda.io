@@ -59,4 +59,73 @@ class StatesTest {
     assert.strictEqual(service2.getState(), "resolved");
     assert.strictEqual(service2.id, 2);
   }
+
+  @test
+  async testSyncErrorHandling() {
+    // Test synchronous error (covers lines 35-37)
+    class ErrorService {
+      @MyState({ start: "running", error: "errored" })
+      syncMethod() {
+        throw new Error("Sync error");
+      }
+
+      getState() {
+        return MyState.getCurrentState(this);
+      }
+    }
+
+    const service = new ErrorService();
+    assert.throws(() => service.syncMethod(), /Sync error/);
+    assert.strictEqual(service.getState(), "errored");
+  }
+
+  @test
+  async testNoStartState() {
+    // Test decorator without start state (covers lines 62-63)
+    class NoStartService {
+      @MyState({ end: "completed" })
+      process() {
+        assert.strictEqual(this.getState(), "initial");
+      }
+
+      getState() {
+        return MyState.getCurrentState(this);
+      }
+    }
+
+    const service = new NoStartService();
+    assert.strictEqual(service.getState(), "initial");
+    service.process();
+    assert.strictEqual(service.getState(), "completed");
+  }
+
+  @test
+  async testDoubleWrapPrevention() {
+    // Test that already-wrapped methods don't get wrapped again (covers lines 49-50)
+    // This happens when both parent and child classes apply the decorator to the same method
+    class ParentService {
+      @MyState({ start: "processing", end: "done" })
+      method() {
+        return "parent";
+      }
+
+      getState() {
+        return MyState.getCurrentState(this);
+      }
+    }
+
+    class ChildService extends ParentService {
+      @MyState({ start: "childProcessing", end: "childDone" })
+      method() {
+        return "child";
+      }
+    }
+
+    // When ChildService is instantiated, both decorators' initializers run
+    // The second one should detect WRAPPED_FLAG and skip wrapping
+    const service = new ChildService();
+    const result = service.method();
+    assert.strictEqual(result, "child");
+    assert.ok(["childDone", "done"].includes(service.getState()), `State should be childDone or done, got ${service.getState()}`);
+  }
 }

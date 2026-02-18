@@ -1,10 +1,15 @@
 import { randomUUID } from "node:crypto";
 
 /**
- * Return a UUID
+ * Generate a UUID v4 and return it in the requested encoding.
  *
- * @param format to return different type of format
- * Plan to implement base64 and maybe base85
+ * - `"uuid"` (default): standard hyphenated UUID string, e.g. `"110e8400-e29b-41d4-a716-446655440000"`
+ * - `"base64"`: URL-safe base64 without padding (`+` → `-`, `/` → `_`, `=` stripped)
+ * - `"hex"`: lowercase hex string without hyphens
+ * - `"binary"` / `"ascii"`: raw buffer encoding
+ *
+ * @param format - The desired output encoding (default `"uuid"`).
+ * @returns The UUID in the requested format.
  */
 export function getUuid(format: "ascii" | "base64" | "hex" | "binary" | "uuid" = "uuid"): string {
   const uid = randomUUID();

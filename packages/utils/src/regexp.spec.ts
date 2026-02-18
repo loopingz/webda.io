@@ -20,4 +20,17 @@ class RegExpStringValidatorTest {
     assert.ok(!validator.validate("test2b"));
     assert.ok(!validator.validate("test6"));
   }
+
+  @test
+  async validateSingleString() {
+    // Test with single string instead of array
+    const validator = new RegExpStringValidator("test1");
+    assert.ok(validator.validate("test1"));
+    assert.ok(!validator.validate("test2"));
+
+    // Test with single regex string
+    const regexValidator = new RegExpStringValidator("regex:test[0-9]+");
+    assert.ok(regexValidator.validate("test123"));
+    assert.ok(!regexValidator.validate("test"));
+  }
 }

@@ -13,6 +13,14 @@ export type TransformCaseType =
   | "UPPERCASE"
   | "lowercase";
 
+
+/**
+ * Transform a string to a different case style.
+ *
+ * @param name - The input string to transform
+ * @param newCase - The target case style to apply
+ * @returns The transformed string, or the original string unchanged if `newCase` is `"none"` or `"UPPERCASE"`
+ */
 export function TransformCase(name: string, newCase: TransformCaseType) {
   if (newCase === "camelCase") {
     return name.substring(0, 1).toLowerCase() + name.substring(1).replace(/_(.)/g, (match, p1) => p1.toUpperCase());

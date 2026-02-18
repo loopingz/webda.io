@@ -1,5 +1,7 @@
-/** Symbol used as a private key to store the {@link DirtyState} on proxied instances */
-const DIRTY_FIELD = Symbol("dirty field");
+/**
+ * Define the dirty properties key
+ */
+export const WEBDA_DIRTY: unique symbol = Symbol("Dirty properties");
 
 /** Generic constructor type used by mixins */
 type Constructor<T = {}> = new (...args: any[]) => T;
@@ -43,9 +45,14 @@ export class DirtyState {
    * @param field - Name of the property that changed
    * @param originalValue - Value of the property before this assignment
    * @param value - New value being assigned
+   * If originalValue is undefined and value is undefined, we force the field to be considered dirty
    */
-  add(field: string, originalValue: any, value: any): void {
+  add(field: string, originalValue?: any, value?: any): void {
     this.fields.add(field);
+    // If originalValue is undefined and value is undefined, we force the field to be considered dirty
+    if (originalValue === undefined && value === undefined) {
+      return;
+    }
     if (!(field in this.originalValues)) {
       this.originalValues[field] = originalValue;
     }
@@ -57,12 +64,76 @@ export class DirtyState {
     }
   }
 
+  /** Checks if a specific field is currently dirty */
+  has(field: string): boolean {
+    return this.fields.has(field);
+  }
+
   /**
    * Returns the names of all currently dirty fields.
    */
   getProperties(): string[] {
     return [...this.fields];
   }
+
+  /**
+   * Get a patch object containing the original values of all dirty fields. This can
+   * be used to revert changes or send only modified fields to a backend.
+   * @returns A record of field names to their original values
+   */
+  getPatch(): Record<string, any> {
+    const patch: Record<string, any> = {};
+    for (const field of this.fields) {
+      patch[field] = this.originalValues[field];
+    }
+    return patch;
+  }
+}
+
+/**
+ * Returns `true` when the value is a plain object or an array —
+ * the only kinds of values we can safely deep-proxy.
+ *
+ * Built-in types like Date, RegExp, Map, Set etc. have internal
+ * slots that a Proxy cannot forward, so we leave them alone.
+ */
+function isProxyable(value: any): boolean {
+  if (Array.isArray(value)) return true;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * Wraps an object or array in a deep proxy that calls {@link markDirty}
+ * whenever a nested mutation occurs (property set or delete).
+ *
+ * Read-only operations pass through untouched.
+ */
+function createDeepDirtyProxy<V extends object>(value: V, markDirty: () => void): V {
+  return new Proxy(value, {
+    set(innerTarget: any, innerProp: string | symbol, innerValue: any) {
+      markDirty();
+      innerTarget[innerProp] = innerValue;
+      return true;
+    },
+    deleteProperty(innerTarget: any, innerProp: string | symbol) {
+      markDirty();
+      delete innerTarget[innerProp];
+      return true;
+    },
+    get(innerTarget: any, innerProp: string | symbol, receiver: any) {
+      const innerValue = innerTarget[innerProp];
+      if (typeof innerValue === "function" && innerProp !== "constructor") {
+        // Bind to receiver (the proxy) instead of innerTarget
+        // This ensures Array methods like push/pop/splice trigger the set trap
+        return innerValue.bind(receiver);
+      }
+      if (innerValue !== null && typeof innerValue === "object" && isProxyable(innerValue)) {
+        return createDeepDirtyProxy(innerValue, markDirty);
+      }
+      return innerValue;
+    }
+  });
 }
 
 /**
@@ -80,33 +151,41 @@ export class DirtyState {
  * @example
  * ```ts
  * class User { name = ""; }
- * const TrackedUser = DirtyMixin(User);
+ * const TrackedUser = DirtyMixIn(User);
  * const u = new TrackedUser();
  * u.name = "Alice";
  * u.dirty; // DirtyState with "name"
  * ```
  */
-export function DirtyMixin<T extends Constructor>(clazz: T): T & Constructor<{ dirty: DirtyState | null }> {
+export function DirtyMixIn<T extends Constructor>(
+  clazz: T
+): T & Constructor<{ dirty: DirtyState | null; [WEBDA_DIRTY]: DirtyState }> {
   return class extends clazz {
     constructor(...args: any[]) {
       super(...args);
       return new Proxy(this, {
         set: (target: any, p: string | symbol, value: any) => {
           const oldValue = target[p];
-          target[DIRTY_FIELD].add(p.toString(), oldValue, value);
+          target[WEBDA_DIRTY].add(p.toString(), oldValue, value);
           target[p] = value;
           return true;
         },
         get: (target: any, p: string | symbol) => {
-          return target[p];
+          const value = target[p];
+          if (typeof p === "string" && value !== null && typeof value === "object" && isProxyable(value)) {
+            return createDeepDirtyProxy(value, () => {
+              target[WEBDA_DIRTY].add(p);
+            });
+          }
+          return value;
         }
       });
     }
-    [DIRTY_FIELD]: DirtyState = new DirtyState(new Set());
+    [WEBDA_DIRTY]: DirtyState = new DirtyState(new Set());
 
     /** Returns the current {@link DirtyState} if any fields were modified, or `null` if clean */
     get dirty(): DirtyState | null {
-      return this[DIRTY_FIELD].valueOf() ? this[DIRTY_FIELD] : null;
+      return this[WEBDA_DIRTY].valueOf() ? this[WEBDA_DIRTY] : null;
     }
-  } as T & Constructor<{ dirty: DirtyState }>;
+  } as T & Constructor<{ dirty: DirtyState | null; [WEBDA_DIRTY]: DirtyState }>;
 }

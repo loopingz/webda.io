@@ -1,15 +1,18 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { DirtyMixin, DirtyState } from "./dirty";
+import { DirtyMixIn, DirtyState } from "./dirty";
 
 /** Simple class used as the base for mixin tests */
 class Base {
   name: string = "";
   age: number = 0;
+  deep: { nested: string } = { nested: "" };
+  deeper: { nested: { value: string } } = { nested: { value: "" } };
+  array: any[] = [];
 }
 
-/** Base class wrapped with dirty-tracking via DirtyMixin */
-const TrackedBase = DirtyMixin(Base);
+/** Base class wrapped with dirty-tracking via DirtyMixIn */
+const TrackedBase = DirtyMixIn(Base);
 
 /**
  * Unit tests for {@link DirtyState} in isolation (no Proxy involved).
@@ -96,11 +99,11 @@ class DirtyStateTest {
 }
 
 /**
- * Integration tests for {@link DirtyMixin}, verifying that the Proxy
+ * Integration tests for {@link DirtyMixIn}, verifying that the Proxy
  * intercepts property assignments and delegates to the internal DirtyState.
  */
 @suite
-class DirtyMixinTest {
+class DirtyMixInTest {
   /** A newly constructed instance should have no dirty fields */
   @test
   freshInstanceIsClean() {
@@ -184,8 +187,108 @@ class DirtyMixinTest {
         this.greeting = greeting;
       }
     }
-    const TrackedGreeter = DirtyMixin(Greeter);
+    const TrackedGreeter = DirtyMixIn(Greeter);
     const obj = new TrackedGreeter("hello");
     assert.strictEqual(obj.greeting, "hello");
+  }
+
+  @test
+  deepChanges() {
+    const obj = new TrackedBase();
+    assert.strictEqual(obj.dirty, null);
+    obj.deep.nested = "changed";
+    assert.notStrictEqual(obj.dirty, null);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["deep"]);
+  }
+
+  @test
+  deeperChanges() {
+    const obj = new TrackedBase();
+    assert.strictEqual(obj.dirty, null);
+    obj.deeper.nested.value = "changed";
+    assert.notStrictEqual(obj.dirty, null);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["deeper"]);
+  }
+
+  @test
+  arrayChanges() {
+    const obj = new TrackedBase();
+    assert.strictEqual(obj.dirty, null);
+    obj.array.push("item");
+    assert.notStrictEqual(obj.dirty, null);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    obj.dirty!.clear();
+    assert.strictEqual(obj.dirty, null);
+    obj.array[0] = "item";
+    assert.notStrictEqual(obj.dirty, null);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    obj.dirty!.clear();
+    obj.array.push("item2");
+    assert.notStrictEqual(obj.dirty, null);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+  }
+
+  /** Test that all array mutation methods properly mark the object as dirty */
+  @test
+  arrayMutationMethods() {
+    // Test push
+    const obj1 = new TrackedBase();
+    obj1.array.push("a", "b");
+    assert.notStrictEqual(obj1.dirty, null);
+    assert.deepStrictEqual(obj1.dirty!.getProperties(), ["array"]);
+
+    // Test pop
+    const obj2 = new TrackedBase();
+    obj2.array = ["a", "b", "c"];
+    obj2.dirty!.clear();
+    obj2.array.pop();
+    assert.notStrictEqual(obj2.dirty, null);
+
+    // Test shift
+    const obj3 = new TrackedBase();
+    obj3.array = ["a", "b", "c"];
+    obj3.dirty!.clear();
+    obj3.array.shift();
+    assert.notStrictEqual(obj3.dirty, null);
+
+    // Test unshift
+    const obj4 = new TrackedBase();
+    obj4.array.unshift("a", "b");
+    assert.notStrictEqual(obj4.dirty, null);
+
+    // Test splice
+    const obj5 = new TrackedBase();
+    obj5.array = ["a", "b", "c"];
+    obj5.dirty!.clear();
+    obj5.array.splice(1, 1, "x");
+    assert.notStrictEqual(obj5.dirty, null);
+
+    // Test sort
+    const obj6 = new TrackedBase();
+    obj6.array = ["c", "a", "b"];
+    obj6.dirty!.clear();
+    obj6.array.sort();
+    assert.notStrictEqual(obj6.dirty, null);
+
+    // Test reverse
+    const obj7 = new TrackedBase();
+    obj7.array = ["a", "b", "c"];
+    obj7.dirty!.clear();
+    obj7.array.reverse();
+    assert.notStrictEqual(obj7.dirty, null);
+  }
+
+  @test
+  arrayObject() {
+    const obj = new TrackedBase();
+    obj.array.push({ name: "item1" });
+    assert.notStrictEqual(obj.dirty, null);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    obj.dirty!.clear();
+
+    // Modifying the object inside the array should also mark dirty
+    obj.array[0].name = "changed";
+    assert.notStrictEqual(obj.dirty, null);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
   }
 }

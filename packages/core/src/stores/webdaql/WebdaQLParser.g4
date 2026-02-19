@@ -17,6 +17,9 @@ expression
     identifier LIKE stringLiteral #likeExpression
     | identifier IN setExpression #inExpression
     | identifier CONTAINS stringLiteral #containsExpression
+    // IS NULL / IS NOT NULL
+    | identifier IS NULL #isNullExpression
+    | identifier IS NOT NULL #isNotNullExpression
     // Comparison operations
     | identifier (EQUAL | NOT_EQUAL | GREATER_OR_EQUAL | LESS_OR_EQUAL | LESS | GREATER) values #binaryComparisonExpression
     // Logic operations

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { createCacheAnnotation, ObjectCache, ProcessCache } from "./cache";
+import { argumentsSimpleKey, CacheMap, CacheOptions, CacheStorage, createCacheAnnotation, ObjectCache, ProcessCache } from "./cache";
 import { AsyncLocalStorage } from "async_hooks";
 
 const storage = new AsyncLocalStorage();
@@ -812,6 +812,192 @@ class CacheTest {
 
     // Verify it was cleared using the fallback key generator
     assert.strictEqual(cacheStorage.has("unDecoratedMethod-value"), false);
+  }
+
+  @test
+  exportedClasses() {
+    // CacheStorage and CacheMap should be importable and extendable
+    const storage = new CacheStorage();
+    storage.setCachedMethod("k", [], "v");
+    assert.strictEqual(storage.hasCachedMethod("k"), true);
+    assert.strictEqual(storage.getCachedMethod("k"), "v");
+
+    const map = new CacheMap();
+    const target = {};
+    map.setCachedMethod(target, "k", [], "v");
+    assert.strictEqual(map.hasCachedMethod(target, "k"), true);
+    assert.strictEqual(map.getCachedMethod(target, "k"), "v");
+
+    // Subclassing should work
+    class MyStorage extends CacheStorage {}
+    class MyMap extends CacheMap {}
+    const opts: CacheOptions = { cacheStorage: MyStorage, cacheMap: MyMap };
+    const customCache = {};
+    const CustomCache = createCacheAnnotation(() => customCache, opts);
+    class Svc {
+      @CustomCache()
+      compute(x: number) {
+        return x * 2;
+      }
+    }
+    const svc = new Svc();
+    assert.strictEqual(svc.compute(3), 6);
+    assert.strictEqual(svc.compute(3), 6);
+    // Verify our custom storage class was used
+    const cacheMap = customCache["caches"];
+    assert.ok(cacheMap instanceof MyMap);
+    assert.ok(cacheMap.get(svc) instanceof MyStorage);
+  }
+
+  @test
+  shouldCacheSync() {
+    const cacheHost = {};
+    const ConditionalCache = createCacheAnnotation(() => cacheHost, {
+      shouldCache: (result: any) => result !== null && result !== undefined
+    });
+
+    class ConditionalService {
+      callCount = 0;
+
+      @ConditionalCache()
+      fetch(id: string): string | null {
+        this.callCount++;
+        return id === "missing" ? null : `data-${id}`;
+      }
+    }
+
+    const svc = new ConditionalService();
+
+    // Non-null result should be cached
+    assert.strictEqual(svc.fetch("a"), "data-a");
+    assert.strictEqual(svc.fetch("a"), "data-a");
+    assert.strictEqual(svc.callCount, 1); // cached
+
+    // Null result should NOT be cached — method runs every time
+    assert.strictEqual(svc.fetch("missing"), null);
+    assert.strictEqual(svc.fetch("missing"), null);
+    assert.strictEqual(svc.callCount, 3); // called twice more
+  }
+
+  @test
+  async shouldCacheAsync() {
+    const cacheHost = {};
+    const ConditionalCache = createCacheAnnotation(() => cacheHost, {
+      shouldCache: (result: any) => result?.ok === true
+    });
+
+    class AsyncConditionalService {
+      callCount = 0;
+
+      @ConditionalCache()
+      async fetch(id: string): Promise<{ ok: boolean; data?: string }> {
+        this.callCount++;
+        await new Promise(resolve => setTimeout(resolve, 5));
+        return id === "good" ? { ok: true, data: "value" } : { ok: false };
+      }
+    }
+
+    const svc = new AsyncConditionalService();
+
+    // ok:true → should be cached
+    const r1 = await svc.fetch("good");
+    assert.deepStrictEqual(r1, { ok: true, data: "value" });
+    assert.strictEqual(svc.callCount, 1);
+
+    const r2 = await svc.fetch("good");
+    assert.deepStrictEqual(r2, { ok: true, data: "value" });
+    assert.strictEqual(svc.callCount, 1); // served from cache
+
+    // ok:false → should NOT be cached, Promise entry must be cleaned up
+    const r3 = await svc.fetch("bad");
+    assert.deepStrictEqual(r3, { ok: false });
+    assert.strictEqual(svc.callCount, 2);
+
+    const r4 = await svc.fetch("bad");
+    assert.deepStrictEqual(r4, { ok: false });
+    assert.strictEqual(svc.callCount, 3); // called again — not cached
+  }
+
+  @test
+  async argumentsSimpleKeyFunction() {
+    // Primitives
+    assert.strictEqual(typeof argumentsSimpleKey([1, "test", true]), "string");
+    assert.strictEqual(typeof argumentsSimpleKey([null, undefined]), "string");
+
+    // Different types with same toString must produce different keys
+    assert.notStrictEqual(argumentsSimpleKey([null]), argumentsSimpleKey(["null"]));
+    assert.notStrictEqual(argumentsSimpleKey([true]), argumentsSimpleKey(["true"]));
+    assert.notStrictEqual(argumentsSimpleKey([1]), argumentsSimpleKey(["1"]));
+
+    // Argument boundary: fn(a, b) ≠ fn(ab) for strings
+    assert.notStrictEqual(argumentsSimpleKey(["ab", "cd"]), argumentsSimpleKey(["abcd"]));
+
+    // Objects with toJSON
+    const withToJSON = { toJSON: () => ({ x: 1 }) };
+    assert.strictEqual(typeof argumentsSimpleKey([withToJSON]), "string");
+
+    // Plain objects and arrays
+    assert.strictEqual(typeof argumentsSimpleKey([{ a: 1 }]), "string");
+    assert.strictEqual(typeof argumentsSimpleKey([[1, 2]]), "string");
+
+    // Custom toString
+    class Tagged {
+      toString() {
+        return "tag:42";
+      }
+    }
+    assert.strictEqual(typeof argumentsSimpleKey([new Tagged()]), "string");
+
+    // toJSON that throws → undefined
+    const objWithBadToJSON = {
+      toJSON() {
+        throw new Error("toJSON failed");
+      }
+    };
+    assert.strictEqual(argumentsSimpleKey([objWithBadToJSON]), undefined);
+
+    // Circular reference → undefined
+    const circular: any = {};
+    circular.self = circular;
+    assert.strictEqual(argumentsSimpleKey([circular]), undefined);
+
+    // Non-serializable object → undefined
+    const noRepr = Object.create(null);
+    assert.strictEqual(argumentsSimpleKey([noRepr]), undefined);
+
+    // Same args produce same key (deterministic)
+    assert.strictEqual(argumentsSimpleKey(["x", 1, true]), argumentsSimpleKey(["x", 1, true]));
+  }
+
+  @test
+  hashStrategySimple() {
+    const cacheHost = {};
+    const SimpleCache = createCacheAnnotation(() => cacheHost, { hashStrategy: "simple" });
+
+    class SimpleService {
+      callCount = 0;
+
+      @SimpleCache()
+      compute(x: number, label: string): string {
+        this.callCount++;
+        return `${label}-${x}`;
+      }
+    }
+
+    const svc = new SimpleService();
+
+    assert.strictEqual(svc.compute(1, "a"), "a-1");
+    assert.strictEqual(svc.compute(1, "a"), "a-1");
+    assert.strictEqual(svc.callCount, 1); // cached
+
+    assert.strictEqual(svc.compute(2, "a"), "a-2");
+    assert.strictEqual(svc.callCount, 2); // different args
+
+    // Verify keys use simple encoding, not sha256
+    const storage: CacheStorage = cacheHost["caches"].get(svc);
+    const keys = Array.from(storage.keys());
+    // Simple keys are human-readable (no base64 digest)
+    assert.ok(keys.every(k => !k.match(/[A-Za-z0-9+/]{40,}={0,2}$/)), "keys should not look like base64 hashes");
   }
 
   @test

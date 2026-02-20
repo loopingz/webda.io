@@ -17,9 +17,9 @@ const MyMethodDecorator = createMethodDecorator(
   }
 );
 const MyPropertyDecorator = createPropertyDecorator(
-  (value: any, context: ClassFieldDecoratorContext, options?: { name: string }) => {
+  (context: ClassFieldDecoratorContext, options?: { name: string }) => {
     // Do nothing
-    calls.push({ value, context, options });
+    calls.push({ context, options });
     context.metadata!["info"] ??= [];
     (context.metadata!["info"] as Array<any>).push([context.kind, context.name]);
   }

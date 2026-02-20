@@ -3,9 +3,15 @@ import type { Serializer, SerializerContext } from "../serializer";
 /**
  * Built-in serializer for RegExp objects.
  *
- * Serializes RegExp objects by converting them to their string representation
- * (including pattern and flags). During deserialization, the string is parsed
- * to extract the pattern and flags, then a new RegExp is constructed.
+ * Serializes RegExp objects by converting them to their string representation via
+ * `RegExp.prototype.toString()` (e.g. `"/pattern/flags"`). During deserialization,
+ * the string is parsed with a regex to extract the pattern and flags, then a new
+ * RegExp is constructed.
+ *
+ * @remarks
+ * Supported flags: `g`, `i`, `m`, `s`, `u`, `y`.
+ * The `d` (indices) and `v` (unicode sets) flags introduced in later ECMAScript versions
+ * are not recognized by the deserializer regex and will be silently dropped.
  *
  * @example
  * ```typescript

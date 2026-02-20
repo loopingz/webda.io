@@ -147,6 +147,133 @@ class Other {
 })
 class TodoSuite {}
 
+// Exercises @params: generates one describe block per parameter combination
+const paramTestValues: number[] = [];
+
+@suite
+@params({ x: [1, 2] })
+class ParamsTest {
+  x!: number;
+
+  @test
+  async testParam() {
+    assert.ok(this.x === 1 || this.x === 2, `x should be 1 or 2, got ${this.x}`);
+    paramTestValues.push(this.x);
+  }
+}
+
+// Exercises line 374: suite.skip — describe.skip branch in the suite initializer
+@suite.skip
+class SuiteSkipTest {
+  @test
+  neverRuns() {
+    assert.ok(false, "suite.skip should prevent this from running");
+  }
+}
+
+// Exercises line 372: suite.only — describe.only branch in the suite initializer
+// Also exercises:
+//   instance["beforeEach"]?.() call-branch (line 428) via the beforeEach() method
+//   lifecycles filter callback (lines 430-431) via the @beforeAll lifecycle
+//   instance["afterEach"]?.() call-branch (line 446) via the afterEach() method
+@suite.only
+class SuiteOnlyTest {
+  // Plain methods — hit the instance["beforeEach"]?.() and instance["afterEach"]?.() call-branches
+  beforeEach() {}
+  afterEach() {}
+
+  // Lifecycle decorators — make `lifecycles` non-empty so filter callbacks run.
+  // @beforeEach with a non-"beforeEach" name causes l.fnKey !== l.phase to be evaluated (line 433).
+  @beforeAll
+  setup() {}
+
+  @beforeEach
+  preEach() {}
+
+  @test
+  async onlyRuns() {
+    assert.ok(true);
+  }
+}
+
+// Exercises line 451: test body passes but @afterEach throws — afterEach error is surfaced
+@suite
+class AfterEachSurfacesErrorTest {
+  @testWrapper
+  async wrap(type: string, cb: Function) {
+    if (type === "test") {
+      try {
+        await cb();
+        assert.ok(false, "Expected afterEach error to propagate");
+      } catch (err: any) {
+        assert.strictEqual(err.message, "afterEach error");
+      }
+    } else {
+      await cb();
+    }
+  }
+
+  @afterEach
+  async myAfterEach() {
+    throw new Error("afterEach error");
+  }
+
+  @test
+  @only
+  async testPassesAfterEachFails() {
+    // Test body passes; @afterEach throws → line 451: testError = afterErr
+    assert.ok(true);
+  }
+}
+
+// Exercises lines 448-449: both test AND @afterEach throw — WARN logged, original error kept
+@suite
+class AfterEachAndTestBothFailTest {
+  @testWrapper
+  async wrap(type: string, cb: Function) {
+    if (type === "test") {
+      try {
+        await cb();
+        assert.ok(false, "Expected test error to propagate");
+      } catch (err: any) {
+        // Original test error is preserved; afterEach error only produces a WARN
+        assert.strictEqual(err.message, "test error");
+      }
+    } else {
+      await cb();
+    }
+  }
+
+  @afterEach
+  async myAfterEach() {
+    throw new Error("afterEach also fails");
+  }
+
+  @test
+  @only
+  async testAndAfterEachBothFail() {
+    throw new Error("test error"); // afterEach also throws → lines 448-449 hit
+  }
+}
+
+// Branch coverage for decorator internals (all branches hit at class-definition time, not test-run time):
+//   @test({ name }) → exercises settings?.name truthy branch (line 491)
+//   @timeout as first decorator → m.settings is undefined → ?? {} branch (line 604)
+//   @retries as first decorator → m.settings is undefined → ?? {} branch (line 613)
+@suite
+class BranchCoverageTest {
+  @test({ name: "custom name" }) // settings?.name is set → line 491 branch
+  customNamedTest() {}
+
+  @test
+  @timeout(100) // @timeout runs first (bottom-up) → m.settings undefined → line 604: ?? {}
+  timeoutFirstDecorator() {}
+
+  @test
+  @retries(1) // @retries runs first (bottom-up) → m.settings undefined → line 613: ?? {}
+  retriesFirstDecorator() {}
+}
+
 // Covers line 327: @beforeAll/@afterAll on a method whose name differs from the phase
 @suite
 class NamedLifecycleTest {

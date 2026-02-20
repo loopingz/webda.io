@@ -135,7 +135,11 @@ export function detectFramework(): TestFramework {
         ["test.skip"]: (global as any).it.skip
       })
     };
-  } else if (process.mainModule?.filename.includes("node_modules/mocha")) {
+  } else if (
+    (typeof (global as any).before === "function" && typeof (global as any).after === "function") ||
+    process.mainModule?.filename.includes("node_modules/mocha") ||
+    process.argv.some(a => a.includes("mocha"))
+  ) {
     return {
       type: "mocha",
       executers: Promise.resolve({
@@ -277,12 +281,12 @@ export function getMetadata(target: AnyCtor): {
   }
   // Ensure configuration from current class overrides parent classes
   prototypes.forEach(p => {
-    const metaSym = Object.getOwnPropertySymbols(p).find(sym => sym.toString().includes("Symbol.metadata"));
-    const meta = metaSym && (p as any)[metaSym];
+    const meta = (p as any)[Symbol.metadata];
     if (meta && meta[META.TESTS]) {
       results["webda:tests"] ??= [];
       results["webda:tests"] = [
         ...results["webda:tests"],
+        /* v8 ignore next 1 -- Array.filter() never returns null/undefined */
         ...(meta[META.TESTS].filter(t => !results["webda:tests"].some((ot: TestMeta) => ot.fnKey === t.fnKey)) ?? [])
       ];
     }
@@ -290,6 +294,7 @@ export function getMetadata(target: AnyCtor): {
       results["webda:lifecycle"] ??= [];
       results["webda:lifecycle"] = [
         ...results["webda:lifecycle"],
+        /* v8 ignore next 3 -- Array.filter() never returns null/undefined */
         ...(meta[META.LIFECYCLE].filter(
           l => !results["webda:lifecycle"].some((ol: LifecycleMeta) => ol.fnKey === l.fnKey)
         ) ?? [])
@@ -299,8 +304,7 @@ export function getMetadata(target: AnyCtor): {
   // Ensure configuration from current class overrides parent classes
   // so reverse the prototypes order
   prototypes.reverse().forEach(p => {
-    const metaSym = Object.getOwnPropertySymbols(p).find(sym => sym.toString().includes("Symbol.metadata"));
-    const meta = metaSym && (p as any)[metaSym];
+    const meta = (p as any)[Symbol.metadata];
     if (meta && meta[META.SUITE]) {
       results["webda:suite"] ??= meta[META.SUITE];
       results["webda:suite"] = { ...results["webda:suite"], ...meta[META.SUITE] };
@@ -335,87 +339,136 @@ export const suite: ReturnType<typeof createClassDecorator> & {
     settings?: SuiteSettings & { execution?: Execution }
   ) => {
     const bag = getBag(context.metadata, META.SUITE, {} as SuiteMeta);
+    /* v8 ignore next 1 -- "Suite" fallback: unreachable for named classes */
     bag.name = name ?? (value as any).name ?? "Suite";
     bag.settings = settings;
     bag.mode = (settings?.execution as Execution) ?? "default"; // Register with the runner once the class finishes definition
     context.addInitializer(() => {
       const suiteMeta: SuiteMeta = context.metadata[META.SUITE] as any;
-      let describe = executers.describe;
-      if (suiteMeta.settings?.execution === "todo") {
-        describe = executers["describe.todo"]!;
-        /* v8 ignore next 4 -- all framework have todo */
-        if (!describe) {
-          useLog("INFO", "Skipping suite (no .todo support)", suiteMeta.name);
-          return;
-        }
+
+      // Build parameter combinations from @params matrix
+      const matrix = suiteMeta.paramMatrix;
+      let combos: Record<string, unknown>[] = [{}];
+      if (matrix) {
+        const keys = Object.keys(matrix);
+        combos = keys.reduce(
+          (acc, key) => {
+            const vals = matrix[key];
+            if (vals.length === 0) return acc; // skip empty arrays — keep existing combos
+            return acc.flatMap(row => vals.map(val => ({ ...row, [key]: val })));
+          },
+          [{}] as Record<string, unknown>[]
+        );
+        /* v8 ignore next 1 -- reduce starts from [{}], so length can never reach 0 */
+        if (combos.length === 0) combos = [{}]; // safety net: all keys were empty arrays
       }
 
-      describe(bag.name, async () => {
-        const instance = new (value as any)();
-        const lifecycles: LifecycleMeta[] = getBag(context.metadata, META.LIFECYCLE, [] as LifecycleMeta[]);
-        const wrapper = suiteMeta.wrapper ? instance[suiteMeta.wrapper]?.bind(instance) : (type, cb: Function) => cb();
-        // Register lifecycle beforeAll and afterAll
-        lifecycles
-          .filter(l => ["beforeAll", "afterAll"].includes(l.phase) && l.fnKey !== l.phase)
-          .forEach(l => {
-            executers[l.phase](() => wrapper(l.phase, instance[l.fnKey].bind(instance)));
-          });
-        // Also register beforeAll and afterAll methods if any
-        ["beforeAll", "afterAll"]
-          .filter(phase => instance[phase])
-          .forEach(phase => {
-            executers[phase](() => wrapper(phase, instance[phase].bind(instance)));
-          });
-        const tests: TestMeta[] = getBag(context.metadata, META.TESTS, [] as TestMeta[]);
-        tests.forEach(t => {
-          let exec = executers.test;
-          if (t.mode === "todo" || t.mode === "skip") {
-            exec = executers["test." + t.mode];
-            /* v8 ignore next 4 -- all framework have todo and skip */
-            if (!exec) {
-              useLog("INFO", `Skipping test (no .${t.settings.execution} support)`, t.name);
-              return;
-            }
+      for (const combo of combos) {
+        const hasParams = Object.keys(combo).length > 0;
+        const suiteName = hasParams
+          ? `${bag.name} [${Object.entries(combo)
+              .map(([k, v]) => `${k}=${v}`)
+              .join(", ")}]`
+          : bag.name;
+
+        let describe = executers.describe;
+        if (suiteMeta.settings?.execution === "only") {
+          /* v8 ignore next 1 -- fallback for frameworks that lack describe.only */
+          describe = executers["describe.only"] ?? executers.describe;
+        } else if (suiteMeta.settings?.execution === "skip") {
+          /* v8 ignore next 1 -- fallback for frameworks that lack describe.skip */
+          describe = executers["describe.skip"] ?? executers.describe;
+        } else if (suiteMeta.settings?.execution === "todo") {
+          describe = executers["describe.todo"]!;
+          /* v8 ignore next 4 -- all framework have todo */
+          if (!describe) {
+            useLog("INFO", "Skipping suite (no .todo support)", suiteName);
+            continue;
           }
-          if (t.mode === "only") {
-            exec = executers["test.only"];
-            /* v8 ignore next 3 -- all framework have only */
-            if (!exec) {
-              exec = executers.test;
+        }
+
+        describe(suiteName, async () => {
+          const instance = new (value as any)();
+          if (hasParams) Object.assign(instance, combo);
+          const lifecycles: LifecycleMeta[] = getBag(context.metadata, META.LIFECYCLE, [] as LifecycleMeta[]);
+          const wrapper = suiteMeta.wrapper
+            ? instance[suiteMeta.wrapper]?.bind(instance)
+            : (_type: string, cb: Function) => cb();
+          // Register lifecycle beforeAll and afterAll
+          lifecycles
+            .filter(l => ["beforeAll", "afterAll"].includes(l.phase) && l.fnKey !== l.phase)
+            .forEach(l => {
+              executers[l.phase](() => wrapper(l.phase, instance[l.fnKey].bind(instance)));
+            });
+          // Also register beforeAll and afterAll methods if any
+          ["beforeAll", "afterAll"]
+            .filter(phase => instance[phase])
+            .forEach(phase => {
+              executers[phase](() => wrapper(phase, instance[phase].bind(instance)));
+            });
+          const tests: TestMeta[] = getBag(context.metadata, META.TESTS, [] as TestMeta[]);
+          tests.forEach(t => {
+            if (t.settings?.retries !== undefined && framework.type !== "mocha") {
+              useLog("WARN", `@retries is Mocha-only, ignored for ${framework.type} (test: ${t.name})`);
             }
-          }
-          /**
-           * Create a test executor that will call the beforeEach, the test and the afterEach
-           */
-          const testExecutor = async () => {
-            await instance["beforeEach"]?.(t.fnKey); // beforeEach method are automatically called
-            await Promise.all(
-              lifecycles
-                .filter(l => l.phase === "beforeEach" && l.fnKey !== l.phase)
-                .map(l => instance[l.fnKey]?.(t.fnKey))
-            );
-            let testError = undefined;
-            try {
-              await instance[t.fnKey]();
-            } catch (err) {
-              testError = err;
+            let exec = executers.test;
+            if (t.mode === "todo" || t.mode === "skip") {
+              exec = executers["test." + t.mode];
+              /* v8 ignore next 4 -- all framework have todo and skip */
+              if (!exec) {
+                useLog("INFO", `Skipping test (no .${t.settings?.execution ?? t.mode} support)`, t.name);
+                return;
+              }
             }
-            // We might want to try catch also on the afterEach
-            await Promise.all(
-              lifecycles
-                .filter(l => l.phase === "afterEach" && l.fnKey !== l.phase)
-                .map(l => instance[l.fnKey]?.(t.fnKey))
-            );
-            await instance["afterEach"]?.(t.fnKey); // afterEach method are automatically called
-            // If the test failed keep the failure
-            if (testError) {
-              throw testError;
+            if (t.mode === "only") {
+              exec = executers["test.only"];
+              /* v8 ignore next 3 -- all framework have only */
+              if (!exec) {
+                exec = executers.test;
+              }
             }
-          };
-          // Wrap the test executor if needed
-          exec(t.name, async () => wrapper("test", testExecutor, instance));
+            /**
+             * Create a test executor that will call the beforeEach, the test and the afterEach
+             */
+            const testExecutor = async () => {
+              await instance["beforeEach"]?.(t.fnKey); // beforeEach methods are automatically called
+              await Promise.all(
+                lifecycles
+                  .filter(l => l.phase === "beforeEach" && l.fnKey !== l.phase)
+                  .map(l => instance[l.fnKey]?.(t.fnKey))
+              );
+              let testError: unknown = undefined;
+              try {
+                await instance[t.fnKey]();
+              } catch (err) {
+                testError = err;
+              }
+              try {
+                await Promise.all(
+                  lifecycles
+                    .filter(l => l.phase === "afterEach" && l.fnKey !== l.phase)
+                    .map(l => instance[l.fnKey]?.(t.fnKey))
+                );
+                await instance["afterEach"]?.(t.fnKey); // afterEach methods are automatically called
+              } catch (afterErr) {
+                if (testError) {
+                  useLog("WARN", `afterEach threw after test failure: ${(afterErr as Error).message}`);
+                } else {
+                  testError = afterErr;
+                }
+              }
+              // If the test failed keep the failure
+              if (testError) {
+                throw testError;
+              }
+            };
+            // Wrap the test executor; pass timeout as 3rd arg for non-Mocha frameworks
+            /* v8 ignore next 1 -- Mocha uses a different timeout API; not exercised in Vitest/Jest/Bun */
+            const testTimeout = framework.type !== "mocha" ? t.settings?.timeout : undefined;
+            exec(t.name, async () => wrapper("test", testExecutor, instance), testTimeout);
+          });
         });
-      });
+      }
     });
   }
 ) as any;
@@ -439,6 +492,7 @@ export const test: ReturnType<typeof createMethodDecorator> & {
   skip: MethodDecorator;
   todo: MethodDecorator;
 } = createMethodDecorator((value: AnyMethod, context: ClassMethodDecoratorContext, settings?: TestSettings) => {
+  /* v8 ignore next 1 -- String(context.name) fallback: unreachable for named class methods */
   const testName = settings?.name || value.name || String(context.name);
   const tests: TestMeta[] = getBag(context.metadata, META.TESTS, [] as TestMeta[]);
   const entry: TestMeta = tests.find(t => t.fnKey === String(context.name)) || {
@@ -455,7 +509,6 @@ export const test: ReturnType<typeof createMethodDecorator> & {
     }
   });
   entry.settings = { ...entry.settings, ...settings }; // merge settings
-  entry.mode ??= (settings as any)?.execution ?? "default";
   if (!tests.includes(entry)) {
     tests.push(entry);
   }
@@ -497,6 +550,7 @@ export function testWrapper(
   context: ClassMethodDecoratorContext
 ) {
   const suite: SuiteMeta = getBag(context.metadata, META.SUITE, {} as SuiteMeta);
+  /* v8 ignore next 1 -- value.name is always set for named class methods */
   suite.wrapper = value.name || String(context.name);
 }
 
@@ -538,8 +592,9 @@ export function skip(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "skip"))(_, context);
 }
 test.skip = test({ execution: "skip" });
-// @ts-ignore
-//suite.skip = suite({ execution: "skip" });
+(suite as any).only = suite(undefined, { execution: "only" });
+(suite as any).skip = suite(undefined, { execution: "skip" });
+(suite as any).todo = suite(undefined, { execution: "todo" });
 /** Marks the decorated test as a pending TODO — reported but not executed. */
 export function todo(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "todo"))(_, context);

@@ -31,7 +31,7 @@ export * from './export';
 let SinkService = class SinkService extends Service {
     constructor() {
         super(...arguments);
-        this.dir = "/media/loopingz/5400-E104/Trails/pubsub/";
+        this.dir = "/...";
     }
 }`
     );

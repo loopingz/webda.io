@@ -3,6 +3,13 @@ import { dirname } from "path";
 import { createPropertyDecorator } from "@webda/decorators";
 
 export { createClassDecorator, createPropertyDecorator, createMethodDecorator } from "@webda/decorators";
+/**
+ * Write a TypeScript-compiled file to disk, appending `.js` to all relative
+ * and scoped-package import/export specifiers so the output is valid ESM.
+ *
+ * @param fileName - Destination file path
+ * @param text - Compiled JavaScript source content to write
+ */
 export function writer(fileName: string, text: string) {
   mkdirSync(dirname(fileName), { recursive: true });
   // Add the ".js" -> if module
@@ -90,6 +97,12 @@ export type IsUnion<T, U extends T = T> = (T extends any ? (U extends T ? false 
  */
 export type Annotation<T extends (...args: any[]) => void> = T & ((...args: OmitTargetArgs<T>) => T);
 
+/**
+ * Remove the first argument of a function type and return the remaining parameter tuple.
+ * Used internally by {@link ClassAnnotation}.
+ *
+ * Note: this type name contains a typo ("Firt" instead of "First"); prefer {@link OmitFirstArg} for new code.
+ */
 export type OmitFirtArg<F> = F extends (x: any, ...args: infer P) => infer R ? Parameters<(...args: P) => R> : never;
 /**
  * A class annotation with optional arguments
@@ -121,6 +134,11 @@ export type AbstractConstructor<T extends abstract new (...args: any[]) => any =
  * Any constructor
  */
 export type AnyConstructor = abstract new (...args: any[]) => any;
+/**
+ * A constructor that produces instances of `T` and accepts a specific argument list `K`.
+ *
+ * Unlike {@link Constructor}, the argument list is fully customisable and defaults to an empty tuple.
+ */
 export type CustomConstructor<T, K extends any[] = []> = new (...args: K) => T;
 /**
  * Remove the first argument of a function
@@ -152,6 +170,10 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
+/**
+ * Make every non-function property of `T` (recursively) also accept `null`.
+ * Functions are left untouched; nested objects are recursively transformed.
+ */
 export type PartialModel<T> = {
   [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel<T[P]> : T[P] | null;
 };
@@ -182,14 +204,20 @@ export type FunctionArgs<T> = T extends (...args: infer A) => any ? A : never;
  */
 export type FunctionReturn<T> = T extends (...args: any) => infer R ? R : never;
 
-// 1) A strict “equals” check that can distinguish
-//    two types that differ only by a `readonly` modifier.
+/**
+ * Strict type-equality check that can distinguish types differing only by a `readonly` modifier.
+ *
+ * Resolves to `A` when `X` and `Y` are identical, otherwise `B` (defaults to `X`).
+ */
 export type IfEquals<X, Y, A = never, B = X> =
   (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B;
 
-// 2) Now build ReadonlyKeys by stripping `readonly`
-//    off each single‑prop type and seeing which
-//    ones *change* (i.e. were readonly originally).
+/**
+ * Extract the keys of `T` that are marked `readonly`.
+ *
+ * For each property, a single-prop type is compared against its mutable counterpart
+ * via {@link IfEquals}; keys that differ were originally `readonly`.
+ */
 export type ReadonlyKeys<T> = {
   [P in keyof T]-?: IfEquals<
     { [Q in P]: T[P] }, // original single‑prop type
@@ -217,9 +245,11 @@ export function assertUnreachable(unreachable: never): never {
 }
 
 /**
- * Get the file name from importMeta
- * @param importMeta
- * @returns
+ * Derive the absolute file path of the current module from its `import.meta`.
+ *
+ * @param importMeta - The `import.meta` object of the calling module
+ * @returns The absolute pathname of the current module file
+ * @throws {Error} When `importMeta.url` is not available
  */
 export function getFileName(importMeta: ImportMeta): string {
   if (typeof importMeta === "object" && typeof importMeta.url === "string") {
@@ -229,11 +259,16 @@ export function getFileName(importMeta: ImportMeta): string {
 }
 
 /**
- * Return true if the current module is the main module
- * @param importMeta
- * @returns
+ * Return `true` if the module identified by `importMeta` is the process entry point.
+ *
+ * Symbolic links in `process.argv[1]` are resolved before comparison.
+ * Always returns `false` in non-Node environments (e.g. browsers).
+ *
+ * @param importMeta - The `import.meta` object of the calling module
+ * @returns `true` when the calling module is the main entry point, `false` otherwise
  */
 export function isMainModule(importMeta: ImportMeta): boolean {
+  /* v8 ignore next 3 - cannot be tested within a node environment */
   if (typeof process === "undefined") {
     return false;
   }
@@ -244,7 +279,11 @@ export function isMainModule(importMeta: ImportMeta): boolean {
   return importMeta.url === (typeof process !== "undefined" ? `file://${realPath}` : undefined);
 }
 
-// We might want to explore: https://github.com/sindresorhus/type-fest
+/**
+ * Make a specific subset of keys `K` optional while keeping all other properties of `T` required.
+ *
+ * @see https://github.com/sindresorhus/type-fest for a more complete collection of utility types.
+ */
 export type SetOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 /**

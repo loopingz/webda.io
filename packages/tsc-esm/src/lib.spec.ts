@@ -46,6 +46,42 @@ let SinkService = class SinkService extends Service {
   }
 
   @test
+  dynamicImports() {
+    writer(
+      "./test/dynamic.js",
+      `const a = await import("./utils");
+const b = await import('./helpers');
+const c = await import("./already.js");
+const d = await import("node:fs/promises");
+const e = await import("@google-cloud/pubsub");`
+    );
+    const content = readFileSync("./test/dynamic.js").toString();
+    // relative paths get .js appended
+    assert.ok(content.includes('import("./utils.js")'));
+    assert.ok(content.includes("import('./helpers.js')"));
+    // already has .js – must not double-add
+    assert.ok(content.includes('import("./already.js")'));
+    assert.ok(!content.includes('import("./already.js.js")'));
+    // node: protocol must not be touched
+    assert.ok(!content.includes('"node:fs/promises.js"'));
+    // bare package specifier must not be touched
+    assert.ok(!content.includes('"@google-cloud/pubsub.js"'));
+  }
+
+  @test
+  noScopedSubpathRewrite() {
+    writer(
+      "./test/scoped.js",
+      `import { X } from "@scope/pkg/sub";
+import { Y } from "some-pkg/deep/path";`
+    );
+    const content = readFileSync("./test/scoped.js").toString();
+    // scoped sub-path imports from node_modules must NOT get .js appended
+    assert.ok(!content.includes('"@scope/pkg/sub.js"'));
+    assert.ok(!content.includes('"some-pkg/deep/path.js"'));
+  }
+
+  @test
   meta() {
     assert.ok(!Object.keys(this).includes("notEnumerable"));
   }
@@ -82,8 +118,10 @@ let SinkService = class SinkService extends Service {
   }
 
   after() {
-    if (existsSync("./test/plop.js")) {
-      unlinkSync("./test/plop.js");
+    for (const f of ["./test/plop.js", "./test/dynamic.js", "./test/scoped.js"]) {
+      if (existsSync(f)) {
+        unlinkSync(f);
+      }
     }
   }
 }

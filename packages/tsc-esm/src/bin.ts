@@ -3,8 +3,22 @@ import * as path from "path";
 import ts from "typescript";
 import { writer, isMainModule } from "./lib.js";
 
+/**
+ * Resolve the tsconfig path from CLI arguments, mirroring tsc's -p/--project flag.
+ * Accepts a file path or a directory (in which case tsconfig.json is appended).
+ */
+function resolveConfig(): string {
+  const args = process.argv.slice(2);
+  const idx = args.findIndex(a => a === "-p" || a === "--project");
+  if (idx !== -1 && args[idx + 1]) {
+    const p = path.resolve(process.cwd(), args[idx + 1]);
+    return p.endsWith(".json") ? p : path.join(p, "tsconfig.json");
+  }
+  return path.join(process.cwd(), "tsconfig.json");
+}
+
 if (isMainModule(import.meta)) {
-  const configFileName = path.join(process.cwd(), "tsconfig.json");
+  const configFileName = resolveConfig();
   if (process.argv.includes("--watch")) {
     const host = ts.createWatchCompilerHost(
       configFileName,
@@ -40,7 +54,7 @@ if (isMainModule(import.meta)) {
         getNewLine: () => ts.sys.newLine
       };
       const message = ts.formatDiagnostics(allDiagnostics, formatHost);
-      console.log(message);
+      process.stderr.write(message);
       process.exit(1);
     }
   }

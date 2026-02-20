@@ -6,6 +6,8 @@
  * This allows bundlers to automatically use this version of the utils when targeting browsers.
  */
 export * from "./case";
+export * from "./dirty";
+export * from "./debounce";
 export * from "./duration";
 export * from "./filesize";
 export * from "./freeze";

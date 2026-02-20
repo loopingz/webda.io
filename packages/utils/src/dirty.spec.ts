@@ -96,6 +96,29 @@ class DirtyStateTest {
     assert.strictEqual(state.valueOf(), true);
     assert.deepStrictEqual(state.getProperties(), ["name"]);
   }
+
+  /** has() should return true for dirty fields and false for clean ones */
+  @test
+  hasField() {
+    const state = new DirtyState();
+    assert.strictEqual(state.has("name"), false);
+    state.add("name", "old", "new");
+    assert.strictEqual(state.has("name"), true);
+    assert.strictEqual(state.has("age"), false);
+  }
+
+  /** getPatch() should return a record of original values for all dirty fields */
+  @test
+  getPatch() {
+    const state = new DirtyState();
+    assert.deepStrictEqual(state.getPatch(), {});
+    state.add("name", "original", "changed");
+    state.add("age", 10, 20);
+    assert.deepStrictEqual(state.getPatch(), { name: "original", age: 10 });
+    // After clear, patch should be empty again
+    state.clear();
+    assert.deepStrictEqual(state.getPatch(), {});
+  }
 }
 
 /**

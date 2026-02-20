@@ -4,9 +4,15 @@ import * as util from "util";
 import { isWorkerLogLevel, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core";
 import { WorkerLogger } from "./index";
 
+/**
+ * Internal shape passed to sprintf when formatting a log line
+ */
 interface WorkerLogMessage {
+  /** Formatted message text */
   m: string;
+  /** Log level string (right-padded) */
   l: string;
+  /** Unix timestamp in milliseconds */
   t: number;
   [key: string]: any;
 }
@@ -22,10 +28,19 @@ interface WorkerLogMessage {
  * ```
  */
 class ConsoleLogger extends WorkerLogger {
+  /** Default sprintf format string (date, level, message) */
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
+  /** Extended format string that also prints caller file, line, column and function */
   static defaultFormatWithLine = "%(d)s [%(l)s] %(m)s (%(f)s:%(ll)d:%(c)d %(ff)s)";
+  /** Active sprintf format string used for output */
   format: string;
 
+  /**
+   * Create a new console logger
+   * @param output - WorkerOutput instance to listen to
+   * @param level - Minimum log level to display (default: LOG_LEVEL env var or "INFO")
+   * @param format - Optional sprintf format string; defaults to defaultFormat or defaultFormatWithLine
+   */
   constructor(output: WorkerOutput, level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO", format?: string) {
     super(output, level);
 

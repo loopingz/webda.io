@@ -50,16 +50,27 @@ const defaultSpinner = {
  * Used internally by InteractiveConsoleLogger for displaying progress
  */
 class SimpleProgress {
+  /** Display label shown next to the spinner or progress bar */
   title: string;
+  /** Total number of character columns used for the bar */
   size: number = 40;
+  /** Character used for the unfilled portion of the bar */
   empty: string = isUnicodeSupported ? "⠒" : ".";
+  /** Character used for the filled portion of the bar */
   full: string = isUnicodeSupported ? "█" : ""; // ⠿
+  /** Current progress value */
   current: number;
+  /** Total progress value; -1 means indeterminate (spinner only) */
   total: number = -1;
+  /** Last rendered string, used to diff-render only changed characters */
   lastValue: string = "";
-  interval;
+  /** setInterval handle for the spinner animation */
+  interval: ReturnType<typeof setInterval>;
+  /** Current frame index into the spinner frames array */
   spinnerState = 0;
+  /** Timestamp (ms) when the progress was started */
   started: number;
+  /** Timestamp (ms) when the progress was stopped */
   stopped: number;
 
   /**
@@ -195,17 +206,31 @@ class SimpleProgress {
  * ```
  */
 export class InteractiveConsoleLogger extends ConsoleLogger {
+  /** Active inquirer prompt promise (with cancellation support) */
   input: Promise<string> & {
     cancel: () => void;
   };
+  /** Active spinner/progress indicator */
   spinner: SimpleProgress;
 
+  /**
+   * Create a new interactive console logger
+   * @param output - WorkerOutput instance to listen to
+   * @param level - Minimum log level to display (default: LOG_LEVEL env var or "INFO")
+   * @param format - sprintf format string for log lines
+   */
   constructor(output: WorkerOutput, level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO", format: string = ConsoleLogger.defaultFormat) {
     super(output, level, format);
     // Set interactive based on TTY status and --no-tty flag
     output.setInteractive(process.stdout.isTTY && !process.argv.includes("--no-tty"));
   }
 
+  /**
+   * Route a WorkerOutput message to the appropriate handler
+   * Falls back to the basic ConsoleLogger when not running in an interactive TTY
+   * @param msg - The message to handle
+   * @override
+   */
   onMessage(msg: WorkerMessage): void {
     // If not interactive, fallback to normal console logger
     if (!this.output.interactive) {
@@ -262,6 +287,13 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
   }
 
   /**
+   * Import the inquirer module (extracted for testability)
+   */
+  protected importInquirer(): Promise<any> {
+    return import("@inquirer/prompts");
+  }
+
+  /**
    * Handle input request messages using @inquirer/prompts
    * Creates an interactive prompt with validation
    * @param msg - Input request message
@@ -269,7 +301,7 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
    */
   async onInput(msg: WorkerMessage) {
     try {
-      const inquirer = await import("@inquirer/prompts");
+      const inquirer = await this.importInquirer();
       if (!inquirer.input) {
         throw new Error("Inquirer is not available, please install it with npm install @inquirer/prompts");
       }

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { getFileAndLine, WorkerInput, WorkerInputType, WorkerMessage, WorkerOutput, WorkerProgress } from "./core";
+import { getFileAndLine, useLog, WorkerInput, WorkerInputType, WorkerMessage, WorkerOutput, WorkerProgress } from "./core";
 
 function mapper([msg]) {
   const res = {};
@@ -411,6 +411,13 @@ class WorkerOutputTest {
     const events: any[] = this.calls.map(mapper);
     assert.strictEqual(events[1].progresses.test.title, "Quarter done");
     assert.strictEqual(events[1].progresses.test.current, 25);
+  }
+
+  @test
+  async testUseLog() {
+    // moduleOutput is null at this point (no prior test has set it), so ??= creates a new WorkerOutput
+    // This covers lines 39-42 in core.ts
+    useLog("INFO", "Test useLog message");
   }
 
   @test

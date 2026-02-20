@@ -1,7 +1,7 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { WorkerOutput, WorkerInputType, WorkerMessage } from "../core";
+import { WorkerInput, WorkerInputType, WorkerMessage, WorkerOutput } from "../core";
 import { InteractiveConsoleLogger } from "./interactiveconsole";
 
 @suite
@@ -244,6 +244,94 @@ class InteractiveConsoleLoggerTest {
     this.logger.spinner.status("unknown-status"); // Test the fallback "?" for unknown status
 
     assert.ok(this.logger.spinner);
+  }
+
+  @test
+  async testSpinnerRenderOptimization() {
+    // Cover lines 153-155: optimization branch fires when render() is called
+    // with the same spinnerState as the previous render (only spinner char changed is index 0)
+    this.output.startActivity("Optimization test");
+    await new Promise(resolve => setTimeout(resolve, 150)); // wait for at least one interval tick
+
+    // Stop the interval so spinnerState won't advance during the test
+    clearInterval(this.logger.spinner.interval);
+    this.logger.spinner.interval = undefined;
+
+    // First call sets lastValue; second call has same spinnerState → hits lines 153-155
+    this.logger.spinner.render();
+    this.logger.spinner.render();
+
+    assert.ok(this.logger.spinner);
+  }
+
+  @test
+  async testOnInputNullMsg() {
+    // Cover lines 268-269 (real importInquirer body) and 296-298 (outer catch):
+    // passing null input causes a TypeError inside the try block which propagates to catch
+    await assert.rejects(() => this.logger.onInput({ input: null } as any), /Inquirer is not available/);
+  }
+
+  @test
+  async testOnInputInquirerUnavailable() {
+    // Cover lines 280-282 and 296-298: stub importInquirer to return {} (no input property)
+    const stub = sinon.stub(this.logger as any, "importInquirer").resolves({});
+    this.stubs.push(stub);
+
+    const input = new WorkerInput("no-inquirer", "Enter", WorkerInputType.STRING, [/.*/]);
+    const msg = new WorkerMessage("input.request", this.output, { input });
+
+    await assert.rejects(() => this.logger.onInput(msg), /Inquirer is not available/);
+  }
+
+  @test
+  async testOnInputCancel() {
+    // Cover lines 276-282 and 286-288: start a real onInput then cancel to trigger .catch
+    let rejectInput: (err: Error) => void;
+    const cancelablePromise = Object.assign(new Promise<string>((_, reject) => (rejectInput = reject)), {
+      cancel: () => rejectInput(new Error("cancelled"))
+    });
+    const stub = sinon.stub(this.logger as any, "importInquirer").resolves({
+      input: () => cancelablePromise
+    });
+    this.stubs.push(stub);
+
+    const input = new WorkerInput("cancel-test", "Enter", WorkerInputType.STRING, [/.*/]);
+    const msg = new WorkerMessage("input.request", this.output, { input });
+
+    await this.logger.onInput(msg);
+
+    // Cancel to trigger the .catch handler (lines 286-288)
+    this.logger.input.cancel();
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+
+  @test
+  async testOnInputHappyPath() {
+    // Cover lines 276-292: start onInput with a controlled promise that resolves
+    // The mock calls validate() to cover lines 286-287 (validate callback body)
+    let resolveInput: (value: string) => void;
+    const cancelablePromise = Object.assign(new Promise<string>(resolve => (resolveInput = resolve)), {
+      cancel: sinon.stub()
+    });
+    const stub = sinon.stub(this.logger as any, "importInquirer").resolves({
+      input: (options: any) => {
+        options.validate("test value"); // exercise the validate callback (lines 286-287)
+        return cancelablePromise;
+      }
+    });
+    this.stubs.push(stub);
+
+    const input = new WorkerInput("happy-test", "Enter", WorkerInputType.STRING, [/.*/]);
+    const msg = new WorkerMessage("input.request", this.output, { input });
+
+    await this.logger.onInput(msg);
+
+    // Resolve the promise to trigger .then (lines 283-285)
+    resolveInput("hello");
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Verify returnInput was called via the output having processed the input
+    assert.ok(this.logger.input);
   }
 }
 

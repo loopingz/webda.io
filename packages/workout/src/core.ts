@@ -2,12 +2,21 @@ import { EventEmitter } from "events";
 import { format } from "util";
 import { randomUUID } from "crypto";
 
+/**
+ * Common interface for objects that can receive log and progress events
+ */
 export interface Logger {
+  /** Log a message at the given level */
   log: (level: WorkerLogLevel, ...args: any[]) => void;
+  /** Open a named log group */
   logGroupOpen: (name: string) => void;
+  /** Close the current log group */
   logGroupClose: () => void;
+  /** Start a progress indicator with a total and title */
   logProgressStart: (uid: string, total: number, title: string) => void;
+  /** Increment an active progress indicator */
   logProgressIncrement: (inc: number, uid: string) => void;
+  /** Update an active progress indicator to a specific value */
   logProgressUpdate: (current: number, uid: string, title: string) => void;
 }
 
@@ -143,22 +152,41 @@ export function LogFilter(logLineLevel: WorkerLogLevel, loggerLevel: WorkerLogLe
   return WorkerLogLevelEnum[logLineLevel] <= WorkerLogLevelEnum[loggerLevel];
 }
 
+/**
+ * Types of interactive input prompts supported by WorkerOutput
+ */
 export enum WorkerInputType {
+  /** Plain text input */
   STRING,
+  /** Masked password input */
   PASSWORD,
+  /** Yes/no confirmation prompt */
   CONFIRMATION,
+  /** Selection from a predefined list */
   LIST
 }
 /**
- * Represents a Input request
+ * Represents an interactive input request sent to the user
  */
 export class WorkerInput {
+  /** Prompt text shown to the user */
   title: string;
+  /** Regular expressions used to validate the user's answer */
   validators: RegExp[];
+  /** Input type controlling how the prompt is rendered */
   type: WorkerInputType;
+  /** Unique identifier for this input request */
   uuid: string;
+  /** Value entered by the user once the input is fulfilled */
   value?: string;
 
+  /**
+   * Create a new input request
+   * @param uuid - Unique identifier for this request
+   * @param title - Prompt text shown to the user
+   * @param type - Input type (STRING, PASSWORD, CONFIRMATION, LIST)
+   * @param validators - Optional validators as strings or RegExp instances
+   */
   constructor(
     uuid: string,
     title: string,
@@ -225,9 +253,16 @@ export class WorkerInput {
   }
 }
 
+/**
+ * Internal extension of WorkerInput that holds the promise infrastructure
+ * needed to await the user's response
+ */
 class WorkerInputEmitter extends WorkerInput {
+  /** Promise that resolves when the user provides an answer */
   promise?: Promise<string>;
+  /** Resolver function for the promise */
   resolve?: (value?: string) => void;
+  /** Timeout handle that rejects the promise after a configurable delay */
   timeout?: NodeJS.Timeout;
 
   toMessage(): WorkerInput {
@@ -261,11 +296,19 @@ export function isWorkerLogLevel(level: string): level is WorkerLogLevel {
 }
 
 /**
- * Represents a Log line
+ * Represents a single log line captured by WorkerOutput
  */
 export class WorkerLog {
+  /** Severity level of this log entry */
   level: WorkerLogLevel;
+  /** Arguments passed to the log call */
   args: any[];
+
+  /**
+   * Create a new log entry
+   * @param level - Severity level
+   * @param args - Message arguments (strings, objects, errors, etc.)
+   */
   constructor(level: WorkerLogLevel, ...args: any[]) {
     this.level = level;
     this.args = args;
@@ -287,14 +330,15 @@ export type WorkerMessageType =
   | "input.timeout"
   | "title.set";
 
-/*
- * This function dumps long stack traces for exceptions having a cause()
- * method. The error classes from
- * [verror](https://github.com/davepacheco/node-verror) and
- * [restify v2.0](https://github.com/mcavage/node-restify) are examples.
+/**
+ * Dump long stack traces for exceptions that expose a `cause()` method.
+ * Compatible with [verror](https://github.com/davepacheco/node-verror) and
+ * [restify v2.0](https://github.com/mcavage/node-restify) error classes.
  *
  * Based on `dumpException` in
  * https://github.com/davepacheco/node-extsprintf/blob/master/lib/extsprintf.js
+ * @param ex - The error whose full stack trace should be returned
+ * @returns Multi-line stack trace string, including chained causes
  */
 function getFullErrorStack(ex) {
   let ret = ex.stack || ex.toString();
@@ -335,20 +379,36 @@ export function getFileAndLine(): { file: string; line: number; column?: number,
 }
 
 /**
- * Represents a message emitted by WorkerOutput
+ * Represents a message emitted by WorkerOutput and consumed by loggers
  */
 export class WorkerMessage {
+  /** Active log group stack at the time of emission */
   groups: string[];
+  /** Discriminator that identifies the kind of event */
   type: WorkerMessageType;
+  /** Snapshot of all active progress indicators at emission time */
   progresses: { [key: string]: WorkerProgress } = {};
+  /** UID of the currently active progress (if any) */
   currentProgress?: string;
+  /** Log entry attached to "log" messages */
   log?: WorkerLog;
+  /** Unix timestamp (ms) when the message was created */
   timestamp: number;
+  /** PID of the process that emitted the message */
   pid: number;
+  /** Additional arbitrary properties merged from `infos` */
   [key: string]: any;
+  /** Input request/response attached to input-related messages */
   input?: WorkerInput;
+  /** Source location of the log call (populated when addLogProducerLine is enabled) */
   context?: { file?: string; line?: number; column?: number; function?: string };
 
+  /**
+   * Create a new WorkerMessage
+   * @param type - Event type discriminator
+   * @param workout - WorkerOutput instance whose current state is captured
+   * @param infos - Additional properties to merge into the message
+   */
   constructor(type: WorkerMessageType, workout: WorkerOutput, infos: any = {}) {
     this.type = type;
     this.pid = process.pid;
@@ -392,13 +452,21 @@ export class WorkerMessage {
  * It will show progress in the terminal, or send it via WebSockets or store it in a DB or in a logfile
  */
 export class WorkerOutput extends EventEmitter {
+  /** Optional title for the current output session */
   title?: string;
+  /** Stack of currently open group names */
   groups: string[] = [];
+  /** All active progress indicators keyed by UID */
   progresses: { [key: string]: WorkerProgress } = {};
+  /** Ordered stack of active progress UIDs (last = current) */
   progressesStack: string[] = [];
+  /** UID of the progress that receives increments by default */
   currentProgress?: string;
+  /** Whether the output is connected to an interactive session capable of receiving user input */
   interactive: boolean = false;
+  /** Pending input requests awaiting a user response, keyed by UUID */
   inputs: { [key: string]: WorkerInputEmitter } = {};
+  /** When true, every log call records the caller's file/line/function in the message context */
   addLogProducerLine: boolean = false;
 
   /**

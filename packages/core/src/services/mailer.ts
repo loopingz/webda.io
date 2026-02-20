@@ -10,10 +10,23 @@ import type { Ident } from "../models/ident.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
 import { ServicePartialParameters } from "../internal/iapplication.js";
 
+/**
+ * Interface for an email template that can render subject, html and text
+ */
 interface IEmailTemplate {
+  /**
+   * Render all template variants (subject, html, text) for the given file
+   *
+   * @param file - Template file name to render
+   * @param options - Template variables for rendering
+   * @returns Rendered result with subject, html and text properties
+   */
   renderAll(file: string, options: any);
 }
 
+/**
+ * Map of template names to their email template instances
+ */
 interface TemplatesMap {
   [key: string]: IEmailTemplate;
 }
@@ -23,61 +36,50 @@ interface TemplatesMap {
  */
 export interface MailerService extends NotificationService {
   /**
+   * Send an email
    *
-   * @params options Options to pass to the sendMail option of the nodemailer module
-   * @params callback to pass to the sendMail
+   * @param options - Options to pass to the sendMail option of the nodemailer module
+   * @param callback - Callback to pass to sendMail
+   * @returns Promise resolving when the email is sent
    */
   send(options: MailerSendOptions, callback: () => void): Promise<any>;
 }
 
-interface MailerSendOptions {
+/**
+ * Options for sending an email, extending nodemailer's SendMailOptions
+ * with template support
+ */
+interface MailerSendOptions extends nodemailer.SendMailOptions {
   /**
    * Sender of the email
    *
    * @default parameters.sender
    */
-  from?: string;
+  from?: nodemailer.SendMailOptions["from"];
   /**
-   * Destination of the email
-   */
-  to: string;
-  /**
-   * Template to user
+   * Template to use
    */
   template?: string;
   /**
    * Replacements for the template
    */
-  replacements?: any;
-  /**
-   * Subject of the email
-   *
-   * Can be overriden by the template
-   */
-  subject?: string;
-  /**
-   * HTML of the email
-   *
-   * Can be overriden by the template
-   */
-  html?: string;
-  /**
-   * Text of the email
-   *
-   * Can be overriden by the template
-   */
-  text?: string;
+  replacements?: Record<string, any>;
 }
 
+/**
+ * Parameters for the Mailer service configuration
+ *
+ * Configures the email transport, templates directory and template engine
+ */
 export class MailerParameters extends ServiceParameters {
   /**
-   * Specify which foldeer contains templates
+   * Specify which folder contains templates
    *
    * @default "templates"
    */
   templates?: string;
   /**
-   * Template engine to usee
+   * Template engine to use
    *
    * @default "mustache"
    */
@@ -99,6 +101,15 @@ export class MailerParameters extends ServiceParameters {
    */
   SES?: any;
 
+  /**
+   * Load and apply defaults to the mailer parameters
+   *
+   * Sets default templates directory to "./templates/", engine to "mustache",
+   * and configures juice resource options for CSS inlining
+   *
+   * @param params - Raw parameters to load
+   * @returns this instance with defaults applied
+   */
   load(params: any = {}): this {
     super.load(params);
     this.templates ??= "./templates";
@@ -114,10 +125,21 @@ export class MailerParameters extends ServiceParameters {
   }
 }
 
+/**
+ * Abstract base class for mailer implementations
+ *
+ * Provides metrics tracking (sent/errors counters) and notification handling.
+ * Subclasses must implement {@link send} and {@link hasNotification}.
+ *
+ * @typeParam T - Service parameters type
+ */
 export abstract class AbstractMailer<T extends ServiceParameters = ServiceParameters>
   extends Service<T>
   implements MailerService
 {
+  /**
+   * Mailer metrics for tracking sent emails and errors
+   */
   declare metrics: {
     sent: Counter;
     errors: Counter;
@@ -148,15 +170,25 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   abstract hasNotification(notification: string);
 
   /**
-   * If user has an email
-   * @param user
-   * @returns
+   * Check if notifications can be delivered to a user via email
+   *
+   * @param user - User or Ident to check for email availability
+   * @returns true if the user has an email address
    */
   async handleNotificationFor(user: User | Ident): Promise<boolean> {
     return user.getEmail() !== undefined;
   }
 
   /**
+   * Send a notification email to a user
+   *
+   * Resolves the user's email, increments the sent metric, and delegates
+   * to {@link send}. Increments the error metric on failure.
+   *
+   * @param user - User or Ident to send the notification to
+   * @param notification - Template name for the notification
+   * @param replacements - Template variables for rendering
+   * @throws Error if the user has no valid email address
    * @override
    */
   async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
@@ -193,13 +225,16 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
  * @WebdaModda
  */
 class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMailer<T> {
+  /** Nodemailer transport instance used to send emails */
   _transporter: any;
+  /** Cache of loaded email template instances by name */
   _templates: TemplatesMap = {};
 
   /**
-   * Load parameters
+   * Load and instantiate mailer parameters with defaults
    *
-   * @param params
+   * @param params - Raw service parameters
+   * @returns Loaded MailerParameters instance
    * @ignore
    */
   loadParameters(params: ServicePartialParameters<T>): T {
@@ -207,7 +242,10 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 
   /**
-   * Compute parameters
+   * Initialize the nodemailer transport from the service parameters
+   *
+   * @returns this instance after transport creation
+   * @override
    */
   async init(): Promise<this> {
     this._transporter = nodemailer.createTransport(this.parameters);
@@ -215,10 +253,13 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 
   /**
-   * Get a template by name
+   * Get or create a cached email template instance by name
    *
-   * @param name
-   * @returns
+   * Lazily creates and caches an Email template using the configured
+   * templates directory and engine. Logs a warning if the template does not exist.
+   *
+   * @param name - Template name (must correspond to a directory in the templates folder)
+   * @returns The email template instance, or undefined if the template does not exist
    */
   _getTemplate(name: string) {
     if (!this._templates[name]) {
@@ -240,10 +281,10 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 
   /**
-   * Check if the email template exists
+   * Check if an email template exists on the filesystem
    *
-   * @param name
-   * @returns
+   * @param name - Template name to check
+   * @returns true if the template directory exists
    */
   hasNotification(name: string): boolean {
     // Load template
@@ -251,9 +292,17 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
   }
 
   /**
+   * Send an email using the configured nodemailer transport
    *
-   * @params options Options to pass to the sendMail option of the nodemailer module
-   * @params callback to pass to the sendMail
+   * If a template is specified in options, it will be rendered with the
+   * provided replacements before sending. A `now` Date variable is
+   * automatically added to replacements. Falls back to `parameters.sender`
+   * if no `from` is provided.
+   *
+   * @param options - Mail options including optional template and replacements
+   * @param callback - Optional callback passed to nodemailer's sendMail
+   * @returns Promise resolving with the nodemailer send result
+   * @throws Error if no transporter is configured or the template is unknown
    */
   async send(options: MailerSendOptions, callback = undefined): Promise<any> {
     if (this._transporter === undefined) {

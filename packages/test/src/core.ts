@@ -9,8 +9,10 @@ import { AnyCtor, AnyMethod, createClassDecorator, createMethodDecorator } from 
  */
 export type FrameworkContext = any;
 
+/** Callback passed to async tests for signalling completion (Node.js-style done). */
 export type Done = (err?: any) => void;
 
+/** A test callback that may be synchronous, async, or use the done-callback pattern. */
 export type CallbackOptionallyAsync = (this: FrameworkContext, done?: Done) => void | Promise<void>;
 
 /**
@@ -19,6 +21,7 @@ export type CallbackOptionallyAsync = (this: FrameworkContext, done?: Done) => v
  */
 export type Execution = "default" | "todo" | "only" | "skip";
 
+/** Common settings shared by both suite and test decorators. */
 interface SharedSettings {
   /**
    * "slow" threshold in milliseconds.
@@ -42,6 +45,7 @@ interface SharedSettings {
   name?: string;
 }
 
+/** Settings accepted by the `@suite` decorator. */
 export interface SuiteSettings extends SharedSettings {
   /**
    * Call the beforeEach and afterEach within the test wrapper
@@ -49,10 +53,13 @@ export interface SuiteSettings extends SharedSettings {
   embeddedLifecycleEach?: boolean;
 }
 
+/** Settings accepted by the `@test` decorator. */
 export interface TestSettings extends SharedSettings {
+  /** Pre-created instance to use instead of constructing a fresh one per test. */
   instance?: any;
 }
 
+/** Settings accepted by lifecycle decorators (`@beforeAll`, `@beforeEach`, `@afterEach`, `@afterAll`). */
 export interface LifecycleSettings {
   timeout?: number;
   slow?: number;
@@ -192,39 +199,56 @@ if (framework.type !== "jest") {
 
 /** ------------ TS5 decorators glue ------------- */
 
-// Metadata keys
+/** Symbol-keyed metadata bag names used to store decorator annotations on class metadata. */
 const META = {
   SUITE: "webda:suite",
   TESTS: "webda:tests",
   LIFECYCLE: "webda:lifecycle"
 } as const;
 
+/** Metadata stored per test method by the `@test` decorator. */
 type TestMeta = {
   kind: "test";
+  /** Display name shown in the test reporter. */
   name: string;
+  /** Name of the method on the class. */
   fnKey: string;
   settings?: TestSettings;
   mode: Execution;
 };
 
+/** The four hook phases supported by every major test framework. */
 type LifecycleKind = "beforeAll" | "beforeEach" | "afterEach" | "afterAll";
 
+/** Metadata stored per lifecycle method by the `@beforeAll` / `@afterEach` etc. decorators. */
 type LifecycleMeta = {
   kind: "lifecycle";
   phase: LifecycleKind;
+  /** Name of the method on the class. */
   fnKey: string;
   settings?: LifecycleSettings;
 };
 
+/** Metadata stored per class by the `@suite` decorator. */
 type SuiteMeta = {
+  /** Display name used in the test reporter. */
   name: string;
   settings?: SuiteSettings;
   mode: Execution;
-  wrapper?: string; // name of the method to use as wrapper
-  paramMatrix?: Record<string, unknown[]>; // for params(...)
+  /** Name of the method to use as a wrapper around each test (set by `@testWrapper`). */
+  wrapper?: string;
+  /** Parameter matrix for data-driven suites (set by `@params`). */
+  paramMatrix?: Record<string, unknown[]>;
 };
 
 // Helpers
+/**
+ * Return (and lazily initialise) a named bag on the TS5 class-metadata object.
+ * @param metadata The `context.metadata` object from a decorator context.
+ * @param key The metadata key to read / create.
+ * @param fallback Initial value used when the key is absent.
+ * @returns The existing or newly created value for `key`.
+ */
 export function getBag(metadata: Record<string | symbol, any>, key: string, fallback: any) {
   metadata[key] ??= fallback;
   return metadata[key];
@@ -287,8 +311,18 @@ export function getMetadata(target: AnyCtor): {
 
 /** ----------- public decorators ------------- */
 
-// @suite("Name", {execution: "only"})
-
+/**
+ * Class decorator that registers a test suite with the active test framework.
+ *
+ * @example
+ * ```ts
+ * @suite("My tests")
+ * class MyTests { ... }
+ *
+ * @suite.only("Focused tests")
+ * class FocusedTests { ... }
+ * ```
+ */
 export const suite: ReturnType<typeof createClassDecorator> & {
   only: ClassDecorator;
   skip: ClassDecorator;
@@ -388,6 +422,18 @@ export const suite: ReturnType<typeof createClassDecorator> & {
 
 type MethodDecorator = (value: AnyMethod, context: ClassMethodDecoratorContext) => AnyMethod | void;
 
+/**
+ * Method decorator that registers a class method as an individual test case.
+ *
+ * @example
+ * ```ts
+ * @test("adds two numbers")
+ * async testAdd() { ... }
+ *
+ * @test.only
+ * async focusedTest() { ... }
+ * ```
+ */
 export const test: ReturnType<typeof createMethodDecorator> & {
   only: MethodDecorator;
   skip: MethodDecorator;
@@ -417,6 +463,11 @@ export const test: ReturnType<typeof createMethodDecorator> & {
 }) as any;
 
 // lifecycle: @beforeAll(), @beforeEach(), @afterEach(), @afterAll()
+/**
+ * Factory that produces a lifecycle method decorator for the given phase.
+ * @param phase One of `"beforeAll"`, `"beforeEach"`, `"afterEach"`, `"afterAll"`.
+ * @returns A method decorator that registers the decorated method for `phase`.
+ */
 function createLifecycleDecorator(phase: LifecycleKind) {
   return createMethodDecorator(
     (value: Function, context: ClassMethodDecoratorContext, settings?: LifecycleSettings) => {
@@ -426,9 +477,13 @@ function createLifecycleDecorator(phase: LifecycleKind) {
   );
 }
 
+/** Registers the decorated method to run once before all tests in the suite. */
 export const beforeAll = createLifecycleDecorator("beforeAll");
+/** Registers the decorated method to run before each test in the suite. */
 export const beforeEach = createLifecycleDecorator("beforeEach");
+/** Registers the decorated method to run after each test in the suite. */
 export const afterEach = createLifecycleDecorator("afterEach");
+/** Registers the decorated method to run once after all tests in the suite. */
 export const afterAll = createLifecycleDecorator("afterAll");
 
 /**
@@ -446,6 +501,11 @@ export function testWrapper(
 }
 
 // Modifiers: only/skip/pending and helpers: timeout/retries/slow/params
+/**
+ * Returns a method decorator that applies `mutator` to the `TestMeta` entry for the
+ * decorated method, creating a stub entry first if `@test` has not yet been applied.
+ * @param mutator Function that modifies the `TestMeta` in place.
+ */
 function mutateTestMeta(mutator: (m: TestMeta) => void) {
   return (_: any, context: ClassMethodDecoratorContext) => {
     // Decorators run top-down; we adjust the last matching test meta for this method
@@ -468,30 +528,45 @@ function mutateTestMeta(mutator: (m: TestMeta) => void) {
   };
 }
 
+/** Marks the decorated test as the only test to run in the suite (exclusive execution). */
 export function only(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "only"))(_, context);
 }
 test.only = only;
+/** Marks the decorated test so it is skipped during the test run. */
 export function skip(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "skip"))(_, context);
 }
 test.skip = test({ execution: "skip" });
 // @ts-ignore
 //suite.skip = suite({ execution: "skip" });
+/** Marks the decorated test as a pending TODO — reported but not executed. */
 export function todo(_: any, context: ClassMethodDecoratorContext) {
   return mutateTestMeta(m => (m.mode = "todo"))(_, context);
 }
 test.todo = test({ execution: "todo" });
+/**
+ * Sets the timeout for the decorated test.
+ * @param ms Timeout in milliseconds.
+ */
 export function timeout(ms: number) {
   return mutateTestMeta(m => {
     m.settings = { ...(m.settings ?? {}), timeout: ms } as TestSettings;
   });
 }
+/**
+ * Sets the number of retry attempts for the decorated test (Mocha only).
+ * @param n Number of retries.
+ */
 export function retries(n: number) {
   return mutateTestMeta(m => {
     m.settings = { ...(m.settings ?? {}), retries: n } as TestSettings;
   });
 }
+/**
+ * Sets the "slow" threshold for the decorated test.
+ * @param ms Threshold in milliseconds; tests exceeding this are highlighted as slow.
+ */
 export function slow(ms: number) {
   return mutateTestMeta(m => {
     m.settings = { ...(m.settings ?? {}), slow: ms } as TestSettings;

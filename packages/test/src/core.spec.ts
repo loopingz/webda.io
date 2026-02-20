@@ -146,3 +146,47 @@ class Other {
   execution: "todo"
 })
 class TodoSuite {}
+
+// Covers line 327: @beforeAll/@afterAll on a method whose name differs from the phase
+@suite
+class NamedLifecycleTest {
+  setupRan = false;
+
+  @beforeAll
+  async setup() {
+    // fnKey="setup" !== phase="beforeAll" → exercises line 327
+    this.setupRan = true;
+  }
+
+  @test
+  @only
+  async testSetupRan() {
+    assert.ok(this.setupRan, "setup() should have been called via line 327");
+  }
+}
+
+// Covers lines 367-368 and 378-379: test error captured, afterEach still runs, then re-thrown
+@suite
+class TestErrorHandlingTest {
+  @testWrapper
+  async wrap(type: string, callback: Function) {
+    if (type === "test") {
+      try {
+        await callback();
+      } catch (err: any) {
+        // Swallow the expected failure so Vitest doesn't see it as a test failure
+        assert.strictEqual(err.message, "intentional failure");
+      }
+    } else {
+      await callback();
+    }
+  }
+
+  @test
+  @only
+  async intentionalFailure() {
+    // Lines 367-368: error is caught inside testExecutor
+    // Lines 378-379: error is re-thrown after afterEach, caught by wrap above
+    throw new Error("intentional failure");
+  }
+}

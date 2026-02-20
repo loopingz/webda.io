@@ -391,9 +391,10 @@ class Serializer {
     const deserializedNums = deserialize(serializedNums);
     assert.deepStrictEqual(deserializedNums, specialNums);
 
-    // Test negative zero specifically (should become positive zero in JSON)
+    // Negative zero is now preserved
     const negZero = serialize(-0);
-    assert.strictEqual(deserialize(negZero), 0); // -0 becomes 0 in JSON
+    assert.ok(Object.is(deserialize(negZero), -0));
+    assert.ok(!Object.is(deserialize(negZero), 0));
   }
 
   @test
@@ -714,7 +715,7 @@ class Serializer {
 
   @test
   async testMapWithoutMetadata() {
-    // Test coverage for line 33 in map.ts (when metadata is empty)
+    // When all keys and values are primitives, metadata should be undefined
     const context = new SerializerContext();
     const simpleMap = new Map<string, string | number>([
       ["key1", "value1"],
@@ -722,12 +723,128 @@ class Serializer {
     ]);
 
     const serialized = context.serializeRaw(simpleMap);
-    // When all values are primitives, metadata should be undefined
     assert.strictEqual(serialized.$serializer.metadata, undefined);
-    assert.deepStrictEqual(serialized.value, {
-      key1: "value1",
-      key2: 123
-    });
+    assert.deepStrictEqual(serialized.value, [
+      { k: "key1", v: "value1" },
+      { k: "key2", v: 123 }
+    ]);
+  }
+
+  @test
+  async testMapNonStringKeys() {
+    // Number key: preserved after round-trip
+    const numMap = new Map<number, string>([[1, "one"], [42, "forty-two"]]);
+    const restoredNum: Map<number, string> = deserialize(serialize(numMap));
+    assert.ok(restoredNum instanceof Map);
+    assert.strictEqual(restoredNum.get(1), "one");
+    assert.strictEqual(restoredNum.get(42), "forty-two");
+    assert.strictEqual(restoredNum.size, 2);
+
+    // Date key: preserved after round-trip
+    const d = new Date("2024-01-01");
+    const dateMap = new Map<Date, string>([[d, "event"]]);
+    const restoredDate: Map<Date, string> = deserialize(serialize(dateMap));
+    assert.ok(restoredDate instanceof Map);
+    const [[restoredKey]] = restoredDate.entries();
+    assert.ok(restoredKey instanceof Date);
+    assert.strictEqual(restoredKey.toISOString(), d.toISOString());
+
+    // Mixed key types
+    const mixed = new Map<any, any>([["str", 1], [2, "two"], [true, "bool"]]);
+    const restoredMixed: Map<any, any> = deserialize(serialize(mixed));
+    assert.strictEqual(restoredMixed.get("str"), 1);
+    assert.strictEqual(restoredMixed.get(2), "two");
+    assert.strictEqual(restoredMixed.get(true), "bool");
+  }
+
+  @test
+  async testMapValueCircularRefWithNonStringKey() {
+    // Circular reference in a value where the key is a number
+    const root: any = { id: 1 };
+    const m = new Map<number, any>([[1, root]]);
+    root.map = m;
+
+    const serialized = serialize(root);
+    const deserialized: any = deserialize(serialized);
+    assert.ok(deserialized.map instanceof Map);
+    assert.strictEqual(deserialized.map.get(1), deserialized);
+  }
+
+  @test
+  async testSparseArray() {
+    // Basic sparse array: hole at index 1
+    // eslint-disable-next-line no-sparse-arrays
+    const sparse = [1, , 3] as any[];
+    assert.strictEqual(0 in sparse, true);
+    assert.strictEqual(1 in sparse, false); // hole
+    assert.strictEqual(2 in sparse, true);
+
+    const restored: any[] = deserialize(serialize(sparse));
+    assert.strictEqual(restored.length, 3);
+    assert.strictEqual(restored[0], 1);
+    assert.strictEqual(1 in restored, false); // hole preserved
+    assert.strictEqual(restored[2], 3);
+  }
+
+  @test
+  async testSparseArrayWithComplexValues() {
+    // Sparse array with typed elements around the holes
+    const sparse: any[] = new Array(5);
+    sparse[0] = new Date("2024-01-01");
+    sparse[2] = new Map([["key", "val"]]);
+    sparse[4] = 42n;
+    // indices 1 and 3 are holes
+
+    const restored: any[] = deserialize(serialize(sparse));
+    assert.strictEqual(restored.length, 5);
+    assert.ok(restored[0] instanceof Date);
+    assert.strictEqual(restored[0].toISOString(), "2024-01-01T00:00:00.000Z");
+    assert.strictEqual(1 in restored, false); // hole preserved
+    assert.ok(restored[2] instanceof Map);
+    assert.strictEqual(restored[2].get("key"), "val");
+    assert.strictEqual(3 in restored, false); // hole preserved
+    assert.strictEqual(typeof restored[4], "bigint");
+    assert.strictEqual(restored[4], 42n);
+  }
+
+  @test
+  async testSparseArrayHoleVsUndefined() {
+    // A hole and an explicit undefined must round-trip differently
+    const arr: any[] = new Array(2);
+    arr[0] = undefined; // explicit undefined, NOT a hole
+    // index 1 is a hole
+
+    const restored: any[] = deserialize(serialize(arr));
+    assert.strictEqual(restored.length, 2);
+    assert.strictEqual(0 in restored, true); // explicit undefined preserved
+    assert.strictEqual(restored[0], undefined);
+    assert.strictEqual(1 in restored, false); // hole preserved
+  }
+
+  @test
+  async testNegativeZero() {
+    // Root value
+    assert.ok(Object.is(deserialize(serialize(-0)), -0));
+
+    // Nested in object — must not be confused with +0
+    const obj = { a: -0, b: 0 };
+    const restored: any = deserialize(serialize(obj));
+    assert.ok(Object.is(restored.a, -0));
+    assert.ok(Object.is(restored.b, +0));
+    assert.ok(!Object.is(restored.a, +0));
+
+    // Nested in array
+    const arr = [-0, 0, -0];
+    const restoredArr: any[] = deserialize(serialize(arr));
+    assert.ok(Object.is(restoredArr[0], -0));
+    assert.ok(Object.is(restoredArr[1], +0));
+    assert.ok(Object.is(restoredArr[2], -0));
+
+    // As a Map value
+    const m = new Map([["neg", -0], ["pos", 0]]);
+    const restoredMap: Map<string, number> = deserialize(serialize(m));
+    assert.ok(Object.is(restoredMap.get("neg"), -0));
+    assert.ok(Object.is(restoredMap.get("pos"), +0));
   }
 
   @test

@@ -5,6 +5,7 @@ import BufferSerializer from "./builtin/buffer.js";
 import DateSerializer from "./builtin/date.js";
 import InfinitySerializer from "./builtin/infinity.js";
 import NegativeInfinitySerializer from "./builtin/neginf.js";
+import NegativeZeroSerializer from "./builtin/negzero.js";
 import MapSerializer from "./builtin/map.js";
 import NaNSerializer from "./builtin/nan.js";
 import NullSerializer from "./builtin/null.js";
@@ -497,7 +498,7 @@ export class SerializerContext {
    * @returns The serialized form with metadata, or undefined if not registered
    * @internal
    */
-  private staticSerializer(id: "Infinity" | "-Infinity" | "null" | "undefined" | "NaN"): any {
+  private staticSerializer(id: "Infinity" | "-Infinity" | "null" | "undefined" | "NaN" | "-0"): any {
     const entry = this.serializers[id];
     if (!entry) return undefined;
     const { value } = entry.serializer(undefined as any, this);
@@ -560,6 +561,7 @@ export class SerializerContext {
       if (Number.isNaN(obj)) return this.staticSerializer("NaN");
       if (obj === Infinity) return this.staticSerializer("Infinity");
       if (obj === -Infinity) return this.staticSerializer("-Infinity");
+      if (Object.is(obj, -0)) return this.staticSerializer("-0");
       return { value: obj };
     } else if (typeof obj === "string" || typeof obj === "boolean") {
       return { value: obj };
@@ -892,6 +894,7 @@ registerSerializer("Infinity", InfinitySerializer);
 registerSerializer("-Infinity", NegativeInfinitySerializer);
 registerSerializer("NaN", NaNSerializer);
 registerSerializer("undefined", UndefinedSerializer);
+registerSerializer("-0", NegativeZeroSerializer);
 
 // Re-export the built-in serializers
 export {
@@ -909,5 +912,6 @@ export {
   InfinitySerializer,
   NegativeInfinitySerializer,
   NaNSerializer,
-  UndefinedSerializer
+  UndefinedSerializer,
+  NegativeZeroSerializer
 };

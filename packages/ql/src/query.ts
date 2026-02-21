@@ -22,41 +22,62 @@ import {
 } from "./WebdaQLParserParser";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 
+/**
+ * Primitive value types supported by WebdaQL expressions
+ */
 type value = boolean | string | number;
 
 /**
- * Meta Query Language
- *
- *
+ * Represents a single ORDER BY clause field with its sort direction
  */
-
 export interface OrderBy {
+  /** Field name (supports dot-notation for nested attributes) */
   field: string;
+  /** Sort direction */
   direction: "ASC" | "DESC";
 }
 
+/**
+ * Prepend a condition to an existing query string using AND logic
+ *
+ * Parses both strings, merges them, and reconstructs the combined query.
+ * ORDER BY, LIMIT, and OFFSET clauses from the original query are preserved.
+ *
+ * @param query - existing query string (may include ORDER BY / LIMIT / OFFSET)
+ * @param condition - condition to prepend (filter expression only)
+ * @returns merged query string
+ *
+ * @example
+ * ```ts
+ * PrependCondition("status = 'active' ORDER BY name LIMIT 10", "age > 18")
+ * // => 'status = "active" AND age > 18 ORDER BY name LIMIT 10'
+ * ```
+ */
 export function PrependCondition(query: string = "", condition?: string): string {
   return new QueryValidator(query).merge(condition).toString();
 }
 /**
- * Create Expression based on the parsed token
+ * ANTLR parse tree visitor that builds an optimized Expression AST from the parsed tokens
  *
- * Expression allow to optimize and split between Query and Filter
+ * Converts the ANTLR parse tree into a flat, evaluatable expression tree.
+ * Automatically flattens nested AND/OR expressions of the same type to reduce depth.
  */
 export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implements WebdaQLParserVisitor<any> {
   /**
-   * Contain the parsed limit
+   * Parsed LIMIT value, if present
    */
   limit: number;
   /**
-   * Contain the parsed offset
+   * Parsed OFFSET continuation token, if present
    */
   offset: string;
+  /**
+   * Parsed ORDER BY clauses, if present
+   */
   orderBy: OrderBy[];
 
   /**
-   * Default result for the override
-   * @returns
+   * Default result when no expression is matched (empty AND, always true)
    */
   protected defaultResult(): Query {
     // An empty AND return true
@@ -66,32 +87,28 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * Get offset
-   * @returns
+   * Get parsed OFFSET continuation token
    */
   getOffset(): string {
     return this.offset;
   }
 
   /**
-   * Get limit
-   * @returns
+   * Get parsed LIMIT value
    */
   getLimit(): number {
     return this.limit;
   }
 
   /**
-   * Read the limit
-   * @param ctx
+   * Visit a LIMIT clause and store the integer value
    */
   visitLimitExpression(ctx: LimitExpressionContext) {
     this.limit = this.visitIntegerLiteral(<IntegerLiteralContext>ctx.getChild(1));
   }
 
   /**
-   * Read the offset if provided
-   * @param ctx
+   * Visit an OFFSET clause and store the string continuation token
    */
   visitOffsetExpression(ctx: OffsetExpressionContext) {
     this.offset = this.visitStringLiteral(<StringLiteralContext>ctx.getChild(1));
@@ -117,9 +134,10 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * Return only AndExpression
-   * @param ctx
-   * @returns
+   * Visit the root `webdaql` rule and build the complete Query
+   *
+   * Parses filter expression, ORDER BY, LIMIT, and OFFSET clauses.
+   * Returns an empty AND expression (always true) when no filter is present.
    */
   visitWebdaql(ctx: WebdaqlContext): Query {
     if (ctx.childCount === 1) {
@@ -152,9 +170,14 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * Simplify Logic expression and regroup them
-   * @param ctx
-   * @returns
+   * Recursively flatten nested logical expressions of the same type
+   *
+   * ANTLR produces right-recursive trees like `a AND (b AND (c AND d))`.
+   * This method flattens them into `[a, b, c, d]` so a single LogicalExpression
+   * holds all children at one level.
+   *
+   * @param ctx - an AND or OR logical expression context
+   * @returns flat array of child parse tree nodes
    */
   getComparison(ctx: AndLogicExpressionContext | OrLogicExpressionContext): any[] {
     const res = [];
@@ -206,9 +229,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * a LIKE "%A?"
-   * @param ctx
-   * @returns
+   * Visit a LIKE expression (e.g. `field LIKE '%pattern_'`)
    */
   visitLikeExpression(ctx: LikeExpressionContext) {
     const [left, _, right] = ctx.children;
@@ -245,7 +266,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
   }
 
   /**
-   * Read the string literal (removing the simple or double bracket)
+   * Read a string literal, stripping the surrounding single or double quotes
    */
   visitStringLiteral(ctx: StringLiteralContext): string {
     return ctx.text.substring(1, ctx.text.length - 1);
@@ -314,9 +335,23 @@ export abstract class Expression<T = string> {
   abstract toString(depth?: number): string;
 }
 
-export type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS";
 /**
- * Comparison expression
+ * All supported comparison operators
+ *
+ * - `=` / `!=` use loose equality (`==` / `!=`)
+ * - `<`, `<=`, `>`, `>=` use standard JS comparison
+ * - `LIKE` uses SQL-style pattern matching (`%` = any chars, `_` = single char)
+ * - `IN` checks membership in a set (`field IN ['a', 'b']`)
+ * - `CONTAINS` checks if an array field contains a value (`field CONTAINS 'a'`)
+ */
+export type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN" | "CONTAINS";
+
+/**
+ * A leaf expression comparing an object attribute against a literal value
+ *
+ * Supports dot-notation for nested attribute access (e.g. `user.profile.name`).
+ *
+ * @typeParam T - the specific comparison operator type
  */
 export class ComparisonExpression<T extends ComparisonOperator = ComparisonOperator> extends Expression<T> {
   /**
@@ -328,10 +363,9 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
    */
   attribute: string[];
   /**
-   *
-   * @param operator of the expression
-   * @param attribute of the object to read
-   * @param value
+   * @param operator - comparison operator
+   * @param attribute - dot-notation path to the object property (e.g. `"user.name"`)
+   * @param value - literal value or array of values (for IN operator) to compare against
    */
   constructor(operator: T, attribute: string, value: value | any[]) {
     super(operator);
@@ -339,6 +373,17 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
     this.attribute = attribute.split(".");
   }
 
+  /**
+   * Convert a SQL LIKE pattern to a JavaScript RegExp
+   *
+   * - `%` matches zero or more characters
+   * - `_` matches exactly one character
+   * - `\%` and `\_` are literal percent/underscore
+   * - Common regex metacharacters are escaped
+   *
+   * @param like - SQL LIKE pattern string
+   * @returns compiled RegExp
+   */
   static likeToRegex(like: string): RegExp {
     return new RegExp(
       like
@@ -360,10 +405,11 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
   }
 
   /**
-   * Read the value from the object
+   * Traverse an object using a dot-notation attribute path
    *
-   * @param target
-   * @returns
+   * @param target - object to read from
+   * @param attribute - path segments (e.g. `["user", "profile", "name"]`)
+   * @returns the resolved value, or `undefined` if any segment is missing
    */
   static getAttributeValue(target: any, attribute: string[]): any {
     let res = target;
@@ -429,7 +475,9 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
   }
 
   /**
-   * Return a string represantation of a value
+   * Serialize a value to its WebdaQL string representation
+   *
+   * Strings are double-quoted, booleans are uppercased, arrays are bracket-wrapped.
    */
   toStringValue(value: value | value[]): string {
     if (Array.isArray(value)) {
@@ -467,19 +515,19 @@ export class ComparisonExpression<T extends ComparisonOperator = ComparisonOpera
 }
 
 /**
- * Abstract logic expression (AND|OR)
+ * Abstract base for logical expressions that combine child expressions (AND / OR)
  *
- * Could add XOR in the future
+ * @typeParam T - the literal operator type (`"AND"` or `"OR"`)
  */
 export abstract class LogicalExpression<T> extends Expression<T> {
   /**
-   * Contains the members of the logical expression
+   * Child expressions combined by this logical operator
    */
   children: Expression[] = [];
+
   /**
-   *
-   * @param operator
-   * @param children
+   * @param operator - logical operator
+   * @param children - child expressions to combine
    */
   constructor(operator: T, children: Expression[]) {
     super(operator);
@@ -498,7 +546,10 @@ export abstract class LogicalExpression<T> extends Expression<T> {
 }
 
 /**
- * AND Expression implementation
+ * Logical AND expression — evaluates to `true` only if all children are `true`
+ *
+ * Uses short-circuit evaluation: returns `false` as soon as any child fails.
+ * An empty AND (no children) evaluates to `true`.
  */
 export class AndExpression extends LogicalExpression<"AND"> {
   /**
@@ -522,7 +573,10 @@ export class AndExpression extends LogicalExpression<"AND"> {
 }
 
 /**
- * OR Expression implementation
+ * Logical OR expression — evaluates to `true` if any child is `true`
+ *
+ * Uses short-circuit evaluation: returns `true` as soon as any child passes.
+ * An empty OR (no children) evaluates to `true`.
  */
 export class OrExpression extends LogicalExpression<"OR"> {
   /**
@@ -546,7 +600,20 @@ export class OrExpression extends LogicalExpression<"OR"> {
 }
 
 /**
+ * Parses a WebdaQL query string and provides evaluation, merging, and serialization
  *
+ * This is the main entry point for working with WebdaQL queries. It handles:
+ * - Parsing query strings via ANTLR into an expression AST
+ * - Evaluating objects against the parsed filter
+ * - Merging multiple queries together
+ * - Serializing back to a query string
+ *
+ * @example
+ * ```ts
+ * const validator = new QueryValidator("status = 'active' AND age > 18 LIMIT 50");
+ * validator.eval({ status: "active", age: 25 }); // true
+ * validator.getLimit(); // 50
+ * ```
  */
 export class QueryValidator {
   protected lexer: WebdaQLLexer;
@@ -554,6 +621,13 @@ export class QueryValidator {
   protected query: Query;
   protected builder: ExpressionBuilder;
 
+  /**
+   * Parse a WebdaQL query string
+   *
+   * @param sql - the query string to parse
+   * @param builder - expression builder to use (override for custom expression types)
+   * @throws {SyntaxError} if the query string is malformed
+   */
   constructor(
     protected sql: string,
     builder: ExpressionBuilder = new ExpressionBuilder()
@@ -581,13 +655,17 @@ export class QueryValidator {
   }
 
   /**
-   * Get offset
-   * @returns
+   * Get parsed OFFSET continuation token, or empty string if none
    */
   getOffset(): string {
     return this.builder.getOffset() || "";
   }
 
+  /**
+   * Check whether the query has a non-empty filter condition
+   *
+   * An empty AND expression (no children) is considered to have no condition.
+   */
   hasCondition() {
     const filter = this.query.filter;
     const isAnd = filter instanceof AndExpression;
@@ -597,6 +675,11 @@ export class QueryValidator {
     return true;
   }
 
+  /**
+   * Reconstruct the query string from the parsed AST
+   *
+   * Includes filter, ORDER BY, LIMIT, and OFFSET clauses.
+   */
   toString() {
     let res = this.query.filter.toString();
     if (this.query.orderBy) {
@@ -611,6 +694,16 @@ export class QueryValidator {
     return res.trim();
   }
 
+  /**
+   * Merge another query string into this query
+   *
+   * Filter expressions are combined using the specified logical operator.
+   * LIMIT, OFFSET, and ORDER BY from the merged query override existing values.
+   *
+   * @param query - query string to merge in
+   * @param type - logical operator to combine filters (`"AND"` or `"OR"`)
+   * @returns `this` for chaining
+   */
   merge(query: string, type: "OR" | "AND" = "AND"): this {
     const adds = new QueryValidator(query);
     // Add additional conditions
@@ -643,24 +736,21 @@ export class QueryValidator {
   }
 
   /**
-   * Get limit
-   * @returns
+   * Get parsed LIMIT value, defaulting to 1000
    */
   getLimit(): number {
     return this.builder.getLimit() || 1000;
   }
 
   /**
-   * Get the expression by itself
-   * @returns
+   * Get the filter expression (without LIMIT / OFFSET / ORDER BY)
    */
   getExpression(): Expression {
     return this.query.filter;
   }
 
   /**
-   * Retrieve parsed query
-   * @returns
+   * Retrieve the full parsed query including filter, limit, offset, and orderBy
    */
   getQuery(): Query {
     return {
@@ -702,15 +792,39 @@ export class QueryValidator {
 }
 
 /**
- * For now reuse same parser
+ * A query validator that operates in assignment mode
+ *
+ * Instead of filtering objects, it assigns values to object properties.
+ * Only supports `=` (assignment) combined with `AND`. No comparisons, OR, or other operators.
+ *
+ * Protects against prototype pollution by ignoring `__proto__` attributes.
+ *
+ * @example
+ * ```ts
+ * const target: any = {};
+ * new SetterValidator('name = "John" AND age = 30').eval(target);
+ * // target = { name: "John", age: 30 }
+ * ```
+ *
+ * @throws {SyntaxError} if non-assignment operators or OR expressions are used
  */
 export class SetterValidator extends QueryValidator {
+  /**
+   * @param sql - assignment expression (e.g. `'field = "value" AND other = 10'`)
+   * @throws {SyntaxError} if the expression contains non-assignment operators
+   */
   constructor(sql: string) {
     super(sql);
     // Do one empty run to raise any issue with disallowed expression
     this.eval({});
   }
 
+  /**
+   * Apply the assignments to the target object
+   *
+   * @param target - object to assign values to (mutated in place)
+   * @returns always `true`
+   */
   eval(target: any): boolean {
     if (this.query.filter) {
       this.assign(target, this.query.filter);
@@ -718,6 +832,13 @@ export class SetterValidator extends QueryValidator {
     return true;
   }
 
+  /**
+   * Recursively walk the expression tree and apply assignments
+   *
+   * @param target - object to assign values to
+   * @param expression - must be an AndExpression or a `=` ComparisonExpression
+   * @throws {SyntaxError} if any non-assignment expression is encountered
+   */
   assign(target: any, expression: Expression) {
     if (expression instanceof AndExpression) {
       expression.children.forEach(c => this.assign(target, c));
@@ -729,9 +850,28 @@ export class SetterValidator extends QueryValidator {
   }
 }
 
+/**
+ * A query validator that supports partial object matching
+ *
+ * In partial mode, comparisons against `undefined` attributes evaluate to `true`
+ * (the missing field is ignored). This is useful for PATCH operations where only
+ * a subset of fields is provided.
+ *
+ * @example
+ * ```ts
+ * const v = new PartialValidator("name = 'John' AND age > 18");
+ * v.eval({ name: "John" });        // true (age is undefined, skipped)
+ * v.wasPartialMatch();             // true
+ * v.eval({ name: "John" }, false); // false (strict mode, age required)
+ * ```
+ */
 export class PartialValidator extends QueryValidator {
   builder: PartialExpressionBuilder;
 
+  /**
+   * @param query - WebdaQL query string
+   * @param builder - partial expression builder (override for customization)
+   */
   constructor(query: string, builder: PartialExpressionBuilder = new PartialExpressionBuilder()) {
     super(query, builder);
   }
@@ -757,9 +897,23 @@ export class PartialValidator extends QueryValidator {
   }
 }
 
+/**
+ * A comparison expression that treats `undefined` attributes as a match in partial mode
+ *
+ * When the builder is in partial mode and the target attribute is `undefined`,
+ * evaluation returns `true` and flags the result as a partial match.
+ *
+ * @typeParam T - the specific comparison operator type
+ */
 export class PartialComparisonExpression<
   T extends ComparisonOperator = ComparisonOperator
 > extends ComparisonExpression<T> {
+  /**
+   * @param builder - the partial expression builder (used to read partial mode flag)
+   * @param op - comparison operator
+   * @param attribute - dot-notation attribute path
+   * @param value - value to compare against
+   */
   constructor(
     protected builder: PartialExpressionBuilder,
     op: T,
@@ -788,27 +942,38 @@ export class PartialComparisonExpression<
   }
 }
 
+/**
+ * Expression builder that creates {@link PartialComparisonExpression} nodes
+ * instead of regular {@link ComparisonExpression} nodes
+ *
+ * Used by {@link PartialValidator} to support partial object matching.
+ */
 export class PartialExpressionBuilder extends ExpressionBuilder {
   /**
-   * Enforce the partial mode
+   * Whether partial mode is active (undefined attributes treated as matching)
    */
   partial: boolean;
   /**
-   * If eval was called in partial mode
+   * Set to `true` during evaluation if any attribute was undefined and skipped
    */
   partialMatch: boolean;
 
+  /**
+   * Enable or disable partial evaluation mode
+   */
   setPartial(partial: boolean) {
     this.partial = partial;
   }
 
+  /**
+   * Set the partial match flag (reset before each evaluation)
+   */
   setPartialMatch(partial: boolean) {
     this.partialMatch = partial;
   }
+
   /**
-   * a LIKE "%A?"
-   * @param ctx
-   * @returns
+   * Visit a LIKE expression, returning a PartialComparisonExpression
    */
   visitLikeExpression(ctx: any) {
     const [left, _, right] = ctx.children;
@@ -817,7 +982,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
   }
 
   /**
-   * Implement the BinaryComparison with all methods managed
+   * Visit a binary comparison, returning a PartialComparisonExpression
    */
   visitBinaryComparisonExpression(ctx: any) {
     const [left, op, right] = ctx.children;
@@ -826,7 +991,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
   }
 
   /**
-   * Map the a IN ['b','c']
+   * Visit an IN expression, returning a PartialComparisonExpression
    */
   visitInExpression(ctx: any) {
     const [left, _, right] = ctx.children;
@@ -835,7 +1000,7 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
   }
 
   /**
-   * Map the a CONTAINS 'b'
+   * Visit a CONTAINS expression, returning a PartialComparisonExpression
    */
   visitContainsExpression(ctx: any) {
     const [left, _, right] = ctx.children;

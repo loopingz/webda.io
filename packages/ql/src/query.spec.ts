@@ -224,6 +224,28 @@ class QueryTest {
   }
 
   @test
+  parse() {
+    // Basic query with filter, order, limit, offset
+    const query = WebdaQL.parse("status = 'active' AND age > 18 ORDER BY name DESC LIMIT 50 OFFSET 'token123'");
+    assert.ok(query.filter instanceof WebdaQL.AndExpression);
+    assert.strictEqual(query.limit, 50);
+    assert.strictEqual(query.continuationToken, "token123");
+    assert.deepStrictEqual(query.orderBy, [{ field: "name", direction: "DESC" }]);
+    // toString returns the original parse tree reconstruction
+    assert.ok(query.toString().includes("status"));
+
+    // Empty query
+    const empty = WebdaQL.parse("");
+    assert.ok(empty.filter instanceof WebdaQL.AndExpression);
+    assert.strictEqual((empty.filter as WebdaQL.AndExpression).children.length, 0);
+
+    // Filter-only query
+    const simple = WebdaQL.parse("x = 1");
+    assert.ok(simple.filter.eval({ x: 1 }));
+    assert.ok(!simple.filter.eval({ x: 2 }));
+  }
+
+  @test
   partialValidator() {
     const validator = new WebdaQL.PartialValidator("attr1 = 'plop' AND attr2 = 'ok'");
     assert.ok(validator.eval({ attr1: "plop" }));

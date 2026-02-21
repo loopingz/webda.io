@@ -2,73 +2,134 @@ import ts from "typescript";
 import path from "path";
 import type { JSONSchema7, JSONSchema7TypeName } from "json-schema";
 
+/**
+ * Arguments passed through the schema-property pipeline.
+ *
+ * Each call to {@link SchemaGenerator.schemaProperty} receives (and may
+ * transform via {@link GenerateSchemaOptions.transformer}) these values
+ * before the type is inspected.
+ */
 export interface SchemaPropertyArguments {
+  /** The TypeScript type being converted */
   type: ts.Type;
+  /** The mutable JSON Schema definition being populated */
   definition: JSONSchema7;
+  /** Schema path for the current property (e.g. `/MyType/name`) */
   path: string;
+  /** The AST node associated with the property, if available */
   node?: ts.Node;
+  /** Current recursion depth (0-based) */
   depth: number;
 }
 
+/**
+ * Options accepted by the {@link SchemaGenerator} constructor and by
+ * per-call methods like {@link SchemaGenerator.getSchemaFromType}.
+ */
 export interface GenerateSchemaOptions {
   /**
-   * path to tsconfig directory or tsconfig file
+   * Path to the directory containing `tsconfig.json`, or an explicit path to
+   * the tsconfig file itself. Defaults to `process.cwd()`.
+   *
+   * Mutually exclusive with {@link program}.
    */
   project?: string;
   /**
-   * file that contains the target type (optional)
+   * Restrict the type search to a specific source file. When omitted every
+   * source file in the program is searched.
    */
   file?: string;
   /**
-   * maximum recursion depth
+   * Maximum recursion depth when traversing nested types.
+   * @default 10
    */
   maxDepth?: number;
   /**
-   * generate schema with $ref instead of inline definitions
+   * When `true`, the top-level type is emitted as a `$ref` pointing into
+   * `definitions` rather than being inlined at the schema root.
+   * @default false
    */
   asRef?: boolean;
   /**
-   * logging function
+   * Optional logging callback invoked with diagnostic messages during
+   * generation. Useful for debugging complex type resolution.
    */
   log?: (...args: any[]) => void;
   /**
-   * existing TS Program to use
+   * An already-created TypeScript `Program` to reuse. When provided the
+   * generator skips language-service creation.
+   *
+   * Mutually exclusive with {@link project}.
    */
   program?: ts.Program;
   /**
-   * Strategy to serialize a Node.js Buffer.
-   * - base64: string with contentEncoding base64 (default)
-   * - binary: string with format binary
-   * - hex:    string with contentEncoding hex (and hex pattern)
-   * - array:  array of integers 0..255
+   * Strategy used to represent `Buffer` / `ArrayBuffer` types in JSON Schema.
+   *
+   * | Strategy | Schema |
+   * |----------|--------|
+   * | `"base64"` (default) | `{ type: "string", contentEncoding: "base64" }` |
+   * | `"binary"` | `{ type: "string", format: "binary" }` |
+   * | `"hex"` | `{ type: "string", contentEncoding: "hex", pattern: "..." }` |
+   * | `"array"` | `{ type: "array", items: { type: "integer", minimum: 0, maximum: 255 } }` |
+   *
+   * @default "base64"
    */
   bufferStrategy?: "base64" | "binary" | "hex" | "array";
   /**
-   * Custom mapper allowing full control. If provided it overrides bufferStrategy.
+   * Custom mapper giving full control over how `Buffer` types are
+   * represented. When provided, {@link bufferStrategy} is ignored.
+   *
+   * @param definition - The mutable JSON Schema definition to populate
+   * @param ctx - Context containing the TypeScript type and schema path
    */
   mapBuffer?: (definition: JSONSchema7, ctx: { type: ts.Type; path: string }) => void;
   /**
-   * Disable the behavior where a boolean property with no default value is set to false
+   * By default boolean properties without an explicit initializer receive
+   * `"default": false`. Set this to `true` to disable that behaviour.
+   * @default false
    */
   disableBooleanDefaultToFalse?: boolean;
   /**
-   * Type of schema to generate
+   * Controls accessor handling when generating schemas for classes.
+   *
+   * - `"input"` — getter-only properties are excluded (the schema
+   *   represents what can be *sent* to the model).
+   * - `"output"` — getter return types are included (the schema represents
+   *   what the model *produces*).
+   *
    * @default "input"
    */
   type?: "input" | "output";
   /**
-   * Transformer function to modify options before generating schema
-   * @param options
-   * @returns
+   * Hook invoked for every property *before* type inspection. The callback
+   * may modify any field of the {@link SchemaPropertyArguments} to alter
+   * the type, definition, or depth seen by the core generator.
+   *
+   * @param options - The current property arguments
+   * @returns The (possibly mutated) property arguments
    */
   transformer?: (options: SchemaPropertyArguments) => SchemaPropertyArguments;
 }
 
+/**
+ * Check whether a TypeScript type's symbol carries the `Optional` flag.
+ *
+ * @param type - The type to inspect
+ * @returns `true` when the underlying symbol is marked optional
+ */
 export function isOptional(type: ts.Type): boolean {
   const symbol = type.getSymbol();
   return !!symbol && (symbol.getFlags() & ts.SymbolFlags.Optional) !== 0;
 }
 
+/**
+ * Mapping of JSDoc tag names to their treatment in the generated schema.
+ *
+ * - **dollarPrefixed** — tags emitted with a `$` prefix (e.g. `@id` → `$id`).
+ * - **boolean** — tags whose mere presence sets the schema keyword to `true`.
+ * - **string** — tags whose text is copied verbatim as a string value.
+ * - **json** — tags whose text is parsed as JSON (with a string fallback).
+ */
 const Annotations = {
   dollarPrefixed: ["id", "comment", "ref"],
   boolean: ["deprecated", "readOnly", "writeOnly", "exclusiveMinimum", "exclusiveMaximum"],
@@ -130,12 +191,32 @@ const Annotations = {
   ]
 };
 
+/**
+ * Generates JSON Schema (Draft-07) definitions from TypeScript types.
+ *
+ * The generator creates a TypeScript language service (or reuses an existing
+ * `ts.Program`), then walks the type graph to produce a JSON Schema object
+ * for any named type, interface, class, enum, or type alias in the project.
+ *
+ * @example
+ * ```ts
+ * const gen = new SchemaGenerator({ project: "./tsconfig.json" });
+ * const schema = gen.getSchemaForTypeName("User");
+ * console.log(JSON.stringify(schema, null, 2));
+ * ```
+ */
 export class SchemaGenerator {
+  /** The TypeScript `Program` backing this generator */
   program: ts.Program;
+  /** The type-checker used for all type queries */
   checker: ts.TypeChecker;
+  /** The AST node currently targeted for schema generation */
   targetNode!: ts.Node | undefined;
+  /** The symbol of the current target type (when available) */
   targetSymbol!: ts.Symbol | undefined;
+  /** The TypeScript type currently being converted */
   targetType!: ts.Type;
+  /** @internal */
   private static readonly defaultOptions = Object.freeze({
     maxDepth: 10,
     asRef: false,
@@ -145,6 +226,7 @@ export class SchemaGenerator {
     bufferStrategy: "base64" as const,
     transformer: (options: SchemaPropertyArguments) => options
   });
+  /** Effective options for the current generation run */
   currentOptions: Required<
     Pick<GenerateSchemaOptions, "maxDepth" | "asRef" | "type" | "disableBooleanDefaultToFalse" | "bufferStrategy">
   > &
@@ -156,8 +238,20 @@ export class SchemaGenerator {
     disableBooleanDefaultToFalse: false,
     bufferStrategy: "base64"
   };
+  /** Accumulated `definitions` map for the current generation run */
   currentDefinitions: { [key: string]: JSONSchema7 } = {};
 
+  /**
+   * Create a new generator.
+   *
+   * Exactly one of `options.project` or `options.program` may be provided.
+   * If neither is given the current working directory is used to locate a
+   * `tsconfig.json`.
+   *
+   * @param options - Generator configuration
+   * @throws When both `project` and `program` are specified
+   * @throws When no TypeScript `Program` can be created
+   */
   constructor(private readonly options: GenerateSchemaOptions = {}) {
     if (options.program && options.project) {
       throw new Error("Cannot specify both program and project in SchemaGenerator options");
@@ -173,6 +267,10 @@ export class SchemaGenerator {
     this.checker = this.program.getTypeChecker();
   }
 
+  /**
+   * Merge per-call options with the constructor-level defaults and store
+   * the result in {@link currentOptions}.
+   */
   private setOptions(opts: Partial<SchemaGenerator["currentOptions"]>) {
     const merged = {
       ...SchemaGenerator.defaultOptions,
@@ -182,10 +280,18 @@ export class SchemaGenerator {
     this.currentOptions = merged;
   }
 
+  /** Emit a diagnostic message via the configured log callback (no-op when absent). */
   private log(...args: any[]): void {
     this.currentOptions.log?.(...args);
   }
 
+  /**
+   * Join two schema path segments, ensuring exactly one `/` separator.
+   *
+   * @param base - The parent path (e.g. `/MyType`)
+   * @param segment - The child segment (e.g. `name`)
+   * @returns The joined path (e.g. `/MyType/name`)
+   */
   private joinSchemaPath(base: string, segment: string): string {
     if (!base || base === "/") return `/${segment}`;
     const b = base.replace(/\/+$/, "");
@@ -193,15 +299,28 @@ export class SchemaGenerator {
     return `${b}/${s}`;
   }
 
+  /**
+   * Return the value type of a string index signature (`{ [key: string]: T }`),
+   * or `undefined` if the type does not have one.
+   */
   private hasStringIndex(type: ts.Type): ts.Type | undefined {
     return this.checker.getIndexTypeOfType(type, ts.IndexKind.String) || undefined;
   }
 
+  /** Return `true` when the type is an anonymous object literal type. */
   private isAnonymousObject(type: ts.Type): boolean {
     const anyT = type as any;
     return !!(anyT.flags & ts.TypeFlags.Object) && !!(anyT.objectFlags & ts.ObjectFlags.Anonymous);
   }
 
+  /**
+   * Determine whether a property key is a `Symbol` (ES symbol) rather than a
+   * string or number. Symbol-keyed properties are not representable in JSON
+   * Schema and are skipped during generation.
+   *
+   * @param decl - The property declaration node (may be `undefined` for synthesised properties)
+   * @param sym - The property symbol
+   */
   private isSymbolKey(decl: ts.Declaration | undefined, sym: ts.Symbol): boolean {
     let isSymbol = false;
     if (decl && (ts.isPropertyDeclaration(decl) || ts.isPropertySignature(decl) || ts.isMethodDeclaration(decl))) {
@@ -221,6 +340,13 @@ export class SchemaGenerator {
     return isSymbol;
   }
 
+  /**
+   * Normalize a definition key so that inline/synthesised type strings
+   * (e.g. `{ foo: string }`) are replaced with a path-derived key.
+   *
+   * @param rawKey - The raw type string
+   * @param path - The current schema path used as a fallback key
+   */
   private normalizeDefinitionKey(rawKey: string, path: string): string {
     if (rawKey.startsWith("{") || rawKey.endsWith('">')) {
       return path.substring(1).replace(/\//g, "$");
@@ -228,6 +354,15 @@ export class SchemaGenerator {
     return rawKey;
   }
 
+  /**
+   * Register a schema in {@link currentDefinitions} and replace `target`
+   * in-place with a `$ref` pointing to it.
+   *
+   * @param defKeyRaw - The raw definition key (type name or type string)
+   * @param source - The fully-populated schema to store
+   * @param target - The mutable object to rewrite as a `$ref`
+   * @param pathForKey - When provided, used to normalize inline type keys
+   */
   private ensureRef(defKeyRaw: string, source: JSONSchema7, target: JSONSchema7, pathForKey?: string) {
     const key = pathForKey ? this.normalizeDefinitionKey(defKeyRaw, pathForKey) : defKeyRaw;
     this.currentDefinitions[key] = { ...source };
@@ -235,6 +370,19 @@ export class SchemaGenerator {
     (target as any).$ref = `#/definitions/${this.getDefinitionKey(key)}`;
   }
 
+  /**
+   * Collect all public, non-method, non-symbol properties from a type and
+   * build the `properties` / `required` / `additionalProperties` portion
+   * of an `object` JSON Schema.
+   *
+   * Handles accessor awareness (`input`/`output`), question-token optionality,
+   * union-with-`undefined` optionality, initializer-derived defaults, and
+   * automatic `default: false` for boolean properties.
+   *
+   * @param type - The TypeScript type to inspect
+   * @param path - The current schema path (used for nested recursion)
+   * @returns An object wrapping the constructed JSON Schema
+   */
   private collectObjectShape(type: ts.Type, path: string): { schema: JSONSchema7 } {
     const schema: JSONSchema7 & Record<string, any> = { type: "object" };
     const stringIndexType = this.hasStringIndex(type);
@@ -340,17 +488,24 @@ export class SchemaGenerator {
   }
 
   /**
-   * Return the TypeScript Program used by this generator
-   * @returns
+   * Return the TypeScript `Program` backing this generator.
+   *
+   * Useful when callers need to query the type-checker or source files
+   * outside of schema generation.
    */
   getProgram(): ts.Program {
     return this.program;
   }
 
   /**
-   * Create a TypeScript Language Service for the given project path
-   * @param projectPath
-   * @returns
+   * Create a TypeScript language service rooted at the given project.
+   *
+   * If `projectPath` is a directory, the method looks for a `tsconfig.json`
+   * inside it. If it is a file path, it is used directly.
+   *
+   * @param projectPath - Directory or explicit tsconfig file path
+   * @returns The created language service
+   * @throws When `tsconfig.json` cannot be found or parsed
    */
   createLanguageService(projectPath: string) {
     let configFilePath = projectPath;
@@ -415,6 +570,16 @@ export class SchemaGenerator {
     return ts.createLanguageService(servicesHost, ts.createDocumentRegistry());
   }
 
+  /**
+   * Determine whether the tuple element at `index` is optional.
+   *
+   * Uses the internal `elementFlags` / `minLength` properties of the
+   * TypeScript tuple target when available, falling back to a
+   * `minLength`-based heuristic for older TS versions.
+   *
+   * @param tupleType - The tuple type reference
+   * @param index - Zero-based element index
+   */
   isOptionalTupleElement(tupleType: ts.Type, index: number): boolean {
     // TupleTypeReference so we can access typeArguments & target
     const tupleRef = tupleType as ts.TupleTypeReference;
@@ -440,10 +605,18 @@ export class SchemaGenerator {
   }
 
   /**
-   * Process JSDoc comments for a property and apply to definition
-   * @param definition
-   * @param prop
-   * @returns
+   * Extract JSDoc comments and tags from a symbol and merge them into the
+   * given JSON Schema definition.
+   *
+   * Tag handling follows the {@link Annotations} classification:
+   * - **string** tags are copied verbatim.
+   * - **boolean** tags set the keyword to `true`.
+   * - **dollar-prefixed** tags are emitted with a `$` prefix.
+   * - All other tags are JSON-parsed (or kept as strings on parse failure);
+   *   repeated tags are collected into an array.
+   *
+   * @param definition - The mutable JSON Schema object to enrich
+   * @param prop - The TypeScript symbol whose JSDoc to read (no-op when `undefined`)
    */
   processJsDoc(definition: JSONSchema7, prop?: ts.Symbol) {
     if (!prop) return;
@@ -489,61 +662,29 @@ export class SchemaGenerator {
   }
 
   /**
-   * Get definition code
-   * @param typeName
-   * @returns
+   * URI-encode a type name so it can be used as a JSON Schema
+   * `definitions` key and referenced via `$ref`.
+   *
+   * @param typeName - The raw type name (may contain generic brackets, etc.)
+   * @returns The encoded key safe for use in a JSON pointer
    */
   getDefinitionKey(typeName: string): string {
     return encodeURIComponent(typeName);
   }
   /**
-   * Processes a class or interface type and fills in the given definition object.
-   * @param type
-   * @param definition
-   * @param path
-   * @param propTypeString
-   */
-  /**
-   * Converts a TypeScript class or interface type into a JSON Schema definition and registers it
-   * in the current definitions map, replacing the in-place `definition` object with a `$ref`.
+   * Convert a TypeScript class or interface into a JSON Schema `object`
+   * definition and register it in {@link currentDefinitions}, replacing
+   * `definition` in-place with a `$ref`.
    *
-   * Behavior:
-   * - Emits an `object` schema for class/interface types.
-   * - If the type has a string index signature (`{ [key: string]: T }`), sets `additionalProperties`
-   *   to the schema for `T`; otherwise sets `additionalProperties` to `false`.
-   * - Iterates over the type's properties (each property is a `ts.Symbol`) and:
-   *   - Skips private/protected members.
-   *   - Skips method-like members and accessors depending on the current options (input/output).
-   *   - Resolves the effective property type from the symbol using the best available anchor node
-   *     (declaration or `targetNode` fallback).
-   *   - Determines optionality from symbol flags, a `?` question token on the declaration, union
-   *     types that include `undefined`, or the presence of an initializer.
-   *   - Populates `properties`, `required`, default values (for initializers), and JSDoc metadata.
-   * - Performs a compatibility cleanup for properties whose schema is exactly `(string | ArrayBuffer)`.
-   * - When no remaining properties exist after cleanup, removes `properties`, `required`,
-   *   `additionalProperties`, and `type` from the definition for a minimal schema.
-   * - Normalizes the definition key when `propTypeString` represents an inline or synthesized type,
-   *   then registers the completed definition and rewrites the original `definition` to a `$ref`.
+   * For alias-based utility types (e.g. `Partial<T>`, `Pick<T, K>`) the
+   * apparent structural type is preferred so that concrete properties can
+   * be enumerated. When the target is an anonymous object at the schema
+   * root the schema is inlined rather than creating an empty definition.
    *
-   * Logging:
-   * - Emits debug logs for processing stages, including index signatures, accessors, properties,
-   *   and initializer-derived defaults, when `currentOptions.log` is provided.
-   *
-   * Parameters:
-   * - type: The TypeScript type representing the class or interface to process.
-   * - definition: A mutable JSON Schema object to be populated and eventually replaced by a `$ref`.
-   * - path: The current schema path (e.g., "/MyType/prop") used for logging and definition keys.
-   * - propTypeString: A human-readable string of the processed type; may be normalized into a
-   *   definition key when the type is inline or synthesized.
-   *
-   * Notes:
-   * - Property iteration is driven by `checker.getPropertiesOfType(type)`, which returns `ts.Symbol`s.
-   *   Each property `prop` is a symbol; its declarations may be absent for mapped/renamed keys, in
-   *   which case the enclosing `targetNode` is used for type resolution.
-   * - Accessor handling:
-   *   - In output mode, get accessors are skipped; in input mode, set accessors are skipped.
-   *   - Setter parameter type is used as the property type when present; getter return type is logged.
-   * - Required properties are sorted alphabetically before finalization.
+   * @param type - The TypeScript type representing the class or interface
+   * @param definition - Mutable schema object; will be rewritten to a `$ref`
+   * @param path - Current schema path (e.g. `/MyType/prop`)
+   * @param propTypeString - Human-readable type string used as the definition key
    */
   processClassOrInterface(type: ts.Type, definition: JSONSchema7, path: string, propTypeString: string) {
     if (path.endsWith("/constructor")) {
@@ -585,6 +726,16 @@ export class SchemaGenerator {
     this.ensureRef(propTypeString, source, definition, path);
   }
 
+  /**
+   * Apply the configured buffer serialization strategy to `definition`.
+   *
+   * If a custom {@link GenerateSchemaOptions.mapBuffer} callback was provided
+   * it takes precedence; otherwise the {@link GenerateSchemaOptions.bufferStrategy}
+   * is used.
+   *
+   * @param definition - The mutable schema to populate
+   * @param ctx - Context with the TypeScript type and schema path
+   */
   defineBufferMapping(definition: JSONSchema7, ctx: { type: ts.Type; path: string }) {
     if (this.options.mapBuffer) {
       this.options.mapBuffer(definition, ctx);
@@ -620,6 +771,16 @@ export class SchemaGenerator {
     }
   }
 
+  /**
+   * Attempt to extract a non-numeric literal value from an initializer
+   * expression (after peeling parentheses and type assertions).
+   *
+   * Returns the JSON Schema type name and constant value for `true`, `false`,
+   * `null`, or a string literal. Returns `undefined` for numeric or
+   * unrecognised expressions.
+   *
+   * @param expr - The initializer expression to inspect
+   */
   tryGetNonNumericEnumLiteral(
     expr: ts.Expression
   ): { type: JSONSchema7TypeName; const: boolean | null | string } | undefined {
@@ -643,6 +804,16 @@ export class SchemaGenerator {
     }
   }
 
+  /**
+   * Manually peel parenthesised expressions, `as` casts, and type assertions
+   * to reach the inner expression.
+   *
+   * Used as a fallback when `ts.skipOuterExpressions` is not available in
+   * the bundled TypeScript version.
+   *
+   * @param expr - The expression to unwrap
+   * @returns The innermost non-wrapper expression
+   */
   skipOuterExpressionsManual(expr: ts.Expression): ts.Expression {
     while (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isTypeAssertionExpression(expr)) {
       expr = (expr as ts.ParenthesizedExpression | ts.AsExpression | ts.TypeAssertion).expression;
@@ -650,6 +821,19 @@ export class SchemaGenerator {
     return expr;
   }
 
+  /**
+   * Convert a callable type's parameter list into a `NamedParameters<typeof fn>`
+   * JSON Schema object definition and register it in {@link currentDefinitions}.
+   *
+   * Each parameter becomes a property; optionality is derived from `?` tokens,
+   * initializers, or the recursive schema result.
+   *
+   * @param sigs - The call signatures of the function type
+   * @param definition - Mutable schema to populate (rewritten to a `$ref`)
+   * @param callName - Display name for the function (used in the definition key)
+   * @param path - Current schema path
+   * @returns The definition key under which the schema was registered
+   */
   processCallableType(sigs: readonly ts.Signature[], definition: JSONSchema7, callName: string, path: string): string {
     definition.type = "object";
     definition.additionalProperties = false;
@@ -699,6 +883,14 @@ export class SchemaGenerator {
     return defKey;
   }
 
+  /**
+   * Retrieve the initializer expression for a type, first checking the
+   * provided AST node and then falling back to the type's symbol declaration.
+   *
+   * @param type - The TypeScript type whose initializer to look for
+   * @param node - An optional AST node that may carry an initializer
+   * @returns The initializer expression, or `undefined` when none exists
+   */
   getInitializerForType(type: ts.Type, node?: ts.Node): ts.Expression | undefined {
     // Prefer the node if it’s a declaration with an initializer
     if (node) {
@@ -733,12 +925,22 @@ export class SchemaGenerator {
   }
 
   /**
-   * Main implementation to fill in schema for a single property
-   * @param type
-   * @param definition
-   * @param path
-   * @param node
-   * @returns
+   * Core recursive engine: populate a JSON Schema definition for a single
+   * TypeScript type.
+   *
+   * Handles primitives, literals, unions, intersections, arrays, tuples,
+   * classes/interfaces, callables, mapped types, conditional types, generics,
+   * and special types (`Date`, `RegExp`, `Buffer`). The
+   * {@link GenerateSchemaOptions.transformer} hook is invoked before type
+   * inspection so callers can redirect or annotate the schema.
+   *
+   * @param type - The TypeScript type to convert
+   * @param definition - Mutable JSON Schema object to populate
+   * @param path - Schema path for diagnostics and definition keys
+   * @param node - The AST node associated with the property (may be `undefined`)
+   * @param depth - Current recursion depth; generation stops at {@link GenerateSchemaOptions.maxDepth}
+   * @returns An object indicating optionality and whether the property should
+   *          be kept, renamed, or skipped in the parent schema
    */
   schemaProperty(
     type: ts.Type,
@@ -1228,10 +1430,12 @@ export class SchemaGenerator {
   }
 
   /**
-   * Returns true if the given type is a Buffer or ArrayBuffer type
-   * @param type
-   * @param typeString
-   * @returns
+   * Return `true` when the type represents `Buffer`, `ArrayBuffer`, or a
+   * `Uint8Array`-based buffer variant **and** a buffer mapping strategy is
+   * configured.
+   *
+   * @param type - The TypeScript type to check
+   * @param typeString - The stringified type name (used for heuristic matching)
    */
   private isBufferType(type: ts.Type, typeString: string): boolean {
     const symbol = type.getSymbol();
@@ -1250,10 +1454,15 @@ export class SchemaGenerator {
   }
 
   /**
-   *  Apply mapping for Buffer according to options
-   * @param definition
-   * @param type
-   * @param path
+   * Apply the configured buffer serialization strategy to `definition`.
+   *
+   * Delegates to the custom {@link GenerateSchemaOptions.mapBuffer} callback
+   * when provided; otherwise maps the type according to
+   * {@link GenerateSchemaOptions.bufferStrategy}.
+   *
+   * @param definition - The mutable schema to populate
+   * @param type - The TypeScript buffer type
+   * @param path - Current schema path (for diagnostics and custom callbacks)
    */
   private applyBufferMapping(definition: JSONSchema7 & Record<string, any>, type: ts.Type, path: string): void {
     this.log(`Applying Buffer mapping at ${path}`);
@@ -1287,6 +1496,14 @@ export class SchemaGenerator {
     }
   }
 
+  /**
+   * Deduplicate enum values and simplify trivial cases.
+   *
+   * A boolean enum of `[true, false]` is collapsed to `type: "boolean"`
+   * with the `enum` keyword removed entirely.
+   *
+   * @param definition - The mutable schema containing an `enum` array
+   */
   enumOptimizer(definition: { enum: (any | undefined)[]; type?: JSONSchema7TypeName }): void {
     // Ensure unique enum values
     definition.enum = Array.from(new Set(definition.enum));
@@ -1298,6 +1515,15 @@ export class SchemaGenerator {
     }
   }
 
+  /**
+   * Derive a human-readable function name from an AST node by walking up
+   * through variable declarations, function declarations, property
+   * declarations, and method declarations.
+   *
+   * Falls back to `"AnonymousFunction"` when no name can be determined.
+   *
+   * @param node - The AST node to inspect
+   */
   getFunctionName(node?: ts.Node): string {
     if (!node) return "AnonymousFunction";
     if (ts.isVariableDeclaration(node) && node.name) {
@@ -1315,10 +1541,16 @@ export class SchemaGenerator {
   }
 
   /**
-   * Get a schema from a TypeScript type
-   * @param type
-   * @param options
-   * @returns
+   * Generate a complete JSON Schema (Draft-07) from a TypeScript type object.
+   *
+   * The schema is built from scratch (definitions are reset), and all
+   * referenced sub-types are collected into `definitions`. When
+   * {@link GenerateSchemaOptions.asRef} is `false` (the default) the
+   * top-level definition is inlined at the schema root.
+   *
+   * @param type - The TypeScript type to convert
+   * @param options - Per-call option overrides
+   * @returns A self-contained JSON Schema document
    */
   getSchemaFromType(type: ts.Type, options: Partial<SchemaGenerator["currentOptions"]> = {}): JSONSchema7 {
     this.setOptions(options);
@@ -1353,10 +1585,15 @@ export class SchemaGenerator {
   }
 
   /**
-   * Get schema from a set of nodes
-   * @param nodes
-   * @param options
-   * @returns
+   * Generate a complete JSON Schema (Draft-07) from one or more AST nodes.
+   *
+   * Each node is expected to be a class, interface, type alias, function, or
+   * enum declaration. The first node's type becomes the root `$ref`; all
+   * subsequent nodes contribute additional definitions.
+   *
+   * @param nodes - Declaration nodes to process
+   * @param options - Per-call option overrides
+   * @returns A self-contained JSON Schema document
    */
   getSchemaFromNodes(nodes: ts.Node[], options: Partial<SchemaGenerator["currentOptions"]> = {}): JSONSchema7 {
     this.setOptions(options);
@@ -1399,6 +1636,16 @@ export class SchemaGenerator {
     return this.sortKeys(result);
   }
 
+  /**
+   * High-level convenience method: look up a type by name (and optionally
+   * restrict the search to a single file), then generate its JSON Schema.
+   *
+   * @param typeName - The name of the type, interface, class, or enum to find
+   * @param file - Optional file path to restrict the search
+   * @param options - Per-call option overrides
+   * @returns A self-contained JSON Schema document
+   * @throws When the type cannot be found in the program
+   */
   getSchemaForTypeName(
     typeName: string,
     file?: string,
@@ -1413,9 +1660,13 @@ export class SchemaGenerator {
   }
 
   /**
-   * Sort keys of an object recursively
-   * @param obj
-   * @returns
+   * Recursively sort all object keys alphabetically to produce
+   * deterministic, diff-friendly JSON Schema output.
+   *
+   * Arrays are traversed but their order is preserved.
+   *
+   * @param obj - The value to sort (objects are cloned, primitives pass through)
+   * @returns A deep copy with sorted keys
    */
   sortKeys(obj: any): any {
     if (obj && typeof obj === "object" && !Array.isArray(obj)) {
@@ -1432,6 +1683,17 @@ export class SchemaGenerator {
     return obj;
   }
 
+  /**
+   * Walk the program's source files to locate the first declaration node
+   * matching `typeName`.
+   *
+   * Searches class, interface, type alias, function, variable, and enum
+   * declarations. When `filePath` is provided only that file is scanned.
+   *
+   * @param typeName - The identifier name to search for
+   * @param filePath - Optional absolute path to restrict the search to one file
+   * @returns The matching declaration node, or `undefined` if not found
+   */
   find(typeName: string, filePath?: string): ts.Node | undefined {
     let targetNode: ts.Node | undefined;
     // Implementation to find the target declaration
@@ -1469,6 +1731,17 @@ export class SchemaGenerator {
     return targetNode;
   }
 
+  /**
+   * Resolve the element type of an array-like type.
+   *
+   * Tries, in order:
+   * 1. Numeric index signature (`T[]`, `Array<T>`, tuples)
+   * 2. Type arguments of `Array` / `ReadonlyArray` type references
+   * 3. Symbol-name heuristic for aliased array types
+   *
+   * @param type - The array-like TypeScript type
+   * @returns The element type, or `undefined` when it cannot be determined
+   */
   getArrayElementType(type: ts.Type): ts.Type | undefined {
     // Primary: numeric index signature (works for T[], Array<T>, tuples)
     const byIndex = this.checker.getIndexTypeOfType(type, ts.IndexKind.Number);
@@ -1503,6 +1776,15 @@ export class SchemaGenerator {
     return undefined;
   }
 
+  /**
+   * Determine whether a type should be represented as a JSON Schema `array`.
+   *
+   * Uses `checker.isArrayLikeType()` when available, then falls back to
+   * checking for a numeric index signature and finally inspects the type
+   * reference target symbol name for `Array` / `ReadonlyArray`.
+   *
+   * @param type - The TypeScript type to test
+   */
   private isArrayLike(type: ts.Type): boolean {
     // Prefer the checker’s own detection when available
     try {
@@ -1527,6 +1809,14 @@ export class SchemaGenerator {
     return false;
   }
 
+  /**
+   * Extract the JSDoc comment text and all JSDoc tags from a symbol.
+   *
+   * @param prop - The symbol whose documentation to read
+   * @param checker - The type-checker used for resolving display parts
+   * @returns An object with a `comment` string and a `tags` array of
+   *          `{ name, text }` pairs
+   */
   getJsDocForSymbol(prop: ts.Symbol, checker: ts.TypeChecker) {
     const comment = ts.displayPartsToString(prop.getDocumentationComment(checker));
 

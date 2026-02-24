@@ -16,12 +16,12 @@ import {
 import type { SelfJSONed, JSONed, Helpers } from "./types";
 import type { Repository } from "./repositories/repository";
 
-const RelationParent = Symbol("RelationParent");
-const RelationKey = Symbol("RelationKey");
-const RelationRepository = Symbol("RelationRepository");
-const RelationRole = Symbol("RelationRole");
-const RelationData = Symbol("RelationData");
-
+export const RelationParent = Symbol("RelationParent");
+export const RelationKey = Symbol("RelationKey");
+export const RelationRepository = Symbol("RelationRepository");
+export const RelationRole = Symbol("RelationRole");
+export const RelationData = Symbol("RelationData");
+export const RelationAttributes = Symbol("RelationAttributes");
 /**
  * Assign non symbol properties from source to target
  * @param target
@@ -251,7 +251,7 @@ export class ModelRef<T extends Storable> {
 }
 
 export type ModelRelations<T extends object> =
-  | FilterAttributes<T, ModelRelated<any>>
+  | FilterAttributes<T, ModelRelated<any, any, any>>
   | FilterAttributes<T, ModelLinker>;
 
 /**
@@ -299,7 +299,8 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
  */
 export type ModelRelated<
   T extends Storable,
-  _K extends Extract<keyof T, FilterAttributes<T, ModelLinker>> | "" = ""
+  L extends Storable, 
+  _K extends FilterAttributes<T, ModelLinker<L>>
 > = {
   /**
    * Query the related objects
@@ -330,8 +331,9 @@ export type ModelRelated<
 };
 
 // Define a ModelLinked
-export interface ModelLinker {
-  [RelationRole]: "ModelLinker";
+export interface ModelLinker<T extends Storable = any, K extends "Link" | "Related" | "Links" | "CustomLinks" = any> {
+  readonly [RelationRole]: K;
+  readonly [RelationParent]: T;
 }
 /**
  * Define a link to n:1 or 1:1 relation on the current model to another model
@@ -347,13 +349,13 @@ export interface ModelLinker {
  * ```
  */
 export class ModelLink<T extends Storable> implements ModelLinker {
-  [RelationRole]: "ModelLinker" = "ModelLinker" as const;
+  readonly [RelationRole]: "Link" = "Link" as const;
   /**
    * Parent of the link
    *
    * In our example, the parent is the Album
    */
-  protected [RelationParent]: Storable;
+  readonly [RelationParent]: T;
   protected [RelationKey]: PrimaryKeyType<T>;
 
   constructor(
@@ -367,7 +369,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
      * The repository of the object to link
      */
     protected model: Repository<ModelClass<T>>,
-    parent?: Storable
+    parent?: T
   ) {
     this[RelationParent] = parent!;
     this[RelationKey] = typeof uuid === "string" ? model.parseUID(uuid) : uuid;
@@ -422,24 +424,6 @@ export class ModelLink<T extends Storable> implements ModelLinker {
 export type ModelParent<T extends Storable> = ModelLink<T>;
 
 /**
- * Methods that allow to manage a collection of linked objects
- */
-type ModelCollectionManager<T> = {
-  /**
-   * Add a linked object
-   * @param model
-   * @returns
-   */
-  add: (model: T) => void;
-  /**
-   * Remove a linked object
-   * @param model the model to remove or its uuid
-   * @returns
-   */
-  remove: (model: T) => void;
-};
-
-/**
  * Link to a collection of objects
  *
  * Uses composition instead of extending Array for better maintainability,
@@ -451,8 +435,9 @@ type ModelCollectionManager<T> = {
  * The array contains uuid of the linked objects
  */
 export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
-  [RelationRole]: "ModelLinker" = "ModelLinker" as const;
-  private [RelationParent]: T;
+  [RelationRole]: "Links" = "Links" as const;
+  [RelationParent]: T;
+  [RelationAttributes]: {};
   protected [RelationRepository]: Repository<ModelClass<T>>;
 
   // COMPOSITION: Internal array instead of extending Array
@@ -530,7 +515,11 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   /**
    * Remove/add items at specified index
    */
-  splice(start: number, deleteCount?: number, ...rest: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): ModelRef<T>[] {
+  splice(
+    start: number,
+    deleteCount?: number,
+    ...rest: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]
+  ): ModelRef<T>[] {
     const result = this.items.splice(start, deleteCount as number, ...rest.map(i => this.getModelRef(i)));
     if (result.length > 0 || rest.length > 0) {
       this.setDirty();
@@ -741,8 +730,9 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
  * ```
  */
 export class ModelLinksArray<T extends Storable, K extends object> implements ModelLinker {
-  [RelationRole]: "ModelLinker" = "ModelLinker" as const;
-  protected [RelationParent]?: T;
+  [RelationRole]: "CustomLinks" = "CustomLinks" as const;
+  [RelationParent]: T;
+  [RelationAttributes]: K;
 
   // COMPOSITION: Internal array instead of extending Array
   private items: ModelRefCustomProperties<T, K>[] = [];
@@ -907,7 +897,9 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
   /**
    * Map over items (does NOT mutate)
    */
-  map<U>(callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => U): U[] {
+  map<U>(
+    callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => U
+  ): U[] {
     return this.items.map(callback);
   }
 
@@ -923,21 +915,27 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
   /**
    * Execute callback for each item
    */
-  forEach(callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => void): void {
+  forEach(
+    callback: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => void
+  ): void {
     this.items.forEach(callback);
   }
 
   /**
    * Check if any item matches predicate
    */
-  some(predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean): boolean {
+  some(
+    predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
+  ): boolean {
     return this.items.some(predicate);
   }
 
   /**
    * Check if all items match predicate
    */
-  every(predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean): boolean {
+  every(
+    predicate: (item: ModelRefCustomProperties<T, K>, index: number, array: ModelRefCustomProperties<T, K>[]) => boolean
+  ): boolean {
     return this.items.every(predicate);
   }
 
@@ -997,118 +995,58 @@ export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, 
   }
 }
 
-export function createModelLinksMap<T extends Storable = Storable, K extends object = object>(
-  repo: Repository<ModelClass<T>>,
-  data: any = {},
-  parent?: T
-) {
-  const setDirty = () => {
-    const attrName = parent
-      ? Object.keys(parent)
-          .filter(k => (parent as any)[k] === result)
-          .pop()!
-      : undefined;
-    if (!attrName) {
-      return;
-    }
-    parent?.[WEBDA_DIRTY]?.add(attrName);
-  };
-  const result = {
-    add: (model: JSONed<ModelRefCustomProperties<T, K>>) => {
-      const uuid = repo.getUID(model);
-      const pk = repo.getPrimaryKey(model);
-      (result as any)[uuid] = new ModelRefCustomMap(pk, repo, repo.excludePrimaryKey(model), parent!);
-      setDirty();
-    },
-    remove: (model: ModelRefCustomProperties<T, any> | PrimaryKeyType<T>) => {
-      const uuid = repo.getUID(model);
-      if (!(result as any)[uuid]) {
-        return;
-      }
-      delete (result as any)[uuid];
-      setDirty();
-    }
-  };
-  Object.keys(data)
-    .filter(k => k !== "__proto__")
-    .forEach(key => {
-      data[key] = new ModelRefCustomMap(repo.parseUID(key), repo, data[key], parent!);
-    });
-  Object.defineProperty(result, "add", { enumerable: false });
-  Object.defineProperty(result, "remove", { enumerable: false });
-  return result;
-}
-
-/**
- * Define a ModelMap attribute
- *
- * K is used by the compiler to define the field it comes from
- *
- * This will instructed a ModelMapper to deduplicate information from the T model into this
- * current model attribute.
- *
- * The attribute where the current model uuid is found is defined by K
- * The attributes to dedepulicate are defined by the L type
- *
- * In the T model, the K attribute should be of type ModelLink
- *
- * This is used for NoSQL model where you need to denormalize data
- * Webda will auto update the current model when the T model is updated
- * to keep the data in sync
- *
- * A SQL Store should define a JOIN to get the data with auto-fetch2
- */
-export type ModelsMapped<
-  T extends Storable,
-  // Do not remove used by the compiler
-  K extends FilterAttributes<T, ModelLinker>,
-  L extends Attributes<T>
-> = Readonly<ModelMapLoader<T, L>[]>;
-
-/**
- * Mapper attribute (target of a Mapper service)
- *
- * This is not exported as when mapped the target is always an array
- * TODO Handle 1:1 map
- */
-export class ModelMapLoaderImplementation<T extends Storable, K = any> {
-  protected [RelationRepository]: Repository<ModelClass<T>>;
-  protected [RelationParent]?: Storable;
-  /**
-   * The uuid of the object
-   */
-  public uuid!: PrimaryKeyType<T>;
-
-  constructor(model: Repository<ModelClass<T>>, data: PrimaryKey<T> & K, parent: T) {
-    assignNonSymbols(this, data);
-    this[RelationRepository] = model;
-    this[RelationParent] = parent;
-  }
-
-  /**
-   *
-   * @returns the model
-   */
-  async get(): Promise<T> {
-    return this[RelationRepository].get(this.uuid) as Promise<T>;
-  }
-}
-
-/**
- * Mapper attribute (target of a Mapper service)
- *
- * This is not exported as when mapped the target is always an array
- * TODO Handle 1:1 map
- */
-export type ModelMapLoader<T extends Storable, K extends keyof T> = ModelMapLoaderImplementation<T, K> & Pick<T, K>;
 
 export type ManyToOne<T extends Storable> = ModelLink<T>;
-export type OneToMany<T extends Storable> = ModelRelated<T>;
+/**
+ * Define a 1:n relation on the current model to another model
+ *
+ * This is an helper type that allows to query the related objects with the correct type
+ * 
+ * T is the model to link to
+ * K is the attribute in T to query (not used but required to complete the graph)
+ */
+export type OneToMany<
+  T extends Storable,
+  L extends Storable,
+  K extends FilterAttributes<T, ModelLinker<L>>
+> = ModelRelated<T, L, K>;
 export type OneToOne<T extends Storable> = ModelLink<T>;
 export type ManyToMany<T extends Storable, K extends object = {}> = K extends object
   ? ModelLinksArray<T, K>
   : ModelLinksSimpleArray<T>;
 
+/**
+ * Define the parent of the model
+ * Can only have one parent and implies a Cascade delete
+ * 
+ * Alias for @ModelParent
+ * Similar to @ModelLink but implies a Cascade delete
+ */
 export type BelongTo<T extends Storable> = ModelParent<T>;
 export type RelateTo<T extends Storable> = ModelLink<T>;
-export type Contains<T extends Storable> = ModelLinksSimpleArray<T> | ModelLinksArray<T, any>;
+export type Contains<T extends Storable> = ManyToMany<T>;
+
+
+/**
+ * Define a junction link between two models in a n:m relation
+ *
+ * This is used to define the junction model in a n:m relation with additional data
+ * It does not require to have a symetric relation on the other side
+ */
+export class JunctionLink<T extends Storable, K extends Storable> implements Storable {
+  [WEBDA_PRIMARY_KEY] = ["linkA", "linkB"] as const;
+  linkA: ModelParent<T>;
+  linkB: ModelLink<K>;
+  getPrimaryKey() {
+    return { linkA: this.linkA.getPrimaryKey(), linkB: this.linkB.getPrimaryKey() };
+  }
+  load(params: any): this {
+    return this;
+  }
+  getUUID(): string {
+    return `${this.linkA.getPrimaryKey()}_${this.linkB.getPrimaryKey()}`;
+  }
+  toProxy() {
+    return this;
+  }
+}

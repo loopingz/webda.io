@@ -71,10 +71,6 @@ export interface Storable<T = any, PrimaryKeyProperties extends keyof T = any> e
    * Load the serialized version of itself
    */
   load(params: any): this;
-  /**
-   * Return a proxy version of the object (used for validation and other stuff)
-   */
-  toProxy(): any;
 }
 
 /**
@@ -217,7 +213,7 @@ type ExcludeSymbols<T> = {
 export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
   Omit<
     ExcludeSymbols<T>,
-    FilterAttributes<T, Function> | FilterAttributes<T, ModelRelated<any>> | ReadonlyKeys<T> | Extract<keyof T, symbol>
+    FilterAttributes<T, Function> | FilterAttributes<T, ModelRelated<any, any, any>> | ReadonlyKeys<T> | Extract<keyof T, symbol>
   >,
   U
 >;

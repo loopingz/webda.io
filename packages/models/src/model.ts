@@ -269,7 +269,7 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
    */
   async delete(): Promise<void> {
     // Mark the model as deleted
-    // return this.ref().setAttribute(WEBDA_DELETED, true);
+    // return this.ref().setAttribute(WEBDA_DELETED, Date.now());
     // or delete for real
     return this.ref().delete();
   }

@@ -51,6 +51,9 @@ export class SubClassModel extends UuidModel {
   readonly test: number;
   collection: { name: string; type: string }[];
   createdAt: Date;
+  metadata: {
+    counter: number;
+  };
 
   constructor(data: SelfJSONed<ExceptPartial<SubClassModel, "createdAt">> = {} as any) {
     super(data);
@@ -62,6 +65,9 @@ export class SubClassModel extends UuidModel {
     this.test = data.test || data.age * 4;
     this.collection = data.collection;
     this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
+    this.metadata = {
+      counter: data.metadata?.counter ?? 0
+    };
   }
 
   static getDeserializers<T extends ModelClass>(

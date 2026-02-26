@@ -1,16 +1,9 @@
-import type {
-  PK,
-  PrimaryKey,
-  PrimaryKeyAttributes,
-  PrimaryKeyType,
-  StorableAttributes,
-  ModelClass
-} from "../storable";
-import type { Helpers, JSONed, SelfJSONed } from "../types";
+import type { PK, PrimaryKey, PrimaryKeyAttributes, PrimaryKeyType, ModelClass } from "../storable";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
 import { WEBDA_PRIMARY_KEY, WEBDA_EVENTS } from "../storable";
 import { ModelRefWithCreate } from "../relations";
 import { Repository } from "./repository";
-import type { ArrayElement, ReadonlyKeys } from "@webda/tsc-esm";
+import type { ArrayElement } from "@webda/tsc-esm";
 
 export abstract class AbstractRepository<T extends ModelClass> implements Repository<T> {
   protected events: Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>> = new Map();
@@ -133,15 +126,12 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   /**
    * @inheritdoc
    */
-  async setAttribute<
-    K extends StorableAttributes<InstanceType<T>, any>,
-    L extends StorableAttributes<InstanceType<T>, any>
-  >(
+  async setAttribute<K extends PropertyPaths<InstanceType<T>>, L extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     attribute: K,
-    value: InstanceType<T>[K],
+    value: PropertyPathType<InstanceType<T>, K>,
     conditionField?: L | null,
-    condition?: any
+    condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
   ): Promise<void> {
     return this.patch(this.getPrimaryKey(primaryKey), { [attribute]: value } as any, conditionField, condition);
   }
@@ -159,8 +149,8 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
    * @inheritdoc
    */
   async incrementAttribute<
-    K extends StorableAttributes<InstanceType<T>, any>,
-    L extends StorableAttributes<InstanceType<T>, number>
+    K extends PropertyPaths<InstanceType<T>>,
+    L extends NumericPropertyPaths<InstanceType<T>>
   >(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     info: L | { property: L; value?: number },
@@ -171,8 +161,8 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   }
 
   abstract incrementAttributes<
-    K extends StorableAttributes<InstanceType<T>, any>,
-    L extends StorableAttributes<InstanceType<T>, number>
+    K extends PropertyPaths<InstanceType<T>>,
+    L extends NumericPropertyPaths<InstanceType<T>>
   >(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
@@ -183,7 +173,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
   abstract query(query: string): Promise<{ results: InstanceType<T>[]; continuationToken?: string }>;
   abstract iterate(query: string): AsyncGenerator<InstanceType<T>, any, any>;
   abstract deleteItemFromCollection<
-    K extends StorableAttributes<InstanceType<T>, any[]>,
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
   >(
     uuid: PrimaryKeyType<InstanceType<T>>,
@@ -193,7 +183,7 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     itemWriteCondition?: ArrayElement<InstanceType<T>[K]>[L]
   ): Promise<void>;
   abstract upsertItemToCollection<
-    K extends StorableAttributes<InstanceType<T>, any[]>,
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
   >(
     uuid: PrimaryKeyType<InstanceType<T>>,
@@ -206,34 +196,31 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
       : ArrayElement<InstanceType<T>[K]>
   ): Promise<void>;
   abstract removeAttribute<
-    L extends StorableAttributes<InstanceType<T>>,
-    K extends Exclude<
-      StorableAttributes<InstanceType<T>, any>,
-      ReadonlyKeys<InstanceType<T>> | "toString" | InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]
-    >
+    L extends PropertyPaths<InstanceType<T>>,
+    K extends PropertyPaths<InstanceType<T>>
   >(
     uuid: PrimaryKeyType<InstanceType<T>>,
     attribute: K,
     conditionField?: L | null,
-    condition?: InstanceType<T>[L] | JSONed<InstanceType<T>[L]>
+    condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
   ): Promise<void>;
   abstract get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<Helpers<InstanceType<T>>>;
   abstract create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>>;
-  abstract patch<K extends StorableAttributes<InstanceType<T>, any>>(
+  abstract patch<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     data: Partial<InstanceType<T>>,
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void>;
-  abstract update<K extends StorableAttributes<InstanceType<T>>>(
+  abstract update<K extends PropertyPaths<InstanceType<T>>>(
     data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K]
+    condition?: PropertyPathType<InstanceType<T>, K>
   ): Promise<void>;
-  abstract delete<K extends StorableAttributes<InstanceType<T>>>(
+  abstract delete<K extends PropertyPaths<InstanceType<T>>>(
     uuid: PrimaryKeyType<InstanceType<T>>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
+    condition?: PropertyPathType<InstanceType<T>, K> | JSONed<PropertyPathType<InstanceType<T>, K>>
   ): Promise<void>;
   abstract exists(uuid: PrimaryKeyType<InstanceType<T>>): Promise<boolean>;
 

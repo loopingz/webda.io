@@ -2,13 +2,11 @@ import type { ArrayElement } from "@webda/tsc-esm";
 import type {
   PrimaryKey,
   PrimaryKeyType,
-  StorableAttributes,
-  UpdatableAttributes,
   WEBDA_EVENTS,
   ModelClass,
   PrimaryKeyAttributes
 } from "../storable";
-import type { Helpers, JSONed, SelfJSONed } from "../types";
+import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
 import type { ModelRefWithCreate } from "../relations";
 
 export const WEBDA_TEST = Symbol("webda_test");
@@ -92,10 +90,10 @@ export interface CoreRepository<T extends ModelClass = ModelClass> {
    * @param condition - Value to check for condition (optional)
    * @returns
    */
-  delete<K extends StorableAttributes<InstanceType<T>>>(
+  delete<K extends PropertyPaths<InstanceType<T>>>(
     uid: PrimaryKeyType<InstanceType<T>> | string,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
+    condition?: PropertyPathType<InstanceType<T>, K> | JSONed<PropertyPathType<InstanceType<T>, K>>
   ): Promise<void>;
 
   /**
@@ -155,10 +153,10 @@ export interface Updatable<T extends ModelClass = ModelClass> {
    * @param conditionField - Field to check for optimistic locking (null = no check)
    * @param condition - Expected value for condition field
    */
-  update<K extends StorableAttributes<InstanceType<T>>>(
+  update<K extends PropertyPaths<InstanceType<T>>>(
     data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K]
+    condition?: PropertyPathType<InstanceType<T>, K>
   ): Promise<void>;
 
   /**
@@ -168,11 +166,11 @@ export interface Updatable<T extends ModelClass = ModelClass> {
    * @param conditionField - Field to check for optimistic locking (null = no check)
    * @param condition - Expected value for condition field
    */
-  patch<K extends StorableAttributes<InstanceType<T>>>(
+  patch<K extends PropertyPaths<InstanceType<T>>>(
     uid: PrimaryKeyType<InstanceType<T>> | string,
     data: Partial<Omit<InstanceType<T>, PrimaryKeyAttributes<InstanceType<T>>>>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
+    condition?: PropertyPathType<InstanceType<T>, K> | JSONed<PropertyPathType<InstanceType<T>, K>>
   ): Promise<void>;
 
   /**
@@ -197,11 +195,11 @@ export interface AtomicOperations<T extends ModelClass = ModelClass> {
    * @param conditionField - Field to check for condition
    * @param condition - Expected value for condition field
    */
-  incrementAttributes<K extends StorableAttributes<InstanceType<T>>, L extends UpdatableAttributes<InstanceType<T>, number>>(
+  incrementAttributes<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKeyOrUid: PrimaryKeyType<InstanceType<T>> | string,
     info: ({ property: L; value?: number } | L)[] | Record<L, number>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
+    condition?: PropertyPathType<InstanceType<T>, K> | JSONed<PropertyPathType<InstanceType<T>, K>>
   ): Promise<void>;
 
   /**
@@ -211,11 +209,11 @@ export interface AtomicOperations<T extends ModelClass = ModelClass> {
    * @param conditionField - Field to check for condition
    * @param condition - Expected value for condition field
    */
-  incrementAttribute<K extends StorableAttributes<InstanceType<T>>, L extends UpdatableAttributes<InstanceType<T>, number>>(
+  incrementAttribute<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKeyOrUid: PrimaryKeyType<InstanceType<T>> | string,
     info: { property: L; value?: number } | L,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
+    condition?: PropertyPathType<InstanceType<T>, K> | JSONed<PropertyPathType<InstanceType<T>, K>>
   ): Promise<void>;
 
   /**
@@ -226,12 +224,12 @@ export interface AtomicOperations<T extends ModelClass = ModelClass> {
    * @param conditionField - Field to check for condition
    * @param condition - Expected value for condition field
    */
-  setAttribute<K extends UpdatableAttributes<InstanceType<T>>, L extends StorableAttributes<InstanceType<T>>>(
+  setAttribute<K extends PropertyPaths<InstanceType<T>>, L extends PropertyPaths<InstanceType<T>>>(
     primaryKeyOrUid: PrimaryKeyType<InstanceType<T>> | string,
     attribute: K,
-    value: InstanceType<T>[K],
+    value: PropertyPathType<InstanceType<T>, K>,
     conditionField?: L | null,
-    condition?: InstanceType<T>[L] | JSONed<InstanceType<T>[L]>
+    condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
   ): Promise<void>;
 
   /**
@@ -241,11 +239,11 @@ export interface AtomicOperations<T extends ModelClass = ModelClass> {
    * @param conditionField - Field to check for condition
    * @param condition - Expected value for condition field
    */
-  removeAttribute<L extends StorableAttributes<InstanceType<T>>, K extends UpdatableAttributes<InstanceType<T>>>(
+  removeAttribute<L extends PropertyPaths<InstanceType<T>>, K extends PropertyPaths<InstanceType<T>>>(
     primaryKeyOrUid: PrimaryKeyType<InstanceType<T>> | string,
     attribute: K,
     conditionField?: L | null,
-    condition?: InstanceType<T>[L] | JSONed<InstanceType<T>[L]>
+    condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
   ): Promise<void>;
 }
 
@@ -265,7 +263,10 @@ export interface CollectionOperations<T extends ModelClass = ModelClass> {
    * @param itemWriteConditionField - Field to check for condition on item
    * @param itemWriteCondition - Expected value for condition field on item
    */
-  upsertItemToCollection<K extends StorableAttributes<InstanceType<T>, Array<any>>, L extends keyof ArrayElement<InstanceType<T>[K]>>(
+  upsertItemToCollection<
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
+    L extends keyof ArrayElement<InstanceType<T>[K]>
+  >(
     primaryKeyOrUid: PrimaryKeyType<InstanceType<T>> | string,
     collection: K,
     item: ArrayElement<InstanceType<T>[K]> | JSONed<ArrayElement<InstanceType<T>[K]>>,
@@ -284,7 +285,10 @@ export interface CollectionOperations<T extends ModelClass = ModelClass> {
    * @param itemWriteConditionField - Field to check for condition on item
    * @param itemWriteCondition - Expected value for condition field on item
    */
-  deleteItemFromCollection<K extends StorableAttributes<InstanceType<T>, Array<any>>, L extends keyof ArrayElement<InstanceType<T>[K]>>(
+  deleteItemFromCollection<
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
+    L extends keyof ArrayElement<InstanceType<T>[K]>
+  >(
     primaryKeyOrUid: PrimaryKeyType<InstanceType<T>> | string,
     collection: K,
     index: number,
@@ -323,7 +327,11 @@ export function supportsCollectionOperations<T extends ModelClass>(
  * - AtomicOperations: Atomic increment, setAttribute, removeAttribute
  * - CollectionOperations: Array/collection manipulation
  */
-export interface Repository<T extends ModelClass = ModelClass> extends CoreRepository<T>, Updatable<T>, AtomicOperations<T>, CollectionOperations<T> {
+export interface Repository<T extends ModelClass = ModelClass>
+  extends CoreRepository<T>,
+    Updatable<T>,
+    AtomicOperations<T>,
+    CollectionOperations<T> {
   // All methods are inherited from the extended interfaces
   // This empty interface body maintains backward compatibility while using the new segregated design
 }

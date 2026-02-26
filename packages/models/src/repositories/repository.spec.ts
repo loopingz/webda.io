@@ -93,13 +93,20 @@ export class RepositoryTest {
     assert.strictEqual(object2.age, 30);
 
     await object.ref().incrementAttribute("age", 1);
+    await object.ref().incrementAttribute("metadata.counter", 1);
     await repo.incrementAttribute(object.getPrimaryKey(), "age");
     await repo.incrementAttributes(object.getPrimaryKey(), {
-      age: 12
+      age: 12,
+      "metadata.counter": 5
     });
     await object.ref().setAttribute("name", "New Name");
     await object.ref().removeAttribute("createdAt");
     assert.ok(await object.ref().exists());
+    const control = await repo.get(object.getPrimaryKey());
+    assert.strictEqual(control.age, 30 + 1 + 1 + 12);
+    assert.strictEqual(control.metadata.counter, 0 + 1 + 5);
+    assert.strictEqual(control.name, "New Name");
+    assert.notStrictEqual(control.createdAt, undefined);
 
     await repo.exists(object.getPrimaryKey());
 

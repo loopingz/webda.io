@@ -3,7 +3,6 @@ import {
   isStorable,
   PrimaryKeyType,
   Storable,
-  StorableAttributes,
   PrimaryKey,
   PrimaryKeyEquals,
   AttributesArgument,
@@ -13,7 +12,7 @@ import {
   WEBDA_DIRTY,
   ModelClass
 } from "./storable";
-import type { SelfJSONed, JSONed, Helpers } from "./types";
+import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "./types";
 import type { Repository } from "./repositories/repository";
 
 export const RelationParent = Symbol("RelationParent");
@@ -88,7 +87,7 @@ export class ModelRef<T extends Storable> {
    * @param value
    * @returns
    */
-  setAttribute<A extends UpdatableAttributes<T>>(attribute: A, value: JSONed<T[A]>): Promise<void> {
+  setAttribute<A extends PropertyPaths<T>>(attribute: A, value: JSONed<PropertyPathType<T, A>>): Promise<void> {
     return this.getRepository().setAttribute(this.getKey(), attribute, value as any);
   }
 
@@ -99,10 +98,10 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  patch<K extends keyof T, A extends StorableAttributes<T>>(
+  patch<K extends keyof T, A extends PropertyPaths<T>>(
     data: Partial<Omit<T, PrimaryKeyAttributes<T>>>,
     conditionField?: A,
-    condition?: T[A]
+    condition?: PropertyPathType<T, A>
   ): Promise<void> {
     return this.getRepository().patch(this.getKey(), data, conditionField, condition);
   }
@@ -114,10 +113,10 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  update<A extends StorableAttributes<T>>(
+  update<A extends PropertyPaths<T>>(
     data: Omit<Helpers<T>, PrimaryKeyAttributes<T>>,
     conditionField?: A,
-    condition?: T[A]
+    condition?: PropertyPathType<T, A>
   ): Promise<void> {
     return this.getRepository().update({ ...data, ...this.getKey() } as Helpers<T>, conditionField, condition);
   }
@@ -139,7 +138,7 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  delete<A extends StorableAttributes<T, any>>(conditionField?: A, condition?: JSONed<T[A]> | T[A]): Promise<void> {
+  delete<A extends PropertyPaths<T>>(conditionField?: A, condition?: PropertyPathType<T, A> | JSONed<PropertyPathType<T, A>>): Promise<void> {
     return this.getRepository().delete(this.getKey(), conditionField, condition);
   }
 
@@ -160,10 +159,10 @@ export class ModelRef<T extends Storable> {
    */
   incrementAttributes(
     info:
-      | (UpdatableAttributes<T, number> | { property: UpdatableAttributes<T, number>; value?: number })[]
-      | Record<UpdatableAttributes<T, number>, number>,
-    conditionField?: StorableAttributes<T, any>,
-    condition?: T[StorableAttributes<T, any>]
+      | (NumericPropertyPaths<T> | { property: NumericPropertyPaths<T>; value?: number })[]
+      | Record<NumericPropertyPaths<T>, number>,
+    conditionField?: PropertyPaths<T>,
+    condition?: PropertyPathType<T, PropertyPaths<T>>
   ): Promise<void> {
     return this.getRepository().incrementAttributes(this.getKey(), info, conditionField, condition);
   }
@@ -176,7 +175,7 @@ export class ModelRef<T extends Storable> {
    * @param itemWriteCondition
    * @returns
    */
-  upsertItemToCollection<K extends StorableAttributes<T, Array<any>>, L extends keyof ArrayElement<T[K]>>(
+  upsertItemToCollection<K extends Extract<PropertyPaths<T, any[]>, keyof T>, L extends keyof ArrayElement<T[K]>>(
     collection: K,
     item: ArrayElement<T[K]> | JSONed<ArrayElement<T[K]>>,
     index?: number,
@@ -201,13 +200,11 @@ export class ModelRef<T extends Storable> {
    * @param itemWriteCondition
    * @returns
    */
-  deleteItemFromCollection(
-    collection: StorableAttributes<T, any[]>,
+  deleteItemFromCollection<K extends Extract<PropertyPaths<T, any[]>, keyof T>, L extends keyof ArrayElement<T[K]>>(
+    collection: K,
     index: number,
-    itemWriteConditionField?: keyof ArrayElement<T[StorableAttributes<T, any[]>]>,
-    itemWriteCondition?: ArrayElement<T[StorableAttributes<T, any[]>]>[keyof ArrayElement<
-      T[StorableAttributes<T, any[]>]
-    >]
+    itemWriteConditionField?: L,
+    itemWriteCondition?: ArrayElement<T[K]>[L]
   ): Promise<void> {
     return this.getRepository().deleteItemFromCollection(
       this.getKey(),
@@ -225,10 +222,10 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  removeAttribute<A extends StorableAttributes<T, any>>(
-    attribute: Exclude<StorableAttributes<T, any>, PrimaryKeyAttributes<T>>,
+  removeAttribute<A extends PropertyPaths<T>>(
+    attribute: Exclude<PropertyPaths<T>, PrimaryKeyAttributes<T>>,
     conditionField?: A,
-    condition?: T[A]
+    condition?: PropertyPathType<T, A>
   ): Promise<void> {
     return this.getRepository().removeAttribute(this.getKey(), attribute, conditionField, condition);
   }
@@ -241,10 +238,10 @@ export class ModelRef<T extends Storable> {
    * @returns
    */
   incrementAttribute(
-    property: UpdatableAttributes<T, number>,
+    property: NumericPropertyPaths<T>,
     value?: number,
-    conditionField?: StorableAttributes<T, any>,
-    condition?: T[StorableAttributes<T, any>]
+    conditionField?: PropertyPaths<T>,
+    condition?: PropertyPathType<T, PropertyPaths<T>>
   ): Promise<void> {
     return this.incrementAttributes([{ property: property, value: value }], conditionField, condition);
   }
@@ -297,11 +294,7 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
  *
  * TODO Deduce attribute from the ModelParent on the other side when "" is used
  */
-export type ModelRelated<
-  T extends Storable,
-  L extends Storable, 
-  _K extends FilterAttributes<T, ModelLinker<L>>
-> = {
+export type ModelRelated<T extends Storable, L extends Storable, _K extends FilterAttributes<T, ModelLinker<L>>> = {
   /**
    * Query the related objects
    * @param query
@@ -995,13 +988,12 @@ export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, 
   }
 }
 
-
 export type ManyToOne<T extends Storable> = ModelLink<T>;
 /**
  * Define a 1:n relation on the current model to another model
  *
  * This is an helper type that allows to query the related objects with the correct type
- * 
+ *
  * T is the model to link to
  * K is the attribute in T to query (not used but required to complete the graph)
  */
@@ -1018,14 +1010,13 @@ export type ManyToMany<T extends Storable, K extends object = {}> = K extends ob
 /**
  * Define the parent of the model
  * Can only have one parent and implies a Cascade delete
- * 
+ *
  * Alias for @ModelParent
  * Similar to @ModelLink but implies a Cascade delete
  */
 export type BelongTo<T extends Storable> = ModelParent<T>;
 export type RelateTo<T extends Storable> = ModelLink<T>;
 export type Contains<T extends Storable> = ManyToMany<T>;
-
 
 /**
  * Define a junction link between two models in a n:m relation

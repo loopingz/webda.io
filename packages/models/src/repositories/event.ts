@@ -1,7 +1,7 @@
-import { PK, PrimaryKeyType, StorableAttributes, ModelClass, WEBDA_PRIMARY_KEY } from "../storable";
-import type { SelfJSONed, JSONed, Helpers } from "../types";
+import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable";
+import type { SelfJSONed, JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types";
 import { AbstractRepository } from "./abstract";
-import { ArrayElement, ReadonlyKeys } from "@webda/tsc-esm";
+import { ArrayElement } from "@webda/tsc-esm";
 import { WEBDA_TEST } from "./repository";
 
 /**
@@ -19,8 +19,8 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
 
   async incrementAttributes<
-    K extends StorableAttributes<InstanceType<T>, any>,
-    L extends StorableAttributes<InstanceType<T>, number>
+    K extends PropertyPaths<InstanceType<T>>,
+    L extends NumericPropertyPaths<InstanceType<T>>
   >(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
@@ -72,7 +72,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
    * @param itemWriteCondition The value to use for the write condition
    */
   async deleteItemFromCollection<
-    K extends StorableAttributes<InstanceType<T>, any[]>,
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
   >(
     uuid: PrimaryKeyType<InstanceType<T>>,
@@ -113,7 +113,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
 
   async upsertItemToCollection<
-    K extends StorableAttributes<InstanceType<T>, any[]>,
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
   >(
     uuid: PrimaryKeyType<InstanceType<T>>,
@@ -159,16 +159,13 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     } as any);
   }
   async removeAttribute<
-    L extends StorableAttributes<InstanceType<T>>,
-    K extends Exclude<
-      StorableAttributes<InstanceType<T>, any>,
-      "toString" | ReadonlyKeys<InstanceType<T>> | InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]
-    >
+    L extends PropertyPaths<InstanceType<T>>,
+    K extends PropertyPaths<InstanceType<T>>
   >(
     uuid: PrimaryKeyType<InstanceType<T>>,
     attribute: K,
     conditionField?: L | null,
-    condition?: InstanceType<T>[L] | JSONed<InstanceType<T>[L]>
+    condition?: PropertyPathType<InstanceType<T>, L> | JSONed<PropertyPathType<InstanceType<T>, L>>
   ): Promise<void> {
     await this.emit("PartialUpdate", {
       object_id: uuid,
@@ -202,7 +199,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     await this.emit("Created", { object_id: this.getPrimaryKey(data), object: data } as any);
     return res;
   }
-  async patch<K extends StorableAttributes<InstanceType<T>, any>>(
+  async patch<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     data: Partial<InstanceType<T>>,
     _conditionField?: K | null,
@@ -212,19 +209,19 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     await this.repository.patch(primaryKey, data, _conditionField, _condition);
     await this.emit("Patched", { object_id: primaryKey, object: data } as any);
   }
-  async update<K extends StorableAttributes<InstanceType<T>>>(
+  async update<K extends PropertyPaths<InstanceType<T>>>(
     data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K]
+    condition?: PropertyPathType<InstanceType<T>, K>
   ): Promise<void> {
     await this.emit("Update", { object_id: this.getPrimaryKey(data), object: data } as any);
     await this.repository.update(data, conditionField, condition);
     await this.emit("Updated", { object_id: this.getPrimaryKey(data), object: data } as any);
   }
-  async delete<K extends StorableAttributes<InstanceType<T>>>(
+  async delete<K extends PropertyPaths<InstanceType<T>>>(
     uuid: PrimaryKeyType<InstanceType<T>>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K] | JSONed<InstanceType<T>[K]>
+    condition?: PropertyPathType<InstanceType<T>, K> | JSONed<PropertyPathType<InstanceType<T>, K>>
   ): Promise<void> {
     await this.emit("Delete", { object_id: uuid } as any);
     await this.repository.delete(uuid, conditionField, condition);

@@ -1,6 +1,6 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type { PK, StorableAttributes, WEBDA_EVENTS, WEBDA_PRIMARY_KEY, ModelClass } from "../storable";
-import type { Helpers, JSONed, SelfJSONed } from "../types";
+import type { PK, WEBDA_PRIMARY_KEY, ModelClass } from "../storable";
+import type { Helpers, JSONed, SelfJSONed, PropertyPaths, NumericPropertyPaths } from "../types";
 import { deserialize, serialize } from "@webda/serialize";
 import { AbstractRepository } from "./abstract";
 import { Repository, WEBDA_TEST } from "./repository";
@@ -78,23 +78,23 @@ export class MemoryRepository<
   /**
    * @inheritdoc
    */
-  async update<K extends StorableAttributes<InstanceType<T>, any>>(
+  async update<K extends PropertyPaths<InstanceType<T>>>(
     data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K]
+    condition?: any
   ): Promise<void> {
-    const item = await this.get(this.getPrimaryKey(data)) as InstanceType<T>;
+    const item = (await this.get(this.getPrimaryKey(data))) as InstanceType<T>;
     this.checkCondition(item, conditionField, condition);
     this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new this.model(data) as InstanceType<T>));
   }
 
-  protected checkCondition<K extends StorableAttributes<InstanceType<T>>>(
+  protected checkCondition<K extends PropertyPaths<InstanceType<T>>>(
     item: InstanceType<T>,
     conditionField?: K | null,
-    condition?: InstanceType<T>[K]
+    condition?: any
   ) {
     if (conditionField) {
-      if (item[conditionField] !== condition) {
+      if ((item as any)[conditionField as string] !== condition) {
         throw new Error(`Condition failed: ${conditionField as string} !== ${condition}`);
       }
     }
@@ -102,19 +102,19 @@ export class MemoryRepository<
   /**
    * @inheritdoc
    */
-  async patch<K extends StorableAttributes<InstanceType<T>, any>>(
+  async patch<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     data: Partial<InstanceType<T>>,
     conditionField?: K | null,
     condition?: any
   ): Promise<void> {
-    const item = await this.get(primaryKey)as InstanceType<T>;
+    const item = (await this.get(primaryKey)) as InstanceType<T>;
     this.checkCondition(item, conditionField, condition);
     // @ts-ignore
-    console.log('patch', item.createdAt);
+    console.log("patch", item.createdAt);
     item.load(data);
     // @ts-ignore
-    console.log('patch', item.createdAt);
+    console.log("patch", item.createdAt);
     this.storage.set(item.getPrimaryKey().toString(), this.serialize(item));
   }
 
@@ -194,7 +194,7 @@ export class MemoryRepository<
       if (offset >= count) {
         continue;
       }
-      const obj = await repository.get(uuid as any) as InstanceType<T>;
+      const obj = (await repository.get(uuid as any)) as InstanceType<T>;
       if (obj && query.filter.eval(obj)) {
         result.results.push(obj);
         if (result.results.length >= limit) {
@@ -259,7 +259,7 @@ export class MemoryRepository<
   /**
    * @inheritdoc
    */
-  async delete<K extends StorableAttributes<InstanceType<T>, any>>(
+  async delete<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     _conditionField?: K | null,
     _condition?: any
@@ -279,25 +279,38 @@ export class MemoryRepository<
   /**
    * @inheritdoc
    */
-  async incrementAttributes<
-    K extends StorableAttributes<InstanceType<T>, any>,
-    L extends StorableAttributes<InstanceType<T>, number>
-  >(
+  async incrementAttributes<K extends PropertyPaths<InstanceType<T>>, L extends NumericPropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]> | string,
     info: (L | { property: L; value?: number })[] | Record<L, number>,
     _conditionField?: K | null,
     _condition?: any
   ): Promise<void> {
-    const item = await this.get(primaryKey) as InstanceType<T>;
+    const item = (await this.get(primaryKey)) as InstanceType<T>;
     if (Array.isArray(info)) {
       for (const entry of info) {
         const prop = typeof entry === "string" ? entry : (entry as any).property;
         const inc = typeof entry === "string" ? 1 : ((entry as any).value ?? 1);
-        (item as any)[prop] = ((item as any)[prop] || 0) + inc;
+        const parts = prop.split(".");
+        let current: any = item;
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i];
+          current[part] ??= {};
+          current = current[part];
+        }
+        const lastPart = parts[parts.length - 1];
+        (current as any)[lastPart] = ((current as any)[lastPart] || 0) + inc;
       }
     } else {
       for (const prop in info) {
-        (item as any)[prop] = ((item as any)[prop] || 0) + info[prop]!;
+        const parts = prop.split(".");
+        let current: any = item;
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i];
+          current[part] ??= {};
+          current = current[part];
+        }
+        const lastPart = parts[parts.length - 1];
+        (current as any)[lastPart] = ((current as any)[lastPart] || 0) + info[prop]!;
       }
     }
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
@@ -322,7 +335,7 @@ export class MemoryRepository<
    * @inheritdoc
    */
   async upsertItemToCollection<
-    K extends StorableAttributes<InstanceType<T>, any[]>,
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
   >(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
@@ -332,7 +345,7 @@ export class MemoryRepository<
     itemWriteConditionField?: any,
     itemWriteCondition?: any
   ): Promise<void> {
-    const obj = await this.get(primaryKey) as InstanceType<T>;
+    const obj = (await this.get(primaryKey)) as InstanceType<T>;
     (obj as any)[collection] ??= [];
     this.checkItemWriteCondition(
       obj[collection] as Array<any>,
@@ -353,7 +366,7 @@ export class MemoryRepository<
    * @inheritdoc
    */
   async deleteItemFromCollection<
-    K extends StorableAttributes<InstanceType<T>, any[]>,
+    K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
   >(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
@@ -362,7 +375,7 @@ export class MemoryRepository<
     itemWriteConditionField?: any,
     itemWriteCondition?: any
   ): Promise<void> {
-    const obj = await this.get(primaryKey) as InstanceType<T>;
+    const obj = (await this.get(primaryKey)) as InstanceType<T>;
     const arr = (obj as any)[collection] as Array<any>;
     this.checkItemWriteCondition(
       obj[collection] as Array<any>,
@@ -379,16 +392,13 @@ export class MemoryRepository<
   /**
    * @inheritdoc
    */
-  async removeAttribute<
-    L extends StorableAttributes<InstanceType<T>, any>,
-    K extends StorableAttributes<InstanceType<T>, any>
-  >(
+  async removeAttribute<L extends PropertyPaths<InstanceType<T>>, K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     attribute: K,
     _conditionField?: L | null,
     _condition?: any
   ): Promise<void> {
-    const obj = await this.get(primaryKey) as InstanceType<T>;
+    const obj = (await this.get(primaryKey)) as InstanceType<T>;
     delete (obj as any)[attribute as string];
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
   }

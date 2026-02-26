@@ -10,9 +10,7 @@ import {
 } from "./storable";
 import type { Helpers, SelfJSONed } from "./types";
 import { randomUUID } from "crypto";
-import type { Securable } from "./securable";
 import type { ModelRef } from "./relations";
-//import { ExecutionContext, Exposable } from "./actionable";
 import type { Repository } from "./repositories/repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 import { LoadParameters } from "./types";
@@ -55,7 +53,7 @@ export type ModelEvents<T = any> = {
  *
  * This is the core of many application
  */
-export abstract class Model extends RepositoryStorageClassMixIn(Object) implements Storable, Securable {
+export abstract class Model extends RepositoryStorageClassMixIn(Object) implements Storable {
   /**
    * Model events
    */
@@ -153,14 +151,6 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
       new ObjectSerializer(clazz as any, clazz.getStaticProperties()),
       overwrite
     );
-  }
-
-  /**
-   * No proxy by default
-   * @returns
-   */
-  toProxy(): this {
-    return this;
   }
 
   /**

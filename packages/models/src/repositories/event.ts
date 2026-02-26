@@ -6,6 +6,8 @@ import { WEBDA_TEST } from "./repository";
 
 /**
  * Add event emitter to repository
+ *
+ * We could add an unblocking version that do not wait for listeners resolution
  */
 export class EventRepository<T extends ModelClass = any> extends AbstractRepository<T> {
   constructor(

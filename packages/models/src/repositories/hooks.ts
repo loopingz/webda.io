@@ -100,33 +100,3 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
     }
   };
 }
-/*
-class Test extends RepositoryStorageClassMixIn(Object) {
-  count: number;
-  getPrimaryKey() {
-    return "test";
-  }
-
-  getUUID() {
-    return "uuid";
-  }
-
-  toJSON(): { test: string } {
-    return { test: "test" };
-  }
-
-  load(params: any): this {
-    Object.assign(this, params);
-    return this;
-  }
-
-  [WEBDA_PRIMARY_KEY] = ["test"] as const;
-}
-
-Test.getRepository().ref("test").create({
-  count: 1
-});
-Test.create({
-  count: "123"
-});
-*/

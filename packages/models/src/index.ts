@@ -5,5 +5,4 @@ export * from "./repositories/hooks";
 export * from "./repositories/repository";
 export * from "./repositories/abstract";
 export * from "./repositories/memory";
-export * from "./securable";
 export * from "./storable";

@@ -124,15 +124,20 @@ export type Deserializers<T extends { load: (data: T) => any }> = {
 /**
  * Return all properties of a type that are not functions.
  */
-type NonFunctionPropertyNames<T extends object> = {
+type PropertyNames<T extends object> = {
   [K in keyof T]: T[K] extends Function ? never : K;
 }[keyof T];
 /**
  * Return dot-notated paths for non-function properties, recursing into sub-objects.
  *
+ * If Filter type is specified, only returns paths where the property type extends Filter.
+ *
  * Example: { a: { b: string } } -> "a" | "a.b"
+ * Example with Filter=string: { a: string, b: { c: string, d: number } } -> "a" | "b.c"
  */
-export type NonFunctionPropertyPaths<T extends object> = _NonFunctionPropertyPaths<T>;
+export type PropertyPaths<T extends object, Filter = never> = [Filter] extends [never]
+  ? _NonFunctionPropertyPaths<T>
+  : _FilteredPropertyPaths<T, Filter>;
 type Primitive = string | number | boolean | bigint | symbol | null | undefined;
 type _NonFunctionPropertyPaths<T> = {
   [K in Extract<keyof T, string>]: T[K] extends Function
@@ -145,6 +150,33 @@ type _NonFunctionPropertyPaths<T> = {
           ? K | `${K}.${_NonFunctionPropertyPaths<T[K]>}`
           : K;
 }[Extract<keyof T, string>];
+type _FilteredPropertyPaths<T, Filter> = {
+  [K in Extract<keyof T, string>]: T[K] extends Function
+    ? never
+    :
+        | (T[K] extends Filter ? K : never)
+        | (T[K] extends object ? `${K}.${_FilteredPropertyPaths<T[K], Filter>}` : never);
+}[Extract<keyof T, string>];
+/**
+ * Return dot-notated paths for non-function properties, recursing into sub-objects.
+ *
+ * Example: { a: { b: number }, c: number } -> "a.b" | "c"
+ */
+export type NumericPropertyPaths<T extends object> = PropertyPaths<T, number>;
+
+type _PropertyPathType<T, K extends string> = K extends `${infer Head}.${infer Tail}`
+  ? Head extends keyof T
+    ? _PropertyPathType<T[Head], Tail>
+    : never
+  : K extends keyof T
+    ? T[K]
+    : never;
+
+/**
+ * Get the type of the property at the given dot-notation path K in T.
+ * e.g. PropertyPathType<{ a: { b: number } }, "a.b"> → number
+ */
+export type PropertyPathType<T extends object, K extends PropertyPaths<T>> = _PropertyPathType<T, K>;
 
 /**
  * Detect whether `T` is `any`.
@@ -168,10 +200,7 @@ export type OptionalKeysOf<Type extends object> = Type extends unknown // For di
   ? keyof { [Key in keyof Type as IsOptionalKeyOf<Type, Key> extends false ? never : Key]: never } & keyof Type // Intersect with `keyof Type` to ensure result of `OptionalKeysOf<Type>` is always assignable to `keyof Type`
   : never; // Should never happen
 
-type RequiredAttributes<Type extends object> = Exclude<
-  Exclude<NonFunctionPropertyNames<Type>, OptionalKeysOf<Type>>,
-  undefined
->;
+type RequiredAttributes<Type extends object> = Exclude<Exclude<PropertyNames<Type>, OptionalKeysOf<Type>>, undefined>;
 
 /**
  * Extract the parameter type accepted by `Model.load`.
@@ -190,6 +219,7 @@ export type ModelParameters<T extends { load: (data: any) => any }, K extends ke
 export type OnlyNumbers<T> = {
   [K in keyof T as T[K] extends number ? K : never]: T[K];
 };
+
 /**
  * Plain JSON-able object representation of a type.
  */

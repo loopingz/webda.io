@@ -1,6 +1,6 @@
 {
   "name": "@webda/cloudevents",
-  "version": "4.0.0-beta.2",
+  "version": "4.0.0-beta.3",
   "description": "Discovery and Subscriptions for CloudEvents",
   "keywords": [
     "cloudevents",
@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "22.0.0",
-    "@webda/tsc-esm": "4.0.0-beta.1",
+    "@webda/tsc-esm": "4.0.0-beta.2",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "tsx": "^4.17.0",

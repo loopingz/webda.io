@@ -1,5 +1,30 @@
 # Changelog
 
+## [4.0.0-beta.2](https://github.com/loopingz/webda.io/compare/tsc-esm-v4.0.0-beta.1...tsc-esm-v4.0.0-beta.2) (2026-02-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove node 18 support
+
+### Features
+
+* add codemod system ([bbc3086](https://github.com/loopingz/webda.io/commit/bbc3086c1bd4e5c9a7ec9a2ed14772cd8edbf477))
+* add new @webda/decorators module ([7c222f1](https://github.com/loopingz/webda.io/commit/7c222f19bd70891c688ed00c360f5733a94a2b7e))
+* improve caching module ([08b2db5](https://github.com/loopingz/webda.io/commit/08b2db5d96cc4553d5ff2919cbf00287192b4ff6))
+* move to node 22 ([21daf46](https://github.com/loopingz/webda.io/commit/21daf46c54d4e3912ad1b545e1ce89b9a6a84c35))
+* remove node 18 support ([44e7de2](https://github.com/loopingz/webda.io/commit/44e7de29fbc40df9cfb9a707f58bc08d421a3ac1))
+
+
+### Bug Fixes
+
+* dynamic import ([5f9daa9](https://github.com/loopingz/webda.io/commit/5f9daa99abe30d2f727319c7f562fc11144baf23))
+* move to nodenext module and update Inject annotation ([d7d85e4](https://github.com/loopingz/webda.io/commit/d7d85e4dc2a73fce5e63429c02663d980515b667))
+* move tsc-esm to TS5 decorators ([f626693](https://github.com/loopingz/webda.io/commit/f6266932742d87e7cc591ed9433eee22209977f6))
+* symlink isMainModule ([7918dd1](https://github.com/loopingz/webda.io/commit/7918dd1704a3efff2afee7cf424d14d402b331e2))
+* unit test models relations ([2d160f1](https://github.com/loopingz/webda.io/commit/2d160f18d2139b362e8a12f935e15eaad27a808a))
+* update repository to use StorableClass ([f79fc19](https://github.com/loopingz/webda.io/commit/f79fc198bf176ca5baa224ad1c3aab83b5cf9144))
+
 ## [4.0.0-beta.1](https://github.com/loopingz/webda.io/compare/tsc-esm-v1.3.0...tsc-esm-v4.0.0-beta.1) (2024-08-14)
 
 

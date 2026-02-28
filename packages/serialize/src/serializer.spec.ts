@@ -19,10 +19,10 @@ class Test {
   quantity!: bigint;
 
   constructor(json?: any) {
-    this.unserialize(json);
+    this.deserialize(json);
   }
 
-  unserialize(json?: any): this {
+  deserialize(json?: any): this {
     if (json?.startDate || !this.startDate) {
       this.startDate = new Date(json?.startDate || Date.now());
     }
@@ -35,7 +35,7 @@ class Test {
     return this;
   }
 
-  static unserialize(json: any): Test {
+  static deserialize(json: any): Test {
     return new Test(json);
   }
 
@@ -135,7 +135,7 @@ class Serializer {
     try {
       registerSerializer("test", {
         constructorType: Test,
-        deserializer: Test.unserialize
+        deserializer: Test.deserialize
       });
       const test = new Test();
       const serialized = serialize(test);
@@ -527,10 +527,7 @@ class Serializer {
     );
 
     // Test invalid reference format
-    assert.throws(
-      () => context.getReference("invalid", obj1),
-      /Invalid reference 'invalid': must start with '#\/'/
-    );
+    assert.throws(() => context.getReference("invalid", obj1), /Invalid reference 'invalid': must start with '#\/'/);
 
     // Test empty segments are filtered out
     const obj5 = { a: { b: "value" } };
@@ -733,7 +730,10 @@ class Serializer {
   @test
   async testMapNonStringKeys() {
     // Number key: preserved after round-trip
-    const numMap = new Map<number, string>([[1, "one"], [42, "forty-two"]]);
+    const numMap = new Map<number, string>([
+      [1, "one"],
+      [42, "forty-two"]
+    ]);
     const restoredNum: Map<number, string> = deserialize(serialize(numMap));
     assert.ok(restoredNum instanceof Map);
     assert.strictEqual(restoredNum.get(1), "one");
@@ -750,7 +750,11 @@ class Serializer {
     assert.strictEqual(restoredKey.toISOString(), d.toISOString());
 
     // Mixed key types
-    const mixed = new Map<any, any>([["str", 1], [2, "two"], [true, "bool"]]);
+    const mixed = new Map<any, any>([
+      ["str", 1],
+      [2, "two"],
+      [true, "bool"]
+    ]);
     const restoredMixed: Map<any, any> = deserialize(serialize(mixed));
     assert.strictEqual(restoredMixed.get("str"), 1);
     assert.strictEqual(restoredMixed.get(2), "two");
@@ -841,7 +845,10 @@ class Serializer {
     assert.ok(Object.is(restoredArr[2], -0));
 
     // As a Map value
-    const m = new Map([["neg", -0], ["pos", 0]]);
+    const m = new Map([
+      ["neg", -0],
+      ["pos", 0]
+    ]);
     const restoredMap: Map<string, number> = deserialize(serialize(m));
     assert.ok(Object.is(restoredMap.get("neg"), -0));
     assert.ok(Object.is(restoredMap.get("pos"), +0));

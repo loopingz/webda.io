@@ -348,7 +348,7 @@ export class SerializerContext {
     if (!overwrite && this.serializers[typeName]) {
       throw new Error(
         `Serializer for type '${typeName}' is already registered. ` +
-        `Use overwrite=true to replace it, or call unregisterSerializer('${typeName}') first.`
+          `Use overwrite=true to replace it, or call unregisterSerializer('${typeName}') first.`
       );
     }
     const info2: StoredSerializer = methods as StoredSerializer;
@@ -414,8 +414,7 @@ export class SerializerContext {
     // If the serializer is not found, throw an error with helpful guidance
     const typeName = typeof type === "string" ? type : type.name;
     throw new Error(
-      `Serializer for type '${typeName}' not found. ` +
-      `Did you forget to call registerSerializer('${typeName}', ...)?`
+      `Serializer for type '${typeName}' not found. ` + `Did you forget to call registerSerializer('${typeName}', ...)?`
     );
   }
 
@@ -694,21 +693,17 @@ export class SerializerContext {
     for (const p of steps) {
       // Decode JSON-Pointer escape sequences (RFC 6901)
       // ~1 becomes /, ~0 becomes ~
-      const decoded = p.replace(/~1/g, '/').replace(/~0/g, '~');
+      const decoded = p.replace(/~1/g, "/").replace(/~0/g, "~");
 
       // Check if current value is traversable
       if (cur === null || cur === undefined) {
-        throw new Error(
-          `Reference '${ref}' failed: cannot traverse null/undefined at segment '${decoded}'`
-        );
+        throw new Error(`Reference '${ref}' failed: cannot traverse null/undefined at segment '${decoded}'`);
       }
 
       cur = cur[decoded];
 
       if (cur === undefined) {
-        throw new Error(
-          `Reference '${ref}' not found: property '${decoded}' does not exist`
-        );
+        throw new Error(`Reference '${ref}' not found: property '${decoded}' does not exist`);
       }
     }
     return cur;
@@ -732,9 +727,24 @@ export class SerializerContext {
    * // obj.date is a Date instance, not a string
    * ```
    */
-  public deserialize<T>(str: string): T {
+  public deserialize<T>(str: string, type?: T): T {
     if (!str) {
       return undefined as T;
+    }
+    if (type) {
+      const serializer = this.typeSerializer.get(type);
+      if (!serializer) {
+        throw new Error(
+          `Serializer for type '${typeof type === "function" ? type.name : type}' not found. ` +
+            `Did you forget to call registerSerializer(${typeof type === "function" ? type.name : type}, ...)?`
+        );
+      }
+      return this.deserializeRaw({
+        $serializer: {
+          type: serializer.type
+        },
+        value: str
+      });
     }
     return this.deserializeRaw(JSON.parse(str));
   }
@@ -876,6 +886,15 @@ export function deserialize<T>(str: string): T {
  */
 export function deserializeRaw<T>(info: { value: any; $serializer: any }): T {
   return SerializerContext.globalContext.deserializeRaw(info);
+}
+
+export function hasSerializer(type: string | Constructor): boolean {
+  try {
+    SerializerContext.globalContext.getSerializer(type);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Register the built-in serializers

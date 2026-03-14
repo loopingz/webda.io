@@ -104,8 +104,6 @@ class Serializer {
     };
     const serialized = serialize(source);
     const deserialized = deserialize(serialized);
-    console.log("Serialized:", serialized);
-    console.log("Deserialized:", deserialized);
     assert.deepStrictEqual(source, deserialized);
     assert.throws(
       () => new SerializerContext().getSerializer("undefined2"),

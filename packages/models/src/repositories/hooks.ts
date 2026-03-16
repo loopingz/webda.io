@@ -4,6 +4,7 @@ import { PrimaryKeyType, WEBDA_PRIMARY_KEY, type Storable, type ModelClass } fro
 import { Helpers } from "../types";
 import type { Repository } from "./repository";
 
+/** Global registry mapping ModelClass constructors to their Repository instances. */
 export const Repositories = new WeakMap<ModelClass, Repository<any>>();
 
 /**
@@ -34,6 +35,12 @@ export function registerRepository<T extends ModelClass>(model: T, repository: R
   Repositories.set(model, repository);
 }
 
+/**
+ * MixIn that adds static repository methods (create, query, iterate, ref, getRepository)
+ * to a base class, enabling Model classes to access their repository directly.
+ *
+ * @param Base - The base class to augment
+ */
 export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) => {}>(Base: TBase) {
   return class extends Base {
     static getRepository<T extends ModelClass>(this: T): Repository<T> {
@@ -95,6 +102,9 @@ export function RepositoryStorageClassMixIn<TBase extends new (...args: any[]) =
       return useRepository(this)!.ref(key);
     }
 
+    /**
+     * Return the proxied version of this model (identity by default)
+     */
     toProxy() {
       return this;
     }

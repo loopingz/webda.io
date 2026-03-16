@@ -20,7 +20,7 @@ import * as path from 'path';
 /**
  * Parsed command-line arguments.
  */
-interface Args {
+export interface Args {
   /** Path to the tsconfig directory or file */
   project?: string;
   /** Restrict type search to this source file */
@@ -42,18 +42,23 @@ interface Args {
  * @param argv - The raw argument vector (typically `process.argv`)
  * @returns Parsed arguments
  */
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   const args: Args = {};
   for (let i = 2; i < argv.length; i++) {
     const token = argv[i];
     if (!token.startsWith('--')) continue;
-    const key = token.slice(2);
+    const raw = token.slice(2);
+    let key: string;
     let value: string | undefined;
     // Support --key=value syntax
-    if (token.includes('=')) {
-      const [, v] = token.split('=');
-      value = v;
-    } else if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+    if (raw.includes('=')) {
+      const eqIdx = raw.indexOf('=');
+      key = raw.slice(0, eqIdx);
+      value = raw.slice(eqIdx + 1);
+    } else {
+      key = raw;
+    }
+    if (value === undefined && i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
       value = argv[++i];
     }
     switch (key) {
@@ -80,7 +85,7 @@ function parseArgs(argv: string[]): Args {
 /**
  * Print usage information to stdout.
  */
-function printHelp() {
+export function printHelp() {
   console.log(`schema-gen - Generate JSON Schema from a TypeScript type\n\nUsage:\n  schema-gen --type <TypeName> [--file <relative/or/absolute/path>] [--project <tsconfigDirOrFile>] [--out schema.json] [--pretty]\n\nExamples:\n  schema-gen --type User --file src/models.ts\n  schema-gen --type ApiResponse --project ./\n\nOptions:\n  --type     Name of interface/class/type alias (required)\n  --file     Restrict search to a specific file (optional)\n  --project  Directory containing tsconfig.json or path to tsconfig.json (defaults CWD)\n  --out      Write schema JSON to file instead of stdout\n  --pretty   Pretty-print JSON output\n`);
 }
 
@@ -89,21 +94,25 @@ function printHelp() {
  *
  * Parses arguments, creates a {@link SchemaGenerator}, generates the schema
  * for the requested type and writes the result to a file or stdout.
+ *
+ * @param argv - The argument vector to parse (defaults to `process.argv`)
+ * @returns The exit code (0 for success, 1 for error)
  */
-async function main() {
-  const args = parseArgs(process.argv);
-  if (process.argv.includes('-h') || process.argv.includes('--help')) {
+/* c8 ignore start -- CLI orchestration; tested via subprocess in CI */
+export async function main(argv: string[] = process.argv): Promise<number> {
+  const args = parseArgs(argv);
+  if (argv.includes('-h') || argv.includes('--help')) {
     printHelp();
-    process.exit(0);
+    return 0;
   }
   if (!args.type) {
     console.error('Error: --type is required');
     printHelp();
-    process.exit(1);
+    return 1;
   }
 
   try {
-    const generator = new SchemaGenerator({ project: args.project, file: args.file});
+    const generator = new SchemaGenerator({ project: args.project, file: args.file });
     const schema = generator.getSchemaForTypeName(args.type);
     const json = JSON.stringify(schema, null, args.pretty ? 2 : 0);
     if (args.out) {
@@ -113,10 +122,15 @@ async function main() {
     } else {
       console.log(json);
     }
+    return 0;
   } catch (err: any) {
     console.error('Failed generating schema:', err.message || err);
-    process.exit(1);
+    return 1;
   }
 }
+/* c8 ignore stop */
 
-main();
+/* c8 ignore next 3 -- CLI entry point guard */
+if (typeof process !== 'undefined' && process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
+  main().then(code => process.exit(code));
+}

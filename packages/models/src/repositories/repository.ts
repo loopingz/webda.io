@@ -9,6 +9,7 @@ import type {
 import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
 import type { ModelRefWithCreate } from "../relations";
 
+/** Symbol key for test utilities on a repository (e.g. `clear()`). */
 export const WEBDA_TEST = Symbol("webda_test");
 
 /**

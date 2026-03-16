@@ -5,11 +5,20 @@ import { ArrayElement } from "@webda/tsc-esm";
 import { WEBDA_TEST } from "./repository";
 
 /**
- * Add event emitter to repository
+ * Repository decorator that wraps another repository with event emission.
  *
- * We could add an unblocking version that do not wait for listeners resolution
+ * Emits "before" events (Create, Update, Patch, Delete, PartialUpdate, Query)
+ * before delegating to the underlying repository, then emits "after" events
+ * (Created, Updated, Patched, Deleted, PartialUpdated, Queried) on success.
+ *
+ * @typeParam T - The ModelClass this repository manages
  */
 export class EventRepository<T extends ModelClass = any> extends AbstractRepository<T> {
+  /**
+   * @param model - The model class constructor
+   * @param pks - Array of primary key field names
+   * @param repository - The underlying repository to delegate storage operations to
+   */
   constructor(
     model: T,
     pks: string[],
@@ -18,6 +27,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     super(model, pks, "_");
   }
 
+  /**
+   * Increment numeric attributes with event emission
+   * @inheritdoc
+   */
   async incrementAttributes<
     K extends PropertyPaths<InstanceType<T>>,
     L extends NumericPropertyPaths<InstanceType<T>>
@@ -112,6 +125,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     } as any);
   }
 
+  /**
+   * Upsert item to collection with event emission
+   * @inheritdoc
+   */
   async upsertItemToCollection<
     K extends Extract<PropertyPaths<InstanceType<T>, any[]>, keyof InstanceType<T>>,
     L extends keyof ArrayElement<InstanceType<T>[K]>
@@ -158,6 +175,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       }
     } as any);
   }
+  /**
+   * Remove attribute with event emission
+   * @inheritdoc
+   */
   async removeAttribute<
     L extends PropertyPaths<InstanceType<T>>,
     K extends PropertyPaths<InstanceType<T>>
@@ -189,16 +210,25 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       }
     } as any);
   }
+  /** @inheritdoc */
   async get(primaryKey: PrimaryKeyType<InstanceType<T>>): Promise<Helpers<InstanceType<T>>> {
     const res = await this.repository.get(primaryKey);
     return res;
   }
+  /**
+   * Create with event emission (emits Create before and Created after)
+   * @inheritdoc
+   */
   async create(data: Helpers<InstanceType<T>>, save?: boolean): Promise<InstanceType<T>> {
     await this.emit("Create", { object_id: this.getPrimaryKey(data), object: data } as any);
     const res = await this.repository.create(data, save);
     await this.emit("Created", { object_id: this.getPrimaryKey(data), object: data } as any);
     return res;
   }
+  /**
+   * Patch with event emission (emits Patch before and Patched after)
+   * @inheritdoc
+   */
   async patch<K extends PropertyPaths<InstanceType<T>>>(
     primaryKey: PK<InstanceType<T>, InstanceType<T>[typeof WEBDA_PRIMARY_KEY][number]>,
     data: Partial<InstanceType<T>>,
@@ -209,6 +239,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     await this.repository.patch(primaryKey, data, _conditionField, _condition);
     await this.emit("Patched", { object_id: primaryKey, object: data } as any);
   }
+  /**
+   * Update with event emission (emits Update before and Updated after)
+   * @inheritdoc
+   */
   async update<K extends PropertyPaths<InstanceType<T>>>(
     data: Helpers<InstanceType<T>>,
     conditionField?: K | null,
@@ -218,6 +252,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     await this.repository.update(data, conditionField, condition);
     await this.emit("Updated", { object_id: this.getPrimaryKey(data), object: data } as any);
   }
+  /**
+   * Delete with event emission (emits Delete before and Deleted after)
+   * @inheritdoc
+   */
   async delete<K extends PropertyPaths<InstanceType<T>>>(
     uuid: PrimaryKeyType<InstanceType<T>>,
     conditionField?: K | null,
@@ -227,11 +265,13 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     await this.repository.delete(uuid, conditionField, condition);
     await this.emit("Deleted", { object_id: uuid } as any);
   }
+  /** @inheritdoc */
   async exists(uuid: PrimaryKeyType<InstanceType<T>>): Promise<boolean> {
     const res = await this.repository.exists(uuid);
     return res;
   }
 
+  /** Test utilities - clears events and delegates to underlying repository */
   [WEBDA_TEST]: {
     clear: (excludeListeners?: boolean) => Promise<void>;
   } = {

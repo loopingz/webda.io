@@ -17,6 +17,6 @@
  */
 
 // Use explicit .js extension for Node ESM resolution
-export { SchemaGenerator } from './generator.js';
+export { SchemaGenerator, isOptional } from './generator.js';
 export type { GenerateSchemaOptions, SchemaPropertyArguments } from './generator.js';
 

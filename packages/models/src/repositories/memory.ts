@@ -6,7 +6,10 @@ import { AbstractRepository } from "./abstract";
 import { Repository, WEBDA_TEST } from "./repository";
 
 /**
- * Redefine what we expect from the WebdaQL parser
+ * Parsed query structure expected from the WebdaQL parser.
+ *
+ * Includes pagination (limit, continuationToken), ordering, and a filter
+ * with an `eval` function for in-memory evaluation.
  */
 export type Query = {
   limit: number;
@@ -17,11 +20,12 @@ export type Query = {
   };
 };
 
-// Lazy load WebdaQL
+/** Lazily-loaded WebdaQL module for query parsing */
 let WebdaQL: any & {
   parse: (query: string) => Query;
 } = null;
 
+/** Result of a simulated find operation, including whether filtering was applied. */
 export type FindResult<T> = {
   results: T[];
   continuationToken?: string;
@@ -38,11 +42,10 @@ export class MemoryRepository<
   protected storage: K;
 
   /**
-   *
-   * @param model
-   * @param pks
-   * @param separator
-   * @param map
+   * @param model - The model class constructor
+   * @param pks - Primary key field names
+   * @param separator - Composite key separator (default: "_")
+   * @param map - Optional pre-existing Map to use as storage backend
    */
   constructor(model: T, pks: string[], separator?: string, map?: K) {
     super(model, pks, separator);
@@ -88,6 +91,13 @@ export class MemoryRepository<
     this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new this.model(data) as InstanceType<T>));
   }
 
+  /**
+   * Verify an optimistic locking condition on an item
+   * @param item - The item to check
+   * @param conditionField - Field to validate
+   * @param condition - Expected value
+   * @throws Error if the condition does not match
+   */
   protected checkCondition<K extends PropertyPaths<InstanceType<T>>>(
     item: InstanceType<T>,
     conditionField?: K | null,
@@ -110,11 +120,7 @@ export class MemoryRepository<
   ): Promise<void> {
     const item = (await this.get(primaryKey)) as InstanceType<T>;
     this.checkCondition(item, conditionField, condition);
-    // @ts-ignore
-    console.log("patch", item.createdAt);
     item.load(data);
-    // @ts-ignore
-    console.log("patch", item.createdAt);
     this.storage.set(item.getPrimaryKey().toString(), this.serialize(item));
   }
 
@@ -316,6 +322,14 @@ export class MemoryRepository<
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(item));
   }
 
+  /**
+   * Verify a write condition on a collection item
+   * @param item - The array to check
+   * @param index - Index of the item in the array
+   * @param itemWriteConditionField - Field name to check on the item
+   * @param itemWriteCondition - Expected value for the field
+   * @throws Error if the condition does not match
+   */
   protected checkItemWriteCondition(
     item: any[],
     index: number,
@@ -403,6 +417,7 @@ export class MemoryRepository<
     this.storage.set(this.getPrimaryKey(primaryKey).toString(), this.serialize(obj));
   }
 
+  /** Test utilities - clears all stored data */
   [WEBDA_TEST] = {
     clear: async () => {
       this.storage.clear();

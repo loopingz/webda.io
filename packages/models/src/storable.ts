@@ -1,4 +1,5 @@
 import type { FilterAttributes, IsUnion, ReadonlyKeys } from "@webda/tsc-esm";
+import { WEBDA_DIRTY } from "@webda/utils";
 import type { ModelRefWithCreate, ModelRelated } from "./relations";
 import type { JSONed } from "./types";
 
@@ -24,9 +25,9 @@ export const WEBDA_PLURAL: unique symbol = Symbol("Plural definition");
  */
 export const WEBDA_EVENTS: unique symbol = Symbol("Events definition");
 /**
- * Define the dirty properties key
+ * Symbol for internal storage of model properties that require custom getters/setters (e.g. for handling multiple input types like Date).
  */
-export const WEBDA_DIRTY: unique symbol = Symbol("Dirty properties");
+export const WEBDA_STORAGE: unique symbol = Symbol("Storage definition");
 
 /**
  * Define the events for the model
@@ -78,6 +79,11 @@ export interface Storable<T = any, PrimaryKeyProperties extends keyof T = any> e
  */
 export type ConcreteStorable<T = any, K extends keyof T = any> = Storable<T, K> & (new (arg: any) => any);
 
+/**
+ * Constructor interface for Model classes.
+ *
+ * Provides static methods for CRUD operations, querying, and serialization.
+ */
 export interface ModelClass<S extends Storable = Storable> {
   new (arg: any): S;
   prototype: S;
@@ -97,11 +103,15 @@ export interface ModelClass<S extends Storable = Storable> {
 
 /**
  * Check if the object is a Model class
- * @param object 
- * @returns 
+ * @param object
+ * @returns
  */
 export function isModelClass(object: any): object is ModelClass {
-  return typeof object === "function" && typeof object.prototype?.getPrimaryKey === "function" && typeof object.getDeserializers === "function";
+  return (
+    typeof object === "function" &&
+    typeof object.prototype?.getPrimaryKey === "function" &&
+    typeof object.getDeserializers === "function"
+  );
 }
 
 /**
@@ -109,23 +119,25 @@ export function isModelClass(object: any): object is ModelClass {
  */
 export type StorableConstructor<T extends new (arg: any) => any = any> = new (arg: ConstructorParameters<T>[0]) => T;
 
-// Helper to grab the first arg to a "set" method
+/** Extract the first parameter type of a `set` method, if present. */
 type FirstSetArg<X> = X extends { set: (...args: infer A) => any } ? A[0] : never;
 
-// Your value type, unchanged
+/** Resolve the accepted value type for an attribute: uses `set` arg if available, otherwise `JSONed<X> | X`. */
 type AttributeValue<X> = X extends { set: Function } ? FirstSetArg<X> : JSONed<X> | X;
 
-// Keys where the first "set" arg is optional or includes undefined
+/** Keys where the `set` method's first arg is optional or includes undefined. */
 type OptionalArgKeys<T extends Storable> = {
   [P in StorableAttributes<T>]-?: T[P] extends { set: any } ? (undefined extends FirstSetArg<T[P]> ? P : never) : never;
 }[StorableAttributes<T>];
 
-// Complement set: required-arg keys
+/** Keys whose `set` arg is required (complement of OptionalArgKeys). */
 type RequiredArgKeys<T extends Storable> = Exclude<StorableAttributes<T>, OptionalArgKeys<T>>;
 
-// Final type:
-// - required when first "set" arg is required
-// - optional when first "set" arg is optional or includes undefined
+/**
+ * Build the argument type for creating/updating a Storable.
+ *
+ * Properties with a required `set` arg are required; those with an optional `set` arg are optional.
+ */
 export type AttributesArgument<T extends Storable> = {
   [P in Extract<RequiredArgKeys<T>, string | number>]: AttributeValue<T[P]>;
 } & {
@@ -137,7 +149,8 @@ export type AttributesArgument<T extends Storable> = {
 // };
 
 /**
- * 
+ * Resolve the primary key type: if T is a union of keys, returns `Pick<K, T>`;
+ * if T is a single key, returns `K[T]` directly.
  */
 export type PK<K, T extends keyof K> = IsUnion<T> extends true ? Pick<K, T> : K[T];
 
@@ -202,6 +215,7 @@ export function isStorable<T = any>(object: any): object is Storable<T> {
 
 //export type ReadonlyKeys<T> = { [P in keyof T]: "readonly" extends keyof T[P] ? P : never }[keyof T];
 
+/** Remove symbol-keyed properties from a type. */
 type ExcludeSymbols<T> = {
   [P in keyof T as P extends symbol ? never : P]: T[P];
 };
@@ -213,7 +227,10 @@ type ExcludeSymbols<T> = {
 export type StorableAttributes<T extends Storable, U = any> = FilterAttributes<
   Omit<
     ExcludeSymbols<T>,
-    FilterAttributes<T, Function> | FilterAttributes<T, ModelRelated<any, any, any>> | ReadonlyKeys<T> | Extract<keyof T, symbol>
+    | FilterAttributes<T, Function>
+    | FilterAttributes<T, ModelRelated<any, any, any>>
+    | ReadonlyKeys<T>
+    | Extract<keyof T, symbol>
   >,
   U
 >;

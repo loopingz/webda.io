@@ -195,7 +195,6 @@ class ModelTest {
     assert.strictEqual(model2.name, "Test2");
     assert.strictEqual(model2.age, 1);
     assert.strictEqual(model2.test, 123);
-    console.log(model2.createdAt, typeof model2.createdAt);
     assert.ok(model2.createdAt instanceof Date);
     assert.strictEqual(model2.createdAt.toISOString(), "2025-01-01T00:00:00.000Z");
 

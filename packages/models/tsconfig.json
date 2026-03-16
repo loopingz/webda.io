@@ -12,7 +12,12 @@
     "skipLibCheck": true,
     "declarationMap": true,
     "useDefineForClassFields": false,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "plugins": [
+      {
+        "name": "@webda/ts-plugin"
+      }
+    ]
   },
   "include": ["src/**/*"],
   "exclude": ["**/node_modules", "src/**/*.spec.ts"]

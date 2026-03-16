@@ -5,9 +5,24 @@ import { ModelRefWithCreate } from "../relations";
 import { Repository } from "./repository";
 import type { ArrayElement } from "@webda/tsc-esm";
 
+/**
+ * Base repository implementation providing shared logic for key management,
+ * event handling, and default method implementations.
+ *
+ * Concrete repositories (MemoryRepository, etc.) extend this class and
+ * implement the abstract storage methods.
+ *
+ * @typeParam T - The ModelClass this repository manages
+ */
 export abstract class AbstractRepository<T extends ModelClass> implements Repository<T> {
+  /** Registered event listeners keyed by event name */
   protected events: Map<keyof InstanceType<T>[typeof WEBDA_EVENTS], Set<(data: any) => void>> = new Map();
 
+  /**
+   * @param model - The model class constructor
+   * @param pks - Array of primary key field names
+   * @param separator - Separator used when joining composite key fields into a string (default: "_")
+   */
   constructor(
     protected model: T,
     protected pks: string[],
@@ -261,7 +276,11 @@ export abstract class AbstractRepository<T extends ModelClass> implements Reposi
     this.events.get(event)?.delete(listener as any);
   }
 
-  // Optional: trigger events internally
+  /**
+   * Emit an event to all registered listeners and await their completion.
+   * @param event - The event name to emit
+   * @param data - The event payload
+   */
   protected async emit<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,
     data: InstanceType<T>[typeof WEBDA_EVENTS][K]

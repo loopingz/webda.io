@@ -1,4 +1,4 @@
-import { Attributes, FilterAttributes, ArrayElement, OmitPrefixed } from "@webda/tsc-esm";
+import { FilterAttributes, ArrayElement } from "@webda/tsc-esm";
 import {
   isStorable,
   PrimaryKeyType,
@@ -9,17 +9,23 @@ import {
   PrimaryKeyAttributes,
   UpdatableAttributes,
   WEBDA_PRIMARY_KEY,
-  WEBDA_DIRTY,
   ModelClass
 } from "./storable";
+import { WEBDA_DIRTY } from "@webda/utils";
 import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "./types";
 import type { Repository } from "./repositories/repository";
 
+/** Symbol key holding the parent Storable of a relation. */
 export const RelationParent = Symbol("RelationParent");
+/** Symbol key holding the primary key value of a relation target. */
 export const RelationKey = Symbol("RelationKey");
+/** Symbol key holding the repository used to resolve a relation. */
 export const RelationRepository = Symbol("RelationRepository");
+/** Symbol key identifying the role of a relation (Link, Related, Links, CustomLinks). */
 export const RelationRole = Symbol("RelationRole");
+/** Symbol key holding custom data on a ModelRefCustom. */
 export const RelationData = Symbol("RelationData");
+/** Symbol key holding the type of custom attributes on a ModelLinksArray. */
 export const RelationAttributes = Symbol("RelationAttributes");
 /**
  * Assign non symbol properties from source to target
@@ -40,6 +46,12 @@ export class ModelRef<T extends Storable> {
   [RelationKey]?: PrimaryKeyType<T>;
   [RelationRepository]?: Repository<ModelClass<T>>;
 
+  /**
+   * Create a new model reference
+   * @param key - Primary key of the referenced model
+   * @param repository - Repository to resolve the reference against
+   * @param parent - Parent storable that owns this reference
+   */
   constructor(key: PrimaryKeyType<T>, repository?: Repository<ModelClass<T>>, parent?: Storable) {
     this[RelationParent] = parent;
     this[RelationKey] = key;
@@ -74,8 +86,7 @@ export class ModelRef<T extends Storable> {
   }
 
   /**
-   *
-   * @returns
+   * Serialize the reference to its primary key value
    */
   toJSON(): PrimaryKeyType<T> {
     return this.getKey();
@@ -107,11 +118,10 @@ export class ModelRef<T extends Storable> {
   }
 
   /**
-   * Patch the model
-   * @param data
-   * @param conditionField
-   * @param condition
-   * @returns
+   * Fully replace the model data (except primary key fields)
+   * @param data - Complete model data excluding primary key
+   * @param conditionField - Optional field for optimistic locking
+   * @param condition - Expected value for the condition field
    */
   update<A extends PropertyPaths<T>>(
     data: Omit<Helpers<T>, PrimaryKeyAttributes<T>>,
@@ -138,7 +148,10 @@ export class ModelRef<T extends Storable> {
    * @param condition
    * @returns
    */
-  delete<A extends PropertyPaths<T>>(conditionField?: A, condition?: PropertyPathType<T, A> | JSONed<PropertyPathType<T, A>>): Promise<void> {
+  delete<A extends PropertyPaths<T>>(
+    conditionField?: A,
+    condition?: PropertyPathType<T, A> | JSONed<PropertyPathType<T, A>>
+  ): Promise<void> {
     return this.getRepository().delete(this.getKey(), conditionField, condition);
   }
 
@@ -247,6 +260,9 @@ export class ModelRef<T extends Storable> {
   }
 }
 
+/**
+ * Union of all relation property keys on a model (both ModelRelated and ModelLinker fields).
+ */
 export type ModelRelations<T extends object> =
   | FilterAttributes<T, ModelRelated<any, any, any>>
   | FilterAttributes<T, ModelLinker>;
@@ -302,9 +318,8 @@ export type ModelRelated<T extends Storable, L extends Storable, _K extends Filt
    */
   query: (query?: string) => Promise<{ results: T[]; continuationToken?: string }>;
   /**
-   *
-   * @param model Iterate through all related objects
-   * @returns
+   * Iterate through all related objects, executing a callback for each
+   * @param model - Callback invoked for each related object
    */
   forEach: (model: T) => Promise<void>;
   /**
@@ -320,10 +335,18 @@ export type ModelRelated<T extends Storable, L extends Storable, _K extends Filt
   /**
    * It is a helper and should not be serialized
    */
-  toJSON(): null;
+  toJSON(): void;
 };
 
-// Define a ModelLinked
+/**
+ * Marker interface for relation properties.
+ *
+ * All relation types (ModelLink, ModelLinksSimpleArray, ModelLinksArray) implement this
+ * so they can be detected and filtered at the type level.
+ *
+ * @typeParam T - The target Storable type
+ * @typeParam K - The relation role identifier
+ */
 export interface ModelLinker<T extends Storable = any, K extends "Link" | "Related" | "Links" | "CustomLinks" = any> {
   readonly [RelationRole]: K;
   readonly [RelationParent]: T;
@@ -368,6 +391,9 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     this[RelationKey] = typeof uuid === "string" ? model.parseUID(uuid) : uuid;
   }
 
+  /**
+   * Resolve the link and fetch the target model from the repository
+   */
   async get(): Promise<T> {
     if (!this[RelationKey]) {
       throw new Error("Relation key is not initialized");
@@ -375,6 +401,11 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     return (await this.model.get(this[RelationKey])) as T;
   }
 
+  /**
+   * Update the link to point to a different target
+   * @param id - New target: a primary key, model instance, or string UID
+   * @WebdaAutoSetter
+   */
   set(id: PrimaryKeyType<T> | T | string) {
     this[RelationKey] = isStorable(id) ? id.getPrimaryKey() : typeof id === "string" ? this.model.parseUID(id) : id;
     // Set dirty for parent
@@ -387,6 +418,9 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     }
   }
 
+  /**
+   * Return the string representation of the linked key
+   */
   toString(): string {
     if (!this[RelationKey]) {
       throw new Error("Relation key is not initialized");
@@ -394,6 +428,9 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     return this[RelationKey].toString();
   }
 
+  /**
+   * Serialize the link to its primary key value
+   */
   toJSON(): PrimaryKeyType<T> {
     if (!this[RelationKey]) {
       throw new Error("Relation key is not initialized");
@@ -401,6 +438,9 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     return this[RelationKey];
   }
 
+  /**
+   * Get the primary key of the linked model
+   */
   getPrimaryKey(): PrimaryKeyType<T> {
     if (!this[RelationKey]) {
       throw new Error("Relation key is not initialized");
@@ -533,6 +573,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   /**
    * Set the collection to a new set of items
    * @param items
+   * @WebdaAutoSetter
    */
   set(items?: (string | PrimaryKeyType<T> | ModelRef<T> | T)[]): void {
     this.items = items?.map(i => this.getModelRef(i)) || [];
@@ -635,6 +676,9 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
    */
   [index: number]: ModelRef<T>;
 
+  /**
+   * Convert any accepted input (string, key, ref, or model) into a ModelRef
+   */
   protected getModelRef(model: string | PrimaryKeyType<T> | ModelRef<T> | T): ModelRef<T> {
     let modelRef: ModelRef<T>;
     if (typeof model === "string") {
@@ -649,6 +693,9 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
     return modelRef;
   }
 
+  /**
+   * Mark the parent model's property for this collection as dirty
+   */
   protected setDirty(): void {
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
@@ -664,6 +711,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   }
 }
 
+/** A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON. */
 type ModelRefCustomProperties<T extends Storable, K extends object> = ModelRef<T> & {
   [key in keyof K]: K[key];
 } & {
@@ -951,6 +999,9 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
    */
   [index: number]: ModelRefCustomProperties<T, K>;
 
+  /**
+   * Convert input into a ModelRefCustom, preserving custom properties
+   */
   protected getModelRef(
     model: ModelRefCustomProperties<T, K> | JSONed<ModelRefCustomProperties<T, K>>
   ): ModelRefCustomProperties<T, K> {
@@ -961,6 +1012,9 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
     );
   }
 
+  /**
+   * Mark the parent model's property for this collection as dirty
+   */
   protected setDirty(): void {
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
@@ -988,6 +1042,7 @@ export class ModelRefCustomMap<T extends Storable, K> extends ModelRefCustom<T, 
   }
 }
 
+/** Alias for a many-to-one relation (foreign key link). */
 export type ManyToOne<T extends Storable> = ModelLink<T>;
 /**
  * Define a 1:n relation on the current model to another model
@@ -1002,7 +1057,12 @@ export type OneToMany<
   L extends Storable,
   K extends FilterAttributes<T, ModelLinker<L>>
 > = ModelRelated<T, L, K>;
+/** Alias for a one-to-one relation. */
 export type OneToOne<T extends Storable> = ModelLink<T>;
+/**
+ * Alias for a many-to-many relation.
+ * If K (custom properties) is provided, uses ModelLinksArray; otherwise ModelLinksSimpleArray.
+ */
 export type ManyToMany<T extends Storable, K extends object = {}> = K extends object
   ? ModelLinksArray<T, K>
   : ModelLinksSimpleArray<T>;
@@ -1015,7 +1075,9 @@ export type ManyToMany<T extends Storable, K extends object = {}> = K extends ob
  * Similar to @ModelLink but implies a Cascade delete
  */
 export type BelongTo<T extends Storable> = ModelParent<T>;
+/** Alias for ModelLink - defines a relation to another model. */
 export type RelateTo<T extends Storable> = ModelLink<T>;
+/** Alias for ManyToMany - defines ownership of a collection of models. */
 export type Contains<T extends Storable> = ManyToMany<T>;
 
 /**
@@ -1028,15 +1090,19 @@ export class JunctionLink<T extends Storable, K extends Storable> implements Sto
   [WEBDA_PRIMARY_KEY] = ["linkA", "linkB"] as const;
   linkA: ModelParent<T>;
   linkB: ModelLink<K>;
+  /** Return the composite primary key (linkA + linkB) */
   getPrimaryKey() {
     return { linkA: this.linkA.getPrimaryKey(), linkB: this.linkB.getPrimaryKey() };
   }
+  /** @inheritdoc */
   load(params: any): this {
     return this;
   }
+  /** Return a string UID combining both link keys */
   getUUID(): string {
     return `${this.linkA.getPrimaryKey()}_${this.linkB.getPrimaryKey()}`;
   }
+  /** Return the proxied version of this model (identity for JunctionLink) */
   toProxy() {
     return this;
   }

@@ -1,7 +1,11 @@
 import { Attributes, FilterAttributes, FilterOutAttributes, Merge } from "@webda/tsc-esm";
 
+/** Any function signature. */
 type AnyMethod = (...args: any[]) => any;
 
+/**
+ * Extract only data properties from T, filtering out symbol keys and methods.
+ */
 type HelperProperties<T> = {
   [K in keyof T as K extends symbol ? never : T[K] extends AnyMethod ? never : K]: T[K];
 };
@@ -70,9 +74,47 @@ export type JSONed<T> = T extends { toJSON: () => any }
       ? Pick<T, Extract<Attributes<T>, string>>
       : T;
 
+/**
+ * Return keys of T whose value extends U (inverse of FilterOutAttributes).
+ */
 type FilterOutAttributes2<T, U> = {
   [K in keyof T]: T[K] extends U ? K : never;
 }[keyof T];
+/**
+ * DTO representation of a type, respecting `toDTO()` if available.
+ */
+export type DTO<T> = T extends { toDTO: () => infer R } ? R : SelfDTO<T>;
+/**
+ * Deep DTO representation of objects, converting properties recursively and respecting `toDTO()` if available.
+ * If `toDTO()` is present, its return type is used directly without further recursion.
+ */
+export type SelfDTO<T> = T extends bigint
+  ? string
+  : T extends Array<infer U>
+    ? Array<SelfDTO<U>>
+    : T extends Map<string, infer MV>
+      ? Record<string, SelfDTO<MV>>
+      : T extends Set<infer US>
+        ? Array<SelfDTO<US>>
+        : T extends RegExp
+          ? string
+          : T extends object
+            ? {
+                [K in Extract<FilterOutAttributes2<T, Function>, string>]: T[K] extends bigint
+                  ? string
+                  : T[K] extends Array<infer U>
+                    ? Array<SelfDTO<U>>
+                    : T[K] extends Map<string, infer MV>
+                      ? Record<string, SelfDTO<MV>>
+                      : T[K] extends Set<infer US>
+                        ? Array<SelfDTO<US>>
+                        : T[K] extends RegExp
+                          ? string
+                          : T[K] extends object
+                            ? SelfDTO<T[K]>
+                            : T[K];
+              }
+            : T;
 /**
  * Serialized representation of a type, respecting `toJSON()` if available.
  */
@@ -138,7 +180,9 @@ type PropertyNames<T extends object> = {
 export type PropertyPaths<T extends object, Filter = never> = [Filter] extends [never]
   ? _NonFunctionPropertyPaths<T>
   : _FilteredPropertyPaths<T, Filter>;
+/** JavaScript primitive types. */
 type Primitive = string | number | boolean | bigint | symbol | null | undefined;
+/** Recursively builds dot-notated paths for non-function properties. */
 type _NonFunctionPropertyPaths<T> = {
   [K in Extract<keyof T, string>]: T[K] extends Function
     ? never
@@ -150,6 +194,7 @@ type _NonFunctionPropertyPaths<T> = {
           ? K | `${K}.${_NonFunctionPropertyPaths<T[K]>}`
           : K;
 }[Extract<keyof T, string>];
+/** Recursively builds dot-notated paths for properties whose type extends Filter. */
 type _FilteredPropertyPaths<T, Filter> = {
   [K in Extract<keyof T, string>]: T[K] extends Function
     ? never
@@ -164,6 +209,7 @@ type _FilteredPropertyPaths<T, Filter> = {
  */
 export type NumericPropertyPaths<T extends object> = PropertyPaths<T, number>;
 
+/** Resolve the type at a dot-notated path K in T. */
 type _PropertyPathType<T, K extends string> = K extends `${infer Head}.${infer Tail}`
   ? Head extends keyof T
     ? _PropertyPathType<T[Head], Tail>
@@ -200,6 +246,7 @@ export type OptionalKeysOf<Type extends object> = Type extends unknown // For di
   ? keyof { [Key in keyof Type as IsOptionalKeyOf<Type, Key> extends false ? never : Key]: never } & keyof Type // Intersect with `keyof Type` to ensure result of `OptionalKeysOf<Type>` is always assignable to `keyof Type`
   : never; // Should never happen
 
+/** Non-optional, non-function property keys of a type. */
 type RequiredAttributes<Type extends object> = Exclude<Exclude<PropertyNames<Type>, OptionalKeysOf<Type>>, undefined>;
 
 /**
@@ -226,3 +273,21 @@ export type OnlyNumbers<T> = {
 export type Pojo<T extends object> = {
   [P in Extract<keyof Omit<T, FilterAttributes<T, Function>>, string | number>]: JSONed<T[P]>;
 };
+
+/**
+ * Marker interface to opt a class into automatic accessor generation.
+ *
+ * Classes implementing this interface will have their properties whose types
+ * have a `set` method (or are in the coercion registry) transformed into
+ * getter/setter pairs — just like model classes.
+ *
+ * @example
+ * ```typescript
+ * class MFA implements Accessors {
+ *   secret!: SecretString; // SecretString has set(value: string)
+ *   // → getter returns SecretString, setter accepts string | SecretString
+ * }
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface Accessors {}

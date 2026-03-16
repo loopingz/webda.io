@@ -1,6 +1,7 @@
 export * from "./case";
 export * from "./chdir";
 export * from "./debounce";
+export * from "./dirty";
 export * from "./duration";
 export * from "./esm";
 export * from "./filesize";

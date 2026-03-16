@@ -1,0 +1,63 @@
+{
+  "name": "@webda/ts-plugin",
+  "version": "4.0.0-beta.1",
+  "description": "TypeScript Language Service Plugin + build-time transformer for Webda models",
+  "keywords": [
+    "typescript",
+    "plugin",
+    "language-service",
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js"
+    },
+    "./transform": {
+      "types": "./lib/transform.d.ts",
+      "import": "./lib/transform.js",
+      "require": "./lib/transform.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "pretest": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0",
+    "ts-patch": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ts-patch": {
+      "optional": true
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "22.0.0",
+    "typescript": "^5.6.2",
+    "vitest": "^3.2.4"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "LGPL-3.0-only"
+}

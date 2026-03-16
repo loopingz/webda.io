@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { DirtyMixIn, DirtyState } from "./dirty";
+import { DirtyMixIn, DirtyState, track } from "./dirty";
 
 /** Simple class used as the base for mixin tests */
 class Base {
@@ -251,6 +251,19 @@ class DirtyMixInTest {
     assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
   }
 
+  /** Non-proxyable values (Date, RegExp, etc.) should be returned as-is */
+  @test
+  nonProxyableValues() {
+    class WithDate {
+      date: Date = new Date("2024-01-01");
+      regex: RegExp = /test/;
+    }
+    const TrackedWithDate = DirtyMixIn(WithDate);
+    const obj = new TrackedWithDate();
+    assert.ok(obj.date instanceof Date);
+    assert.ok(obj.regex instanceof RegExp);
+  }
+
   /** Test that all array mutation methods properly mark the object as dirty */
   @test
   arrayMutationMethods() {
@@ -313,5 +326,188 @@ class DirtyMixInTest {
     obj.array[0].name = "changed";
     assert.notStrictEqual(obj.dirty, null);
     assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+  }
+}
+
+/**
+ * Tests for the {@link track} function, which wraps a plain object
+ * with dirty-tracking without requiring a class or mixin.
+ */
+@suite
+class TrackFunctionTest {
+  /** A freshly tracked object should have an empty dirty state */
+  @test
+  freshTrackedObjectIsClean() {
+    const obj = track({ name: "", age: 0 });
+    assert.strictEqual(obj.dirty.valueOf(), false);
+    assert.deepStrictEqual(obj.dirty.getProperties(), []);
+  }
+
+  /** Setting a property should mark it as dirty */
+  @test
+  settingPropertyMarksDirty() {
+    const obj = track({ name: "" });
+    obj.name = "Alice";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["name"]);
+  }
+
+  /** Reading properties should return the correct values */
+  @test
+  readingPropertiesWorks() {
+    const obj = track({ name: "", age: 0 });
+    obj.name = "Bob";
+    obj.age = 30;
+    assert.strictEqual(obj.name, "Bob");
+    assert.strictEqual(obj.age, 30);
+  }
+
+  /** Reverting a property to its original value should clear the dirty flag */
+  @test
+  revertingPropertyCleansState() {
+    const obj = track({ name: "original" });
+    obj.name = "changed";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+
+    obj.name = "original";
+    assert.strictEqual(obj.dirty.valueOf(), false);
+  }
+
+  /** clear() should reset all dirty tracking */
+  @test
+  clearResetsDirtyState() {
+    const obj = track({ name: "", age: 0 });
+    obj.name = "changed";
+    obj.age = 99;
+    assert.strictEqual(obj.dirty.valueOf(), true);
+
+    obj.dirty.clear();
+    assert.strictEqual(obj.dirty.valueOf(), false);
+  }
+
+  /** Multiple property changes should all be tracked */
+  @test
+  multiplePropertyChanges() {
+    const obj = track({ name: "", age: 0 });
+    obj.name = "Alice";
+    obj.age = 25;
+    assert.deepStrictEqual(obj.dirty.getProperties().sort(), ["age", "name"]);
+  }
+
+  /** Reverting one property while another remains changed keeps dirty state */
+  @test
+  partialRevert() {
+    const obj = track({ name: "orig", age: 0 });
+    obj.name = "Alice";
+    obj.age = 25;
+
+    obj.name = "orig";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["age"]);
+  }
+
+  /** Nested object mutations should mark the parent property as dirty */
+  @test
+  deepChanges() {
+    const obj = track({ deep: { nested: "" } });
+    obj.deep.nested = "changed";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["deep"]);
+  }
+
+  /** Deeply nested object mutations should mark the top-level property as dirty */
+  @test
+  deeperChanges() {
+    const obj = track({ deeper: { nested: { value: "" } } });
+    obj.deeper.nested.value = "changed";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["deeper"]);
+  }
+
+  /** Array mutations should mark the array property as dirty */
+  @test
+  arrayChanges() {
+    const obj = track({ items: [] as string[] });
+    obj.items.push("item");
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["items"]);
+
+    obj.dirty.clear();
+    obj.items[0] = "changed";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["items"]);
+  }
+
+  /** Array mutation methods (pop, shift, splice, sort, reverse) should all trigger dirty */
+  @test
+  arrayMutationMethods() {
+    const obj = track({ arr: ["c", "a", "b"] });
+    obj.dirty.clear();
+
+    obj.arr.pop();
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    obj.dirty.clear();
+
+    obj.arr.shift();
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    obj.dirty.clear();
+
+    obj.arr.unshift("x");
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    obj.dirty.clear();
+
+    obj.arr.splice(0, 1, "y");
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    obj.dirty.clear();
+
+    obj.arr.sort();
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    obj.dirty.clear();
+
+    obj.arr.reverse();
+    assert.strictEqual(obj.dirty.valueOf(), true);
+  }
+
+  /** Modifying objects inside arrays should mark the array property as dirty */
+  @test
+  arrayOfObjects() {
+    const obj = track({ items: [{ name: "item1" }] });
+    obj.dirty.clear();
+
+    obj.items[0].name = "changed";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["items"]);
+  }
+
+  /** Non-proxyable values (Date, RegExp) should be returned as-is without proxying */
+  @test
+  nonProxyableValues() {
+    const date = new Date("2024-01-01");
+    const regex = /test/;
+    const obj = track({ date, regex });
+    assert.ok(obj.date instanceof Date);
+    assert.ok(obj.regex instanceof RegExp);
+    assert.strictEqual(obj.date.getTime(), date.getTime());
+  }
+
+  /** Deleting a property on a nested object should mark the parent as dirty */
+  @test
+  deleteNestedProperty() {
+    const obj = track({ data: { a: 1, b: 2 } as Record<string, number> });
+    obj.dirty.clear();
+
+    delete obj.data.a;
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["data"]);
+  }
+
+  /** track should work with an empty object */
+  @test
+  emptyObject() {
+    const obj = track({} as Record<string, any>);
+    assert.strictEqual(obj.dirty.valueOf(), false);
+    obj["newProp"] = "value";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["newProp"]);
   }
 }

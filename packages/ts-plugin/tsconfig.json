@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "outDir": "./lib",
+    "strict": false,
+    "declaration": true,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "experimentalDecorators": false,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "types": ["node"],
+    "typeRoots": ["../../node_modules/@types"],
+    "skipLibCheck": true,
+    "declarationMap": true,
+    "useDefineForClassFields": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.spec.ts"]
+}

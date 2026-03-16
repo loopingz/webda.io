@@ -189,3 +189,55 @@ export function DirtyMixIn<T extends Constructor>(
     }
   } as T & Constructor<{ dirty: DirtyState | null; [WEBDA_DIRTY]: DirtyState }>;
 }
+
+/**
+ * Wraps an object in a dirty-tracking proxy without needing to define a class.
+ *
+ * This is useful for ad-hoc data structures or when you don't want to create a full class.
+ * The returned object has the same properties as the input, plus a `dirty` getter and internal dirty state.
+ * @param obj - The object to track
+ * @param onChange - Called when property change
+ * @param dirtyProperty - The name of the property to use for accessing the dirty state (default: "dirty")
+ * @return A proxy of the input object with dirty-tracking capabilities
+ *
+ * @example
+ * ```ts
+ * const user = track({ name: "Alice", age: 30 });
+ * user.name = "Bob";
+ * user.dirty; // DirtyState with "name"
+ * ```
+ * @example
+ * ```ts
+ * const config = track({ theme: "light", notifications: true }, undefined, "changes");
+ * config.theme = "dark";
+ * config.changes; // DirtyState with "theme"
+ * ```
+ */
+export function track<T extends object>(
+  obj: T,
+  onChange?: (object: T, state: DirtyState) => void,
+  dirtyProperty: string = "dirty"
+): T & { dirty: DirtyState; [WEBDA_DIRTY]: DirtyState } {
+  const dirtyState = new DirtyState();
+  return new Proxy(obj as any, {
+    set(target: any, p: string | symbol, value: any) {
+      const oldValue = target[p];
+      dirtyState.add(p.toString(), oldValue, value);
+      onChange && onChange(obj, dirtyState);
+      target[p] = value;
+      return true;
+    },
+    get(target: any, p: string | symbol) {
+      if (p === dirtyProperty) {
+        return dirtyState;
+      }
+      const value = target[p];
+      if (typeof p === "string" && value !== null && typeof value === "object" && isProxyable(value)) {
+        return createDeepDirtyProxy(value, () => {
+          dirtyState.add(p.toString());
+        });
+      }
+      return value;
+    }
+  }) as T & { dirty: DirtyState; [WEBDA_DIRTY]: DirtyState };
+}

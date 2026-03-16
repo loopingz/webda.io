@@ -37,10 +37,11 @@ export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
   toStringAttribute(): string {
     switch (typeof this.value) {
       case "boolean":
-        return `CAST(${this.attribute[0]} AS boolean)`;
+        // TODO Add a unit test for this case
+        return `COALESCE(${this.attribute[0]}, false) AS boolean`;
       case "number":
-        // coalesce(data#>>'{${this.attribute[0]}}', '0') ?
-        return `CAST(${this.attribute[0]} AS bigint)`;
+        // TODO Add a unit test for this case
+        return `COALESCE(${this.attribute[0]}, 0) AS bigint`;
       default:
         return this.attribute[0];
     }

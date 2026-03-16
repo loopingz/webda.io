@@ -221,7 +221,7 @@ class DirtyMixInTest {
     assert.strictEqual(obj.dirty, null);
     obj.deep.nested = "changed";
     assert.notStrictEqual(obj.dirty, null);
-    assert.deepStrictEqual(obj.dirty!.getProperties(), ["deep"]);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["deep.nested"]);
   }
 
   @test
@@ -230,7 +230,7 @@ class DirtyMixInTest {
     assert.strictEqual(obj.dirty, null);
     obj.deeper.nested.value = "changed";
     assert.notStrictEqual(obj.dirty, null);
-    assert.deepStrictEqual(obj.dirty!.getProperties(), ["deeper"]);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["deeper.nested.value"]);
   }
 
   @test
@@ -239,16 +239,17 @@ class DirtyMixInTest {
     assert.strictEqual(obj.dirty, null);
     obj.array.push("item");
     assert.notStrictEqual(obj.dirty, null);
-    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    // push triggers set on "length" and index "0"
+    assert.ok(obj.dirty!.has("array.0"));
     obj.dirty!.clear();
     assert.strictEqual(obj.dirty, null);
     obj.array[0] = "item";
     assert.notStrictEqual(obj.dirty, null);
-    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    assert.ok(obj.dirty!.has("array.0"));
     obj.dirty!.clear();
     obj.array.push("item2");
     assert.notStrictEqual(obj.dirty, null);
-    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    assert.ok(obj.dirty!.has("array.1"));
   }
 
   /** Non-proxyable values (Date, RegExp, etc.) should be returned as-is */
@@ -271,7 +272,7 @@ class DirtyMixInTest {
     const obj1 = new TrackedBase();
     obj1.array.push("a", "b");
     assert.notStrictEqual(obj1.dirty, null);
-    assert.deepStrictEqual(obj1.dirty!.getProperties(), ["array"]);
+    assert.ok(obj1.dirty!.has("array.0"));
 
     // Test pop
     const obj2 = new TrackedBase();
@@ -319,13 +320,13 @@ class DirtyMixInTest {
     const obj = new TrackedBase();
     obj.array.push({ name: "item1" });
     assert.notStrictEqual(obj.dirty, null);
-    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    assert.ok(obj.dirty!.has("array.0"));
     obj.dirty!.clear();
 
     // Modifying the object inside the array should also mark dirty
     obj.array[0].name = "changed";
     assert.notStrictEqual(obj.dirty, null);
-    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array"]);
+    assert.deepStrictEqual(obj.dirty!.getProperties(), ["array.0.name"]);
   }
 }
 
@@ -412,30 +413,30 @@ class TrackFunctionTest {
     const obj = track({ deep: { nested: "" } });
     obj.deep.nested = "changed";
     assert.strictEqual(obj.dirty.valueOf(), true);
-    assert.deepStrictEqual(obj.dirty.getProperties(), ["deep"]);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["deep.nested"]);
   }
 
-  /** Deeply nested object mutations should mark the top-level property as dirty */
+  /** Deeply nested object mutations should mark the full path as dirty */
   @test
   deeperChanges() {
     const obj = track({ deeper: { nested: { value: "" } } });
     obj.deeper.nested.value = "changed";
     assert.strictEqual(obj.dirty.valueOf(), true);
-    assert.deepStrictEqual(obj.dirty.getProperties(), ["deeper"]);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["deeper.nested.value"]);
   }
 
-  /** Array mutations should mark the array property as dirty */
+  /** Array mutations should mark the full path as dirty */
   @test
   arrayChanges() {
     const obj = track({ items: [] as string[] });
     obj.items.push("item");
     assert.strictEqual(obj.dirty.valueOf(), true);
-    assert.deepStrictEqual(obj.dirty.getProperties(), ["items"]);
+    assert.ok(obj.dirty.has("items.0"));
 
     obj.dirty.clear();
     obj.items[0] = "changed";
     assert.strictEqual(obj.dirty.valueOf(), true);
-    assert.deepStrictEqual(obj.dirty.getProperties(), ["items"]);
+    assert.ok(obj.dirty.has("items.0"));
   }
 
   /** Array mutation methods (pop, shift, splice, sort, reverse) should all trigger dirty */
@@ -476,7 +477,7 @@ class TrackFunctionTest {
 
     obj.items[0].name = "changed";
     assert.strictEqual(obj.dirty.valueOf(), true);
-    assert.deepStrictEqual(obj.dirty.getProperties(), ["items"]);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["items.0.name"]);
   }
 
   /** Non-proxyable values (Date, RegExp) should be returned as-is without proxying */
@@ -498,7 +499,7 @@ class TrackFunctionTest {
 
     delete obj.data.a;
     assert.strictEqual(obj.dirty.valueOf(), true);
-    assert.deepStrictEqual(obj.dirty.getProperties(), ["data"]);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["data.a"]);
   }
 
   /** track should work with an empty object */

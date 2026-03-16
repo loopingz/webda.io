@@ -163,9 +163,11 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         const assignedType = checker.getTypeAtLocation(assignedNode);
         const assignedTypeName = checker.typeToString(assignedType);
 
-        // Check if the assigned type is one of the accepted setter types
+        // Check if the assigned type is accepted by the setter
+        // Split assigned type in case it's a union (e.g. "string | SecretString")
         const acceptedTypes = coercible.setterType.split("|").map(t => t.trim());
-        if (acceptedTypes.some(t => isTypeAssignable(assignedTypeName, t))) {
+        const assignedParts = assignedTypeName.split("|").map(t => t.trim());
+        if (assignedParts.every(part => acceptedTypes.some(t => isTypeAssignable(part, t)))) {
           log(`Suppressing TS2322 for ${propName}: ${assignedTypeName} is accepted by setter (${coercible.setterType})`);
           return false; // Suppress this diagnostic
         }

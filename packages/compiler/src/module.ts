@@ -94,11 +94,11 @@ export class ModuleGenerator {
     if (toDtoSig) {
       // Get the return type of toDto (inherited or local)
       const toDtoType = this.typeChecker.getReturnTypeOfSignature(toDtoSig);
-      res.Output = this.schemaGenerator.getSchemaFromType(toDtoType, { type: "output", asRef: false });
+      res.Output = this.schemaGenerator.getSchemaFromType(toDtoType, { type: "dto-out", asRef: false });
       // @ts-ignore
       res.Output.$webda = "toDto$return";
     } else {
-      res.Output = this.schemaGenerator.getSchemaFromNodes([node], { type: "output", asRef: false });
+      res.Output = this.schemaGenerator.getSchemaFromNodes([node], { type: "dto-out", asRef: false });
       // @ts-ignore
       res.Output.$webda = "toDto$auto";
     }
@@ -109,11 +109,11 @@ export class ModuleGenerator {
       const fromDtoParamType = paramDecl
         ? this.typeChecker.getTypeAtLocation(paramDecl)
         : this.typeChecker.getTypeOfSymbolAtLocation(firstParam, node);
-      res.Input = this.schemaGenerator.getSchemaFromType(fromDtoParamType, { type: "input", asRef: false });
+      res.Input = this.schemaGenerator.getSchemaFromType(fromDtoParamType, { type: "dto-in", asRef: false });
       // @ts-ignore
       res.Input.$webda = "fromDto$param";
     } else {
-      res.Input = this.schemaGenerator.getSchemaFromNodes([node], { type: "input", asRef: false });
+      res.Input = this.schemaGenerator.getSchemaFromNodes([node], { type: "dto-in", asRef: false });
       // @ts-ignore
       res.Input.$webda = "fromDto$auto";
     }

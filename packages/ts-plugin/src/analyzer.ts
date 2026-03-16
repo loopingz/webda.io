@@ -4,13 +4,17 @@ import type ts from "typescript";
 import type { CoercionRegistry } from "./coercions";
 
 /**
- * Detect if a type has a `set` method and return its parameter type(s) as a string.
- * For example, if MFA has `set(secret: string)`, returns "string".
+ * Detect if a type has a `set` method marked with `@WebdaAutoSetter` and return its parameter type(s) as a string.
+ * For example, if MFA has `@WebdaAutoSetter set(secret: string)`, returns "string".
+ * Returns undefined if the set method exists but lacks the JSDoc tag.
  */
 function detectSetMethodType(checker: ts.TypeChecker, type: ts.Type): string | undefined {
   try {
     const setSymbol = type.getProperty("set");
     if (!setSymbol) return undefined;
+
+    // Require @WebdaAutoSetter JSDoc tag on the set method declaration
+    if (!hasWebdaAutoSetterTag(setSymbol)) return undefined;
 
     const setType = checker.getTypeOfSymbol(setSymbol);
     const signatures = setType.getCallSignatures();
@@ -24,6 +28,18 @@ function detectSetMethodType(checker: ts.TypeChecker, type: ts.Type): string | u
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Check if a symbol's declaration has a `@WebdaAutoSetter` JSDoc tag.
+ */
+function hasWebdaAutoSetterTag(symbol: ts.Symbol): boolean {
+  const declarations = symbol.getDeclarations();
+  if (!declarations?.length) return false;
+  return declarations.some(decl => {
+    const tags = (decl as any).jsDoc?.flatMap((doc: any) => doc.tags ?? []);
+    return tags?.some((tag: any) => tag.tagName?.getText?.() === "WebdaAutoSetter" || tag.tagName?.escapedText === "WebdaAutoSetter");
+  });
 }
 
 /**

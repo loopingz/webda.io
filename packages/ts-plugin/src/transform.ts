@@ -175,8 +175,10 @@ export function afterDiagnostics(
     const assignedType = checker.getTypeAtLocation(assignment.right);
     const assignedTypeName = checker.typeToString(assignedType);
     const acceptedTypes = rule.setterType.split("|").map(t => t.trim());
+    const assignedParts = assignedTypeName.split("|").map(t => t.trim());
 
-    return !acceptedTypes.some(t => isTypeCompatible(assignedTypeName, t));
+    // Every part of the assigned union must be covered by the accepted types
+    return !assignedParts.every(part => acceptedTypes.some(t => isTypeCompatible(part, t)));
   });
 }
 

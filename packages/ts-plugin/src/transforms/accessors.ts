@@ -6,6 +6,18 @@ import type { CoercionRegistry } from "../coercions";
 /**
  * Resolved coercion info for a property field.
  */
+/**
+ * A resolved type argument from a property declaration's generic parameters.
+ * - "identifier": a type reference like TestModel2 → emitted as identifier
+ * - "string": a string literal like "plop" → emitted as string literal
+ * - "string-union": a union of string literals like "typeA" | "typeB" → emitted as array
+ */
+export type ResolvedTypeArg =
+  | { kind: "identifier"; name: string }
+  | { kind: "string"; value: string }
+  | { kind: "string-union"; values: string[] }
+  | { kind: "undefined" };
+
 export interface ResolvedCoercion {
   /** The widened setter type string (e.g. "string | number | Date" or "MFA | string") */
   setterType: string;
@@ -13,6 +25,8 @@ export interface ResolvedCoercion {
   coercionKind: "builtin" | "set-method";
   /** The original declared type name */
   typeName: string;
+  /** Resolved type arguments from the property declaration for constructor instantiation */
+  typeArguments?: ResolvedTypeArg[];
 }
 
 /**
@@ -26,6 +40,86 @@ export type CoercibleFieldMap = Map<string, Map<string, ResolvedCoercion>>;
  * getText() can throw when node.getSourceFile() returns undefined (synthetic or
  * cross-file nodes resolved via the type checker).
  */
+/**
+ * Resolve a type argument node into a structured representation for constructor codegen.
+ *
+ * - TypeReference (e.g. TestModel2) → { kind: "identifier", name: "TestModel2" }
+ * - LiteralType with string (e.g. "plop") → { kind: "string", value: "plop" }
+ * - UnionType of string literals (e.g. "typeA" | "typeB") → { kind: "string-union", values: ["typeA", "typeB"] }
+ */
+function resolveTypeArg(tsModule: typeof ts, arg: ts.TypeNode, sourceFile: ts.SourceFile): ResolvedTypeArg {
+  // Union type: check if all members are string literals
+  if (tsModule.isUnionTypeNode(arg)) {
+    const stringValues: string[] = [];
+    for (const member of arg.types) {
+      if (tsModule.isLiteralTypeNode(member) && tsModule.isStringLiteral(member.literal)) {
+        stringValues.push(member.literal.text);
+      } else {
+        // Not all members are string literals — fall back to identifier
+        return { kind: "identifier", name: safeGetText(arg, sourceFile) };
+      }
+    }
+    return { kind: "string-union", values: stringValues };
+  }
+
+  // Single string literal type: "plop"
+  if (tsModule.isLiteralTypeNode(arg) && tsModule.isStringLiteral(arg.literal)) {
+    return { kind: "string", value: arg.literal.text };
+  }
+
+  // Type reference (class/interface identifier): TestModel2
+  if (tsModule.isTypeReferenceNode(arg)) {
+    return { kind: "identifier", name: safeGetText(arg.typeName, sourceFile) };
+  }
+
+  // Keyword types (string, number, boolean, etc.) → undefined at runtime
+  return { kind: "undefined" };
+}
+
+/**
+ * Convert a resolved type argument into an AST expression for constructor call codegen.
+ */
+function typeArgToExpression(factory: ts.NodeFactory, arg: ResolvedTypeArg): ts.Expression {
+  switch (arg.kind) {
+    case "identifier":
+      return factory.createIdentifier(arg.name);
+    case "string":
+      return factory.createStringLiteral(arg.value);
+    case "string-union":
+      return factory.createArrayLiteralExpression(
+        arg.values.map(v => factory.createStringLiteral(v))
+      );
+    case "undefined":
+      return factory.createIdentifier("undefined");
+  }
+}
+
+/**
+ * Resolve a type reference to its runtime class name.
+ * Follows type aliases (e.g. ManyToOne<T> → ModelLink) to find the actual class.
+ * Falls back to the source-level name if no class is found.
+ */
+function resolveRuntimeClassName(
+  tsModule: typeof ts,
+  checker: ts.TypeChecker,
+  typeNode: ts.TypeReferenceNode,
+  sourceFile: ts.SourceFile
+): string {
+  const type = checker.getTypeFromTypeNode(typeNode);
+  const symbol = type.getSymbol();
+  if (symbol) {
+    const declarations = symbol.getDeclarations();
+    if (declarations) {
+      for (const decl of declarations) {
+        if (tsModule.isClassDeclaration(decl) && decl.name) {
+          return safeGetText(decl.name, decl.getSourceFile());
+        }
+      }
+    }
+  }
+  return safeGetText(typeNode.typeName, sourceFile);
+}
+
 function safeGetText(node: ts.Node, sourceFile?: ts.SourceFile): string {
   try {
     return sourceFile ? node.getText(sourceFile) : node.getText();
@@ -39,8 +133,8 @@ function safeGetText(node: ts.Node, sourceFile?: ts.SourceFile): string {
 }
 
 /**
- * Detect if a type has a `set` method and return its parameter type(s).
- * For example, if MFA has `set(secret: string)`, returns "string".
+ * Detect if a type has a `set` method marked with `@WebdaAutoSetter` and return its parameter type(s) as a string.
+ * Returns undefined if the set method exists but lacks the JSDoc tag.
  */
 function detectSetMethodType(
   checker: ts.TypeChecker,
@@ -50,6 +144,9 @@ function detectSetMethodType(
     const type = checker.getTypeFromTypeNode(typeNode);
     const setSymbol = type.getProperty("set");
     if (!setSymbol) return undefined;
+
+    // Require @WebdaAutoSetter JSDoc tag on the set method declaration
+    if (!hasWebdaAutoSetterTag(setSymbol)) return undefined;
 
     const setType = checker.getTypeOfSymbol(setSymbol);
     const signatures = setType.getCallSignatures();
@@ -68,6 +165,55 @@ function detectSetMethodType(
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Check if a symbol's declaration has a `@WebdaAutoSetter` JSDoc tag.
+ */
+function hasWebdaAutoSetterTag(symbol: ts.Symbol): boolean {
+  const declarations = symbol.getDeclarations();
+  if (!declarations?.length) return false;
+  return declarations.some(decl => {
+    const tags = (decl as any).jsDoc?.flatMap((doc: any) => doc.tags ?? []);
+    return tags?.some((tag: any) => tag.tagName?.getText?.() === "WebdaAutoSetter" || tag.tagName?.escapedText === "WebdaAutoSetter");
+  });
+}
+
+/**
+ * Validate that a generic class's constructor has a parameter count matching the number of type parameters.
+ * Returns true if the constructor is compatible or the class has no type parameters.
+ */
+function validateConstructorForTypeArgs(
+  tsModule: typeof ts,
+  checker: ts.TypeChecker,
+  typeNode: ts.TypeReferenceNode
+): boolean {
+  const typeArgCount = typeNode.typeArguments?.length ?? 0;
+  if (typeArgCount === 0) return true;
+
+  const type = checker.getTypeFromTypeNode(typeNode);
+  const symbol = type.getSymbol();
+  if (!symbol) return true;
+
+  const declarations = symbol.getDeclarations();
+  if (!declarations?.length) return true;
+
+  for (const decl of declarations) {
+    if (!tsModule.isClassDeclaration(decl)) continue;
+
+    // Find constructor
+    const ctor = decl.members.find(m => tsModule.isConstructorDeclaration(m)) as ts.ConstructorDeclaration | undefined;
+    if (!ctor) {
+      // No constructor — can't instantiate with type args
+      return false;
+    }
+
+    // Constructor parameter count must be >= type argument count
+    if (ctor.parameters.length < typeArgCount) return false;
+    return true;
+  }
+
+  return true;
 }
 
 /**
@@ -112,26 +258,38 @@ export function computeCoercibleFields(
           );
           if (hasAccessor) continue;
 
-          const typeName = safeGetText(member.type.typeName, sourceFile);
+          const sourceTypeName = safeGetText(member.type.typeName, sourceFile);
 
-          // Check static coercion registry first
-          const rule = coercions[typeName];
+          // Check static coercion registry first (uses source-level name)
+          const rule = coercions[sourceTypeName];
           if (rule) {
             fields.set(fieldName, {
               setterType: rule.setterType,
               coercionKind: "builtin",
-              typeName
+              typeName: sourceTypeName
             });
             continue;
           }
 
-          // Check if the type has a `set` method
+          // Check if the type has a `set` method marked with @WebdaAutoSetter
           const setParamType = detectSetMethodType(checker, member.type);
           if (setParamType) {
+            // Resolve runtime class name (follows type aliases like ManyToOne → ModelLink)
+            const runtimeTypeName = resolveRuntimeClassName(tsModule, checker, member.type, sourceFile);
+
+            // Resolve type arguments for constructor instantiation
+            const typeArgs = member.type.typeArguments?.map(arg => resolveTypeArg(tsModule, arg, sourceFile));
+
+            // Validate constructor has enough parameters for type arguments
+            if (typeArgs?.length && !validateConstructorForTypeArgs(tsModule, checker, member.type)) {
+              continue; // Skip — constructor doesn't match type arg count
+            }
+
             fields.set(fieldName, {
-              setterType: `${setParamType} | ${typeName}`,
+              setterType: `${setParamType} | ${sourceTypeName}`,
               coercionKind: "set-method",
-              typeName
+              typeName: runtimeTypeName,
+              typeArguments: typeArgs
             });
           }
         }
@@ -271,6 +429,17 @@ export function createAccessorTransformer(
           );
 
           newMembers.push(getter, setter);
+        }
+
+        // Generate toJSON() if the class doesn't already have one
+        const hasToJSON = classDecl.members.some(
+          m =>
+            tsModule.isMethodDeclaration(m) &&
+            tsModule.isIdentifier(m.name) &&
+            m.name.text === "toJSON"
+        );
+        if (!hasToJSON) {
+          newMembers.push(createToJSONMethod(tsModule, context.factory));
         }
 
         return context.factory.updateClassDeclaration(
@@ -494,7 +663,11 @@ function createSetterBody(
                     factory.createStringLiteral(fieldName)
                   ),
                   tsModule.SyntaxKind.BarBarToken,
-                  factory.createNewExpression(typeId, undefined, [])
+                  factory.createNewExpression(
+                    typeId,
+                    undefined,
+                    (coercion.typeArguments ?? []).map(arg => typeArgToExpression(factory, arg))
+                  )
                 )
               )
             ], tsModule.NodeFlags.Const)
@@ -573,6 +746,101 @@ function createBuiltinCoercionExpression(
     default:
       return valueId;
   }
+}
+
+/**
+ * Generate a toJSON() method that includes both own properties and WEBDA_STORAGE values.
+ *
+ * ```js
+ * toJSON() {
+ *   const result = super.toJSON ? super.toJSON() : {};
+ *   for (const key of Object.keys(this)) {
+ *     result[key] = this[key];
+ *   }
+ *   Object.assign(result, this[WEBDA_STORAGE]);
+ *   return result;
+ * }
+ * ```
+ */
+function createToJSONMethod(tsModule: typeof ts, factory: ts.NodeFactory): ts.MethodDeclaration {
+  const resultId = factory.createIdentifier("result");
+
+  // const result = super.toJSON ? super.toJSON() : {};
+  const initResult = factory.createVariableStatement(
+    undefined,
+    factory.createVariableDeclarationList(
+      [
+        factory.createVariableDeclaration(
+          "result",
+          undefined,
+          undefined,
+          factory.createConditionalExpression(
+            factory.createPropertyAccessExpression(factory.createSuper(), "toJSON"),
+            factory.createToken(tsModule.SyntaxKind.QuestionToken),
+            factory.createCallExpression(
+              factory.createPropertyAccessExpression(factory.createSuper(), "toJSON"),
+              undefined,
+              []
+            ),
+            factory.createToken(tsModule.SyntaxKind.ColonToken),
+            factory.createObjectLiteralExpression()
+          )
+        )
+      ],
+      tsModule.NodeFlags.Const
+    )
+  );
+
+  // for (const key of Object.keys(this)) { result[key] = this[key]; }
+  const copyOwnProps = factory.createForOfStatement(
+    undefined,
+    factory.createVariableDeclarationList(
+      [factory.createVariableDeclaration("key")],
+      tsModule.NodeFlags.Const
+    ),
+    factory.createCallExpression(
+      factory.createPropertyAccessExpression(factory.createIdentifier("Object"), "keys"),
+      undefined,
+      [factory.createThis()]
+    ),
+    factory.createBlock([
+      factory.createExpressionStatement(
+        factory.createAssignment(
+          factory.createElementAccessExpression(resultId, factory.createIdentifier("key")),
+          factory.createElementAccessExpression(factory.createThis(), factory.createIdentifier("key"))
+        )
+      )
+    ])
+  );
+
+  // Object.assign(result, this[WEBDA_STORAGE]);
+  const assignStorage = factory.createExpressionStatement(
+    factory.createCallExpression(
+      factory.createPropertyAccessExpression(factory.createIdentifier("Object"), "assign"),
+      undefined,
+      [
+        resultId,
+        factory.createElementAccessExpression(
+          factory.createThis(),
+          factory.createIdentifier("WEBDA_STORAGE")
+        )
+      ]
+    )
+  );
+
+  // return result;
+  const returnResult = factory.createReturnStatement(resultId);
+
+  return factory.createMethodDeclaration(
+    undefined,
+    undefined,
+    factory.createIdentifier("toJSON"),
+    undefined,
+    undefined,
+    [],
+    undefined,
+    factory.createBlock([initResult, copyOwnProps, assignStorage, returnResult], true)
+  );
 }
 
 /**

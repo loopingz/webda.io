@@ -279,10 +279,86 @@ function extractModelMetadata(
     Relations: relations,
     Ancestors: ancestors,
     Subclasses: [], // Populated in a second pass
-    PrimaryKey: [],
+    PrimaryKey: extractPrimaryKey(tsModule, classDecl, checker),
     Events: [],
     Actions: {}
   };
+}
+
+/**
+ * Extract the primary key fields from a class or its ancestors.
+ *
+ * Looks for `[WEBDA_PRIMARY_KEY] = ["field1", "field2"] as const` property declarations,
+ * walking up the inheritance chain until one is found.
+ */
+function extractPrimaryKey(
+  tsModule: typeof ts,
+  classDecl: ts.ClassDeclaration,
+  checker: ts.TypeChecker
+): string[] {
+  let current: ts.ClassDeclaration | undefined = classDecl;
+  const visited = new Set<string>();
+
+  while (current) {
+    const name = current.name?.getText() ?? "";
+    if (name && visited.has(name)) break;
+    if (name) visited.add(name);
+
+    for (const member of current.members) {
+      if (!tsModule.isPropertyDeclaration(member)) continue;
+
+      // Look for computed property name: [WEBDA_PRIMARY_KEY]
+      if (!tsModule.isComputedPropertyName(member.name)) continue;
+      const expr = member.name.expression;
+      if (!tsModule.isIdentifier(expr)) continue;
+      if (expr.text !== "WEBDA_PRIMARY_KEY") continue;
+
+      // Extract string values from the initializer array literal
+      if (!member.initializer) continue;
+
+      // Handle `["uuid"] as const` — the initializer might be an AsExpression wrapping an ArrayLiteral
+      let arrayLiteral: ts.ArrayLiteralExpression | undefined;
+      if (tsModule.isArrayLiteralExpression(member.initializer)) {
+        arrayLiteral = member.initializer;
+      } else if (tsModule.isAsExpression(member.initializer) && tsModule.isArrayLiteralExpression(member.initializer.expression)) {
+        arrayLiteral = member.initializer.expression;
+      }
+
+      if (!arrayLiteral) continue;
+
+      const keys: string[] = [];
+      for (const el of arrayLiteral.elements) {
+        if (tsModule.isStringLiteral(el)) {
+          keys.push(el.text);
+        }
+      }
+      if (keys.length > 0) return keys;
+    }
+
+    // Walk to parent class
+    if (!current.heritageClauses) break;
+    let nextClass: ts.ClassDeclaration | undefined;
+    for (const clause of current.heritageClauses) {
+      if (clause.token !== tsModule.SyntaxKind.ExtendsKeyword) continue;
+      for (const typeNode of clause.types) {
+        const baseType = checker.getTypeAtLocation(typeNode);
+        const baseSymbol = baseType.getSymbol();
+        if (baseSymbol?.getDeclarations()) {
+          for (const decl of baseSymbol.getDeclarations()!) {
+            if (tsModule.isClassDeclaration(decl)) {
+              nextClass = decl;
+              break;
+            }
+          }
+        }
+        if (nextClass) break;
+      }
+      if (nextClass) break;
+    }
+    current = nextClass;
+  }
+
+  return [];
 }
 
 /**

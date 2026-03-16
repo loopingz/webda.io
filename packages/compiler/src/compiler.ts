@@ -7,6 +7,13 @@ import { useLog } from "@webda/workout";
 import { generateModule as generateModule } from "./module";
 import { existsSync, mkdirSync } from "node:fs";
 import { FileUtils } from "@webda/utils";
+import {
+  createAccessorTransformer,
+  createDeclarationAccessorTransformer,
+  computeCoercibleFields,
+  DEFAULT_COERCIONS
+} from "@webda/ts-plugin/transform";
+import type { CoercibleFieldMap } from "@webda/ts-plugin/transform";
 
 /**
  * Compiler
@@ -68,11 +75,31 @@ export class Compiler {
     let compilationStart = Date.now();
     this.createProgramFromApp();
     const check = this.tsProgram.getTypeChecker();
-    // Emit all code
+
+    // Build accessor transforms from @webda/ts-plugin
+    const coercions = { ...DEFAULT_COERCIONS };
+    const modelBases = new Set(["Model", "UuidModel"]);
+
+    // Read plugin config from tsconfig.json (compilerOptions.plugins)
+    const pluginConfig = (this.configParseResult?.options?.plugins as any[])?.find(
+      (p: any) => p.name === "@webda/ts-plugin"
+    );
+    const accessorsForAll = pluginConfig?.accessorsForAll ?? false;
+
+    // Pre-compute coercible fields (static registry + set-method detection)
+    const coercibleFields = computeCoercibleFields(ts, this.tsProgram, coercions, modelBases, accessorsForAll);
+
+    // Emit all code with accessor transforms
     const { diagnostics } = this.tsProgram.emit(undefined, writer, undefined, false, {
-      //before: [addUnserializeTransformer(check), () => createFrontendAST]
+      before: [createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll)],
+      afterDeclarations: [createDeclarationAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll)]
     });
-    const allDiagnostics = ts.getPreEmitDiagnostics(this.tsProgram).concat(diagnostics, this.configParseResult.errors);
+
+    // Filter out false TS2322 diagnostics for coercible property assignments
+    const allDiagnostics = ts
+      .getPreEmitDiagnostics(this.tsProgram)
+      .concat(diagnostics, this.configParseResult.errors)
+      .filter(diag => !isCoercibleAssignmentError(ts, this.tsProgram, diag, coercions, modelBases, coercibleFields, accessorsForAll));
     if (allDiagnostics.length) {
       const formatHost: ts.FormatDiagnosticsHost = {
         getCanonicalFileName: p => p,
@@ -241,4 +268,169 @@ export class Compiler {
       ...this.configParseResult
     });
   }
+}
+
+/**
+ * Check if a diagnostic is a false TS2322 error on a coercible property assignment.
+ * For example, assigning a string to a Date field that will be coerced at runtime.
+ */
+function isCoercibleAssignmentError(
+  tsModule: typeof ts,
+  program: ts.Program,
+  diag: ts.Diagnostic,
+  coercions: Record<string, { setterType: string }>,
+  modelBases: Set<string>,
+  coercibleFields?: CoercibleFieldMap,
+  accessorsForAll?: boolean
+): boolean {
+  if (diag.code !== 2322) return false;
+  if (diag.start === undefined || !diag.file) return false;
+
+  const checker = program.getTypeChecker();
+  const sourceFile = diag.file;
+
+  // Find the node at the diagnostic position
+  const node = findNodeAt(tsModule, sourceFile, diag.start);
+  if (!node) return false;
+
+  // Walk up to find the assignment expression
+  let current: ts.Node | undefined = node;
+  let assignment: ts.BinaryExpression | undefined;
+  while (current) {
+    if (tsModule.isBinaryExpression(current) && current.operatorToken.kind === tsModule.SyntaxKind.EqualsToken) {
+      assignment = current;
+      break;
+    }
+    current = current.parent;
+  }
+  if (!assignment) return false;
+
+  const left = assignment.left;
+  if (!tsModule.isPropertyAccessExpression(left)) return false;
+
+  const symbol = checker.getSymbolAtLocation(left.name);
+  if (!symbol?.declarations?.length) return false;
+
+  const propDecl = symbol.declarations[0];
+  if (!tsModule.isPropertyDeclaration(propDecl)) return false;
+  if (!propDecl.parent || !tsModule.isClassDeclaration(propDecl.parent)) return false;
+
+  // Check if the class should have accessor treatment (model, Accessors marker, or accessorsForAll)
+  if (!accessorsForAll &&
+      !isModelClassForDiag(tsModule, propDecl.parent, checker, modelBases) &&
+      !hasAccessorsMarkerForDiag(tsModule, propDecl.parent, checker)) return false;
+
+  // Get the property name and class name
+  const propName = propDecl.name.getText(propDecl.getSourceFile());
+  const className = propDecl.parent.name?.getText() ?? "";
+
+  // Resolve setter type: check pre-computed map first, then static coercion registry
+  let setterType: string | undefined;
+  const fieldCoercion = coercibleFields?.get(className)?.get(propName);
+  if (fieldCoercion) {
+    setterType = fieldCoercion.setterType;
+  } else {
+    const propType = checker.getTypeAtLocation(propDecl);
+    const typeName = checker.typeToString(propType);
+    const rule = coercions[typeName];
+    if (rule) {
+      setterType = rule.setterType;
+    }
+  }
+
+  if (!setterType) return false;
+
+  // Check if the assigned type is accepted by the setter
+  const assignedType = checker.getTypeAtLocation(assignment.right);
+  const assignedTypeName = checker.typeToString(assignedType);
+  const acceptedTypes = setterType.split("|").map(t => t.trim());
+
+  // Split assigned type in case it's a union (e.g. "string | SecretString")
+  const assignedParts = assignedTypeName.split("|").map(t => t.trim());
+
+  // Every part of the assigned union must be accepted by the setter
+  return assignedParts.every(part =>
+    acceptedTypes.some(t => {
+      if (part === t) return true;
+      if (t === "string" && part.startsWith('"')) return true;
+      if (t === "number" && /^\d+(\.\d+)?$/.test(part)) return true;
+      return false;
+    })
+  );
+}
+
+function findNodeAt(tsModule: typeof ts, sourceFile: ts.SourceFile, position: number): ts.Node | undefined {
+  function find(node: ts.Node): ts.Node | undefined {
+    if (position >= node.getStart(sourceFile) && position < node.getEnd()) {
+      return tsModule.forEachChild(node, find) || node;
+    }
+    return undefined;
+  }
+  return find(sourceFile);
+}
+
+function isModelClassForDiag(
+  tsModule: typeof ts,
+  classDecl: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+  modelBases: Set<string>
+): boolean {
+  const visited = new Set<string>();
+  let current: ts.ClassDeclaration | undefined = classDecl;
+
+  while (current) {
+    const name = current.name?.getText() ?? "";
+    if (name && visited.has(name)) break;
+    if (name) visited.add(name);
+    if (modelBases.has(name)) return true;
+
+    if (!current.heritageClauses) break;
+    let foundBase = false;
+    for (const clause of current.heritageClauses) {
+      if (clause.token !== tsModule.SyntaxKind.ExtendsKeyword) continue;
+      for (const typeNode of clause.types) {
+        const baseName = typeNode.expression.getText().split("<")[0].trim();
+        if (modelBases.has(baseName)) return true;
+        const baseType = checker.getTypeAtLocation(typeNode);
+        const baseSymbol = baseType.getSymbol();
+        if (baseSymbol?.getDeclarations()) {
+          for (const decl of baseSymbol.getDeclarations()!) {
+            if (tsModule.isClassDeclaration(decl)) {
+              current = decl;
+              foundBase = true;
+              break;
+            }
+          }
+        }
+        if (foundBase) break;
+      }
+      if (foundBase) break;
+    }
+    if (!foundBase) break;
+  }
+  return false;
+}
+
+/**
+ * Check if a class implements the Accessors marker interface.
+ */
+function hasAccessorsMarkerForDiag(
+  tsModule: typeof ts,
+  classDecl: ts.ClassDeclaration,
+  checker: ts.TypeChecker
+): boolean {
+  const heritageClauses = classDecl.heritageClauses;
+  if (!heritageClauses) return false;
+
+  for (const clause of heritageClauses) {
+    if (clause.token !== tsModule.SyntaxKind.ImplementsKeyword) continue;
+    for (const typeNode of clause.types) {
+      const exprText = typeNode.expression.getText();
+      if (exprText === "Accessors") return true;
+      const type = checker.getTypeAtLocation(typeNode);
+      const symbol = type.getSymbol() ?? type.aliasSymbol;
+      if (symbol && symbol.getName() === "Accessors") return true;
+    }
+  }
+  return false;
 }

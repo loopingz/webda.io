@@ -29,8 +29,8 @@ class Test extends CoreModel {
   retest5: Array<string>;
   retest6: Date[];
 
-    protected unserialize(data: any) {
-        super.unserialize(data);
+    protected deserialize(data: any) {
+        super.deserialize(data);
         this.test = new Date(data.test);
         this.number = data.number;
         this.mine = data.mine;
@@ -50,22 +50,31 @@ class Test2 extends CoreModel {
   test: number;
   date: Date;
   bool: boolean;
-  protected unserialize(data: any) {
-      super.unserialize(data);
-      this.test = data.test + 3;
-      this.date = new Date(data.date);
-      this.bool = data.bool;
+  unserialize(data: any) {
+    this.test = data.test + 3;
   }
+
+    protected deserialize(data: any) {
+        super.deserialize(data);
+        this.test = data.test;
+        this.date = new Date(data.date);
+        this.bool = data.bool;
+    }
 }
 
 class Test3 extends CoreModel {
   test: number;
   date: Date;
-  protected unserialize(data: any) {
-      this.test = data.test + 3;
-      super.unserialize(data);
-      this.date = new Date(data.date);
+  unserialize(data: any) {
+    this.test = data.test + 3;
+    super.unserialize(data);
   }
+
+    protected deserialize(data: any) {
+        super.deserialize(data);
+        this.test = data.test;
+        this.date = new Date(data.date);
+    }
 }
 
 class Test4 extends CoreModel {
@@ -77,4 +86,10 @@ class Test4 extends CoreModel {
   unserialize() {
     // DO NOTHING
   }
+
+    protected deserialize(data: any) {
+        super.deserialize(data);
+        this.test = data.test;
+        this.date = new Date(data.date);
+    }
 }

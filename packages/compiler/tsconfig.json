@@ -12,6 +12,9 @@
     "moduleResolution": "node",
     "skipLibCheck": true,
     "declarationMap": true,
+    "paths": {
+      "@webda/ts-plugin/transform": ["../ts-plugin/lib/transform"]
+    },
     "useDefineForClassFields": true
   },
   "include": [

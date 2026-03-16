@@ -15,15 +15,35 @@ export class PrimaryKeyMetadata extends MetadataPlugin {
         .find(p => this.moduleGenerator.propertyIsKeyedBySymbol(p, "@webda/models", "WEBDA_PRIMARY_KEY"));
       if (primarySymbol) {
         module.models[name].PrimaryKey ??= [];
-        const node = primarySymbol.valueDeclaration.getChildren().find(c => ts.isTypeOperatorNode(c));
-        if (node?.operator === ts.SyntaxKind.ReadonlyKeyword) {
-          const inner = node.type;
-          if (ts.isArrayTypeNode(inner)) {
-            // keyof this would end up here, but that are abstract models
-          } else if (ts.isTupleTypeNode(inner)) {
+        const valDecl = primarySymbol.valueDeclaration;
+        if (!valDecl) return;
+
+        // Strategy 1: explicit type annotation with `readonly` keyword (e.g. `readonly ["uuid"]`)
+        const typeOpNode = valDecl.getChildren().find(c => ts.isTypeOperatorNode(c));
+        if (typeOpNode?.operator === ts.SyntaxKind.ReadonlyKeyword) {
+          const inner = typeOpNode.type;
+          if (ts.isTupleTypeNode(inner)) {
             inner.elements.forEach((element) => {
               if (ts.isLiteralTypeNode(element)) {
                 module.models[name].PrimaryKey.push(element.literal.getText().replace(/"/g, ""));
+              }
+            });
+            return;
+          }
+          if (ts.isArrayTypeNode(inner)) {
+            // keyof this would end up here — abstract models, skip
+            return;
+          }
+        }
+
+        // Strategy 2: initializer with `as const` (e.g. `= ["uuid"] as const`)
+        const asExpr = valDecl.getChildren().find(c => ts.isAsExpression(c));
+        if (asExpr && ts.isAsExpression(asExpr)) {
+          const arrayExpr = asExpr.expression;
+          if (ts.isArrayLiteralExpression(arrayExpr)) {
+            arrayExpr.elements.forEach(el => {
+              if (ts.isStringLiteral(el)) {
+                module.models[name].PrimaryKey.push(el.text);
               }
             });
           }

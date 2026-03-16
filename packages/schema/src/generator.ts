@@ -99,7 +99,7 @@ export interface GenerateSchemaOptions {
    *
    * @default "input"
    */
-  type?: "input" | "output";
+  type?: "input" | "output" | "dto-in" | "dto-out";
   /**
    * Hook invoked for every property *before* type inspection. The callback
    * may modify any field of the {@link SchemaPropertyArguments} to alter
@@ -425,7 +425,7 @@ export class SchemaGenerator {
 
       let setterParamType: ts.Type | undefined;
       if (decl && ts.isGetAccessor(decl as ts.GetAccessorDeclaration)) {
-        if (this.currentOptions.type === "input") {
+        if (this.currentOptions.type === "input" || this.currentOptions.type === "dto-in") {
           const setterDecl = prop.getDeclarations()?.find(d => ts.isSetAccessor(d as ts.SetAccessorDeclaration));
           if (setterDecl) {
             setterParamType = this.checker.getTypeAtLocation((setterDecl as ts.SetAccessorDeclaration).parameters[0]);
@@ -689,6 +689,123 @@ export class SchemaGenerator {
    * @param path - Current schema path (e.g. `/MyType/prop`)
    * @param propTypeString - Human-readable type string used as the definition key
    */
+
+  /**
+   * Resolve the return type of a named method on a type.
+   * Checks instance methods only. Returns `undefined` if the method is not found.
+   *
+   * @param type - The TypeScript type to inspect
+   * @param methodNames - Method names to check in order (first match wins)
+   * @param resolveNode - Node used for symbol resolution context
+   */
+  private resolveMethodReturnType(
+    type: ts.Type,
+    methodNames: string[],
+    resolveNode: ts.Node
+  ): ts.Type | undefined {
+    for (const name of methodNames) {
+      const symbol = type.getProperty(name);
+      if (symbol) {
+        const methodType = this.checker.getTypeOfSymbolAtLocation(symbol, resolveNode);
+        const sigs = this.checker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
+        if (sigs.length > 0) {
+          return this.checker.getReturnTypeOfSignature(sigs[0]);
+        }
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Resolve the first parameter type of a `fromDTO` / `fromDto` method.
+   *
+   * Checks both instance methods and static methods on the class.
+   * Returns:
+   * - `"skip"` if the first parameter type is `never` (property should be excluded)
+   * - the parameter type if found
+   * - `undefined` if no matching method exists
+   *
+   * @param type - The TypeScript type to inspect
+   * @param resolveNode - Node used for symbol resolution context
+   */
+  private resolveFromDto(type: ts.Type, resolveNode: ts.Node): ts.Type | "skip" | undefined {
+    const methodNames = ["fromDTO", "fromDto"];
+    for (const name of methodNames) {
+      // Check instance methods first
+      let symbol = type.getProperty(name);
+      // Check static methods if not found on instance
+      if (!symbol) {
+        const classSym = type.getSymbol();
+        if (classSym) {
+          const decl = classSym.valueDeclaration || classSym.declarations?.[0];
+          if (decl) {
+            const ctorType = this.checker.getTypeOfSymbolAtLocation(classSym, decl);
+            symbol = ctorType.getProperty(name);
+          }
+        }
+      }
+      if (symbol) {
+        const methodType = this.checker.getTypeOfSymbolAtLocation(symbol, resolveNode);
+        const sigs = this.checker.getSignaturesOfType(methodType, ts.SignatureKind.Call);
+        if (sigs.length > 0 && sigs[0].parameters.length > 0) {
+          const firstParam = sigs[0].parameters[0];
+          const paramDecl = firstParam.valueDeclaration || firstParam.declarations?.[0];
+          const paramType = paramDecl
+            ? this.checker.getTypeAtLocation(paramDecl)
+            : this.checker.getTypeOfSymbolAtLocation(firstParam, resolveNode);
+          // If the parameter type is `never`, signal to skip the property
+          if (paramType.flags & ts.TypeFlags.Never) {
+            return "skip";
+          }
+          return paramType;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Simplify an intersection type for schema generation.
+   *
+   * - If a primitive constituent exists (string, number, boolean), return it directly.
+   * - Otherwise filter out constituents that only contain method properties
+   *   (e.g. `{ toString(): string }`) which produce empty object schemas.
+   *
+   * @param type - The type to simplify
+   * @returns The simplified type, or the original if no simplification applies
+   */
+  private simplifyIntersection(type: ts.Type): ts.Type {
+    if (!type.isIntersection()) {
+      return type;
+    }
+    const primitiveFlags =
+      ts.TypeFlags.String |
+      ts.TypeFlags.Number |
+      ts.TypeFlags.Boolean |
+      ts.TypeFlags.StringLiteral |
+      ts.TypeFlags.NumberLiteral |
+      ts.TypeFlags.BooleanLiteral;
+    const types = (type as ts.IntersectionType).types;
+    const primitive = types.find(t => t.flags & primitiveFlags);
+    if (primitive) {
+      return primitive;
+    }
+    // Filter out constituents that only have method properties (no data properties),
+    // e.g. { toString(): string } adds nothing to a JSON schema.
+    const dataTypes = types.filter(t => {
+      const props = this.checker.getPropertiesOfType(t);
+      return props.some(p => {
+        const decl = p.valueDeclaration || p.declarations?.[0];
+        if (!decl) return true; // keep if we can't inspect
+        return !ts.isMethodDeclaration(decl) && !ts.isMethodSignature(decl);
+      });
+    });
+    if (dataTypes.length === 1) {
+      return dataTypes[0];
+    }
+    return type;
+  }
+
   processClassOrInterface(
     type: ts.Type,
     definition: JSONSchema7,
@@ -696,61 +813,63 @@ export class SchemaGenerator {
     propTypeString: string,
     node?: ts.Node,
     depth: number = 0
-  ): boolean {
+  ): false | "resolved" | "skip" {
     /* c8 ignore next 3 -- constructor path only reachable via internal TS representation */
     if (path.endsWith("/constructor")) {
       return false;
     }
     this.log(`Processing class/interface at ${path}: ${propTypeString}`);
-    // If the class/interface has a toJSON() method, use its return type for the schema.
-    // This handles types like ModelLink<T> whose serialized form differs from the class shape.
+    // For non-root property types, check for serialization methods (fromDTO/toDTO/toJSON)
+    // to use the appropriate schema representation instead of the raw class shape.
     if (path !== "/") {
-      const toJsonSymbol = type.getProperty("toJSON");
-      if (toJsonSymbol) {
-        const resolveNode = node || this.targetNode!;
-        const toJsonType = this.checker.getTypeOfSymbolAtLocation(toJsonSymbol, resolveNode);
-        const toJsonSigs = this.checker.getSignaturesOfType(toJsonType, ts.SignatureKind.Call);
-        if (toJsonSigs.length > 0) {
-          const returnType = this.checker.getReturnTypeOfSignature(toJsonSigs[0]);
-          const returnStr = this.checker.typeToString(returnType);
-          // Only use toJSON return type if it resolves to a concrete type (not the class itself)
-          if (returnStr !== propTypeString && !(returnType.flags & ts.TypeFlags.Any)) {
-            // If the return type is an intersection (e.g. string & { toString(): string }),
-            // simplify by extracting the primitive or filtering out method-only constituents.
-            let resolvedType = returnType;
-            if (returnType.isIntersection()) {
-              const primitiveFlags =
-                ts.TypeFlags.String |
-                ts.TypeFlags.Number |
-                ts.TypeFlags.Boolean |
-                ts.TypeFlags.StringLiteral |
-                ts.TypeFlags.NumberLiteral |
-                ts.TypeFlags.BooleanLiteral;
-              const types = (returnType as ts.IntersectionType).types;
-              const primitive = types.find(t => t.flags & primitiveFlags);
-              if (primitive) {
-                resolvedType = primitive;
-              } else {
-                // Filter out constituents that only have method properties (no data properties),
-                // e.g. { toString(): string } adds nothing to a JSON schema.
-                const dataTypes = types.filter(t => {
-                  const props = this.checker.getPropertiesOfType(t);
-                  // Keep if it has at least one non-method property
-                  return props.some(p => {
-                    const decl = p.valueDeclaration || p.declarations?.[0];
-                    if (!decl) return true; // keep if we can't inspect
-                    return !ts.isMethodDeclaration(decl) && !ts.isMethodSignature(decl);
-                  });
-                });
-                if (dataTypes.length === 1) {
-                  resolvedType = dataTypes[0];
-                }
-              }
-            }
-            this.log(`Using toJSON() return type at ${path}: ${this.checker.typeToString(resolvedType)}`);
-            this.schemaProperty(resolvedType, definition, path, node, (depth || 0) + 1);
-            return true;
+      const resolveNode = node || this.targetNode!;
+      const mode = this.currentOptions.type;
+
+      // dto-in mode: check for fromDTO/fromDto to determine accepted input type.
+      // If the first parameter is `never`, skip the property entirely.
+      if (mode === "dto-in") {
+        const fromDtoResult = this.resolveFromDto(type, resolveNode);
+        if (fromDtoResult === "skip") {
+          this.log(`Skipping property at ${path}: fromDTO parameter is never`);
+          return "skip";
+        }
+        if (fromDtoResult) {
+          this.log(`Using fromDTO() parameter type at ${path}: ${this.checker.typeToString(fromDtoResult)}`);
+          this.schemaProperty(fromDtoResult, definition, path, node, (depth || 0) + 1);
+          return "resolved";
+        }
+      }
+
+      // dto-out mode: check for toDTO/toDto to determine output type.
+      if (mode === "dto-out") {
+        const toDtoType = this.resolveMethodReturnType(type, ["toDTO", "toDto"], resolveNode);
+        if (toDtoType) {
+          if (toDtoType.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Null | ts.TypeFlags.Never)) {
+            this.log(`Skipping property at ${path}: toDTO() returns ${this.checker.typeToString(toDtoType)}`);
+            return "skip";
           }
+          const resolved = this.simplifyIntersection(toDtoType);
+          this.log(`Using toDTO() return type at ${path}: ${this.checker.typeToString(resolved)}`);
+          this.schemaProperty(resolved, definition, path, node, (depth || 0) + 1);
+          return "resolved";
+        }
+      }
+
+      // Fallback: check for toJSON() to determine serialized form.
+      const toJsonType = this.resolveMethodReturnType(type, ["toJSON"], resolveNode);
+      if (toJsonType) {
+        // If toJSON() returns void/undefined/null/never, skip the property entirely
+        if (toJsonType.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Null | ts.TypeFlags.Never)) {
+          this.log(`Skipping property at ${path}: toJSON() returns ${this.checker.typeToString(toJsonType)}`);
+          return "skip";
+        }
+        const returnStr = this.checker.typeToString(toJsonType);
+        // Only use toJSON return type if it resolves to a concrete type (not the class itself)
+        if (returnStr !== propTypeString && !(toJsonType.flags & ts.TypeFlags.Any)) {
+          const resolved = this.simplifyIntersection(toJsonType);
+          this.log(`Using toJSON() return type at ${path}: ${this.checker.typeToString(resolved)}`);
+          this.schemaProperty(resolved, definition, path, node, (depth || 0) + 1);
+          return "resolved";
         }
       }
     }
@@ -1163,7 +1282,11 @@ export class SchemaGenerator {
       // leave type open
       this.log(`${indent}Type is any/unknown at ${path}, leaving schema open`);
     } else if (type.isClassOrInterface()) {
-      if (this.processClassOrInterface(type, definition, path, propTypeString, node, depth)) {
+      const pResult = this.processClassOrInterface(type, definition, path, propTypeString, node, depth);
+      if (pResult === "skip") {
+        return { optional: false, decision: "skip" };
+      }
+      if (pResult) {
         return result;
       }
     } else if (type.isUnion()) {
@@ -1453,7 +1576,11 @@ export class SchemaGenerator {
       this.log(`${indent}Type parameter encountered at ${path}, treating as any`);
     } else if ((type as any).flags & ts.TypeFlags.Object && (type as any).objectFlags & ts.ObjectFlags.Reference) {
       // Try to resolve generic type references
-      if (this.processClassOrInterface(type, definition, path, propTypeString, node, depth)) {
+      const pResult = this.processClassOrInterface(type, definition, path, propTypeString, node, depth);
+      if (pResult === "skip") {
+        return { optional: false, decision: "skip" };
+      }
+      if (pResult) {
         return result;
       }
     } else if ((type as any).flags & ts.TypeFlags.Object && (type as any).objectFlags & ts.ObjectFlags.Anonymous) {
@@ -1467,7 +1594,11 @@ export class SchemaGenerator {
         result.to = this.processCallableType(callSignatures, definition, this.getFunctionName(node), path);
         this.log(`${indent}Processed callable anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`);
       } else {
-        if (this.processClassOrInterface(type, definition, path, propTypeString, node, depth)) {
+        const pResult2 = this.processClassOrInterface(type, definition, path, propTypeString, node, depth);
+        if (pResult2 === "skip") {
+          return { optional: false, decision: "skip" };
+        }
+        if (pResult2) {
           return result;
         }
         this.log(`${indent}Unhandled anonymous object type at ${path}: ${propTypeString} (${(type as any).flags})`);
@@ -1476,7 +1607,11 @@ export class SchemaGenerator {
       // Detect Mapped Types
       const symbol = (type as any).getSymbol ? (type as any).getSymbol() : undefined;
       if (symbol && symbol.flags & ts.SymbolFlags.TypeLiteral) {
-        if (this.processClassOrInterface(type, definition, path, propTypeString, node, depth)) {
+        const pResult3 = this.processClassOrInterface(type, definition, path, propTypeString, node, depth);
+        if (pResult3 === "skip") {
+          return { optional: false, decision: "skip" };
+        }
+        if (pResult3) {
           return result;
         }
       } else {

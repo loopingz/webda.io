@@ -1,4 +1,6 @@
-import { Model, ModelLink, ModelLinksSimpleArray, ModelRelated } from "./webda";
+import { ManyToMany, Model, ModelLink, OneToMany, Storable, UuidModel } from "@webda/models";
+
+import { FilterAttributes } from "@webda/tsc-esm";
 
 export abstract class TimeLimitedRelation<T extends Model, K extends Model> extends Model {
   PrimaryKey: "nodeA" | "nodeB" | "since";
@@ -94,3 +96,19 @@ export class Cluster extends Model {
   });
   CVEForPackage.query("nodeA.uuid = 'CVE_2024_24156'");
 })();
+
+
+class Order extends UuidModel {
+  products!: ManyToMany<Product, {
+    price: number;
+    quantity: number;
+  }>;
+}
+
+type RevertRelation<T extends Storable,
+  L extends Storable,
+  K extends FilterAttributes<T, ModelLinker<L>>> = OneToMany<T, K, L>;
+  
+class Product extends UuidModel {
+  orders!: RevertMany<Order, Product, "products">;
+}

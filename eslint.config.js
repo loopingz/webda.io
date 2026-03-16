@@ -6,7 +6,7 @@ export default [
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
   {
-    ignores: ["node_modules", "**/lib/*", "**/reports/*", "**/coverage/*"]
+    ignores: ["**/node_modules/**", "**/lib/**", "**/reports/**", "**/coverage/**"]
   },
   {
     plugins: {

@@ -107,17 +107,19 @@ function isProxyable(value: any): boolean {
  * Wraps an object or array in a deep proxy that calls {@link markDirty}
  * whenever a nested mutation occurs (property set or delete).
  *
+ * The full property path is tracked (e.g. "address.street.name").
+ *
  * Read-only operations pass through untouched.
  */
-function createDeepDirtyProxy<V extends object>(value: V, markDirty: () => void): V {
+function createDeepDirtyProxy<V extends object>(value: V, pathPrefix: string, markDirty: (fullPath: string) => void): V {
   return new Proxy(value, {
     set(innerTarget: any, innerProp: string | symbol, innerValue: any) {
-      markDirty();
+      markDirty(`${pathPrefix}.${String(innerProp)}`);
       innerTarget[innerProp] = innerValue;
       return true;
     },
     deleteProperty(innerTarget: any, innerProp: string | symbol) {
-      markDirty();
+      markDirty(`${pathPrefix}.${String(innerProp)}`);
       delete innerTarget[innerProp];
       return true;
     },
@@ -129,7 +131,7 @@ function createDeepDirtyProxy<V extends object>(value: V, markDirty: () => void)
         return innerValue.bind(receiver);
       }
       if (innerValue !== null && typeof innerValue === "object" && isProxyable(innerValue)) {
-        return createDeepDirtyProxy(innerValue, markDirty);
+        return createDeepDirtyProxy(innerValue, `${pathPrefix}.${String(innerProp)}`, markDirty);
       }
       return innerValue;
     }
@@ -173,8 +175,8 @@ export function DirtyMixIn<T extends Constructor>(
         get: (target: any, p: string | symbol) => {
           const value = target[p];
           if (typeof p === "string" && value !== null && typeof value === "object" && isProxyable(value)) {
-            return createDeepDirtyProxy(value, () => {
-              target[WEBDA_DIRTY].add(p);
+            return createDeepDirtyProxy(value, p, fullPath => {
+              target[WEBDA_DIRTY].add(fullPath);
             });
           }
           return value;
@@ -233,8 +235,8 @@ export function track<T extends object>(
       }
       const value = target[p];
       if (typeof p === "string" && value !== null && typeof value === "object" && isProxyable(value)) {
-        return createDeepDirtyProxy(value, () => {
-          dirtyState.add(p.toString());
+        return createDeepDirtyProxy(value, p, fullPath => {
+          dirtyState.add(fullPath);
         });
       }
       return value;

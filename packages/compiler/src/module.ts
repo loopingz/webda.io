@@ -1098,7 +1098,7 @@ class WebdaSchemaResults {
         if (section === "models") {
           try {
             // Generate Model schemas
-            results[section][name].Schemas = moduleGenerator.generateModelSchemas(schemaNode, title || name);
+            results[section][name].Schemas = moduleGenerator.generateModelSchemas(schemaNode as ts.Node, title || name);
           } catch (err) {
             useLog("WARN", `Cannot generate schemas for model ${name}:`, err.message);
             useLog("TRACE", err.stack);
@@ -1107,10 +1107,10 @@ class WebdaSchemaResults {
         }
 
         if (schemaNode) {
-          results[section][name].Schema = moduleGenerator.generateSchema(schemaNode, title || name);
+          results[section][name].Schema = moduleGenerator.generateSchema(schemaNode as ts.Node, title || name);
           let exportName = "";
           try {
-            const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode);
+            const type = moduleGenerator.typeChecker.getTypeAtLocation(schemaNode as ts.Node);
             exportName = moduleGenerator.getExportedName(
               type.symbol.valueDeclaration as ts.ClassDeclaration | ts.InterfaceDeclaration
             );

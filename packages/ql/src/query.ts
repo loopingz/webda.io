@@ -308,6 +308,18 @@ export interface Query {
    */
   orderBy?: OrderBy[];
   /**
+   * Statement type (DELETE, UPDATE, SELECT) or undefined for plain filter queries
+   */
+  type?: "DELETE" | "UPDATE" | "SELECT";
+  /**
+   * Projected field names for SELECT queries
+   */
+  fields?: string[];
+  /**
+   * Assignment list for UPDATE SET queries
+   */
+  assignments?: { field: string; value: value }[];
+  /**
    * Get the string representation of the query
    */
   toString(): string;
@@ -1019,10 +1031,315 @@ export function unsanitize(query: string): string {
 }
 
 /**
- * Parse a query string into a Query object
- * @param query
- * @returns
+ * Find the index of an unquoted keyword in a string
+ * Tracks single and double quote state to avoid matching inside string literals.
+ *
+ * @param str - the string to search
+ * @param keyword - the keyword to find (must be surrounded by whitespace or at string boundaries)
+ * @returns index of the keyword, or -1 if not found
  */
-export function parse(query: string): Query {
-  return new QueryValidator(query).getQuery();
+function findUnquotedKeyword(str: string, keyword: string): number {
+  let inSingle = false;
+  let inDouble = false;
+  const upperKeyword = keyword.toUpperCase();
+  for (let i = 0; i <= str.length - upperKeyword.length; i++) {
+    const ch = str[i];
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+    } else if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+    } else if (!inSingle && !inDouble) {
+      if (
+        str.substring(i, i + upperKeyword.length).toUpperCase() === upperKeyword &&
+        (i === 0 || /\s/.test(str[i - 1])) &&
+        (i + upperKeyword.length === str.length || /\s/.test(str[i + upperKeyword.length]))
+      ) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+/**
+ * Parse a value literal string into its typed representation
+ *
+ * @param raw - trimmed value string (e.g. `"'hello'"`, `"42"`, `"TRUE"`)
+ * @returns the parsed value
+ */
+function parseValue(raw: string): value {
+  if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"'))) {
+    return raw.substring(1, raw.length - 1);
+  }
+  const upper = raw.toUpperCase();
+  if (upper === "TRUE") return true;
+  if (upper === "FALSE") return false;
+  return parseInt(raw);
+}
+
+/**
+ * Serialize a value to its WebdaQL string representation
+ */
+function formatValue(v: value): string {
+  if (typeof v === "string") return `"${v}"`;
+  if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
+  return String(v);
+}
+
+/**
+ * Parse a comma-separated assignment list like `"status = 'active', age = 30"`
+ *
+ * @param str - the assignment list string
+ * @returns array of field/value assignment objects
+ */
+function parseAssignments(str: string): { field: string; value: value }[] {
+  const results: { field: string; value: value }[] = [];
+  // Split by unquoted commas
+  let current = "";
+  let inSingle = false;
+  let inDouble = false;
+  for (const ch of str) {
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+    } else if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+    }
+    if (ch === "," && !inSingle && !inDouble) {
+      results.push(parseOneAssignment(current));
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim()) {
+    results.push(parseOneAssignment(current));
+  }
+  return results;
+}
+
+/**
+ * Parse a single assignment like `"status = 'active'"` into `{ field, value }`
+ */
+function parseOneAssignment(str: string): { field: string; value: value } {
+  const eqIdx = str.indexOf("=");
+  if (eqIdx === -1) {
+    throw new SyntaxError(`Invalid assignment: ${str}`);
+  }
+  return {
+    field: str.substring(0, eqIdx).trim(),
+    value: parseValue(str.substring(eqIdx + 1).trim())
+  };
+}
+
+/**
+ * Parse the body after SELECT (or implicit select detection) into fields and remainder
+ */
+function parseSelectBody(body: string): StatementPrefix {
+  const whereIdx = findUnquotedKeyword(body, "WHERE");
+  let fieldStr: string;
+  let remainder: string;
+  if (whereIdx === -1) {
+    // Check for ORDER BY, LIMIT, OFFSET without WHERE
+    let endOfFields = body.length;
+    for (const kw of ["ORDER BY", "LIMIT", "OFFSET"]) {
+      const idx = findUnquotedKeyword(body, kw);
+      if (idx !== -1 && idx < endOfFields) {
+        endOfFields = idx;
+      }
+    }
+    fieldStr = body.substring(0, endOfFields).trim();
+    remainder = body.substring(endOfFields).trimStart();
+  } else {
+    fieldStr = body.substring(0, whereIdx).trim();
+    remainder = body.substring(whereIdx + 5).trimStart();
+  }
+  const fields = fieldStr.split(",").map(f => f.trim()).filter(f => f.length > 0);
+  return { type: "SELECT", fields, remainder };
+}
+
+/**
+ * Detect if a query is an implicit SELECT (field list without the SELECT keyword).
+ *
+ * A query is an implicit SELECT if it contains an unquoted comma before any
+ * comparison operator or logical keyword. This distinguishes `name, age WHERE ...`
+ * from `name = 'John' AND ...`.
+ *
+ * @returns the query string (as the select body) if implicit SELECT, otherwise undefined
+ */
+function detectImplicitSelect(query: string): string | undefined {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < query.length; i++) {
+    const ch = query[i];
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+    } else if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+    } else if (!inSingle && !inDouble) {
+      // If we hit a comma first, it's a field list
+      if (ch === ",") {
+        return query;
+      }
+      // If we hit an operator first, it's a filter expression
+      if (ch === "=" || ch === "!" || ch === "<" || ch === ">") {
+        return undefined;
+      }
+      // Check for keyword operators (AND, OR, LIKE, IN, CONTAINS)
+      for (const kw of ["AND", "OR", "LIKE", "IN", "CONTAINS"]) {
+        if (
+          query.substring(i, i + kw.length) === kw &&
+          (i === 0 || /\s/.test(query[i - 1])) &&
+          (i + kw.length === query.length || /\s/.test(query[i + kw.length]))
+        ) {
+          return undefined;
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+interface StatementPrefix {
+  type?: "DELETE" | "UPDATE" | "SELECT";
+  fields?: string[];
+  assignments?: { field: string; value: value }[];
+  remainder: string;
+}
+
+/**
+ * Extract statement prefix (DELETE/UPDATE/SELECT) from a query string
+ * and return the remainder for the ANTLR parser.
+ *
+ * @param query - full query string
+ * @returns parsed prefix info and the condition remainder
+ */
+function extractStatementPrefix(query: string): StatementPrefix {
+  const trimmed = query.trimStart();
+  const upperTrimmed = trimmed.toUpperCase();
+
+  // DELETE WHERE <condition>
+  if (upperTrimmed.startsWith("DELETE")) {
+    const afterDelete = trimmed.substring(6).trimStart();
+    if (afterDelete.toUpperCase().startsWith("WHERE")) {
+      return { type: "DELETE", remainder: afterDelete.substring(5).trimStart() };
+    }
+    return { type: "DELETE", remainder: afterDelete };
+  }
+
+  // UPDATE SET <assignments> WHERE <condition>
+  if (upperTrimmed.startsWith("UPDATE")) {
+    const afterUpdate = trimmed.substring(6).trimStart();
+    if (!afterUpdate.toUpperCase().startsWith("SET")) {
+      throw new SyntaxError(`Expected SET after UPDATE (Query: ${query})`);
+    }
+    const afterSet = afterUpdate.substring(3).trimStart();
+    const whereIdx = findUnquotedKeyword(afterSet, "WHERE");
+    if (whereIdx === -1) {
+      // UPDATE SET assignments without WHERE → applies to all
+      return {
+        type: "UPDATE",
+        assignments: parseAssignments(afterSet),
+        remainder: ""
+      };
+    }
+    const assignmentStr = afterSet.substring(0, whereIdx).trim();
+    const remainder = afterSet.substring(whereIdx + 5).trimStart();
+    return {
+      type: "UPDATE",
+      assignments: parseAssignments(assignmentStr),
+      remainder
+    };
+  }
+
+  // SELECT <fields> [WHERE <condition>] — explicit or implicit
+  // Explicit: starts with SELECT keyword
+  // Implicit: starts with a comma-separated identifier list (contains a comma before any operator)
+  const selectBody = upperTrimmed.startsWith("SELECT") ? trimmed.substring(6).trimStart() : detectImplicitSelect(trimmed);
+
+  if (selectBody !== undefined) {
+    return parseSelectBody(selectBody);
+  }
+
+  return { remainder: query };
+}
+
+/**
+ * Validate that all fields and assignment targets in a query are within the allowed set.
+ * Checks SELECT fields, UPDATE SET assignment fields, and filter attribute references.
+ *
+ * @param query - parsed query to validate
+ * @param allowedFields - set of allowed field names (supports dot-notation)
+ * @throws {SyntaxError} if any field is not in the allowed set
+ */
+export function validateQueryFields(query: Query, allowedFields: string[]): void {
+  const allowed = new Set(allowedFields);
+  if (query.fields) {
+    for (const field of query.fields) {
+      if (!allowed.has(field)) {
+        throw new SyntaxError(`Unknown field "${field}". Allowed fields: ${allowedFields.join(", ")}`);
+      }
+    }
+  }
+  if (query.assignments) {
+    for (const assignment of query.assignments) {
+      if (!allowed.has(assignment.field)) {
+        throw new SyntaxError(
+          `Unknown assignment field "${assignment.field}". Allowed fields: ${allowedFields.join(", ")}`
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Parse a query string into a Query object
+ *
+ * Supports plain filter queries, and statement prefixes:
+ * - `DELETE WHERE <condition> [LIMIT n]`
+ * - `UPDATE SET <assignments> WHERE <condition> [LIMIT n]`
+ * - `SELECT <fields> [WHERE <condition>] [ORDER BY ...] [LIMIT ...] [OFFSET ...]`
+ * - `<field>, <field> [WHERE <condition>] ...` (implicit SELECT when comma-separated fields detected)
+ *
+ * @param query - the query string to parse
+ * @param allowedFields - optional list of allowed field names; if provided, SELECT fields
+ *   and UPDATE SET targets are validated against this list and a SyntaxError is thrown for unknowns
+ * @returns parsed Query object
+ */
+export function parse(query: string, allowedFields?: string[]): Query {
+  const prefix = extractStatementPrefix(query);
+  const base = new QueryValidator(prefix.remainder).getQuery();
+  if (!prefix.type) {
+    return base;
+  }
+  const result: Query = {
+    ...base,
+    type: prefix.type,
+    fields: prefix.fields,
+    assignments: prefix.assignments,
+    toString: () => {
+      const basePart = base.toString();
+      switch (prefix.type) {
+        case "DELETE": {
+          const condition = basePart ? ` WHERE ${basePart}` : "";
+          return `DELETE${condition}`.trim();
+        }
+        case "UPDATE": {
+          const setPart = prefix.assignments!.map(a => `${a.field} = ${formatValue(a.value)}`).join(", ");
+          const condition = basePart ? ` WHERE ${basePart}` : "";
+          return `UPDATE SET ${setPart}${condition}`.trim();
+        }
+        case "SELECT": {
+          const fieldsPart = prefix.fields!.join(", ");
+          const condition = basePart ? ` WHERE ${basePart}` : "";
+          return `SELECT ${fieldsPart}${condition}`.trim();
+        }
+        default:
+          return basePart;
+      }
+    }
+  };
+  if (allowedFields) {
+    validateQueryFields(result, allowedFields);
+  }
+  return result;
 }

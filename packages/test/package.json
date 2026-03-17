@@ -30,12 +30,13 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
-    "@webda/decorators": "^4.0.0-beta.1",
-    "@webda/workout": "^4.0.0-beta.1"
+    "@webda/decorators": "workspace:*",
+    "@webda/workout": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.0.0",
-    "jscodeshift": "^17.0.0"
+    "jscodeshift": "^17.0.0",
+    "vitest": "^4.1.0"
   },
   "peerDependenciesMeta": {
     "mocha": {

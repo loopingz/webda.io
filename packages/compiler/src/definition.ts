@@ -4,6 +4,7 @@ import { BinaryLike, createHash } from "crypto";
 import { existsSync, globSync, readFileSync } from "fs";
 import type { JSONSchema7 } from "json-schema";
 import { join } from "path";
+import ts from "typescript";
 
 export type ModelGraphBinaryDefinition = {
   attribute: string;
@@ -554,10 +555,10 @@ export class WebdaProject {
     const current = createHash("md5");
     const tsCfg = readFileSync(this.getAppPath("tsconfig.json"));
     current.update(tsCfg as BinaryLike);
-    const ts = JSON.parse(tsCfg.toString());
+    const tsParsed = ts.parseConfigFileTextToJson("tsconfig.json", tsCfg.toString()).config;
     // Maybe just use the mtime of tsconfig + all files?
-    globSync(ts.include || ["**/*"], {
-      exclude: ts.exclude,
+    globSync(tsParsed.include || ["**/*"], {
+      exclude: tsParsed.exclude,
       withFileTypes: true
     })
       .filter(f => f.isFile())

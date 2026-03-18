@@ -2,6 +2,7 @@
 
 import type ts from "typescript";
 import type { CoercionRegistry } from "../coercions";
+import type { PerfTracker } from "../perf";
 
 /**
  * Resolved coercion info for a property field.
@@ -269,14 +270,19 @@ export function computeCoercibleFields(
   program: ts.Program,
   coercions: CoercionRegistry,
   modelBases: Set<string>,
-  accessorsForAll?: boolean
+  accessorsForAll?: boolean,
+  perf?: PerfTracker
 ): CoercibleFieldMap {
   const checker = program.getTypeChecker();
   const result: CoercibleFieldMap = new Map();
 
   for (const sourceFile of program.getSourceFiles()) {
     if (sourceFile.isDeclarationFile) continue;
-    visitNode(sourceFile);
+    if (perf) {
+      perf.measure("computeCoercibleFields.visitFile", () => visitNode(sourceFile));
+    } else {
+      visitNode(sourceFile);
+    }
   }
 
   function visitNode(node: ts.Node) {
@@ -374,10 +380,11 @@ export function createAccessorTransformer(
   coercions: CoercionRegistry,
   modelBases: Set<string>,
   coercibleFields?: CoercibleFieldMap,
-  accessorsForAll?: boolean
+  accessorsForAll?: boolean,
+  perf?: PerfTracker
 ): ts.TransformerFactory<ts.SourceFile> {
   const checker = program.getTypeChecker();
-  const fields = coercibleFields ?? computeCoercibleFields(tsModule, program, coercions, modelBases, accessorsForAll);
+  const fields = coercibleFields ?? computeCoercibleFields(tsModule, program, coercions, modelBases, accessorsForAll, perf);
 
   return context => {
     return sourceFile => {
@@ -402,7 +409,7 @@ export function createAccessorTransformer(
         }
       }
 
-      const transformed = tsModule.visitNode(sourceFile, function visit(node: ts.Node): ts.Node {
+      let transformed = tsModule.visitNode(sourceFile, function visit(node: ts.Node): ts.Node {
         if (!tsModule.isClassDeclaration(node)) {
           return tsModule.visitEachChild(node, visit, context);
         }
@@ -591,12 +598,60 @@ export function createAccessorTransformer(
         ));
       }
 
-      // Inject imports for runtime type names used in set-method and relation-initializer coercions
+      // Inject imports for runtime type names used in set-method and relation-initializer coercions.
+      // TypeScript's import elision uses pre-transform type-checker data, so names that were only
+      // used in type positions in the original source will be elided even though our transformer
+      // adds value usages. We must inject fresh import declarations for these runtime types.
+      // To avoid ESM duplicate-binding errors, strip these names from the original import
+      // declarations, marking the remaining specifiers as type-only (since they were only used
+      // as types and would have been elided by TypeScript anyway).
       if (neededTypeImports.size > 0) {
-        // Group by import source to create one import per module, skipping already-imported names
+        const injectedNames = new Set(neededTypeImports.keys());
+
+        // Rewrite original import declarations to remove names we'll re-inject
+        const updatedStatements = transformed.statements.map(stmt => {
+          if (!tsModule.isImportDeclaration(stmt) || !stmt.importClause?.namedBindings) return stmt;
+          if (stmt.importClause.isTypeOnly) return stmt;
+          if (!tsModule.isNamedImports(stmt.importClause.namedBindings)) return stmt;
+
+          const elements = stmt.importClause.namedBindings.elements;
+          const hasConflict = elements.some(el => !el.isTypeOnly && injectedNames.has(safeGetText(el.name, sourceFile)));
+          if (!hasConflict) return stmt;
+
+          // Remove conflicting specifiers and type-only-in-practice specifiers.
+          // TypeScript's import elision won't run on updated nodes, so we must drop specifiers
+          // that would otherwise be elided. We keep only original type-only specifiers (harmless)
+          // and non-conflicting names that are NOT tracked as needing runtime injection.
+          // In practice, remaining non-type-only specifiers are type aliases (e.g. ManyToOne)
+          // that TypeScript would normally elide — dropping them is safe.
+          const remaining = elements.filter(el => {
+            if (injectedNames.has(safeGetText(el.name, sourceFile))) return false;
+            return false; // Drop all remaining — they're types that would be elided
+          });
+
+          if (remaining.length === 0 && !stmt.importClause.name) {
+            return undefined; // Drop empty import
+          }
+
+          return context.factory.updateImportDeclaration(
+            stmt,
+            stmt.modifiers,
+            context.factory.updateImportClause(
+              stmt.importClause,
+              stmt.importClause.isTypeOnly,
+              stmt.importClause.name,
+              context.factory.createNamedImports(remaining)
+            ),
+            stmt.moduleSpecifier,
+            stmt.attributes
+          );
+        }).filter((s): s is ts.Statement => s !== undefined);
+
+        transformed = context.factory.updateSourceFile(transformed, updatedStatements);
+
+        // Group by import source to create one import per module
         const bySource = new Map<string, string[]>();
         for (const [typeName, source] of neededTypeImports) {
-          if (existingImports.has(typeName)) continue;
           const list = bySource.get(source) ?? [];
           list.push(typeName);
           bySource.set(source, list);
@@ -639,9 +694,10 @@ export function createDeclarationAccessorTransformer(
   coercions: CoercionRegistry,
   modelBases: Set<string>,
   coercibleFields?: CoercibleFieldMap,
-  accessorsForAll?: boolean
+  accessorsForAll?: boolean,
+  perf?: PerfTracker
 ): ts.TransformerFactory<ts.SourceFile | ts.Bundle> {
-  const fields = coercibleFields ?? computeCoercibleFields(tsModule, program, coercions, modelBases, accessorsForAll);
+  const fields = coercibleFields ?? computeCoercibleFields(tsModule, program, coercions, modelBases, accessorsForAll, perf);
 
   return context => {
     return node => {

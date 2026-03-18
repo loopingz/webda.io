@@ -3,6 +3,7 @@
 import type ts from "typescript";
 import { CoercionRegistry, DEFAULT_COERCIONS } from "./coercions";
 import { shouldTransformClass, getCoercibleProperties, CoercibleProperty } from "./analyzer";
+import { PerfTracker } from "./perf";
 
 /**
  * Plugin configuration from tsconfig.json:
@@ -30,6 +31,10 @@ interface PluginConfig {
   coercions?: Record<string, { setterType: string }>;
   /** If true, all classes with coercible properties get accessor treatment (no marker needed). */
   accessorsForAll?: boolean;
+  /** Enable performance instrumentation logging (default: false). */
+  perf?: boolean;
+  /** Threshold in ms above which a single call is logged as slow (default: 50). */
+  perfWarnMs?: number;
 }
 
 function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
@@ -53,6 +58,13 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const modelBases = new Set(["Model", "UuidModel", ...(config.modelBases ?? [])]);
     const accessorsForAll = config.accessorsForAll ?? false;
 
+    // Performance tracker — disabled by default, enable via plugin config "perf": true
+    const perf = new PerfTracker(log, {
+      enabled: config.perf ?? false,
+      warnMs: config.perfWarnMs ?? 50
+    });
+    if (perf.enabled) log("Performance instrumentation enabled");
+
     // Cache for expensive computations, invalidated when the program changes
     let cachedProgram: ts.Program | undefined;
     let shouldTransformCache = new Map<ts.ClassDeclaration, boolean>();
@@ -69,7 +81,9 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     function cachedShouldTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
       let result = shouldTransformCache.get(classDecl);
       if (result === undefined) {
-        result = shouldTransformClass(tsModule, classDecl, checker, modelBases, accessorsForAll);
+        result = perf.measure("shouldTransformClass", () =>
+          shouldTransformClass(tsModule, classDecl, checker, modelBases, accessorsForAll)
+        );
         shouldTransformCache.set(classDecl, result);
       }
       return result;
@@ -78,7 +92,9 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     function cachedGetCoercibleProps(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): CoercibleProperty[] {
       let result = coerciblePropsCache.get(classDecl);
       if (result === undefined) {
-        result = getCoercibleProperties(tsModule, classDecl, checker, coercions);
+        result = perf.measure("getCoercibleProperties", () =>
+          getCoercibleProperties(tsModule, classDecl, checker, coercions)
+        );
         coerciblePropsCache.set(classDecl, result);
       }
       return result;
@@ -88,50 +104,54 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
     // Override getQuickInfoAtPosition to show widened setter types on hover
     proxy.getQuickInfoAtPosition = (fileName: string, position: number) => {
-      const original = info.languageService.getQuickInfoAtPosition(fileName, position);
-      if (!original) return original;
+      return perf.measure("getQuickInfoAtPosition", () => {
+        const original = perf.measure("getQuickInfoAtPosition.upstream", () =>
+          info.languageService.getQuickInfoAtPosition(fileName, position)
+        );
+        if (!original) return original;
 
-      const program = info.languageService.getProgram();
-      if (!program) return original;
-      getCache(program);
+        const program = info.languageService.getProgram();
+        if (!program) return original;
+        getCache(program);
 
-      const sourceFile = program.getSourceFile(fileName);
-      if (!sourceFile) return original;
+        const sourceFile = program.getSourceFile(fileName);
+        if (!sourceFile) return original;
 
-      const checker = program.getTypeChecker();
-      const node = findNodeAtPosition(tsModule, sourceFile, position);
-      if (!node) return original;
+        const checker = program.getTypeChecker();
+        const node = findNodeAtPosition(tsModule, sourceFile, position);
+        if (!node) return original;
 
-      // Only intercept property declarations on model classes
-      const propInfo = getPropertyInfo(tsModule, node, checker);
-      if (!propInfo) return original;
+        // Only intercept property declarations on model classes
+        const propInfo = getPropertyInfo(tsModule, node, checker);
+        if (!propInfo) return original;
 
-      const { classDecl, propName, propType } = propInfo;
-      if (!cachedShouldTransform(classDecl, checker)) return original;
+        const { classDecl, propName, propType } = propInfo;
+        if (!cachedShouldTransform(classDecl, checker)) return original;
 
-      // Find the coercible property info (static registry + set method detection)
-      const coercibleProps = cachedGetCoercibleProps(classDecl, checker);
-      const coercible = coercibleProps.find(p => p.name === propName);
-      if (!coercible) return original;
+        // Find the coercible property info (static registry + set method detection)
+        const coercibleProps = cachedGetCoercibleProps(classDecl, checker);
+        const coercible = coercibleProps.find(p => p.name === propName);
+        if (!coercible) return original;
 
-      const typeName = coercible.typeName;
+        const typeName = coercible.typeName;
 
-      // Rewrite the display parts to show asymmetric accessor
-      const displayParts: ts.SymbolDisplayPart[] = [
-        { text: "(property) ", kind: "text" },
-        { text: propName, kind: "propertyName" },
-        { text: ": ", kind: "punctuation" },
-        { text: typeName, kind: "keyword" },
-        { text: "\n", kind: "lineBreak" },
-        { text: `  get ${propName}(): ${typeName}`, kind: "text" },
-        { text: "\n", kind: "lineBreak" },
-        { text: `  set ${propName}(value: ${coercible.setterType})`, kind: "text" }
-      ];
+        // Rewrite the display parts to show asymmetric accessor
+        const displayParts: ts.SymbolDisplayPart[] = [
+          { text: "(property) ", kind: "text" },
+          { text: propName, kind: "propertyName" },
+          { text: ": ", kind: "punctuation" },
+          { text: typeName, kind: "keyword" },
+          { text: "\n", kind: "lineBreak" },
+          { text: `  get ${propName}(): ${typeName}`, kind: "text" },
+          { text: "\n", kind: "lineBreak" },
+          { text: `  set ${propName}(value: ${coercible.setterType})`, kind: "text" }
+        ];
 
-      return {
-        ...original,
-        displayParts
-      };
+        return {
+          ...original,
+          displayParts
+        };
+      });
     };
 
     // Override getCompletionEntryDetails to show setter type in completions
@@ -159,56 +179,62 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
     // Override getSemanticDiagnostics to suppress type errors on widened setter assignments
     proxy.getSemanticDiagnostics = (fileName: string) => {
-      const diagnostics = info.languageService.getSemanticDiagnostics(fileName);
-      const program = info.languageService.getProgram();
-      if (!program) return diagnostics;
-      getCache(program);
+      return perf.measure("getSemanticDiagnostics", () => {
+        const diagnostics = perf.measure("getSemanticDiagnostics.upstream", () =>
+          info.languageService.getSemanticDiagnostics(fileName)
+        );
+        const program = info.languageService.getProgram();
+        if (!program) return diagnostics;
+        getCache(program);
 
-      const sourceFile = program.getSourceFile(fileName);
-      if (!sourceFile) return diagnostics;
+        const sourceFile = program.getSourceFile(fileName);
+        if (!sourceFile) return diagnostics;
 
-      const checker = program.getTypeChecker();
+        const checker = program.getTypeChecker();
 
-      // Quick check: if no TS2322 errors at all, skip filtering entirely
-      if (!diagnostics.some(d => d.code === 2322)) return diagnostics;
+        // Quick check: if no TS2322 errors at all, skip filtering entirely
+        if (!diagnostics.some(d => d.code === 2322)) return diagnostics;
 
-      return diagnostics.filter(diag => {
-        // Only filter type assignment errors (TS2322: Type 'X' is not assignable to type 'Y')
-        if (diag.code !== 2322) return true;
-        if (diag.start === undefined) return true;
+        return perf.measure("getSemanticDiagnostics.filter", () =>
+          diagnostics.filter(diag => {
+            // Only filter type assignment errors (TS2322: Type 'X' is not assignable to type 'Y')
+            if (diag.code !== 2322) return true;
+            if (diag.start === undefined) return true;
 
-        const node = findNodeAtPosition(tsModule, sourceFile, diag.start);
-        if (!node) return true;
+            const node = findNodeAtPosition(tsModule, sourceFile, diag.start);
+            if (!node) return true;
 
-        // Check if this is an assignment to a coercible property on a model
-        const assignment = getAssignmentTarget(tsModule, node, checker);
-        if (!assignment) return true;
+            // Check if this is an assignment to a coercible property on a model
+            const assignment = getAssignmentTarget(tsModule, node, checker);
+            if (!assignment) return true;
 
-        const { classDecl, propName, propType } = assignment;
-        if (!cachedShouldTransform(classDecl, checker)) return true;
+            const { classDecl, propName, propType } = assignment;
+            if (!cachedShouldTransform(classDecl, checker)) return true;
 
-        // Use getCoercibleProperties which handles both static registry and set method detection
-        const coercibleProps = cachedGetCoercibleProps(classDecl, checker);
-        const coercible = coercibleProps.find(p => p.name === propName);
-        if (!coercible) return true;
+            // Use getCoercibleProperties which handles both static registry and set method detection
+            const coercibleProps = cachedGetCoercibleProps(classDecl, checker);
+            const coercible = coercibleProps.find(p => p.name === propName);
+            if (!coercible) return true;
 
-        // Check if the assigned value's type is within the widened setter type
-        const assignedNode = getAssignedValue(tsModule, node);
-        if (!assignedNode) return true;
+            // Check if the assigned value's type is within the widened setter type
+            const assignedNode = getAssignedValue(tsModule, node);
+            if (!assignedNode) return true;
 
-        const assignedType = checker.getTypeAtLocation(assignedNode);
-        const assignedTypeName = checker.typeToString(assignedType);
+            const assignedType = checker.getTypeAtLocation(assignedNode);
+            const assignedTypeName = checker.typeToString(assignedType);
 
-        // Check if the assigned type is accepted by the setter
-        // Split assigned type in case it's a union (e.g. "string | SecretString")
-        const acceptedTypes = coercible.setterType.split("|").map(t => t.trim());
-        const assignedParts = assignedTypeName.split("|").map(t => t.trim());
-        if (assignedParts.every(part => acceptedTypes.some(t => isTypeAssignable(part, t)))) {
-          log(`Suppressing TS2322 for ${propName}: ${assignedTypeName} is accepted by setter (${coercible.setterType})`);
-          return false; // Suppress this diagnostic
-        }
+            // Check if the assigned type is accepted by the setter
+            // Split assigned type in case it's a union (e.g. "string | SecretString")
+            const acceptedTypes = coercible.setterType.split("|").map(t => t.trim());
+            const assignedParts = assignedTypeName.split("|").map(t => t.trim());
+            if (assignedParts.every(part => acceptedTypes.some(t => isTypeAssignable(part, t)))) {
+              log(`Suppressing TS2322 for ${propName}: ${assignedTypeName} is accepted by setter (${coercible.setterType})`);
+              return false; // Suppress this diagnostic
+            }
 
-        return true;
+            return true;
+          })
+        );
       });
     };
 

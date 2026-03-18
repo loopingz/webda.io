@@ -37,7 +37,6 @@ export class Compiler {
    */
   constructor(public project: WebdaProject) {}
 
-
   /**
    * Add a system to recompile if needed
    * @returns
@@ -92,14 +91,26 @@ export class Compiler {
     // Emit all code with accessor transforms
     const { diagnostics } = this.tsProgram.emit(undefined, writer, undefined, false, {
       before: [createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll)],
-      afterDeclarations: [createDeclarationAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll)]
+      afterDeclarations: [
+        createDeclarationAccessorTransformer(
+          ts,
+          this.tsProgram,
+          coercions,
+          modelBases,
+          coercibleFields,
+          accessorsForAll
+        )
+      ]
     });
 
     // Filter out false TS2322 diagnostics for coercible property assignments
     const allDiagnostics = ts
       .getPreEmitDiagnostics(this.tsProgram)
       .concat(diagnostics, this.configParseResult.errors)
-      .filter(diag => !isCoercibleAssignmentError(ts, this.tsProgram, diag, coercions, modelBases, coercibleFields, accessorsForAll));
+      .filter(
+        diag =>
+          !isCoercibleAssignmentError(ts, this.tsProgram, diag, coercions, modelBases, coercibleFields, accessorsForAll)
+      );
     if (allDiagnostics.length) {
       const formatHost: ts.FormatDiagnosticsHost = {
         getCanonicalFileName: p => p,
@@ -316,9 +327,12 @@ function isCoercibleAssignmentError(
   if (!propDecl.parent || !tsModule.isClassDeclaration(propDecl.parent)) return false;
 
   // Check if the class should have accessor treatment (model, Accessors marker, or accessorsForAll)
-  if (!accessorsForAll &&
-      !isModelClassForDiag(tsModule, propDecl.parent, checker, modelBases) &&
-      !hasAccessorsMarkerForDiag(tsModule, propDecl.parent, checker)) return false;
+  if (
+    !accessorsForAll &&
+    !isModelClassForDiag(tsModule, propDecl.parent, checker, modelBases) &&
+    !hasAccessorsMarkerForDiag(tsModule, propDecl.parent, checker)
+  )
+    return false;
 
   // Get the property name and class name
   const propName = propDecl.name.getText(propDecl.getSourceFile());

@@ -533,10 +533,10 @@ ${Object.keys(operationsExport.operations)
     const current = createHash("md5");
     const tsCfg = fs.readFileSync(this.app.getAppPath("tsconfig.json"));
     current.update(tsCfg);
-    const ts = JSON.parse(tsCfg.toString());
+    const tsParsed = ts.parseConfigFileTextToJson("tsconfig.json", tsCfg.toString()).config;
     glob
-      .sync(ts.include || ["**/*"], {
-        ignore: ts.exclude,
+      .sync(tsParsed.include || ["**/*"], {
+        ignore: tsParsed.exclude,
         nodir: true
       })
       .forEach(f => {

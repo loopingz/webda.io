@@ -10,6 +10,8 @@ export { createAccessorTransformer, createDeclarationAccessorTransformer, comput
 export type { CoercibleFieldMap, ResolvedCoercion } from "./transforms/accessors";
 export { DEFAULT_COERCIONS } from "./coercions";
 export type { CoercionRegistry } from "./coercions";
+export { PerfTracker } from "./perf";
+export type { PerfStats } from "./perf";
 
 /**
  * Plugin configuration for the ts-patch transformer.

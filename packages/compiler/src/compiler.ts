@@ -11,7 +11,8 @@ import {
   createAccessorTransformer,
   createDeclarationAccessorTransformer,
   computeCoercibleFields,
-  DEFAULT_COERCIONS
+  DEFAULT_COERCIONS,
+  PerfTracker
 } from "@webda/ts-plugin/transform";
 import type { CoercibleFieldMap } from "@webda/ts-plugin/transform";
 
@@ -85,23 +86,39 @@ export class Compiler {
     );
     const accessorsForAll = pluginConfig?.accessorsForAll ?? false;
 
+    // Performance tracker for transform phases
+    const perfEnabled = pluginConfig?.perf ?? false;
+    const perf = new PerfTracker(msg => this.project.log("INFO", msg), {
+      enabled: perfEnabled,
+      warnMs: pluginConfig?.perfWarnMs ?? 100
+    });
+
     // Pre-compute coercible fields (static registry + set-method detection)
-    const coercibleFields = computeCoercibleFields(ts, this.tsProgram, coercions, modelBases, accessorsForAll);
+    const coercibleFields = perf.measure("computeCoercibleFields", () =>
+      computeCoercibleFields(ts, this.tsProgram, coercions, modelBases, accessorsForAll, perf)
+    );
 
     // Emit all code with accessor transforms
-    const { diagnostics } = this.tsProgram.emit(undefined, writer, undefined, false, {
-      before: [createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll)],
-      afterDeclarations: [
-        createDeclarationAccessorTransformer(
-          ts,
-          this.tsProgram,
-          coercions,
-          modelBases,
-          coercibleFields,
-          accessorsForAll
-        )
-      ]
-    });
+    const { diagnostics } = perf.measure("emit", () =>
+      this.tsProgram.emit(undefined, writer, undefined, false, {
+        before: [createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll, perf)],
+        afterDeclarations: [
+          createDeclarationAccessorTransformer(
+            ts,
+            this.tsProgram,
+            coercions,
+            modelBases,
+            coercibleFields,
+            accessorsForAll,
+            perf
+          )
+        ]
+      })
+    );
+
+    if (perf.enabled) {
+      this.project.log("INFO", perf.summary());
+    }
 
     // Filter out false TS2322 diagnostics for coercible property assignments
     const allDiagnostics = ts

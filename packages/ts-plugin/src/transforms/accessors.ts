@@ -22,11 +22,13 @@ export interface ResolvedCoercion {
   /** The widened setter type string (e.g. "string | number | Date" or "MFA | string") */
   setterType: string;
   /** How to coerce: "builtin" for Date etc., "set-method" for types with a set() method */
-  coercionKind: "builtin" | "set-method";
+  coercionKind: "builtin" | "set-method" | "relation-initializer";
   /** The original declared type name */
   typeName: string;
   /** Resolved type arguments from the property declaration for constructor instantiation */
   typeArguments?: ResolvedTypeArg[];
+  /** Module specifier to import typeName from (e.g. "@webda/models" or "./relations.js") */
+  importSource?: string;
 }
 
 /**
@@ -95,16 +97,19 @@ function typeArgToExpression(factory: ts.NodeFactory, arg: ResolvedTypeArg): ts.
 }
 
 /**
- * Resolve a type reference to its runtime class name.
+ * Resolve a type reference to its runtime class name and import source.
  * Follows type aliases (e.g. ManyToOne<T> → ModelLink) to find the actual class.
  * Falls back to the source-level name if no class is found.
+ *
+ * @returns Object with the runtime class name and the module specifier to import it from
  */
-function resolveRuntimeClassName(
+function resolveRuntimeClass(
   tsModule: typeof ts,
   checker: ts.TypeChecker,
   typeNode: ts.TypeReferenceNode,
-  sourceFile: ts.SourceFile
-): string {
+  sourceFile: ts.SourceFile,
+  program: ts.Program
+): { name: string; importSource?: string } {
   const type = checker.getTypeFromTypeNode(typeNode);
   const symbol = type.getSymbol();
   if (symbol) {
@@ -112,12 +117,48 @@ function resolveRuntimeClassName(
     if (declarations) {
       for (const decl of declarations) {
         if (tsModule.isClassDeclaration(decl) && decl.name) {
-          return safeGetText(decl.name, decl.getSourceFile());
+          const name = safeGetText(decl.name, decl.getSourceFile());
+          const importSource = resolveImportSource(decl.getSourceFile(), sourceFile);
+          return { name, importSource };
         }
       }
     }
   }
-  return safeGetText(typeNode.typeName, sourceFile);
+  return { name: safeGetText(typeNode.typeName, sourceFile) };
+}
+
+/**
+ * Compute a module specifier to import a symbol from its declaring source file.
+ * Returns a relative path (for project files) or the package name (for node_modules).
+ */
+function resolveImportSource(
+  declaringFile: ts.SourceFile,
+  currentFile: ts.SourceFile
+): string | undefined {
+  // No import needed if the class is defined in the same file
+  if (declaringFile.fileName === currentFile.fileName) {
+    return undefined;
+  }
+  const filePath = declaringFile.fileName;
+  // If it's from node_modules, extract the package name
+  const nmIdx = filePath.lastIndexOf("node_modules/");
+  if (nmIdx >= 0) {
+    const afterNm = filePath.substring(nmIdx + "node_modules/".length);
+    // Handle scoped packages: @scope/package/...
+    const parts = afterNm.split("/");
+    if (parts[0].startsWith("@")) {
+      return parts[0] + "/" + parts[1];
+    }
+    return parts[0];
+  }
+  // Compute relative path for project files
+  const { dirname, relative } = require("path") as typeof import("path");
+  const from = dirname(currentFile.fileName);
+  let rel = relative(from, filePath)
+    .replace(/\\/g, "/")
+    .replace(/\.ts$/, ".js");
+  if (!rel.startsWith(".")) rel = "./" + rel;
+  return rel;
 }
 
 function safeGetText(node: ts.Node, sourceFile?: ts.SourceFile): string {
@@ -274,8 +315,8 @@ export function computeCoercibleFields(
           // Check if the type has a `set` method marked with @WebdaAutoSetter
           const setParamType = detectSetMethodType(checker, member.type);
           if (setParamType) {
-            // Resolve runtime class name (follows type aliases like ManyToOne → ModelLink)
-            const runtimeTypeName = resolveRuntimeClassName(tsModule, checker, member.type, sourceFile);
+            // Resolve runtime class name and import source (follows type aliases like ManyToOne → ModelLink)
+            const runtimeClass = resolveRuntimeClass(tsModule, checker, member.type, sourceFile, program);
 
             // Resolve type arguments for constructor instantiation
             const typeArgs = member.type.typeArguments?.map(arg => resolveTypeArg(tsModule, arg, sourceFile));
@@ -288,9 +329,23 @@ export function computeCoercibleFields(
             fields.set(fieldName, {
               setterType: `${setParamType} | ${sourceTypeName}`,
               coercionKind: "set-method",
-              typeName: runtimeTypeName,
-              typeArguments: typeArgs
+              typeName: runtimeClass.name,
+              typeArguments: typeArgs,
+              importSource: runtimeClass.importSource
             });
+          } else {
+            // Check if type resolves to ModelRelated (OneToMany, etc.) — needs readonly initializer
+            const runtimeClass = resolveRuntimeClass(tsModule, checker, member.type, sourceFile, program);
+            if (runtimeClass.name === "ModelRelated") {
+              const typeArgs = member.type.typeArguments?.map(arg => resolveTypeArg(tsModule, arg, sourceFile));
+              fields.set(fieldName, {
+                setterType: "",
+                coercionKind: "relation-initializer",
+                typeName: runtimeClass.name,
+                typeArguments: typeArgs,
+                importSource: runtimeClass.importSource
+              });
+            }
           }
         }
 
@@ -327,15 +382,25 @@ export function createAccessorTransformer(
   return context => {
     return sourceFile => {
       let needsStorageImport = false;
+      // Track runtime type names that need importing: typeName → importSource
+      const neededTypeImports = new Map<string, string>();
 
-      // Check if WEBDA_STORAGE is already imported in this file
-      const hasStorageImport = sourceFile.statements.some(stmt => {
-        if (!tsModule.isImportDeclaration(stmt) || !stmt.importClause?.namedBindings) return false;
-        if (!tsModule.isNamedImports(stmt.importClause.namedBindings)) return false;
-        return stmt.importClause.namedBindings.elements.some(
-          el => el.name.getText(sourceFile) === "WEBDA_STORAGE"
-        );
-      });
+      // Collect all named value (non-type-only) imports already present in the file
+      const existingImports = new Set<string>();
+      let hasStorageImport = false;
+      for (const stmt of sourceFile.statements) {
+        if (!tsModule.isImportDeclaration(stmt) || !stmt.importClause?.namedBindings) continue;
+        // Skip type-only import declarations (import type { ... })
+        const isTypeOnlyDecl = stmt.importClause.isTypeOnly;
+        if (!tsModule.isNamedImports(stmt.importClause.namedBindings)) continue;
+        for (const el of stmt.importClause.namedBindings.elements) {
+          // Skip type-only specifiers (import { type Foo })
+          if (isTypeOnlyDecl || el.isTypeOnly) continue;
+          const name = el.name.getText(sourceFile);
+          existingImports.add(name);
+          if (name === "WEBDA_STORAGE") hasStorageImport = true;
+        }
+      }
 
       const transformed = tsModule.visitNode(sourceFile, function visit(node: ts.Node): ts.Node {
         if (!tsModule.isClassDeclaration(node)) {
@@ -351,20 +416,34 @@ export function createAccessorTransformer(
 
         const remainingMembers: ts.ClassElement[] = [];
         const fieldsToTransform: Array<{ name: string; coercion: ResolvedCoercion }> = [];
+        const initializerFields: Array<{ name: string; coercion: ResolvedCoercion; original: ts.PropertyDeclaration }> = [];
 
         for (const member of classDecl.members) {
           if (tsModule.isPropertyDeclaration(member) && member.type) {
             const fieldName = safeGetText(member.name, sourceFile);
             const coercion = classFields.get(fieldName);
             if (coercion) {
+              if (coercion.coercionKind === "relation-initializer") {
+                initializerFields.push({ name: fieldName, coercion, original: member });
+                if (coercion.importSource) {
+                  neededTypeImports.set(coercion.typeName, coercion.importSource);
+                }
+                continue;
+              }
               fieldsToTransform.push({ name: fieldName, coercion });
+              // Track runtime type imports needed for set-method coercions.
+              // Always add even if present in source — the original import may be type-only
+              // and erased by TypeScript, but our generated code needs the value at runtime.
+              if (coercion.coercionKind === "set-method" && coercion.importSource) {
+                neededTypeImports.set(coercion.typeName, coercion.importSource);
+              }
               continue;
             }
           }
           remainingMembers.push(member);
         }
 
-        if (fieldsToTransform.length === 0) {
+        if (fieldsToTransform.length === 0 && initializerFields.length === 0) {
           return tsModule.visitEachChild(node, visit, context);
         }
 
@@ -431,6 +510,47 @@ export function createAccessorTransformer(
           newMembers.push(getter, setter);
         }
 
+        // Generate readonly properties with initializers for ModelRelated (OneToMany) fields
+        for (const field of initializerFields) {
+          const args: ts.Expression[] = [];
+          if (field.coercion.typeArguments) {
+            // First arg: target class (e.g., User)
+            if (field.coercion.typeArguments.length > 0) {
+              args.push(typeArgToExpression(context.factory, field.coercion.typeArguments[0]));
+            }
+            // Second arg: this (the owning model instance)
+            args.push(context.factory.createThis());
+            // Third arg: attribute name (e.g., "company")
+            if (field.coercion.typeArguments.length > 2) {
+              args.push(typeArgToExpression(context.factory, field.coercion.typeArguments[2]));
+            }
+          }
+
+          const newExpr = context.factory.createNewExpression(
+            context.factory.createIdentifier(field.coercion.typeName),
+            undefined,
+            args
+          );
+
+          // Cast to original type: as OneToMany<User, Company, "company">
+          const initializer = context.factory.createAsExpression(newExpr, field.original.type!);
+
+          // Build modifiers: keep existing (except readonly), then add readonly
+          const existingModifiers = (field.original.modifiers?.filter(
+            (m: ts.ModifierLike) => m.kind !== tsModule.SyntaxKind.ReadonlyKeyword
+          ) ?? []) as ts.ModifierLike[];
+
+          newMembers.push(
+            context.factory.createPropertyDeclaration(
+              [...existingModifiers, context.factory.createModifier(tsModule.SyntaxKind.ReadonlyKeyword)],
+              context.factory.createIdentifier(field.name),
+              undefined, // No ! token (has initializer)
+              field.original.type,
+              initializer
+            )
+          );
+        }
+
         // Generate toJSON() if the class doesn't already have one
         const hasToJSON = classDecl.members.some(
           m =>
@@ -452,12 +572,13 @@ export function createAccessorTransformer(
         );
       }) as ts.SourceFile;
 
+      // Collect all new import declarations to inject
+      const newImports: ts.ImportDeclaration[] = [];
+
       // Inject WEBDA_STORAGE import if needed and not already present
       if (needsStorageImport && !hasStorageImport) {
-        // Find the best import source by checking where WEBDA_STORAGE is exported
         const storageSource = findStorageImportSource(tsModule, program, sourceFile);
-
-        const importDecl = context.factory.createImportDeclaration(
+        newImports.push(context.factory.createImportDeclaration(
           undefined,
           context.factory.createImportClause(
             false,
@@ -467,9 +588,37 @@ export function createAccessorTransformer(
             ])
           ),
           context.factory.createStringLiteral(storageSource)
-        );
+        ));
+      }
 
-        return context.factory.updateSourceFile(transformed, [importDecl, ...transformed.statements]);
+      // Inject imports for runtime type names used in set-method and relation-initializer coercions
+      if (neededTypeImports.size > 0) {
+        // Group by import source to create one import per module, skipping already-imported names
+        const bySource = new Map<string, string[]>();
+        for (const [typeName, source] of neededTypeImports) {
+          if (existingImports.has(typeName)) continue;
+          const list = bySource.get(source) ?? [];
+          list.push(typeName);
+          bySource.set(source, list);
+        }
+        for (const [source, names] of bySource) {
+          if (names.length === 0) continue;
+          newImports.push(context.factory.createImportDeclaration(
+            undefined,
+            context.factory.createImportClause(
+              false,
+              undefined,
+              context.factory.createNamedImports(
+                names.map(n => context.factory.createImportSpecifier(false, undefined, context.factory.createIdentifier(n)))
+              )
+            ),
+            context.factory.createStringLiteral(source)
+          ));
+        }
+      }
+
+      if (newImports.length > 0) {
+        return context.factory.updateSourceFile(transformed, [...newImports, ...transformed.statements]);
       }
 
       return transformed;
@@ -512,6 +661,7 @@ export function createDeclarationAccessorTransformer(
         }
 
         const fieldsToTransform: Array<{ name: string; coercion: ResolvedCoercion; typeNode: ts.TypeNode }> = [];
+        const initializerFields: Array<{ name: string; original: ts.PropertyDeclaration }> = [];
         const remainingMembers: ts.ClassElement[] = [];
 
         for (const member of classDecl.members) {
@@ -524,6 +674,10 @@ export function createDeclarationAccessorTransformer(
             const coercion = classFields.get(fieldName);
 
             if (coercion) {
+              if (coercion.coercionKind === "relation-initializer") {
+                initializerFields.push({ name: fieldName, original: member });
+                continue;
+              }
               fieldsToTransform.push({
                 name: fieldName,
                 coercion,
@@ -535,7 +689,7 @@ export function createDeclarationAccessorTransformer(
           remainingMembers.push(member);
         }
 
-        if (fieldsToTransform.length === 0) {
+        if (fieldsToTransform.length === 0 && initializerFields.length === 0) {
           return tsModule.visitEachChild(n, visit, context);
         }
 
@@ -569,6 +723,23 @@ export function createDeclarationAccessorTransformer(
           );
 
           newMembers.push(getter, setter);
+        }
+
+        // Generate readonly properties for ModelRelated (OneToMany) fields in .d.ts
+        for (const field of initializerFields) {
+          const existingModifiers = (field.original.modifiers?.filter(
+            (m: ts.ModifierLike) => m.kind !== tsModule.SyntaxKind.ReadonlyKeyword
+          ) ?? []) as ts.ModifierLike[];
+
+          newMembers.push(
+            context.factory.createPropertyDeclaration(
+              [...existingModifiers, context.factory.createModifier(tsModule.SyntaxKind.ReadonlyKeyword)],
+              context.factory.createIdentifier(field.name),
+              undefined, // No ! token
+              field.original.type!,
+              undefined // No initializer in .d.ts
+            )
+          );
         }
 
         return context.factory.updateClassDeclaration(

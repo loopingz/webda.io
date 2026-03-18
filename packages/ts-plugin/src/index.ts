@@ -53,6 +53,37 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
     const modelBases = new Set(["Model", "UuidModel", ...(config.modelBases ?? [])]);
     const accessorsForAll = config.accessorsForAll ?? false;
 
+    // Cache for expensive computations, invalidated when the program changes
+    let cachedProgram: ts.Program | undefined;
+    let shouldTransformCache = new Map<ts.ClassDeclaration, boolean>();
+    let coerciblePropsCache = new Map<ts.ClassDeclaration, CoercibleProperty[]>();
+
+    function getCache(program: ts.Program) {
+      if (cachedProgram !== program) {
+        cachedProgram = program;
+        shouldTransformCache = new Map();
+        coerciblePropsCache = new Map();
+      }
+    }
+
+    function cachedShouldTransform(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+      let result = shouldTransformCache.get(classDecl);
+      if (result === undefined) {
+        result = shouldTransformClass(tsModule, classDecl, checker, modelBases, accessorsForAll);
+        shouldTransformCache.set(classDecl, result);
+      }
+      return result;
+    }
+
+    function cachedGetCoercibleProps(classDecl: ts.ClassDeclaration, checker: ts.TypeChecker): CoercibleProperty[] {
+      let result = coerciblePropsCache.get(classDecl);
+      if (result === undefined) {
+        result = getCoercibleProperties(tsModule, classDecl, checker, coercions);
+        coerciblePropsCache.set(classDecl, result);
+      }
+      return result;
+    }
+
     const proxy = createProxy(info.languageService);
 
     // Override getQuickInfoAtPosition to show widened setter types on hover
@@ -62,6 +93,7 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
 
       const program = info.languageService.getProgram();
       if (!program) return original;
+      getCache(program);
 
       const sourceFile = program.getSourceFile(fileName);
       if (!sourceFile) return original;
@@ -75,10 +107,10 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       if (!propInfo) return original;
 
       const { classDecl, propName, propType } = propInfo;
-      if (!shouldTransformClass(tsModule, classDecl, checker, modelBases, accessorsForAll)) return original;
+      if (!cachedShouldTransform(classDecl, checker)) return original;
 
       // Find the coercible property info (static registry + set method detection)
-      const coercibleProps = getCoercibleProperties(tsModule, classDecl, checker, coercions);
+      const coercibleProps = cachedGetCoercibleProps(classDecl, checker);
       const coercible = coercibleProps.find(p => p.name === propName);
       if (!coercible) return original;
 
@@ -130,11 +162,15 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
       const diagnostics = info.languageService.getSemanticDiagnostics(fileName);
       const program = info.languageService.getProgram();
       if (!program) return diagnostics;
+      getCache(program);
 
       const sourceFile = program.getSourceFile(fileName);
       if (!sourceFile) return diagnostics;
 
       const checker = program.getTypeChecker();
+
+      // Quick check: if no TS2322 errors at all, skip filtering entirely
+      if (!diagnostics.some(d => d.code === 2322)) return diagnostics;
 
       return diagnostics.filter(diag => {
         // Only filter type assignment errors (TS2322: Type 'X' is not assignable to type 'Y')
@@ -149,10 +185,10 @@ function init(modules: { typescript: typeof ts }): ts.server.PluginModule {
         if (!assignment) return true;
 
         const { classDecl, propName, propType } = assignment;
-        if (!shouldTransformClass(tsModule, classDecl, checker, modelBases, accessorsForAll)) return true;
+        if (!cachedShouldTransform(classDecl, checker)) return true;
 
         // Use getCoercibleProperties which handles both static registry and set method detection
-        const coercibleProps = getCoercibleProperties(tsModule, classDecl, checker, coercions);
+        const coercibleProps = cachedGetCoercibleProps(classDecl, checker);
         const coercible = coercibleProps.find(p => p.name === propName);
         if (!coercible) return true;
 

@@ -14,9 +14,11 @@ import {
 import { WEBDA_DIRTY } from "@webda/utils";
 import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "./types";
 import type { Repository } from "./repositories/repository";
+import { useRepository } from "./repositories/hooks";
+import * as WebdaQL from "@webda/ql";
 
 /** Symbol key holding the parent Storable of a relation. */
-export const RelationParent = Symbol("RelationParent");
+//export const RelationParent = Symbol("RelationParent");
 /** Symbol key holding the primary key value of a relation target. */
 export const RelationKey = Symbol("RelationKey");
 /** Symbol key holding the repository used to resolve a relation. */
@@ -25,6 +27,8 @@ export const RelationRepository = Symbol("RelationRepository");
 export const RelationRole = Symbol("RelationRole");
 /** Symbol key holding custom data on a ModelRefCustom. */
 export const RelationData = Symbol("RelationData");
+/** Symbol key holding the model. */
+export const RelationModel = Symbol("RelationModel");
 /** Symbol key holding the type of custom attributes on a ModelLinksArray. */
 export const RelationAttributes = Symbol("RelationAttributes");
 /**
@@ -42,7 +46,7 @@ export function assignNonSymbols(target: any, source: any) {
  * A reference to a model
  */
 export class ModelRef<T extends Storable> {
-  [RelationParent]?: Storable;
+  // [RelationParent]?: Storable;
   [RelationKey]?: PrimaryKeyType<T>;
   [RelationRepository]?: Repository<ModelClass<T>>;
 
@@ -53,7 +57,7 @@ export class ModelRef<T extends Storable> {
    * @param parent - Parent storable that owns this reference
    */
   constructor(key: PrimaryKeyType<T>, repository?: Repository<ModelClass<T>>, parent?: Storable) {
-    this[RelationParent] = parent;
+    // this[RelationParent] = parent;
     this[RelationKey] = key;
     this[RelationRepository] = repository;
   }
@@ -310,33 +314,49 @@ export class ModelRefWithCreate<T extends Storable> extends ModelRef<T> {
  *
  * TODO Deduce attribute from the ModelParent on the other side when "" is used
  */
-export type ModelRelated<T extends Storable, L extends Storable, _K extends FilterAttributes<T, ModelLinker<L>>> = {
+export class ModelRelated<
+  T extends Storable,
+  L extends Storable,
+  K extends Extract<FilterAttributes<T, ModelLinker<L>>, string> | "" = ""
+> {
+  private repoSource: Repository<any>;
+
+  constructor(
+    targetClass: ModelClass<T>,
+    private object: L,
+    private attribute: K = "" as K
+  ) {
+    this.repoSource = useRepository(targetClass) as Repository<any>;
+  }
+
+  getQuery(query: string = ""): string {
+    // PrependQuery
+    return WebdaQL.PrependCondition(query, `${this.attribute} = "${this.object.getPrimaryKey()}"`);
+  }
+
   /**
    * Query the related objects
    * @param query
    * @returns
    */
-  query: (query?: string) => Promise<{ results: T[]; continuationToken?: string }>;
-  /**
-   * Iterate through all related objects, executing a callback for each
-   * @param model - Callback invoked for each related object
-   */
-  forEach: (model: T) => Promise<void>;
+  async query(query: string = ""): Promise<{ results: T[]; continuationToken?: string }> {
+    return this.repoSource.query(this.getQuery(query));
+  }
+
   /**
    * Iterate through linked objects
    */
-  iterate: (query: string) => AsyncIterable<T>;
-  /**
-   * Get all object linked
-   * @returns
-   */
-  getAll: () => Promise<T[]>;
+  iterate(query: string): AsyncIterable<T> {
+    return this.repoSource.iterate(this.getQuery(query));
+  }
 
   /**
    * It is a helper and should not be serialized
    */
-  toJSON(): void;
-};
+  toJSON(): void {
+    return;
+  }
+}
 
 /**
  * Marker interface for relation properties.
@@ -349,7 +369,6 @@ export type ModelRelated<T extends Storable, L extends Storable, _K extends Filt
  */
 export interface ModelLinker<T extends Storable = any, K extends "Link" | "Related" | "Links" | "CustomLinks" = any> {
   readonly [RelationRole]: K;
-  readonly [RelationParent]: T;
 }
 /**
  * Define a link to n:1 or 1:1 relation on the current model to another model
@@ -366,29 +385,16 @@ export interface ModelLinker<T extends Storable = any, K extends "Link" | "Relat
  */
 export class ModelLink<T extends Storable> implements ModelLinker {
   readonly [RelationRole]: "Link" = "Link" as const;
-  /**
-   * Parent of the link
-   *
-   * In our example, the parent is the Album
-   */
-  readonly [RelationParent]: T;
   protected [RelationKey]: PrimaryKeyType<T>;
+  readonly [RelationModel]: ModelClass<T>;
 
   constructor(
     /**
-     * The uuid of the object to link
-     *
-     * In our example, the uuid of the Artist
-     */
-    uuid: PrimaryKeyType<T> | string,
-    /**
      * The repository of the object to link
      */
-    protected model: Repository<ModelClass<T>>,
-    parent?: T
+    model: ModelClass<T>
   ) {
-    this[RelationParent] = parent!;
-    this[RelationKey] = typeof uuid === "string" ? model.parseUID(uuid) : uuid;
+    this[RelationModel] = model;
   }
 
   /**
@@ -398,7 +404,7 @@ export class ModelLink<T extends Storable> implements ModelLinker {
     if (!this[RelationKey]) {
       throw new Error("Relation key is not initialized");
     }
-    return (await this.model.get(this[RelationKey])) as T;
+    return (await useRepository(this[RelationModel]).get(this[RelationKey])) as T;
   }
 
   /**
@@ -407,15 +413,11 @@ export class ModelLink<T extends Storable> implements ModelLinker {
    * @WebdaAutoSetter
    */
   set(id: PrimaryKeyType<T> | T | string) {
-    this[RelationKey] = isStorable(id) ? id.getPrimaryKey() : typeof id === "string" ? this.model.parseUID(id) : id;
-    // Set dirty for parent
-    if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
-      this[RelationParent][WEBDA_DIRTY].add(
-        Object.keys(this[RelationParent])
-          .filter(k => (this[RelationParent] as any)[k] === this)
-          .pop()!
-      );
-    }
+    this[RelationKey] = isStorable(id)
+      ? id.getPrimaryKey()
+      : typeof id === "string"
+        ? useRepository(this[RelationModel]).parseUID(id)
+        : id;
   }
 
   /**
@@ -469,7 +471,6 @@ export type ModelParent<T extends Storable> = ModelLink<T>;
  */
 export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   [RelationRole]: "Links" = "Links" as const;
-  [RelationParent]: T;
   [RelationAttributes]: {};
   protected [RelationRepository]: Repository<ModelClass<T>>;
 
@@ -478,7 +479,6 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
 
   constructor(repo: Repository<ModelClass<T>>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
     this[RelationRepository] = repo;
-    this[RelationParent] = parentObject!;
     // Initialize internal array
     this.items = content.map(c => this.getModelRef(c));
 
@@ -686,9 +686,9 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
     } else if (model instanceof ModelRef) {
       modelRef = model;
     } else if (isStorable(model)) {
-      modelRef = new ModelRef<T>(model.getPrimaryKey(), this[RelationRepository], this[RelationParent]);
+      modelRef = new ModelRef<T>(model.getPrimaryKey(), this[RelationRepository]);
     } else {
-      modelRef = new ModelRef<T>(model, this[RelationRepository], this[RelationParent]);
+      modelRef = new ModelRef<T>(model, this[RelationRepository]);
     }
     return modelRef;
   }
@@ -697,6 +697,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
    * Mark the parent model's property for this collection as dirty
    */
   protected setDirty(): void {
+    /*
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
           .filter(k => (this[RelationParent] as any)[k] === this)
@@ -708,6 +709,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
     if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
       this[RelationParent][WEBDA_DIRTY].add(attrName);
     }
+    */
   }
 }
 
@@ -772,7 +774,7 @@ class ModelRefCustom<T extends Storable, K> extends ModelRef<T> {
  */
 export class ModelLinksArray<T extends Storable, K extends object> implements ModelLinker {
   [RelationRole]: "CustomLinks" = "CustomLinks" as const;
-  [RelationParent]: T;
+  //[RelationParent]: T;
   [RelationAttributes]: K;
 
   // COMPOSITION: Internal array instead of extending Array
@@ -780,16 +782,13 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
 
   constructor(
     protected repo: Repository<ModelClass<T>>,
-    content: (PrimaryKey<T> & K)[] = [],
-    parentObject?: T
+    content: (PrimaryKey<T> & K)[] = []
+    //parentObject?: T
   ) {
-    this[RelationParent] = parentObject!;
+    //this[RelationParent] = parentObject!;
     // Initialize internal array
     this.items = content.map(
-      c =>
-        <ModelRefCustomProperties<T, K>>(
-          (<unknown>new ModelRefCustom<T, K>(repo.getPrimaryKey(c), repo, c, this[RelationParent]))
-        )
+      c => <ModelRefCustomProperties<T, K>>(<unknown>new ModelRefCustom<T, K>(repo.getPrimaryKey(c), repo, c))
     );
 
     // Return a Proxy to support indexed access like an array
@@ -822,9 +821,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
    * @deprecated use push instead
    */
   add(model: JSONed<ModelRefCustomProperties<T, K>>) {
-    this.push(
-      new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any, this[RelationParent]) as any
-    );
+    this.push(new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any) as any);
   }
 
   /**
@@ -1008,7 +1005,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
     return <any>(
       (model instanceof ModelRefCustom
         ? model
-        : new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any, this[RelationParent]))
+        : new ModelRefCustom<T, K>(this.repo.getPrimaryKey(model), this.repo, model as any))
     );
   }
 
@@ -1016,6 +1013,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
    * Mark the parent model's property for this collection as dirty
    */
   protected setDirty(): void {
+    /*
     const attrName = this[RelationParent]
       ? Object.keys(this[RelationParent])
           .filter(k => (this[RelationParent] as any)[k] === this)
@@ -1027,6 +1025,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
     if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
       this[RelationParent][WEBDA_DIRTY].add(attrName);
     }
+    */
   }
 }
 
@@ -1055,7 +1054,7 @@ export type ManyToOne<T extends Storable> = ModelLink<T>;
 export type OneToMany<
   T extends Storable,
   L extends Storable,
-  K extends FilterAttributes<T, ModelLinker<L>>
+  K extends Extract<FilterAttributes<T, ModelLinker<L>>, string> | ""
 > = ModelRelated<T, L, K>;
 /** Alias for a one-to-one relation. */
 export type OneToOne<T extends Storable> = ModelLink<T>;

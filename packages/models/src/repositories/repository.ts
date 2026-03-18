@@ -1,11 +1,5 @@
 import type { ArrayElement } from "@webda/tsc-esm";
-import type {
-  PrimaryKey,
-  PrimaryKeyType,
-  WEBDA_EVENTS,
-  ModelClass,
-  PrimaryKeyAttributes
-} from "../storable";
+import type { PrimaryKey, PrimaryKeyType, WEBDA_EVENTS, ModelClass, PrimaryKeyAttributes } from "../storable";
 import type { Helpers, JSONed, NumericPropertyPaths, PropertyPaths, PropertyPathType, SelfJSONed } from "../types";
 import type { ModelRefWithCreate } from "../relations";
 
@@ -329,10 +323,7 @@ export function supportsCollectionOperations<T extends ModelClass>(
  * - CollectionOperations: Array/collection manipulation
  */
 export interface Repository<T extends ModelClass = ModelClass>
-  extends CoreRepository<T>,
-    Updatable<T>,
-    AtomicOperations<T>,
-    CollectionOperations<T> {
+  extends CoreRepository<T>, Updatable<T>, AtomicOperations<T>, CollectionOperations<T> {
   // All methods are inherited from the extended interfaces
   // This empty interface body maintains backward compatibility while using the new segregated design
 }

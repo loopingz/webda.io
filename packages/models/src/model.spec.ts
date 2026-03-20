@@ -32,10 +32,6 @@ export class TestModel extends Model {
       updatedAt: Model.DefaultDeserializer.Date
     } as any;
   }
-
-  toProxy(): TestModelInterface {
-    return this as TestModelInterface;
-  }
 }
 
 interface TestModelInterface extends TestModel {

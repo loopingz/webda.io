@@ -412,12 +412,13 @@ export class ModelLink<T extends Storable> implements ModelLinker {
    * @param id - New target: a primary key, model instance, or string UID
    * @WebdaAutoSetter
    */
-  set(id: PrimaryKeyType<T> | T | string) {
+  set(id: PrimaryKeyType<T> | T | string): this {
     this[RelationKey] = isStorable(id)
       ? id.getPrimaryKey()
       : typeof id === "string"
         ? useRepository(this[RelationModel]).parseUID(id)
         : id;
+    return this;
   }
 
   /**

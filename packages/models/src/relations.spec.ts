@@ -6,6 +6,7 @@ import * as assert from "node:assert";
 import { PrimaryKeyEquals, WEBDA_PLURAL } from "./storable";
 import { registerRepository } from "./repositories/hooks";
 import { track } from "../../utils/lib/dirty";
+import { Test } from "mocha";
 
 class TestSimpleModel extends UuidModel {
   name: string;
@@ -70,22 +71,24 @@ class RelationsTest {
     links.remove("test");
     assert.ok(links.length === 0);
     assert.ok(model2.dirty.getProperties().length === 0);
+    // @ts-ignore
     model2["fake"] = links;
-    links.add({
+    model2.dirty.clear();
+    // @ts-ignore
+    model2["fake"].add({
       uuid: "test",
       status: "OK"
     });
-    assert.ok(model2.dirty.has("fake"));
+    assert.deepStrictEqual(model2.dirty.getProperties(), ["fake.items.0", "fake.items.length"]);
     model2.dirty.clear();
     links.toJSON();
+    // @ts-ignore
     model2["fake2"] = links;
+    // @ts-ignore
     delete model2["fake"];
-    assert.deepStrictEqual(links[0].toJSON(), {
-      uuid: "test",
-      status: "OK"
-    });
-    links.remove(links[0]);
-    assert.ok(model2.dirty.has("fake2"));
+    // @ts-ignore
+    model2["fake2"].remove(links[0]);
+    assert.deepStrictEqual(model2.dirty.getProperties(), ["fake2", "fake2.items.0", "fake2.items.length"]);
     assert.ok(links.length === 0);
   }
 
@@ -97,30 +100,50 @@ class RelationsTest {
     model.setPrimaryKey("test");
     await repo.create(model);
     const model2 = track(await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" })));
-    let links = new ModelLinksSimpleArray<TestSimpleModel>(repo, [], model2);
+    let links = new ModelLinksSimpleArray<TestSimpleModel>(TestSimpleModel);
     links.add(model);
     assert.ok(model2.dirty.getProperties().length === 0);
     links.remove("test");
     assert.ok(links.length === 0);
     assert.ok(model2.dirty.getProperties().length === 0);
+    // @ts-ignore
     model2["fake"] = links;
-    links.add("test");
-    assert.ok(model2.dirty.has("fake"));
     model2.dirty.clear();
-    links.unshift("test", "test2");
-    assert.ok(model2.dirty.has("fake"));
+    // @ts-ignore
+    model2["fake"].add("test");
+    console.log(model2.dirty.getProperties());
+    assert.deepStrictEqual(model2.dirty.getProperties(), ["fake.items.0", "fake.items.length"]);
     model2.dirty.clear();
-    links.shift();
-    assert.ok(model2.dirty.has("fake"));
+    // @ts-ignore
+    model2["fake"].unshift("test", "test2");
+    assert.deepStrictEqual(model2.dirty.getProperties(), [
+      "fake.items.2",
+      "fake.items.0",
+      "fake.items.1",
+      "fake.items.length"
+    ]);
     model2.dirty.clear();
-    links.pop();
-    assert.ok(model2.dirty.has("fake"));
+    // @ts-ignore
+    model2["fake"].shift();
+    assert.deepStrictEqual(model2.dirty.getProperties(), [
+      "fake.items.0",
+      "fake.items.1",
+      "fake.items.2",
+      "fake.items.length"
+    ]);
+    model2.dirty.clear();
+    // @ts-ignore
+    model2["fake"].pop();
+    assert.deepStrictEqual(model2.dirty.getProperties(), ["fake.items.1", "fake.items.length"]);
     model2.dirty.clear();
     links.toJSON();
+    // @ts-ignore
     model2["fake2"] = links;
+    // @ts-ignore
     delete model2["fake"];
-    links.remove(links[0]);
-    assert.ok(model2.dirty.has("fake2"));
+    // @ts-ignore
+    model2["fake2"].remove(links[0]);
+    assert.deepStrictEqual(model2.dirty.getProperties(), ["fake2", "fake2.items.0", "fake2.items.length"]);
     assert.ok(links.length === 0);
   }
 }

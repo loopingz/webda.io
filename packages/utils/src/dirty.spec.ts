@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { DirtyMixIn, DirtyState, track } from "./dirty";
+import { DirtyMixIn, DirtyState, track, WEBDA_DIRTY } from "./dirty";
 
 /** Simple class used as the base for mixin tests */
 class Base {
@@ -351,6 +351,25 @@ class TrackFunctionTest {
     obj.name = "Alice";
     assert.strictEqual(obj.dirty.valueOf(), true);
     assert.deepStrictEqual(obj.dirty.getProperties(), ["name"]);
+  }
+
+  /** Adding a property should mark it as dirty */
+  @test
+  addingPropertyMarksDirty() {
+    const obj = track({ name: "Alice" }) as {
+      name: string;
+      dirty: DirtyState;
+      [WEBDA_DIRTY]: DirtyState;
+      [key: string]: any;
+    };
+    obj.other = "value";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["other"]);
+    obj.dirty.clear();
+    assert.strictEqual(obj.dirty.valueOf(), false);
+    obj.other = "new value";
+    assert.strictEqual(obj.dirty.valueOf(), true);
+    assert.deepStrictEqual(obj.dirty.getProperties(), ["other"]);
   }
 
   /** Reading properties should return the correct values */

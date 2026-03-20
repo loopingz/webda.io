@@ -11,7 +11,6 @@ import {
   WEBDA_PRIMARY_KEY,
   ModelClass
 } from "./storable";
-import { WEBDA_DIRTY } from "@webda/utils";
 import type { JSONed, Helpers, PropertyPaths, PropertyPathType, NumericPropertyPaths } from "./types";
 import type { Repository } from "./repositories/repository";
 import { useRepository } from "./repositories/hooks";
@@ -478,8 +477,8 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
   // COMPOSITION: Internal array instead of extending Array
   private items: ModelRef<T>[] = [];
 
-  constructor(repo: Repository<ModelClass<T>>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
-    this[RelationRepository] = repo;
+  constructor(model: ModelClass<T>, content: PrimaryKeyType<T>[] = [], parentObject?: T) {
+    this[RelationRepository] = useRepository(model);
     // Initialize internal array
     this.items = content.map(c => this.getModelRef(c));
 
@@ -698,19 +697,7 @@ export class ModelLinksSimpleArray<T extends Storable> implements ModelLinker {
    * Mark the parent model's property for this collection as dirty
    */
   protected setDirty(): void {
-    /*
-    const attrName = this[RelationParent]
-      ? Object.keys(this[RelationParent])
-          .filter(k => (this[RelationParent] as any)[k] === this)
-          .pop()
-      : undefined;
-    if (!attrName) {
-      return;
-    }
-    if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
-      this[RelationParent][WEBDA_DIRTY].add(attrName);
-    }
-    */
+    // no-op: dirty tracking is handled by the deep proxy in track()
   }
 }
 
@@ -1014,19 +1001,7 @@ export class ModelLinksArray<T extends Storable, K extends object> implements Mo
    * Mark the parent model's property for this collection as dirty
    */
   protected setDirty(): void {
-    /*
-    const attrName = this[RelationParent]
-      ? Object.keys(this[RelationParent])
-          .filter(k => (this[RelationParent] as any)[k] === this)
-          .pop()!
-      : undefined;
-    if (!attrName) {
-      return;
-    }
-    if (this[RelationParent] && this[RelationParent][WEBDA_DIRTY]) {
-      this[RelationParent][WEBDA_DIRTY].add(attrName);
-    }
-    */
+    // no-op: dirty tracking is handled by the deep proxy in track()
   }
 }
 

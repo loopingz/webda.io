@@ -179,6 +179,9 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
   //   }
   //   return result as this;
   // }
+  toJSON(): this {
+    return this;
+  }
 
   /**
    * Reload the model from the repository, updating all properties in-place

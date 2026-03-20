@@ -3,6 +3,7 @@
  */
 export const WEBDA_DIRTY: unique symbol = Symbol("Dirty properties");
 
+
 /** Generic constructor type used by mixins */
 type Constructor<T = {}> = new (...args: any[]) => T;
 
@@ -91,16 +92,21 @@ export class DirtyState {
 }
 
 /**
- * Returns `true` when the value is a plain object or an array —
- * the only kinds of values we can safely deep-proxy.
+ * Built-in types whose internal slots prevent correct Proxy forwarding.
+ */
+const NON_PROXYABLE = [Date, RegExp, Map, Set, WeakMap, WeakSet, Promise, ArrayBuffer, DataView];
+
+/**
+ * Returns `true` when the value can be safely wrapped in a deep dirty proxy.
  *
- * Built-in types like Date, RegExp, Map, Set etc. have internal
- * slots that a Proxy cannot forward, so we leave them alone.
+ * Rejects built-in types (Date, RegExp, Map, Set, etc.) that have
+ * internal slots a Proxy cannot forward.
  */
 function isProxyable(value: any): boolean {
-  if (Array.isArray(value)) return true;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
+  for (const ctor of NON_PROXYABLE) {
+    if (value instanceof ctor) return false;
+  }
+  return typeof value === "object";
 }
 
 /**
@@ -111,7 +117,11 @@ function isProxyable(value: any): boolean {
  *
  * Read-only operations pass through untouched.
  */
-function createDeepDirtyProxy<V extends object>(value: V, pathPrefix: string, markDirty: (fullPath: string) => void): V {
+function createDeepDirtyProxy<V extends object>(
+  value: V,
+  pathPrefix: string,
+  markDirty: (fullPath: string) => void
+): V {
   return new Proxy(value, {
     set(innerTarget: any, innerProp: string | symbol, innerValue: any) {
       markDirty(`${pathPrefix}.${String(innerProp)}`);
@@ -174,7 +184,13 @@ export function DirtyMixIn<T extends Constructor>(
         },
         get: (target: any, p: string | symbol) => {
           const value = target[p];
-          if (typeof p === "string" && value !== null && typeof value === "object" && isProxyable(value)) {
+          if (
+            typeof p === "string" &&
+            value !== null &&
+            typeof value === "object" &&
+            !(value instanceof DirtyState) &&
+            isProxyable(value)
+          ) {
             return createDeepDirtyProxy(value, p, fullPath => {
               target[WEBDA_DIRTY].add(fullPath);
             });

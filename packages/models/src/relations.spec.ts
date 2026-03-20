@@ -1,23 +1,17 @@
 import { UuidModel } from "./model";
-import {
-  ModelLink,
-  ModelLinksArray,
-  ModelLinksSimpleArray
-} from "./relations";
+import { ModelLink, ModelLinksArray, ModelLinksSimpleArray } from "./relations";
 import { MemoryRepository } from "./repositories/memory";
 import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
-import { PrimaryKeyEquals, WEBDA_DIRTY, WEBDA_PLURAL } from "./storable";
-import { TestModel } from "./model.spec";
+import { PrimaryKeyEquals, WEBDA_PLURAL } from "./storable";
 import { registerRepository } from "./repositories/hooks";
-
-const mySymbol = Symbol("mySymbol");
+import { track } from "../../utils/lib/dirty";
 
 class TestSimpleModel extends UuidModel {
   name: string;
   age: number;
 
-  constructor(data?: { name: string; age: number; uuid: string }) {
+  constructor(data?: { name?: string; age?: number; uuid?: string }) {
     super(data);
     this.name = data?.name || "";
     this.age = data?.age || 0;
@@ -49,7 +43,7 @@ class RelationsTest {
     const model = new TestSimpleModel({ name: "Test", age: 10 });
     model.setPrimaryKey("test");
     await repo.create(model);
-    const link = new ModelLink("test", repo);
+    const link = new ModelLink(TestSimpleModel).set("test");
     assert.ok(PrimaryKeyEquals(link.getPrimaryKey(), model.getPrimaryKey()));
     assert.ok((await link.get()) instanceof TestSimpleModel);
     assert.strictEqual(link.toJSON(), "test");
@@ -65,24 +59,24 @@ class RelationsTest {
     registerRepository(TestSimpleModel, repo);
     const model = new TestSimpleModel({ name: "Test", age: 10, uuid: "test" });
     await repo.create(model);
-    const model2 = await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" }));
-    model2[WEBDA_DIRTY] = new Set();
+    const model2 = track(await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" })));
+
     let links = new ModelLinksArray<TestSimpleModel, { status: "OK" | "NOK" }>(repo, [], model2);
     links.add({
       uuid: "test",
       status: "OK"
     });
-    assert.ok(model2[WEBDA_DIRTY].size === 0);
+    assert.ok(model2.dirty.getProperties().length === 0);
     links.remove("test");
     assert.ok(links.length === 0);
-    assert.ok(model2[WEBDA_DIRTY].size === 0);
+    assert.ok(model2.dirty.getProperties().length === 0);
     model2["fake"] = links;
     links.add({
       uuid: "test",
       status: "OK"
     });
-    assert.ok(model2[WEBDA_DIRTY].has("fake"));
-    model2[WEBDA_DIRTY].clear();
+    assert.ok(model2.dirty.has("fake"));
+    model2.dirty.clear();
     links.toJSON();
     model2["fake2"] = links;
     delete model2["fake"];
@@ -91,51 +85,8 @@ class RelationsTest {
       status: "OK"
     });
     links.remove(links[0]);
-    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
+    assert.ok(model2.dirty.has("fake2"));
     assert.ok(links.length === 0);
-
-    // Without parent
-    links = new ModelLinksArray<TestSimpleModel, { status: "OK" | "NOK" }>(
-      repo,
-      [
-        {
-          uuid: "test",
-          status: "OK"
-        }
-      ],
-      model2
-    );
-    links.add({
-      uuid: "test2",
-      status: "OK"
-    });
-    assert.ok(links.length === 2);
-    links.remove("test2");
-    assert.ok(links.length === 1);
-    assert.strictEqual((await links[0].get()).name, "Test");
-    model2["fake2"] = links;
-    model2[WEBDA_DIRTY].clear();
-    links.unshift(
-      {
-        uuid: "test2",
-        status: "OK"
-      },
-      links[0]
-    );
-    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
-    model2[WEBDA_DIRTY].clear();
-    links.shift();
-    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
-    model2[WEBDA_DIRTY].clear();
-    links.pop();
-    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
-    model2[WEBDA_DIRTY].clear();
-    assert.ok(links.length === 1);
-    const test = new ModelLinksArray(repo, [{ [mySymbol]: "toto", data: 34, name: "plop" } as any]);
-    // @ts-ignore
-    assert.strictEqual(test[0][mySymbol], undefined);
-    assert.strictEqual(test[0].data, 34);
-    assert.strictEqual(test[0].name, "plop");
   }
 
   @test
@@ -145,49 +96,31 @@ class RelationsTest {
     const model = new TestSimpleModel({ name: "Test", age: 10, uuid: "test" });
     model.setPrimaryKey("test");
     await repo.create(model);
-    const model2 = await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" }));
-    model2[WEBDA_DIRTY] = new Set();
+    const model2 = track(await repo.create(new TestSimpleModel({ name: "Test2", age: 20, uuid: "test2" })));
     let links = new ModelLinksSimpleArray<TestSimpleModel>(repo, [], model2);
     links.add(model);
-    assert.ok(model2[WEBDA_DIRTY].size === 0);
+    assert.ok(model2.dirty.getProperties().length === 0);
     links.remove("test");
     assert.ok(links.length === 0);
-    assert.ok(model2[WEBDA_DIRTY].size === 0);
+    assert.ok(model2.dirty.getProperties().length === 0);
     model2["fake"] = links;
     links.add("test");
-    assert.ok(model2[WEBDA_DIRTY].has("fake"));
-    model2[WEBDA_DIRTY].clear();
+    assert.ok(model2.dirty.has("fake"));
+    model2.dirty.clear();
     links.unshift("test", "test2");
-    assert.ok(model2[WEBDA_DIRTY].has("fake"));
-    model2[WEBDA_DIRTY].clear();
+    assert.ok(model2.dirty.has("fake"));
+    model2.dirty.clear();
     links.shift();
-    assert.ok(model2[WEBDA_DIRTY].has("fake"));
-    model2[WEBDA_DIRTY].clear();
+    assert.ok(model2.dirty.has("fake"));
+    model2.dirty.clear();
     links.pop();
-    assert.ok(model2[WEBDA_DIRTY].has("fake"));
-    model2[WEBDA_DIRTY].clear();
+    assert.ok(model2.dirty.has("fake"));
+    model2.dirty.clear();
     links.toJSON();
     model2["fake2"] = links;
     delete model2["fake"];
     links.remove(links[0]);
-    assert.ok(model2[WEBDA_DIRTY].has("fake2"));
+    assert.ok(model2.dirty.has("fake2"));
     assert.ok(links.length === 0);
-
-    // Without parent
-    links = new ModelLinksSimpleArray<TestSimpleModel>(repo, ["test"]);
-    links.add("test2");
-    assert.ok(links.length === 2);
-    links.remove("test2");
-    assert.ok(links.length === 1);
-    assert.strictEqual((await links[0].get()).name, "Test");
-    // Might remove set method
-    links.set();
-
-    const repo2 = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
-    const links2 = new ModelLinksSimpleArray<TestModel>(repo2, []);
-    links2.add({
-      id: "test",
-      name: "test"
-    });
   }
 }

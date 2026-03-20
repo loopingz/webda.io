@@ -275,6 +275,38 @@ export type Pojo<T extends object> = {
 };
 
 /**
+ * Extract the parameter type of a `set()` method if present.
+ */
+type SetMethodParam<T> = T extends { set(value: infer V): any } ? V : never;
+
+/**
+ * Coercion rules: widen known types that accept alternate input forms.
+ * Mirrors DEFAULT_COERCIONS from @webda/ts-plugin.
+ */
+type Coerce<T> = T extends Date ? string | number | Date : never;
+
+/**
+ * Resolve what a property setter accepts.
+ *
+ * 1. If the type has a set() method → use its parameter type (union with T)
+ * 2. If the type is a known coercion target (Date) → widen
+ * 3. Otherwise → T unchanged
+ */
+type SetterOf<T> = [SetMethodParam<T>] extends [never]
+  ? [Coerce<T>] extends [never]
+    ? T
+    : Coerce<T>
+  : SetMethodParam<T> | T;
+
+/**
+ * The "setter view" of an object: each data property is mapped
+ * to the type it accepts on assignment.
+ */
+export type Settable<T extends object> = {
+  [K in keyof T as T[K] extends Function ? never : K]: SetterOf<T[K]>;
+};
+
+/**
  * Marker interface to opt a class into automatic accessor generation.
  *
  * Classes implementing this interface will have their properties whose types

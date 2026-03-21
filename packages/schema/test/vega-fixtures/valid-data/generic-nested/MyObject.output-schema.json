@@ -12,7 +12,9 @@
           "type": "array"
         }
       },
-      "required": ["lists"],
+      "required": [
+        "lists"
+      ],
       "type": "object"
     },
     "IRes": {
@@ -22,7 +24,9 @@
           "$ref": "#/definitions/IListsable"
         }
       },
-      "required": ["foo"],
+      "required": [
+        "foo"
+      ],
       "type": "object"
     },
     "MyArrayObjectType": {
@@ -38,11 +42,20 @@
           "type": "string"
         }
       },
-      "required": ["a", "b", "c"],
+      "required": [
+        "a",
+        "b",
+        "c"
+      ],
       "type": "object"
     },
     "MyObject": {
       "additionalProperties": false,
+      "properties": {
+        "responseType": {
+          "$ref": "#/definitions/IRes"
+        }
+      },
       "type": "object"
     }
   }

@@ -148,9 +148,12 @@ describe("schema generation", () => {
         const dirPath = path.join(vegaRoot, d);
         const tsFile = fs.readdirSync(dirPath).find(f => f.endsWith(".ts"));
         if (!tsFile) return;
-        const schemaFiles = fs.readdirSync(dirPath).filter(f => f.endsWith(".schema.json"));
+        const schemaFiles = fs.readdirSync(dirPath).filter(f => f.endsWith("schema.json"));
         schemaFiles.forEach(schemaFile => {
-          const typeName = schemaFile.replace(/\.schema\.json$/, "");
+          let typeName = schemaFile.replace(/schema\.json$/, "");
+          const outputType =
+            (typeName.split(".").pop()!.replace(/-/g, "").toLowerCase() as "output" | "input") || "input";
+          typeName = typeName.replace(/\.[^.]*$/, ""); // Remove output suffix for generator input
           if (
             fixtureFilter &&
             !fixtureFilter.has(d) &&
@@ -158,7 +161,7 @@ describe("schema generation", () => {
             !fixtureFilter.has(typeName.toLowerCase())
           )
             return;
-          it(`vega(${d}) matches fixture for ${typeName}`, () => {
+          it(`vega(${d}) matches fixture for ${typeName} (${outputType})`, () => {
             const fixturePath = path.join(dirPath, schemaFile);
             expect(fs.existsSync(fixturePath)).toBe(true);
             const expected = stableSort(JSON.parse(fs.readFileSync(fixturePath, "utf8")));
@@ -173,7 +176,13 @@ describe("schema generation", () => {
                 }
               } catch {}
             }
-            const actualRes = stableSort(generator.getSchemaForTypeName(typeName, fileRelative, { asRef: true, log }));
+            const actualRes = stableSort(
+              generator.getSchemaForTypeName(typeName, fileRelative, {
+                asRef: true,
+                log,
+                type: (outputType as "output" | "input") || "input"
+              })
+            );
             if (log) {
               console.log("Generated schema:\n", JSON.stringify(actualRes, null, 2));
             }

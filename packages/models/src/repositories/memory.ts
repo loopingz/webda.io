@@ -155,12 +155,8 @@ export class MemoryRepository<
    */
   async query(query: string | Query): Promise<{ results: InstanceType<T>[]; continuationToken?: string }> {
     if (typeof query === "string") {
-      try {
-        WebdaQL ??= await import("@webda/ql");
-        query = WebdaQL.parse(query);
-      } catch (error) {
-        throw new Error(`Failed to parse query: ${error} - @webda/ql peer dependencies may be missing`);
-      }
+      WebdaQL ??= await import("@webda/ql");
+      query = WebdaQL.parse(query);
     }
     return MemoryRepository.simulateFind(query as Query, [...this.storage.keys()], this);
   }
@@ -244,14 +240,11 @@ export class MemoryRepository<
    */
   async *iterate(query: string): AsyncGenerator<InstanceType<T>, any, any> {
     let q: Query;
-    try {
-      WebdaQL ??= await import("@webda/ql");
-      q = WebdaQL.parse(query); // Ensure it is valid
-      if (!q.limit) {
-        q.limit = 100; // Default pagination size
-      }
-    } catch (error) {
-      throw new Error(`Failed to parse query: ${error} - @webda/ql peer dependencies may be missing`);
+    WebdaQL ??= await import("@webda/ql");
+    /* c8 ignore next */
+    q = WebdaQL.parse(query); // Ensure it is valid
+    if (!q.limit) {
+      q.limit = 100; // Default pagination size
     }
     do {
       const res = await this.query(q);

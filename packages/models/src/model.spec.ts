@@ -1,11 +1,16 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { ExceptPartial, Model, UuidModel } from "./model";
-import { isStorable, PrimaryKeyEquals, ModelClass, WEBDA_PRIMARY_KEY } from "./storable";
+import { DirtyModelMixin, ExceptPartial, Model, UuidModel, WEBDA_DELETED } from "./model";
+import { isStorable, isModelClass, PrimaryKeyEquals, ModelClass, WEBDA_PRIMARY_KEY } from "./storable";
 import { MemoryRepository } from "./repositories/memory";
-import { SelfJSONed } from "./types";
+import { SelfJSONed, WebdaFieldsMixIn } from "./types";
 import { registerRepository } from "./repositories/hooks";
 import { Merge } from "@webda/tsc-esm";
+import { track } from "@webda/utils";
+import { supportsAtomicOperations, supportsCollectionOperations } from "./repositories/repository";
+
+// Import index to cover re-exports
+import * as IndexExports from "./index";
 
 export class TestModel extends Model {
   [WEBDA_PRIMARY_KEY] = ["id", "name"] as const;
@@ -195,5 +200,96 @@ class ModelTest {
     assert.strictEqual(model2.createdAt.toISOString(), "2025-01-01T00:00:00.000Z");
 
     assert.strictEqual((await repo1.query("")).results.length, 1);
+  }
+
+  @test
+  async deleteAndIsDeleted() {
+    const repo1 = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    registerRepository(SubClassModel, repo1);
+    const model = await SubClassModel.ref("del-test").create({
+      name: "ToDelete",
+      collection: [],
+      createdAt: "",
+      age: 5
+    } as any);
+    assert.strictEqual(model.isDeleted(), undefined);
+    await model.delete();
+    assert.ok(!(await repo1.exists("del-test")));
+  }
+
+  @test
+  async patch() {
+    const repo1 = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    registerRepository(SubClassModel, repo1);
+    const model = await SubClassModel.ref("patch-test").create({
+      name: "Original",
+      collection: [],
+      createdAt: "",
+      age: 10
+    } as any);
+    await model.patch({ name: "Patched" } as any);
+    assert.strictEqual(model.name, "Patched");
+    const fromRepo = await repo1.get("patch-test");
+    assert.strictEqual(fromRepo.name, "Patched");
+  }
+
+  @test
+  async saveWithDirty() {
+    const repo1 = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    registerRepository(SubClassModel, repo1);
+    const model = await SubClassModel.ref("dirty-test").create({
+      name: "Original",
+      collection: [],
+      createdAt: "",
+      age: 10
+    } as any);
+    const trackedModel = track(model);
+    // Simulate dirty tracking
+    assert.strictEqual(trackedModel.dirty.valueOf(), false);
+    trackedModel.name = "DirtySave";
+    assert.strictEqual(trackedModel.dirty.getProperties().length, 1);
+    await trackedModel.save();
+    assert.strictEqual(trackedModel.dirty.valueOf(), false);
+    const fromRepo = await repo1.get("dirty-test");
+    assert.strictEqual(fromRepo.name, "DirtySave");
+  }
+
+  @test
+  async deserializeWithoutInstance() {
+    // Test deserialize creating a new instance (no instance param)
+    const result = TestModel.deserialize({ id: "1", name: "Deserialized" });
+    assert.strictEqual(result.id, "1");
+    assert.strictEqual(result.name, "Deserialized");
+  }
+
+  @test
+  coverageHelpers() {
+    // isModelClass
+    assert.ok(isModelClass(TestModel));
+    assert.ok(isModelClass(SubClassModel));
+    assert.ok(!isModelClass({}));
+    assert.ok(!isModelClass("string"));
+    assert.ok(!isModelClass(null));
+    assert.ok(!isModelClass(function () {}));
+
+    // WebdaFieldsMixIn - just returns the class unchanged
+    const result = WebdaFieldsMixIn(TestModel);
+    assert.strictEqual(result, TestModel);
+
+    // IndexExports should be defined (covers index.ts re-exports)
+    assert.ok(IndexExports.Model);
+    assert.ok(IndexExports.MemoryRepository);
+
+    // supportsAtomicOperations / supportsCollectionOperations
+    const repo = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    assert.ok(supportsAtomicOperations(repo as any));
+    assert.ok(supportsCollectionOperations(repo as any));
+    // Test with a plain object that doesn't support them
+    assert.ok(!supportsAtomicOperations({ get: () => {} } as any));
+    assert.ok(!supportsCollectionOperations({ get: () => {} } as any));
+
+    // toProxy
+    const model = new SubClassModel({ name: "Test", age: 1, collection: [], test: 1 } as any);
+    assert.strictEqual(model.toProxy(), model);
   }
 }

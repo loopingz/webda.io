@@ -1,5 +1,4 @@
-import { Behavior } from "./behavior.js";
-export type Ace = { 
+export type Ace = {
   action: string;
   type: "GROUP" | "USER";
   allow: boolean;
@@ -13,7 +12,6 @@ export type Ace = {
  *
  */
 export class ResourceAcl extends Array<Ace> {
-
   toDto(): Ace[] {
     return this;
   }

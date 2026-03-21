@@ -25,7 +25,6 @@ class SampleApplicationTest extends WebdaApplicationTest {
 
   @test
   validateSchemaWithEnum() {
-    console.log("validateEnum", new Date(), useApplication() !== undefined);
     assert.strictEqual(
       validateModelSchema(
         "WebdaDemo/Company",
@@ -95,15 +94,10 @@ class ApplicationTest extends WebdaInternalTest {
   async cov() {
     assert.throws(
       () => new Application("/notexisting"),
-      /Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting.*/
+      /Not a webda application folder or webda\.config\.\(ya\?ml\|jsonc\?\) file: unexisting.*/
     );
-    await assert.rejects(
-      () => new Application(__dirname + "/../../test/schemas").load(),
-      /Not a webda application folder or webda.config.jsonc or webda.config.json file: .*/
-    );
+    assert.throws(() => new Application(__dirname + "/../../test/schemas"), /File not found .*/);
     await assert.rejects(() => new Application(__dirname + "/../../test/badapp").load(), /Cannot parse JSON of: .*/);
-    // If allow module is enable the Application should let run anywhere
-    new Application(__dirname + "/../../test/schemas", undefined);
     let unpackedApp = new UnpackedApplication(__dirname + "/../../test/badapp", undefined);
     unpackedApp.loadProjectInformation();
     // Read cached modules

@@ -1,5 +1,5 @@
 import type { Ident } from "./ident.js";
-import { Helpers, SelfJSONed,  type ModelsMapped } from "@webda/models";
+import { Helpers, ModelRelated, SelfJSONed, Settable } from "@webda/models";
 import { User } from "./user.js";
 
 /**
@@ -9,28 +9,8 @@ import { User } from "./user.js";
  * models
  */
 export class SimpleUser extends User {
-  constructor(data?: Partial<SelfJSONed<SimpleUser>>) {
+  constructor(data?: Settable<SimpleUser>) {
     super(data);
-    this.load(data || {});
-  }
-
-  /**
-   * Load user data
-   * @param data User data
-   * @returns This instance
-   */
-  load(data: Partial<SelfJSONed<SimpleUser>>): this {
-    super.load(data as any);
-    if (data._groups) {
-      this._groups = data._groups;
-    }
-    if (data._roles) {
-      this._roles = data._roles;
-    }
-    if (data._idents) {
-      this._idents = data._idents as ModelsMapped<Ident, "_user", "_type" | "uid" | "email">;
-    }
-    return this;
   }
   /**
    * Groups for a user
@@ -43,8 +23,7 @@ export class SimpleUser extends User {
   /**
    * Normal ident
    */
-  _idents: ModelsMapped<Ident, "_user", "_type" | "uid" | "email"> = [];
-  //_idents: any[];
+  _idents: ModelRelated<Ident, User, "_user">;
   /**
    * Return idents
    * @returns

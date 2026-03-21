@@ -55,12 +55,6 @@ class UserTest extends WebdaApplicationTest {
   }
 
   @test
-  async idents() {
-    const user: User = await User.create({}, false);
-    assert.deepStrictEqual(user.getIdents(), []);
-  }
-
-  @test
   async emailGetter() {
     const user: SimpleUser = await SimpleUser.create({}, false);
     assert.strictEqual(user.getEmail(), undefined);
@@ -72,8 +66,6 @@ class UserTest extends WebdaApplicationTest {
       email: undefined,
       uuid
     });
-    user.load({ _idents: [{}, { email: "testIdent@test.com" }] });
-    assert.strictEqual(user.getEmail(), "testIdent@test.com");
     user.load({ email: "test@test.com", displayName: "Top" });
     assert.strictEqual(user.getEmail(), "test@test.com");
     assert.strictEqual(user.getDisplayName(), "Top");

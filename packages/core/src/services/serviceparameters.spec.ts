@@ -2,12 +2,18 @@ import { suite, test } from "@webda/test";
 import { ServiceParameters } from "./serviceparameters.js";
 import * as assert from "assert";
 
+class TestParameters extends ServiceParameters {
+  permissions: string[] = [];
+  random: boolean = false;
+  value: number = 0;
+}
+
 @suite
 class ServiceParametersTest {
   @test
   serviceParameters() {
     let patch = 0;
-    const perms: any = new ServiceParameters().load({
+    const perms = new TestParameters().load({
       permissions: ["RANDOM", "PRODUCT_1"],
       random: true,
       value: 123

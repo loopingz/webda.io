@@ -1,5 +1,5 @@
 import { CoreModel, OperationContext } from "@webda/core";
-import { ModelRelated, ModelsMapped } from "@webda/models";
+import { ModelRelated } from "@webda/models";
 import { NotEnumerable } from "@webda/tsc-esm";
 import { Project } from "./project";
 import { User } from "./user";
@@ -13,8 +13,8 @@ export type Permission = "PRODUCT_1" | "PRODUCT_2" | "PRODUCT_3";
 //@Expose()
 export class Company extends CoreModel {
   [WEBDA_PLURAL] = "Companies";
-  _projects: ModelsMapped<Project, "_company", "name" | "type">;
-  users: ModelRelated<User, "_company">;
+  _projects: ModelRelated<Project, Company, "_company">;
+  users: ModelRelated<User, Company, "_company">;
   name: string;
   /**
    * This should not be in the schema

@@ -25,7 +25,11 @@
               },
               "mailer": {
                 "description": "Mailer service name",
-                "serviceName": true,
+                "enum": [
+                  "Registry",
+                  "CryptoService",
+                  "SessionManager"
+                ],
                 "type": "string"
               },
               "postValidation": {
@@ -51,7 +55,11 @@
               },
               "verifier": {
                 "description": "Password verifier Service name",
-                "serviceName": true,
+                "enum": [
+                  "Registry",
+                  "CryptoService",
+                  "SessionManager"
+                ],
                 "type": "string"
               }
             },
@@ -172,7 +180,7 @@
           "Duration": {
             "additionalProperties": false,
             "description": "Represents a time duration that defaults to seconds but supports composite strings.",
-            "type": "object"
+            "type": "number | string * Supported units:\n- seconds: `s`, `sec`, `secs`, `second`, `seconds`\n- minutes: `m`, `min`, `mins`, `minute`, `minutes`\n- hours: `h`, `hr`, `hour`, `hours`\n- days: `d`, `day`, `days`\n- months: `mo`, `mon`, `month`, `months` (assumed 30 days)\n- years: `y`, `yr`, `year`, `years` (assumed 365 days)\n\nExamples:\n- `10` → 10 seconds\n- `15s` → 15 seconds\n- `2m` → 120 seconds\n- `1d2h30m` → 1 day + 2 hours + 30 minutes\n- `1 d 2 h` → same as above (spaces allowed)"
           }
         },
         "properties": {
@@ -180,10 +188,6 @@
             "$ref": "#/definitions/Duration",
             "default": "1h",
             "description": "Check configuration every {checkInterval} seconds"
-          },
-          "checkIntervalMs": {
-            "description": "Check interval in ms",
-            "type": "number"
           },
           "default": {
             "default": "{ services: {}, parameters: {} }",
@@ -210,7 +214,6 @@
           }
         },
         "required": [
-          "checkIntervalMs",
           "source",
           "sources",
           "type"
@@ -283,7 +286,7 @@
           "Duration": {
             "additionalProperties": false,
             "description": "Represents a time duration that defaults to seconds but supports composite strings.",
-            "type": "object"
+            "type": "number | string * Supported units:\n- seconds: `s`, `sec`, `secs`, `second`, `seconds`\n- minutes: `m`, `min`, `mins`, `minute`, `minutes`\n- hours: `h`, `hr`, `hour`, `hours`\n- days: `d`, `day`, `days`\n- months: `mo`, `mon`, `month`, `months` (assumed 30 days)\n- years: `y`, `yr`, `year`, `years` (assumed 365 days)\n\nExamples:\n- `10` → 10 seconds\n- `15s` → 15 seconds\n- `2m` → 120 seconds\n- `1d2h30m` → 1 day + 2 hours + 30 minutes\n- `1 d 2 h` → same as above (spaces allowed)"
           },
           "JWTOptions": {
             "additionalProperties": false,
@@ -672,7 +675,7 @@
           "Duration": {
             "additionalProperties": false,
             "description": "Represents a time duration that defaults to seconds but supports composite strings.",
-            "type": "object"
+            "type": "number | string * Supported units:\n- seconds: `s`, `sec`, `secs`, `second`, `seconds`\n- minutes: `m`, `min`, `mins`, `minute`, `minutes`\n- hours: `h`, `hr`, `hour`, `hours`\n- days: `d`, `day`, `days`\n- months: `mo`, `mon`, `month`, `months` (assumed 30 days)\n- years: `y`, `yr`, `year`, `years` (assumed 365 days)\n\nExamples:\n- `10` → 10 seconds\n- `15s` → 15 seconds\n- `2m` → 120 seconds\n- `1d2h30m` → 1 day + 2 hours + 30 minutes\n- `1 d 2 h` → same as above (spaces allowed)"
           }
         },
         "properties": {
@@ -680,10 +683,6 @@
             "$ref": "#/definitions/Duration",
             "default": "1h",
             "description": "Check configuration every {checkInterval} seconds"
-          },
-          "checkIntervalMs": {
-            "description": "Check interval in ms",
-            "type": "number"
           },
           "default": {
             "default": "{ services: {}, parameters: {} }",
@@ -710,7 +709,6 @@
           }
         },
         "required": [
-          "checkIntervalMs",
           "source",
           "sources",
           "type"
@@ -782,7 +780,7 @@
           "Duration": {
             "additionalProperties": false,
             "description": "Represents a time duration that defaults to seconds but supports composite strings.",
-            "type": "object"
+            "type": "number | string * Supported units:\n- seconds: `s`, `sec`, `secs`, `second`, `seconds`\n- minutes: `m`, `min`, `mins`, `minute`, `minutes`\n- hours: `h`, `hr`, `hour`, `hours`\n- days: `d`, `day`, `days`\n- months: `mo`, `mon`, `month`, `months` (assumed 30 days)\n- years: `y`, `yr`, `year`, `years` (assumed 365 days)\n\nExamples:\n- `10` → 10 seconds\n- `15s` → 15 seconds\n- `2m` → 120 seconds\n- `1d2h30m` → 1 day + 2 hours + 30 minutes\n- `1 d 2 h` → same as above (spaces allowed)"
           }
         },
         "description": "Parameters for KubernetesConfigurationService\nThrow error if default is set",
@@ -791,10 +789,6 @@
             "$ref": "#/definitions/Duration",
             "default": "1h",
             "description": "Check configuration every {checkInterval} seconds"
-          },
-          "checkIntervalMs": {
-            "description": "Check interval in ms",
-            "type": "number"
           },
           "default": {
             "default": "{ services: {}, parameters: {} }",
@@ -821,7 +815,6 @@
           }
         },
         "required": [
-          "checkIntervalMs",
           "source",
           "sources",
           "type"
@@ -836,6 +829,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
+        "description": "Parameters for the Mailer service configuration\n\nConfigures the email transport, templates directory and template engine",
         "properties": {
           "SES": {
             "description": "SES AWS Bean if transport === \"ses\""
@@ -849,12 +843,12 @@
           },
           "templates": {
             "default": "templates",
-            "description": "Specify which foldeer contains templates",
+            "description": "Specify which folder contains templates",
             "type": "string"
           },
           "templatesEngine": {
             "default": "mustache",
-            "description": "Template engine to usee",
+            "description": "Template engine to use",
             "type": "string"
           },
           "transport": {
@@ -931,14 +925,14 @@
         "definitions": {
           "WaitDelayerDefinition": {
             "additionalProperties": false,
-            "description": "WaitDelayer definition",
+            "description": "Configuration object for selecting and parameterizing a `WaitDelayer` from the registry.",
             "properties": {
               "interval": {
-                "description": "Interval",
+                "description": "Base interval in milliseconds passed to the delayer factory.",
                 "type": "number"
               },
               "type": {
-                "description": "Type of delayer registered in WaitDelayerFactoryRegistry",
+                "description": "Key identifying the factory in `WaitDelayerFactories.registry` (e.g. `\"linear\"`, `\"exponential\"`).",
                 "type": "string"
               }
             },
@@ -955,18 +949,13 @@
             "description": "Number of seconds before droping message",
             "type": "number"
           },
-          "expireMs": {
-            "type": "number"
-          },
           "maxConsumers": {
+            "default": 10,
             "description": "Max number of queue consumers\nQueue will auto increase to this max number if queue is loaded\nand it will decrease to just one consumer if no messages are available",
             "type": "number"
           },
           "timeout": {
             "description": "Number of seconds to wait for receiving new message",
-            "type": "number"
-          },
-          "timeoutMs": {
             "type": "number"
           },
           "type": {
@@ -988,8 +977,6 @@
           }
         },
         "required": [
-          "expireMs",
-          "timeoutMs",
           "type"
         ],
         "type": "object",
@@ -1191,6 +1178,11 @@
           "senders": {
             "description": "Notification service that will send\nThe order of the array is important if multiple is false\nWhen multiple is `false` the first available NotificationService will\nbe used, otherwise every available NotificationService will be used",
             "items": {
+              "enum": [
+                "Registry",
+                "CryptoService",
+                "SessionManager"
+              ],
               "type": "string"
             },
             "type": "array"
@@ -1484,7 +1476,85 @@
           "type": "string"
         }
       },
-      "Schemas": {},
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object\nThe owner can be changed by the owner",
+          "properties": {
+            "_user": {
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "description": "Abstract class to define an object with an owner\n\nThe owner is the user that created the object\nThe owner can be changed by the owner",
+          "properties": {
+            "_user": {
+              "allOf": [
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "type": "object"
+                }
+              ],
+              "description": "Default owner of the object"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "_user",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$ref": "#/definitions/AbstractOwnerModel%3CT%3E",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
+        }
+      },
       "Actions": {},
       "Events": [
         "Create",
@@ -1505,6 +1575,192 @@
       ],
       "Identifier": "Webda/AbstractOwnerModel"
     },
+    "Webda/AuditEntry": {
+      "Plural": "AuditEntries",
+      "Import": "lib/models/auditentry:AuditEntry",
+      "Relations": {},
+      "Ancestors": [],
+      "Subclasses": [],
+      "Reflection": {
+        "actor": {
+          "type": "string | \"SYSTEM\""
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "operation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "\"SUCCESS\" | \"ERROR\""
+        },
+        "description": {
+          "type": "string"
+        },
+        "context": {
+          "type": "{\n    ip?: string;\n    userAgent?: string;\n    [key: string]: any;\n  }"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      },
+      "Schemas": {
+        "Input": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "context": {
+              "additionalProperties": {},
+              "properties": {
+                "ip": {
+                  "type": "string"
+                },
+                "userAgent": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "properties": {
+            "actor": {
+              "type": "string"
+            },
+            "context": {
+              "$ref": "#/definitions/context"
+            },
+            "description": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "SUCCESS",
+                "ERROR"
+              ],
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "actor",
+            "context",
+            "description",
+            "operation",
+            "status",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "additionalProperties": false,
+          "definitions": {
+            "context": {
+              "additionalProperties": {},
+              "properties": {
+                "ip": {
+                  "type": "string"
+                },
+                "userAgent": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "properties": {
+            "actor": {
+              "type": "string"
+            },
+            "context": {
+              "$ref": "#/definitions/context"
+            },
+            "description": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "SUCCESS",
+                "ERROR"
+              ],
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "number"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "actor",
+            "context",
+            "description",
+            "operation",
+            "status",
+            "timestamp",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "toDto$auto"
+        },
+        "Stored": {
+          "$ref": "#/definitions/AuditEntry",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "definitions": {
+            "context": {
+              "additionalProperties": {},
+              "properties": {
+                "ip": {
+                  "type": "string"
+                },
+                "userAgent": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "$webda": "toJSON$return"
+        }
+      },
+      "Actions": {},
+      "Events": [
+        "Create",
+        "PartialUpdate",
+        "Delete",
+        "Update",
+        "Patch",
+        "Query",
+        "Created",
+        "PartialUpdated",
+        "Deleted",
+        "Patched",
+        "Updated",
+        "Queried"
+      ],
+      "PrimaryKey": [
+        "uuid"
+      ],
+      "Identifier": "Webda/AuditEntry"
+    },
     "Webda/CoreModel": {
       "Plural": "CoreModels",
       "Import": "lib/models/coremodel:CoreModel",
@@ -1523,13 +1779,15 @@
           "properties": {
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
           "required": [
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1537,16 +1795,20 @@
           "properties": {
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
           "required": [
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
         "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "$ref": "#/definitions/CoreModel",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -1651,10 +1913,97 @@
                 "refresh"
               ],
               "type": "object"
+            }
+          },
+          "description": "First basic model for Ident",
+          "properties": {
+            "__profile": {
+              "description": "Provider profile"
             },
-            "ModelLink<User>": {
+            "__tokens": {
+              "$ref": "#/definitions/IdentTokens",
+              "description": "Tokens for this ident"
+            },
+            "_failedLogin": {
+              "description": "If the ident is validated",
+              "type": "number"
+            },
+            "_lastUsed": {
+              "description": "Last time the ident was used",
+              "format": "date-time",
+              "type": "string"
+            },
+            "_lastValidationEmail": {
+              "description": "If EmailIdent",
+              "type": "number"
+            },
+            "_type": {
+              "description": "Type of the ident",
+              "type": "string"
+            },
+            "_user": {
+              "description": "Default owner of the object",
+              "type": "string"
+            },
+            "_validation": {
+              "description": "When the ident was validated",
+              "format": "date-time",
+              "type": "string"
+            },
+            "email": {
+              "description": "Email for this ident if it exist",
+              "type": "string"
+            },
+            "provider": {
+              "description": "Provider id",
+              "type": "string"
+            },
+            "public": {
+              "default": false,
+              "description": "Define if the object is publicly readable",
+              "type": "boolean"
+            },
+            "uid": {
+              "description": "Uid on the provider",
+              "type": "string"
+            },
+            "uuid": {
+              "description": "UUID of the model",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__profile",
+            "__tokens",
+            "_type",
+            "_user",
+            "uid",
+            "uuid"
+          ],
+          "type": "object",
+          "$webda": "fromDto$auto"
+        },
+        "Output": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "WebdaModel": true,
+          "additionalProperties": false,
+          "class": true,
+          "definitions": {
+            "IdentTokens": {
               "additionalProperties": false,
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
+              "properties": {
+                "access": {
+                  "type": "string"
+                },
+                "refresh": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "access",
+                "refresh"
+              ],
               "type": "object"
             }
           },
@@ -1685,8 +2034,8 @@
               "type": "string"
             },
             "_user": {
-              "$ref": "#/definitions/ModelLink%3CUser%3E",
-              "description": "Default owner of the object"
+              "description": "Default owner of the object",
+              "type": "string"
             },
             "_validation": {
               "description": "When the ident was validated",
@@ -1712,6 +2061,7 @@
             },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -1723,13 +2073,12 @@
             "uid",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
-        "Output": {
+        "Stored": {
+          "$ref": "#/definitions/Ident",
           "$schema": "http://json-schema.org/draft-07/schema#",
-          "WebdaModel": true,
-          "additionalProperties": false,
-          "class": true,
           "definitions": {
             "IdentTokens": {
               "additionalProperties": false,
@@ -1753,94 +2102,7 @@
               "type": "object"
             }
           },
-          "description": "First basic model for Ident",
-          "properties": {
-            "__profile": {
-              "description": "Provider profile"
-            },
-            "__tokens": {
-              "$ref": "#/definitions/IdentTokens",
-              "description": "Tokens for this ident"
-            },
-            "_failedLogin": {
-              "description": "If the ident is validated",
-              "type": "number"
-            },
-            "_lastUsed": {
-              "description": "Last time the ident was used",
-              "format": "date-time",
-              "type": "string"
-            },
-            "_lastValidationEmail": {
-              "description": "If EmailIdent",
-              "type": "number"
-            },
-            "_type": {
-              "description": "Type of the ident",
-              "type": "string"
-            },
-            "_user": {
-              "$ref": "#/definitions/ModelLink%3CUser%3E",
-              "description": "Default owner of the object"
-            },
-            "_validation": {
-              "description": "When the ident was validated",
-              "format": "date-time",
-              "type": "string"
-            },
-            "email": {
-              "description": "Email for this ident if it exist",
-              "type": "string"
-            },
-            "provider": {
-              "description": "Provider id",
-              "type": "string"
-            },
-            "public": {
-              "default": false,
-              "description": "Define if the object is publicly readable",
-              "type": "boolean"
-            },
-            "uid": {
-              "description": "Uid on the provider",
-              "type": "string"
-            },
-            "uuid": {
-              "description": "UUID of the model",
-              "type": "string"
-            }
-          },
-          "required": [
-            "__profile",
-            "__tokens",
-            "_type",
-            "_user",
-            "uid",
-            "uuid"
-          ],
-          "type": "object"
-        },
-        "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "definitions": {
-            "Pick<IdentTokens, Attributes<IdentTokens>>": {
-              "additionalProperties": false,
-              "description": "From T, pick a set of properties whose keys are in the union K",
-              "properties": {
-                "access": {
-                  "type": "string"
-                },
-                "refresh": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "access",
-                "refresh"
-              ],
-              "type": "object"
-            }
-          }
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -1899,17 +2161,10 @@
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "definitions": {
-            "ModelLink<User>": {
-              "additionalProperties": false,
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
-              "type": "object"
-            }
-          },
           "properties": {
             "_user": {
-              "$ref": "#/definitions/ModelLink%3CUser%3E",
-              "description": "Default owner of the object"
+              "description": "Default owner of the object",
+              "type": "string"
             },
             "public": {
               "default": false,
@@ -1918,6 +2173,7 @@
             },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -1925,23 +2181,17 @@
             "_user",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "WebdaModel": true,
           "additionalProperties": false,
-          "definitions": {
-            "ModelLink<User>": {
-              "additionalProperties": false,
-              "description": "Define a link to n:1 or 1:1 relation on the current model to another model\n\nT is the model to link to\n\nThis is expected to be the symetric of ModelRelated or ModelLink in a 1:1 relation\n\n```\nclass Album extends Model {\n artist: ModelLink<Artist>;\n}\n```",
-              "type": "object"
-            }
-          },
           "properties": {
             "_user": {
-              "$ref": "#/definitions/ModelLink%3CUser%3E",
-              "description": "Default owner of the object"
+              "description": "Default owner of the object",
+              "type": "string"
             },
             "public": {
               "default": false,
@@ -1950,6 +2200,7 @@
             },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -1957,10 +2208,13 @@
             "_user",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
         "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "$ref": "#/definitions/OwnerModel",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -2002,13 +2256,15 @@
           "properties": {
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
           "required": [
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2017,16 +2273,20 @@
           "properties": {
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
           "required": [
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
         "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "$ref": "#/definitions/RegistryEntry",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -2060,15 +2320,19 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "type": "object"
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
         "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "$ref": "#/definitions/RoleModel",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -2117,6 +2381,7 @@
             },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2125,7 +2390,8 @@
             "ttl",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2137,6 +2403,7 @@
             },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2145,10 +2412,13 @@
             "ttl",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
         "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "$ref": "#/definitions/SessionModel",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -2175,18 +2445,11 @@
       "Plural": "SimpleUsers",
       "Import": "lib/models/simpleuser:SimpleUser",
       "Relations": {
-        "maps": [
+        "queries": [
           {
             "attribute": "_idents",
-            "cascadeDelete": false,
             "model": "Webda/Ident",
-            "targetLink": "_user",
-            "targetAttributes": [
-              "_type",
-              "uid",
-              "email",
-              "uuid"
-            ]
+            "targetAttribute": "User"
           }
         ]
       },
@@ -2208,11 +2471,11 @@
           ]
         },
         "_idents": {
-          "type": "ModelsMapped",
+          "type": "ModelRelated",
           "typeParameters": [
             "Ident",
-            "\"_user\"",
-            "\"_type\" | \"uid\" | \"email\""
+            "User",
+            "\"_user\""
           ]
         },
         "__password": {
@@ -2233,9 +2496,6 @@
         "email": {
           "type": "string"
         },
-        "service": {
-          "type": "ServiceName"
-        },
         "uuid": {
           "type": "string"
         }
@@ -2244,18 +2504,6 @@
         "Input": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "Repository<ModelClass<Ident>>": {
-              "additionalProperties": false,
-              "description": "This represent the injected methods of Store into the Model",
-              "type": "object"
-            },
-            "Storable<any, any>": {
-              "additionalProperties": false,
-              "description": "A Storable object is an object that can be stored in a database or anywhere else\nand can be retrieved later\n\nIt has a primary key, a toJSON method and an Events object",
-              "type": "object"
-            }
-          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
             "__password": {
@@ -2270,53 +2518,6 @@
               "description": "Groups for a user",
               "items": {
                 "type": "string"
-              },
-              "type": "array"
-            },
-            "_idents": {
-              "description": "Normal ident",
-              "items": {
-                "additionalProperties": false,
-                "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array\nTODO Handle 1:1 map",
-                "properties": {
-                  "__@RelationParent@26036": {
-                    "$ref": "#/definitions/Storable%3Cany%2C%20any%3E"
-                  },
-                  "__@RelationRepository@26269": {
-                    "$ref": "#/definitions/Repository%3CModelClass%3CIdent%3E%3E"
-                  },
-                  "_type": {
-                    "description": "Type of the ident",
-                    "type": "string"
-                  },
-                  "email": {
-                    "description": "Email for this ident if it exist",
-                    "type": "string"
-                  },
-                  "uid": {
-                    "description": "Uid on the provider",
-                    "type": "string"
-                  },
-                  "uuid": {
-                    "allOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object"
-                      }
-                    ],
-                    "description": "The uuid of the object"
-                  }
-                },
-                "required": [
-                  "__@RelationRepository@26269",
-                  "_type",
-                  "uid",
-                  "uuid"
-                ],
-                "type": "object"
               },
               "type": "array"
             },
@@ -2345,12 +2546,9 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
-            "service": {
-              "description": "TODO REMOVE",
-              "type": "string"
-            },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2358,23 +2556,12 @@
             "displayName",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "additionalProperties": false,
-          "definitions": {
-            "Repository<ModelClass<Ident>>": {
-              "additionalProperties": false,
-              "description": "This represent the injected methods of Store into the Model",
-              "type": "object"
-            },
-            "Storable<any, any>": {
-              "additionalProperties": false,
-              "description": "A Storable object is an object that can be stored in a database or anywhere else\nand can be retrieved later\n\nIt has a primary key, a toJSON method and an Events object",
-              "type": "object"
-            }
-          },
           "description": "Simple user offers groups and roles management\n\nGroups and roles are defined just as string, no\nmodels",
           "properties": {
             "__password": {
@@ -2389,53 +2576,6 @@
               "description": "Groups for a user",
               "items": {
                 "type": "string"
-              },
-              "type": "array"
-            },
-            "_idents": {
-              "description": "Normal ident",
-              "items": {
-                "additionalProperties": false,
-                "description": "Mapper attribute (target of a Mapper service)\n\nThis is not exported as when mapped the target is always an array\nTODO Handle 1:1 map",
-                "properties": {
-                  "__@RelationParent@26036": {
-                    "$ref": "#/definitions/Storable%3Cany%2C%20any%3E"
-                  },
-                  "__@RelationRepository@26269": {
-                    "$ref": "#/definitions/Repository%3CModelClass%3CIdent%3E%3E"
-                  },
-                  "_type": {
-                    "description": "Type of the ident",
-                    "type": "string"
-                  },
-                  "email": {
-                    "description": "Email for this ident if it exist",
-                    "type": "string"
-                  },
-                  "uid": {
-                    "description": "Uid on the provider",
-                    "type": "string"
-                  },
-                  "uuid": {
-                    "allOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "additionalProperties": false,
-                        "type": "object"
-                      }
-                    ],
-                    "description": "The uuid of the object"
-                  }
-                },
-                "required": [
-                  "__@RelationRepository@26269",
-                  "_type",
-                  "uid",
-                  "uuid"
-                ],
-                "type": "object"
               },
               "type": "array"
             },
@@ -2464,12 +2604,9 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
-            "service": {
-              "description": "TODO REMOVE",
-              "type": "string"
-            },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2477,30 +2614,13 @@
             "displayName",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
         "Stored": {
+          "$ref": "#/definitions/SimpleUser",
           "$schema": "http://json-schema.org/draft-07/schema#",
-          "definitions": {
-            "Array<string>": {
-              "additionalProperties": false,
-              "properties": {
-                "length": {
-                  "description": "Gets or sets the length of the array. This is a number one higher than the highest index in the array.",
-                  "type": "number"
-                }
-              },
-              "required": [
-                "length"
-              ],
-              "type": "object"
-            },
-            "Pick<ReadonlyArray<ModelMapLoader<Ident, \"_type\" | \"uid\" | \"email\">>, never>": {
-              "additionalProperties": false,
-              "description": "From T, pick a set of properties whose keys are in the union K",
-              "type": "object"
-            }
-          }
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -2552,9 +2672,6 @@
         "email": {
           "type": "string"
         },
-        "service": {
-          "type": "ServiceName"
-        },
         "uuid": {
           "type": "string"
         }
@@ -2593,12 +2710,9 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
-            "service": {
-              "description": "TODO REMOVE",
-              "type": "string"
-            },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2606,7 +2720,8 @@
             "displayName",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "fromDto$auto"
         },
         "Output": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2641,12 +2756,9 @@
               "description": "Contains the locale of the user if known",
               "type": "string"
             },
-            "service": {
-              "description": "TODO REMOVE",
-              "type": "string"
-            },
             "uuid": {
               "description": "UUID of the model",
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2654,10 +2766,13 @@
             "displayName",
             "uuid"
           ],
-          "type": "object"
+          "type": "object",
+          "$webda": "toDto$auto"
         },
         "Stored": {
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          "$ref": "#/definitions/User",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$webda": "toJSON$return"
         }
       },
       "Actions": {},
@@ -2686,50 +2801,46 @@
   "schemas": {
     "Webda/BinaryFile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "BinaryFile<T>": {
-          "WebdaSchema": true,
-          "additionalProperties": false,
-          "description": "Represent a file to store",
-          "properties": {
-            "0": {},
-            "challenge": {
-              "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
-              "type": "string"
-            },
-            "hash": {
-              "description": "Will be computed by the service\n\nhash of the content",
-              "type": "string"
-            },
-            "metadata": {
-              "description": "Metadatas stored along with the binary"
-            },
-            "mimetype": {
-              "description": "Mimetype of the binary",
-              "type": "string"
-            },
-            "name": {
-              "description": "Current name",
-              "type": "string"
-            },
-            "originalname": {
-              "description": "Original name",
-              "type": "string"
-            },
-            "size": {
-              "description": "Size of the binary",
-              "type": "number"
-            }
-          },
-          "required": [
-            "0",
-            "mimetype",
-            "name",
-            "size"
-          ],
-          "type": "object"
+      "WebdaSchema": true,
+      "additionalProperties": false,
+      "description": "Represent a file to store",
+      "properties": {
+        "0": {},
+        "challenge": {
+          "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
+          "type": "string"
+        },
+        "hash": {
+          "description": "Will be computed by the service\n\nhash of the content",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadatas stored along with the binary"
+        },
+        "mimetype": {
+          "description": "Mimetype of the binary",
+          "type": "string"
+        },
+        "name": {
+          "description": "Current name",
+          "type": "string"
+        },
+        "originalname": {
+          "description": "Original name",
+          "type": "string"
+        },
+        "size": {
+          "description": "Size of the binary",
+          "type": "number"
         }
       },
+      "required": [
+        "0",
+        "mimetype",
+        "name",
+        "size"
+      ],
+      "type": "object",
       "title": "BinaryFile"
     }
   }

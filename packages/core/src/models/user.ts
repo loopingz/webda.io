@@ -1,6 +1,5 @@
 import { IOperationContext } from "../contexts/icontext.js";
-import { LoadParameters, ModelEvents, SelfJSONed, UuidModel, WEBDA_EVENTS } from "@webda/models";
-import { ServiceName } from "../services/authentication.js";
+import { ModelEvents, Settable, UuidModel, WEBDA_EVENTS } from "@webda/models";
 
 export type UserEvents<T> = ModelEvents<T> & {
   Login: { user: T };
@@ -13,20 +12,11 @@ export type UserEvents<T> = ModelEvents<T> & {
  */
 export class User extends UuidModel {
   [WEBDA_EVENTS]: UserEvents<this>;
-  constructor(data?: LoadParameters<User>) {
-    super(data);
-    this.load((data || {}) as LoadParameters<this>);
+  constructor(data?: Settable<User>) {
+    super();
+    Object.assign(this, data);
   }
 
-  load(data: Partial<LoadParameters<this>>): this {
-    super.load(data);
-    this.displayName = data.displayName;
-    this._lastPasswordRecovery = data._lastPasswordRecovery || 0;
-    this._avatar = data._avatar;
-    this.locale = data.locale;
-    this.email = data.email;
-    return this;
-  }
   /**
    * Password of the user if defined
    */
@@ -54,22 +44,6 @@ export class User extends UuidModel {
    * Contain main user email if exists
    */
   email?: string;
-  /**
-   * TODO REMOVE
-   */
-  service?: ServiceName;
-
-  /**
-   * Return user email if known or guessable
-   * @returns
-   * @Frontend
-   */
-  getEmail(): string | undefined {
-    this.email ??= this.getIdents().find(i => {
-      return i.email;
-    })?.email;
-    return this.email;
-  }
 
   /**
    * Return displayable public entry
@@ -83,6 +57,14 @@ export class User extends UuidModel {
       avatar: this._avatar,
       email: this.getEmail()
     };
+  }
+
+  /**
+   * Get email
+   * @returns
+   */
+  getEmail(): string | undefined {
+    return this.email;
   }
 
   /**
@@ -116,14 +98,6 @@ export class User extends UuidModel {
    */
   lastPasswordRecoveryBefore(timestamp: number): boolean {
     return this._lastPasswordRecovery < timestamp;
-  }
-
-  /**
-   * Return the user idents
-   * @returns
-   */
-  getIdents(): Readonly<{ _type: string; uid: string; email?: string; uuid: string }[]> {
-    return [];
   }
 
   /**

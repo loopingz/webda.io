@@ -1,5 +1,5 @@
 //import { UuidModel } from "./uuid.js";
-import { ModelLink, PrimaryKeyType, UuidModel } from "@webda/models";
+import { ModelClass, ModelLink, PrimaryKeyType, UuidModel } from "@webda/models";
 import { User } from "./user.js";
 import { IOperationContext } from "../contexts/icontext.js";
 
@@ -24,14 +24,14 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
    *
    * @returns
    */
-  //abstract getOwnerModel(): ModelClass<T>;
+  abstract getOwnerModel(): ModelClass<T>;
 
   /**
    * Set object owner
    * @param uuid
    */
   setOwner(uuid: PrimaryKeyType<T>): void {
-    this._user ??= new ModelLink<T>(uuid, <any>User, this);
+    this._user ??= new ModelLink<T>(this.getOwnerModel()).set(uuid);
     this._user.set(uuid);
   }
 
@@ -81,7 +81,7 @@ export abstract class AbstractOwnerModel<T extends User> extends UuidModel {
  * @WebdaModel
  */
 export class OwnerModel extends AbstractOwnerModel<User> {
-  // getOwnerModel(): ModelClass<User> {
-  //   return <any>User;
-  // }
+  getOwnerModel(): ModelClass<User> {
+    return User;
+  }
 }

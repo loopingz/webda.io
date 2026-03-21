@@ -303,7 +303,7 @@ type SetterOf<T> = [SetMethodParam<T>] extends [never]
  * to the type it accepts on assignment.
  */
 export type Settable<T extends object> = {
-  [K in keyof T as T[K] extends Function ? never : K]: SetterOf<T[K]>;
+  [K in Extract<keyof T, string> as T[K] extends Function ? never : K]: SetterOf<T[K]>;
 };
 
 /**

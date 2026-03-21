@@ -307,6 +307,13 @@ export class TestApplication extends UnpackedApplication {
   }
 
   /**
+   * Only allow local module and packages/ modules, not sample-apps
+   */
+  filterModule(filename: string): boolean {
+    return !filename.includes("/sample-app") && !filename.includes("/sample-apps/");
+  }
+
+  /**
    * Load a webda.module.json file
    * Resolve the linked file to current application
    *

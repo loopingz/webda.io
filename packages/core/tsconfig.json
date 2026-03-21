@@ -14,7 +14,12 @@
     "declarationMap": true,
     "useDefineForClassFields": true,
     "strictPropertyInitialization": false,
-    "lib": ["ES2022", "ESNext.Decorators"]
+    "lib": ["ES2022", "ESNext.Decorators"],
+    "plugins": [
+      {
+        "name": "@webda/ts-plugin"
+      }
+    ]
   },
   "include": ["src/**/*"],
   "exclude": ["**/node_modules", "src/**/*.spec.ts"]

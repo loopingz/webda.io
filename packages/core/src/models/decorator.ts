@@ -14,22 +14,23 @@ export const Masked = createPropertyDecorator((value: any, context, mask: string
         get: function () {
           return this[`__${context.name}`];
         },
-      // eslint-disable-next-line
-      set: function (value) {
-        value = value.padEnd(mask.length, "?");
-        for (let i = 0; i < mask.length; i++) {
-          if (mask[i] === "X") {
-            value = value.substring(0, i) + "X" + value.substring(i + 1);
-          } 
+        // eslint-disable-next-line
+        set: function (value) {
+          value = value.padEnd(mask.length, "?");
+          for (let i = 0; i < mask.length; i++) {
+            if (mask[i] === "X") {
+              value = value.substring(0, i) + "X" + value.substring(i + 1);
+            }
+          }
+          if (truncate) {
+            value = value.substring(0, mask.length);
+          }
+          this[`__${context.name}`] = value;
         }
-        if (truncate) {
-          value = value.substring(0, mask.length);
-        }
-        this[`__${context.name}`] = value;
-      }
+      });
     });
-  });
-}});
+  }
+});
 
 export const Encrypted = createPropertyDecorator((value: any, context) => {
   if (context.kind === "field") {
@@ -40,15 +41,16 @@ export const Encrypted = createPropertyDecorator((value: any, context) => {
         // eslint-disable-next-line
         get: function () {
           const val = this[`__${context.name}`];
-          if (val && val.startsWith("ENCRYTPED:")) {
-            return val.substring("ENCRYTPED:".length);
+          if (val && val.startsWith("ENCRYPTED:")) {
+            return val.substring("ENCRYPTED:".length);
           }
           return val;
         },
-      // eslint-disable-next-line
-      set: function (value) {
-        this[`__${context.name}`] = "ENCRYTPED:" + value;
-      }
+        // eslint-disable-next-line
+        set: function (value) {
+          this[`__${context.name}`] = "ENCRYPTED:" + value;
+        }
+      });
     });
-  });
-}});
+  }
+});

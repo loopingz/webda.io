@@ -9,7 +9,7 @@ import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfigu
 import type { Logger } from "../loggers/ilogger.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { ServiceName, ServiceName, ServicesMap, useService } from "../core/hooks.js";
+import { ServiceName, ServicesMap, useService } from "../core/hooks.js";
 import { AbstractService } from "../core/icore.js";
 import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
@@ -105,7 +105,7 @@ export const Inject = createPropertyDecorator(
   (
     context: ClassFieldDecoratorContext<Service, Service>,
     parameterOrName?: string,
-    defaultValue?: ServiceName | boolean,
+    defaultValue?: string | boolean,
     optional?: boolean
   ) => {
     context.metadata!["webda.inject"] ??= [];
@@ -113,7 +113,7 @@ export const Inject = createPropertyDecorator(
       new Injector(
         context.name as string,
         (parameterOrName || (context.name as string)) as ServiceName,
-        typeof defaultValue === "boolean" ? undefined : defaultValue,
+        typeof defaultValue === "boolean" ? undefined : (defaultValue as ServiceName),
         typeof defaultValue === "boolean" ? defaultValue : optional
       )
     );

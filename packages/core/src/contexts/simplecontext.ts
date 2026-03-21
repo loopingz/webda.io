@@ -17,7 +17,6 @@ export class SimpleOperationContext extends OperationContext {
     const ctx = new SimpleOperationContext(context["_webda"]);
     ctx.setSession(context.getSession());
     const stream = context.getRawStream();
-    console.log("Stream:", stream);
     ctx.setInput(await streamToBuffer(stream));
     return ctx;
   }
@@ -26,7 +25,6 @@ export class SimpleOperationContext extends OperationContext {
    * Set the input
    */
   setInput(input: Buffer): this {
-    console.log("Setting input:", input.toString(), input.length);
     this.input = input;
     return this;
   }

@@ -429,8 +429,10 @@ export class SchemaGenerator {
           const setterDecl = prop.getDeclarations()?.find(d => ts.isSetAccessor(d as ts.SetAccessorDeclaration));
           if (setterDecl) {
             setterParamType = this.checker.getTypeAtLocation((setterDecl as ts.SetAccessorDeclaration).parameters[0]);
+          } else {
+            // Skip getter-only properties for input schemas
+            continue;
           }
-          // When no setter exists, fall through and use the getter's return type
         }
       }
 

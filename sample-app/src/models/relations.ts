@@ -2,16 +2,7 @@
  * This whole file play with relations definition
  */
 
-import {
-  ModelLink,
-  ModelLinksArray,
-  ModelLinksMap,
-  ModelLinksSimpleArray,
-  ModelParent,
-  ModelRelated,
-  ModelsMapped,
-  UuidModel
-} from "@webda/models";
+import { ModelLink, ModelLinksArray, ModelLinksSimpleArray, ModelParent, ModelRelated, UuidModel } from "@webda/models";
 
 import { CoreModel, OperationContext, Operation as Action } from "@webda/core";
 /**
@@ -34,7 +25,7 @@ class Student extends DefaultTestModel {
   order: number;
   friends: ModelLinksArray<Student, { email: string; firstName: string; lastName: string }>;
   teachers: ModelLinksSimpleArray<Teacher>;
-  courses: ModelsMapped<Course, "students", "name">;
+  courses: ModelRelated<Course, Student, "students">;
   // For cov
   constraints: null;
 
@@ -56,8 +47,8 @@ class Student extends DefaultTestModel {
 
 class Teacher extends DefaultTestModel {
   uuid: string;
-  courses: ModelsMapped<Course, "teacher", "name">;
-  students: ModelsMapped<Student, "teachers", "firstName" | "lastName" | "email">;
+  courses: ModelRelated<Course, Teacher, "teacher">;
+  students: ModelRelated<Student, Teacher, "teachers">;
   name: string;
   senior: boolean;
   /**
@@ -71,7 +62,7 @@ class Course extends DefaultTestModel {
   name: string;
   classroom: ModelLink<Classroom>;
   teacher: ModelLink<Teacher>;
-  students: ModelLinksMap<
+  students: ModelLinksArray<
     Student,
     {
       firstName: string;
@@ -115,8 +106,8 @@ class Course extends DefaultTestModel {
 class Classroom extends DefaultTestModel {
   uuid: string;
   name: string;
-  courses: ModelsMapped<Course, "classroom", "name">;
-  hardwares: ModelRelated<Hardware, "classroom">;
+  courses: ModelRelated<Course, Classroom, "classroom">;
+  hardwares: ModelRelated<Hardware, Classroom, "classroom">;
 
   @Action()
   async test(context: OperationContext<{ test: string; id: string }>) {
@@ -134,7 +125,7 @@ class Classroom extends DefaultTestModel {
 class Hardware extends DefaultTestModel {
   classroom: ModelParent<Classroom>;
   name: string;
-  brands: ModelRelated<Brand>; //, "name">;
+  brands: ModelRelated<Brand, Hardware>; //, "name">;
 
   @Action()
   static async globalAction(context: OperationContext) {

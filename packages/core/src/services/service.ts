@@ -9,7 +9,7 @@ import { useMetric, type Counter, type Gauge, type Histogram, type MetricConfigu
 import type { Logger } from "../loggers/ilogger.js";
 import type { OperationContext } from "../contexts/operationcontext.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { useService } from "../core/hooks.js";
+import { ServiceName, ServiceName, ServicesMap, useService } from "../core/hooks.js";
 import { AbstractService } from "../core/icore.js";
 import { useLogger } from "../loggers/hooks.js";
 import { WEBDA_EVENTS } from "@webda/models";
@@ -24,25 +24,29 @@ import { DecoratorPropertyParameters, getMetadata } from "@webda/decorators";
  */
 class Injector {
   parameter: string;
-  value: string;
+  value: ServiceName;
   property: string;
   optional: boolean;
 
   /**
-   *
    * @param property annotated
    * @param parameterOrName to inject from
    * @param defaultValue in case of a parameter
    * @param optional if set to true, won't throw an error if not found
    */
-  constructor(property: string, parameterOrName: string, defaultValue?: string, optional: boolean = false) {
+  constructor(
+    property: string,
+    parameterOrName: `params:${string}` | ServiceName,
+    defaultValue?: ServiceName,
+    optional: boolean = false
+  ) {
     this.property = property;
     this.optional = optional;
     if (!defaultValue) {
       if (parameterOrName.startsWith("params:")) {
         this.parameter = parameterOrName.substring(7);
       } else {
-        this.value = parameterOrName;
+        this.value = parameterOrName as ServiceName;
       }
     } else {
       this.value = defaultValue;
@@ -97,13 +101,24 @@ class Injector {
  * Might consider to split into two annotations
  * TODO @webda/compiler could get all interfaces and ancestors classes to find the correct service
  */
-export const Inject = createPropertyDecorator((context: ClassFieldDecoratorContext<Service, Service>,
+export const Inject = createPropertyDecorator(
+  (
+    context: ClassFieldDecoratorContext<Service, Service>,
     parameterOrName?: string,
-    defaultValue?: string | boolean,
-    optional?: boolean) => {
-      context.metadata!["webda.inject"] ??= [];
-      (context.metadata!["webda.inject"] as Injector[]).push(new Injector(context.name as string, parameterOrName || context.name as string, typeof defaultValue === "boolean" ? undefined : defaultValue, typeof defaultValue === "boolean" ? defaultValue : optional));
-});
+    defaultValue?: ServiceName | boolean,
+    optional?: boolean
+  ) => {
+    context.metadata!["webda.inject"] ??= [];
+    (context.metadata!["webda.inject"] as Injector[]).push(
+      new Injector(
+        context.name as string,
+        (parameterOrName || (context.name as string)) as ServiceName,
+        typeof defaultValue === "boolean" ? undefined : defaultValue,
+        typeof defaultValue === "boolean" ? defaultValue : optional
+      )
+    );
+  }
+);
 /*
 export function Inject(parameterOrName?: string, defaultValue?: string | boolean, optional?: boolean) {
   return (target: Service, context: ClassFieldDecoratorContext): void => {
@@ -231,8 +246,8 @@ abstract class Service<
    * @returns
    * @deprecated Use useService, might reconsider
    */
-  getService<T extends Service>(name: string): T {
-    return <T>useService(name);
+  getService<T extends ServiceName>(name: T): ServicesMap[T] {
+    return useService(name);
   }
 
   /**

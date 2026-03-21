@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { schedule } from "node-cron";
 import { Service } from "./service.js";
 import { CancelablePromise } from "@webda/utils";
-import { useCore, useService } from "../core/hooks.js";
+import { ServiceName, useCore, useService } from "../core/hooks.js";
 
 export const CronSymbol = Symbol("WebdaCron");
 /**
@@ -132,7 +132,7 @@ class CronService extends Service {
         this.schedule(i.cron, i.cb);
       } else {
         this.schedule(i.cron, () => {
-          useService(i.serviceName)[i.method](...i.args);
+          useService(i.serviceName as ServiceName)[i.method](...i.args);
         });
       }
     });

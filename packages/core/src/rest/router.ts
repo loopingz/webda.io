@@ -6,7 +6,7 @@ import { useApplication, useModelId } from "../application/hooks.js";
 import { useLog } from "../loggers/hooks.js";
 import type { OpenAPIV3 } from "openapi-types";
 import { useParameters } from "../core/instancestorage.js";
-import { useService } from "../core/hooks.js";
+import { useDynamicService, useService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import { JSONSchema7 } from "json-schema";
 import { IWebContext } from "../contexts/icontext.js";
@@ -366,7 +366,10 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     const hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
     for (const i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
-        route.openapi = templateVariables(route.openapi || {}, useService(route.executor).getOpenApiReplacements());
+        route.openapi = templateVariables(
+          route.openapi || {},
+          useDynamicService(route.executor).getOpenApiReplacements()
+        );
         if (route.openapi.hidden && skipHidden) {
           return;
         }

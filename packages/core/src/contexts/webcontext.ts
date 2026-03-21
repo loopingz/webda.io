@@ -338,7 +338,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
       this.headersFlushed = true;
     });
     if (this.getExtension("http")) {
-      this.session = (await useService<SessionManager>("SessionManager").load(this)).getProxy();
+      this.session = (await useService("SessionManager").load(this)).getProxy();
     }
     this._init = super.init();
     return this._init;

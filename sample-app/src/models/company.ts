@@ -18,8 +18,8 @@ export class Company extends CoreModel {
   name: string;
   /**
    * This should not be in the schema
+   * @SchemaIgnore
    */
-  @NotEnumerable
   testNotEnumerable: string;
   /**
    * Test of maps for GraphQL

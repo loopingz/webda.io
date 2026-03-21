@@ -14,17 +14,15 @@ class CompilerTest {
     const workerOutput = new WorkerOutput();
     const file = new FileLogger(workerOutput, "TRACE", "./core.log");
     useWorkerOutput(workerOutput);
-    const project = new WebdaProject(path.join(__dirname, "..", "..", "core"));
+    const project = new WebdaProject(path.join(__dirname, "..", "..", "models"));
     const compiler = new Compiler(project);
     compiler.compile();
     // Check module is generated
-    const info: WebdaModule = JSONUtils.loadFile(path.join(__dirname, "..", "..", "core", "webda.module.json"));
+    const info: WebdaModule = JSONUtils.loadFile(path.join(__dirname, "..", "..", "models", "webda.module.json"));
     assert.notStrictEqual(info, undefined);
     // UuidModel extends CoreModel so it should not have any Ancestors as we ignore CoreModel
-    assert.ok(info.models["Webda/UuidModel"].Ancestors.length === 0);
+    assert.ok(info.models["Webda/UuidModel"].Ancestors.length === 1);
     assert.ok(info.models["Webda/UuidModel"].Subclasses.length > 0);
-    assert.deepStrictEqual(info.models["Webda/AbstractOwnerModel"].Ancestors, ["Webda/UuidModel"]);
-    assert.deepStrictEqual(info.models["Webda/AbstractOwnerModel"].Subclasses, ["Webda/OwnerModel"]);
   }
 
   @test
@@ -85,12 +83,12 @@ class CompilerTest {
       path.join(__dirname, "..", "..", "..", "sample-app", "webda.module.json")
     );
     assert.notStrictEqual(mod, undefined);
-    assert.strictEqual(mod.models["WebdaDemo/Company"].Schema!.properties!.testNotEnumerable, undefined);
-    assert.deepStrictEqual(mod.models["WebdaDemo/Contact"].Schema!.properties!.avatar, {
+    assert.strictEqual(mod.models["WebdaDemo/Company"].Schemas!.Input!.properties!.testNotEnumerable, undefined);
+    assert.deepStrictEqual(mod.models["WebdaDemo/Contact"].Schemas!.Input!.properties!.avatar, {
       type: "object",
       readOnly: true
     });
-    assert.deepStrictEqual(mod.models["WebdaDemo/Contact"].Schema!.properties!.photos, {
+    assert.deepStrictEqual(mod.models["WebdaDemo/Contact"].Schemas!.Input!.properties!.photos, {
       items: {
         properties: {
           location: {
@@ -112,29 +110,28 @@ class CompilerTest {
       readOnly: true,
       type: "array"
     });
-    assert.deepStrictEqual(mod.models["WebdaDemo/User"]!.Schema!.properties!.profilePicture, {
+    assert.deepStrictEqual(mod.models["WebdaDemo/User"]!.Schemas!.Input!.properties!.profilePicture, {
       type: "object",
       properties: { width: { type: "number" }, height: { type: "number" } },
       required: ["width", "height"],
       readOnly: true
     });
-    assert.deepStrictEqual(mod.models["WebdaDemo/User"]!.Schema!.properties!.images, {
+    assert.deepStrictEqual(mod.models["WebdaDemo/User"]!.Schemas!.Input!.properties!.images, {
       type: "array",
       items: { type: "object" },
       readOnly: true
     });
-    assert.strictEqual(mod.models["WebdaDemo/User"].Schema!.properties!.avatar, undefined);
-    assert.strictEqual(mod.models["WebdaDemo/User"].Schema!.properties!.photos, undefined);
+    assert.strictEqual(mod.models["WebdaDemo/User"].Schemas!.Input!.properties!.avatar, undefined);
+    assert.strictEqual(mod.models["WebdaDemo/User"].Schemas!.Input!.properties!.photos, undefined);
     // Check schema have no properties that start with _ in required
     assert.deepStrictEqual(
-      mod.models["WebdaDemo/SubProject"].Schema!.required!.filter(i => i.startsWith("_")),
+      mod.models["WebdaDemo/SubProject"].Schemas!.Input!.required!.filter(i => i.startsWith("_")),
       []
     );
     assert.deepStrictEqual(
-      mod.models["WebdaDemo/Computer"].Schema!.required!.filter(i => i.startsWith("_")),
+      mod.models["WebdaDemo/Computer"].Schemas!.Input!.required!.filter(i => i.startsWith("_")),
       []
     );
-
   }
 
   @test

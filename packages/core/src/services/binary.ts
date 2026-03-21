@@ -12,7 +12,7 @@ import { Counter } from "../metrics/metrics.js";
 import { IOperationContext } from "../contexts/icontext.js";
 import { IStore } from "../core/icore.js";
 import { MappingService } from "../stores/istore.js";
-import { Model, Storable } from "@webda/models";
+import { Model, Storable, WEBDA_STORAGE } from "@webda/models";
 import { streamToBuffer, FileSize } from "@webda/utils";
 
 /**
@@ -132,7 +132,6 @@ export abstract class BinaryFile<T = any> implements BinaryFileInfo {
     this.metadata = info.metadata || {};
     this.size = info.size;
   }
-  0;
 
   /**
    * Retrieve a plain BinaryFileInfo object
@@ -247,13 +246,14 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
   /**
    * Link to the binary store
    */
-  @NotEnumerable
-  __store: BinaryService;
+  [WEBDA_STORAGE]: {
+    service: BinaryService;
+  } = {} as any;
 
   constructor(service: BinaryService, obj: BinaryFileInfo) {
     super(obj);
     this.set(obj);
-    this.__store = service;
+    this[WEBDA_STORAGE].service = service;
   }
 
   /**
@@ -262,7 +262,7 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
    * @returns
    */
   get(): Promise<Readable> {
-    return this.__store.get(this);
+    return this[WEBDA_STORAGE].service.get(this);
   }
 
   /**
@@ -280,25 +280,26 @@ export class BinaryMap<T = any> extends BinaryFile<T> {
    * @param filename
    */
   async downloadTo(filename: string): Promise<void> {
-    return this.__store.downloadTo(this, filename);
+    return this[WEBDA_STORAGE].service.downloadTo(this, filename);
   }
 }
 
 /**
  * One Binary instance
+ * @readOnly
  */
 export class Binary<T = any> extends BinaryMap<T> {
-  @NotEnumerable
-  protected model: Model;
-  @NotEnumerable
-  protected attribute: string;
-  @NotEnumerable
-  protected empty: boolean;
+  [WEBDA_STORAGE]: {
+    model: Model;
+    attribute: string;
+    service: BinaryService;
+    empty: boolean;
+  } = {} as any;
   constructor(attribute: string, model: Model) {
     super(<any>useCore().getBinaryStore(model, attribute), model[attribute] || {});
-    this.empty = model[attribute] === undefined;
-    this.attribute = attribute;
-    this.model = model;
+    this[WEBDA_STORAGE].empty = model[attribute] === undefined;
+    this[WEBDA_STORAGE].attribute = attribute;
+    this[WEBDA_STORAGE].model = model;
   }
 
   /**
@@ -306,7 +307,7 @@ export class Binary<T = any> extends BinaryMap<T> {
    * @returns
    */
   isEmpty() {
-    return this.empty;
+    return this[WEBDA_STORAGE].empty;
   }
 
   /**
@@ -315,7 +316,7 @@ export class Binary<T = any> extends BinaryMap<T> {
    */
   set(info: BinaryFileInfo): void {
     super.set(info);
-    this.empty = false;
+    this[WEBDA_STORAGE].empty = false;
   }
 
   /**
@@ -325,7 +326,7 @@ export class Binary<T = any> extends BinaryMap<T> {
    * @returns
    */
   async upload(file: BinaryFile): Promise<void> {
-    await this.__store.store(this.model, this.attribute, file);
+    await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
     this.set(file);
   }
 
@@ -333,16 +334,16 @@ export class Binary<T = any> extends BinaryMap<T> {
    * Delete the binary, if you need to replace just use upload
    */
   async delete() {
-    await this.__store.delete(this.model, this.attribute);
+    await this[WEBDA_STORAGE].service.delete(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute);
     this.set(<any>{});
-    this.empty = true;
+    this[WEBDA_STORAGE].empty = true;
   }
 
   /**
    * Return undefined if no hash
    * @returns
    */
-  toJSON() {
+  toJSON(): BinaryFileInfo | undefined {
     if (!this.hash) {
       return undefined;
     }
@@ -354,11 +355,14 @@ export class Binary<T = any> extends BinaryMap<T> {
  * Define a Binary map stored in a Binaries collection
  */
 export class BinariesItem<T = any> extends BinaryMap<T> {
-  @NotEnumerable
-  protected parent: BinariesImpl;
+  [WEBDA_STORAGE]: {
+    service: BinaryService;
+    parent: BinariesImpl;
+  } = {} as any;
+
   constructor(parent: BinariesImpl, info: BinaryFileInfo) {
-    super(parent.__service, info);
-    this.parent = parent;
+    super(parent[WEBDA_STORAGE].service, info);
+    this[WEBDA_STORAGE].parent = parent;
   }
   /**
    * Replace the binary
@@ -367,7 +371,7 @@ export class BinariesItem<T = any> extends BinaryMap<T> {
    * @returns
    */
   async upload(file: BinaryFile): Promise<void> {
-    await this.parent.upload(file, this);
+    await this[WEBDA_STORAGE].parent.upload(file, this);
     this.set(file);
   }
 
@@ -375,29 +379,27 @@ export class BinariesItem<T = any> extends BinaryMap<T> {
    * Delete the binary, if you need to replace just use upload
    */
   async delete() {
-    return this.parent.delete(this);
+    return this[WEBDA_STORAGE].parent.delete(this);
   }
 }
 /**
  * Define a collection of Binary
+ * @readOnly
  */
 export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
-  @NotEnumerable
-  __service: BinaryService;
-
-  @NotEnumerable
-  protected model: Model;
-
-  @NotEnumerable
-  protected attribute: string;
+  protected [WEBDA_STORAGE]: {
+    model: Model;
+    attribute: string;
+    service: BinaryService;
+  } = {} as any;
 
   assign(model: Model, attribute: string): this {
-    this.model = model;
-    this.attribute = attribute;
+    this[WEBDA_STORAGE].model = model;
+    this[WEBDA_STORAGE].attribute = attribute;
     for (const binary of model[attribute] || []) {
       this.push(binary);
     }
-    this.__service = <BinaryService>useCore().getBinaryStore(model, attribute);
+    this[WEBDA_STORAGE].service = <BinaryService>useCore().getBinaryStore(model, attribute);
     return this;
   }
 
@@ -423,7 +425,7 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
    * @param file
    */
   async upload(file: BinaryFile, replace?: BinariesItem) {
-    await this.__service.store(this.model, this.attribute, file);
+    await this[WEBDA_STORAGE].service.store(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, file);
     // Should call the store first
     super.push(new BinariesItem(this, file));
     if (replace) {
@@ -440,7 +442,7 @@ export class BinariesImpl<T = any> extends Array<BinariesItem<T>> {
     if (itemIndex === -1) {
       throw new Error("Item not found");
     }
-    await this.__service.delete(this.model, this.attribute, itemIndex);
+    await this[WEBDA_STORAGE].service.delete(this[WEBDA_STORAGE].model, this[WEBDA_STORAGE].attribute, itemIndex);
     itemIndex = this.indexOf(item);
     if (itemIndex >= 0) {
       // Call store delete here
@@ -532,9 +534,9 @@ export type CoreModelWithBinary<T = { [key: string]: BinaryMap[] | BinaryMap }> 
  * @WebdaModda Binary
  */
 export abstract class BinaryService<
-    T extends BinaryParameters = BinaryParameters,
-    E extends BinaryEvents = BinaryEvents
-  >
+  T extends BinaryParameters = BinaryParameters,
+  E extends BinaryEvents = BinaryEvents
+>
   extends Service<T, E>
   implements MappingService<BinaryMap>
 {

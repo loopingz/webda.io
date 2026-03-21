@@ -92,7 +92,7 @@ export interface GenerateSchemaOptions {
   /**
    * Controls accessor handling when generating schemas for classes.
    *
-   * - `"input"` — getter-only properties are excluded (the schema
+   * - `"input"` — getter-only properties are excluded as well as readonly properties (the schema
    *   represents what can be *sent* to the model).
    * - `"output"` — getter return types are included (the schema represents
    *   what the model *produces*).
@@ -450,6 +450,12 @@ export class SchemaGenerator {
       if (propResult.decision === "skip" || propSchema["SchemaIgnore"] === true) {
         continue;
       }
+      const isReadonly =
+        (flags & ts.ModifierFlags.Readonly) !== 0 || propSchema.readOnly === true || propSchema["readonly"] === true;
+      if (isReadonly && (this.currentOptions.type === "input" || this.currentOptions.type === "dto-in")) {
+        this.log(`Skipping readonly property ${prop.name} at ${path}`);
+        continue;
+      }
       const hasQuestionToken = decl ? (decl as any).questionToken !== undefined : false;
       const unionHasUndefined =
         (prop.valueDeclaration as ts.TypeAliasDeclaration)?.type?.kind === ts.SyntaxKind.UnionType &&
@@ -700,11 +706,7 @@ export class SchemaGenerator {
    * @param methodNames - Method names to check in order (first match wins)
    * @param resolveNode - Node used for symbol resolution context
    */
-  private resolveMethodReturnType(
-    type: ts.Type,
-    methodNames: string[],
-    resolveNode: ts.Node
-  ): ts.Type | undefined {
+  private resolveMethodReturnType(type: ts.Type, methodNames: string[], resolveNode: ts.Node): ts.Type | undefined {
     for (const name of methodNames) {
       const symbol = type.getProperty(name);
       if (symbol) {

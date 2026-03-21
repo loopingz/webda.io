@@ -5,14 +5,14 @@
     "MyObject": {
       "additionalProperties": false,
       "properties": {
-        "propA": {
-          "type": "number"
+        "one": {
+          "type": "string"
         },
-        "propB": {
+        "two": {
+          "readOnly": true,
           "type": "number"
         }
       },
-      "required": ["propA", "propB"],
       "type": "object"
     }
   }

@@ -5,10 +5,6 @@
     "MyObject": {
       "additionalProperties": false,
       "properties": {
-        "getterSetter": {
-          "type": "number"
-        },
-        "noType": {},
         "propA": {
           "type": "number"
         },
@@ -16,13 +12,10 @@
           "type": "number"
         },
         "propC": {
-          "type": "number"
-        },
-        "propD": {
           "type": "string"
         }
       },
-      "required": ["getterSetter", "noType", "propA", "propB", "propC"],
+      "required": ["propA", "propB", "propC"],
       "type": "object"
     }
   }

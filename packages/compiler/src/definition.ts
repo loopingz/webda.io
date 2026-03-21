@@ -558,6 +558,7 @@ export class WebdaProject {
     const tsParsed = ts.parseConfigFileTextToJson("tsconfig.json", tsCfg.toString()).config;
     // Maybe just use the mtime of tsconfig + all files?
     globSync(tsParsed.include || ["**/*"], {
+      cwd: this.getAppPath(""),
       exclude: tsParsed.exclude,
       withFileTypes: true
     })
@@ -565,7 +566,7 @@ export class WebdaProject {
       .map(f => join(f.parentPath, f.name))
       .sort()
       .forEach(f => {
-        current.update(readFileSync(this.getAppPath(f)) as BinaryLike);
+        current.update(readFileSync(f) as BinaryLike);
       });
     // We might want to consider doing the same with the output files?
     return current.digest("hex");

@@ -134,5 +134,46 @@ class CompilerTest {
       mod.models["WebdaDemo/Computer"].Schema!.required!.filter(i => i.startsWith("_")),
       []
     );
+
+  }
+
+  @test
+  async compileOperations() {
+    const projectPath = path.join(__dirname, "..", "..", "..", "test", "compiler-operations");
+    const project = new WebdaProject(projectPath);
+    const compiler = new Compiler(project);
+    compiler.compile(true);
+    const mod: WebdaModule = JSONUtils.loadFile(path.join(projectPath, "webda.module.json"));
+    assert.notStrictEqual(mod, undefined);
+
+    // Async method: should unwrap Promise<T> and return schema for T
+    assert.deepStrictEqual(mod.schemas["TestBean.asyncWithObject.output"], {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        count: { type: "number" }
+      },
+      required: ["count", "name"],
+      additionalProperties: false
+    });
+
+    // Sync method returning object: should return schema for the return type directly
+    assert.deepStrictEqual(mod.schemas["TestBean.syncWithObject.output"], {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      properties: {
+        active: { type: "boolean", default: false },
+        label: { type: "string" }
+      },
+      required: ["label"],
+      additionalProperties: false
+    });
+
+    // Sync method returning primitive: should return schema for the primitive type
+    assert.deepStrictEqual(mod.schemas["TestBean.syncPrimitive.output"], {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "string"
+    });
   }
 }

@@ -3,7 +3,6 @@
  */
 export const WEBDA_DIRTY: unique symbol = Symbol("Dirty properties");
 
-
 /** Generic constructor type used by mixins */
 type Constructor<T = {}> = new (...args: any[]) => T;
 
@@ -19,7 +18,10 @@ export class DirtyState {
   /**
    * @param fields - Initial set of dirty field names
    */
-  constructor(private fields: Set<string> = new Set()) {}
+  constructor(
+    private parent,
+    private fields: Set<string> = new Set()
+  ) {}
 
   /**
    * Returns `true` when at least one field is dirty.
@@ -85,7 +87,7 @@ export class DirtyState {
   getPatch(): Record<string, any> {
     const patch: Record<string, any> = {};
     for (const field of this.fields) {
-      patch[field] = this.originalValues[field];
+      patch[field] = this.parent[field];
     }
     return patch;
   }
@@ -199,7 +201,7 @@ export function DirtyMixIn<T extends Constructor>(
         }
       });
     }
-    [WEBDA_DIRTY]: DirtyState = new DirtyState(new Set());
+    [WEBDA_DIRTY]: DirtyState = new DirtyState(this, new Set());
 
     /** Returns the current {@link DirtyState} if any fields were modified, or `null` if clean */
     get dirty(): DirtyState | null {
@@ -236,7 +238,7 @@ export function track<T extends object>(
   onChange?: (object: T, state: DirtyState) => void,
   dirtyProperty: string = "dirty"
 ): T & { dirty: DirtyState; [WEBDA_DIRTY]: DirtyState } {
-  const dirtyState = new DirtyState();
+  const dirtyState = new DirtyState(obj, new Set());
   return new Proxy(obj as any, {
     set(target: any, p: string | symbol, value: any) {
       const oldValue = target[p];

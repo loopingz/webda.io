@@ -1273,6 +1273,10 @@ export class SchemaGenerator {
             return this.schemaProperty(initType, definition, path, node, depth + 1);
           }
         } else if (ts.isFunctionDeclaration(node)) {
+          if (depth > 0) {
+            // Function-typed properties are not serializable — skip them
+            return { optional: false, decision: "skip" };
+          }
           definition.additionalProperties = false;
           definition.type = "object";
           // getCallSignatures works on function types, not declarations
@@ -1594,6 +1598,11 @@ export class SchemaGenerator {
       const callSignatures = (type as any).getCallSignatures ? (type as any).getCallSignatures() : [];
 
       if (callSignatures.length > 0) {
+        if (depth > 0) {
+          // Function-typed properties are not serializable — skip them
+          this.log(`${indent}Skipping callable property at ${path}: ${propTypeString}`);
+          return { optional: false, decision: "skip" };
+        }
         result.decision = "rename";
         result.to = this.processCallableType(callSignatures, definition, this.getFunctionName(node), path);
         this.log(`${indent}Processed callable anonymous type at ${path}: ${propTypeString} (${(type as any).flags})`);

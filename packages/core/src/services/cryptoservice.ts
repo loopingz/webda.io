@@ -345,8 +345,11 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     const key = await this.getCurrentKeys();
     // Initialization Vector
     const iv = randomBytes(16);
-    const cipher = createCipheriv(this.parameters.symetricCipher, Buffer.from(key.keys.symetric, "base64"), iv);
-    const encrypted = Buffer.concat([iv, cipher.update(Buffer.from(JSON.stringify(data))), cipher.final()]).toString(
+    const symKey = new Uint8Array(Buffer.from(key.keys.symetric, "base64"));
+    const cipher = createCipheriv(this.parameters.symetricCipher, symKey, new Uint8Array(iv));
+    const updated = cipher.update(new Uint8Array(Buffer.from(JSON.stringify(data))));
+    const final = cipher.final();
+    const encrypted = Buffer.concat([new Uint8Array(iv), new Uint8Array(updated), new Uint8Array(final)]).toString(
       "base64"
     );
     return this.jwtSign(encrypted, {
@@ -426,10 +429,10 @@ export class CryptoService<T extends CryptoServiceParameters = CryptoServicePara
     const iv = input.subarray(0, 16);
     const decipher = createDecipheriv(
       this.parameters.symetricCipher,
-      Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64"),
-      iv
+      new Uint8Array(Buffer.from(this.keys[header.kid.substring(1)].symetric, "base64")),
+      new Uint8Array(iv)
     );
-    return JSON.parse(decipher.update(input.subarray(16)).toString() + decipher.final().toString());
+    return JSON.parse(decipher.update(new Uint8Array(input.subarray(16))).toString() + decipher.final().toString());
   }
 
   /**
@@ -482,15 +485,17 @@ CryptoService.registerEncrypter("local", {
     // Initialization Vector
     const iv = randomBytes(16);
     const key = createHash("sha256").update(getMachineId()).digest();
-    const cipher = createCipheriv("aes-256-ctr", key, iv);
-    return Buffer.concat([iv, cipher.update(Buffer.from(data)), cipher.final()]).toString("base64");
+    const cipher = createCipheriv("aes-256-ctr", new Uint8Array(key), new Uint8Array(iv));
+    const updated = cipher.update(new Uint8Array(Buffer.from(data)));
+    const final = cipher.final();
+    return Buffer.concat([new Uint8Array(iv), new Uint8Array(updated), new Uint8Array(final)]).toString("base64");
   },
   decrypt: async (data: string) => {
     const input = Buffer.from(data, "base64");
     const iv = input.subarray(0, 16);
     const key = createHash("sha256").update(getMachineId()).digest();
-    const decipher = createDecipheriv("aes-256-ctr", key, iv);
-    return decipher.update(input.subarray(16)).toString() + decipher.final().toString();
+    const decipher = createDecipheriv("aes-256-ctr", new Uint8Array(key), new Uint8Array(iv));
+    return decipher.update(new Uint8Array(input.subarray(16))).toString() + decipher.final().toString();
   }
 });
 

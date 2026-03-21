@@ -12,7 +12,7 @@ import type { Mailer } from "./mailer.js";
 import { runAsSystem } from "../contexts/execution.js";
 import { EventWithContext } from "../events/events.js";
 import { ServiceParameters } from "./serviceparameters.js";
-import { useService, useModelRepository, ServiceName } from "../core/hooks.js";
+import { useService, useModelRepository, ServiceName, useDynamicService } from "../core/hooks.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { ModelClass, Repository } from "@webda/models";
 
@@ -299,7 +299,7 @@ class Authentication<
     this.userModel = useModelRepository<User>(this.parameters.userModel);
 
     if (this.parameters.password.verifier) {
-      this._passwordVerifier = useService<PasswordVerifier>(this.parameters.password.verifier);
+      this._passwordVerifier = useDynamicService<PasswordVerifier>(this.parameters.password.verifier);
     }
 
     if (this.parameters.email && this.getMailMan() === undefined) {
@@ -906,7 +906,9 @@ class Authentication<
    * @returns
    */
   getMailMan(): Mailer {
-    return useService<Mailer>(this.parameters.email.mailer ? this.parameters.email.mailer : ("Mailer" as ServiceName));
+    return useDynamicService<Mailer>(
+      this.parameters.email.mailer ? this.parameters.email.mailer : ("Mailer" as ServiceName)
+    );
   }
 
   /**

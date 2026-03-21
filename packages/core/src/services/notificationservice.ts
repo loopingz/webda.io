@@ -1,4 +1,4 @@
-import { useService } from "../core/hooks.js";
+import { ServiceName, useDynamicService, useService } from "../core/hooks.js";
 import { AbstractService } from "../core/icore.js";
 import type { Ident } from "../models/ident.js";
 import type { User } from "../models/user.js";
@@ -38,7 +38,7 @@ export class MultiNotificationParameters extends ServiceParameters {
    * When multiple is `false` the first available NotificationService will
    * be used, otherwise every available NotificationService will be used
    */
-  senders: string[];
+  senders: ServiceName[];
   /**
    * Define if it sends one or several notification per user
    * @default false
@@ -75,7 +75,7 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
     super.resolve();
     console.log("resolve", this.parameters.senders);
     this.senders = this.parameters.senders.map(s => {
-      const service = useService<NotificationService>(s);
+      const service = useDynamicService<NotificationService>(s);
       if (!service) {
         throw new Error(`Unknown service '${s}'`);
       }

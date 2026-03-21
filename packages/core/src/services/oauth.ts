@@ -7,7 +7,7 @@ import { WebContext } from "../contexts/webcontext.js";
 import { Counter } from "../metrics/metrics.js";
 import { RegExpStringValidator } from "@webda/utils";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { useService } from "../core/hooks.js";
+import { ServicesMap, useService } from "../core/hooks.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { EventWithContext } from "../events/events.js";
 
@@ -129,9 +129,9 @@ export interface OAuthSession {
  * It is abstract as it does not manage any provider as is
  */
 export abstract class OAuthService<
-    T extends OAuthServiceParameters = OAuthServiceParameters,
-    E extends OAuthEvents = OAuthEvents
-  >
+  T extends OAuthServiceParameters = OAuthServiceParameters,
+  E extends OAuthEvents = OAuthEvents
+>
   extends Service<T, E>
   implements RequestFilter<WebContext>
 {
@@ -201,7 +201,9 @@ export abstract class OAuthService<
       } else {
         this.authorized_uris = new RegExpStringValidator(params.authorized_uris);
       }
-      this._authenticationService = useService<Authentication>(this.parameters.authenticationService);
+      this._authenticationService = useService(
+        this.parameters.authenticationService as keyof ServicesMap
+      ) as unknown as Authentication;
     });
     return this;
   }

@@ -9,6 +9,7 @@ import type { Store } from "../stores/store.js";
 import type { Reflection } from "../internal/iapplication.js";
 import { useModel } from "../application/hooks.js";
 import type { Core } from "./core.js";
+import { SessionManager } from "../session/manager.js";
 const { machineIdSync } = pkg;
 
 /**
@@ -33,6 +34,7 @@ export function setCore(core: Core) {
 export interface ServicesMap {
   Registry: Store;
   CryptoService: CryptoService;
+  SessionManager: SessionManager;
 }
 
 /**
@@ -53,6 +55,15 @@ export function useService<K extends keyof ServicesMap>(name: K): ServicesMap[K]
 //export function useService<T = Service>(name: ServiceName): T;
 export function useService(name: ServiceName) {
   return useCore().getService(name) as Service;
+}
+
+/**
+ * When you want to use a service that is not defined in the ServicesMap, you can use this function
+ * @param name
+ * @returns
+ */
+export function useDynamicService<T = Service>(name: string): T {
+  return useService(name as keyof ServicesMap) as T;
 }
 
 /**

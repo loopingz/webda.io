@@ -1,4 +1,4 @@
-import { useService } from "../core/hooks.js";
+import { useDynamicService } from "../core/hooks.js";
 import { Router } from "./router.js";
 
 /**
@@ -7,5 +7,5 @@ import { Router } from "./router.js";
  * @returns
  */
 export function useRouter(): Router {
-  return useService("Router");
+  return useDynamicService<Router>("Router");
 }

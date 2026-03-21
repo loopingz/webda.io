@@ -504,5 +504,5 @@ export default CryptoService;
  * @returns
  */
 export function useCrypto() {
-  return useService<CryptoService>("CryptoService");
+  return useService("CryptoService");
 }

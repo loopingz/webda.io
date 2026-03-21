@@ -462,7 +462,7 @@ export class SchemaGenerator {
         ((prop.valueDeclaration as ts.TypeAliasDeclaration).type as ts.UnionTypeNode).types.some(
           (t: ts.TypeNode) => t.kind === ts.SyntaxKind.UndefinedKeyword
         );
-      if (hasQuestionToken || unionHasUndefined) {
+      if (hasQuestionToken || unionHasUndefined || propSchema["SchemaOptional"]) {
         propResult.optional = true;
       }
       schema.properties ??= {};

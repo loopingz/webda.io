@@ -263,6 +263,32 @@ class ModelTest {
   }
 
   @test
+  async deserializeWithInstance() {
+    // Test DefaultDeserializer.Date with undefined value (falsy branch)
+    const date = Model.DefaultDeserializer.Date(undefined);
+    assert.ok(date instanceof Date);
+
+    // Test deserialize with instance on class WITH deserializers
+    // Covers the deserializer branch and the else branch for non-deserialized keys
+    const existing = new TestModel();
+    existing.id = "old";
+    TestModel.deserialize({ id: "new", name: "NewName", createdAt: "2025-01-01T00:00:00Z" }, existing);
+    assert.strictEqual(existing.id, "new");
+    assert.strictEqual(existing.name, "NewName");
+    assert.ok(existing.createdAt instanceof Date);
+
+    // Test deserialize with instance on class WITHOUT deserializers (UuidModel)
+    const uuidModel = new UuidModel();
+    UuidModel.deserialize({ uuid: "test-uuid" }, uuidModel);
+    assert.strictEqual(uuidModel.uuid, "test-uuid");
+
+    // Test deserialize where getDeserializers doesn't exist (covers false branch of ternary at line 241)
+    const target = { name: "old" };
+    Model.deserialize.call({} as any, { name: "new" }, target);
+    assert.strictEqual(target.name, "new");
+  }
+
+  @test
   coverageHelpers() {
     // isModelClass
     assert.ok(isModelClass(TestModel));

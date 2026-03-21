@@ -3,10 +3,11 @@ import { StorableClass } from "../storable";
 import { Repository, WEBDA_TEST } from "./repository";
 import { RepositoryTest } from "./repository.spec";
 import { MemoryRepository } from "./memory";
-import { afterAll, suite } from "@webda/test";
+import { afterAll, suite, test } from "@webda/test";
 import * as assert from "assert";
 import { SubClassModel, TestModel } from "../model.spec";
 import { FilterAttributes } from "@webda/tsc-esm";
+import { registerRepository } from "./hooks";
 
 @suite
 class EventRepositoryTest extends RepositoryTest {
@@ -79,5 +80,29 @@ class EventRepositoryTest extends RepositoryTest {
       await origin();
       assert.deepStrictEqual(this.events, this.testExpectations[testMethod], "Events does not match expectations");
     };
+  }
+}
+
+@suite
+class EventClearTest {
+  @test
+  async clearWithoutExcludeListeners() {
+    // Test WEBDA_TEST.clear() without excludeListeners (covers event.ts lines 280-281)
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+
+    let count = 0;
+    eventRepo.on("Created", () => count++);
+
+    // Verify listener works
+    await eventRepo.create({ uuid: "test1", name: "test", age: 1, collection: [] } as any);
+    assert.strictEqual(count, 1);
+
+    // Clear without excludeListeners (events.clear() path)
+    await eventRepo[WEBDA_TEST].clear();
+
+    // Listener should be gone
+    await eventRepo.create({ uuid: "test2", name: "test2", age: 2, collection: [] } as any);
+    assert.strictEqual(count, 1); // unchanged - listener was removed
   }
 }

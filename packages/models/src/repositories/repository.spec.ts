@@ -3,9 +3,9 @@ import { MemoryRepository } from "./memory";
 import { SubClassModel, TestModel } from "../model.spec";
 import * as assert from "assert";
 import { PrimaryKeyEquals, SelfJSONed, StorableClass, WEBDA_DIRTY, WEBDA_PRIMARY_KEY } from "../storable";
-import { Model, Repositories, UuidModel } from "../model";
+import { Model, UuidModel } from "../model";
 import { Repository, WEBDA_TEST } from "./repository";
-import { registerRepository } from "./hooks";
+import { registerRepository, Repositories } from "./hooks";
 
 export class QueryDocument extends Model {
   [WEBDA_PRIMARY_KEY] = ["id"] as const;
@@ -352,5 +352,154 @@ export class CovRepositoryTest {
       uuid: "test",
       name: "test2"
     });
+  }
+
+  @test
+  async covAbstract() {
+    const repo = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    registerRepository(SubClassModel, repo);
+    await repo.create(new SubClassModel({ uuid: "from-uid", name: "Test", age: 1, collection: [] } as any));
+
+    // fromUID
+    const ref = repo.fromUID("from-uid");
+    assert.ok(ref);
+    const model = await ref.get();
+    assert.strictEqual(model.uuid, "from-uid");
+
+    // excludePrimaryKey (uses this.pks)
+    const excluded = repo.excludePrimaryKey({ uuid: "test", name: "Test" });
+    assert.strictEqual(excluded.uuid, undefined);
+    assert.strictEqual(excluded.name, "Test");
+
+    // excludePrimaryKey with object that has PrimaryKey property (uses object.PrimaryKey)
+    const excludedWithPK = repo.excludePrimaryKey({ PrimaryKey: ["name"], uuid: "test", name: "Test" });
+    assert.strictEqual(excludedWithPK.uuid, "test");
+    assert.strictEqual(excludedWithPK.name, undefined);
+
+    // emit with no listeners (early return path)
+    await (repo as any).emit("nonexistent_event", {});
+
+    // getPrimaryKey with forceObject and primitive for single pk
+    const pkObj = repo.getPrimaryKey("test-pk", true);
+    assert.strictEqual((pkObj as any).uuid, "test-pk");
+    assert.strictEqual(pkObj.toString(), "test-pk");
+
+    // getPrimaryKey with forceObject and object input (returns object directly)
+    const pkObjFromObj = repo.getPrimaryKey({ uuid: "test-pk2" }, true);
+    assert.strictEqual((pkObjFromObj as any).uuid, "test-pk2");
+  }
+
+  @test
+  async covCompositeKey() {
+    const compositeRepo = new MemoryRepository<typeof TestModel>(TestModel, ["id", "name"]);
+    registerRepository(TestModel, compositeRepo);
+
+    // getPrimaryKey with string for composite key (parseUID path)
+    const compositePk = compositeRepo.getPrimaryKey("123_Test");
+    assert.strictEqual(compositePk.toString(), "123_Test");
+
+    // getPrimaryKey with missing composite key fields (error)
+    assert.throws(() => compositeRepo.getPrimaryKey({ id: "123" }), /Missing primary key fields/);
+  }
+
+  @test
+  async covHooksModelBase() {
+    // Register a repo on the Model base class itself to cover hooks.ts break path
+    const modelRepo = new MemoryRepository(Model as any, ["id"]);
+    registerRepository(Model as any, modelRepo);
+
+    // Create a class that extends Model directly, with no repo of its own
+    class OrphanModel extends Model {
+      [WEBDA_PRIMARY_KEY] = ["id"] as const;
+      id: string;
+      constructor(data?: any) {
+        super();
+        this.id = data?.id || "";
+      }
+    }
+
+    const found = OrphanModel.getRepository();
+    assert.strictEqual(found, modelRepo);
+
+    // Cleanup
+    Repositories.delete(Model as any);
+  }
+
+  @test
+  async covMemoryConditions() {
+    const repo = new MemoryRepository<typeof SubClassModel>(SubClassModel, ["uuid"]);
+    registerRepository(SubClassModel, repo);
+    await repo.create(new SubClassModel({ uuid: "cond-test", name: "Original", age: 10, collection: [] } as any));
+
+    // patch with condition that succeeds (checkCondition truthy + match)
+    await repo.patch("cond-test", { name: "Updated" } as any, "name", "Original");
+    const updated = await repo.get("cond-test");
+    assert.strictEqual(updated.name, "Updated");
+
+    // patch with condition that fails (checkCondition truthy + mismatch)
+    await assert.rejects(
+      () => repo.patch("cond-test", { name: "Fail" } as any, "name", "WrongValue"),
+      /Condition failed/
+    );
+
+    // update with condition that succeeds
+    await repo.update(
+      { uuid: "cond-test", name: "Updated2", age: 10, collection: [], test: 40 } as any,
+      "name",
+      "Updated"
+    );
+
+    // update with condition that fails
+    await assert.rejects(
+      () => repo.update({ uuid: "cond-test", name: "Fail", age: 10, collection: [], test: 40 } as any, "name", "Wrong"),
+      /Condition failed/
+    );
+
+    // incrementAttributes with array entry without value (covers ?? 1 fallback)
+    await repo.incrementAttributes("cond-test", [{ property: "age" } as any]);
+    const incResult = await repo.get("cond-test");
+    assert.strictEqual(incResult.age, 11); // 10 + 1 (default)
+
+    // incrementAttributes Record-style on initially-undefined property (covers || 0 branch)
+    await repo.incrementAttributes("cond-test", { "metadata.newProp": 3 } as any);
+    const incResult2 = await repo.get("cond-test");
+    assert.strictEqual((incResult2.metadata as any).newProp, 3); // 0 + 3
+  }
+
+  @test
+  async covQueryOrderBy() {
+    const repo = new MemoryRepository<typeof QueryDocument>(QueryDocument, ["id"]);
+    registerRepository(QueryDocument, repo);
+    const docs = QueryDocument.fill();
+    for (const doc of docs) {
+      await repo.create(doc);
+    }
+
+    // ORDER BY on string field (string comparison branch)
+    const res1 = await repo.query('state = "CA" ORDER BY state ASC LIMIT 5');
+    assert.strictEqual(res1.results.length, 5);
+    assert.ok(res1.continuationToken);
+
+    // ORDER BY on numeric field (descending)
+    const res2 = await repo.query("ORDER BY order DESC LIMIT 10");
+    assert.strictEqual(res2.results.length, 10);
+    assert.strictEqual(res2.results[0].order, 999);
+    assert.ok(res2.continuationToken);
+
+    // ORDER BY on numeric field (ascending)
+    const res3 = await repo.query("ORDER BY order ASC LIMIT 5");
+    assert.strictEqual(res3.results.length, 5);
+    assert.strictEqual(res3.results[0].order, 0);
+    assert.ok(res3.continuationToken);
+
+    // ORDER BY with multiple fields (covers valA === valB continue and return -1)
+    const res4 = await repo.query("ORDER BY state ASC, order ASC LIMIT 10");
+    assert.strictEqual(res4.results.length, 10);
+    assert.ok(res4.continuationToken);
+
+    // ORDER BY on non-sequential numeric field (covers valA > valB branch in sort)
+    const res5 = await repo.query("ORDER BY role ASC LIMIT 10");
+    assert.strictEqual(res5.results.length, 10);
+    assert.ok(res5.continuationToken);
   }
 }

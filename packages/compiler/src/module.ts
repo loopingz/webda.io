@@ -871,7 +871,7 @@ export class ModuleGenerator {
     [".input", ".output"].forEach(suffix => {
       const name = rootName + "." + method.name.getText() + suffix;
       const schema =
-        suffix === ".input" ? this.getMethodParametersSchema(method) : this.getAsyncMethodReturnType(method);
+        suffix === ".input" ? this.getMethodParametersSchema(method) : this.getMethodReturnType(method);
       if (schema !== null) {
         useLog("INFO", `Adding schema for ${name}`);
         schemas.addSchema(name, schema);
@@ -907,21 +907,27 @@ export class ModuleGenerator {
   }
 
   /**
-   * Get the return type schema for an async method
+   * Get the return type schema for a method
+   *
+   * For async methods (returning Promise<T>), extracts and returns the schema for T.
+   * For non-async methods, returns the schema for the return type directly.
    * @param method
    * @returns
    */
-  getAsyncMethodReturnType(method: ts.MethodDeclaration): JSONSchema7 {
+  getMethodReturnType(method: ts.MethodDeclaration): JSONSchema7 {
     const actionType = this.compiler.typeChecker.getApparentType(this.compiler.typeChecker.getTypeAtLocation(method));
-    //const actionMethodType = generator.checker.getTypeOfSymbolAtLocation(actionType, node) as ts.Type;
     const signatures = this.compiler.typeChecker.getSignaturesOfType(actionType, ts.SignatureKind.Call);
     const returnType = this.compiler.typeChecker.getReturnTypeOfSignature(signatures[0]!);
-    const promiseType = (returnType as ts.TypeReference).typeArguments?.[0];
-    if (!promiseType) {
-      useLog("WARN", `Cannot determine promise type for async method ${method.name.getText()}`);
+    // Check if return type is a Promise by verifying the symbol name
+    const typeRef = returnType as ts.TypeReference;
+    const typeName = typeRef.symbol?.getName() ?? "";
+    const isPromise = typeName === "Promise" && typeRef.typeArguments?.length > 0;
+    const resolvedType = isPromise ? typeRef.typeArguments[0] : returnType;
+    if (!resolvedType) {
+      useLog("WARN", `Cannot determine return type for method ${method.name.getText()}`);
       return undefined;
     }
-    return this.schemaGenerator.getSchemaFromType(promiseType, {
+    return this.schemaGenerator.getSchemaFromType(resolvedType, {
       asRef: false,
       type: "output"
     });

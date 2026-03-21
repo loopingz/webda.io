@@ -1,7 +1,9 @@
-class AuditEntry {
+import { UuidModel } from "@webda/models";
+
+export class AuditEntry extends UuidModel {
   actor: string | "SYSTEM";
   timestamp: number;
-  action: string;
+  operation: string;
   status: "SUCCESS" | "ERROR";
   description: string;
   context: {

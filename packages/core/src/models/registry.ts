@@ -1,11 +1,11 @@
-import { Model, PrimaryKeyType, Repository, SelfJSONed, useRepository, UuidModel } from "@webda/models";
+import { Model, PrimaryKeyType, Repository, SelfJSONed, Settable, useRepository, UuidModel } from "@webda/models";
 import { useLog } from "@webda/workout";
 
 /**
  * Specific type for registry
  */
 export class RegistryEntry extends UuidModel {
-  constructor(data?: Partial<RegistryEntry>) {
+  constructor(data?: Settable<RegistryEntry>) {
     super(data);
     Object.assign(this, data);
   }
@@ -13,16 +13,8 @@ export class RegistryEntry extends UuidModel {
   toDTO(): undefined {
     return undefined;
   }
-  fromDTO(): this {
-    return this;
-  }
-  toJSON(): SelfJSONed<this> {
-    useLog("TRACE", "RegistryEntry toJSON");
-    return this as SelfJSONed<this>;
-  }
 
-  deserialize(data: Partial<SelfJSONed<Model>>): this {
-    Object.assign(this, data);
+  fromDTO(): this {
     return this;
   }
 

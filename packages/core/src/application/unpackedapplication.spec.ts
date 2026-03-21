@@ -28,6 +28,9 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
     const expectedModules = [
       "/packages/amqp/webda.module.json",
       "/packages/core/webda.module.json",
+      "/packages/schema/webda.module.json",
+      "/packages/models/webda.module.json",
+      "/packages/compiler/webda.module.json",
       "/packages/shell/webda.module.json",
       "/packages/kubernetes/webda.module.json",
       "/packages/async/webda.module.json",
@@ -42,7 +45,10 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
       "/packages/mongodb/webda.module.json",
       "/packages/otel/webda.module.json",
       "/packages/postgres/webda.module.json",
-      "/sample-app/webda.module.json"
+      "/sample-app/webda.module.json",
+      "/sample-apps/basic-models/webda.module.json",
+      "/sample-apps/contacts/webda.module.json",
+      "/sample-apps/cves/webda.module.json"
     ].sort();
     const { __dirname } = getCommonJS(import.meta.url);
     let modules = await UnpackedApplication.findModulesFiles(join(__dirname, "..", "..", "node_modules"));

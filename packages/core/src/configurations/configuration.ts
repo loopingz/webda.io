@@ -1,7 +1,7 @@
 import * as WebdaError from "../errors/errors.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { useCore, useService } from "../core/hooks.js";
+import { useCore, useDynamicService } from "../core/hooks.js";
 import { deepmerge } from "deepmerge-ts";
 import type { Core } from "../core/core.js";
 import { Duration } from "@webda/utils";
@@ -72,7 +72,8 @@ export class ConfigurationServiceParameters extends ServiceParameters {
       this.sources.push(this.source);
       delete this.source;
     }
-    this.checkInterval = new Duration(params.checkInterval ?? "1h");
+    this.checkInterval =
+      params.checkInterval instanceof Duration ? params.checkInterval : new Duration(params.checkInterval ?? "1h");
     return this;
   }
 }
@@ -96,9 +97,9 @@ export type ConfigurationEvents = {
  * @WebdaModda
  */
 class ConfigurationService<
-    T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
-    E extends ConfigurationEvents = ConfigurationEvents
-  >
+  T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
+  E extends ConfigurationEvents = ConfigurationEvents
+>
   extends Service<T, E>
   implements ConfigurationProvider
 {
@@ -133,7 +134,7 @@ class ConfigurationService<
       if (s.includes(":")) {
         const [service, id] = s.split(":");
         console.log("Loading configuration source", service, id);
-        sourceService = useService(service);
+        sourceService = useDynamicService(service);
         sourceId = id;
       } else {
         sourceService = this;
@@ -159,7 +160,7 @@ class ConfigurationService<
     this.parameters.sources.forEach(source => {
       if (source.includes(":")) {
         const [serviceName, sourceId] = source.split(":");
-        this.sources.push({ service: useService(serviceName), id: sourceId });
+        this.sources.push({ service: useDynamicService(serviceName), id: sourceId });
       } else {
         this.sources.push({ service: this, id: source });
       }

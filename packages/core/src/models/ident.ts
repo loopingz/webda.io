@@ -1,4 +1,4 @@
-import { LoadParameters, SelfJSONed } from "@webda/models";
+import { LoadParameters, SelfJSONed, Settable } from "@webda/models";
 import { OwnerModel } from "./ownermodel.js";
 import type { User } from "./user.js";
 
@@ -13,9 +13,8 @@ export class IdentTokens {
  * @WebdaModel
  */
 export class Ident extends OwnerModel {
-  constructor(data?: LoadParameters<Ident>) {
+  constructor(data?: Settable<Ident>) {
     super(data);
-    this.load((data || {}) as LoadParameters<this>);
   }
   /**
    * Type of the ident
@@ -76,20 +75,5 @@ export class Ident extends OwnerModel {
 
   setUser(uuid: string | User) {
     this.setOwner(typeof uuid === "string" ? uuid : uuid.getPrimaryKey());
-  }
-
-  load(data: Partial<LoadParameters<this>>): this {
-    super.load(data);
-    this._type = data._type || "";
-    this.uid = data.uid || "";
-    this.__profile = data.__profile;
-    this.__tokens = data.__tokens || { access: "", refresh: "" };
-    this._lastUsed = data._lastUsed ? new Date(data._lastUsed) : undefined;
-    this._failedLogin = data._failedLogin || 0;
-    this._lastValidationEmail = data._lastValidationEmail || 0;
-    this._validation = data._validation ? new Date(data._validation) : undefined;
-    this.email = data.email;
-    this.provider = data.provider;
-    return this;
   }
 }

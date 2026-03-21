@@ -5,14 +5,15 @@ import * as WebdaError from "../errors/errors.js";
 import { ValidationError } from "../schemas/hooks.js";
 import { useInstanceStorage } from "./instancestorage.js";
 import { useApplication, useModel } from "../application/hooks.js";
-import { useService } from "./hooks.js";
+import { useDynamicService, useService } from "./hooks.js";
 import { emitCoreEvent } from "../events/events.js";
 import { isGeneratorFunction } from "node:util/types";
 import { AnyMethod } from "@webda/decorators";
 import { Service } from "../services/service.js";
 import { Model } from "@webda/models";
-import { Behavior } from "../models/behavior.js";
 import { useContext } from "../contexts/execution.js";
+
+type OperationTarget = Service | Model | typeof Service | typeof Model;
 import { useLog } from "@webda/workout";
 
 /**
@@ -144,7 +145,7 @@ export function registerOperation(operationId: string, definition: Omit<Operatio
       throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
     }
   } else if (definition.service !== undefined) {
-    const service = useService(definition.service);
+    const service = useDynamicService(definition.service);
     if (!service || typeof service[definition.method] !== "function") {
       throw new Error(`Operation ${operationId} service ${definition.service} method ${definition.method} not found`);
     }
@@ -197,16 +198,15 @@ export interface GraphQLParameters {
       };
 }
 
-
 /**
  * Wrapper concept for an operation
- * 
+ *
  * Wrapper will launch the operation but they can wrap it with additional logic
  * It allows to set some asyncStorage
- * 
+ *
  * Logging configuration per Operation
  * Metrics, Tracing
- * 
+ *
  */
 
 interface OperationParameters {
@@ -230,18 +230,15 @@ interface OperationParameters {
 
 function Operation<T = {}>(
   options?: T & OperationParameters
-): (
-  target: any,
-  context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>
-) => void;
+): (target: (this: OperationTarget, ...args: any) => any, context: ClassMethodDecoratorContext) => void;
 function Operation(
-  target: any,
-  context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>
+  target: (this: OperationTarget, ...args: any) => any,
+  context: ClassMethodDecoratorContext
 ): void;
 function Operation(...args: any[]) {
   const annotate = (
     target: AnyMethod,
-    context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>,
+    context: ClassMethodDecoratorContext,
     options: any = {}
   ) => {
     context.metadata!["webda.operations"] ??= [];
@@ -259,7 +256,6 @@ function Operation(...args: any[]) {
       if (!currentOperation) {
         // How to get the operation name here ?
         callOperation(executionContext, `Unknown.${context.name as string}`);
-        
       }
       const res = target(...args);
       return res;
@@ -268,10 +264,7 @@ function Operation(...args: any[]) {
   if (args.length === 2 && args[1] instanceof Object && args[1].kind === "method") {
     return annotate(args[0], args[1]);
   }
-  return (
-    target: any,
-    context: ClassMethodDecoratorContext<Service | Model | Behavior | typeof Service | typeof Model>
-  ) => {
+  return (target: any, context: ClassMethodDecoratorContext) => {
     return annotate(target, context, args[0]);
   };
 }

@@ -10,16 +10,15 @@ export class BeanService extends Service {
 
 @Bean
 export class SampleAppBadBean {
-  @Operation()
-  operation(context: OperationContext<{ projectId: string }>) {}
-
   async stop() {}
 }
 
 @Bean
 export class SampleAppGoodBean extends BeanService {
   @Operation()
-  operation(context: OperationContext<{ projectId: string }>) {}
+  operation(projectId: string) {}
   @Operation()
-  operation2(context: OperationContext) {}
+  async operation2(): Promise<number> {
+    return 123;
+  }
 }

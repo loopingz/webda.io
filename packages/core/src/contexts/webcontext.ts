@@ -3,7 +3,6 @@ import acceptLanguage from "accept-language";
 import * as http from "http";
 import { HttpContext } from "./httpcontext.js";
 import { Readable, Writable } from "node:stream";
-import { SessionManager } from "../session/manager.js";
 import { WritableStreamBuffer } from "stream-buffers";
 import { useCore, useService } from "../core/hooks.js";
 
@@ -213,7 +212,7 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
     }
     this._ended = (async () => {
       if (this.getExtension("http")) {
-        await useService<SessionManager>("SessionManager").save(this, this.session);
+        await useService("SessionManager").save(this, this.session);
       }
       await super.end();
       if (this._stream instanceof WritableStreamBuffer && (<WritableStreamBuffer>this._stream).size()) {

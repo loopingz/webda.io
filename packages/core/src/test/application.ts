@@ -16,7 +16,7 @@ import { sleep } from "@webda/utils";
 import { DeepPartial } from "@webda/tsc-esm";
 import { useApplication } from "../application/hooks.js";
 import { useRouter } from "../rest/hooks.js";
-import { useCore, useModelStore, useService } from "../core/hooks.js";
+import { ServiceName, ServicesMap, useCore, useModelStore, useService } from "../core/hooks.js";
 import { FakeService, Task, TestApplication, TestIdent, VoidStore } from "./objects.js";
 import { Application } from "../application/application.js";
 import { useLog } from "@webda/workout";
@@ -282,8 +282,8 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    *
    * @deprecated useService instead
    */
-  getService<T extends Service>(service: string): T {
-    return useService<T>(service);
+  getService<T extends ServiceName>(service: T): ServicesMap[T] {
+    return useService(service);
   }
 
   /**

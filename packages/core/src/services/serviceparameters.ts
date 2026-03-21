@@ -32,7 +32,21 @@ export class ServiceParameters {
     // Check delta to call watchers
     for (const watcher of this.watchers) {
       if (watcher.props.some(p => p in delta)) {
-        watcher.callback(this);
+        const watchers = [];
+        const proxy = new Proxy(this, {
+          get: (target, prop) => {
+            if (!watchers.includes(prop)) {
+              watchers.push(prop);
+            }
+            return target[prop as keyof this];
+          }
+        });
+        // We need to call the watcher with another proxy
+        watcher.callback(proxy);
+        // Update the watcher props if they accessed new properties
+        if (watchers.length) {
+          watcher.props = Array.from(new Set([...watcher.props, ...watchers]));
+        }
       }
     }
     return this;

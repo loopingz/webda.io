@@ -8,14 +8,14 @@ import {
   WEBDA_STORAGE,
   ModelClass
 } from "./storable";
-import { WEBDA_DIRTY } from "@webda/utils";
+import { DirtyState, WEBDA_DIRTY } from "@webda/utils";
 import type { Helpers, SelfJSONed } from "./types";
 import { randomUUID } from "crypto";
 import type { ModelRef } from "./relations";
 import type { Repository } from "./repositories/repository";
 import { ObjectSerializer, registerSerializer } from "@webda/serialize";
 import { LoadParameters } from "./types";
-import { RepositoryStorageClassMixIn } from "./repositories/hooks";
+import { RepositoryStorageClassMixIn, useRepository } from "./repositories/hooks";
 
 /**
  * Make all properties optional except those in K.
@@ -198,16 +198,15 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
    */
   async save(): Promise<this> {
     const repo = this.getRepository();
-    const concreteThis: this & Storable = this as any;
-    if (!this[WEBDA_DIRTY]) {
+    const concreteThis: this & Storable & { dirty?: DirtyState } = this as any;
+    console.log("Saving model with dirty state:", concreteThis, concreteThis.dirty);
+    if (!concreteThis["dirty"]?.valueOf()) {
       await repo.upsert(concreteThis as Helpers<this>);
     } else {
-      const patch = {} as Partial<this>;
-      for (const k of this[WEBDA_DIRTY]) {
-        (patch as any)[k] = (this as any)[k];
-      }
+      const patch = concreteThis["dirty"].getPatch() as Partial<this>;
+      console.log("Saving with patch:", patch);
       await repo.patch(this.getPrimaryKey(), patch);
-      this[WEBDA_DIRTY].clear();
+      concreteThis["dirty"].clear();
     }
     return this;
   }

@@ -2805,7 +2805,6 @@
       "additionalProperties": false,
       "description": "Represent a file to store",
       "properties": {
-        "0": {},
         "challenge": {
           "description": "Will be computed by the service\n\nhash of the content prefixed by 'WEBDA'",
           "type": "string"
@@ -2835,7 +2834,6 @@
         }
       },
       "required": [
-        "0",
         "mimetype",
         "name",
         "size"

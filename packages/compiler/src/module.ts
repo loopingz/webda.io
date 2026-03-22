@@ -13,7 +13,6 @@ import { EventsMetadata } from "./metadata/events";
 import { PrimaryKeyMetadata } from "./metadata/primarykey";
 import { PluralMetadata } from "./metadata/plural";
 import { SchemaGenerator } from "@webda/schema";
-import { generateConfigurationSchemas } from "./configuration";
 
 /**
  * Found all objects from compiled source

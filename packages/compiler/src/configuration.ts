@@ -1,45 +1,94 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { JSONSchema7 } from "json-schema";
+import { relative, dirname } from "node:path";
 
 /**
- * Generate the configuration schema
+ * Interface for the application methods needed by configuration schema generation
+ */
+export interface ConfigSchemaApplication {
+  getModdas(): { [key: string]: any };
+  getSchema(type: string): JSONSchema7;
+  getDeployers(): { [key: string]: any };
+  getConfiguration(): { services: { [key: string]: any } };
+  getModules(): { beans?: { [key: string]: any } };
+  completeNamespace(name: string): string;
+}
+
+/**
+ * Generate regex based on a service name
  *
- * @param filename to save for
+ * The regex will ensure the namespace is optional
+ *
+ * @param app
+ * @param type
+ * @returns
+ */
+function getServiceTypePattern(app: ConfigSchemaApplication, type: string): string {
+  const split = app.completeNamespace(type).split("/");
+  return `^(${split[0]}/)?${split[1]}$`;
+}
+
+/**
+ * Generate the configuration and deployment schemas
+ *
+ * @param app to use for application metadata
+ * @param filename to save config schema to
+ * @param deploymentFilename to save deployment schema to
  * @param full to keep all required
  */
 export function generateConfigurationSchemas(
-  filename: string = ".webda/config-schema.json",
-  deploymentFilename: string = ".webda/deployment-schema.json",
-  full: boolean = false
+  app: ConfigSchemaApplication,
+  filename: string = ".webda/config.schema.json",
+  deploymentFilename: string = ".webda/deployment.schema.json",
+  full: boolean = false,
+  configFile?: string
 ) {
-  // Ensure we have compiled already
-  this.compile();
-
-  const rawSchema: JSONSchema7 = this.schemaGenerator.createSchema("UnpackedConfiguration");
-  let res: JSONSchema7 = <JSONSchema7>rawSchema.definitions["UnpackedConfiguration"];
-  res.definitions ??= {};
+  // Build the base configuration schema structure
+  let res: JSONSchema7 = {
+    type: "object",
+    properties: {
+      $schema: { type: "string" },
+      $import: {
+        anyOf: [{ type: "string" }, { items: { type: "string" }, type: "array" }],
+        description: "Include other configuration files"
+      },
+      version: { type: "number" },
+      parameters: {
+        type: "object",
+        additionalProperties: true,
+        description: "Global parameters shared between all services"
+      },
+      services: {
+        type: "object",
+        additionalProperties: {
+          oneOf: []
+        }
+      },
+      models: {
+        type: "object",
+        additionalProperties: true
+      }
+    },
+    definitions: {}
+  };
   // Add the definition for types
   res.definitions.ServicesType = {
     type: "string",
-    enum: Object.keys(this.app.getModdas() || {})
-  };
-  res.properties.services = {
-    type: "object",
-    additionalProperties: {
-      oneOf: []
-    }
+    enum: Object.keys(app.getModdas() || {})
   };
   const addServiceSchema = (type: "ServiceType" | "BeanType") => {
     return serviceType => {
       const key = `${type}$${serviceType.replace(/\//g, "$")}`;
-      const definition: JSONSchema7 = (res.definitions[key] = this.app.getSchema(serviceType));
+      const definition: JSONSchema7 = (res.definitions[key] = app.getSchema(serviceType));
       /* should try to mock the getSchema */
       /* c8 ignore next 3 */
       if (!definition) {
         return;
       }
       definition.title ??= serviceType;
-      (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+      if (definition.properties?.type) {
+        (<JSONSchema7>definition.properties.type).pattern = getServiceTypePattern(app, serviceType);
+      }
       (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
         $ref: `#/definitions/${key}`
       });
@@ -66,8 +115,8 @@ export function generateConfigurationSchemas(
       }
     };
   };
-  Object.keys(this.app.getModdas()).forEach(addServiceSchema("ServiceType"));
-  Object.keys(this.app.getBeans()).forEach(addServiceSchema("BeanType"));
+  Object.keys(app.getModdas()).forEach(addServiceSchema("ServiceType"));
+  Object.keys(app.getModules().beans || {}).forEach(addServiceSchema("BeanType"));
   FileUtils.save(res, filename);
   // Build the deployment schema
   // Ensure builtin deployers are there
@@ -94,8 +143,8 @@ export function generateConfigurationSchemas(
     },
     definitions: res.definitions
   };
-  const appServices = this.app.getConfiguration().services;
-  Object.keys(appServices).forEach(k => {
+  const appServices = app.getConfiguration().services;
+  Object.keys(appServices || {}).forEach(k => {
     if (!appServices[k]) {
       return;
     }
@@ -110,14 +159,16 @@ export function generateConfigurationSchemas(
       ]
     };
   });
-  Object.keys(this.app.getDeployers()).forEach(serviceType => {
+  Object.keys(app.getDeployers()).forEach(serviceType => {
     const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
-    const definition: JSONSchema7 = (res.definitions[key] = this.app.getSchema(serviceType));
+    const definition: JSONSchema7 = (res.definitions[key] = app.getSchema(serviceType));
     if (!definition) {
       return;
     }
     definition.title = serviceType;
-    (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+    if (definition.properties?.type) {
+      (<JSONSchema7>definition.properties.type).pattern = getServiceTypePattern(app, serviceType);
+    }
     (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({
       $ref: `#/definitions/${key}`
     });
@@ -128,4 +179,14 @@ export function generateConfigurationSchemas(
     }
   });
   FileUtils.save(res, deploymentFilename);
+
+  // Ensure $schema is set in the configuration file
+  if (configFile) {
+    const config = FileUtils.load(configFile);
+    const schemaRef = relative(dirname(configFile), filename);
+    if (config.$schema !== schemaRef) {
+      config.$schema = schemaRef;
+      FileUtils.save(config, configFile);
+    }
+  }
 }

@@ -1,4 +1,5 @@
 import { CryptoService, Logger, Store } from "@webda/core";
+import { generateConfigurationSchemas } from "@webda/compiler";
 import { FileUtils, JSONUtils, CancelablePromise, getCommonJS } from "@webda/utils";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import chalk from "chalk";
@@ -800,7 +801,7 @@ ${Object.keys(operationsExport.operations)
     try {
       if (fs.existsSync(this.app.configurationFile)) {
         // Generate config schema as well
-        this.app.getCompiler().generateConfigurationSchemas();
+        generateConfigurationSchemas(this.app, undefined, undefined, undefined, this.app.configurationFile);
       }
       /* c8 ignore next 3 */
     } catch (err) {

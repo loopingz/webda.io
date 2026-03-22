@@ -101,7 +101,9 @@ export class Compiler {
     // Emit all code with accessor transforms
     const { diagnostics } = perf.measure("emit", () =>
       this.tsProgram.emit(undefined, writer, undefined, false, {
-        before: [createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll, perf)],
+        before: [
+          createAccessorTransformer(ts, this.tsProgram, coercions, modelBases, coercibleFields, accessorsForAll, perf)
+        ],
         afterDeclarations: [
           createDeclarationAccessorTransformer(
             ts,

@@ -10,6 +10,7 @@ import * as path from "path";
 import * as sinon from "sinon";
 import ts from "typescript";
 import { Compiler } from "../code/compiler";
+import { generateConfigurationSchemas } from "@webda/compiler";
 import { SourceApplication } from "../code/sourceapplication";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
@@ -860,7 +861,7 @@ export default class FakeTerminal {
     // Add a fake deployer to ensure when no schema
     WebdaConsole.app.addDeployer("webda/fakedeployer", {});
     try {
-      WebdaConsole.app.getCompiler().generateConfigurationSchemas();
+      generateConfigurationSchemas(WebdaConsole.app);
     } finally {
       stub.restore();
       delete WebdaConsole.app.getDeployers()["webda/fakedeployer"];
